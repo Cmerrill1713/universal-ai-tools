@@ -1,0 +1,1001 @@
+/**
+ * Sweet Athena - Enhanced CSS System
+ * 
+ * Comprehensive CSS system with personality-driven styling, divine animations,
+ * and responsive design patterns for the Sweet Athena AI assistant interface.
+ * 
+ * @fileoverview Enhanced CSS system with personality theming
+ * @author Sweet Athena Development Team
+ * @version 1.0.0
+ */
+
+/* CSS Custom Properties for Sweet Athena's Personality System */
+:root {
+  /* Sweet Personality Colors */
+  --athena-sweet-primary: #FFB6C1;        /* Light Pink */
+  --athena-sweet-secondary: #DDA0DD;      /* Plum */
+  --athena-sweet-accent: #F0E68C;         /* Khaki Gold */
+  --athena-sweet-soft: #FFF0F5;           /* Lavender Blush */
+  --athena-sweet-text: #2D2D2D;           /* Dark Gray */
+  --athena-sweet-background: #FEFEFE;     /* Nearly White */
+  
+  /* Shy Personality Colors */
+  --athena-shy-primary: #E6E6FA;          /* Lavender */
+  --athena-shy-secondary: #D8BFD8;        /* Thistle */
+  --athena-shy-accent: #F5DEB3;           /* Wheat */
+  --athena-shy-soft: #F8F8FF;             /* Ghost White */
+  --athena-shy-text: #3C3C3C;             /* Slightly Darker */
+  --athena-shy-background: #FDFDFD;       /* Clean Minimal */
+  
+  /* Confident Personality Colors */
+  --athena-confident-primary: #4169E1;    /* Royal Blue */
+  --athena-confident-secondary: #6495ED;  /* Cornflower */
+  --athena-confident-accent: #FFD700;     /* Gold */
+  --athena-confident-soft: #F0F8FF;       /* Alice Blue */
+  --athena-confident-text: #1A1A1A;       /* Strong Contrast */
+  --athena-confident-background: #FFFFFF; /* Pure White */
+  
+  /* Caring Personality Colors */
+  --athena-caring-primary: #FFA07A;       /* Light Salmon */
+  --athena-caring-secondary: #FFB6C1;     /* Light Pink */
+  --athena-caring-accent: #98FB98;        /* Pale Green */
+  --athena-caring-soft: #FFF8DC;          /* Cornsilk */
+  --athena-caring-text: #2F2F2F;          /* Warm Dark */
+  --athena-caring-background: #FFFEF7;    /* Slightly Warm White */
+  
+  /* Playful Personality Colors */
+  --athena-playful-primary: #FF69B4;      /* Hot Pink */
+  --athena-playful-secondary: #DA70D6;    /* Orchid */
+  --athena-playful-accent: #00CED1;       /* Dark Turquoise */
+  --athena-playful-soft: #FFFACD;         /* Lemon Chiffon */
+  --athena-playful-text: #222222;         /* Strong Contrast */
+  --athena-playful-background: #FFFFFB;   /* Bright Cheerful */
+  
+  /* Divine Effects */
+  --athena-glow-soft: 0 0 20px rgba(255, 182, 193, 0.3);
+  --athena-glow-medium: 0 0 30px rgba(255, 182, 193, 0.5);
+  --athena-glow-strong: 0 0 40px rgba(255, 182, 193, 0.7);
+  --athena-shadow-soft: 0 4px 20px rgba(255, 182, 193, 0.2);
+  --athena-shimmer: 0 0 15px rgba(240, 230, 140, 0.6);
+  
+  /* Animation Timings */
+  --athena-transition-fast: 0.2s ease-out;
+  --athena-transition-medium: 0.4s ease-in-out;
+  --athena-transition-slow: 0.8s ease-in-out;
+  --athena-transition-divine: 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --athena-breathing-duration: 4s;
+  --athena-hover-timing: 0.3s ease-out;
+  
+  /* Typography */
+  --athena-font-elegant: 'Crimson Text', 'Playfair Display', 'Georgia', serif;
+  --athena-font-modern: 'Inter', 'System UI', 'Helvetica Neue', 'Arial', sans-serif;
+  --athena-font-divine: 'Cinzel', 'Cormorant Garamond', 'Times New Roman', serif;
+  --athena-font-code: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+  
+  /* Sweetness Levels */
+  --athena-sweetness-level: 8;
+  --athena-sweetness-intensity: moderate;
+  --athena-sweetness-opacity: 0.56; /* Calculated: 0.3 + (8 * 0.07) */
+  --athena-sweetness-scale: 1.16;   /* Calculated: 1 + (8 * 0.02) */
+  --athena-particle-count: 64;     /* Calculated: 8 * 8 */
+  
+  /* Z-Index Layers */
+  --athena-z-background: 0;
+  --athena-z-content: 10;
+  --athena-z-overlay: 100;
+  --athena-z-modal: 1000;
+  --athena-z-tooltip: 10000;
+  
+  /* Responsive Breakpoints */
+  --athena-breakpoint-sm: 640px;
+  --athena-breakpoint-md: 768px;
+  --athena-breakpoint-lg: 1024px;
+  --athena-breakpoint-xl: 1280px;
+}
+
+/* Base Sweet Athena Container */
+.sweet-athena-container {
+  position: relative;
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.08) 0%,
+    rgba(221, 160, 221, 0.08) 50%,
+    rgba(240, 230, 140, 0.08) 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all var(--athena-transition-medium);
+  font-family: var(--athena-font-modern);
+  color: var(--athena-text, #2D2D2D);
+}
+
+/* Magical shimmer overlay */
+.sweet-athena-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 70%,
+    transparent 100%);
+  opacity: 0;
+  transition: opacity var(--athena-transition-medium);
+  pointer-events: none;
+  transform: translateX(-100%);
+  animation: shimmer-sweep 3s infinite;
+}
+
+.sweet-athena-container:hover::before {
+  opacity: 1;
+}
+
+/* Personality State Classes with Dynamic Properties */
+.athena-mood-sweet {
+  --athena-primary: var(--athena-sweet-primary);
+  --athena-secondary: var(--athena-sweet-secondary);
+  --athena-accent: var(--athena-sweet-accent);
+  --athena-soft: var(--athena-sweet-soft);
+  --athena-text: var(--athena-sweet-text);
+  --athena-background: var(--athena-sweet-background);
+}
+
+.athena-mood-shy {
+  --athena-primary: var(--athena-shy-primary);
+  --athena-secondary: var(--athena-shy-secondary);
+  --athena-accent: var(--athena-shy-accent);
+  --athena-soft: var(--athena-shy-soft);
+  --athena-text: var(--athena-shy-text);
+  --athena-background: var(--athena-shy-background);
+}
+
+.athena-mood-confident {
+  --athena-primary: var(--athena-confident-primary);
+  --athena-secondary: var(--athena-confident-secondary);
+  --athena-accent: var(--athena-confident-accent);
+  --athena-soft: var(--athena-confident-soft);
+  --athena-text: var(--athena-confident-text);
+  --athena-background: var(--athena-confident-background);
+}
+
+.athena-mood-caring {
+  --athena-primary: var(--athena-caring-primary);
+  --athena-secondary: var(--athena-caring-secondary);
+  --athena-accent: var(--athena-caring-accent);
+  --athena-soft: var(--athena-caring-soft);
+  --athena-text: var(--athena-caring-text);
+  --athena-background: var(--athena-caring-background);
+}
+
+.athena-mood-playful {
+  --athena-primary: var(--athena-playful-primary);
+  --athena-secondary: var(--athena-playful-secondary);
+  --athena-accent: var(--athena-playful-accent);
+  --athena-soft: var(--athena-playful-soft);
+  --athena-text: var(--athena-playful-text);
+  --athena-background: var(--athena-playful-background);
+}
+
+/* Enhanced Divine Animations */
+@keyframes athena-gentle-breathe {
+  0%, 100% { 
+    transform: scale(1) translateY(0px);
+    filter: brightness(1);
+  }
+  50% { 
+    transform: scale(1.02) translateY(-2px);
+    filter: brightness(1.05);
+  }
+}
+
+@keyframes athena-shy-sway {
+  0%, 100% { 
+    transform: translateX(0px) rotate(0deg);
+    opacity: 0.9;
+  }
+  25% { 
+    transform: translateX(-3px) rotate(-0.5deg);
+    opacity: 0.85;
+  }
+  75% { 
+    transform: translateX(3px) rotate(0.5deg);
+    opacity: 0.85;
+  }
+}
+
+@keyframes athena-confident-rise {
+  0%, 100% { 
+    transform: translateY(0px) scale(1);
+    box-shadow: var(--athena-glow-soft);
+  }
+  50% { 
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: var(--athena-glow-medium);
+  }
+}
+
+@keyframes athena-caring-pulse {
+  0%, 100% { 
+    box-shadow: var(--athena-glow-soft);
+    filter: hue-rotate(0deg);
+  }
+  50% { 
+    box-shadow: var(--athena-glow-strong);
+    filter: hue-rotate(5deg);
+  }
+}
+
+@keyframes athena-playful-bounce {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% { 
+    transform: translateY(-3px) rotate(1deg) scale(1.01);
+  }
+  50% { 
+    transform: translateY(-6px) rotate(0deg) scale(1.02);
+  }
+  75% { 
+    transform: translateY(-3px) rotate(-1deg) scale(1.01);
+  }
+}
+
+@keyframes athena-divine-sparkle {
+  0%, 100% { 
+    opacity: 0.3; 
+    transform: scale(0.8) rotate(0deg);
+    filter: brightness(1);
+  }
+  33% {
+    opacity: 0.8;
+    transform: scale(1.1) rotate(120deg);
+    filter: brightness(1.3);
+  }
+  66% {
+    opacity: 1;
+    transform: scale(1.2) rotate(240deg);
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes athena-floating-symbols {
+  0% { 
+    transform: translateY(0px) rotate(0deg); 
+    opacity: 0.7;
+    filter: drop-shadow(0 0 5px var(--athena-accent));
+  }
+  33% { 
+    transform: translateY(-10px) rotate(120deg); 
+    opacity: 1;
+    filter: drop-shadow(0 0 10px var(--athena-accent));
+  }
+  66% { 
+    transform: translateY(-5px) rotate(240deg); 
+    opacity: 0.8;
+    filter: drop-shadow(0 0 8px var(--athena-accent));
+  }
+  100% { 
+    transform: translateY(0px) rotate(360deg); 
+    opacity: 0.7;
+    filter: drop-shadow(0 0 5px var(--athena-accent));
+  }
+}
+
+@keyframes athena-message-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    filter: blur(2px);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(10px) scale(0.98);
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes athena-typing-indicator {
+  0%, 60%, 100% {
+    transform: translateY(0px);
+    opacity: 0.4;
+    background: var(--athena-primary);
+  }
+  30% {
+    transform: translateY(-8px);
+    opacity: 1;
+    background: var(--athena-accent);
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes magical-entrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-180deg);
+    filter: blur(10px) hue-rotate(90deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1) rotate(0deg);
+    filter: blur(2px) hue-rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: blur(0px) hue-rotate(0deg);
+  }
+}
+
+/* Enhanced Avatar Styles with Personality Awareness */
+.athena-avatar-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: all var(--athena-transition-divine);
+  background: radial-gradient(circle, 
+    var(--athena-soft) 0%, 
+    var(--athena-primary) 100%);
+}
+
+.athena-avatar-container.mood-sweet {
+  animation: athena-gentle-breathe var(--athena-breathing-duration) ease-in-out infinite;
+}
+
+.athena-avatar-container.mood-shy {
+  animation: athena-shy-sway 6s ease-in-out infinite;
+}
+
+.athena-avatar-container.mood-confident {
+  animation: athena-confident-rise 3s ease-in-out infinite;
+}
+
+.athena-avatar-container.mood-caring {
+  animation: athena-caring-pulse 2.5s ease-in-out infinite;
+}
+
+.athena-avatar-container.mood-playful {
+  animation: athena-playful-bounce 2s ease-in-out infinite;
+}
+
+/* Enhanced Particle Effects */
+.athena-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: var(--athena-z-background);
+}
+
+.athena-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(circle, var(--athena-accent), transparent);
+  border-radius: 50%;
+  animation: athena-divine-sparkle 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 3px var(--athena-accent));
+}
+
+.athena-particle:nth-child(odd) {
+  animation-delay: -1s;
+  animation-duration: 3.5s;
+}
+
+.athena-particle:nth-child(even) {
+  animation-delay: -2s;
+  animation-duration: 2.5s;
+}
+
+.athena-particle:nth-child(3n) {
+  animation-delay: -0.5s;
+  animation-duration: 4s;
+}
+
+/* Enhanced Wisdom Symbols */
+.athena-wisdom-symbols {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: var(--athena-z-content);
+}
+
+.athena-symbol {
+  position: absolute;
+  font-size: 1.5rem;
+  color: var(--athena-accent);
+  animation: athena-floating-symbols 8s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px var(--athena-accent));
+  text-shadow: 0 0 5px var(--athena-accent);
+  transition: all var(--athena-transition-medium);
+}
+
+.athena-symbol:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 15px var(--athena-accent));
+}
+
+.athena-symbol:nth-child(1) { 
+  top: 20%; 
+  left: 80%; 
+  animation-delay: 0s; 
+}
+.athena-symbol:nth-child(2) { 
+  top: 60%; 
+  left: 10%; 
+  animation-delay: -2s; 
+}
+.athena-symbol:nth-child(3) { 
+  top: 30%; 
+  left: 15%; 
+  animation-delay: -4s; 
+}
+.athena-symbol:nth-child(4) { 
+  top: 70%; 
+  left: 85%; 
+  animation-delay: -6s; 
+}
+
+/* Enhanced Chat Interface Styles */
+.athena-chat-container {
+  font-family: var(--athena-font-modern);
+  background: linear-gradient(135deg, 
+    var(--athena-background) 0%,
+    var(--athena-soft) 100%);
+  border: 2px solid var(--athena-primary);
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  transition: all var(--athena-transition-divine);
+  box-shadow: var(--athena-shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.athena-chat-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    var(--athena-primary) 0%,
+    var(--athena-accent) 50%,
+    var(--athena-secondary) 100%);
+  animation: shimmer-sweep 2s infinite;
+}
+
+.athena-chat-container:hover {
+  box-shadow: var(--athena-glow-medium);
+  transform: translateY(-2px);
+}
+
+/* Enhanced Message Styles */
+.athena-message {
+  padding: 14px 18px;
+  margin: 10px 16px;
+  border-radius: 16px;
+  animation: athena-message-appear 0.5s ease-out;
+  transition: all var(--athena-transition-fast);
+  position: relative;
+  backdrop-filter: blur(10px);
+  border: 1px solid transparent;
+}
+
+.athena-message.user {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.85) 100%);
+  color: var(--athena-text);
+  margin-left: 25%;
+  border-bottom-right-radius: 6px;
+  border: 1px solid var(--athena-primary);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.athena-message.assistant {
+  background: linear-gradient(135deg, 
+    var(--athena-primary) 0%,
+    var(--athena-secondary) 100%);
+  color: white;
+  margin-right: 25%;
+  border-bottom-left-radius: 6px;
+  box-shadow: var(--athena-glow-soft);
+  position: relative;
+}
+
+.athena-message.assistant::before {
+  content: '✨';
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  opacity: 0.8;
+  animation: athena-divine-sparkle 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px var(--athena-accent));
+}
+
+.athena-message:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--athena-glow-medium);
+}
+
+/* Enhanced Typing Indicator */
+.athena-typing {
+  display: flex;
+  align-items: center;
+  padding: 12px 18px;
+  margin: 8px 16px;
+  margin-right: 25%;
+  background: var(--athena-primary);
+  border-radius: 16px;
+  border-bottom-left-radius: 6px;
+  opacity: 0.9;
+  animation: athena-message-appear 0.3s ease-out;
+}
+
+.athena-typing::before {
+  content: '💭 ';
+  margin-right: 10px;
+  font-size: 1.1rem;
+  opacity: 0.9;
+  animation: athena-divine-sparkle 1.5s ease-in-out infinite;
+}
+
+.athena-typing-dot {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  margin: 0 3px;
+  animation: athena-typing-indicator 1.4s ease-in-out infinite;
+  box-shadow: 0 0 5px var(--athena-accent);
+}
+
+.athena-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.athena-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.athena-typing-dot:nth-child(4) { animation-delay: 0.6s; }
+
+/* Enhanced Input Field Styles */
+.athena-input-container {
+  position: relative;
+  background: linear-gradient(135deg,
+    var(--athena-background) 0%,
+    var(--athena-soft) 100%);
+  border: 2px solid var(--athena-primary);
+  border-radius: 25px;
+  transition: all var(--athena-transition-medium);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.athena-input-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg,
+    transparent 0%,
+    var(--athena-accent) 50%,
+    transparent 100%);
+  opacity: 0;
+  transition: opacity var(--athena-transition-fast);
+  pointer-events: none;
+}
+
+.athena-input-container:focus-within {
+  border-color: var(--athena-accent);
+  box-shadow: var(--athena-glow-medium);
+  transform: scale(1.02);
+}
+
+.athena-input-container:focus-within::before {
+  opacity: 0.1;
+}
+
+.athena-input {
+  width: 100%;
+  padding: 14px 60px 14px 24px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--athena-text);
+  font-family: var(--athena-font-modern);
+  font-size: 15px;
+  resize: none;
+  transition: all var(--athena-transition-fast);
+}
+
+.athena-input::placeholder {
+  color: var(--athena-primary);
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.athena-input:focus::placeholder {
+  opacity: 0.5;
+  transform: translateY(-2px);
+}
+
+/* Enhanced Button Styles */
+.athena-button {
+  background: linear-gradient(135deg, 
+    var(--athena-primary) 0%,
+    var(--athena-secondary) 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 24px;
+  font-family: var(--athena-font-modern);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--athena-transition-medium);
+  box-shadow: var(--athena-shadow-soft);
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.athena-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%);
+  transition: left var(--athena-transition-medium);
+}
+
+.athena-button:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: var(--athena-glow-medium);
+  filter: brightness(1.1);
+}
+
+.athena-button:hover::before {
+  left: 100%;
+}
+
+.athena-button:active {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.athena-button.primary {
+  background: linear-gradient(135deg, 
+    var(--athena-accent) 0%,
+    var(--athena-primary) 100%);
+  box-shadow: var(--athena-glow-medium);
+}
+
+.athena-button.ghost {
+  background: transparent;
+  border: 2px solid var(--athena-primary);
+  color: var(--athena-primary);
+  box-shadow: none;
+}
+
+.athena-button.ghost:hover {
+  background: var(--athena-primary);
+  color: white;
+  box-shadow: var(--athena-glow-soft);
+}
+
+/* Enhanced Status Indicators */
+.athena-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--athena-primary);
+  border-radius: 25px;
+  backdrop-filter: blur(15px);
+  font-family: var(--athena-font-modern);
+  font-size: 13px;
+  color: var(--athena-primary);
+  box-shadow: var(--athena-shadow-soft);
+  transition: all var(--athena-transition-medium);
+}
+
+.athena-status:hover {
+  transform: scale(1.05);
+  box-shadow: var(--athena-glow-soft);
+}
+
+.athena-status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--athena-accent);
+  animation: athena-gentle-breathe 2s ease-in-out infinite;
+  box-shadow: 0 0 10px var(--athena-accent);
+}
+
+.athena-status.thinking .athena-status-indicator {
+  background: var(--athena-primary);
+  animation: athena-typing-indicator 1s ease-in-out infinite;
+}
+
+.athena-status.speaking .athena-status-indicator {
+  background: var(--athena-secondary);
+  animation: athena-caring-pulse 1.5s ease-in-out infinite;
+}
+
+.athena-status.listening .athena-status-indicator {
+  background: var(--athena-accent);
+  animation: athena-divine-sparkle 1s ease-in-out infinite;
+}
+
+/* Mood Selector Enhanced Styles */
+.athena-mood-selector {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: var(--athena-soft);
+  border-radius: 20px;
+  border: 1px solid var(--athena-primary);
+  margin: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.athena-mood-button {
+  background: transparent;
+  border: 1px solid var(--athena-primary);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--athena-primary);
+  cursor: pointer;
+  transition: all var(--athena-transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.athena-mood-button:hover {
+  background: var(--athena-primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--athena-shadow-soft);
+}
+
+.athena-mood-button.active {
+  background: linear-gradient(135deg,
+    var(--athena-primary) 0%,
+    var(--athena-secondary) 100%);
+  color: white;
+  box-shadow: var(--athena-glow-soft);
+}
+
+/* Responsive Design Enhancements */
+@media (max-width: 768px) {
+  .athena-message.user {
+    margin-left: 15%;
+  }
+  
+  .athena-message.assistant {
+    margin-right: 15%;
+  }
+  
+  .athena-symbol {
+    font-size: 1.2rem;
+  }
+  
+  .athena-input-container {
+    border-radius: 20px;
+  }
+  
+  .athena-input {
+    padding: 12px 50px 12px 18px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .athena-button {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sweet-athena-container {
+    border-radius: 16px;
+  }
+  
+  .athena-message {
+    margin: 8px 12px;
+    padding: 12px 16px;
+  }
+  
+  .athena-message.user {
+    margin-left: 10%;
+  }
+  
+  .athena-message.assistant {
+    margin-right: 10%;
+  }
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .athena-particle,
+  .athena-symbol {
+    animation: none !important;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .athena-message.assistant {
+    background: #000 !important;
+    color: #fff !important;
+    border: 3px solid #fff !important;
+  }
+  
+  .athena-message.user {
+    background: #fff !important;
+    color: #000 !important;
+    border: 3px solid #000 !important;
+  }
+  
+  .athena-button {
+    border: 3px solid !important;
+  }
+}
+
+/* Dark Mode Adaptations */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --athena-text: #E5E5E5;
+    --athena-background: #1A1A1A;
+  }
+  
+  .athena-input {
+    color: #E5E5E5;
+  }
+  
+  .athena-input::placeholder {
+    color: rgba(229, 229, 229, 0.6);
+  }
+  
+  .athena-status {
+    background: rgba(0, 0, 0, 0.9);
+    color: rgba(229, 229, 229, 0.95);
+  }
+  
+  .athena-message.user {
+    background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%);
+    color: #E5E5E5;
+    border-color: var(--athena-primary);
+  }
+}
+
+/* Print Styles */
+@media print {
+  .athena-particles,
+  .athena-wisdom-symbols,
+  .athena-status {
+    display: none !important;
+  }
+  
+  .sweet-athena-container {
+    background: white !important;
+    box-shadow: none !important;
+  }
+  
+  .athena-message {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+}
+
+/* Special Effects for Enhanced Immersion */
+.athena-magical-entrance {
+  animation: magical-entrance 1s ease-out;
+}
+
+.athena-divine-presence {
+  position: relative;
+}
+
+.athena-divine-presence::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  background: linear-gradient(45deg,
+    var(--athena-primary),
+    var(--athena-secondary),
+    var(--athena-accent),
+    var(--athena-primary));
+  border-radius: inherit;
+  z-index: -1;
+  filter: blur(10px);
+  opacity: 0.3;
+  animation: shimmer-sweep 3s infinite;
+}
+
+/* Sweetness Level Modifiers */
+.sweetness-subtle {
+  --athena-sweetness-opacity: 0.3;
+  --athena-sweetness-scale: 1.02;
+}
+
+.sweetness-moderate {
+  --athena-sweetness-opacity: 0.5;
+  --athena-sweetness-scale: 1.05;
+}
+
+.sweetness-strong {
+  --athena-sweetness-opacity: 0.8;
+  --athena-sweetness-scale: 1.1;
+}
+
+/* Utility Classes */
+.athena-fade-in {
+  animation: athena-message-appear 0.5s ease-out;
+}
+
+.athena-glow {
+  box-shadow: var(--athena-glow-medium);
+}
+
+.athena-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.athena-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%);
+  animation: shimmer-sweep 2s infinite;
+}

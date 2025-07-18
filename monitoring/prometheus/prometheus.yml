@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Universal AI Tools API metrics
+  - job_name: 'universal-ai-tools'
+    static_configs:
+      - targets: ['localhost:9999']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    
+  # Legacy API metrics (for compatibility)
+  - job_name: 'api'
+    static_configs:
+      - targets: ['api:3000']
+    metrics_path: '/metrics'
+
+  # Dashboard metrics
+  - job_name: 'dashboard'
+    static_configs:
+      - targets: ['dashboard:3001']
+    metrics_path: '/metrics'
+
+  # Redis exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+
+  # Node exporter for system metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Ollama metrics
+  - job_name: 'ollama'
+    static_configs:
+      - targets: ['ollama:11434']
+    metrics_path: '/api/stats'
+
+  # SearXNG metrics
+  - job_name: 'searxng'
+    static_configs:
+      - targets: ['searxng:8080']
+    metrics_path: '/stats'

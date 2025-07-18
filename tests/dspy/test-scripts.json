@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "test:dspy": "jest tests/dspy",
+    "test:dspy:unit": "jest tests/dspy/unit",
+    "test:dspy:integration": "jest tests/dspy/integration",
+    "test:dspy:performance": "jest tests/dspy/performance",
+    "test:dspy:e2e": "jest tests/dspy/e2e",
+    "test:dspy:coverage": "jest tests/dspy --coverage",
+    "test:dspy:watch": "jest tests/dspy --watch",
+    "test:dspy:debug": "node --inspect-brk node_modules/.bin/jest tests/dspy --runInBand",
+    "test:dspy:ci": "jest tests/dspy --ci --coverage --maxWorkers=2"
+  },
+  "_comment": "Add these scripts to your main package.json file for easy test execution"
+}

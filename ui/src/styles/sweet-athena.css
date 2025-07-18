@@ -1,0 +1,488 @@
+/**
+ * Sweet Athena - Custom CSS System
+ * A unique, goddess-like design system for our AI assistant
+ * No Tailwind - Pure CSS for maximum creative control
+ */
+
+/* CSS Custom Properties for Sweet Athena's Personality */
+:root {
+  /* Sweet Personality Colors */
+  --athena-sweet-primary: #FFB6C1;        /* Light Pink */
+  --athena-sweet-secondary: #DDA0DD;      /* Plum */
+  --athena-sweet-accent: #F0E68C;         /* Khaki Gold */
+  --athena-sweet-soft: #FFF0F5;           /* Lavender Blush */
+  
+  /* Shy Personality Colors */
+  --athena-shy-primary: #E6E6FA;          /* Lavender */
+  --athena-shy-secondary: #D8BFD8;        /* Thistle */
+  --athena-shy-accent: #F5DEB3;           /* Wheat */
+  --athena-shy-soft: #F8F8FF;             /* Ghost White */
+  
+  /* Confident Personality Colors */
+  --athena-confident-primary: #4169E1;    /* Royal Blue */
+  --athena-confident-secondary: #6495ED;  /* Cornflower */
+  --athena-confident-accent: #FFD700;     /* Gold */
+  --athena-confident-soft: #F0F8FF;       /* Alice Blue */
+  
+  /* Caring Personality Colors */
+  --athena-caring-primary: #FFA07A;       /* Light Salmon */
+  --athena-caring-secondary: #FFB6C1;     /* Light Pink */
+  --athena-caring-accent: #98FB98;        /* Pale Green */
+  --athena-caring-soft: #FFF8DC;          /* Cornsilk */
+  
+  /* Playful Personality Colors */
+  --athena-playful-primary: #FF69B4;      /* Hot Pink */
+  --athena-playful-secondary: #DA70D6;    /* Orchid */
+  --athena-playful-accent: #00CED1;       /* Dark Turquoise */
+  --athena-playful-soft: #FFFACD;         /* Lemon Chiffon */
+  
+  /* Divine Effects */
+  --athena-glow-soft: 0 0 20px rgba(255, 182, 193, 0.3);
+  --athena-glow-medium: 0 0 30px rgba(255, 182, 193, 0.5);
+  --athena-glow-strong: 0 0 40px rgba(255, 182, 193, 0.7);
+  
+  /* Animation Timings */
+  --athena-transition-fast: 0.2s ease-out;
+  --athena-transition-medium: 0.4s ease-in-out;
+  --athena-transition-slow: 0.8s ease-in-out;
+  --athena-transition-divine: 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* Typography */
+  --athena-font-elegant: 'Crimson Text', 'Georgia', serif;
+  --athena-font-modern: 'Inter', 'Helvetica Neue', sans-serif;
+  --athena-font-divine: 'Cinzel', 'Times New Roman', serif;
+}
+
+/* Base Sweet Athena Container */
+.sweet-athena-container {
+  position: relative;
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.1) 0%,
+    rgba(221, 160, 221, 0.1) 50%,
+    rgba(240, 230, 140, 0.1) 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all var(--athena-transition-medium);
+}
+
+.sweet-athena-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%);
+  opacity: 0;
+  transition: opacity var(--athena-transition-medium);
+  pointer-events: none;
+}
+
+.sweet-athena-container:hover::before {
+  opacity: 1;
+}
+
+/* Personality State Classes */
+.athena-mood-sweet {
+  --athena-primary: var(--athena-sweet-primary);
+  --athena-secondary: var(--athena-sweet-secondary);
+  --athena-accent: var(--athena-sweet-accent);
+  --athena-soft: var(--athena-sweet-soft);
+}
+
+.athena-mood-shy {
+  --athena-primary: var(--athena-shy-primary);
+  --athena-secondary: var(--athena-shy-secondary);
+  --athena-accent: var(--athena-shy-accent);
+  --athena-soft: var(--athena-shy-soft);
+}
+
+.athena-mood-confident {
+  --athena-primary: var(--athena-confident-primary);
+  --athena-secondary: var(--athena-confident-secondary);
+  --athena-accent: var(--athena-confident-accent);
+  --athena-soft: var(--athena-confident-soft);
+}
+
+.athena-mood-caring {
+  --athena-primary: var(--athena-caring-primary);
+  --athena-secondary: var(--athena-caring-secondary);
+  --athena-accent: var(--athena-caring-accent);
+  --athena-soft: var(--athena-caring-soft);
+}
+
+.athena-mood-playful {
+  --athena-primary: var(--athena-playful-primary);
+  --athena-secondary: var(--athena-playful-secondary);
+  --athena-accent: var(--athena-playful-accent);
+  --athena-soft: var(--athena-playful-soft);
+}
+
+/* Divine Animations */
+@keyframes athena-gentle-breathe {
+  0%, 100% { transform: scale(1) translateY(0px); }
+  50% { transform: scale(1.02) translateY(-2px); }
+}
+
+@keyframes athena-shy-sway {
+  0%, 100% { transform: translateX(0px) rotate(0deg); }
+  25% { transform: translateX(-3px) rotate(-1deg); }
+  75% { transform: translateX(3px) rotate(1deg); }
+}
+
+@keyframes athena-confident-rise {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-5px) scale(1.05); }
+}
+
+@keyframes athena-caring-pulse {
+  0%, 100% { box-shadow: var(--athena-glow-soft); }
+  50% { box-shadow: var(--athena-glow-strong); }
+}
+
+@keyframes athena-divine-sparkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+}
+
+@keyframes athena-floating-symbols {
+  0% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
+  33% { transform: translateY(-10px) rotate(120deg); opacity: 1; }
+  66% { transform: translateY(-5px) rotate(240deg); opacity: 0.8; }
+  100% { transform: translateY(0px) rotate(360deg); opacity: 0.7; }
+}
+
+@keyframes athena-message-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+}
+
+@keyframes athena-typing-indicator {
+  0%, 60%, 100% {
+    transform: translateY(0px);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+/* Sweet Athena Avatar Styles */
+.athena-avatar-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  animation: athena-gentle-breathe 4s ease-in-out infinite;
+}
+
+.athena-avatar-container.mood-shy {
+  animation: athena-shy-sway 6s ease-in-out infinite;
+}
+
+.athena-avatar-container.mood-confident {
+  animation: athena-confident-rise 3s ease-in-out infinite;
+}
+
+.athena-avatar-container.mood-caring {
+  animation: athena-caring-pulse 2s ease-in-out infinite;
+}
+
+/* Divine Particle Effects */
+.athena-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.athena-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(circle, var(--athena-accent), transparent);
+  border-radius: 50%;
+  animation: athena-divine-sparkle 3s ease-in-out infinite;
+}
+
+.athena-particle:nth-child(odd) {
+  animation-delay: -1s;
+}
+
+.athena-particle:nth-child(even) {
+  animation-delay: -2s;
+}
+
+/* Wisdom Symbols */
+.athena-wisdom-symbols {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.athena-symbol {
+  position: absolute;
+  font-size: 1.5rem;
+  color: var(--athena-accent);
+  animation: athena-floating-symbols 8s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(240, 230, 140, 0.5));
+}
+
+.athena-symbol:nth-child(1) { top: 20%; left: 80%; animation-delay: 0s; }
+.athena-symbol:nth-child(2) { top: 60%; left: 10%; animation-delay: -2s; }
+.athena-symbol:nth-child(3) { top: 30%; left: 15%; animation-delay: -4s; }
+.athena-symbol:nth-child(4) { top: 70%; left: 85%; animation-delay: -6s; }
+
+/* Chat Interface Styles */
+.athena-chat-container {
+  font-family: var(--athena-font-modern);
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 182, 193, 0.05) 100%);
+  border: 1px solid rgba(255, 182, 193, 0.2);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  transition: all var(--athena-transition-medium);
+}
+
+.athena-message {
+  padding: 12px 16px;
+  margin: 8px 0;
+  border-radius: 12px;
+  animation: athena-message-appear 0.4s ease-out;
+  transition: all var(--athena-transition-fast);
+}
+
+.athena-message.user {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%);
+  color: #333;
+  margin-left: 20%;
+  border-bottom-right-radius: 4px;
+}
+
+.athena-message.assistant {
+  background: linear-gradient(135deg, 
+    var(--athena-primary) 0%,
+    var(--athena-secondary) 100%);
+  color: white;
+  margin-right: 20%;
+  border-bottom-left-radius: 4px;
+  box-shadow: var(--athena-glow-soft);
+}
+
+/* Typing Indicator */
+.athena-typing {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin: 8px 0;
+  margin-right: 20%;
+  background: rgba(255, 182, 193, 0.1);
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+}
+
+.athena-typing-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--athena-primary);
+  border-radius: 50%;
+  margin: 0 2px;
+  animation: athena-typing-indicator 1.4s ease-in-out infinite;
+}
+
+.athena-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.athena-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Input Field Styles */
+.athena-input-container {
+  position: relative;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 182, 193, 0.3);
+  border-radius: 25px;
+  transition: all var(--athena-transition-fast);
+  backdrop-filter: blur(5px);
+}
+
+.athena-input-container:focus-within {
+  border-color: var(--athena-accent);
+  box-shadow: var(--athena-glow-medium);
+}
+
+.athena-input {
+  width: 100%;
+  padding: 12px 50px 12px 20px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #333;
+  font-family: var(--athena-font-modern);
+  font-size: 14px;
+  resize: none;
+}
+
+.athena-input::placeholder {
+  color: rgba(51, 51, 51, 0.6);
+  font-style: italic;
+}
+
+/* Button Styles */
+.athena-button {
+  background: linear-gradient(135deg, 
+    var(--athena-primary) 0%,
+    var(--athena-secondary) 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-family: var(--athena-font-modern);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--athena-transition-fast);
+  box-shadow: var(--athena-glow-soft);
+}
+
+.athena-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--athena-glow-medium);
+}
+
+.athena-button:active {
+  transform: translateY(0px);
+}
+
+.athena-button.primary {
+  background: linear-gradient(135deg, 
+    var(--athena-accent) 0%,
+    var(--athena-primary) 100%);
+}
+
+.athena-button.ghost {
+  background: transparent;
+  border: 1px solid var(--athena-primary);
+  color: var(--athena-primary);
+  box-shadow: none;
+}
+
+.athena-button.ghost:hover {
+  background: rgba(255, 182, 193, 0.1);
+}
+
+/* Status Indicators */
+.athena-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 182, 193, 0.3);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  font-family: var(--athena-font-modern);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.athena-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--athena-accent);
+  animation: athena-gentle-breathe 2s ease-in-out infinite;
+}
+
+.athena-status.thinking .athena-status-indicator {
+  background: #FFB6C1;
+  animation: athena-typing-indicator 1s ease-in-out infinite;
+}
+
+.athena-status.speaking .athena-status-indicator {
+  background: #98FB98;
+  animation: athena-caring-pulse 1.5s ease-in-out infinite;
+}
+
+.athena-status.listening .athena-status-indicator {
+  background: #FFD700;
+  animation: athena-divine-sparkle 1s ease-in-out infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .athena-message.user {
+    margin-left: 10%;
+  }
+  
+  .athena-message.assistant {
+    margin-right: 10%;
+  }
+  
+  .athena-symbol {
+    font-size: 1rem;
+  }
+  
+  .athena-input-container {
+    border-radius: 20px;
+  }
+  
+  .athena-input {
+    padding: 10px 40px 10px 16px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .athena-message.assistant {
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+  }
+  
+  .athena-message.user {
+    background: #fff;
+    color: #000;
+    border: 2px solid #000;
+  }
+}
+
+/* Dark Mode Adaptations */
+@media (prefers-color-scheme: dark) {
+  .athena-input {
+    color: #fff;
+  }
+  
+  .athena-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .athena-status {
+    background: rgba(0, 0, 0, 0.8);
+    color: rgba(255, 255, 255, 0.95);
+  }
+}

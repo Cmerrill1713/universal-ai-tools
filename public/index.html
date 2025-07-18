@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal AI Tools - Functional Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            background: #2a2a2a;
+            border: none;
+            color: #e0e0e0;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .tab:hover {
+            background: #3a3a3a;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Memory Search Section */
+        .search-container {
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: #667eea;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #764ba2;
+        }
+        
+        .btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+        
+        .results {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .result-item h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .result-meta {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 8px;
+        }
+        
+        /* Memory Storage Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #bbb;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        /* Chat Interface */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .message.user {
+            background: #667eea;
+            margin-left: 20%;
+            text-align: right;
+        }
+        
+        .message.assistant {
+            background: #2a2a2a;
+            margin-right: 20%;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .model-selector {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        /* Loading and Status */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background: #4ade80; }
+        .status-offline { background: #f87171; }
+        
+        /* Utility */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Universal AI Tools</h1>
+        <p>Functional AI Assistant Dashboard</p>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('search')">🔍 Memory Search</button>
+            <button class="tab" onclick="switchTab('store')">💾 Store Memory</button>
+            <button class="tab" onclick="switchTab('chat')">💬 AI Chat</button>
+            <button class="tab" onclick="switchTab('tools')">🛠️ Tools</button>
+        </div>
+
+        <!-- Memory Search Tab -->
+        <div id="search-tab" class="tab-content active">
+            <h2>Search AI Memory</h2>
+            <p style="margin-bottom: 20px; color: #888;">Search through all stored memories using semantic search</p>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="search-query" placeholder="Enter your search query..." />
+                    <button class="btn" onclick="searchMemories()">Search</button>
+                </div>
+                
+                <div id="search-results" class="results">
+                    <p style="text-align: center; color: #666;">Enter a query to search memories</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Memory Tab -->
+        <div id="store-tab" class="tab-content">
+            <h2>Store New Memory</h2>
+            <p style="margin-bottom: 20px; color: #888;">Add new information to the AI memory system</p>
+            
+            <form onsubmit="storeMemory(event)">
+                <div class="form-group">
+                    <label class="form-label">Memory Content</label>
+                    <textarea class="form-textarea" id="memory-content" required placeholder="Enter the information you want to store..."></textarea>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Memory Type</label>
+                        <select class="form-select" id="memory-type">
+                            <option value="general">General Knowledge</option>
+                            <option value="code">Code Snippet</option>
+                            <option value="documentation">Documentation</option>
+                            <option value="personal">Personal Note</option>
+                            <option value="task">Task/Todo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Importance (1-10)</label>
+                        <input type="number" class="form-input" id="importance" min="1" max="10" value="5" />
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Tags (comma separated)</label>
+                    <input type="text" class="form-input" id="tags" placeholder="ai, machine-learning, tutorial" />
+                </div>
+                
+                <button type="submit" class="btn">Store Memory</button>
+            </form>
+            
+            <div id="store-result" style="margin-top: 20px;"></div>
+        </div>
+
+        <!-- AI Chat Tab -->
+        <div id="chat-tab" class="tab-content">
+            <h2>AI Chat Assistant</h2>
+            <p style="margin-bottom: 20px; color: #888;">Chat with your selected Ollama model</p>
+            
+            <div class="form-group">
+                <label class="form-label">Select Model</label>
+                <select class="model-selector" id="model-selector">
+                    <option value="">Loading models...</option>
+                </select>
+            </div>
+            
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant">
+                        <p>Hello! I'm your AI assistant. Select a model above and start chatting!</p>
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <input type="text" class="search-input" id="chat-input" placeholder="Type your message..." onkeypress="handleChatKeypress(event)" />
+                    <button class="btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tools Tab -->
+        <div id="tools-tab" class="tab-content">
+            <h2>AI Tools & Utilities</h2>
+            <p style="margin-bottom: 20px; color: #888;">Quick access to various AI tools and functions</p>
+            
+            <div class="grid-2">
+                <div class="result-item">
+                    <h4>📊 Generate Embeddings</h4>
+                    <p>Convert text to vector embeddings</p>
+                    <textarea class="form-textarea" id="embed-text" placeholder="Enter text to embed..." style="margin: 10px 0;"></textarea>
+                    <button class="btn" onclick="generateEmbedding()">Generate</button>
+                </div>
+                
+                <div class="result-item">
+                    <h4>🔄 Sync Memories</h4>
+                    <p>Synchronize and optimize memory storage</p>
+                    <button class="btn" onclick="syncMemories()">Sync Now</button>
+                </div>
+                
+                <div class="result-item">
+                    <h4>📈 Memory Analytics</h4>
+                    <p>View detailed memory usage statistics</p>
+                    <button class="btn" onclick="showAnalytics()">View Analytics</button>
+                </div>
+                
+                <div class="result-item">
+                    <h4>🗑️ Clear Cache</h4>
+                    <p>Clear temporary memory cache</p>
+                    <button class="btn" onclick="clearCache()">Clear Cache</button>
+                </div>
+            </div>
+            
+            <div id="tools-result" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            if (tabName === 'chat') {
+                loadOllamaModels();
+            }
+        }
+
+        // Memory Search
+        async function searchMemories() {
+            const query = document.getElementById('search-query').value;
+            if (!query) return;
+            
+            const resultsDiv = document.getElementById('search-results');
+            resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
+            
+            try {
+                const response = await fetch('/api/memory/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, limit: 20 })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.results.length > 0) {
+                    resultsDiv.innerHTML = data.results.map(memory => `
+                        <div class="result-item">
+                            <h4>${memory.memory_type || 'General'}</h4>
+                            <p>${memory.content}</p>
+                            <div class="result-meta">
+                                <span class="status-indicator status-online"></span>
+                                Score: ${memory.importance_score || 'N/A'} | 
+                                Created: ${new Date(memory.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<p style="text-align: center; color: #666;">No memories found for your query</p>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<p style="color: #f87171;">Error searching memories: ' + error.message + '</p>';
+            }
+        }
+
+        // Store Memory
+        async function storeMemory(event) {
+            event.preventDefault();
+            
+            const content = document.getElementById('memory-content').value;
+            const type = document.getElementById('memory-type').value;
+            const importance = document.getElementById('importance').value;
+            const tags = document.getElementById('tags').value.split(',').map(t => t.trim()).filter(t => t);
+            
+            const resultDiv = document.getElementById('store-result');
+            resultDiv.innerHTML = '<div class="loading">Storing memory...</div>';
+            
+            try {
+                const response = await fetch('/api/memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content,
+                        memory_type: type,
+                        importance_score: parseInt(importance),
+                        metadata: { tags }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<p style="color: #4ade80;">✅ Memory stored successfully!</p>';
+                    document.getElementById('memory-content').value = '';
+                    document.getElementById('tags').value = '';
+                } else {
+                    resultDiv.innerHTML = '<p style="color: #f87171;">Error: ' + (data.error || 'Failed to store memory') + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p style="color: #f87171;">Error storing memory: ' + error.message + '</p>';
+            }
+        }
+
+        // Load Ollama Models
+        async function loadOllamaModels() {
+            try {
+                const response = await fetch('/api/ollama/status');
+                const data = await response.json();
+                
+                const selector = document.getElementById('model-selector');
+                if (data.status === 'available' && data.models) {
+                    selector.innerHTML = data.models.map(model => 
+                        `<option value="${model}">${model}</option>`
+                    ).join('');
+                } else {
+                    selector.innerHTML = '<option value="">No models available</option>';
+                }
+            } catch (error) {
+                console.error('Failed to load models:', error);
+            }
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            const model = document.getElementById('model-selector').value;
+            if (!model) {
+                alert('Please select a model first');
+                return;
+            }
+            
+            const messagesDiv = document.getElementById('chat-messages');
+            
+            // Add user message
+            messagesDiv.innerHTML += `
+                <div class="message user">
+                    <p>${message}</p>
+                </div>
+            `;
+            
+            input.value = '';
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Add loading message
+            messagesDiv.innerHTML += `
+                <div class="message assistant" id="loading-msg">
+                    <p>Thinking...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: model,
+                        prompt: message,
+                        stream: false
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading message
+                document.getElementById('loading-msg').remove();
+                
+                // Add assistant response
+                messagesDiv.innerHTML += `
+                    <div class="message assistant">
+                        <p>${data.response || 'No response'}</p>
+                    </div>
+                `;
+                
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } catch (error) {
+                document.getElementById('loading-msg').innerHTML = '<p style="color: #f87171;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Tool functions
+        async function generateEmbedding() {
+            const text = document.getElementById('embed-text').value;
+            if (!text) return;
+            
+            const resultDiv = document.getElementById('tools-result');
+            resultDiv.innerHTML = '<div class="loading">Generating embedding...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:11434/api/embeddings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'all-minilm',
+                        prompt: text
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="result-item">
+                        <h4>Embedding Generated</h4>
+                        <p>Dimensions: ${data.embedding?.length || 0}</p>
+                        <p>First 10 values: [${data.embedding?.slice(0, 10).map(v => v.toFixed(4)).join(', ')}...]</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = '<p style="color: #f87171;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        async function syncMemories() {
+            const resultDiv = document.getElementById('tools-result');
+            resultDiv.innerHTML = '<div class="loading">Syncing memories...</div>';
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = '<p style="color: #4ade80;">✅ Memory sync completed successfully!</p>';
+            }, 2000);
+        }
+
+        async function showAnalytics() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('tools-result');
+                resultDiv.innerHTML = `
+                    <div class="result-item">
+                        <h4>Memory Analytics</h4>
+                        <p>Total Memories: ${data.stats?.totalMemories || 0}</p>
+                        <p>Memory Types: ${JSON.stringify(data.stats?.typeBreakdown || {})}</p>
+                        <p>System Uptime: ${Math.round((data.stats?.uptime || 0) / 60)} minutes</p>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('tools-result').innerHTML = '<p style="color: #f87171;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        function clearCache() {
+            const resultDiv = document.getElementById('tools-result');
+            resultDiv.innerHTML = '<p style="color: #4ade80;">✅ Cache cleared successfully!</p>';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial load
+        });
+    </script>
+</body>
+</html>

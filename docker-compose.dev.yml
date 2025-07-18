@@ -1,0 +1,143 @@
+version: '3.8'
+
+name: universal-ai-tools-dev
+
+services:
+  # Development Universal AI Tools Service
+  universal-ai-tools-dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: universal-ai-tools-dev
+    ports:
+      - "9999:9999"
+    environment:
+      - NODE_ENV=development
+      - PORT=9999
+      # Database
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      # Security (development keys)
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-minimum-32-characters-long}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-encryption-key-minimum-32-chars}
+      # AI Services
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
+      # Local LLM
+      - OLLAMA_URL=http://ollama:11434
+      - LM_STUDIO_URL=http://host.docker.internal:1234
+      # Features
+      - ENABLE_WEBSOCKETS=true
+      - ENABLE_MEMORY_SYSTEM=true
+      - ENABLE_ANTI_HALLUCINATION=true
+      - ENABLE_COGNITIVE_AGENTS=true
+      # Performance (development settings)
+      - MAX_CONCURRENT_REQUESTS=5
+      - REQUEST_TIMEOUT=30000
+      - MEMORY_CACHE_SIZE=500
+      # Monitoring
+      - ENABLE_TELEMETRY=false
+      - LOG_LEVEL=debug
+      # External Services
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+      - ./data:/app/data
+      - ./node_modules:/app/node_modules
+    depends_on:
+      - redis
+      - ollama
+    restart: unless-stopped
+    networks:
+      - ai-tools-dev-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis for development
+  redis:
+    image: redis:7-alpine
+    container_name: universal-ai-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - ai-tools-dev-network
+
+  # Ollama for development
+  ollama:
+    image: ollama/ollama:latest
+    container_name: universal-ai-ollama-dev
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_dev_models:/root/.ollama
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+      - OLLAMA_MODELS=/root/.ollama/models
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - ai-tools-dev-network
+
+  # PostgreSQL for development (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: universal-ai-postgres-dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=universal_ai_dev
+      - POSTGRES_PASSWORD=dev_password
+      - POSTGRES_DB=universal_ai_tools_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - ai-tools-dev-network
+    profiles:
+      - local-db
+
+  # Development monitoring (lightweight)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: universal-ai-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - ai-tools-dev-network
+    profiles:
+      - monitoring
+
+volumes:
+  redis_dev_data:
+    driver: local
+  ollama_dev_models:
+    driver: local
+  postgres_dev_data:
+    driver: local
+
+networks:
+  ai-tools-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

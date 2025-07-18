@@ -1,0 +1,233 @@
+version: '3.8'
+
+name: universal-ai-tools
+
+services:
+  # Main Universal AI Tools Service
+  universal-ai-tools:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: universal-ai-tools
+    ports:
+      - "9999:9999"
+    environment:
+      - NODE_ENV=production
+      - PORT=9999
+      # Database
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      # Security
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      # AI Services
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
+      # Local LLM
+      - OLLAMA_URL=http://ollama:11434
+      - LM_STUDIO_URL=http://lm-studio:1234
+      # Features
+      - ENABLE_WEBSOCKETS=true
+      - ENABLE_MEMORY_SYSTEM=true
+      - ENABLE_ANTI_HALLUCINATION=true
+      - ENABLE_COGNITIVE_AGENTS=true
+      # Performance
+      - MAX_CONCURRENT_REQUESTS=20
+      - REQUEST_TIMEOUT=60000
+      - MEMORY_CACHE_SIZE=2000
+      # Monitoring
+      - ENABLE_TELEMETRY=true
+      - LOG_LEVEL=info
+      # External Services
+      - REDIS_URL=redis://redis:6379
+      - SEARXNG_URL=http://searxng:8080
+    volumes:
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+      - model_cache:/app/models
+      - ./data:/app/data
+    depends_on:
+      - redis
+      - ollama
+      - searxng
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Ollama Service for Local Model Execution (Metal/Apple Silicon)
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+      # Mount Metal Performance Shaders framework for GPU acceleration
+      - /System/Library/Frameworks/Metal.framework:/System/Library/Frameworks/Metal.framework:ro
+      - /System/Library/PrivateFrameworks/MetalPerformanceShaders.framework:/System/Library/PrivateFrameworks/MetalPerformanceShaders.framework:ro
+    environment:
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=3
+      - OLLAMA_MODELS=/root/.ollama/models
+      # Enable Metal acceleration
+      - OLLAMA_ACCELERATOR=metal
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+        reservations:
+          memory: 8G
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+  # Redis for Model Parameter Caching & Session Management
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+  # SearXNG for Privacy-Focused Web Search
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-ultrasecretkey}
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+  # Dashboard Service with WebSocket Support
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: universal-ai-dashboard
+    ports:
+      - "3001:3001"
+      - "3002:3002"  # WebSocket port
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://universal-ai-tools:9999
+      - REDIS_URL=redis://redis:6379
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    volumes:
+      - ./dashboard:/app/dashboard
+    depends_on:
+      - universal-ai-tools
+      - redis
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+  # PostgreSQL for Additional Data Storage (if needed)
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-aitools}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-aitools123}
+      - POSTGRES_DB=${POSTGRES_DB:-aitools}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+  # Monitoring Stack - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+  # Monitoring Stack - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3003:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: universal-ai-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - universal-ai-tools
+      - dashboard
+      - grafana
+    restart: unless-stopped
+    networks:
+      - ai-tools-network
+
+volumes:
+  model_cache:
+    driver: local
+  ollama_models:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  ai-tools-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

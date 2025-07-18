@@ -1,0 +1,51 @@
+/* Cyberpunk Theme - Dark & Neon */
+.theme-cyberpunk {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a0f1f;
+  --bg-card: rgba(139, 92, 246, 0.1);
+  --border-color: #8b5cf6;
+  --text-primary: #f0f0f0;
+  --accent-neon: #00ff88;
+  --accent-purple: #8b5cf6;
+  --accent-pink: #ff006e;
+}
+
+.theme-cyberpunk .card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 
+    0 0 20px rgba(139, 92, 246, 0.5),
+    inset 0 0 20px rgba(139, 92, 246, 0.1);
+}
+
+.theme-cyberpunk .glow-text {
+  text-shadow: 
+    0 0 10px var(--accent-neon),
+    0 0 20px var(--accent-neon),
+    0 0 30px var(--accent-neon);
+}
+
+.theme-cyberpunk .neon-border {
+  position: relative;
+  background: linear-gradient(45deg, transparent, var(--accent-purple), transparent);
+  padding: 2px;
+}
+
+.theme-cyberpunk .neon-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, var(--accent-pink), var(--accent-purple), var(--accent-neon));
+  animation: neon-glow 3s ease-in-out infinite;
+  filter: blur(10px);
+  opacity: 0.7;
+  z-index: -1;
+}
+
+@keyframes neon-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

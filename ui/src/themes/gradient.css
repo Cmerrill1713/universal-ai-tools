@@ -1,0 +1,56 @@
+/* Gradient Theme - Colorful & Modern */
+.theme-gradient {
+  --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --bg-primary: #0a0e27;
+  --bg-secondary: #151935;
+}
+
+.theme-gradient .gradient-card {
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-gradient .gradient-card::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--gradient-1);
+  border-radius: inherit;
+  z-index: -1;
+  animation: gradient-rotate 3s ease-in-out infinite;
+}
+
+.theme-gradient .gradient-text {
+  background: var(--gradient-2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.theme-gradient .gradient-button {
+  background: var(--gradient-3);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+  transition: all 0.3s ease;
+}
+
+.theme-gradient .gradient-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6);
+}
+
+@keyframes gradient-rotate {
+  0% { background: var(--gradient-1); }
+  25% { background: var(--gradient-2); }
+  50% { background: var(--gradient-3); }
+  75% { background: var(--gradient-4); }
+  100% { background: var(--gradient-1); }
+}
