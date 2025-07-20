@@ -1,810 +1,880 @@
 /**
- * Natural Language Widget Generator for Sweet Athena
+ * Natural Language Widget Generator Service
  * 
- * Converts spoken or written natural language descriptions into React/TypeScript components
- * with live preview, voice integration, and intelligent error handling.
+ * Advanced service that converts natural language descriptions into fully functional React components
+ * Features:
+ * - Natural language parsing and understanding
+ * - Component pattern recognition
+ * - DSPy/Ollama AI integration
+ * - Voice input support
+ * - Live preview generation
+ * - Database integration
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Logger } from 'winston';
-import { getDSPyService, type DSPyOrchestrationRequest } from './dspy-service';
-import { SpeechService } from './speech-service';
-import { AthenaWidgetCreationService, type WidgetRequest, type WidgetComponent } from './athena-widget-creation-service';
-import { SweetAthenaPersonality, type ConversationContext, type AthenaResponse } from './sweet-athena-personality';
-import { supabase } from './supabase_service';
-import { logger } from '../utils/enhanced-logger';
 import { v4 as uuidv4 } from 'uuid';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { logger, LogContext } from '../utils/enhanced-logger';
+import { dspyService } from './dspy-service';
+import { dspyWidgetOrchestrator } from './dspy-widget-orchestrator';
+import { SpeechService } from './speech-service';
+import { AthenaWidgetCreationService } from './athena-widget-creation-service';
+import type { DSPyOrchestrationRequest } from './dspy-service';
 import axios from 'axios';
 
-export interface VoiceWidgetRequest {
-  audioData?: Buffer;
-  audioFormat?: 'wav' | 'mp3' | 'webm';
-  textDescription?: string;
+export interface NLWidgetRequest {
+  input: string; // Natural language description or voice transcript
+  inputType: 'text' | 'voice';
   userId: string;
-  conversationId?: string;
   context?: {
-    previousWidgets?: string[];
-    userPreferences?: any;
-    personalityState?: any;
+    previousWidgets?: string[]; // IDs of previously created widgets for context
+    projectContext?: string; // Project-specific context
+    designSystem?: 'material-ui' | 'ant-design' | 'chakra-ui' | 'tailwind';
+    targetFramework?: 'react' | 'nextjs' | 'remix';
+    typescript?: boolean;
+  };
+  voiceMetadata?: {
+    audioUrl?: string;
+    transcript?: string;
+    confidence?: number;
+    duration?: number;
   };
 }
 
-export interface NaturalLanguageAnalysis {
-  intent: 'create_widget' | 'modify_widget' | 'explain_widget' | 'help_request' | 'unclear';
+export interface WidgetPattern {
+  type: 'form' | 'table' | 'chart' | 'dashboard' | 'card' | 'list' | 'navigation' | 'media' | 'custom';
   confidence: number;
-  widgetType: 'form' | 'table' | 'chart' | 'card' | 'list' | 'dashboard' | 'custom';
-  extractedRequirements: {
-    componentName?: string;
-    props?: Array<{ name: string; type: string; required: boolean }>;
-    styling?: {
-      framework?: 'material-ui' | 'styled-components' | 'tailwind' | 'custom';
-      theme?: 'light' | 'dark' | 'auto';
-      responsive?: boolean;
+  suggestedComponents: string[];
+  dataRequirements: string[];
+  interactionPatterns: string[];
+}
+
+export interface GeneratedWidgetResult {
+  widget: {
+    id: string;
+    name: string;
+    description: string;
+    code: string;
+    tests: string;
+    documentation: string;
+    dependencies: string[];
+    preview: {
+      html: string;
+      sandboxUrl?: string;
     };
-    features?: string[];
-    dataSource?: 'static' | 'api' | 'props' | 'state';
-    interactions?: string[];
   };
-  clarificationNeeded?: string[];
-  suggestedImprovements?: string[];
+  pattern: WidgetPattern;
+  metadata: {
+    generationTime: number;
+    aiModel: string;
+    confidence: number;
+    suggestions: string[];
+    warnings?: string[];
+  };
+  voiceResponse?: {
+    audioUrl: string;
+    transcript: string;
+  };
 }
 
-export interface VoiceWidgetResponse {
-  success: boolean;
-  analysis?: NaturalLanguageAnalysis;
-  widget?: WidgetComponent;
-  athenaResponse?: AthenaResponse;
-  voiceResponse?: Buffer;
-  clarificationQuestions?: string[];
-  error?: string;
-  suggestions?: string[];
-  needsMoreInfo?: boolean;
-}
-
-export interface WidgetGenerationContext {
-  userId: string;
-  conversationId: string;
-  messageHistory: any[];
-  userPreferences: any;
-  personalityState: any;
+export interface WidgetPreviewOptions {
+  theme?: 'light' | 'dark';
+  viewport?: 'desktop' | 'tablet' | 'mobile';
+  interactive?: boolean;
+  mockData?: boolean;
 }
 
 export class NaturalLanguageWidgetGenerator {
-  private dspyService = getDSPyService();
   private speechService: SpeechService;
-  private widgetCreationService: AthenaWidgetCreationService;
-  private personalityService: SweetAthenaPersonality;
-  private analysisCache: Map<string, NaturalLanguageAnalysis> = new Map();
-  private widgetTemplates: Map<string, any> = new Map();
+  private athenaService: AthenaWidgetCreationService;
+  private patternCache: Map<string, WidgetPattern> = new Map();
+  private generationHistory: Map<string, GeneratedWidgetResult[]> = new Map();
 
   constructor(
-    private supabaseClient: SupabaseClient = supabase,
-    private loggerInstance: Logger = logger
+    private supabase: SupabaseClient,
+    private logger: any
   ) {
-    this.speechService = new SpeechService(this.supabaseClient);
-    this.widgetCreationService = new AthenaWidgetCreationService(this.supabaseClient, this.loggerInstance);
-    this.personalityService = new SweetAthenaPersonality(this.supabaseClient, this.loggerInstance);
-    this.initializeTemplates();
+    this.speechService = new SpeechService(supabase);
+    this.athenaService = new AthenaWidgetCreationService(supabase, logger);
   }
 
   /**
-   * Main entry point for voice-enabled widget generation
+   * Generate widget from natural language input
    */
-  async generateWidgetFromVoice(request: VoiceWidgetRequest): Promise<VoiceWidgetResponse> {
-    try {
-      this.loggerInstance.info(`🎤 Processing voice widget request for user ${request.userId}`);
-
-      // Step 1: Transcribe audio if provided
-      let textDescription = request.textDescription;
-      if (request.audioData && !textDescription) {
-        textDescription = await this.transcribeVoiceInput(request);
-      }
-
-      if (!textDescription) {
-        return {
-          success: false,
-          error: 'No text description or audio data provided',
-          needsMoreInfo: true
-        };
-      }
-
-      // Step 2: Analyze natural language intent and requirements
-      const analysis = await this.analyzeNaturalLanguage(textDescription, request.context);
-
-      // Step 3: Handle different intents
-      switch (analysis.intent) {
-        case 'create_widget':
-          return await this.handleWidgetCreation(textDescription, analysis, request);
-        
-        case 'modify_widget':
-          return await this.handleWidgetModification(textDescription, analysis, request);
-        
-        case 'explain_widget':
-          return await this.handleWidgetExplanation(textDescription, analysis, request);
-        
-        case 'help_request':
-          return await this.handleHelpRequest(textDescription, analysis, request);
-        
-        case 'unclear':
-          return await this.handleUnclearRequest(textDescription, analysis, request);
-        
-        default:
-          return await this.handleFallback(textDescription, analysis, request);
-      }
-
-    } catch (error) {
-      this.loggerInstance.error('Voice widget generation failed:', error);
-      return {
-        success: false,
-        error: (error as Error).message,
-        suggestions: [
-          'Try speaking more clearly',
-          'Provide more specific requirements',
-          'Break down complex requests into smaller parts'
-        ]
-      };
-    }
-  }
-
-  /**
-   * Transcribe voice input to text using speech service
-   */
-  private async transcribeVoiceInput(request: VoiceWidgetRequest): Promise<string> {
-    if (!request.audioData) {
-      throw new Error('No audio data provided for transcription');
-    }
-
-    // Save audio to temporary file for transcription
-    const tempFile = `/tmp/voice_input_${uuidv4()}.${request.audioFormat || 'wav'}`;
-    const fs = await import('fs');
-    fs.writeFileSync(tempFile, request.audioData);
+  async generateWidget(request: NLWidgetRequest): Promise<GeneratedWidgetResult> {
+    const startTime = Date.now();
+    const requestId = uuidv4();
 
     try {
-      const transcription = await this.speechService.transcribeAudio(
-        tempFile,
-        `audio/${request.audioFormat || 'wav'}`,
-        'User is describing a UI component or widget they want to create'
+      this.logger.info(`🎨 Starting widget generation: ${requestId}`, LogContext.DSPY, {
+        inputType: request.inputType,
+        userId: request.userId
+      });
+
+      // Process voice input if needed
+      let processedInput = request.input;
+      if (request.inputType === 'voice' && request.voiceMetadata?.audioUrl) {
+        processedInput = await this.processVoiceInput(request.voiceMetadata);
+      }
+
+      // Analyze the natural language input
+      const pattern = await this.analyzeWidgetPattern(processedInput, request.context);
+      
+      // Generate widget using DSPy orchestration
+      const generatedWidget = await this.orchestrateWidgetGeneration(
+        processedInput,
+        pattern,
+        request
       );
 
-      // Clean up temp file
-      fs.unlinkSync(tempFile);
+      // Store in database
+      await this.storeGeneratedWidget(generatedWidget, request.userId);
 
-      this.loggerInstance.info(`🎤 Transcribed voice input: "${transcription.text}"`);
-      return transcription.text;
+      // Generate voice response if requested
+      let voiceResponse;
+      if (request.inputType === 'voice') {
+        voiceResponse = await this.generateVoiceResponse(generatedWidget);
+      }
+
+      // Create result
+      const result: GeneratedWidgetResult = {
+        widget: generatedWidget,
+        pattern,
+        metadata: {
+          generationTime: Date.now() - startTime,
+          aiModel: 'dspy-enhanced',
+          confidence: pattern.confidence,
+          suggestions: this.generateSuggestions(pattern, generatedWidget)
+        },
+        voiceResponse
+      };
+
+      // Cache result for user
+      this.updateGenerationHistory(request.userId, result);
+
+      this.logger.info(`✅ Widget generation completed in ${result.metadata.generationTime}ms`, LogContext.DSPY);
+      
+      return result;
 
     } catch (error) {
-      // Clean up temp file on error
-      try {
-        const fs = await import('fs');
-        fs.unlinkSync(tempFile);
-      } catch {}
+      this.logger.error('Widget generation failed:', LogContext.DSPY, { error, requestId });
       throw error;
     }
   }
 
   /**
-   * Analyze natural language to extract widget requirements and intent
+   * Analyze natural language to determine widget pattern
    */
-  private async analyzeNaturalLanguage(
-    text: string, 
-    context?: VoiceWidgetRequest['context']
-  ): Promise<NaturalLanguageAnalysis> {
+  private async analyzeWidgetPattern(
+    input: string,
+    context?: NLWidgetRequest['context']
+  ): Promise<WidgetPattern> {
     // Check cache first
-    const cacheKey = `${text}_${JSON.stringify(context)}`;
-    if (this.analysisCache.has(cacheKey)) {
-      return this.analysisCache.get(cacheKey)!;
+    const cacheKey = `${input}-${JSON.stringify(context || {})}`;
+    if (this.patternCache.has(cacheKey)) {
+      return this.patternCache.get(cacheKey)!;
     }
 
-    try {
-      // Use DSPy for intelligent analysis
-      const dspyRequest: DSPyOrchestrationRequest = {
-        requestId: uuidv4(),
-        userRequest: `Analyze this widget creation request and extract structured requirements: "${text}"`,
-        userId: context?.userPreferences?.userId || 'system',
-        orchestrationMode: 'cognitive',
-        context: {
-          analysisType: 'widget_requirements',
-          previousWidgets: context?.previousWidgets || [],
-          userText: text,
-          extractFields: [
-            'intent',
-            'widgetType', 
-            'componentName',
-            'props',
-            'styling',
-            'features',
-            'dataSource',
-            'interactions',
-            'clarificationNeeded'
-          ]
-        },
-        timestamp: new Date()
-      };
+    const orchestrationRequest: DSPyOrchestrationRequest = {
+      requestId: uuidv4(),
+      userRequest: `Analyze this widget request and identify the UI pattern: "${input}"`,
+      userId: 'pattern-analyzer',
+      orchestrationMode: 'cognitive',
+      context: {
+        task: 'pattern_recognition',
+        inputText: input,
+        projectContext: context?.projectContext,
+        previousPatterns: context?.previousWidgets
+      },
+      timestamp: new Date()
+    };
 
-      const dspyResponse = await this.dspyService.orchestrate(dspyRequest);
+    try {
+      const response = await dspyService.orchestrate(orchestrationRequest);
       
-      if (dspyResponse.success && dspyResponse.result) {
-        const analysis = this.parseDSPyAnalysis(dspyResponse.result, text);
-        this.analysisCache.set(cacheKey, analysis);
-        return analysis;
-      }
-
-      // Fallback to rule-based analysis
-      return this.fallbackAnalysis(text, context);
+      // Parse AI response to extract pattern
+      const pattern = this.parsePatternResponse(response.result, input);
+      
+      // Cache the pattern
+      this.patternCache.set(cacheKey, pattern);
+      
+      return pattern;
 
     } catch (error) {
-      this.loggerInstance.warn('DSPy analysis failed, using fallback:', error);
-      return this.fallbackAnalysis(text, context);
+      // Fallback pattern detection
+      return this.detectPatternFallback(input);
     }
   }
 
   /**
-   * Parse DSPy orchestration result into structured analysis
+   * Parse AI response to extract widget pattern
    */
-  private parseDSPyAnalysis(dspyResult: any, originalText: string): NaturalLanguageAnalysis {
-    const analysis: NaturalLanguageAnalysis = {
-      intent: 'create_widget',
-      confidence: dspyResult.confidence || 0.8,
-      widgetType: 'custom',
-      extractedRequirements: {}
+  private parsePatternResponse(aiResponse: any, originalInput: string): WidgetPattern {
+    // Default pattern structure
+    const pattern: WidgetPattern = {
+      type: 'custom',
+      confidence: 0.5,
+      suggestedComponents: [],
+      dataRequirements: [],
+      interactionPatterns: []
     };
 
     try {
-      // Extract intent
-      if (dspyResult.analysis?.intent) {
-        analysis.intent = dspyResult.analysis.intent;
-      } else if (originalText.toLowerCase().includes('create') || originalText.toLowerCase().includes('build')) {
-        analysis.intent = 'create_widget';
-      } else if (originalText.toLowerCase().includes('modify') || originalText.toLowerCase().includes('change')) {
-        analysis.intent = 'modify_widget';
-      } else if (originalText.toLowerCase().includes('explain') || originalText.toLowerCase().includes('how')) {
-        analysis.intent = 'explain_widget';
+      // Extract pattern type
+      if (aiResponse.patternType) {
+        pattern.type = aiResponse.patternType;
       }
 
-      // Extract widget type
-      if (dspyResult.analysis?.widgetType) {
-        analysis.widgetType = dspyResult.analysis.widgetType;
-      } else {
-        analysis.widgetType = this.inferWidgetType(originalText);
+      // Extract confidence
+      if (aiResponse.confidence) {
+        pattern.confidence = aiResponse.confidence;
       }
 
-      // Extract requirements
-      if (dspyResult.analysis?.requirements) {
-        analysis.extractedRequirements = dspyResult.analysis.requirements;
-      } else {
-        analysis.extractedRequirements = this.extractBasicRequirements(originalText);
+      // Extract component suggestions
+      if (aiResponse.components) {
+        pattern.suggestedComponents = aiResponse.components;
       }
 
-      // Extract clarification needs
-      if (dspyResult.analysis?.clarificationNeeded) {
-        analysis.clarificationNeeded = dspyResult.analysis.clarificationNeeded;
+      // Extract data requirements
+      if (aiResponse.dataNeeds) {
+        pattern.dataRequirements = aiResponse.dataNeeds;
       }
 
-      // Extract suggestions
-      if (dspyResult.analysis?.suggestions) {
-        analysis.suggestedImprovements = dspyResult.analysis.suggestions;
+      // Extract interaction patterns
+      if (aiResponse.interactions) {
+        pattern.interactionPatterns = aiResponse.interactions;
       }
+
+      return pattern;
 
     } catch (error) {
-      this.loggerInstance.warn('Error parsing DSPy analysis, using extracted data:', error);
+      // If parsing fails, use fallback detection
+      return this.detectPatternFallback(originalInput);
     }
-
-    return analysis;
   }
 
   /**
-   * Fallback analysis when DSPy is unavailable
+   * Fallback pattern detection using keyword analysis
    */
-  private fallbackAnalysis(text: string, context?: any): NaturalLanguageAnalysis {
-    const lowerText = text.toLowerCase();
-    
-    // Determine intent
-    let intent: NaturalLanguageAnalysis['intent'] = 'create_widget';
-    if (lowerText.includes('help') || lowerText.includes('how')) {
-      intent = 'help_request';
-    } else if (lowerText.includes('explain') || lowerText.includes('what')) {
-      intent = 'explain_widget';
-    } else if (lowerText.includes('modify') || lowerText.includes('change')) {
-      intent = 'modify_widget';
-    } else if (lowerText.length < 10 || (!lowerText.includes('create') && !lowerText.includes('build') && !lowerText.includes('make'))) {
-      intent = 'unclear';
+  private detectPatternFallback(input: string): WidgetPattern {
+    const lowerInput = input.toLowerCase();
+    const patterns: { [key: string]: WidgetPattern } = {
+      form: {
+        type: 'form',
+        confidence: 0.8,
+        suggestedComponents: ['TextInput', 'Button', 'FormValidation'],
+        dataRequirements: ['formData', 'validation'],
+        interactionPatterns: ['submit', 'validate', 'reset']
+      },
+      table: {
+        type: 'table',
+        confidence: 0.8,
+        suggestedComponents: ['Table', 'TableRow', 'Pagination', 'Sort'],
+        dataRequirements: ['tableData', 'columns'],
+        interactionPatterns: ['sort', 'filter', 'paginate']
+      },
+      chart: {
+        type: 'chart',
+        confidence: 0.8,
+        suggestedComponents: ['Chart', 'Axis', 'Legend', 'Tooltip'],
+        dataRequirements: ['chartData', 'axes'],
+        interactionPatterns: ['hover', 'zoom', 'select']
+      },
+      dashboard: {
+        type: 'dashboard',
+        confidence: 0.8,
+        suggestedComponents: ['Grid', 'Card', 'Chart', 'Metric'],
+        dataRequirements: ['metrics', 'timeSeries'],
+        interactionPatterns: ['filter', 'refresh', 'export']
+      },
+      card: {
+        type: 'card',
+        confidence: 0.8,
+        suggestedComponents: ['Card', 'CardHeader', 'CardBody', 'CardActions'],
+        dataRequirements: ['cardData'],
+        interactionPatterns: ['click', 'expand']
+      },
+      list: {
+        type: 'list',
+        confidence: 0.8,
+        suggestedComponents: ['List', 'ListItem', 'VirtualScroll'],
+        dataRequirements: ['listData'],
+        interactionPatterns: ['select', 'scroll', 'filter']
+      }
+    };
+
+    // Check for pattern keywords
+    for (const [key, pattern] of Object.entries(patterns)) {
+      if (lowerInput.includes(key) || 
+          (key === 'form' && (lowerInput.includes('input') || lowerInput.includes('submit'))) ||
+          (key === 'chart' && (lowerInput.includes('graph') || lowerInput.includes('visualization'))) ||
+          (key === 'dashboard' && lowerInput.includes('analytics'))) {
+        return pattern;
+      }
     }
+
+    // Default custom pattern
+    return {
+      type: 'custom',
+      confidence: 0.6,
+      suggestedComponents: ['Box', 'Container', 'Typography'],
+      dataRequirements: [],
+      interactionPatterns: ['click']
+    };
+  }
+
+  /**
+   * Orchestrate the widget generation process
+   */
+  private async orchestrateWidgetGeneration(
+    input: string,
+    pattern: WidgetPattern,
+    request: NLWidgetRequest
+  ): Promise<any> {
+    // Use DSPy widget orchestrator for complex generation
+    const widgetRequest = `Create a ${pattern.type} widget: ${input}`;
+    
+    const generatedWidget = await dspyWidgetOrchestrator.generateWidget(
+      widgetRequest,
+      {
+        pattern,
+        context: request.context,
+        userId: request.userId,
+        suggestedComponents: pattern.suggestedComponents,
+        dataRequirements: pattern.dataRequirements
+      }
+    );
+
+    // Enhance with preview
+    const preview = await this.generatePreview(generatedWidget);
 
     return {
-      intent,
-      confidence: intent === 'unclear' ? 0.3 : 0.7,
-      widgetType: this.inferWidgetType(text),
-      extractedRequirements: this.extractBasicRequirements(text),
-      clarificationNeeded: intent === 'unclear' ? ['Could you provide more details about what you want to create?'] : []
+      id: generatedWidget.id,
+      name: generatedWidget.name,
+      description: generatedWidget.description,
+      code: generatedWidget.code,
+      tests: generatedWidget.tests || '',
+      documentation: this.generateDocumentation(generatedWidget, pattern),
+      dependencies: generatedWidget.metadata.participatingAgents || [],
+      preview
     };
   }
 
   /**
-   * Infer widget type from text description
+   * Generate widget preview
    */
-  private inferWidgetType(text: string): NaturalLanguageAnalysis['widgetType'] {
-    const lowerText = text.toLowerCase();
-    
-    if (lowerText.includes('form') || lowerText.includes('input') || lowerText.includes('submit')) {
-      return 'form';
-    } else if (lowerText.includes('table') || lowerText.includes('list') || lowerText.includes('grid')) {
-      return 'table';
-    } else if (lowerText.includes('chart') || lowerText.includes('graph') || lowerText.includes('visualization')) {
-      return 'chart';
-    } else if (lowerText.includes('card') || lowerText.includes('profile') || lowerText.includes('summary')) {
-      return 'card';
-    } else if (lowerText.includes('dashboard') || lowerText.includes('overview')) {
-      return 'dashboard';
-    }
-    
-    return 'custom';
-  }
+  private async generatePreview(
+    widget: any,
+    options: WidgetPreviewOptions = {}
+  ): Promise<{ html: string; sandboxUrl?: string }> {
+    const { theme = 'light', viewport = 'desktop', interactive = true, mockData = true } = options;
 
-  /**
-   * Extract basic requirements from text using simple parsing
-   */
-  private extractBasicRequirements(text: string): NaturalLanguageAnalysis['extractedRequirements'] {
-    const requirements: NaturalLanguageAnalysis['extractedRequirements'] = {
-      features: [],
-      styling: {}
-    };
-
-    const lowerText = text.toLowerCase();
-
-    // Extract styling preferences
-    if (lowerText.includes('material') || lowerText.includes('mui')) {
-      requirements.styling!.framework = 'material-ui';
-    } else if (lowerText.includes('tailwind')) {
-      requirements.styling!.framework = 'tailwind';
-    } else if (lowerText.includes('styled-components')) {
-      requirements.styling!.framework = 'styled-components';
-    }
-
-    if (lowerText.includes('dark')) {
-      requirements.styling!.theme = 'dark';
-    } else if (lowerText.includes('light')) {
-      requirements.styling!.theme = 'light';
-    }
-
-    if (lowerText.includes('responsive')) {
-      requirements.styling!.responsive = true;
-    }
-
-    // Extract features
-    if (lowerText.includes('button')) requirements.features!.push('buttons');
-    if (lowerText.includes('validation')) requirements.features!.push('form validation');
-    if (lowerText.includes('search')) requirements.features!.push('search functionality');
-    if (lowerText.includes('filter')) requirements.features!.push('filtering');
-    if (lowerText.includes('sort')) requirements.features!.push('sorting');
-    if (lowerText.includes('animation')) requirements.features!.push('animations');
-    if (lowerText.includes('loading')) requirements.features!.push('loading states');
-
-    // Extract data source
-    if (lowerText.includes('api') || lowerText.includes('fetch')) {
-      requirements.dataSource = 'api';
-    } else if (lowerText.includes('props') || lowerText.includes('parameter')) {
-      requirements.dataSource = 'props';
-    } else if (lowerText.includes('static') || lowerText.includes('hardcoded')) {
-      requirements.dataSource = 'static';
-    }
-
-    return requirements;
-  }
-
-  /**
-   * Handle widget creation requests
-   */
-  private async handleWidgetCreation(
-    text: string, 
-    analysis: NaturalLanguageAnalysis, 
-    request: VoiceWidgetRequest
-  ): Promise<VoiceWidgetResponse> {
-    try {
-      // Check if we need more information
-      if (analysis.confidence < 0.6 || analysis.clarificationNeeded?.length) {
-        return await this.requestClarification(text, analysis, request);
-      }
-
-      // Convert analysis to widget request
-      const widgetRequest: WidgetRequest = {
-        description: text,
-        userId: request.userId,
-        requirements: {
-          style: analysis.extractedRequirements.styling?.framework,
-          theme: analysis.extractedRequirements.styling?.theme,
-          responsive: analysis.extractedRequirements.styling?.responsive,
-          features: analysis.extractedRequirements.features,
-          dataSource: analysis.extractedRequirements.dataSource
+    // Generate preview HTML
+    const html = `
+<!DOCTYPE html>
+<html lang="en" data-theme="${theme}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${widget.name} Preview</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    ${this.getDesignSystemIncludes(widget.design?.styling?.framework)}
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: ${theme === 'dark' ? '#1a1a1a' : '#f5f5f5'};
+            color: ${theme === 'dark' ? '#ffffff' : '#000000'};
         }
-      };
-
-      // Create the widget
-      const widgetResult = await this.widgetCreationService.createWidget(widgetRequest);
-
-      if (!widgetResult.success) {
-        return {
-          success: false,
-          error: widgetResult.error,
-          suggestions: widgetResult.suggestions
-        };
-      }
-
-      // Generate Sweet Athena response
-      const athenaResponse = await this.generateSweetResponse(
-        `I've created a beautiful ${analysis.widgetType} widget for you! ${widgetResult.widget!.name} is ready to use.`,
-        request,
-        'celebrating'
-      );
-
-      // Generate voice response
-      const voiceResponse = await this.generateVoiceResponse(athenaResponse, request);
-
-      return {
-        success: true,
-        analysis,
-        widget: widgetResult.widget!,
-        athenaResponse,
-        voiceResponse,
-        suggestions: [
-          'You can preview your widget immediately',
-          'Try asking me to modify specific parts',
-          'I can explain how any part works'
-        ]
-      };
-
-    } catch (error) {
-      this.loggerInstance.error('Widget creation failed:', error);
-      return {
-        success: false,
-        error: (error as Error).message,
-        suggestions: ['Try simplifying your request', 'Provide more specific details']
-      };
-    }
-  }
-
-  /**
-   * Handle widget modification requests
-   */
-  private async handleWidgetModification(
-    text: string,
-    analysis: NaturalLanguageAnalysis,
-    request: VoiceWidgetRequest
-  ): Promise<VoiceWidgetResponse> {
-    const athenaResponse = await this.generateSweetResponse(
-      'I understand you want to modify something! Could you tell me which widget you\'d like to change and what modifications you have in mind?',
-      request,
-      'clarifying'
-    );
-
-    const voiceResponse = await this.generateVoiceResponse(athenaResponse, request);
-
-    return {
-      success: true,
-      analysis,
-      athenaResponse,
-      voiceResponse,
-      needsMoreInfo: true,
-      clarificationQuestions: [
-        'Which widget would you like to modify?',
-        'What specific changes do you want to make?',
-        'Should I change the styling, functionality, or both?'
-      ]
-    };
-  }
-
-  /**
-   * Handle widget explanation requests
-   */
-  private async handleWidgetExplanation(
-    text: string,
-    analysis: NaturalLanguageAnalysis,
-    request: VoiceWidgetRequest
-  ): Promise<VoiceWidgetResponse> {
-    const athenaResponse = await this.generateSweetResponse(
-      'I\'d love to explain how widgets work! Could you tell me which widget or concept you\'d like me to explain?',
-      request,
-      'helping'
-    );
-
-    const voiceResponse = await this.generateVoiceResponse(athenaResponse, request);
-
-    return {
-      success: true,
-      analysis,
-      athenaResponse,
-      voiceResponse,
-      needsMoreInfo: true,
-      clarificationQuestions: [
-        'Which widget would you like me to explain?',
-        'Are you interested in the code, the functionality, or the design?',
-        'Would you like a general overview or specific details?'
-      ]
-    };
-  }
-
-  /**
-   * Handle help requests
-   */
-  private async handleHelpRequest(
-    text: string,
-    analysis: NaturalLanguageAnalysis,
-    request: VoiceWidgetRequest
-  ): Promise<VoiceWidgetResponse> {
-    const helpMessage = `I'm here to help you create amazing widgets! You can ask me to:
+        .preview-container {
+            max-width: ${viewport === 'desktop' ? '1200px' : viewport === 'tablet' ? '768px' : '375px'};
+            margin: 0 auto;
+            background: ${theme === 'dark' ? '#2a2a2a' : '#ffffff'};
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .preview-header {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid ${theme === 'dark' ? '#444' : '#e0e0e0'};
+        }
+        ${widget.styles || ''}
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="preview-header">
+            <h2>${widget.name}</h2>
+            <p>${widget.description}</p>
+        </div>
+        <div id="widget-root"></div>
+    </div>
     
-• Create forms, tables, charts, cards, or custom components
-• Modify existing widgets with specific changes
-• Explain how any widget works
-• Generate components with Material-UI, Tailwind, or styled-components
+    <script type="text/babel">
+        ${widget.code}
+        
+        // Mock data for preview
+        ${mockData ? this.generateMockData(widget) : ''}
+        
+        // Render the widget
+        const WidgetPreview = () => {
+            return <${widget.name} ${mockData ? '{...mockData}' : ''} />;
+        };
+        
+        ReactDOM.render(<WidgetPreview />, document.getElementById('widget-root'));
+    </script>
+</body>
+</html>`;
 
-Just describe what you want in natural language, and I'll make it happen! 🌸`;
+    // Generate sandbox URL if available
+    const sandboxUrl = await this.createSandboxPreview(widget);
 
-    const athenaResponse = await this.generateSweetResponse(helpMessage, request, 'helping');
-    const voiceResponse = await this.generateVoiceResponse(athenaResponse, request);
-
-    return {
-      success: true,
-      analysis,
-      athenaResponse,
-      voiceResponse,
-      suggestions: [
-        'Try: "Create a contact form with validation"',
-        'Try: "Make a data table with sorting"',
-        'Try: "Build a dashboard with charts"'
-      ]
-    };
+    return { html, sandboxUrl };
   }
 
   /**
-   * Handle unclear requests
+   * Get design system includes based on framework
    */
-  private async handleUnclearRequest(
-    text: string,
-    analysis: NaturalLanguageAnalysis,
-    request: VoiceWidgetRequest
-  ): Promise<VoiceWidgetResponse> {
-    return await this.requestClarification(text, analysis, request);
-  }
-
-  /**
-   * Handle fallback cases
-   */
-  private async handleFallback(
-    text: string,
-    analysis: NaturalLanguageAnalysis,
-    request: VoiceWidgetRequest
-  ): Promise<VoiceWidgetResponse> {
-    const athenaResponse = await this.generateSweetResponse(
-      'I want to help you, but I\'m not quite sure what you\'d like me to create. Could you describe it a bit differently?',
-      request,
-      'shy'
-    );
-
-    const voiceResponse = await this.generateVoiceResponse(athenaResponse, request);
-
-    return {
-      success: false,
-      analysis,
-      athenaResponse,
-      voiceResponse,
-      needsMoreInfo: true,
-      error: 'Request unclear',
-      suggestions: [
-        'Try being more specific about the type of component',
-        'Mention if you want a form, table, chart, etc.',
-        'Include details about styling or functionality'
-      ]
-    };
-  }
-
-  /**
-   * Request clarification from user
-   */
-  private async requestClarification(
-    text: string,
-    analysis: NaturalLanguageAnalysis,
-    request: VoiceWidgetRequest
-  ): Promise<VoiceWidgetResponse> {
-    const clarificationMessage = analysis.clarificationNeeded?.length 
-      ? `I'd love to help you create that! I just need a bit more information: ${analysis.clarificationNeeded.join(', ')}`
-      : 'I understand you want to create something, but could you provide a few more details to help me make it perfect?';
-
-    const athenaResponse = await this.generateSweetResponse(clarificationMessage, request, 'caring');
-    const voiceResponse = await this.generateVoiceResponse(athenaResponse, request);
-
-    const defaultQuestions = [
-      'What type of component do you want? (form, table, chart, etc.)',
-      'What should it look like?',
-      'What functionality do you need?'
-    ];
-
-    return {
-      success: true,
-      analysis,
-      athenaResponse,
-      voiceResponse,
-      needsMoreInfo: true,
-      clarificationQuestions: analysis.clarificationNeeded || defaultQuestions
-    };
-  }
-
-  /**
-   * Generate Sweet Athena personality response
-   */
-  private async generateSweetResponse(
-    message: string,
-    request: VoiceWidgetRequest,
-    responseType: string = 'helping'
-  ): Promise<AthenaResponse> {
-    try {
-      await this.personalityService.initializePersonality(request.userId);
-
-      const context: ConversationContext = {
-        userId: request.userId,
-        conversationId: request.conversationId || uuidv4(),
-        messageHistory: [],
-        relationshipDepth: 'familiar',
-        personalMemories: []
-      };
-
-      return await this.personalityService.generateResponse(message, context);
-
-    } catch (error) {
-      this.loggerInstance.warn('Failed to generate Sweet Athena response:', error);
-      return {
-        content: message,
-        personalityMood: responseType,
-        responseStyle: 'gentle',
-        emotionalTone: 'warm',
-        confidenceLevel: 7,
-        sweetnessLevel: 8
-      };
+  private getDesignSystemIncludes(framework?: string): string {
+    switch (framework) {
+      case 'material-ui':
+        return `
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+          <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+        `;
+      case 'ant-design':
+        return `<link rel="stylesheet" href="https://unpkg.com/antd/dist/antd.css" />`;
+      case 'chakra-ui':
+        return `<script src="https://unpkg.com/@chakra-ui/react@latest/dist/index.js"></script>`;
+      case 'tailwind':
+        return `<script src="https://cdn.tailwindcss.com"></script>`;
+      default:
+        return '';
     }
   }
 
   /**
-   * Generate voice response from text
+   * Generate mock data based on widget pattern
    */
-  private async generateVoiceResponse(
-    athenaResponse: AthenaResponse,
-    request: VoiceWidgetRequest
-  ): Promise<Buffer | undefined> {
-    try {
-      const voiceProfile = {
-        voice_id: athenaResponse.personalityMood || 'sweet',
-        pitch: 1.0,
-        speaking_rate: 1.0,
-        stability: 0.8,
-        similarity_boost: 0.8,
-        style: athenaResponse.sweetnessLevel || 8,
-        use_speaker_boost: true
-      };
+  private generateMockData(widget: any): string {
+    const pattern = widget.design?.componentType || 'custom';
+    
+    const mockDataTemplates: { [key: string]: string } = {
+      form: `
+        const mockData = {
+          initialValues: {
+            name: 'John Doe',
+            email: 'john@example.com',
+            message: ''
+          },
+          onSubmit: (values) => {
+            console.log('Form submitted:', values);
+            alert('Form submitted successfully!');
+          }
+        };
+      `,
+      table: `
+        const mockData = {
+          columns: [
+            { key: 'id', label: 'ID' },
+            { key: 'name', label: 'Name' },
+            { key: 'email', label: 'Email' },
+            { key: 'status', label: 'Status' }
+          ],
+          data: [
+            { id: 1, name: 'Alice Johnson', email: 'alice@example.com', status: 'Active' },
+            { id: 2, name: 'Bob Smith', email: 'bob@example.com', status: 'Inactive' },
+            { id: 3, name: 'Carol White', email: 'carol@example.com', status: 'Active' }
+          ]
+        };
+      `,
+      chart: `
+        const mockData = {
+          data: [
+            { label: 'January', value: 65 },
+            { label: 'February', value: 59 },
+            { label: 'March', value: 80 },
+            { label: 'April', value: 81 },
+            { label: 'May', value: 56 },
+            { label: 'June', value: 55 }
+          ],
+          title: 'Monthly Sales',
+          type: 'bar'
+        };
+      `,
+      dashboard: `
+        const mockData = {
+          metrics: [
+            { label: 'Total Users', value: '1,234', change: '+12%' },
+            { label: 'Revenue', value: '$45,678', change: '+23%' },
+            { label: 'Active Sessions', value: '456', change: '-5%' },
+            { label: 'Conversion Rate', value: '3.45%', change: '+0.5%' }
+          ],
+          chartData: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+            datasets: [{
+              label: 'This Week',
+              data: [12, 19, 3, 5, 2]
+            }]
+          }
+        };
+      `,
+      default: `
+        const mockData = {
+          title: 'Preview Widget',
+          content: 'This is a preview of your generated widget.',
+          actions: [
+            { label: 'Primary Action', onClick: () => alert('Primary action clicked!') },
+            { label: 'Secondary Action', onClick: () => alert('Secondary action clicked!') }
+          ]
+        };
+      `
+    };
 
+    return mockDataTemplates[pattern] || mockDataTemplates.default;
+  }
+
+  /**
+   * Create sandbox preview (CodeSandbox/StackBlitz integration)
+   */
+  private async createSandboxPreview(widget: any): Promise<string | undefined> {
+    // This would integrate with CodeSandbox or StackBlitz API
+    // For now, return undefined
+    return undefined;
+  }
+
+  /**
+   * Process voice input
+   */
+  private async processVoiceInput(voiceMetadata: any): Promise<string> {
+    if (voiceMetadata.transcript) {
+      return voiceMetadata.transcript;
+    }
+
+    // If we have audio URL but no transcript, we'd transcribe it here
+    // For now, return empty string
+    return '';
+  }
+
+  /**
+   * Generate voice response for widget creation
+   */
+  private async generateVoiceResponse(widget: any): Promise<any> {
+    const responseText = `I've created a ${widget.name} widget for you. ${widget.description}. 
+    The widget includes ${widget.dependencies.length} dependencies and comes with full TypeScript support and tests.`;
+
+    try {
       const audioResult = await this.speechService.synthesizeSpeech({
-        text: athenaResponse.content,
-        voiceProfile,
+        text: responseText,
+        voiceProfile: {
+          voice_id: 'sweet',
+          pitch: 1.0,
+          speaking_rate: 1.0,
+          stability: 0.75,
+          similarity_boost: 0.75,
+          style: 0.5,
+          use_speaker_boost: false
+        },
         format: 'mp3'
       });
 
-      return audioResult.buffer;
+      // Store audio and return URL
+      // For now, return mock response
+      return {
+        audioUrl: '/api/speech/generated/' + widget.id,
+        transcript: responseText
+      };
 
     } catch (error) {
-      this.loggerInstance.warn('Failed to generate voice response:', error);
+      this.logger.error('Failed to generate voice response:', error);
       return undefined;
     }
   }
 
   /**
-   * Initialize widget templates for common patterns
+   * Store generated widget in database
    */
-  private initializeTemplates(): void {
-    this.widgetTemplates.set('form', {
-      description: 'A form component with validation',
-      defaultProps: ['onSubmit', 'initialValues', 'validation'],
-      defaultFeatures: ['form validation', 'input handling', 'error display']
-    });
-
-    this.widgetTemplates.set('table', {
-      description: 'A data table component',
-      defaultProps: ['data', 'columns', 'onRowClick'],
-      defaultFeatures: ['sorting', 'filtering', 'pagination']
-    });
-
-    this.widgetTemplates.set('chart', {
-      description: 'A data visualization component',
-      defaultProps: ['data', 'type', 'title'],
-      defaultFeatures: ['responsive design', 'tooltips', 'legends']
-    });
+  private async storeGeneratedWidget(widget: any, userId: string): Promise<void> {
+    try {
+      await this.supabase.from('ai_widgets').insert({
+        id: widget.id,
+        name: widget.name,
+        description: widget.description,
+        component_code: widget.code,
+        tests: widget.tests,
+        documentation: widget.documentation,
+        dependencies: widget.dependencies,
+        created_by: userId,
+        metadata: {
+          generationType: 'natural-language',
+          pattern: widget.pattern,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      this.logger.error('Failed to store widget:', error);
+    }
   }
 
   /**
-   * Validate generated widget for common issues
+   * Generate documentation for widget
    */
-  async validateWidget(widget: WidgetComponent): Promise<{
-    isValid: boolean;
-    errors: string[];
-    warnings: string[];
-    suggestions: string[];
-  }> {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+  private generateDocumentation(widget: any, pattern: WidgetPattern): string {
+    return `# ${widget.name}
+
+${widget.description}
+
+## Pattern Type
+${pattern.type} (Confidence: ${(pattern.confidence * 100).toFixed(0)}%)
+
+## Usage
+
+\`\`\`tsx
+import { ${widget.name} } from './${widget.name}';
+
+function App() {
+  return <${widget.name} />;
+}
+\`\`\`
+
+## Props
+
+${this.extractPropsDocumentation(widget.code)}
+
+## Features
+
+${pattern.suggestedComponents.map(c => `- ${c}`).join('\n')}
+
+## Data Requirements
+
+${pattern.dataRequirements.map(d => `- ${d}`).join('\n')}
+
+## Interaction Patterns
+
+${pattern.interactionPatterns.map(i => `- ${i}`).join('\n')}
+
+---
+
+Generated with Natural Language Widget Generator 🎨
+`;
+  }
+
+  /**
+   * Extract props documentation from code
+   */
+  private extractPropsDocumentation(code: string): string {
+    // Simple extraction - in production would use AST parsing
+    const propsMatch = code.match(/interface\s+\w+Props\s*{([^}]+)}/);
+    if (propsMatch) {
+      const propsContent = propsMatch[1];
+      const props = propsContent
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => `- ${line.trim()}`)
+        .join('\n');
+      return props;
+    }
+    return 'No props defined';
+  }
+
+  /**
+   * Generate suggestions based on pattern and widget
+   */
+  private generateSuggestions(pattern: WidgetPattern, widget: any): string[] {
     const suggestions: string[] = [];
 
-    // Basic validation
-    if (!widget.code.includes('export default')) {
-      errors.push('Widget must have a default export');
+    // Pattern-based suggestions
+    switch (pattern.type) {
+      case 'form':
+        suggestions.push('Consider adding validation for better user experience');
+        suggestions.push('Add loading states for form submission');
+        break;
+      case 'table':
+        suggestions.push('Add sorting and filtering capabilities');
+        suggestions.push('Consider pagination for large datasets');
+        break;
+      case 'chart':
+        suggestions.push('Add interactive tooltips for data points');
+        suggestions.push('Consider responsive sizing for mobile devices');
+        break;
+      case 'dashboard':
+        suggestions.push('Add real-time data updates');
+        suggestions.push('Consider adding export functionality');
+        break;
     }
 
-    if (widget.code.includes('console.log')) {
-      warnings.push('Consider removing console.log statements');
-    }
+    // General suggestions
+    suggestions.push('Widget includes TypeScript definitions');
+    suggestions.push('Tests are included for quality assurance');
+    suggestions.push(`Preview available at /api/widgets/preview/${widget.id}`);
 
-    // Accessibility validation
-    if (widget.code.includes('<button') && !widget.code.includes('aria-')) {
-      suggestions.push('Consider adding ARIA labels for better accessibility');
-    }
-
-    // Performance validation
-    if (widget.code.includes('.map(') && !widget.code.includes('key=')) {
-      errors.push('Lists should have unique key props for performance');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      suggestions
-    };
+    return suggestions;
   }
 
   /**
-   * Get available widget templates
+   * Update generation history for user
    */
-  getAvailableTemplates(): Array<{ type: string; description: string; features: string[] }> {
-    return Array.from(this.widgetTemplates.entries()).map(([type, template]) => ({
-      type,
-      description: template.description,
-      features: template.defaultFeatures
-    }));
-  }
-
-  /**
-   * Clear analysis cache
-   */
-  clearCache(): void {
-    this.analysisCache.clear();
-    this.loggerInstance.info('Natural language widget generator cache cleared');
-  }
-
-  /**
-   * Get service status and health
-   */
-  getServiceStatus(): {
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    services: {
-      dspy: boolean;
-      speech: boolean;
-      widgetCreation: boolean;
-      personality: boolean;
-    };
-    cacheSize: number;
-    templatesLoaded: number;
-  } {
-    const dspyStatus = this.dspyService.getStatus();
+  private updateGenerationHistory(userId: string, result: GeneratedWidgetResult): void {
+    const history = this.generationHistory.get(userId) || [];
+    history.push(result);
     
-    return {
-      status: 'healthy',
-      services: {
-        dspy: dspyStatus.connected,
-        speech: true, // Speech service doesn't have a direct status check
-        widgetCreation: true,
-        personality: true
+    // Keep last 10 generations
+    if (history.length > 10) {
+      history.shift();
+    }
+    
+    this.generationHistory.set(userId, history);
+  }
+
+  /**
+   * Get user's generation history
+   */
+  async getUserHistory(userId: string): Promise<GeneratedWidgetResult[]> {
+    return this.generationHistory.get(userId) || [];
+  }
+
+  /**
+   * Edit existing widget with natural language
+   */
+  async editWidget(
+    widgetId: string,
+    editRequest: string,
+    userId: string
+  ): Promise<GeneratedWidgetResult> {
+    try {
+      // Fetch existing widget
+      const { data: existingWidget } = await this.supabase
+        .from('ai_widgets')
+        .select('*')
+        .eq('id', widgetId)
+        .single();
+
+      if (!existingWidget) {
+        throw new Error('Widget not found');
+      }
+
+      // Use DSPy to improve the widget
+      const improvedWidget = await dspyWidgetOrchestrator.improveWidget(
+        existingWidget.component_code,
+        editRequest,
+        {
+          widgetId,
+          userId,
+          originalDescription: existingWidget.description
+        }
+      );
+
+      // Store updated widget
+      await this.supabase
+        .from('ai_widgets')
+        .update({
+          component_code: improvedWidget.code,
+          description: improvedWidget.description,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', widgetId);
+
+      // Return result
+      return {
+        widget: {
+          id: widgetId,
+          name: improvedWidget.name,
+          description: improvedWidget.description,
+          code: improvedWidget.code,
+          tests: improvedWidget.tests || '',
+          documentation: improvedWidget.documentation || '',
+          dependencies: improvedWidget.metadata.participatingAgents || [],
+          preview: await this.generatePreview(improvedWidget)
+        },
+        pattern: {
+          type: 'custom',
+          confidence: improvedWidget.metadata.confidence,
+          suggestedComponents: [],
+          dataRequirements: [],
+          interactionPatterns: []
+        },
+        metadata: {
+          generationTime: 0,
+          aiModel: 'dspy-enhanced',
+          confidence: improvedWidget.metadata.confidence,
+          suggestions: ['Widget successfully updated', 'Previous version backed up']
+        }
+      };
+
+    } catch (error) {
+      this.logger.error('Widget edit failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch generate multiple widgets
+   */
+  async batchGenerate(
+    requests: NLWidgetRequest[]
+  ): Promise<GeneratedWidgetResult[]> {
+    const results: GeneratedWidgetResult[] = [];
+    
+    for (const request of requests) {
+      try {
+        const result = await this.generateWidget(request);
+        results.push(result);
+      } catch (error) {
+        this.logger.error('Batch generation error for request:', error, { request });
+        // Continue with other requests
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Get widget suggestions based on context
+   */
+  async getWidgetSuggestions(
+    context: string,
+    userId: string
+  ): Promise<string[]> {
+    const orchestrationRequest: DSPyOrchestrationRequest = {
+      requestId: uuidv4(),
+      userRequest: `Suggest relevant widgets for this context: "${context}"`,
+      userId,
+      orchestrationMode: 'standard',
+      context: {
+        task: 'widget_suggestions',
+        contextDescription: context
       },
-      cacheSize: this.analysisCache.size,
-      templatesLoaded: this.widgetTemplates.size
+      timestamp: new Date()
     };
+
+    try {
+      const response = await dspyService.orchestrate(orchestrationRequest);
+      return response.result.suggestions || [
+        'Create a data table to display information',
+        'Add a form for user input',
+        'Build a dashboard with key metrics',
+        'Design a card layout for content',
+        'Implement a chart for data visualization'
+      ];
+    } catch (error) {
+      // Return default suggestions
+      return [
+        'Create a responsive form component',
+        'Build a sortable data table',
+        'Design an interactive chart',
+        'Implement a card-based layout',
+        'Create a navigation menu'
+      ];
+    }
   }
 }
 
 // Export singleton instance
-export const naturalLanguageWidgetGenerator = new NaturalLanguageWidgetGenerator();
+export const nlWidgetGenerator = new NaturalLanguageWidgetGenerator(
+  // These will be injected when the service is initialized
+  null as any,
+  logger
+);

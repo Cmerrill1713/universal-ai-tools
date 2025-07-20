@@ -101,7 +101,7 @@ export const config = {
     jwtSecret: env.JWT_SECRET,
     encryptionKey: env.ENCRYPTION_KEY,
     corsOrigins: env.NODE_ENV === 'production' 
-      ? (process.env.CORS_ORIGINS?.split(',').filter(origin => origin.trim()) || [])
+      ? (process.env.CORS_ORIGINS?.split(',').filter(origin => origin.trim() && !origin.includes('localhost')) || [])
       : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080', 'http://localhost:9999'],
   },
   

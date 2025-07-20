@@ -1,0 +1,17 @@
+{
+  "entryPoints": [
+    "./src"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "./docs/api",
+  "excludeExternals": true,
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "includeVersion": true,
+  "readme": "./README.md",
+  "theme": "default",
+  "gitRevision": "main",
+  "plugin": [
+    "typedoc-plugin-markdown"
+  ]
+}

@@ -1,5 +1,6 @@
 import { Express } from 'express';
 import { logger, LogContext } from '../utils/enhanced-logger';
+import { createSupabaseClient } from '../config/supabase';
 
 let graphQLSetup: any = null;
 let graphQLHealthCheck: any = null;
@@ -69,7 +70,9 @@ export async function initializeGraphQL(app: Express): Promise<boolean> {
     // Apply GraphQL to the app
     if (graphQLSetup) {
       logger.info('🚀 Initializing GraphQL server...');
-      await graphQLSetup(app);
+      // Create Supabase client for GraphQL
+      const supabase = createSupabaseClient();
+      await graphQLSetup(app, supabase);
       logger.info('✅ GraphQL server initialized successfully');
       return true;
     }

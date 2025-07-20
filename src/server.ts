@@ -3,7 +3,8 @@
 console.log("🔄 [STARTUP] Starting: Initial imports");
 const startTime = Date.now();
 
-import express, { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -18,6 +19,7 @@ import { OrchestrationRouter } from './routers/orchestration';
 import widgetCreationRouter from './routers/widget-creation';
 import { WidgetsRouter } from './routers/widgets';
 import { DSPyWidgetsRouter } from './routers/dspy-widgets';
+import naturalLanguageWidgetsRouter from './routers/natural-language-widgets';
 import { SpeechRouter } from './routers/speech';
 import { DocumentationRouter } from './routers/documentation';
 import { BackupRouter } from './routers/backup';
@@ -118,7 +120,7 @@ try {
   console.log("✅ [STARTUP] Completed: Security middleware application");
   logger.info("📍 Advanced security middleware enabled successfully");
 } catch (error) {
-  console.log("❌ [STARTUP] Failed: Security middleware application - " + (error instanceof Error ? error.message : String(error)));
+  console.log(`❌ [STARTUP] Failed: Security middleware application - ${  error instanceof Error ? error.message : String(error)}`);
   logger.error("📍 Failed to apply advanced security middleware, falling back to basic", LogContext.SECURITY, { error: error instanceof Error ? error.message : String(error) });
   // Fallback to basic security
   app.use(cors());
@@ -257,7 +259,7 @@ const authenticateAI = async (req: AuthenticatedRequest, res: Response, next: Ne
         if (result.error) {
           if (result.error.code === 'PGRST116') { // Row not found
             logger.warn('Invalid API key attempt', LogContext.SECURITY, {
-              apiKeyPrefix: apiKey?.substring(0, 8) + '...',
+              apiKeyPrefix: `${apiKey?.substring(0, 8)  }...`,
               aiService,
               attempt: attempts
             });
@@ -693,7 +695,7 @@ app.post('/api/security/rotate-key', authenticateAI, async (req: Request, res) =
       success: true,
       keyType,
       message: 'Key rotated successfully. Update your configuration.',
-      keyPreview: newKey.substring(0, 8) + '...',
+      keyPreview: `${newKey.substring(0, 8)  }...`,
       keyLength: newKey.length
     });
     
@@ -716,7 +718,7 @@ app.get('/api/security/vulnerabilities', authenticateAI, async (req, res) => {
       high: vulnerabilities.filter(v => v.severity === 'high').length,
       moderate: vulnerabilities.filter(v => v.severity === 'moderate').length,
       low: vulnerabilities.filter(v => v.severity === 'low').length,
-      vulnerabilities: vulnerabilities
+      vulnerabilities
     });
   } catch (error) {
     logger.error('Vulnerability scan failed:', LogContext.SECURITY, { 
@@ -1039,7 +1041,9 @@ app.post('/api/ports/resolve-conflict', async (req, res) => {
 // Ollama status endpoint
 app.get('/api/ollama/status', async (req, res) => {
   try {
-    const response = await fetch('http://localhost:11434/api/tags');
+    const response = await fetch('http://localhost:11434/api/tags', {
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
     if (response.ok) {
       const data = await response.json() as { models?: Array<{ name: string }> };
       res.json({
@@ -1057,7 +1061,9 @@ app.get('/api/ollama/status', async (req, res) => {
 // Ollama models endpoint (alias for compatibility)
 app.get('/api/ollama/models', async (req, res) => {
   try {
-    const response = await fetch('http://localhost:11434/api/tags');
+    const response = await fetch('http://localhost:11434/api/tags', {
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
     if (response.ok) {
       const data = await response.json() as { models?: Array<{ name: string }> };
       res.json({
@@ -1289,6 +1295,7 @@ app.post('/api/assistant/chat', async (req: AuthenticatedRequest, res: Response)
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
       body: JSON.stringify({
         model: model || 'llama3.2:3b',
         prompt: contextPrompt,
@@ -1615,6 +1622,9 @@ logger.info("📍 Successfully mounted /api/v1/health router");
 logger.info("📍 Mounting /api/v1/athena-tools router...");
 app.use('/api/v1/athena-tools', authenticateAI, AthenaToolsRouter);
 logger.info("📍 Successfully mounted /api/v1/athena-tools router");
+logger.info("📍 Mounting /api/v1/natural-language-widgets router...");
+app.use('/api/v1/natural-language-widgets', authenticateAI, naturalLanguageWidgetsRouter);
+logger.info("📍 Successfully mounted /api/v1/natural-language-widgets router");
 
 // Legacy route support (redirects to v1)
 // This ensures backward compatibility
@@ -1632,6 +1642,7 @@ app.use('/api/backup', authenticateAI, BackupRouter(supabase));
 app.use('/api/knowledge-monitoring', authenticateAI, createKnowledgeMonitoringRouter(supabase));
 app.use('/api/health', HealthRouter(supabase));
 app.use('/api/athena-tools', authenticateAI, AthenaToolsRouter);
+app.use('/api/natural-language-widgets', authenticateAI, naturalLanguageWidgetsRouter);
 
 // GraphQL server will be initialized after server starts
 

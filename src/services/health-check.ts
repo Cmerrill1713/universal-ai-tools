@@ -73,11 +73,40 @@ export interface HealthCheckResult {
     version: string;
     healthy: boolean;
   }[];
+  // Enhanced monitoring features
+  healthScore: number; // 0-100
+  trends: {
+    status: 'improving' | 'stable' | 'degrading';
+    score: number; // Change in health score over time
+  };
+  alerts: Array<{
+    level: 'info' | 'warning' | 'error' | 'critical';
+    message: string;
+    service?: string;
+    timestamp: string;
+  }>;
+  suggestions: string[];
+  telemetry?: {
+    traceId?: string;
+    spanId?: string;
+    activeSpans: number;
+    tracingEnabled: boolean;
+  };
+}
+
+export interface HealthHistory {
+  timestamp: Date;
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  score: number;
+  responseTime: number;
+  services: Record<string, 'healthy' | 'degraded' | 'unhealthy'>;
 }
 
 export class HealthCheckService {
   private startTime: Date;
   private healthChecks: Map<string, () => Promise<HealthStatus>> = new Map();
+  private healthHistory: HealthHistory[] = [];
+  private lastHealthScore = 100;
   private requestMetrics: {
     totalRequests: number;
     requestsInLastMinute: number[];
@@ -435,6 +464,7 @@ export class HealthCheckService {
   }
 
   async checkHealth(): Promise<HealthCheckResult> {
+    const startTime = Date.now();
     const services: Partial<ServiceHealth> = {};
     
     // Run all health checks in parallel
@@ -462,13 +492,30 @@ export class HealthCheckService {
       ? 'degraded'
       : 'healthy';
 
+    // Calculate health score
+    const healthScore = this.calculateHealthScore(services as ServiceHealth);
+    
+    // Calculate trends
+    const trends = this.calculateTrends(healthScore);
+    
+    // Generate alerts and suggestions
+    const alerts = this.generateAlerts(services as ServiceHealth);
+    const suggestions = this.generateSuggestions(services as ServiceHealth, healthScore);
+
     // Get system metrics
     const memUsage = process.memoryUsage();
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
     const loadAvg = os.loadavg();
 
-    return {
+    // Get telemetry information
+    const telemetry = this.getTelemetryInfo();
+
+    // Record health history
+    const responseTime = Date.now() - startTime;
+    this.recordHealthHistory(overallStatus, healthScore, responseTime, services as ServiceHealth);
+
+    const result: HealthCheckResult = {
       status: overallStatus,
       version: process.env.npm_package_version || '1.0.0',
       uptime: Date.now() - this.startTime.getTime(),
@@ -492,7 +539,253 @@ export class HealthCheckService {
         requestsPerMinute: this.calculateRequestsPerMinute(),
         averageResponseTime: this.calculateAverageResponseTime()
       },
-      dependencies: this.checkDependencies()
+      dependencies: this.checkDependencies(),
+      healthScore,
+      trends,
+      alerts,
+      suggestions,
+      telemetry
+    };
+
+    return result;
+  }
+
+  private calculateHealthScore(services: ServiceHealth): number {
+    const weights = {
+      database: 30,    // Critical
+      redis: 10,       // Important but not critical
+      ollama: 20,      // AI services are important
+      kokoro: 10,      // Voice features
+      storage: 15,     // File storage
+      memory: 5,       // System resources
+      cpu: 5,          // System resources
+      disk: 3,         // System resources
+      migrations: 2,   // Less critical for runtime
+      circuitBreakers: 0 // Already factored into other services
+    };
+
+    let totalScore = 0;
+    let totalWeight = 0;
+
+    for (const [serviceName, serviceHealth] of Object.entries(services)) {
+      const weight = weights[serviceName as keyof typeof weights] || 1;
+      totalWeight += weight;
+
+      let serviceScore = 0;
+      switch (serviceHealth.status) {
+        case 'healthy': serviceScore = 100; break;
+        case 'degraded': serviceScore = 60; break;
+        case 'unhealthy': serviceScore = 0; break;
+        default: serviceScore = 0;
+      }
+
+      totalScore += serviceScore * weight;
+    }
+
+    return totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+  }
+
+  private calculateTrends(currentScore: number): { status: 'improving' | 'stable' | 'degrading'; score: number } {
+    const scoreDifference = currentScore - this.lastHealthScore;
+    this.lastHealthScore = currentScore;
+
+    let status: 'improving' | 'stable' | 'degrading' = 'stable';
+    if (scoreDifference > 5) status = 'improving';
+    else if (scoreDifference < -5) status = 'degrading';
+
+    return { status, score: scoreDifference };
+  }
+
+  private generateAlerts(services: ServiceHealth): Array<{ level: 'info' | 'warning' | 'error' | 'critical'; message: string; service?: string; timestamp: string }> {
+    const alerts: Array<{ level: 'info' | 'warning' | 'error' | 'critical'; message: string; service?: string; timestamp: string }> = [];
+    const timestamp = new Date().toISOString();
+
+    for (const [serviceName, serviceHealth] of Object.entries(services)) {
+      if (serviceHealth.status === 'unhealthy') {
+        alerts.push({
+          level: serviceName === 'database' ? 'critical' : 'error',
+          message: serviceHealth.message || `Service ${serviceName} is unhealthy`,
+          service: serviceName,
+          timestamp
+        });
+      } else if (serviceHealth.status === 'degraded') {
+        alerts.push({
+          level: 'warning',
+          message: serviceHealth.message || `Service ${serviceName} is degraded`,
+          service: serviceName,
+          timestamp
+        });
+      }
+    }
+
+    // Check system resource alerts
+    const memUsage = process.memoryUsage();
+    const memPercentage = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+    
+    if (memPercentage > 90) {
+      alerts.push({
+        level: 'critical',
+        message: `Memory usage critically high: ${memPercentage.toFixed(1)}%`,
+        service: 'memory',
+        timestamp
+      });
+    } else if (memPercentage > 80) {
+      alerts.push({
+        level: 'warning',
+        message: `Memory usage high: ${memPercentage.toFixed(1)}%`,
+        service: 'memory',
+        timestamp
+      });
+    }
+
+    return alerts;
+  }
+
+  private generateSuggestions(services: ServiceHealth, healthScore: number): string[] {
+    const suggestions: string[] = [];
+
+    // Service-specific suggestions
+    for (const [serviceName, serviceHealth] of Object.entries(services)) {
+      if (serviceHealth.status === 'unhealthy') {
+        switch (serviceName) {
+          case 'database':
+            suggestions.push('Check database connection and credentials');
+            suggestions.push('Verify database server is running');
+            break;
+          case 'redis':
+            suggestions.push('Check Redis server status');
+            suggestions.push('Verify Redis connection configuration');
+            break;
+          case 'ollama':
+            suggestions.push('Start Ollama service');
+            suggestions.push('Check Ollama configuration and model availability');
+            break;
+          case 'memory':
+            suggestions.push('Consider increasing memory allocation');
+            suggestions.push('Check for memory leaks');
+            suggestions.push('Enable garbage collection optimization');
+            break;
+          case 'cpu':
+            suggestions.push('Reduce CPU load by scaling services');
+            suggestions.push('Check for infinite loops or CPU-intensive operations');
+            break;
+        }
+      }
+    }
+
+    // Overall health suggestions
+    if (healthScore < 50) {
+      suggestions.push('System health is critically low - immediate attention required');
+      suggestions.push('Consider scaling up resources or restarting services');
+    } else if (healthScore < 70) {
+      suggestions.push('System health is degraded - investigate failing services');
+      suggestions.push('Monitor resource usage and optimize as needed');
+    }
+
+    // Remove duplicates
+    return [...new Set(suggestions)];
+  }
+
+  private getTelemetryInfo(): { traceId?: string; spanId?: string; activeSpans: number; tracingEnabled: boolean } {
+    try {
+      // Try to get telemetry service information
+      const telemetryService = require('./telemetry-service').telemetryService;
+      if (telemetryService) {
+        const currentTrace = telemetryService.getCurrentTraceContext();
+        const metrics = telemetryService.getServiceMetrics();
+        
+        return {
+          traceId: currentTrace?.traceId,
+          spanId: currentTrace?.spanId,
+          activeSpans: metrics?.activeSpans || 0,
+          tracingEnabled: true
+        };
+      }
+    } catch (error) {
+      // Telemetry service not available or not initialized
+    }
+
+    return {
+      activeSpans: 0,
+      tracingEnabled: false
+    };
+  }
+
+  private recordHealthHistory(
+    status: 'healthy' | 'degraded' | 'unhealthy', 
+    score: number, 
+    responseTime: number, 
+    services: ServiceHealth
+  ): void {
+    const serviceStatuses: Record<string, 'healthy' | 'degraded' | 'unhealthy'> = {};
+    for (const [name, service] of Object.entries(services)) {
+      serviceStatuses[name] = service.status;
+    }
+
+    this.healthHistory.push({
+      timestamp: new Date(),
+      status,
+      score,
+      responseTime,
+      services: serviceStatuses
+    });
+
+    // Keep only last 1000 entries
+    if (this.healthHistory.length > 1000) {
+      this.healthHistory = this.healthHistory.slice(-1000);
+    }
+  }
+
+  /**
+   * Get health history for analysis
+   */
+  getHealthHistory(limit = 100): HealthHistory[] {
+    return this.healthHistory.slice(-limit);
+  }
+
+  /**
+   * Get health trends over time
+   */
+  getHealthTrends(durationMinutes = 60): {
+    averageScore: number;
+    trend: 'improving' | 'stable' | 'degrading';
+    uptimePercentage: number;
+    incidents: number;
+  } {
+    const cutoffTime = new Date(Date.now() - durationMinutes * 60 * 1000);
+    const recentHistory = this.healthHistory.filter(h => h.timestamp > cutoffTime);
+
+    if (recentHistory.length === 0) {
+      return {
+        averageScore: this.lastHealthScore,
+        trend: 'stable',
+        uptimePercentage: 100,
+        incidents: 0
+      };
+    }
+
+    const averageScore = recentHistory.reduce((sum, h) => sum + h.score, 0) / recentHistory.length;
+    const healthyCount = recentHistory.filter(h => h.status === 'healthy').length;
+    const uptimePercentage = (healthyCount / recentHistory.length) * 100;
+    const incidents = recentHistory.filter(h => h.status === 'unhealthy').length;
+
+    // Simple trend calculation
+    const firstHalf = recentHistory.slice(0, Math.floor(recentHistory.length / 2));
+    const secondHalf = recentHistory.slice(Math.floor(recentHistory.length / 2));
+    
+    const firstHalfAvg = firstHalf.reduce((sum, h) => sum + h.score, 0) / firstHalf.length;
+    const secondHalfAvg = secondHalf.reduce((sum, h) => sum + h.score, 0) / secondHalf.length;
+    
+    let trend: 'improving' | 'stable' | 'degrading' = 'stable';
+    const difference = secondHalfAvg - firstHalfAvg;
+    if (difference > 5) trend = 'improving';
+    else if (difference < -5) trend = 'degrading';
+
+    return {
+      averageScore: Math.round(averageScore),
+      trend,
+      uptimePercentage: Math.round(uptimePercentage * 100) / 100,
+      incidents
     };
   }
 

@@ -134,3 +134,6 @@ temp/
 
 # Claude context files
 .claude-context/
+# Embedded git repositories (models)
+models/agents/LFM2-1.2B-bf16/
+models/tts/Kokoro-82M/
