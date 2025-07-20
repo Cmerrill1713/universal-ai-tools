@@ -837,7 +837,7 @@ The meta-cognitive analysis reveals ${reflection.overallQuality > 0.7 ? 'a stron
       context.userRequest.split(' ').length > 20 ? 0.2 : 0,
       context.metadata?.agentOutputs ? Object.keys(context.metadata.agentOutputs).length * 0.1 : 0,
       context.userRequest.includes('complex') || context.userRequest.includes('advanced') ? 0.2 : 0,
-      context.metadata?.constraints ? context.metadata.constraints.length * 0.05 : 0
+      Array.isArray(context.metadata?.constraints) ? context.metadata.constraints.length * 0.05 : 0
     ];
     
     return Math.min(1.0, factors.reduce((sum, f) => sum + f, 0.3));
@@ -1360,7 +1360,7 @@ The meta-cognitive analysis reveals ${reflection.overallQuality > 0.7 ? 'a stron
     }
     
     // Adjust based on constraints
-    if (context.metadata?.constraints?.includes('time') && approach.name === 'Minimalist Approach') {
+    if (Array.isArray(context.metadata?.constraints) && context.metadata.constraints.includes('time') && approach.name === 'Minimalist Approach') {
       viability += 0.2;
     }
     

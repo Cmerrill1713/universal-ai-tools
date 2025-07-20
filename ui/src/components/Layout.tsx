@@ -10,7 +10,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Mic,
   Bot,
   Workflow,
   Sparkles,

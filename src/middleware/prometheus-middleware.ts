@@ -4,9 +4,9 @@
  * Integrates Prometheus metrics collection with our enhanced logging system
  * and provides specialized metrics for Sweet Athena interactions
  */
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { metricsCollector, register } from '../utils/prometheus-metrics';
-import { logger, LogContext } from '../utils/enhanced-logger';
+import { LogContext, logger } from '../utils/enhanced-logger';
 
 // Extend Express Request type to include Prometheus data
 declare global {
@@ -27,14 +27,14 @@ export class PrometheusMiddleware {
 
       // Override res.end to capture final metrics
       const originalEnd = res.end;
-      res.end = function(...args: any[]) {
+      res.end = function(chunk?: any, encodingOrCallback?: BufferEncoding | (() => void), callback?: () => void) {
         const endTime = Date.now();
         const duration = endTime - startTime;
         
         // Extract request data
-        const method = req.method;
+        const {method} = req;
         const route = PrometheusMiddleware.extractRoute(req);
-        const statusCode = res.statusCode;
+        const {statusCode} = res;
         const aiService = req.headers['x-ai-service'] as string || 'unknown';
         const requestSize = PrometheusMiddleware.getRequestSize(req);
         const responseSize = PrometheusMiddleware.getResponseSize(res);
@@ -67,7 +67,9 @@ export class PrometheusMiddleware {
         }
 
         // Call original end method
-        return originalEnd.apply(this, args);
+        const encoding = typeof encodingOrCallback === 'string' ? encodingOrCallback : 'utf8';
+        const cb = typeof encodingOrCallback === 'function' ? encodingOrCallback : callback;
+        return originalEnd.call(this, chunk, encoding, cb);
       };
 
       next();
@@ -238,7 +240,7 @@ export class PrometheusMiddleware {
         });
       } catch (error) {
         logger.error('Failed to generate Prometheus metrics', LogContext.PERFORMANCE, {
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           request_id: req.requestId
         });
         
@@ -260,7 +262,7 @@ export class PrometheusMiddleware {
           uptime: process.uptime(),
           memory: process.memoryUsage(),
           metrics_enabled: true,
-          prometheus_registry: register.metrics ? 'active' : 'inactive'
+          prometheus_registry: typeof register.metrics === 'function' ? 'active' : 'inactive'
         };
 
         // Update health metrics
@@ -275,13 +277,13 @@ export class PrometheusMiddleware {
         });
       } catch (error) {
         logger.error('Health check failed', LogContext.SYSTEM, {
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           request_id: req.requestId
         });
         
         res.status(500).json({
           status: 'unhealthy',
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           timestamp: new Date().toISOString()
         });
       }
@@ -346,8 +348,7 @@ export class PrometheusMiddleware {
                              'sweet';
       
       const sweetnessLevel = req.body?.sweetness_level || 
-                           req.query.sweetness_level as number || 
-                           8;
+                           (req.query.sweetness_level ? Number(req.query.sweetness_level) : 8);
 
       const userId = req.headers['x-user-id'] as string || 'anonymous';
       const sessionId = req.headers['x-session-id'] as string || req.requestId || 'unknown';
@@ -372,7 +373,7 @@ export class PrometheusMiddleware {
       });
     } catch (error) {
       logger.error('Failed to record Athena metrics', LogContext.ATHENA, {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         request_id: req.requestId
       });
     }

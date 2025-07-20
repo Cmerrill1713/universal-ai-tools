@@ -15,7 +15,7 @@ class ApiService {
   private getHeaders() {
     // Use default local service config if not set
     const config = this.config || {
-      apiKey: 'local-dev-key',
+      apiKey: import.meta.env.VITE_API_KEY || '',
       serviceName: 'local-ui'
     };
 
@@ -204,6 +204,45 @@ class ApiService {
     }
 
     return response.json();
+  }
+
+  // Widget Creation API
+  async createWidget(request: {
+    userId: string;
+    conversationId: string;
+    message: string;
+    context?: any;
+  }) {
+    return this.request('/api/widgets/create', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async updateWidget(widgetId: string, feedback: string, updates?: any) {
+    return this.request('/api/widgets/update', {
+      method: 'PUT',
+      body: JSON.stringify({ widgetId, feedback, updates }),
+    });
+  }
+
+  async getUserWidgets(userId: string, limit = 10) {
+    return this.request(`/api/widgets/history?userId=${encodeURIComponent(userId)}&limit=${limit}`);
+  }
+
+  async getWidget(widgetId: string) {
+    return this.request(`/api/widgets/${widgetId}`);
+  }
+
+  async exportWidget(widgetId: string, format = 'typescript') {
+    return this.request(`/api/widgets/${widgetId}/export?format=${format}`);
+  }
+
+  async previewWidget(widgetId: string, props = {}) {
+    return this.request(`/api/widgets/${widgetId}/preview`, {
+      method: 'POST',
+      body: JSON.stringify({ props }),
+    });
   }
 }
 

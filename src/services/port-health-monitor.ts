@@ -16,8 +16,10 @@
 
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { SmartPortManager, ServiceConfig, PortStatus } from '../utils/smart-port-manager';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import type { SmartPortManager} from '../utils/smart-port-manager';
+import { PortStatus, ServiceConfig } from '../utils/smart-port-manager';
 import { logger } from '../utils/logger';
 
 // Health metric interfaces
@@ -92,7 +94,7 @@ export class PortHealthMonitor extends EventEmitter {
   private portManager: SmartPortManager;
   private supabase: SupabaseClient;
   private config: MonitoringConfig;
-  private isMonitoring: boolean = false;
+  private isMonitoring = false;
   private monitoringInterval?: NodeJS.Timeout;
   private healthHistory: Map<string, ServiceHealthHistory> = new Map();
   private activeAlerts: Map<string, HealthAlert> = new Map();
@@ -418,7 +420,7 @@ export class PortHealthMonitor extends EventEmitter {
   /**
    * Get historical health data for a service
    */
-  getHealthHistory(service: string, duration: number = 24): Array<HealthMetric> {
+  getHealthHistory(service: string, duration = 24): Array<HealthMetric> {
     const history = this.healthHistory.get(service);
     if (!history) return [];
     

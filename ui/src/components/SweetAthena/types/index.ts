@@ -9,6 +9,12 @@
  * @version 1.0.0
  */
 
+// Import types for internal use in union types
+import type { PersonalityMood, EmotionalState, ThemeVariant, AvatarMode } from './core';
+import type { AthenaTheme, AthenaThemeConfig, AthenaThemeProviderProps, ThemeUpdateOptions } from './theme';
+import type { AvatarProps } from './avatar';
+import type { ChatComponentProps, MessageComponentProps, ChatInputProps } from './chat';
+
 // Core type definitions
 export type {
   PersonalityMood,
@@ -17,6 +23,7 @@ export type {
   AnimationTiming,
   AvatarMode,
   ThemeVariant,
+  SweetAthenaProps,
 } from './core';
 
 // Theme and styling types

@@ -144,7 +144,7 @@ export class AgentRegistry extends EventEmitter {
       
       if (skillSets.length > 0) {
         // Start with agents that have the first skill
-        skillSets[0].forEach(agentId => candidates.add(agentId));
+        skillSets[0].forEach(agentId => candidates.add(agentId as string));
         
         // Filter to agents that have all required skills
         for (let i = 1; i < skillSets.length; i++) {
@@ -364,7 +364,7 @@ export class AgentRegistry extends EventEmitter {
   async healthCheck(): Promise<boolean> {
     const stats = await this.getRegistryStats();
     const healthyAgents = stats.byStatus.idle + stats.byStatus.busy;
-    const totalAgents = stats.totalAgents;
+    const {totalAgents} = stats;
     
     if (totalAgents === 0) return false;
     

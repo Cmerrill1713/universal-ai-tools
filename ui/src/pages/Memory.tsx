@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Brain, Search, Plus, Clock, Tag, Loader, AlertCircle, Save, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Brain, Search, Plus, Loader, AlertCircle, Save, X, BarChart3 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { MemoryVisualization } from '../components/MemoryVisualization';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { memoryApi, MemoryItem } from '../lib/api';
@@ -19,10 +20,16 @@ export function Memory() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newMemory, setNewMemory] = useState({
-    memory_type: 'semantic' as const,
+  const [showVisualization, setShowVisualization] = useState(false);
+  const [newMemory, setNewMemory] = useState<{
+    memory_type: 'semantic' | 'episodic' | 'procedural' | 'working';
+    content: string;
+    tags: string[];
+    importance: number;
+  }>({
+    memory_type: 'semantic',
     content: '',
-    tags: [] as string[],
+    tags: [],
     importance: 0.5,
   });
   const [tagInput, setTagInput] = useState('');
@@ -64,8 +71,10 @@ export function Memory() {
       queryClient.setQueryData(['memories'], searchResults);
     },
     onError: (error: Error) => {
-      console.error('Search failed:', error);
-      // You could add a toast notification here
+      console.error('💥 Search failed:', error);
+      // Provide user feedback
+      const errorMessage = error.message || 'Search failed';
+      console.error('Search error details:', errorMessage);
     },
   });
 
@@ -95,36 +104,104 @@ export function Memory() {
       setTagInput('');
     },
     onError: (error: Error) => {
-      console.error('Create memory failed:', error);
-      // You could add a toast notification here
+      console.error('💥 Create memory failed:', error);
+      // Provide user feedback
+      const errorMessage = error.message || 'Failed to create memory';
+      console.error('Create memory error details:', errorMessage);
     },
   });
 
-  // Update memory importance - TODO: Add this to the API client
-  // const updateImportanceMutation = useMutation({
-  //   mutationFn: async ({ id, importance }: { id: string; importance: number }) => {
-  //     // This endpoint is not yet available in the API client
-  //     // We would need to add it to memoryApi.update() or similar
-  //     throw new Error('Update functionality not yet implemented in API client');
-  //   },
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ['memories'] });
-  //   },
-  // });
+  // Update memory importance mutation
+  const updateImportanceMutation = useMutation({
+    mutationFn: async ({ id, importance }: { id: string; importance: number }) => {
+      try {
+        return await memoryApi.updateImportance(id, importance);
+      } catch (err: any) {
+        throw new Error(err.response?.data?.message || err.message || 'Failed to update memory importance');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['memories'] });
+    },
+    onError: (error: Error) => {
+      console.error('💥 Update importance failed:', error);
+      // Provide user feedback and optionally revert changes
+      const errorMessage = error.message || 'Failed to update importance';
+      console.error('Update importance error details:', errorMessage);
+      // Optionally refresh memories to revert any optimistic updates
+      queryClient.invalidateQueries({ queryKey: ['memories'] });
+    },
+  });
 
   // WebSocket connection for real-time updates
-  const { isConnected } = useWebSocket({
+  const { isConnected, sendMessage, reconnectAttempts, maxReconnectAttempts } = useWebSocket({
     url: 'ws://localhost:9999',
     onConnect: () => {
-      console.log('WebSocket connected');
+      console.log('📡 Memory page: WebSocket connected');
     },
     onMessage: (data) => {
-      if (data.type === 'update' && data.channel === 'memories') {
-        // Refresh memories when updates are received
+      console.log('📨 Memory page: WebSocket message received:', data);
+      
+      // Handle different message types
+      if (data.type === 'memory_updated' || 
+          (data.type === 'update' && data.channel === 'memories') ||
+          (data.type === 'database_change' && data.table === 'ai_memories')) {
+        console.log('🔄 Memory update received, refreshing data...');
+        queryClient.invalidateQueries({ queryKey: ['memories'] });
+      }
+      
+      // Handle real-time memory creation/deletion
+      if (data.type === 'memory_created') {
+        console.log('➕ New memory created, refreshing data...');
+        queryClient.invalidateQueries({ queryKey: ['memories'] });
+      }
+      
+      if (data.type === 'memory_deleted') {
+        console.log('🗑️ Memory deleted, refreshing data...');
         queryClient.invalidateQueries({ queryKey: ['memories'] });
       }
     },
+    onDisconnect: () => {
+      console.log('📡 Memory page: WebSocket disconnected');
+    },
+    onError: (error) => {
+      console.error('📡 Memory page: WebSocket error:', error);
+    },
+    reconnectInterval: 3000,
+    maxReconnectAttempts: 10,
   });
+
+  // Subscribe to memory updates when WebSocket connection is established
+  useEffect(() => {
+    if (isConnected && sendMessage) {
+      console.log('📡 Subscribing to memory updates...');
+      
+      // Subscribe to various memory-related channels
+      const subscriptions = [
+        {
+          type: 'subscribe',
+          channel: 'memories',
+          table: 'ai_memories'
+        },
+        {
+          type: 'subscribe',
+          channel: 'database_changes',
+          table: 'ai_memories'
+        },
+        {
+          type: 'subscribe',
+          event: 'memory_events'
+        }
+      ];
+      
+      subscriptions.forEach(subscription => {
+        const success = sendMessage(subscription);
+        if (!success) {
+          console.warn('⚠️ Failed to send subscription:', subscription);
+        }
+      });
+    }
+  }, [isConnected, sendMessage]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -158,6 +235,11 @@ export function Memory() {
     });
   };
 
+  const handleUpdateImportance = (memoryId: string, importance: number) => {
+    console.log(`📊 Updating memory ${memoryId} importance to ${importance}`);
+    updateImportanceMutation.mutate({ id: memoryId, importance });
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -176,7 +258,7 @@ export function Memory() {
   };
 
   const getMemoryTypeColor = (type: Memory['memory_type']) => {
-    const colors = {
+    const colors: Record<string, string> = {
       episodic: 'text-blue-500',
       semantic: 'text-green-500',
       procedural: 'text-purple-500',
@@ -205,18 +287,36 @@ export function Memory() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-semibold">Memory Bank</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            {isConnected ? (
-              <span className="text-green-500">● Connected</span>
-            ) : (
-              <span className="text-red-500">● Disconnected</span>
+          <div className="flex items-center space-x-4 mt-1">
+            <p className="text-sm text-gray-400">
+              Real-time updates: {isConnected ? (
+                <span className="text-green-500 font-medium">● Connected</span>
+              ) : reconnectAttempts > 0 ? (
+                <span className="text-yellow-500 font-medium">● Reconnecting ({reconnectAttempts}/{maxReconnectAttempts})</span>
+              ) : (
+                <span className="text-red-500 font-medium">● Disconnected</span>
+              )}
+            </p>
+            {memories && memories.length > 0 && (
+              <span className="text-sm text-gray-500">
+                {memories.length} memories
+              </span>
             )}
-          </p>
+          </div>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Store New Memory
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowVisualization(!showVisualization)}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            {showVisualization ? 'Hide' : 'Show'} Analytics
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Store New Memory
+          </Button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -255,6 +355,11 @@ export function Memory() {
         )}
       </Card>
 
+      {/* Memory Visualization */}
+      {showVisualization && memories && memories.length > 0 && (
+        <MemoryVisualization memories={memories} />
+      )}
+
       {/* Memory Grid */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
@@ -275,7 +380,7 @@ export function Memory() {
             Try Again
           </Button>
         </Card>
-      ) : memories?.length > 0 ? (
+      ) : memories && memories.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {memories.map((memory) => (
             <Card 
@@ -313,20 +418,50 @@ export function Memory() {
               )}
               
               {/* Importance and Stats */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-3">
-                  {(memory.importance || memory.importance_score) !== undefined && (
-                    <div className="flex items-center space-x-1">
-                      <span>Importance:</span>
-                      <span className="px-2 py-1 bg-gray-700 rounded">
-                        {((memory.importance || memory.importance_score || 0) * 100).toFixed(0)}%
-                      </span>
-                    </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center space-x-3">
+                    {(memory.importance || memory.importance_score) !== undefined && (
+                      <div className="flex items-center space-x-1">
+                        <span>Importance:</span>
+                        <span className="px-2 py-1 bg-gray-700 rounded">
+                          {((memory.importance || memory.importance_score || 0) * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {memory.access_count !== undefined && (
+                    <span>Accessed {memory.access_count} times</span>
                   )}
                 </div>
-                {memory.access_count !== undefined && (
-                  <span>Accessed {memory.access_count} times</span>
-                )}
+                
+                {/* Interactive Importance Slider */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-500 min-w-fit">Update:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    defaultValue={memory.importance || memory.importance_score || 0}
+                    onChangeCapture={(e) => {
+                      const target = e.target as HTMLInputElement;
+                      const importance = parseFloat(target.value);
+                      // Debounce the update to avoid too many API calls
+                      setTimeout(() => {
+                        handleUpdateImportance(memory.id, importance);
+                      }, 500);
+                    }}
+                    className={`flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider ${
+                      updateImportanceMutation.isPending ? 'opacity-50' : ''
+                    }`}
+                    disabled={updateImportanceMutation.isPending}
+                    title="Drag to update memory importance"
+                  />
+                  {updateImportanceMutation.isPending && (
+                    <Loader className="h-3 w-3 animate-spin text-blue-500" />
+                  )}
+                </div>
               </div>
             </Card>
           ))}
@@ -363,10 +498,10 @@ export function Memory() {
               <div>
                 <label className="block text-sm font-medium mb-2">Memory Type</label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {(['episodic', 'semantic', 'procedural', 'working'] as const).map((type) => (
+                  {(['episodic', 'semantic', 'procedural', 'working']).map((type) => (
                     <button
                       key={type}
-                      onClick={() => setNewMemory({ ...newMemory, memory_type: type })}
+                      onClick={() => setNewMemory({ ...newMemory, memory_type: type as "episodic" | "semantic" | "procedural" | "working" })}
                       className={`p-3 rounded-lg border transition-colors ${
                         newMemory.memory_type === type
                           ? 'border-blue-500 bg-blue-500/10'
@@ -446,7 +581,25 @@ export function Memory() {
 
             {createMemoryMutation.error && (
               <div className="p-3 bg-red-900/20 border border-red-500/20 rounded text-red-400 text-sm">
-                Failed to create memory: {createMemoryMutation.error instanceof Error ? createMemoryMutation.error.message : 'Unknown error'}
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Failed to create memory</span>
+                </div>
+                <div className="mt-1 text-xs text-red-300">
+                  {createMemoryMutation.error instanceof Error ? createMemoryMutation.error.message : 'Unknown error occurred'}
+                </div>
+              </div>
+            )}
+
+            {updateImportanceMutation.error && (
+              <div className="p-3 bg-red-900/20 border border-red-500/20 rounded text-red-400 text-sm">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Failed to update importance</span>
+                </div>
+                <div className="mt-1 text-xs text-red-300">
+                  {updateImportanceMutation.error instanceof Error ? updateImportanceMutation.error.message : 'Unknown error occurred'}
+                </div>
               </div>
             )}
 

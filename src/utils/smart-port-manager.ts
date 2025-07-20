@@ -1,7 +1,7 @@
-import { createServer, Socket } from 'net';
+import { Socket, createServer } from 'net';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { writeFile, readFile, mkdir } from 'fs/promises';
+import { mkdir, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
 import EventEmitter from 'events';
@@ -276,8 +276,8 @@ export class SmartPortManager extends EventEmitter {
     }
 
     // Check default port first
-    let port = config.defaultPort;
-    let available = await this.checkPortAvailability(port);
+    const port = config.defaultPort;
+    const available = await this.checkPortAvailability(port);
     
     if (!available) {
       // Check if service is actually running on this port
@@ -385,7 +385,7 @@ export class SmartPortManager extends EventEmitter {
   /**
    * Monitor port changes in real-time
    */
-  monitorPortChanges(interval: number = 30000): void {
+  monitorPortChanges(interval = 30000): void {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
     }
@@ -475,7 +475,7 @@ export class SmartPortManager extends EventEmitter {
     try {
       const data = await readFile(this.configPath, 'utf-8');
       return JSON.parse(data);
-    } catch (error) {
+    } catch (_error) {
       console.log('No existing port configuration found');
       return null;
     }
@@ -544,11 +544,25 @@ export class SmartPortManager extends EventEmitter {
     try {
       if (config.protocol === 'http' && config.healthCheckPath) {
         const url = `http://localhost:${port}${config.healthCheckPath}`;
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: AbortSignal.timeout(config.timeout || 5000)
-        });
-        return response.ok ? 'healthy' : 'unhealthy';
+        
+        // Create custom timeout with AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), config.timeout || 5000);
+        
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          return response.ok ? 'healthy' : 'unhealthy';
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            return 'unhealthy'; // Timeout
+          }
+          throw fetchError;
+        }
       } else if (config.protocol === 'tcp') {
         const connected = await this.validateTcpConnection(port);
         return connected ? 'healthy' : 'unhealthy';
@@ -673,7 +687,7 @@ export async function quickPortCheck(port: number): Promise<boolean> {
   return portManager.checkPortAvailability(port);
 }
 
-export async function findFreePort(startPort: number = 3000): Promise<number> {
+export async function findFreePort(startPort = 3000): Promise<number> {
   return portManager.findAvailablePort(startPort);
 }
 

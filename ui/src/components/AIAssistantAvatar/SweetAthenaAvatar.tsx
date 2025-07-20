@@ -1,9 +1,12 @@
-import { Suspense, useState, useRef, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment, Float, Text, Html, Sparkles } from '@react-three/drei';
+import { Suspense, useState, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, PerspectiveCamera, Environment, Float, Text, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, ChromaticAberration, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
+import { useAdaptiveQuality } from '../Performance/AdaptiveQualityManager';
+import { LODSystem } from '../Performance/LODSystem';
+import { useComponentPerformance } from '../../hooks/usePerformanceMonitor';
 
 interface SweetAthenaAvatarProps {
   isThinking?: boolean;
@@ -13,19 +16,27 @@ interface SweetAthenaAvatarProps {
   onInteraction?: () => void;
   personalityMood?: 'sweet' | 'shy' | 'confident' | 'purposeful' | 'caring' | 'playful';
   sweetnessLevel?: number; // 1-10
+  voiceAmplitude?: number; // 0-1, amplitude when listening
+  speakingAmplitude?: number; // 0-1, amplitude when speaking
 }
 
 // Sweet Athena's holographic head with feminine features
 function AthenaHead({ 
   isThinking, 
   isSpeaking, 
+  isListening,
   personalityMood = 'sweet',
-  sweetnessLevel = 8 
+  sweetnessLevel = 8,
+  voiceAmplitude = 0,
+  speakingAmplitude = 0
 }: {
   isThinking: boolean;
   isSpeaking: boolean;
+  isListening: boolean;
   personalityMood: string;
   sweetnessLevel: number;
+  voiceAmplitude: number;
+  speakingAmplitude: number;
 }) {
   const headRef = useRef<THREE.Group>(null);
   const [time, setTime] = useState(0);
@@ -34,27 +45,52 @@ function AthenaHead({
     setTime(state.clock.elapsedTime);
     
     if (headRef.current) {
-      // Gentle breathing animation
-      const breathScale = 1 + Math.sin(time * 0.8) * 0.02;
-      headRef.current.scale.set(breathScale, breathScale, breathScale);
+      // Base scale with gentle breathing animation
+      let baseScale = 1 + Math.sin(time * 0.8) * 0.02;
       
-      // Subtle head movement based on personality
-      if (personalityMood === 'shy') {
-        headRef.current.rotation.y = Math.sin(time * 0.5) * 0.1 - 0.1; // Slightly turned away
-        headRef.current.position.y = -0.1 + Math.sin(time * 0.3) * 0.05;
-      } else if (personalityMood === 'confident') {
-        headRef.current.rotation.y = Math.sin(time * 0.7) * 0.15;
-        headRef.current.position.y = 0.1 + Math.sin(time * 0.4) * 0.05;
-      } else {
-        // Sweet default - gentle swaying
-        headRef.current.rotation.y = Math.sin(time * 0.6) * 0.08;
-        headRef.current.position.y = Math.sin(time * 0.5) * 0.03;
+      // Voice amplitude response for listening
+      if (isListening && voiceAmplitude > 0) {
+        const listeningScale = 1 + (voiceAmplitude * 0.15); // Scale based on voice amplitude
+        baseScale = Math.max(baseScale, listeningScale);
+        
+        // Add subtle pulsing effect based on voice
+        const pulsing = 1 + Math.sin(time * 15) * voiceAmplitude * 0.05;
+        baseScale *= pulsing;
       }
       
-      // Speaking animation
-      if (isSpeaking) {
-        const speakIntensity = Math.sin(time * 8) * 0.1 + 0.1;
-        headRef.current.scale.setScalar(1 + speakIntensity * 0.05);
+      // Speaking amplitude response
+      if (isSpeaking && speakingAmplitude > 0) {
+        const speakingScale = 1 + (speakingAmplitude * 0.2); // Scale based on speaking amplitude
+        baseScale = Math.max(baseScale, speakingScale);
+        
+        // Add mouth movement simulation
+        const mouthMovement = Math.sin(time * 10 + speakingAmplitude * 5) * speakingAmplitude * 0.1;
+        headRef.current.position.z = mouthMovement * 0.1;
+      } else {
+        headRef.current.position.z = 0;
+      }
+      
+      headRef.current.scale.set(baseScale, baseScale, baseScale);
+      
+      // Subtle head movement based on personality and voice activity
+      let rotationIntensity = 1;
+      let positionIntensity = 1;
+      
+      if (isListening && voiceAmplitude > 0) {
+        rotationIntensity += voiceAmplitude * 0.5; // More responsive when listening
+        positionIntensity += voiceAmplitude * 0.3;
+      }
+      
+      if (personalityMood === 'shy') {
+        headRef.current.rotation.y = Math.sin(time * 0.5) * 0.1 * rotationIntensity - 0.1;
+        headRef.current.position.y = -0.1 + Math.sin(time * 0.3) * 0.05 * positionIntensity;
+      } else if (personalityMood === 'confident') {
+        headRef.current.rotation.y = Math.sin(time * 0.7) * 0.15 * rotationIntensity;
+        headRef.current.position.y = 0.1 + Math.sin(time * 0.4) * 0.05 * positionIntensity;
+      } else {
+        // Sweet default - gentle swaying
+        headRef.current.rotation.y = Math.sin(time * 0.6) * 0.08 * rotationIntensity;
+        headRef.current.position.y = Math.sin(time * 0.5) * 0.03 * positionIntensity;
       }
     }
   });
@@ -155,15 +191,25 @@ function AthenaHead({
         </mesh>
       )}
       
-      {/* Athena's wisdom aura */}
-      <Sparkles 
-        count={sweetnessLevel * 3}
-        scale={3}
-        size={2}
-        speed={0.3}
-        color={colors.accent}
-        opacity={0.6}
-      />
+      {/* Athena's wisdom aura with LOD */}
+      <LODSystem levels={[
+        { distance: 0, detail: 'high' },
+        { distance: 10, detail: 'medium' },
+        { distance: 20, detail: 'low' }
+      ]}>
+        {(detail) => (
+          <Sparkles 
+            count={detail === 'high' ? sweetnessLevel * 3 : 
+                   detail === 'medium' ? sweetnessLevel * 2 : 
+                   sweetnessLevel}
+            scale={detail === 'high' ? 3 : detail === 'medium' ? 2 : 1.5}
+            size={detail === 'high' ? 2 : 1}
+            speed={0.3}
+            color={colors.accent}
+            opacity={0.6}
+          />
+        )}
+      </LODSystem>
     </group>
   );
 }
@@ -179,7 +225,9 @@ function DivineParticleSystem({
   sweetnessLevel: number;
 }) {
   const particlesRef = useRef<THREE.Points>(null);
-  const [particleCount] = useState(100 + sweetnessLevel * 10);
+  const { getParticleCount } = useAdaptiveQuality();
+  const baseCount = 100 + sweetnessLevel * 10;
+  const particleCount = getParticleCount(baseCount);
 
   useFrame((state) => {
     if (particlesRef.current) {
@@ -211,7 +259,7 @@ function DivineParticleSystem({
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          array={positions}
+          args={[positions, 3]}
           count={positions.length / 3}
           itemSize={3}
         />
@@ -380,6 +428,8 @@ export function SweetAthenaAvatar({
   sweetnessLevel = 8
 }: SweetAthenaAvatarProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { shouldEnableEffect, settings } = useAdaptiveQuality();
+  const { renderCount } = useComponentPerformance('SweetAthenaAvatar');
   
   return (
     <div className={`relative w-full h-full bg-gradient-to-br from-pink-900/20 via-purple-900/20 to-blue-900/20 ${className}`}>
@@ -414,7 +464,6 @@ export function SweetAthenaAvatar({
             onPointerEnter={() => setIsHovered(true)}
             onPointerLeave={() => setIsHovered(false)}
             onClick={onInteraction}
-            style={{ cursor: 'pointer' }}
           >
             <Float
               speed={personalityMood === 'shy' ? 1.0 : 1.5}
@@ -445,23 +494,27 @@ export function SweetAthenaAvatar({
             sweetnessLevel={sweetnessLevel}
           />
           
-          {/* Post-processing for a dreamy, soft look */}
+          {/* Post-processing for a dreamy, soft look - Quality adaptive */}
           <EffectComposer>
-            <Bloom 
-              intensity={sweetnessLevel / 5}
-              luminanceThreshold={0.2}
-              luminanceSmoothing={0.9}
-              blendFunction={BlendFunction.ADD}
-            />
+            {shouldEnableEffect('enableBloom') && (
+              <Bloom 
+                intensity={sweetnessLevel / 5}
+                luminanceThreshold={0.2}
+                luminanceSmoothing={0.9}
+                blendFunction={BlendFunction.ADD}
+              />
+            )}
             <Vignette
               offset={0.5}
               darkness={0.3}
               blendFunction={BlendFunction.MULTIPLY}
             />
-            <ChromaticAberration
-              blendFunction={BlendFunction.NORMAL}
-              offset={[0.0003, 0.0003]}
-            />
+            {settings.effects.enableMotionBlur && (
+              <ChromaticAberration
+                blendFunction={BlendFunction.NORMAL}
+                offset={[0.0003, 0.0003]}
+              />
+            )}
           </EffectComposer>
           
           {/* Soft environment for reflections */}

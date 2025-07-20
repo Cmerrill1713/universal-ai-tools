@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DSPyKnowledgeManager, knowledgeUtils, KnowledgeItem } from './dspy-knowledge-manager';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { DSPyKnowledgeManager, KnowledgeItem, knowledgeUtils } from './dspy-knowledge-manager';
 
 describe('DSPyKnowledgeManager', () => {
   let km: DSPyKnowledgeManager;

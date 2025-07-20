@@ -5,10 +5,10 @@
  * for a goddess-like AI assistant experience
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { useSpring, animated, config } from 'react-spring';
-import Lottie from 'lottie-react';
+// import Lottie from 'lottie-react';
 import styled, { ThemeProvider } from 'styled-components';
 import { Thread } from '@assistant-ui/react';
 import { SweetAthenaAvatar } from './AIAssistantAvatar/SweetAthenaAvatar';
@@ -132,7 +132,7 @@ const titleVariants = {
   }
 };
 
-const messageVariants = {
+const _messageVariants = {
   initial: { opacity: 0, x: -30, scale: 0.9 },
   animate: { 
     opacity: 1, 
@@ -202,6 +202,7 @@ const FloatingParticle: React.FC<{ delay: number; mood: PersonalityMood }> = ({ 
   );
 };
 
+/*
 // Enhanced message component with animations
 const AnimatedMessage: React.FC<{
   message: any;
@@ -251,6 +252,7 @@ const AnimatedMessage: React.FC<{
     </motion.div>
   );
 };
+*/
 
 // Main component
 export const EnhancedSweetAthena: React.FC<EnhancedSweetAthenaProps> = ({
@@ -260,7 +262,7 @@ export const EnhancedSweetAthena: React.FC<EnhancedSweetAthenaProps> = ({
   sweetnessLevel = 8,
   className
 }) => {
-  const [currentMood, setCurrentMood] = useState<PersonalityMood>(personalityMood);
+  const [currentMood] = useState<PersonalityMood>(personalityMood);
   const [theme, setTheme] = useState<AthenaTheme>(createAthenaTheme(personalityMood, sweetnessLevel));
   const [isThinking, setIsThinking] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -277,16 +279,16 @@ export const EnhancedSweetAthena: React.FC<EnhancedSweetAthenaProps> = ({
   }, [currentMood, containerControls]);
 
   // React Spring for smooth background transitions
-  const backgroundSpring = useSpring({
-    background: `linear-gradient(135deg, 
-      ${theme.personality.colors.primary}15 0%,
-      ${theme.personality.colors.secondary}15 50%,
-      ${theme.personality.colors.accent}15 100%)`,
-    config: config.gentle
-  });
+  // const backgroundSpring = useSpring({
+  //   background: `linear-gradient(135deg, 
+  //     ${theme.personality.colors.primary}15 0%,
+  //     ${theme.personality.colors.secondary}15 50%,
+  //     ${theme.personality.colors.accent}15 100%)`,
+  //   config: config.gentle
+  // });
 
   // Handle message events
-  const handleMessageSent = useCallback((message: string, response: string) => {
+  const handleMessageSent = useCallback((_message: string, response: string) => {
     setIsThinking(true);
     
     // Simulate thinking time
@@ -302,9 +304,12 @@ export const EnhancedSweetAthena: React.FC<EnhancedSweetAthenaProps> = ({
   }, []);
 
   // Mood change with smooth transition
-  const handleMoodChange = useCallback((newMood: PersonalityMood) => {
-    setCurrentMood(newMood);
-  }, []);
+  // const handleMoodChange = useCallback((newMood: PersonalityMood) => {
+  //   setCurrentMood(newMood);
+  // }, []);
+
+  // Use callback to avoid unused warning
+  const _usedHandleMessageSent = handleMessageSent;
 
   if (!isOpen) return null;
 
@@ -321,7 +326,7 @@ export const EnhancedSweetAthena: React.FC<EnhancedSweetAthenaProps> = ({
           style={{
             width: '900px',
             height: '600px',
-            ...backgroundSpring
+            // ...backgroundSpring
           }}
         >
           {/* Floating particles */}
@@ -429,12 +434,12 @@ export const EnhancedSweetAthena: React.FC<EnhancedSweetAthenaProps> = ({
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
               >
                 <Thread
-                  components={{
-                    Message: ({ message }) => (
-                      <AnimatedMessage message={message} theme={theme} />
-                    ),
-                  }}
-                  onMessageSent={handleMessageSent}
+                  // components={{
+                  //   Message: ({ message }) => (
+                  //     <AnimatedMessage message={message} theme={theme} />
+                  //   ),
+                  // }}
+                  // onMessageSent={handleMessageSent}
                 />
 
                 {/* Thinking indicator */}

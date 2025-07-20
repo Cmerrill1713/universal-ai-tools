@@ -38,7 +38,7 @@ export class SearXNGClient {
   private baseUrl: string;
   private timeout: number;
 
-  constructor(baseUrl: string = 'http://localhost:8080', timeout: number = 10000) {
+  constructor(baseUrl = 'http://localhost:8080', timeout = 10000) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.timeout = timeout;
   }
@@ -154,7 +154,7 @@ export class SearXNGClient {
     return response.results.sort((a, b) => b.score - a.score);
   }
 
-  async searchWithTimeRange(query: string, timeRange: string = 'year'): Promise<SearXNGResult[]> {
+  async searchWithTimeRange(query: string, timeRange = 'year'): Promise<SearXNGResult[]> {
     const response = await this.search({
       q: query,
       time_range: timeRange,

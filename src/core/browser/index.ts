@@ -8,21 +8,26 @@ export { UIValidator } from './ui-validator';
 
 // Re-export types from individual modules
 export type {
-  BrowserMessage,
-  BrowserMessageType,
-  BrowserMessageHandler,
-  BrowserMessageContext,
-  BrowserMessageResponse,
-  MessageHandlerConfig
+  BrowserAgentMessage,
+  BrowserAgentMessageType,
+  BrowserAgentMessageContent,
+  TaskAssignmentMessage,
+  TaskDelegationMessage,
+  ProgressUpdateMessage,
+  StatusReportMessage,
+  ResourceRequestMessage,
+  ResourceShareMessage,
+  CoordinationSyncMessage,
+  ErrorNotificationMessage,
+  RecoveryRequestMessage,
+  KnowledgeShareMessage,
+  PerformanceMetricsMessage,
+  CoordinationFeedbackMessage,
+  MessageHandlerConfig,
+  MessageHandlerStats
 } from './browser-agent-message-handler';
 
 export type {
-  UIValidationResult,
-  UIValidationRule,
-  UIValidationOptions,
-  UIElement,
-  UIElementState,
-  ValidationReport,
-  AccessibilityCheck,
-  PerformanceMetric
+  ValidationResult,
+  TestResult
 } from './ui-validator';

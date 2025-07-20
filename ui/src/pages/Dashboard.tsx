@@ -1,32 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  Activity,
   Brain,
   MessageSquare,
   Users,
-  Cpu,
-  HardDrive,
   Zap,
-  TrendingUp,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { systemApi } from '../lib/api';
 
 export function Dashboard() {
   // Fetch system stats
   const { data: statsResponse } = useQuery({
     queryKey: ['system-stats'],
     queryFn: async () => {
-      const response = await fetch('http://localhost:9999/api/stats', {
-        headers: {
-          'X-API-Key': 'local-dev-key',
-          'X-AI-Service': 'local-ui',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
-      }
-      return response.json();
+      return await systemApi.getStats();
     },
     refetchInterval: 5000,
   });
@@ -65,7 +53,7 @@ export function Dashboard() {
     },
     {
       title: 'Tokens Used',
-      value: stats?.tokensUsed || '45.2K',
+      value: '45.2K', // TODO: Add tokensUsed to stats interface
       icon: Zap,
       change: '-5%',
       trend: 'down',

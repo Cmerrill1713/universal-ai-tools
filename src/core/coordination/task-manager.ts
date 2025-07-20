@@ -69,11 +69,11 @@ export class TaskManager extends EventEmitter {
     dependencies: new Map(),
     dependents: new Map()
   };
-  private maxConcurrentTasks: number = 10;
+  private maxConcurrentTasks = 10;
   private taskTimeouts: Map<string, NodeJS.Timeout> = new Map();
   private taskExecutor: DSPyTaskExecutor;
 
-  constructor(maxConcurrentTasks: number = 10) {
+  constructor(maxConcurrentTasks = 10) {
     super();
     this.maxConcurrentTasks = maxConcurrentTasks;
     this.taskExecutor = new DSPyTaskExecutor(this);

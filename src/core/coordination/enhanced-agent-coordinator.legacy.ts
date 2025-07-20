@@ -1,11 +1,13 @@
 import { EventEmitter } from 'events';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '../../utils/logger';
-import { BrowserAgent, BrowserAgentPool } from './agent-pool';
-import { OnlineResearchAgent } from '../services/online-research-agent';
-import { AgentRegistry } from './agent-registry';
-import { TaskManager, Task } from './task-manager';
-import { MessageBroker, Message } from './message-broker';
+import type { BrowserAgent, BrowserAgentPool } from './agent-pool';
+import { OnlineResearchAgent } from '../knowledge/online-research-agent';
+import { AgentRegistry } from '../agents/agent-registry';
+import type { Task } from './task-manager';
+import { TaskManager } from './task-manager';
+import type { Message } from './message-broker';
+import { MessageBroker } from './message-broker';
 
 export interface CoordinationPlan {
   id: string;
@@ -316,7 +318,7 @@ export class EnhancedAgentCoordinator extends EventEmitter {
       dependencies: {
         onlineResearcher: this.onlineResearcher,
         supabase: this.supabase,
-        session: session
+        session
       },
       resourceLimits: {
         maxConcurrentTasks: 20,
@@ -407,13 +409,13 @@ export class EnhancedAgentCoordinator extends EventEmitter {
 
   private async selectOptimalAgentMix(availableAgents: any[], plan: CoordinationPlan): Promise<any[]> {
     const requiredCount = this.calculateRequiredAgents(plan.severity, plan.problem);
-    const selectedAgents = [];
+    const selectedAgents: any[] = [];
     
     // Ensure we have diverse capabilities
     const capabilityGroups = new Map<string, any[]>();
     
     availableAgents.forEach(agent => {
-      agent.capabilities.forEach(cap => {
+      agent.capabilities.forEach((cap: any) => {
         if (!capabilityGroups.has(cap.type)) {
           capabilityGroups.set(cap.type, []);
         }
@@ -650,7 +652,7 @@ export class EnhancedAgentCoordinator extends EventEmitter {
     
     instructions += `Objectives:\n`;
     if (task.input?.step?.expectedResults) {
-      task.input.step.expectedResults.forEach((result, index) => {
+      task.input.step.expectedResults.forEach((result: any, index: number) => {
         instructions += `${index + 1}. ${result}\n`;
       });
     }

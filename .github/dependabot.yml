@@ -1,0 +1,194 @@
+# Dependabot configuration for Universal AI Tools
+# This configuration enables automated dependency updates for various package managers
+
+version: 2
+updates:
+  # Backend Node.js dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "christianmerrill"
+    assignees:
+      - "christianmerrill"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "backend"
+    ignore:
+      # Ignore major version updates for critical dependencies
+      - dependency-name: "express"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@supabase/supabase-js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group OpenTelemetry packages together
+      opentelemetry:
+        patterns:
+          - "@opentelemetry/*"
+      # Group testing packages together
+      testing:
+        patterns:
+          - "jest"
+          - "@types/jest"
+          - "ts-jest"
+          - "@testing-library/*"
+      # Group ESLint packages together
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@typescript-eslint/*"
+      # Group Webpack packages together
+      webpack:
+        patterns:
+          - "webpack*"
+          - "*-webpack-plugin"
+          - "*-loader"
+
+  # Frontend Node.js dependencies
+  - package-ecosystem: "npm"
+    directory: "/ui"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 8
+    reviewers:
+      - "christianmerrill"
+    assignees:
+      - "christianmerrill"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "frontend"
+    ignore:
+      # Ignore major React updates (need manual testing)
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      # Ignore major Vite updates
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group React packages together
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      # Group Radix UI packages together
+      radix:
+        patterns:
+          - "@radix-ui/*"
+      # Group Three.js packages together
+      threejs:
+        patterns:
+          - "three*"
+          - "@react-three/*"
+          - "@types/three"
+      # Group Vitest packages together
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "christianmerrill"
+    assignees:
+      - "christianmerrill"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "ci"
+    groups:
+      # Group setup actions together
+      setup-actions:
+        patterns:
+          - "actions/setup-*"
+      # Group security actions together
+      security-actions:
+        patterns:
+          - "github/codeql-action*"
+          - "trufflesecurity/*"
+          - "aquasecurity/*"
+      # Group Docker actions together
+      docker-actions:
+        patterns:
+          - "docker/*"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "06:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "christianmerrill"
+    assignees:
+      - "christianmerrill"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # Python dependencies (for DSPy and other Python tools)
+  - package-ecosystem: "pip"
+    directory: "/src/services/dspy-orchestrator"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "06:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "christianmerrill"
+    assignees:
+      - "christianmerrill"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+      - "dspy"
+    ignore:
+      # Ignore major Python framework updates
+      - dependency-name: "dspy-ai"
+        update-types: ["version-update:semver-major"]
+
+# Note: If you have additional package ecosystems like:
+# - requirements.txt files
+# - poetry.toml files
+# - go.mod files
+# - cargo.toml files
+# Add them here with similar configurations

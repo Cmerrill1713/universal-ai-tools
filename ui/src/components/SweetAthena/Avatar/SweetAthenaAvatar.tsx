@@ -26,7 +26,6 @@ export const SweetAthenaAvatar: React.FC<SweetAthenaAvatarProps> = ({
   mood,
   enableAnimation = true,
   enableVoice = false,
-  onError,
   size = 'medium'
 }) => {
   const getAvatarEmoji = (mood: PersonalityMood) => {

@@ -1,0 +1,130 @@
+{
+  "timestamp": "2025-07-20T02:41:32.987Z",
+  "overallHealth": 83.50909090909092,
+  "testSuites": [
+    {
+      "name": "Phase 1 Fixes",
+      "status": "failed",
+      "duration": 2340,
+      "weight": 40,
+      "category": "critical",
+      "details": {
+        "total": 15,
+        "passed": 12,
+        "failed": 3,
+        "coverage": 78.5
+      }
+    },
+    {
+      "name": "Security Validation",
+      "status": "failed",
+      "duration": 3210,
+      "weight": 35,
+      "category": "security",
+      "details": {
+        "total": 22,
+        "passed": 18,
+        "failed": 4,
+        "securityScore": 73
+      }
+    },
+    {
+      "name": "Performance Tests",
+      "status": "passed",
+      "duration": 1850,
+      "weight": 15,
+      "category": "performance",
+      "details": {
+        "total": 8,
+        "passed": 8,
+        "failed": 0,
+        "coverage": 92.1
+      }
+    },
+    {
+      "name": "Integration Tests",
+      "status": "passed",
+      "duration": 4560,
+      "weight": 10,
+      "category": "integration",
+      "details": {
+        "total": 12,
+        "passed": 11,
+        "failed": 1,
+        "coverage": 85.3
+      }
+    }
+  ],
+  "healthChecks": [
+    {
+      "name": "Server Health",
+      "status": "healthy",
+      "statusCode": 200,
+      "responseTime": 45,
+      "endpoint": "/api/health"
+    },
+    {
+      "name": "GraphQL",
+      "status": "healthy",
+      "statusCode": 200,
+      "responseTime": 120,
+      "endpoint": "/graphql"
+    },
+    {
+      "name": "Performance Metrics",
+      "status": "healthy",
+      "statusCode": 200,
+      "responseTime": 67,
+      "endpoint": "/api/performance/metrics"
+    },
+    {
+      "name": "Security Status",
+      "status": "unhealthy",
+      "statusCode": 503,
+      "responseTime": 89,
+      "endpoint": "/api/security/status"
+    }
+  ],
+  "performance": {
+    "memory": {
+      "used": 234567890,
+      "total": 1073741824,
+      "percentage": 21.8
+    },
+    "requests": {
+      "total": 15420,
+      "successful": 15234,
+      "failed": 186,
+      "averageResponseTime": 89
+    },
+    "cache": {
+      "hits": 8934,
+      "misses": 1234,
+      "hitRate": 87.9
+    },
+    "timestamp": "2025-07-20T02:41:32.989Z"
+  },
+  "security": {},
+  "summary": {},
+  "recommendations": [
+    {
+      "priority": "critical",
+      "title": "Critical Infrastructure Issues",
+      "description": "Fix all Phase 1 critical issues before proceeding",
+      "action": "Run npm run test:phase1 and address all failing tests"
+    },
+    {
+      "priority": "high",
+      "title": "Security Vulnerabilities Detected",
+      "description": "Security score: 73/100",
+      "action": "Review security validation report and fix vulnerabilities"
+    },
+    {
+      "priority": "medium",
+      "title": "Service Health Issues",
+      "description": "1 services are not responding properly",
+      "action": "Check server logs and restart services if needed"
+    }
+  ],
+  "phase1Progress": 80
+}

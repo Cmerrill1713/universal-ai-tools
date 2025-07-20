@@ -1,8 +1,8 @@
 import chokidar from 'chokidar';
 import { EventEmitter } from 'events';
-import { logger } from '../../s../../utils/logger';
+import { logger } from '../../utils/logger';
 import { BrowserAgentPool } from './agent-pool';
-import { UIValidator } from './ui-validator';
+import { UIValidator } from '../browser/ui-validator';
 import { PerformanceMonitor } from './performance-monitor';
 
 interface HotReloadConfig {
@@ -14,7 +14,7 @@ interface HotReloadConfig {
 }
 
 export class HotReloadMonitor extends EventEmitter {
-  private watcher: chokidar.FSWatcher | null = null;
+  private watcher: any | null = null;
   private agentPool: BrowserAgentPool;
   private uiValidator: UIValidator;
   private performanceMonitor: PerformanceMonitor;
@@ -69,10 +69,10 @@ export class HotReloadMonitor extends EventEmitter {
 
     // Set up event listeners
     this.watcher
-      .on('change', (path) => this.handleFileChange(path, 'change'))
-      .on('add', (path) => this.handleFileChange(path, 'add'))
-      .on('unlink', (path) => this.handleFileChange(path, 'unlink'))
-      .on('error', (error) => logger.error('File watcher error:', error));
+      .on('change', (path: string) => this.handleFileChange(path, 'change'))
+      .on('add', (path: string) => this.handleFileChange(path, 'add'))
+      .on('unlink', (path: string) => this.handleFileChange(path, 'unlink'))
+      .on('error', (error: any) => logger.error('File watcher error:', error));
 
     // Start performance monitoring
     this.performanceMonitor.start();

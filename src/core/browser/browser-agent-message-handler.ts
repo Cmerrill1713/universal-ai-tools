@@ -1,11 +1,13 @@
 import { EventEmitter } from 'events';
-import { Browser, Page } from 'puppeteer';
-import { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
-import { logger } from '../../s../../utils/logger';
-import { Message, MessageBroker } from './message-broker';
-import { BrowserAgent } from './agent-pool';
+import type { Page } from 'puppeteer';
+import { Browser } from 'puppeteer';
+import type { Page as PlaywrightPage } from 'playwright';
+import { Browser as PlaywrightBrowser } from 'playwright';
+import { LogContext, logger } from '../../utils/enhanced-logger';
+import type { Message, MessageBroker } from '../coordination/message-broker';
+import type { BrowserAgent } from '../coordination/agent-pool';
 import { TaskExecutionResult } from '../coordination/task-manager';
-import { TaskExecutionContext } from '../coordination/dspy-task-executor';
+import type { TaskExecutionContext } from '../coordination/dspy-task-executor';
 
 // Simplified types to replace complex ones from old task-execution-engine
 export interface CoordinationProgress {
@@ -47,7 +49,7 @@ export type BrowserAgentMessageType =
   | 'learning_update'
   | 'evolution_contribution';
 
-export interface BrowserAgentMessage extends Message {
+export interface BrowserAgentMessage extends Omit<Message, 'type' | 'content'> {
   type: BrowserAgentMessageType;
   content: BrowserAgentMessageContent;
 }
@@ -62,6 +64,66 @@ export interface BrowserAgentMessageContent {
   timeout?: number;
   retryable?: boolean;
   metadata?: Record<string, any>;
+  
+  // Additional optional fields used in various message types
+  estimatedDuration?: number;
+  originalTaskId?: string;
+  resourceType?: string;
+  syncType?: string;
+  errorType?: string;
+  feedbackType?: string;
+  knowledgeType?: string;
+  metrics?: any;
+  timestamp?: number;
+  dataType?: string;
+  testId?: string;
+  learningType?: string;
+  contributionType?: string;
+  taskType?: string;
+  progress?: number;
+  
+  // Fields identified from TypeScript errors
+  subtaskId?: string;
+  resourceId?: string;
+  syncData?: any;
+  canAssist?: boolean;
+  feedback?: any;
+  confidence?: number;
+  comparison?: any;
+  analysis?: any;
+  recordCount?: number;
+  success?: boolean;
+  impact?: any;
+  errorMessage?: string;
+  description?: string;
+  coordination?: any;
+  requirements?: any;
+  knowledge?: any;
+  evolution?: any;
+  coordinationLevel?: string;
+  performance?: any;
+  resourceData?: any;
+  acknowledgment?: any;
+  suggestion?: any;
+  coordinationEvent?: any;
+  integrationSuccess?: boolean;
+  optimizations?: any;
+  processingTime?: number;
+  errorDetails?: any;
+  coordinationNeeded?: boolean;
+  urgency?: string;
+  applicability?: any;
+  // Additional fields from specific message types
+  accessLevel?: 'read' | 'write' | 'exclusive';
+  participants?: string[];
+  learningImpact?: string;
+  coordinationEfficiency?: number;
+  assistanceNeeded?: boolean;
+  duration?: number;
+  recipients?: string[];
+  improvements?: any;
+  purpose?: string;
+  coordinationContext?: string;
 }
 
 export interface TaskAssignmentMessage extends BrowserAgentMessageContent {
@@ -87,7 +149,7 @@ export interface TaskDelegationMessage extends BrowserAgentMessageContent {
   coordinationLevel: 'minimal' | 'standard' | 'intensive';
 }
 
-export interface ProgressUpdateMessage extends BrowserAgentMessageContent {
+export interface ProgressUpdateMessage extends Omit<BrowserAgentMessageContent, 'progress'> {
   action: 'progress_update';
   taskId: string;
   progress: {
@@ -136,7 +198,7 @@ export interface CoordinationSyncMessage extends BrowserAgentMessageContent {
   action: 'coordination_sync';
   syncType: 'state' | 'progress' | 'learning' | 'evolution';
   syncData: any;
-  coordinationLevel: number;
+  coordinationLevel: string;
   participants: string[];
   leaderAgent?: string;
   consensus?: boolean;
@@ -296,7 +358,7 @@ export class BrowserAgentMessageHandler extends EventEmitter {
   private evolutionData: Map<string, any> = new Map();
   private performanceHistory: PerformanceSnapshot[] = [];
   private stats: MessageHandlerStats;
-  private isProcessing: boolean = false;
+  private isProcessing = false;
   private processingInterval: NodeJS.Timeout | null = null;
 
   constructor(
@@ -347,7 +409,7 @@ export class BrowserAgentMessageHandler extends EventEmitter {
     // Listen for messages
     this.messageBroker.on('message', async (message: Message) => {
       if (message.toAgent === this.agentId || !message.toAgent) {
-        await this.handleMessage(message as BrowserAgentMessage);
+        await this.handleMessage(message as unknown as BrowserAgentMessage);
       }
     });
 
@@ -389,10 +451,10 @@ export class BrowserAgentMessageHandler extends EventEmitter {
       this.emit('message_processed', { message, processingTime: Date.now() - startTime });
       
     } catch (error) {
-      logger.error(`❌ Failed to handle message ${message.id}:`, error);
+      logger.error(`❌ Failed to handle message ${message.id}:`, LogContext.SYSTEM, { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : undefined });
       this.stats.messagesFailedProcessing++;
       
-      await this.handleMessageError(message, error);
+      await this.handleMessageError(message, error instanceof Error ? error : new Error(String(error)));
       this.emit('message_error', { message, error });
     }
   }
@@ -518,7 +580,9 @@ export class BrowserAgentMessageHandler extends EventEmitter {
           action: 'task_accepted',
           taskId: content.taskId,
           estimatedDuration: content.expectedDuration || 30000,
-          coordinationLevel: content.coordinationNeeded ? 'standard' : 'minimal'
+          metadata: {
+            coordinationLevel: content.coordinationNeeded ? 'standard' : 'minimal'
+          }
         },
         priority: 'high'
       });
@@ -565,16 +629,18 @@ export class BrowserAgentMessageHandler extends EventEmitter {
 
   // Progress Update Handler
   private async handleProgressUpdate(message: BrowserAgentMessage): Promise<void> {
-    const content = message.content as ProgressUpdateMessage;
+    const {content} = message;
     
-    logger.info(`📊 Received progress update for task: ${content.taskId}`);
+    logger.info(`📊 Received progress update for task: ${content.taskId || 'unknown'}`);
     
     // Update coordination state
-    this.coordinationState.set(content.taskId, content);
+    if (content.taskId) {
+      this.coordinationState.set(content.taskId, content);
+    }
     
     // Process coordination updates
     if (content.coordination) {
-      await this.processCoordinationProgress(content.coordination, content.taskId);
+      await this.processCoordinationProgress(content.coordination, content.taskId || 'unknown');
     }
     
     // Update performance tracking
@@ -989,12 +1055,43 @@ export class BrowserAgentMessageHandler extends EventEmitter {
     }
   }
 
+  // Map browser-specific message types to core message types
+  private mapBrowserMessageTypeToCore(browserType: BrowserAgentMessageType): Message['type'] {
+    const typeMapping: Record<BrowserAgentMessageType, Message['type']> = {
+      'task_assignment': 'task',
+      'task_delegation': 'task',
+      'progress_update': 'status',
+      'status_report': 'status',
+      'resource_request': 'coordination',
+      'resource_share': 'coordination',
+      'coordination_sync': 'coordination',
+      'error_notification': 'error',
+      'recovery_request': 'coordination',
+      'knowledge_share': 'coordination',
+      'performance_metrics': 'status',
+      'coordination_feedback': 'coordination',
+      'browser_state_sync': 'coordination',
+      'screenshot_share': 'artifact',
+      'data_extraction': 'artifact',
+      'test_result': 'status',
+      'learning_update': 'coordination',
+      'evolution_contribution': 'coordination'
+    };
+    
+    return typeMapping[browserType] || 'coordination';
+  }
+
   // Helper method to send messages
   private async sendMessage(message: Omit<BrowserAgentMessage, 'id' | 'timestamp'>): Promise<void> {
     try {
-      await this.messageBroker.sendMessage(message);
+      // Map browser agent message types to core message types
+      const messageType = this.mapBrowserMessageTypeToCore(message.type);
+      await this.messageBroker.sendMessage({
+        ...message,
+        type: messageType
+      } as any);
     } catch (error) {
-      logger.error('Failed to send message:', error);
+      logger.error('Failed to send message:', LogContext.SYSTEM, { error: error instanceof Error ? error.message : error });
       throw error;
     }
   }
@@ -1025,7 +1122,7 @@ export class BrowserAgentMessageHandler extends EventEmitter {
 
   // Browser event handlers
   private async handleBrowserDisconnection(): Promise<void> {
-    logger.error('🔌 Browser disconnected');
+    logger.error('🔌 Browser disconnected', LogContext.SYSTEM);
     
     await this.sendMessage({
       sessionId: 'system',
@@ -1043,7 +1140,7 @@ export class BrowserAgentMessageHandler extends EventEmitter {
   }
 
   private async handlePageError(error: Error): Promise<void> {
-    logger.error('📄 Page error:', error);
+    logger.error('📄 Page error:', LogContext.SYSTEM, { error: error.message, stack: error.stack });
     
     await this.sendMessage({
       sessionId: 'system',
@@ -1113,9 +1210,11 @@ export class BrowserAgentMessageHandler extends EventEmitter {
 
   private async takeScreenshot(): Promise<Buffer> {
     if (this.browserAgent.type === 'puppeteer') {
-      return await (this.browserAgent.page as Page).screenshot();
+      const screenshot = await (this.browserAgent.page as Page).screenshot();
+      return Buffer.from(screenshot);
     } else {
-      return await (this.browserAgent.page as PlaywrightPage).screenshot();
+      const screenshot = await (this.browserAgent.page as PlaywrightPage).screenshot();
+      return Buffer.from(screenshot);
     }
   }
 
@@ -1220,9 +1319,10 @@ export class BrowserAgentMessageHandler extends EventEmitter {
     // Implementation for integrating shared knowledge
   }
 
-  private async calculateLearningImpact(content: KnowledgeShareMessage): Promise<number> {
+  private async calculateLearningImpact(content: KnowledgeShareMessage): Promise<string> {
     // Implementation for calculating learning impact
-    return 0.5;
+    const impact = 0.5;
+    return impact > 0.7 ? 'high' : impact > 0.3 ? 'medium' : 'low';
   }
 
   private async processPerformanceMetrics(content: PerformanceMetricsMessage): Promise<void> {

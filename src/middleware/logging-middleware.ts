@@ -4,18 +4,16 @@
  * Comprehensive request/response logging with performance monitoring,
  * error tracking, and specialized Sweet Athena interaction logging
  */
-import { Request, Response, NextFunction } from 'express';
-import { logger, LogContext, enhancedLogger } from '../utils/enhanced-logger';
+import type { NextFunction, Request, Response } from 'express';
+import { LogContext, enhancedLogger, logger } from '../utils/enhanced-logger';
 import { v4 as uuidv4 } from 'uuid';
 
 // Extend Express Request type to include logging data
 declare global {
   namespace Express {
     interface Request {
-      requestId: string;
-      startTime: number;
-      timerId: string;
-      logger: typeof logger;
+      timerId?: string;
+      logger?: typeof logger;
     }
   }
 }
@@ -148,12 +146,14 @@ export class LoggingMiddleware {
   static databaseLogger() {
     return (req: Request, res: Response, next: NextFunction) => {
       // Add database operation tracking to request
-      req.logger.logDatabaseOperation = (operation: string, table: string, duration: number, details?: Record<string, any>) => {
-        logger.logDatabaseOperation(operation, table, duration, {
-          request_id: req.requestId,
-          ...details
-        });
-      };
+      if (req.logger) {
+        req.logger.logDatabaseOperation = (operation: string, table: string, duration: number, details?: Record<string, any>) => {
+          logger.logDatabaseOperation(operation, table, duration, {
+            request_id: req.requestId,
+            ...details
+          });
+        };
+      }
 
       next();
     };
@@ -163,12 +163,14 @@ export class LoggingMiddleware {
   static memoryLogger() {
     return (req: Request, res: Response, next: NextFunction) => {
       // Add memory operation tracking to request
-      req.logger.logMemoryOperation = (operation: string, details: Record<string, any>) => {
-        logger.logMemoryOperation(operation, {
-          request_id: req.requestId,
-          ...details
-        });
-      };
+      if (req.logger) {
+        req.logger.logMemoryOperation = (operation: string, details: Record<string, any>) => {
+          logger.logMemoryOperation(operation, {
+            request_id: req.requestId,
+            ...details
+          });
+        };
+      }
 
       next();
     };
@@ -179,19 +181,21 @@ export class LoggingMiddleware {
     return (req: Request, res: Response, next: NextFunction) => {
       if (LoggingMiddleware.isAthenaRequest(req)) {
         // Add Athena-specific logging methods to request
-        req.logger.logAthenaInteraction = (interaction) => {
+        if (req.logger) {
+          req.logger.logAthenaInteraction = (interaction) => {
           logger.logAthenaInteraction({
             ...interaction,
-            session_id: req.headers['x-session-id'] as string || req.requestId
+            session_id: req.headers['x-session-id'] as string || req.requestId || 'unknown'
           });
-        };
+          };
 
-        req.logger.logConversationTurn = (userInput: string, athenaResponse: string, sessionId?: string, metadata?: Record<string, any>) => {
-          logger.logConversationTurn(userInput, athenaResponse, sessionId || req.requestId, {
+          req.logger.logConversationTurn = (userInput: string, athenaResponse: string, sessionId?: string, metadata?: Record<string, any>) => {
+            logger.logConversationTurn(userInput, athenaResponse, sessionId || req.requestId || 'unknown', {
             request_id: req.requestId,
-            ...metadata
-          });
-        };
+              ...metadata
+            });
+          };
+        }
       }
 
       next();
@@ -202,7 +206,8 @@ export class LoggingMiddleware {
   static securityLogger() {
     return (req: Request, res: Response, next: NextFunction) => {
       // Add security logging to request (without calling detectSuspiciousActivity to avoid recursion)
-      req.logger.logSecurityEvent = (event: string, severity: 'low' | 'medium' | 'high' | 'critical', details: Record<string, any>) => {
+      if (req.logger) {
+        req.logger.logSecurityEvent = (event: string, severity: 'low' | 'medium' | 'high' | 'critical', details: Record<string, any>) => {
         logger.logSecurityEvent(event, severity, {
           request_id: req.requestId,
           ip_address: req.ip,
@@ -211,7 +216,8 @@ export class LoggingMiddleware {
           method: req.method,
           ...details
         });
-      };
+        };
+      }
 
       next();
     };
@@ -241,7 +247,7 @@ export class LoggingMiddleware {
   }
 
   private static logRequestCompletion(req: Request, res: Response, metadata: RequestMetadata) {
-    const duration = Date.now() - req.startTime;
+    const duration = Date.now() - (req.startTime || Date.now());
     
     // End performance timer
     if (req.timerId) {
@@ -299,7 +305,7 @@ export class LoggingMiddleware {
     return {
       interaction_type: req.body?.interaction_type || req.query.interaction_type as string,
       personality_mood: req.body?.personality_mood || req.query.personality_mood as string,
-      sweetness_level: req.body?.sweetness_level || req.query.sweetness_level as number,
+      sweetness_level: req.body?.sweetness_level || (req.query.sweetness_level ? Number(req.query.sweetness_level) : undefined),
       user_input: req.body?.message || req.body?.user_input || req.body?.query
     };
   }
@@ -344,7 +350,7 @@ export class LoggingMiddleware {
     // Truncate long strings for preview
     Object.keys(sanitized).forEach(key => {
       if (typeof sanitized[key] === 'string' && sanitized[key].length > 200) {
-        sanitized[key] = sanitized[key].substring(0, 200) + '... [TRUNCATED]';
+        sanitized[key] = `${sanitized[key].substring(0, 200)  }... [TRUNCATED]`;
       }
     });
 

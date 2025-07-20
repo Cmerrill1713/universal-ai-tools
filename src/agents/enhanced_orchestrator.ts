@@ -11,13 +11,15 @@
 
 import { EventEmitter } from 'events';
 import { UniversalAgentRegistry } from './universal_agent_registry';
-import { dspyService, type DSPyOrchestrationRequest, type DSPyOrchestrationResponse } from '../services/dspy-service';
+import { type DSPyOrchestrationRequest, type DSPyOrchestrationResponse, dspyService } from '../services/dspy-service';
+import { dspyOptimizer } from '../services/dspy-performance-optimizer';
 import { AdaptiveToolManager } from '../enhanced/adaptive_tool_integration';
 import { MLXManager } from '../enhanced/mlx_integration';
 import type { AgentContext, AgentResponse } from './base_agent';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
+import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configuration interfaces
@@ -57,7 +59,12 @@ export interface EnhancedRequest {
   sessionId?: string;
   context?: any;
   preferredModel?: string;
-  orchestrationMode?: 'standard' | 'cognitive' | 'adaptive';
+  orchestrationMode?: 'standard' | 'cognitive' | 'adaptive' | 'widget-creation';
+  widgetRequirements?: {
+    description: string;
+    functionality?: string[];
+    constraints?: string[];
+  };
   timestamp: Date;
 }
 
@@ -250,7 +257,7 @@ export class EnhancedOrchestrator extends EventEmitter {
    */
   async processRequest(request: EnhancedRequest): Promise<EnhancedResponse> {
     const startTime = Date.now();
-    const requestId = request.requestId;
+    const {requestId} = request;
     
     if (!this.isInitialized) {
       throw new Error('Orchestrator not initialized. Call initialize() first.');
@@ -275,19 +282,28 @@ export class EnhancedOrchestrator extends EventEmitter {
         requestId: request.requestId,
         userRequest: request.userRequest,
         userId: request.userId,
-        orchestrationMode: request.orchestrationMode || 'adaptive',
+        orchestrationMode: request.orchestrationMode === 'widget-creation' ? 'cognitive' : (request.orchestrationMode || 'adaptive'),
         context: {
           ...request.context,
           enableMLX: this.config.enableMLX,
           enableAdaptiveTools: this.config.enableAdaptiveTools,
           riskTolerance: this.config.riskTolerance,
-          maxConcurrentAgents: this.config.maxConcurrentAgents
+          maxConcurrentAgents: this.config.maxConcurrentAgents,
+          // Add widget-specific context if in widget creation mode
+          ...(request.orchestrationMode === 'widget-creation' && {
+            task: 'widget_creation',
+            widgetRequirements: request.widgetRequirements,
+            targetAgents: ['widget_creator', 'code_generator', 'test_generator']
+          })
         },
         timestamp: request.timestamp
       };
 
-      // Get DSPy orchestration response
-      const dspyResponse: DSPyOrchestrationResponse = await dspyService.orchestrate(dspyRequest);
+      // Get DSPy orchestration response with performance optimization
+      const dspyResponse: DSPyOrchestrationResponse = await dspyOptimizer.optimizeRequest(
+        'orchestrate', 
+        dspyRequest
+      );
       
       let response: EnhancedResponse;
       
@@ -1200,7 +1216,7 @@ This orchestrated approach ensures comprehensive analysis while maintaining effi
 
   private async initializeRedis(redisUrl: string) {
     try {
-      this.redis = Redis.createClient({ url: redisUrl });
+      this.redis = new Redis(redisUrl);
       await this.redis.connect();
       console.log('✅ Redis cache connected');
     } catch (error) {
@@ -1331,6 +1347,9 @@ This orchestrated approach ensures comprehensive analysis while maintaining effi
       data: dspyResponse.result,
       confidence: dspyResponse.confidence || 0.8,
       reasoning: dspyResponse.reasoning || 'DSPy intelligent orchestration',
+      latencyMs: executionTime,
+      agentId: 'dspy-orchestrator',
+      orchestrationMode: dspyResponse.mode || 'adaptive',
       participatingAgents: dspyResponse.participatingAgents || [],
       metadata: {
         orchestration: {
@@ -1344,14 +1363,8 @@ This orchestrated approach ensures comprehensive analysis while maintaining effi
           latencyMs: executionTime,
           complexity: this.calculateComplexity(request.userRequest),
           timestamp: new Date()
-        },
-        agents: dspyResponse.participatingAgents?.map(agent => ({
-          id: agent,
-          status: 'completed',
-          confidence: dspyResponse.confidence || 0.8
-        })) || []
-      },
-      timestamp: new Date()
+        }
+      }
     };
   }
 
@@ -1376,6 +1389,9 @@ This orchestrated approach ensures comprehensive analysis while maintaining effi
       data: agentResponse,
       confidence: 0.7, // Lower confidence for fallback mode
       reasoning: 'Legacy fallback mode - DSPy unavailable',
+      latencyMs: 0,
+      agentId: 'personal_assistant',
+      orchestrationMode: 'legacy_fallback',
       participatingAgents: ['personal_assistant'],
       metadata: {
         orchestration: {
@@ -1389,14 +1405,8 @@ This orchestrated approach ensures comprehensive analysis while maintaining effi
           latencyMs: Date.now() - Date.now(),
           complexity: this.calculateComplexity(request.userRequest),
           timestamp: new Date()
-        },
-        agents: [{
-          id: 'personal_assistant',
-          status: 'completed',
-          confidence: 0.7
-        }]
-      },
-      timestamp: new Date()
+        }
+      }
     };
   }
 

@@ -166,8 +166,8 @@ export class SynthesizerAgent extends EnhancedMemoryAgent {
     return {
       agentOutputs,
       context,
-      constraints: context.metadata?.constraints || [],
-      priorityFactors: context.metadata?.priorityFactors || []
+      constraints: Array.isArray(context.metadata?.constraints) ? context.metadata.constraints : [],
+      priorityFactors: Array.isArray(context.metadata?.priorityFactors) ? context.metadata.priorityFactors : []
     };
   }
 
@@ -317,7 +317,7 @@ export class SynthesizerAgent extends EnhancedMemoryAgent {
     }
     
     // Optimize for priority factors
-    if (context.metadata?.priorityFactors) {
+    if (Array.isArray(context.metadata?.priorityFactors)) {
       optimizedSolution = this.optimizeForPriorities(optimizedSolution, context.metadata.priorityFactors);
     }
     
@@ -443,7 +443,7 @@ The synthesis leverages each agent's unique perspective while maintaining logica
       strengths.push('High confidence');
     }
     
-    if (output.data?.validation) {
+    if (output.data && typeof output.data === 'object' && 'validation' in output.data && output.data.validation) {
       strengths.push('Strong validation');
     }
     

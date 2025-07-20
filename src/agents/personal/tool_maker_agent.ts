@@ -10,6 +10,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import axios from 'axios';
+import { logger } from '../../utils/logger';
 
 interface ToolTemplate {
   id: string;
@@ -128,6 +129,7 @@ export class ToolMakerAgent extends BaseAgent {
 
     super(config);
     this.supabase = supabase;
+    this.logger = logger;
     this.initializeTemplates();
   }
 
@@ -680,17 +682,121 @@ async function customTool(params) {
     }
   }
 
-  // Placeholder implementations
+  /**
+   * Load custom tools from database
+   */
   private async loadCustomTools(): Promise<void> {
-    // Load custom tools from database
+    try {
+      const { data: tools, error } = await this.supabase
+        .from('ai_custom_tools')
+        .select('*')
+        .eq('created_by', 'tool_maker_agent');
+
+      if (error) {
+        this.logger.error('Failed to load custom tools:', error);
+        return;
+      }
+
+      if (tools) {
+        for (const tool of tools) {
+          const customTool: CustomTool = {
+            id: tool.id || `tool_${Date.now()}`,
+            name: tool.tool_name,
+            description: tool.description,
+            implementation: tool.implementation,
+            implementationType: tool.implementation_type,
+            inputSchema: tool.input_schema || {},
+            outputSchema: tool.output_schema || {},
+            dependencies: tool.dependencies || [],
+            security: tool.security || {
+              permissions: ['basic'],
+              sandbox: true
+            },
+            metadata: tool.metadata || {
+              created: new Date(),
+              author: 'tool_maker_agent',
+              version: '1.0.0',
+              tested: false
+            }
+          };
+          
+          this.customTools.set(customTool.id, customTool);
+        }
+        
+        this.logger.info(`Loaded ${tools.length} custom tools from database`);
+      }
+    } catch (error) {
+      this.logger.error('Error loading custom tools:', error);
+    }
   }
 
+  /**
+   * Load additional tool templates from database
+   */
   private async loadToolTemplates(): Promise<void> {
-    // Load additional templates from database
+    try {
+      const { data: templates, error } = await this.supabase
+        .from('ai_tool_templates')
+        .select('*');
+
+      if (error) {
+        this.logger.warn('Failed to load tool templates from database:', error);
+        return;
+      }
+
+      if (templates) {
+        for (const template of templates) {
+          const toolTemplate: ToolTemplate = {
+            id: template.id,
+            name: template.name,
+            description: template.description,
+            category: template.category,
+            template: template.template_code,
+            parameters: template.parameters || [],
+            examples: template.examples || []
+          };
+          
+          this.toolTemplates.set(template.id, toolTemplate);
+        }
+        
+        this.logger.info(`Loaded ${templates.length} tool templates from database`);
+      }
+    } catch (error) {
+      // Table might not exist yet, that's okay
+      this.logger.debug('Tool templates table not available, using built-in templates only');
+    }
   }
 
+  /**
+   * Save custom tools to database
+   */
   private async saveCustomTools(): Promise<void> {
-    // Save custom tools to database
+    try {
+      const toolsToSave = Array.from(this.customTools.values());
+      
+      for (const tool of toolsToSave) {
+        await this.supabase
+          .from('ai_custom_tools')
+          .upsert({
+            id: tool.id,
+            tool_name: tool.name,
+            description: tool.description,
+            implementation_type: tool.implementationType,
+            implementation: tool.implementation,
+            input_schema: tool.inputSchema,
+            output_schema: tool.outputSchema,
+            dependencies: tool.dependencies,
+            security: tool.security,
+            metadata: tool.metadata,
+            created_by: 'tool_maker_agent',
+            updated_at: new Date().toISOString()
+          });
+      }
+      
+      this.logger.info(`Saved ${toolsToSave.length} custom tools to database`);
+    } catch (error) {
+      this.logger.error('Failed to save custom tools:', error);
+    }
   }
 
   private async saveToolToDatabase(tool: CustomTool): Promise<void> {
@@ -730,16 +836,290 @@ async function customTool(params) {
     return { action: 'create_tool', category: 'automation' };
   }
 
+  /**
+   * Modify an existing tool
+   */
   private async modifyExistingTool(intent: any): Promise<any> {
-    return { modified: true };
+    const toolId = intent.requirements?.toolId;
+    const modifications = intent.requirements?.modifications || {};
+    
+    if (!toolId) {
+      throw new Error('Tool ID required for modification');
+    }
+    
+    const existingTool = this.customTools.get(toolId);
+    if (!existingTool) {
+      throw new Error(`Tool ${toolId} not found`);
+    }
+    
+    // Apply modifications
+    const modifiedTool: CustomTool = {
+      ...existingTool,
+      name: modifications.name || existingTool.name,
+      description: modifications.description || existingTool.description,
+      implementation: modifications.implementation || existingTool.implementation,
+      metadata: {
+        ...existingTool.metadata,
+        version: this.incrementVersion(existingTool.metadata.version),
+        tested: false
+      }
+    };
+    
+    // Re-generate implementation if requested
+    if (modifications.regenerateImplementation) {
+      const newImplementation = await this.generateToolImplementation(
+        modifiedTool.description,
+        this.getCategoryFromTool(modifiedTool),
+        modifications
+      );
+      modifiedTool.implementation = newImplementation.code;
+    }
+    
+    // Test the modified tool
+    const testResults = await this.testTool(modifiedTool);
+    modifiedTool.metadata.tested = testResults.success;
+    
+    // Update in storage
+    this.customTools.set(toolId, modifiedTool);
+    await this.saveToolToDatabase(modifiedTool);
+    
+    return {
+      modified: true,
+      tool: modifiedTool,
+      testResults
+    };
   }
 
+  /**
+   * Deploy a tool to make it available for use
+   */
   private async deployTool(intent: any): Promise<any> {
-    return { deployed: true };
+    const toolId = intent.requirements?.toolId;
+    const deploymentTarget = intent.requirements?.target || 'local';
+    
+    if (!toolId) {
+      throw new Error('Tool ID required for deployment');
+    }
+    
+    const tool = this.customTools.get(toolId);
+    if (!tool) {
+      throw new Error(`Tool ${toolId} not found`);
+    }
+    
+    // Verify tool is tested
+    if (!tool.metadata.tested) {
+      const testResults = await this.testTool(tool);
+      if (!testResults.success) {
+        throw new Error(`Tool ${toolId} failed testing: ${testResults.error}`);
+      }
+      tool.metadata.tested = true;
+    }
+    
+    let deploymentResult: any = {};
+    
+    switch (deploymentTarget) {
+      case 'local':
+        deploymentResult = await this.deployLocalTool(tool);
+        break;
+      case 'api':
+        deploymentResult = await this.deployAPITool(tool);
+        break;
+      case 'function':
+        deploymentResult = await this.deployFunctionTool(tool);
+        break;
+      default:
+        throw new Error(`Unsupported deployment target: ${deploymentTarget}`);
+    }
+    
+    // Update deployment status
+    await this.supabase
+      .from('ai_tool_deployments')
+      .insert({
+        tool_id: toolId,
+        deployment_target: deploymentTarget,
+        deployment_config: deploymentResult.config,
+        deployed_at: new Date().toISOString(),
+        status: 'active'
+      });
+    
+    return {
+      deployed: true,
+      toolId,
+      target: deploymentTarget,
+      deployment: deploymentResult
+    };
   }
 
+  /**
+   * Handle general tool-related queries
+   */
   private async handleGeneralToolQuery(request: string): Promise<any> {
-    return { response: 'General tool query processed' };
+    const requestLower = request.toLowerCase();
+    
+    if (requestLower.includes('list') || requestLower.includes('show')) {
+      const tools = Array.from(this.customTools.values());
+      return {
+        type: 'tool_list',
+        tools: tools.map(tool => ({
+          id: tool.id,
+          name: tool.name,
+          description: tool.description,
+          type: tool.implementationType,
+          tested: tool.metadata.tested,
+          created: tool.metadata.created
+        })),
+        count: tools.length
+      };
+    }
+    
+    if (requestLower.includes('template')) {
+      const templates = Array.from(this.toolTemplates.values());
+      return {
+        type: 'template_list',
+        templates: templates.map(template => ({
+          id: template.id,
+          name: template.name,
+          description: template.description,
+          category: template.category,
+          examples: template.examples
+        })),
+        count: templates.length
+      };
+    }
+    
+    if (requestLower.includes('help') || requestLower.includes('how')) {
+      return {
+        type: 'help',
+        response: `I can help you with:
+        - Creating custom tools from descriptions
+        - Generating API integrations
+        - Building automation workflows
+        - Modifying existing tools
+        - Deploying tools for use
+        
+        Just describe what you want to build and I'll help you create it!`,
+        capabilities: this.config.capabilities.map(cap => cap.name)
+      };
+    }
+    
+    // Use Ollama to provide contextual responses
+    try {
+      const response = await axios.post('http://localhost:11434/api/generate', {
+        model: 'llama3.2:3b',
+        prompt: `As a tool creation assistant, respond to this query: "${request}"
+        
+        Available capabilities:
+        - Tool creation from natural language
+        - API integration generation
+        - Workflow automation
+        - Tool modification and deployment
+        
+        Provide a helpful response about tool creation.`,
+        stream: false
+      });
+      
+      return {
+        type: 'general_response',
+        response: response.data.response,
+        suggestion: 'Try describing a specific tool you\'d like me to create for you.'
+      };
+    } catch (error) {
+      return {
+        type: 'general_response',
+        response: 'I can help you create custom tools, integrations, and workflows. What would you like to build?',
+        suggestion: 'Describe the functionality you need and I\'ll help you create it.'
+      };
+    }
+  }
+
+  /**
+   * Increment semantic version
+   */
+  private incrementVersion(currentVersion: string): string {
+    const parts = currentVersion.split('.');
+    const patch = parseInt(parts[2] || '0') + 1;
+    return `${parts[0]}.${parts[1]}.${patch}`;
+  }
+
+  /**
+   * Get category from tool
+   */
+  private getCategoryFromTool(tool: CustomTool): string {
+    // Infer category from tool characteristics
+    if (tool.implementation.includes('fetch(') || tool.implementation.includes('axios')) {
+      return 'api';
+    }
+    if (tool.implementation.includes('fs.') || tool.implementation.includes('require(\'fs\')')) {
+      return 'file';
+    }
+    if (tool.implementation.includes('exec') || tool.implementation.includes('spawn')) {
+      return 'system';
+    }
+    return 'automation';
+  }
+
+  /**
+   * Deploy tool locally
+   */
+  private async deployLocalTool(tool: CustomTool): Promise<any> {
+    try {
+      // Create tool file
+      const toolsDir = path.join(process.cwd(), 'deployed-tools');
+      await fs.mkdir(toolsDir, { recursive: true });
+      
+      const toolFile = path.join(toolsDir, `${tool.name}.js`);
+      const toolCode = `
+// Generated tool: ${tool.name}
+// Description: ${tool.description}
+// Created: ${tool.metadata.created}
+
+${tool.implementation}
+
+module.exports = { ${tool.name}: customTool };
+`;
+      
+      await fs.writeFile(toolFile, toolCode);
+      
+      return {
+        config: {
+          filePath: toolFile,
+          exported: tool.name
+        },
+        status: 'deployed'
+      };
+    } catch (error) {
+      throw new Error(`Local deployment failed: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Deploy tool as API endpoint
+   */
+  private async deployAPITool(tool: CustomTool): Promise<any> {
+    // This would integrate with the API router to add new endpoints
+    return {
+      config: {
+        endpoint: `/tools/${tool.name}`,
+        method: 'POST',
+        schema: tool.inputSchema
+      },
+      status: 'api_deployed'
+    };
+  }
+
+  /**
+   * Deploy tool as serverless function
+   */
+  private async deployFunctionTool(tool: CustomTool): Promise<any> {
+    // This would deploy to cloud functions
+    return {
+      config: {
+        functionName: `tool-${tool.name}`,
+        runtime: 'nodejs18.x',
+        memory: '256MB'
+      },
+      status: 'function_deployed'
+    };
   }
 }
 

@@ -4,9 +4,9 @@
  * Development-focused middleware that provides comprehensive debugging capabilities,
  * verbose logging, and automatic debug session management for troubleshooting
  */
-import { Request, Response, NextFunction } from 'express';
-import { debugTools, startDebugSession, endDebugSession, debugLog, trackError } from '../utils/debug-tools';
-import { logger, LogContext } from '../utils/enhanced-logger';
+import type { NextFunction, Request, Response } from 'express';
+import { debugLog, debugTools, endDebugSession, startDebugSession, trackError } from '../utils/debug-tools';
+import { LogContext, logger } from '../utils/enhanced-logger';
 
 // Extend Express Request type to include debug capabilities
 declare global {
@@ -126,7 +126,7 @@ export class DebugMiddleware {
           logger.error('Failed to complete debug session', LogContext.SYSTEM, {
             request_id: req.requestId,
             debug_session: req.debugSessionId,
-            error: error.message
+            error: error instanceof Error ? error.message : String(error)
           });
         }
       });

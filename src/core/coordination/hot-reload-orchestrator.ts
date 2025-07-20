@@ -2,9 +2,9 @@
 
 import { HotReloadMonitor } from './hot-reload-monitor';
 import { BrowserAgentPool } from './agent-pool';
-import { UIValidator } from './ui-validator';
+import { UIValidator } from '../browser/ui-validator';
 import { PerformanceMonitor } from './performance-monitor';
-import { SelfHealingAgent } from './self-healing-agent';
+import { SelfHealingAgent } from '../agents/self-healing-agent';
 import { dspyService } from '../../services/dspy-service';
 import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
@@ -22,11 +22,11 @@ export interface OrchestratorConfig {
 
 export class HotReloadOrchestrator extends EventEmitter {
   private config: OrchestratorConfig;
-  private hotReloadMonitor: HotReloadMonitor;
-  private agentPool: BrowserAgentPool;
-  private uiValidator: UIValidator;
-  private performanceMonitor: PerformanceMonitor;
-  private selfHealingAgent: SelfHealingAgent;
+  private hotReloadMonitor!: HotReloadMonitor;
+  private agentPool!: BrowserAgentPool;
+  private uiValidator!: UIValidator;
+  private performanceMonitor!: PerformanceMonitor;
+  private selfHealingAgent!: SelfHealingAgent;
   // Enhanced coordination now provided by DSPy service
   private isRunning = false;
   private reportInterval: NodeJS.Timeout | null = null;
@@ -121,17 +121,17 @@ export class HotReloadOrchestrator extends EventEmitter {
     });
 
     // Self-healing events
-    this.selfHealingAgent.on('issue-reported', (issue) => {
+    this.selfHealingAgent.on('issue-reported', (issue: any) => {
       logger.warn(`🔧 Issue reported: ${issue.description} (${issue.severity})`);
       this.emit('issue-reported', issue);
     });
 
-    this.selfHealingAgent.on('issue-healed', (data) => {
+    this.selfHealingAgent.on('issue-healed', (data: any) => {
       logger.info(`🎯 Issue healed: ${data.issue.description} in ${data.result.duration}ms`);
       this.emit('issue-healed', data);
     });
 
-    this.selfHealingAgent.on('issue-heal-failed', (data) => {
+    this.selfHealingAgent.on('issue-heal-failed', (data: any) => {
       logger.error(`⚠️ Failed to heal issue: ${data.issue.description}`);
       this.emit('issue-heal-failed', data);
     });
@@ -236,7 +236,7 @@ export class HotReloadOrchestrator extends EventEmitter {
       );
 
       const results = await Promise.all(validationPromises);
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r: any) => r.success).length;
       const totalCount = results.length;
 
       logger.info(`🧪 Initial validation complete: ${successCount}/${totalCount} agents passed`);
@@ -245,7 +245,7 @@ export class HotReloadOrchestrator extends EventEmitter {
         logger.warn(`⚠️ ${totalCount - successCount} agents failed initial validation`);
         
         // Report failures as issues for self-healing
-        results.forEach(result => {
+        results.forEach((result: any) => {
           if (!result.success) {
             this.selfHealingAgent.reportIssue({
               agentId: result.agentId,
@@ -397,14 +397,14 @@ ${JSON.stringify(this.config, null, 2)}
       
     } catch (error) {
       logger.error('❌ Enhanced coordination failed:', error);
-      this.emit('enhanced-coordination-failed', { error: error.message });
+      this.emit('enhanced-coordination-failed', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
   private extractProblemDescription(failureData: any): string {
     if (failureData.validationResults) {
       const errors = failureData.validationResults
-        .map(result => result.error || result.message)
+        .map((result: any) => result.error || result.message)
         .filter(Boolean)
         .join('; ');
       return `Hot reload validation failed: ${errors}`;
@@ -418,14 +418,14 @@ ${JSON.stringify(this.config, null, 2)}
   }
 
   private async gatherSystemState(): Promise<any> {
-    const state = {
+    const state: any = {
       agentPool: this.agentPool.getPoolStats(),
       selfHealing: this.selfHealingAgent.getIssueStats(),
       timestamp: Date.now()
     };
     
     if (this.config.enablePerformanceMonitoring) {
-      state.performance = await this.performanceMonitor.getOverallReport();
+      state.performance = this.performanceMonitor.getMetrics();
     }
     
     return state;

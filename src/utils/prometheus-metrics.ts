@@ -4,11 +4,12 @@
  * Comprehensive metrics collection for Sweet Athena interactions,
  * system performance, API usage, and application health
  */
-import { createPrometheusMetrics } from 'prometheus-api-metrics';
-import { register, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom-client';
+import createPrometheusMetrics from 'prometheus-api-metrics';
+import { Counter, Gauge, Histogram, collectDefaultMetrics, register } from 'prom-client';
 
-// Enable collection of default metrics
-collectDefaultMetrics({ register });
+// Lazy initialization flag to prevent blocking during startup
+let defaultMetricsInitialized = false;
+let defaultMetricsInitializing = false;
 
 // API Metrics
 export const httpRequestsTotal = new Counter({
@@ -242,14 +243,75 @@ export const testCoverage = new Gauge({
 // Custom Metrics Collector Class
 export class PrometheusMetricsCollector {
   private collectionInterval: NodeJS.Timeout | null = null;
+  private initialized = false;
+  private initializing = false;
 
   constructor() {
-    // Start automatic metrics collection
-    this.startCollection();
+    // No longer start collection in constructor to prevent blocking
+    // Use lazy initialization pattern instead
+  }
+
+  // Lazy initialization with timeout protection
+  async initialize(timeoutMs = 5000): Promise<boolean> {
+    if (this.initialized) {
+      return true;
+    }
+
+    if (this.initializing) {
+      // Wait for ongoing initialization
+      while (this.initializing && !this.initialized) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return this.initialized;
+    }
+
+    this.initializing = true;
+
+    try {
+      // Initialize default metrics with timeout protection
+      await Promise.race([
+        this.initializeDefaultMetrics(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Prometheus initialization timeout')), timeoutMs)
+        )
+      ]);
+
+      // Start automatic collection
+      this.startCollection();
+      this.initialized = true;
+      return true;
+    } catch (error) {
+      console.warn('Prometheus metrics initialization failed:', error instanceof Error ? error.message : String(error));
+      return false;
+    } finally {
+      this.initializing = false;
+    }
+  }
+
+  // Initialize default metrics (can be slow)
+  private async initializeDefaultMetrics(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        if (!defaultMetricsInitialized && !defaultMetricsInitializing) {
+          defaultMetricsInitializing = true;
+          collectDefaultMetrics({ register });
+          defaultMetricsInitialized = true;
+        }
+        resolve();
+      } catch (error) {
+        reject(error);
+      } finally {
+        defaultMetricsInitializing = false;
+      }
+    });
   }
 
   // Start automatic collection of system metrics
   startCollection() {
+    if (this.collectionInterval) {
+      return; // Already collecting
+    }
+    
     this.collectionInterval = setInterval(() => {
       this.collectSystemMetrics();
     }, 15000); // Collect every 15 seconds
@@ -291,6 +353,10 @@ export class PrometheusMetricsCollector {
     sweetnessLevel: number,
     model?: string
   ) {
+    // Initialize lazily if not already done
+    if (!this.initialized) {
+      this.initialize().catch(() => {});
+    }
     athenaInteractionsTotal.inc({
       interaction_type: interactionType,
       personality_mood: personalityMood,
@@ -326,6 +392,10 @@ export class PrometheusMetricsCollector {
     responseSize: number,
     aiService: string
   ) {
+    // Initialize lazily if not already done
+    if (!this.initialized) {
+      this.initialize().catch(() => {});
+    }
     httpRequestsTotal.inc({
       method,
       route,
@@ -371,6 +441,10 @@ export class PrometheusMetricsCollector {
     durationMs: number,
     accuracy?: number
   ) {
+    // Initialize lazily if not already done
+    if (!this.initialized) {
+      this.initialize().catch(() => {});
+    }
     memoryOperationsTotal.inc({
       operation_type: operationType,
       memory_type: memoryType,
@@ -403,6 +477,10 @@ export class PrometheusMetricsCollector {
     durationMs: number,
     error?: string
   ) {
+    // Initialize lazily if not already done
+    if (!this.initialized) {
+      this.initialize().catch(() => {});
+    }
     databaseQueryDuration.observe(
       {
         table,
@@ -429,6 +507,10 @@ export class PrometheusMetricsCollector {
     inputTokens: number,
     outputTokens: number
   ) {
+    // Initialize lazily if not already done
+    if (!this.initialized) {
+      this.initialize().catch(() => {});
+    }
     aiModelInferenceTime.observe(
       {
         model_name: modelName,
@@ -463,6 +545,10 @@ export class PrometheusMetricsCollector {
     severity: string,
     sourceIp: string
   ) {
+    // Initialize lazily if not already done
+    if (!this.initialized) {
+      this.initialize().catch(() => {});
+    }
     securityEvents.inc({
       event_type: eventType,
       severity,
@@ -477,6 +563,10 @@ export class PrometheusMetricsCollector {
     status: string,
     durationMs: number
   ) {
+    // Initialize lazily if not already done
+    if (!this.initialized) {
+      this.initialize().catch(() => {});
+    }
     testExecutionsTotal.inc({
       test_suite: testSuite,
       test_type: testType,
@@ -494,6 +584,10 @@ export class PrometheusMetricsCollector {
 
   // Get all metrics in Prometheus format
   async getMetrics(): Promise<string> {
+    // Ensure initialization before getting metrics
+    if (!this.initialized) {
+      await this.initialize();
+    }
     return register.metrics();
   }
 

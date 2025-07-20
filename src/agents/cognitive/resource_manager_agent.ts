@@ -75,7 +75,6 @@ interface ResourceMetrics {
 }
 
 export class ResourceManagerAgent extends EnhancedMemoryAgent {
-  protected config: ResourceManagerConfig;
   private resources: Map<string, Resource>;
   private allocations: Map<string, ResourceAllocation>;
   private pendingRequests: ResourceRequest[];
@@ -83,11 +82,10 @@ export class ResourceManagerAgent extends EnhancedMemoryAgent {
   private allocationHistory: ResourceAllocation[];
   private resourceMetrics: Map<string, ResourceMetrics>;
   private lastOptimization: Date;
-  private lastInput: string = '';
+  private lastInput = '';
 
   constructor(config: ResourceManagerConfig) {
     super(config);
-    this.config = config;
     this.resources = new Map();
     this.allocations = new Map();
     this.pendingRequests = [];
@@ -1173,10 +1171,10 @@ export class ResourceManagerAgent extends EnhancedMemoryAgent {
   }
 
   private startOptimizationCycle(): void {
-    const interval = this.config.resourceSettings?.optimizationInterval || 300000; // 5 minutes
+    const interval = (this.config as ResourceManagerConfig).resourceSettings?.optimizationInterval || 300000; // 5 minutes
     
     setInterval(async () => {
-      if (this.config.resourceSettings?.enablePreemption) {
+      if ((this.config as ResourceManagerConfig).resourceSettings?.enablePreemption) {
         await this.performAutomaticOptimization();
       }
     }, interval);
@@ -1567,3 +1565,5 @@ export class ResourceManagerAgent extends EnhancedMemoryAgent {
     return this.getCurrentMetrics();
   }
 }
+
+export default ResourceManagerAgent;

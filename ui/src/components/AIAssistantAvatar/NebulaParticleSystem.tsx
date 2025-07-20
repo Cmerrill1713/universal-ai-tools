@@ -11,8 +11,7 @@ interface NebulaParticleSystemProps {
 
 export function NebulaParticleSystem({ 
   isActive = false, 
-  color = '#00ffff',
-  particleCount = 2000 
+  color = '#00ffff'
 }: NebulaParticleSystemProps) {
   const { scene } = useThree();
   const systemRef = useRef<System | null>(null);

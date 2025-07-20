@@ -1,5 +1,6 @@
-import { dspyBridge, DSPyBridge } from './dspy-orchestrator/bridge';
-import { logger } from '../utils/logger';
+import type { DSPyBridge } from './dspy-orchestrator/bridge';
+import { dspyBridge } from './dspy-orchestrator/bridge';
+import { logger, LogContext } from '../utils/enhanced-logger';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface DSPyOrchestrationRequest {
@@ -26,29 +27,37 @@ export interface DSPyOrchestrationResponse {
 
 export class DSPyService {
   private bridge: DSPyBridge;
-  private isInitialized: boolean = false;
+  private isInitialized = false;
 
   constructor() {
     this.bridge = dspyBridge;
-    this.initialize();
+    // Don't block on initialization - let it happen in the background
+    this.initialize().catch(error => {
+      logger.error('DSPy service initialization failed:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
+    });
   }
 
   private async initialize(): Promise<void> {
     try {
       logger.info('🚀 Initializing DSPy service...');
       
-      // Wait for bridge to connect
-      await this.waitForConnection();
+      // Wait for bridge to connect (with short timeout to not block server startup)
+      if (process.env.ENABLE_DSPY_MOCK === 'true') {
+        await this.waitForConnection(5000);
+      } else {
+        logger.info('DSPy mock disabled - skipping connection wait');
+      }
       
       this.isInitialized = true;
       logger.info('✅ DSPy service initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize DSPy service:', error);
-      throw error;
+      logger.warn('DSPy service initialization failed (will retry on first use)', LogContext.SYSTEM, { error: error instanceof Error ? error.message : String(error) });
+      // Don't throw - let server continue without DSPy
+      this.isInitialized = false;
     }
   }
 
-  private async waitForConnection(timeout: number = 30000): Promise<void> {
+  private async waitForConnection(timeout = 30000): Promise<void> {
     const startTime = Date.now();
     
     while (!this.bridge.getStatus().connected) {
@@ -100,7 +109,7 @@ export class DSPyService {
 
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      logger.error('DSPy orchestration failed:', error);
+      logger.error('DSPy orchestration failed:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
       
       return {
         requestId: request.requestId,
@@ -131,8 +140,52 @@ export class DSPyService {
         assignments: result.agent_assignments || []
       };
     } catch (error) {
-      logger.error('Agent coordination failed:', error);
+      logger.error('Agent coordination failed:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
       throw error;
+    }
+  }
+
+  /**
+   * Generic request method for DSPy operations
+   */
+  async request(operation: string, params: any = {}): Promise<any> {
+    try {
+      switch (operation) {
+        case 'manage_knowledge':
+        case 'optimize_knowledge_modules':
+        case 'get_optimization_metrics':
+          return await this.manageKnowledge(operation, params);
+        
+        case 'orchestrate':
+          return await this.orchestrate({
+            requestId: params.requestId || uuidv4(),
+            userRequest: params.userRequest || '',
+            userId: params.userId || 'system',
+            orchestrationMode: params.mode,
+            context: params,
+            timestamp: new Date()
+          });
+        
+        case 'coordinate_agents':
+          return await this.coordinateAgents(
+            params.task || '',
+            params.availableAgents || [],
+            params.context || {}
+          );
+        
+        default:
+          // For unknown operations, try to pass through to DSPy bridge
+          if (this.bridge && typeof (this.bridge as any)[operation] === 'function') {
+            return await (this.bridge as any)[operation](params);
+          }
+          throw new Error(`Unknown DSPy operation: ${operation}`);
+      }
+    } catch (error) {
+      logger.error(`DSPy request failed for operation ${operation}:`, LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
     }
   }
 
@@ -149,7 +202,7 @@ export class DSPyService {
         result
       };
     } catch (error) {
-      logger.error('Knowledge management failed:', error);
+      logger.error('Knowledge management failed:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -192,7 +245,7 @@ export class DSPyService {
         performanceGain: result.performance_gain
       };
     } catch (error) {
-      logger.error('Prompt optimization failed:', error);
+      logger.error('Prompt optimization failed:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -220,8 +273,30 @@ export class DSPyService {
   }
 }
 
-// Export singleton instance
-export const dspyService = new DSPyService();
+// Lazy initialization to prevent blocking during import
+let _dspyService: DSPyService | null = null;
 
-// Export types
-export type { DSPyOrchestrationRequest, DSPyOrchestrationResponse };
+export function getDSPyService(): DSPyService {
+  if (!_dspyService) {
+    _dspyService = new DSPyService();
+  }
+  return _dspyService;
+}
+
+// For backward compatibility (but prefer using getDSPyService())
+export const dspyService = {
+  orchestrate: async (request: DSPyOrchestrationRequest) => getDSPyService().orchestrate(request),
+  coordinateAgents: async (task: string, availableAgents: string[], context: Record<string, any> = {}) => 
+    getDSPyService().coordinateAgents(task, availableAgents, context),
+  searchKnowledge: async (query: string, options: any = {}) => getDSPyService().searchKnowledge(query, options),
+  extractKnowledge: async (content: string, context: any = {}) => getDSPyService().extractKnowledge(content, context),
+  evolveKnowledge: async (existingKnowledge: string, newInfo: string) => 
+    getDSPyService().evolveKnowledge(existingKnowledge, newInfo),
+  optimizePrompts: async (examples: any[]) => getDSPyService().optimizePrompts(examples),
+  request: async (operation: string, params: any = {}) => getDSPyService().request(operation, params),
+  manageKnowledge: async (operation: string, data: any) => getDSPyService().manageKnowledge(operation, data),
+  getStatus: () => getDSPyService().getStatus(),
+  shutdown: async () => getDSPyService().shutdown()
+};
+
+// Types are already exported above

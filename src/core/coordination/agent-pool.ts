@@ -1,5 +1,7 @@
-import puppeteer, { Browser, Page, PuppeteerLaunchOptions } from 'puppeteer';
-import { chromium, firefox, webkit, Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
+import type { Browser, Page, LaunchOptions as PuppeteerLaunchOptions } from 'puppeteer';
+import puppeteer from 'puppeteer';
+import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 
@@ -124,7 +126,7 @@ export class BrowserAgentPool extends EventEmitter {
           browser: 'chrome',
           viewport: config.viewport,
           browser_instance: browser,
-          page: page,
+          page,
           status: 'idle',
           lastUsed: Date.now(),
           testCount: 0,
@@ -198,7 +200,7 @@ export class BrowserAgentPool extends EventEmitter {
           browser: config.browser as any,
           viewport: config.viewport,
           browser_instance: browser,
-          page: page,
+          page,
           status: 'idle',
           lastUsed: Date.now(),
           testCount: 0,
@@ -359,7 +361,7 @@ export class BrowserAgentPool extends EventEmitter {
     
     switch (agent.browser) {
       case 'chrome':
-      case 'chromium':
+      case 'edge':
         browser = await chromium.launch({ 
           headless: this.config.headless,
           slowMo: this.config.slowMo 
@@ -372,7 +374,6 @@ export class BrowserAgentPool extends EventEmitter {
         });
         break;
       case 'safari':
-      case 'webkit':
         browser = await webkit.launch({ 
           headless: this.config.headless,
           slowMo: this.config.slowMo 

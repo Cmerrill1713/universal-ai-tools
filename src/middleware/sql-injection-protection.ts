@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { logger } from '../utils/logger';
 
 export interface SQLProtectionOptions {
@@ -273,8 +273,8 @@ export class SQLInjectionProtection {
   /**
    * Truncate string for logging
    */
-  private truncate(str: string, length: number = 100): string {
-    return str.length > length ? str.substring(0, length) + '...' : str;
+  private truncate(str: string, length = 100): string {
+    return str.length > length ? `${str.substring(0, length)  }...` : str;
   }
 
   /**
@@ -299,14 +299,14 @@ export class SQLInjectionProtection {
     
     // For strings, escape single quotes and remove dangerous characters
     if (typeof param === 'string') {
-      return "'" + param
+      return `'${  param
         .replace(/'/g, "''")  // Escape single quotes
         .replace(/\\/g, '\\\\') // Escape backslashes
         .replace(/\0/g, '')     // Remove null bytes
         .replace(/\n/g, '\\n')  // Escape newlines
         .replace(/\r/g, '\\r')  // Escape carriage returns
         .replace(/\x1a/g, '')   // Remove SUB character
-        + "'";
+         }'`;
     }
     
     // For arrays and objects, JSON stringify and treat as string

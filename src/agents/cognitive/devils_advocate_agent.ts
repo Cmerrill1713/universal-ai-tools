@@ -3,10 +3,12 @@
  * Directly adapted from the sophisticated trading system's DevilsAdvocateAgent
  */
 
-import type { AgentContext} from '../base_agent';
-import { AgentResponse } from '../base_agent';
-import type { CognitiveCapability } from './mock_cognitive_agent';
-import { MockCognitiveAgent } from './mock_cognitive_agent';
+import type { AgentContext } from '../base_agent';
+import { RealCognitiveAgent, type CognitiveCapability } from './real_cognitive_agent';
+
+const GOOD_CONFIDENCE = 0.7;
+const MODERATE_CONFIDENCE = 0.6;
+const HIGH_CONFIDENCE = 0.8;
 
 interface CritiqueReport {
   critiqueId: string;
@@ -51,12 +53,6 @@ interface StressScenario {
   severity: 'low' | 'medium' | 'high';
 }
 
-interface CounterStrategy {
-  weaknessTargeted: string;
-  counterApproach: string;
-  implementationHint: string;
-  riskLevel: 'low' | 'medium' | 'high';
-}
 
 interface Finding {
   findingType: string;
@@ -66,7 +62,9 @@ interface Finding {
   actionable: boolean;
 }
 
-export class DevilsAdvocateAgent extends MockCognitiveAgent {
+const MEDIUM_CONFIDENCE = 0.75;
+
+export class DevilsAdvocateAgent extends RealCognitiveAgent {
   private critiqueHistory: CritiqueReport[] = [];
 
   protected setupCognitiveCapabilities(): void {
@@ -86,7 +84,7 @@ export class DevilsAdvocateAgent extends MockCognitiveAgent {
     });
   }
 
-  protected async selectCapability(context: AgentContext): Promise<CognitiveCapability | null> {
+  protected async selectCapability(context: AgentContext): Promise<any> {
     const request = context.userRequest.toLowerCase();
 
     if (request.includes('test') || request.includes('stress') || request.includes('failure')) {
@@ -101,7 +99,7 @@ export class DevilsAdvocateAgent extends MockCognitiveAgent {
     return this.cognitiveCapabilities.get('critical_analysis') || null;
   }
 
-  protected async generateReasoning(context: AgentContext, capability: CognitiveCapability, result: any): Promise<string> {
+  protected async generateReasoning(context: AgentContext, capability: any, result: any): Promise<string> {
     const report = result as CritiqueReport | StressTestReport;
     
     if ('critiqueType' in report) {
@@ -134,7 +132,7 @@ My role is to identify problems before they occur, ensuring robust and reliable 
 4. **Bottleneck Identification**: Found performance limits
 5. **Resilience Scoring**: Quantified system robustness
 
-The system shows ${stress.overallResilienceScore > 0.8 ? 'strong' : stress.overallResilienceScore > 0.6 ? 'moderate' : 'weak'} resilience against failures.`;
+The system shows ${stress.overallResilienceScore > HIGH_CONFIDENCE ? 'strong' : stress.overallResilienceScore > MODERATE_CONFIDENCE ? 'moderate' : 'weak'} resilience against failures.`;
     }
   }
 
@@ -149,7 +147,13 @@ The system shows ${stress.overallResilienceScore > 0.8 ? 'strong' : stress.overa
     return critiqueReport;
   }
 
-  private async executeRiskAssessment(input: string, context: AgentContext): Promise<any> {
+  private async executeRiskAssessment(input: string, context: AgentContext): Promise<{
+    riskProfile: any;
+    overallRiskLevel: 'low' | 'medium' | 'high' | 'critical';
+    mitigationStrategies: any;
+    approach: string;
+    reasoning: string;
+  }> {
     const risks = await this.assessRisks(input, context);
     
     return {
@@ -171,7 +175,7 @@ The system shows ${stress.overallResilienceScore > 0.8 ? 'strong' : stress.overa
 
   private async performInternalAnalysis(setup: string, context: AgentContext): Promise<any> {
     // Use Ollama for sophisticated analysis if available
-    if (this.ollamaService && this.ollamaService.isAvailable()) {
+    if (this.ollamaService) {
       const prompt = `As a critical systems analyst, analyze this setup for potential weaknesses, risks, and areas of improvement:
 
 Setup Description: "${setup}"
@@ -197,9 +201,15 @@ Format as JSON with the structure:
 }`;
 
       try {
-        const response = await this.ollamaService.generate(prompt, { temperature: 0.8 });
-        return this.parseAnalysisResponse(response);
-      } catch (error) {
+        const response = await this.ollamaService.generate({
+          model: this.preferredModel,
+          prompt: prompt,
+          options: {
+            temperature: HIGH_CONFIDENCE
+          }
+        });
+        return this.parseAnalysisResponse(response.response || '');
+      } catch (_error) {
         this.logger.warn('Ollama analysis failed, using fallback analysis');
       }
     }
@@ -215,7 +225,7 @@ Format as JSON with the structure:
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-    } catch (error) {
+    } catch (_error) {
       this.logger.warn('Failed to parse Ollama analysis response');
     }
 
@@ -357,7 +367,7 @@ Format as JSON with the structure:
       performanceImpact: {
         expectedImprovement: '15-30%',
         riskReduction: '40-60%',
-        confidenceLevel: 0.75,
+        confidenceLevel: MEDIUM_CONFIDENCE,
       },
       structuredFindings: this.createStructuredFindings(analysis),
       severity: this.calculateSeverity(analysis),
@@ -568,7 +578,7 @@ Format as JSON with the structure:
         maxFailureRate: scenario.severity === 'high' ? '25%' : '15%',
         recoveryTime: scenario.severity === 'high' ? '30 seconds' : '15 seconds',
         riskScore: scenario.severity === 'high' ? 8 : 5,
-        survivalProbability: scenario.severity === 'high' ? 0.7 : 0.85,
+        survivalProbability: scenario.severity === 'high' ? GOOD_CONFIDENCE : 0.85,
       };
     }
 

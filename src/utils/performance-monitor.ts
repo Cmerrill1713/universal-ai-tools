@@ -1,4 +1,4 @@
-import { logger } from './logger';
+import { logger, LogContext } from './enhanced-logger';
 import { EventEmitter } from 'events';
 
 export interface PerformanceMetrics {
@@ -65,7 +65,7 @@ export class PerformanceMonitor extends EventEmitter {
       // GC monitoring is not available in ES modules currently
       // Will be implemented when Node.js provides ES module support for perf_hooks
     } catch (error) {
-      logger.warn('GC monitoring not available:', error);
+      logger.warn('GC monitoring not available:', LogContext.PERFORMANCE, { error });
     }
   }
 
@@ -273,7 +273,7 @@ export class PerformanceMonitor extends EventEmitter {
         logger.warn('Garbage collection not available (run with --expose-gc)');
       }
     } catch (error) {
-      logger.error('Error forcing garbage collection:', error);
+      logger.error('Error forcing garbage collection:', LogContext.PERFORMANCE, { error });
     }
   }
 

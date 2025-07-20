@@ -1,5 +1,5 @@
 import { Redis } from 'ioredis';
-import { logger } from './logger';
+import { logger, LogContext } from './enhanced-logger';
 import { performanceMonitor } from './performance-monitor';
 
 export interface CacheOptions {
@@ -80,11 +80,11 @@ export class ImprovedCacheManager {
         const delay = Math.min(baseDelay * Math.pow(2, times), maxDelay);
         
         if (times > this.maxConnectionRetries) {
-          logger.error(`Redis connection failed after ${times} attempts`);
+          logger.error(`Redis connection failed after ${times} attempts`, LogContext.CACHE);
           // Don't stop retrying, but log the issue
         }
         
-        logger.warn(`Redis reconnection attempt ${times}, waiting ${delay}ms`);
+        logger.warn(`Redis reconnection attempt ${times}, waiting ${delay}ms`, LogContext.CACHE);
         return delay;
       },
       
@@ -115,7 +115,7 @@ export class ImprovedCacheManager {
     });
 
     this.redis.on('error', (error) => {
-      logger.error('Redis error:', error);
+      logger.error('Redis error:', LogContext.CACHE, { error });
       this.handleConnectionError();
     });
 
@@ -142,7 +142,7 @@ export class ImprovedCacheManager {
         try {
           await this.redis.ping();
         } catch (error) {
-          logger.error('Redis health check failed:', error);
+          logger.error('Redis health check failed:', LogContext.CACHE, { error });
           this.handleConnectionError();
         }
       }
@@ -225,7 +225,7 @@ export class ImprovedCacheManager {
       const compressed = zlib.gzipSync(json);
       return compressed.toString('base64');
     } catch (error) {
-      logger.error('Compression error:', error);
+      logger.error('Compression error:', LogContext.CACHE, { error });
       return JSON.stringify(value);
     }
   }
@@ -241,7 +241,7 @@ export class ImprovedCacheManager {
       try {
         return JSON.parse(value);
       } catch {
-        logger.error('Decompression error:', error);
+        logger.error('Decompression error:', LogContext.CACHE, { error });
         throw error;
       }
     }
@@ -320,7 +320,7 @@ export class ImprovedCacheManager {
         return null;
       }
     } catch (error) {
-      logger.error('Cache get error:', error);
+      logger.error('Cache get error:', LogContext.CACHE, { error });
       this.handleConnectionError();
       
       // Always try fallback on error
@@ -374,7 +374,7 @@ export class ImprovedCacheManager {
       
       return true;
     } catch (error) {
-      logger.error('Cache set error:', error);
+      logger.error('Cache set error:', LogContext.CACHE, { error });
       this.handleConnectionError();
       
       const [seconds, nanoseconds] = process.hrtime(startTime);
@@ -412,7 +412,7 @@ export class ImprovedCacheManager {
       
       return result > 0;
     } catch (error) {
-      logger.error('Cache delete error:', error);
+      logger.error('Cache delete error:', LogContext.CACHE, { error });
       this.handleConnectionError();
       
       const [seconds, nanoseconds] = process.hrtime(startTime);
@@ -446,7 +446,7 @@ export class ImprovedCacheManager {
       
       return totalInvalidated;
     } catch (error) {
-      logger.error('Cache invalidation error:', error);
+      logger.error('Cache invalidation error:', LogContext.CACHE, { error });
       this.handleConnectionError();
       return 0;
     }
@@ -467,7 +467,7 @@ export class ImprovedCacheManager {
       
       return result > 0;
     } catch (error) {
-      logger.error('Cache exists error:', error);
+      logger.error('Cache exists error:', LogContext.CACHE, { error });
       this.handleConnectionError();
       
       // Check fallback
@@ -490,7 +490,7 @@ export class ImprovedCacheManager {
       
       return ttl;
     } catch (error) {
-      logger.error('Cache TTL error:', error);
+      logger.error('Cache TTL error:', LogContext.CACHE, { error });
       this.handleConnectionError();
       return -1;
     }
@@ -515,7 +515,7 @@ export class ImprovedCacheManager {
       
       return { ...this.stats };
     } catch (error) {
-      logger.error('Cache stats error:', error);
+      logger.error('Cache stats error:', LogContext.CACHE, { error });
       this.handleConnectionError();
       
       // Return fallback stats
@@ -561,7 +561,7 @@ export class ImprovedCacheManager {
     try {
       await this.redis.quit();
     } catch (error) {
-      logger.error('Error closing Redis connection:', error);
+      logger.error('Error closing Redis connection:', LogContext.CACHE, { error });
     }
     this.fallbackCache.clear();
   }
@@ -610,7 +610,7 @@ export class ImprovedCacheManager {
       this.stats.deletes++;
       logger.info('Cache flushed successfully');
     } catch (error) {
-      logger.error('Error flushing cache:', error);
+      logger.error('Error flushing cache:', LogContext.CACHE, { error });
       this.handleError(error);
       this.fallbackCache.clear();
     }
@@ -657,7 +657,7 @@ export class ImprovedCacheManager {
       
       return results;
     } catch (error) {
-      logger.error('Error getting multiple values:', error);
+      logger.error('Error getting multiple values:', LogContext.CACHE, { error });
       this.handleError(error);
       
       // Return empty results on error
@@ -709,7 +709,7 @@ export class ImprovedCacheManager {
       await pipeline.exec();
       this.stats.sets += entries.length;
     } catch (error) {
-      logger.error('Error setting multiple values:', error);
+      logger.error('Error setting multiple values:', LogContext.CACHE, { error });
       this.handleError(error);
     }
   }
@@ -734,7 +734,7 @@ export class ImprovedCacheManager {
       const result = await this.redis.expire(namespacedKey, ttl);
       return result === 1;
     } catch (error) {
-      logger.error('Error extending cache TTL:', error);
+      logger.error('Error extending cache TTL:', LogContext.CACHE, { error });
       this.handleError(error);
       return false;
     }

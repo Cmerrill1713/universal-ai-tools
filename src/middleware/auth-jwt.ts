@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { SupabaseClient } from '@supabase/supabase-js';
+import type { NextFunction, Request, Response } from 'express';
+import type { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 import { secretsManager } from '../config/secrets';
@@ -33,6 +34,9 @@ export class JWTAuthService {
   private accessTokenExpiry: string | number = '15m'; // 15 minutes
   private refreshTokenExpiry: string | number = '7d'; // 7 days
   private tokenBlacklist: Set<string> = new Set();
+  private authAttempts: Map<string, { count: number; lastAttempt: number; blocked?: number }> = new Map();
+  private readonly MAX_AUTH_ATTEMPTS = 5;
+  private readonly BLOCK_DURATION = 15 * 60 * 1000; // 15 minutes
   
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
@@ -100,6 +104,9 @@ export class JWTAuthService {
     };
     
     await this.storeRefreshToken(refreshTokenData);
+    
+    // Log successful token generation
+    await this.logAuthEvent(userId, 'token_generated', req?.ip, req?.headers['user-agent'], true);
     
     return {
       accessToken,
@@ -196,6 +203,9 @@ export class JWTAuthService {
       
       // Revoke old refresh token
       await this.revokeRefreshToken(payload.sub, payload.jti!);
+      
+      // Log successful token refresh
+      await this.logAuthEvent(payload.sub, 'token_refreshed', req?.ip, req?.headers['user-agent'], true);
       
       // Generate new token pair
       return await this.generateTokenPair(payload.sub, payload.email, payload.role, req);
@@ -327,6 +337,89 @@ export class JWTAuthService {
   }
 
   /**
+   * Check if IP is rate limited for authentication
+   */
+  public isAuthRateLimited(ip: string): { limited: boolean; retryAfter?: number } {
+    const attempt = this.authAttempts.get(ip);
+    if (!attempt) {
+      return { limited: false };
+    }
+
+    const now = Date.now();
+    
+    // Check if currently blocked
+    if (attempt.blocked && now < attempt.blocked) {
+      const retryAfter = Math.ceil((attempt.blocked - now) / 1000);
+      return { limited: true, retryAfter };
+    }
+
+    // Reset if block period expired
+    if (attempt.blocked && now >= attempt.blocked) {
+      this.authAttempts.delete(ip);
+      return { limited: false };
+    }
+
+    // Check if too many attempts in time window
+    if (attempt.count >= this.MAX_AUTH_ATTEMPTS && now - attempt.lastAttempt < this.BLOCK_DURATION) {
+      attempt.blocked = now + this.BLOCK_DURATION;
+      const retryAfter = Math.ceil(this.BLOCK_DURATION / 1000);
+      return { limited: true, retryAfter };
+    }
+
+    return { limited: false };
+  }
+
+  /**
+   * Record authentication attempt
+   */
+  public recordAuthAttempt(ip: string, success: boolean): void {
+    const now = Date.now();
+    const attempt = this.authAttempts.get(ip) || { count: 0, lastAttempt: 0 };
+
+    if (success) {
+      // Reset on successful auth
+      this.authAttempts.delete(ip);
+      return;
+    }
+
+    // Reset count if last attempt was more than block duration ago
+    if (now - attempt.lastAttempt > this.BLOCK_DURATION) {
+      attempt.count = 1;
+    } else {
+      attempt.count++;
+    }
+
+    attempt.lastAttempt = now;
+    this.authAttempts.set(ip, attempt);
+  }
+
+  /**
+   * Log authentication events
+   */
+  private async logAuthEvent(
+    userId: string | null,
+    event: string,
+    ipAddress?: string,
+    userAgent?: string,
+    success: boolean = true
+  ): Promise<void> {
+    try {
+      await this.supabase
+        .from('auth_events')
+        .insert({
+          user_id: userId,
+          event_type: event,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          success,
+          timestamp: new Date(),
+        });
+    } catch (error) {
+      logger.error('Failed to log auth event:', error);
+    }
+  }
+
+  /**
    * Get active sessions for a user
    */
   public async getUserSessions(userId: string): Promise<Array<{
@@ -373,6 +466,7 @@ export class JWTAuthService {
         
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
           if (requireAuth) {
+            await this.logAuthEvent(null, 'auth_failed_no_token', req.ip, req.headers['user-agent'], false);
             return res.status(401).json({
               error: 'Authentication required',
               message: 'No valid authorization header found',
@@ -385,6 +479,7 @@ export class JWTAuthService {
         const payload = this.verifyAccessToken(token);
         
         if (!payload) {
+          await this.logAuthEvent(null, 'auth_failed_invalid_token', req.ip, req.headers['user-agent'], false);
           return res.status(401).json({
             error: 'Invalid token',
             message: 'The provided token is invalid or expired',
@@ -399,11 +494,15 @@ export class JWTAuthService {
           .single();
         
         if (error || !user || !user.is_active) {
+          await this.logAuthEvent(payload.sub, 'auth_failed_user_inactive', req.ip, req.headers['user-agent'], false);
           return res.status(401).json({
             error: 'User not found',
             message: 'User account not found or inactive',
           });
         }
+        
+        // Update last activity
+        await this.updateUserActivity(user.id, req.ip, req.headers['user-agent']);
         
         // Attach user to request
         req.user = {
@@ -421,6 +520,79 @@ export class JWTAuthService {
         });
       }
     };
+  }
+
+  /**
+   * Update user activity
+   */
+  private async updateUserActivity(userId: string, ipAddress?: string, userAgent?: string): Promise<void> {
+    try {
+      await this.supabase
+        .from('user_activity')
+        .upsert({
+          user_id: userId,
+          last_activity: new Date(),
+          ip_address: ipAddress,
+          user_agent: userAgent,
+        });
+    } catch (error) {
+      logger.error('Failed to update user activity:', error);
+    }
+  }
+
+  /**
+   * Get user security info
+   */
+  public async getUserSecurityInfo(userId: string): Promise<{
+    sessions: Array<any>;
+    recentActivity: Array<any>;
+    failedAttempts: number;
+  }> {
+    try {
+      const [sessions, activity, failedAttempts] = await Promise.all([
+        this.getUserSessions(userId),
+        this.supabase
+          .from('auth_events')
+          .select('*')
+          .eq('user_id', userId)
+          .order('timestamp', { ascending: false })
+          .limit(10),
+        this.supabase
+          .from('auth_events')
+          .select('count')
+          .eq('user_id', userId)
+          .eq('success', false)
+          .gte('timestamp', new Date(Date.now() - 24 * 60 * 60 * 1000))
+          .single()
+      ]);
+
+      return {
+        sessions,
+        recentActivity: activity.data || [],
+        failedAttempts: failedAttempts.data?.count || 0,
+      };
+    } catch (error) {
+      logger.error('Failed to get user security info:', error);
+      return {
+        sessions: [],
+        recentActivity: [],
+        failedAttempts: 0,
+      };
+    }
+  }
+
+  /**
+   * Revoke specific session
+   */
+  public async revokeSession(userId: string, tokenId: string): Promise<boolean> {
+    try {
+      await this.revokeRefreshToken(userId, tokenId);
+      await this.logAuthEvent(userId, 'session_revoked', 'user_action', 'user_action', true);
+      return true;
+    } catch (error) {
+      logger.error('Failed to revoke session:', error);
+      return false;
+    }
   }
 }
 

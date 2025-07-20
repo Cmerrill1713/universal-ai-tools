@@ -176,7 +176,7 @@ describe('RetrieverAgent', () => {
 
     it('should respect cache TTL', async () => {
       // Set short TTL for testing
-      agent['config'].retrieverSettings!.cacheTTL = 100;
+      (agent as any).config.cacheTTL = 100;
 
       const input = 'find data with short cache';
       await agent.processInput(input, mockContext);

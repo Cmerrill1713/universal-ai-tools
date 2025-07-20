@@ -8,6 +8,15 @@ import dspy
 from dspy.teleprompt import BootstrapFewShot, BootstrapFewShotWithRandomSearch, MIPROv2
 # ChainOfThought, ReAct, ProgramOfThought are accessed via dspy module
 import os
+
+# Configure logging first
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 from knowledge_optimizer import (
     KnowledgeOptimizer,
     OptimizedKnowledgeExtractor,
@@ -15,29 +24,51 @@ from knowledge_optimizer import (
     OptimizedKnowledgeEvolver,
     OptimizedKnowledgeValidator
 )
+from llm_discovery import LLMDiscovery
+from model_selector import model_selector, TaskComplexity
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Initialize DSPy with appropriate LM
-# For now, we'll use OpenAI, but this can be configured
+# Try to import MLX LFM2 adapter if available
 try:
-    import openai
-    openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-    if openai_api_key:
-        lm = dspy.LM(model="openai/gpt-4", api_key=openai_api_key, max_tokens=1000)
+    from mlx_lfm2_adapter import add_mlx_lfm2_to_discovery, MLX_AVAILABLE
+    if MLX_AVAILABLE:
+        # Only try if MLX models are supported
+        try:
+            add_mlx_lfm2_to_discovery()
+            logger.info("🌊 MLX LFM2 adapter loaded and added to discovery")
+        except Exception as e:
+            logger.debug(f"MLX LFM2 not available: {e}")
+except ImportError:
+    logger.debug("MLX LFM2 adapter not available")
+
+# Initialize DSPy with intelligent model selection
+logger.info("🔍 Discovering available LLMs...")
+
+# Show all available models for debugging
+available_models = LLMDiscovery.get_all_available_models()
+if available_models:
+    logger.info("📋 Available models:")
+    for provider, models in available_models.items():
+        logger.info(f"  {provider}: {', '.join(models[:3])}{'...' if len(models) > 3 else ''}")
+
+# Configure with intelligent model selection for a general task
+initial_result = model_selector.select_model_for_task(
+    "General purpose AI assistant task",
+    context={"complexity": "moderate"}
+)
+
+if initial_result:
+    lm, profile = initial_result
+    logger.info(f"🚀 DSPy ready with {profile.provider} using {profile.name}")
+    logger.info(f"   Model profile: {profile.size_category} (~{profile.estimated_params}B params)")
+    logger.info(f"   Capabilities: {[c.value for c in profile.capabilities]}")
+else:
+    if os.environ.get("NODE_ENV") == "development":
+        logger.warning("⚠️ No LLMs found, using development mock mode")
+        # Use discovery fallback
+        config_result = LLMDiscovery.discover_and_configure()
     else:
-        # Use a local model or mock for testing
-        lm = dspy.LM(model="openai/gpt-3.5-turbo", api_key="test-key", max_tokens=1000)
-    
-    dspy.settings.configure(lm=lm)
-except Exception as e:
-    logger.warning(f"Failed to configure DSPy LM: {e}. Using mock mode.")
-    # Continue without LM for testing purposes
+        logger.error("❌ No valid LLM configuration found")
+        raise Exception("DSPy requires at least one working LLM. Please ensure Ollama, LM Studio, or OpenAI API is available.")
 
 class IntentAnalyzer(dspy.Signature):
     """Analyze user intent and determine request complexity."""
@@ -151,7 +182,7 @@ class DSPyServer:
         self.optimization_examples = []  # Store examples for continuous learning
         self.optimization_threshold = 100  # Optimize after collecting 100 examples
         
-    async def handle_request(self, websocket, path):
+    async def handle_request(self, websocket, path=None):
         """Handle incoming WebSocket connections."""
         self.clients.add(websocket)
         logger.info(f"Client connected. Total clients: {len(self.clients)}")
@@ -182,12 +213,37 @@ class DSPyServer:
             logger.info(f"Client disconnected. Total clients: {len(self.clients)}")
     
     async def process_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Process incoming DSPy requests."""
+        """Process incoming DSPy requests with intelligent model selection."""
         request_id = request.get('requestId')
         method = request.get('method')
         params = request.get('params', {})
         
         logger.info(f"Processing request: {method}")
+        
+        # Auto-select model based on the request
+        user_request = params.get('userRequest', '')
+        context = params.get('context', {})
+        
+        # Add method hint to context for better model selection
+        if method == 'orchestrate':
+            context['task_type'] = 'orchestration'
+        elif method == 'manage_knowledge':
+            context['task_type'] = 'knowledge_management'
+        elif method == 'optimize_prompts':
+            context['task_type'] = 'optimization'
+            context['complexity'] = 'complex'  # MIPRO optimization is complex
+        
+        # Select appropriate model for this specific request
+        model_result = model_selector.select_model_for_task(
+            user_request or f"Process {method} request",
+            context,
+            max_response_time_ms=context.get('max_response_time_ms'),
+            prefer_quality=context.get('prefer_quality', False)
+        )
+        
+        if model_result:
+            lm, profile = model_result
+            logger.info(f"🎯 Using {profile.name} for {method} request")
         
         try:
             if method == 'orchestrate':
@@ -195,6 +251,10 @@ class DSPyServer:
                     request=params.get('userRequest'),
                     context=params.get('context')
                 )
+                
+                # Add model info to response
+                result['model_used'] = model_selector.get_model_info()
+                
                 return {
                     'requestId': request_id,
                     'success': True,
@@ -254,6 +314,36 @@ class DSPyServer:
                     'requestId': request_id,
                     'success': True,
                     'data': result
+                }
+            
+            elif method == 'escalate_model':
+                # Escalate to a larger model
+                min_quality = params.get('min_quality_score', 0.8)
+                result = model_selector.escalate_to_larger_model(min_quality)
+                if result:
+                    lm, profile = result
+                    return {
+                        'requestId': request_id,
+                        'success': True,
+                        'data': {
+                            'escalated': True,
+                            'new_model': model_selector.get_model_info(),
+                            'message': f'Escalated to {profile.name} with quality score {profile.quality_score}'
+                        }
+                    }
+                else:
+                    return {
+                        'requestId': request_id,
+                        'success': False,
+                        'error': 'No larger models available for escalation'
+                    }
+            
+            elif method == 'get_model_info':
+                # Get current model information
+                return {
+                    'requestId': request_id,
+                    'success': True,
+                    'data': model_selector.get_model_info()
                 }
             
             else:
@@ -469,8 +559,12 @@ class DSPyServer:
 
 def main():
     """Main entry point."""
+    # Get port from environment variable or use default
+    port = int(os.environ.get('DSPY_PORT', '8766'))
+    logger.info(f"Starting DSPy server on port {port}")
+    
     server = DSPyServer()
-    asyncio.run(server.start_server())
+    asyncio.run(server.start_server(port=port))
 
 if __name__ == "__main__":
     main()

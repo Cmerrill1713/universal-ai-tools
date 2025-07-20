@@ -5,8 +5,8 @@
 
 import type { AgentContext} from '../base_agent';
 import { AgentResponse } from '../base_agent';
-import type { CognitiveCapability } from './mock_cognitive_agent';
-import { MockCognitiveAgent } from './mock_cognitive_agent';
+import type { CognitiveCapability } from './real_cognitive_agent';
+import { RealCognitiveAgent } from './real_cognitive_agent';
 
 interface UserIntent {
   primaryIntent: string;
@@ -28,7 +28,7 @@ interface IntentPattern {
   commonFollowUps: string[];
 }
 
-export class UserIntentAgent extends MockCognitiveAgent {
+export class UserIntentAgent extends RealCognitiveAgent {
   private intentPatterns: Map<string, IntentPattern> = new Map();
   private userProfiles: Map<string, any> = new Map();
 
@@ -141,7 +141,7 @@ This analysis helps other agents provide more targeted and relevant assistance.`
     const inputLower = input.toLowerCase();
     
     // Use Ollama for sophisticated intent recognition if available
-    if (this.ollamaService && this.ollamaService.isAvailable()) {
+    if (this.ollamaService) {
       const prompt = `Analyze this user request and identify the primary intent:
 
 Request: "${input}"
@@ -159,8 +159,14 @@ Consider these intent categories:
 Respond with just the primary intent category.`;
 
       try {
-        const response = await this.ollamaService.generate(prompt, { temperature: 0.3 });
-        const detectedIntent = response.trim().toLowerCase();
+        const response = await this.ollamaService.generate({
+          model: this.preferredModel,
+          prompt: prompt,
+          options: {
+            temperature: 0.3
+          }
+        });
+        const detectedIntent = (response.response || '').trim().toLowerCase();
         
         if (['setup', 'troubleshoot', 'learn', 'optimize', 'integrate', 'create', 'analyze', 'automate'].includes(detectedIntent)) {
           return detectedIntent;

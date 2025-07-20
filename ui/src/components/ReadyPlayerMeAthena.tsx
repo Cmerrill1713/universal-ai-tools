@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, Float } from '@react-three/drei';
-import { Visage } from '@readyplayerme/visage';
+// import { Visage } from '@readyplayerme/visage';
 import { motion } from 'framer-motion';
 import { useSpring, animated } from 'react-spring';
 import styled, { ThemeProvider } from 'styled-components';
@@ -90,12 +90,10 @@ const AnimatedAvatar: React.FC<{
   isListening: boolean;
   sweetnessLevel: number;
 }> = ({ 
-  avatarUrl, 
   personalityMood, 
   isThinking, 
   isSpeaking, 
-  isListening,
-  sweetnessLevel 
+  isListening
 }) => {
   const avatarRef = useRef<THREE.Group>(null);
   const [time, setTime] = useState(0);
@@ -170,7 +168,7 @@ const AnimatedAvatar: React.FC<{
 
   return (
     <group ref={avatarRef}>
-      <Visage
+      {/* <Visage
         src={avatarUrl}
         // Enable lip sync if available
         lipSync={isSpeaking}
@@ -185,7 +183,8 @@ const AnimatedAvatar: React.FC<{
         physics={true}
         // Personality-based expression intensity
         expressionIntensity={sweetnessLevel / 10}
-      />
+      /> */}
+      <div>ReadyPlayerMe Avatar temporarily disabled</div>
     </group>
   );
 };
@@ -240,7 +239,7 @@ const DivineAura: React.FC<{
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          array={positions}
+          args={[positions, 3]}
           count={positions.length / 3}
           itemSize={3}
         />

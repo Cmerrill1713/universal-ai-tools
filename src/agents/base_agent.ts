@@ -4,12 +4,16 @@
  */
 
 import { EventEmitter } from 'events';
+import { circuitBreaker } from '../services/circuit-breaker.js';
+
+const GOOD_CONFIDENCE = 0.7;
+const MODERATE_CONFIDENCE = 0.6;
 
 export interface AgentCapability {
   name: string;
   description: string;
-  inputSchema: any;
-  outputSchema: any;
+  inputSchema: object;
+  outputSchema: object;
 }
 
 export interface AgentMetrics {
@@ -30,7 +34,7 @@ export interface AgentConfig {
   dependencies: string[];
   memoryEnabled: boolean;
   category?: string;
-  memoryConfig?: any;
+  memoryConfig?: Record<string, unknown>;
 }
 
 export interface AgentContext {
@@ -38,14 +42,14 @@ export interface AgentContext {
   userId?: string;
   sessionId?: string;
   userRequest: string;
-  previousContext?: any;
-  systemState?: any;
+  previousContext?: Record<string, unknown>;
+  systemState?: Record<string, unknown>;
   timestamp: Date;
-  memoryContext?: any;
-  metadata?: any;
+  memoryContext?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
-export interface AgentResponse<T = any> {
+export interface AgentResponse<T = unknown> {
   success: boolean;
   data: T;
   reasoning: string;
@@ -54,25 +58,25 @@ export interface AgentResponse<T = any> {
   agentId: string;
   error?: string;
   nextActions?: string[];
-  memoryUpdates?: any[];
+  memoryUpdates?: Record<string, unknown>[];
   message?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
-export interface PartialAgentResponse<T = any> {
+export interface PartialAgentResponse<T = unknown> {
   success: boolean;
   data: T;
   reasoning: string;
   confidence: number; // 0.0 - 1.0
   error?: string;
   nextActions?: string[];
-  memoryUpdates?: any[];
+  memoryUpdates?: Record<string, unknown>[];
   message?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export abstract class BaseAgent extends EventEmitter {
-  protected config: AgentConfig;
+  public config: AgentConfig;
   protected metrics: AgentMetrics;
   protected isInitialized = false;
   protected memoryCoordinator?: any;
@@ -82,8 +86,18 @@ export abstract class BaseAgent extends EventEmitter {
     super();
     this.config = config;
     this.metrics = this.initializeMetrics();
-    this.logger = console; // Will be replaced with proper logger
+    this.logger = console; // Initialize with fallback
+    this.setupLogger();
     this.setupEventListeners();
+  }
+
+  private async setupLogger(): Promise<void> {
+    try {
+      const { logger } = await import('../utils/logger.js');
+      this.logger = logger;
+    } catch (_error) {
+      this.logger = console; // Fallback to console
+    }
   }
 
   private initializeMetrics(): AgentMetrics {
@@ -148,11 +162,23 @@ export abstract class BaseAgent extends EventEmitter {
         memoryContext = await this.retrieveMemory(context);
       }
 
-      // Execute agent-specific logic
-      const result = await this.process({
-        ...context,
-        memoryContext
-      });
+      // Execute agent-specific logic with circuit breaker protection
+      const result = await circuitBreaker.databaseQuery(
+        `agent-${this.config.name}`,
+        () => this.process({
+          ...context,
+          memoryContext
+        }),
+        {
+          timeout: this.config.maxLatencyMs,
+          fallback: () => ({
+            success: false,
+            data: null,
+            reasoning: 'Agent execution protected by circuit breaker',
+            confidence: 0.1
+          })
+        }
+      );
 
       // Store results in memory if enabled
       if (this.config.memoryEnabled && this.memoryCoordinator && result.success) {
@@ -316,13 +342,13 @@ export abstract class BaseAgent extends EventEmitter {
     const successRate = this.metrics.successfulRequests / this.metrics.totalRequests;
     const latencyScore = Math.max(0, 1 - (this.metrics.averageLatencyMs / this.config.maxLatencyMs));
     
-    return (successRate * 0.7) + (latencyScore * 0.3);
+    return (successRate * GOOD_CONFIDENCE) + (latencyScore * 0.3);
   }
 
   private calculateHealthScore(): number {
     if (!this.isInitialized) return 0;
     
-    const performanceWeight = 0.6;
+    const performanceWeight = MODERATE_CONFIDENCE;
     const uptimeWeight = 0.2;
     const errorRateWeight = 0.2;
 

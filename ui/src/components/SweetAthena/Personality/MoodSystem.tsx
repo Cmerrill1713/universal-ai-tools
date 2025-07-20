@@ -8,7 +8,7 @@
  * @version 1.0.0
  */
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { PersonalityMood } from '../types';
 
 export interface MoodSystemProps {
@@ -23,7 +23,7 @@ export interface MoodSystemProps {
 export const MoodSystem: React.FC<MoodSystemProps> = ({
   currentMood,
   onMoodChange,
-  enableAnimation = true
+  // enableAnimation = true
 }) => {
   const moods: PersonalityMood[] = ['sweet', 'shy', 'confident', 'caring', 'playful'];
   

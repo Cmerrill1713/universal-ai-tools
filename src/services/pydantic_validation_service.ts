@@ -27,6 +27,7 @@ import {
   UserFeedback
 } from '../models/pydantic_models.js';
 import type { Logger } from 'winston';
+import { LogContext } from '../utils/enhanced-logger';
 
 export interface ValidationResult<T> {
   isValid: boolean;
@@ -76,7 +77,7 @@ export class PydanticValidationService {
 
       if (errors.length > 0) {
         const errorMessages = this.formatValidationErrors(errors);
-        this.logger.warn('Validation failed', { 
+        (this.logger as any).warn('Validation failed', LogContext.SYSTEM, { 
           class: classType.name, 
           errors: errorMessages 
         });
@@ -87,14 +88,14 @@ export class PydanticValidationService {
         };
       }
 
-      this.logger.debug('Validation successful', { class: classType.name });
+      (this.logger as any).debug('Validation successful', LogContext.SYSTEM, { class: classType.name });
       return {
         isValid: true,
         data: instance
       };
 
     } catch (error) {
-      this.logger.error('Validation error', { 
+      (this.logger as any).error('Validation error', LogContext.SYSTEM, { 
         class: classType.name, 
         error: error instanceof Error ? error.message : 'Unknown error' 
       });
@@ -228,7 +229,7 @@ export class PydanticValidationService {
       }
     }
 
-    this.logger.info('Batch memory validation completed', {
+    (this.logger as any).info('Batch memory validation completed', LogContext.MEMORY, {
       total: memories.length,
       valid: valid.length,
       invalid: invalid.length
@@ -274,7 +275,7 @@ export class PydanticValidationService {
 
       const result = JSON.stringify(plainObj, null, options.prettify ? 2 : 0);
       
-      this.logger.debug('Serialization successful', { 
+      (this.logger as any).debug('Serialization successful', LogContext.SYSTEM, { 
         type: obj.constructor.name,
         size: result.length 
       });
@@ -282,7 +283,7 @@ export class PydanticValidationService {
       return result;
 
     } catch (error) {
-      this.logger.error('Serialization failed', { 
+      (this.logger as any).error('Serialization failed', LogContext.SYSTEM, { 
         type: obj.constructor.name,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -301,7 +302,7 @@ export class PydanticValidationService {
       const data = JSON.parse(json);
       return await this.validateObject(classType, data);
     } catch (error) {
-      this.logger.error('Deserialization failed', { 
+      (this.logger as any).error('Deserialization failed', LogContext.SYSTEM, { 
         class: classType.name,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -500,7 +501,7 @@ export class PydanticValidationService {
   registerCustomValidations() {
     // This would be where you register custom validation decorators
     // For example, @IsValidEmbedding, @IsMemoryContent, etc.
-    this.logger.info('Custom validation rules registered');
+    (this.logger as any).info('Custom validation rules registered', LogContext.SYSTEM);
   }
 
   /**
@@ -553,7 +554,7 @@ export class PydanticValidationService {
       memoryUsed: endMemory - startMemory
     };
     
-    this.logger.debug('Validation metrics', {
+    (this.logger as any).debug('Validation metrics', LogContext.SYSTEM, {
       class: classType.name,
       duration: metrics.duration,
       memoryDelta: metrics.memoryUsed

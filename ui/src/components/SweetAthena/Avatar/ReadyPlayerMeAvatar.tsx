@@ -21,10 +21,7 @@ export interface ReadyPlayerMeAthenaProps {
  * Placeholder ReadyPlayerMe component for the demo
  */
 export const ReadyPlayerMeAthena: React.FC<ReadyPlayerMeAthenaProps> = ({
-  modelUrl,
-  mood = 'sweet',
-  onLoad,
-  onError
+  mood = 'sweet'
 }) => {
   return (
     <div style={{

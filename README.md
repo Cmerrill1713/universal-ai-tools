@@ -7,11 +7,19 @@ A comprehensive, production-ready AI tools service built with TypeScript, Expres
 ### Core Capabilities
 - **Multi-Model LLM Support**: OpenAI, Anthropic, Ollama, and local models
 - **Advanced Memory System**: Intelligent storage, retrieval, and learning
-- **Cognitive Orchestration**: 10-agent system for complex task handling
+- **Voice & Speech Processing**: TTS with personality profiles, speech recognition
+- **Cognitive Orchestration**: Multi-agent system for complex task handling
 - **Performance Monitoring**: Real-time metrics and optimization
 - **Security**: JWT/API key authentication, rate limiting, input validation
 - **Caching**: Redis-based caching with fallback mechanisms
 - **Database Optimization**: Intelligent query optimization and connection pooling
+
+### Speech & Voice Features
+- **Multi-Provider TTS**: OpenAI TTS, ElevenLabs, Kokoro TTS
+- **Speech Recognition**: Whisper-based transcription
+- **Voice Personalities**: Sweet, shy, confident, caring, playful profiles
+- **Dynamic Modulation**: Sweetness levels and emotional parameters
+- **Local TTS**: High-quality Kokoro TTS for local processing
 
 ### Agent System
 - **Cognitive Agent**: Higher-level reasoning and planning
@@ -73,6 +81,12 @@ API_KEY_SALT=your-api-key-salt
 OPENAI_API_KEY=your-openai-api-key
 ANTHROPIC_API_KEY=your-anthropic-api-key
 OLLAMA_URL=http://localhost:11434
+
+# Speech & Voice Configuration
+ELEVENLABS_API_KEY=your-elevenlabs-api-key
+KOKORO_TTS_ENABLED=true
+KOKORO_MODEL_PATH=/path/to/kokoro/models
+WHISPER_API_URL=http://localhost:5000/transcribe
 
 # Optional: MLX Configuration (for Apple Silicon)
 MLX_ENABLED=true
@@ -291,6 +305,45 @@ POST /api/agents/{id}/execute
 }
 ```
 
+#### Speech & Voice Operations
+```bash
+# Speech transcription
+POST /api/speech/transcribe
+Content-Type: multipart/form-data
+# Form data: audio file, conversation_id (optional), context (optional)
+
+# Voice synthesis
+POST /api/speech/synthesize
+{
+  "text": "Hello! How can I help you today?",
+  "personality": "sweet",
+  "sweetness_level": 0.7,
+  "format": "mp3"
+}
+
+# Kokoro TTS synthesis (high-quality local)
+POST /api/speech/synthesize/kokoro
+{
+  "text": "Natural sounding local TTS",
+  "voiceId": "athena-sweet",
+  "format": "wav"
+}
+
+# Get available voices
+GET /api/speech/voices
+
+# Voice configuration
+POST /api/speech/configure-voice
+{
+  "personality": "sweet",
+  "voice_id": "EXAVITQu4vr4xnSDxMaL",
+  "settings": {
+    "pitch_adjustment": 0.1,
+    "speaking_rate": 0.95
+  }
+}
+```
+
 #### Performance Monitoring
 ```bash
 # Get system health
@@ -501,11 +554,53 @@ volumes:
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
+## 📚 Documentation
+
+### Quick Links
+
+- **[Command Reference](docs/COMMANDS.md)** - All available CLI commands
+- **[API Documentation](docs/API.md)** - Complete API reference
+- **[Speech API](docs/SPEECH_API.md)** - Voice synthesis and recognition
+- **[API Versioning Guide](docs/API_VERSIONING.md)** - API versioning details
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and components
+- **[Migration Guide](docs/MIGRATIONS.md)** - Database migration documentation
+- **[Supabase Integration](docs/SUPABASE.md)** - Supabase features and setup
+
+### Important Commands
+
+```bash
+# Development
+npm run dev                    # Start development server
+npm run dev:backend           # Backend only
+npm run dev:frontend          # Frontend only
+
+# Database
+npm run migrate               # Run migrations
+npm run migrate:status        # Check migration status
+npm run migrate:create <name> # Create new migration
+
+# Documentation
+npm run scrape:supabase       # Scrape Supabase docs for LLM access
+
+# Testing
+npm test                      # Run all tests
+npm run test:fast            # Run fast tests
+npm run test:coverage        # Run with coverage
+
+# Code Quality
+npm run lint                 # Run ESLint
+npm run format               # Format with Prettier
+npm run type-check           # TypeScript check
+```
+
+For the complete list of commands, see [docs/COMMANDS.md](docs/COMMANDS.md).
+
 ## 🆘 Support
 
 For support and questions:
 
 - **Documentation**: [Full Documentation](docs/)
+- **Command Reference**: [All Commands](docs/COMMANDS.md)
 - **Issues**: [GitHub Issues](https://github.com/your-org/universal-ai-tools/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/universal-ai-tools/discussions)
 

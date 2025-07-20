@@ -63,7 +63,6 @@ interface RetrieverConfig extends AgentConfig {
 }
 
 export class RetrieverAgent extends EnhancedMemoryAgent {
-  protected config: RetrieverConfig;
   private sources: Map<string, RetrievalSource>;
   private strategies: Map<string, RetrievalStrategy>;
   private queryCache: Map<string, { items: RetrievedItem[]; timestamp: Date }>;
@@ -74,11 +73,10 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
     avgRelevance: number;
     successRate: number;
   }>;
-  private lastUsedStrategy: string = '';
+  private lastUsedStrategy = '';
 
   constructor(config: RetrieverConfig) {
     super(config);
-    this.config = config;
     this.sources = new Map();
     this.strategies = new Map();
     this.queryCache = new Map();
@@ -113,7 +111,7 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
       
       // Update metrics and cache
       this.updateRetrievalMetrics(strategy.name, filteredItems, retrievalTime);
-      if (this.config.retrieverSettings?.cacheEnabled && !cacheHit) {
+      if ((this.config as RetrieverConfig).retrieverSettings?.cacheEnabled && !cacheHit) {
         this.cacheResults(query, filteredItems);
       }
       
@@ -255,7 +253,7 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
     
     return {
       query: cleanQuery,
-      context: context.systemState || '',
+      context: typeof context.systemState === 'string' ? context.systemState : JSON.stringify(context.systemState) || '',
       constraints,
       metadata: {
         originalInput: input,
@@ -342,7 +340,7 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
     const availableSources = this.filterSources(query.constraints);
     
     // Check cache only if it's in available sources or no source filtering
-    if (this.config.retrieverSettings?.cacheEnabled) {
+    if ((this.config as RetrieverConfig).retrieverSettings?.cacheEnabled) {
       const shouldCheckCache = !query.constraints.sources || 
                               query.constraints.sources.some(s => 
                                 s.toLowerCase().includes('cache') || 
@@ -605,7 +603,7 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
     if (!cached) return null;
     
     // Check if cache is still valid
-    const ttl = this.config.retrieverSettings?.cacheTTL || 300000; // 5 minutes default
+    const ttl = (this.config as RetrieverConfig).retrieverSettings?.cacheTTL || 300000; // 5 minutes default
     const age = Date.now() - cached.timestamp.getTime();
     
     if (age > ttl) {
@@ -669,7 +667,7 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
     items: RetrievedItem[], 
     query: RetrievalQuery, 
     retrievalTime: number,
-    cacheHit: boolean = false
+    cacheHit = false
   ): PartialAgentResponse {
     const summary = this.generateRetrievalSummary(items, query);
     
@@ -698,7 +696,7 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
           totalTime: retrievalTime,
           itemsRetrieved: items.length,
           sourcesUsed: new Set(items.map(i => i.source.name)).size,
-          cacheHit: cacheHit
+          cacheHit
         }
       }
     };
@@ -833,3 +831,5 @@ export class RetrieverAgent extends EnhancedMemoryAgent {
     this.logger.info(`Retriever Agent ${this.config.name} shutting down`);
   }
 }
+
+export default RetrieverAgent;

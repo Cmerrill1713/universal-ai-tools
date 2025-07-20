@@ -8,7 +8,7 @@
  * @version 1.0.0
  */
 
-import React from 'react';
+// import React from 'react';
 import { SimpleChatComponent } from './SimpleChatComponent';
 import type { SimpleChatProps } from './SimpleChatComponent';
 

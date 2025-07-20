@@ -6,7 +6,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { dspyService, DSPyOrchestrationRequest } from './dspy-service';
+import type { DSPyOrchestrationRequest } from './dspy-service';
+import { dspyService } from './dspy-service';
 import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 

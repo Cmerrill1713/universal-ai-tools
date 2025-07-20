@@ -1,9 +1,9 @@
 ;
 import { useState } from 'react';
 import { 
-  Users, Play, Pause, Settings, Activity, Plus, Search, Clock, 
-  Cpu, Loader, AlertCircle, CheckCircle, XCircle, Save, X, Edit,
-  Zap, Brain, Wrench, Code, Database, Monitor, TrendingUp
+  Users, Play, Pause, Plus, Search, 
+  Loader, AlertCircle, CheckCircle, XCircle, Save, X,
+  Zap, Brain, Wrench, Monitor
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -32,17 +32,6 @@ interface Agent {
   last_executed?: string;
 }
 
-interface AgentExecution {
-  id: string;
-  agent_id: string;
-  task: string;
-  parameters: any;
-  result?: any;
-  execution_time_ms: number;
-  status: 'success' | 'error' | 'pending';
-  error_message?: string;
-  created_at: string;
-}
 
 export function Agents() {
   const queryClient = useQueryClient();
@@ -67,7 +56,7 @@ export function Agents() {
     queryFn: async () => {
       const response = await fetch('http://localhost:9999/api/agents', {
         headers: {
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
           'X-AI-Service': 'local-ui',
         },
       });
@@ -170,7 +159,7 @@ export function Agents() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
           'X-AI-Service': 'local-ui',
         },
         body: JSON.stringify({ task, parameters }),
@@ -212,7 +201,7 @@ export function Agents() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
           'X-AI-Service': 'local-ui',
         },
         body: JSON.stringify({
@@ -258,7 +247,7 @@ export function Agents() {
       const response = await fetch(`http://localhost:9999/api/agents/${agentId}/${action}`, {
         method: 'POST',
         headers: {
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
           'X-AI-Service': 'local-ui',
         },
       });
@@ -374,7 +363,7 @@ export function Agents() {
     }
   };
 
-  const filteredAgents = agents.filter(agent => 
+  const filteredAgents = agents.filter((agent: Agent) => 
     agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     agent.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     agent.type.toLowerCase().includes(searchQuery.toLowerCase())
@@ -397,7 +386,7 @@ export function Agents() {
           <Button 
             variant="secondary" 
             onClick={() => {
-              agents.forEach(agent => {
+              agents.forEach((agent: Agent) => {
                 if (agent.status === 'stopped') {
                   controlAgentMutation.mutate({ agentId: agent.id, action: 'start' });
                 }
@@ -443,7 +432,7 @@ export function Agents() {
         </Card>
       ) : filteredAgents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAgents.map((agent) => {
+          {filteredAgents.map((agent: Agent) => {
             const IconComponent = getAgentIcon(agent.type);
             return (
               <Card key={agent.id} className="p-6 hover:border-gray-600 transition-colors">
@@ -464,7 +453,7 @@ export function Agents() {
                 {agent.capabilities && agent.capabilities.length > 0 && (
                   <div className="mb-4">
                     <div className="flex flex-wrap gap-1">
-                      {agent.capabilities.slice(0, 3).map((capability, idx) => (
+                      {agent.capabilities.slice(0, 3).map((capability: string, idx: number) => (
                         <span key={idx} className="text-xs bg-gray-800 px-2 py-1 rounded">
                           {capability}
                         </span>
@@ -568,7 +557,7 @@ export function Agents() {
               <div>
                 <p className="text-sm text-gray-400 mb-2">{selectedAgent.description}</p>
                 <div className="flex flex-wrap gap-1">
-                  {selectedAgent.capabilities.map((capability, idx) => (
+                  {selectedAgent.capabilities.map((capability: string, idx: number) => (
                     <span key={idx} className="text-xs bg-gray-800 px-2 py-1 rounded">
                       {capability}
                     </span>
@@ -722,7 +711,7 @@ export function Agents() {
                 </div>
                 {newAgent.capabilities.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {newAgent.capabilities.map((capability, idx) => (
+                    {newAgent.capabilities.map((capability: string, idx: number) => (
                       <span
                         key={idx}
                         className="px-3 py-1 bg-gray-700 rounded-full text-sm flex items-center space-x-1"

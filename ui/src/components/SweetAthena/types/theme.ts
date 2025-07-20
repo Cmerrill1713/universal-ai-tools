@@ -10,7 +10,7 @@
  */
 
 import { DefaultTheme } from 'styled-components';
-import { PersonalityMood, IntensityLevel, AnimationTiming, ThemeVariant } from './core';
+import { PersonalityMood, IntensityLevel, ThemeVariant } from './core';
 
 /**
  * Color palette for a specific personality mood.

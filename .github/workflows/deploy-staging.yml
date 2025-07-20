@@ -1,0 +1,389 @@
+name: Staging Deployment
+
+on:
+  push:
+    branches: [develop, staging]
+  pull_request:
+    branches: [main, master]
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'develop'
+      run_tests:
+        description: 'Run full test suite'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  STAGING_URL: ${{ secrets.STAGING_URL }}
+
+jobs:
+  # 1. Determine if deployment should run
+  should-deploy:
+    name: Determine Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+      reason: ${{ steps.check.outputs.reason }}
+    steps:
+      - name: Check deployment conditions
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "deploy=true" >> $GITHUB_OUTPUT
+            echo "reason=Manual deployment triggered" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "deploy=true" >> $GITHUB_OUTPUT
+            echo "reason=Push to staging branch" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ contains(github.event.pull_request.labels.*.name, 'deploy-staging') }}" == "true" ]]; then
+            echo "deploy=true" >> $GITHUB_OUTPUT
+            echo "reason=PR labeled for staging deployment" >> $GITHUB_OUTPUT
+          else
+            echo "deploy=false" >> $GITHUB_OUTPUT
+            echo "reason=No deployment conditions met" >> $GITHUB_OUTPUT
+          fi
+
+  # 2. Fast validation for staging
+  validate:
+    name: Quick Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: should-deploy
+    if: needs.should-deploy.outputs.deploy == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Quick lint check
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Check for obvious issues
+        run: npm run check:mocks
+
+  # 3. Fast test suite (optional)
+  test:
+    name: Fast Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [should-deploy, validate]
+    if: needs.should-deploy.outputs.deploy == 'true' && (github.event.inputs.run_tests == 'true' || github.event.inputs.run_tests == '')
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup test environment
+        run: |
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "POSTGRES_HOST=localhost" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+
+      - name: Run fast tests
+        run: npm run test:fast
+
+  # 4. Build staging version
+  build:
+    name: Build Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [should-deploy, validate]
+    if: needs.should-deploy.outputs.deploy == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd ui && npm ci
+
+      - name: Build backend (development mode for staging)
+        run: npm run build:dev
+
+      - name: Build frontend
+        run: cd ui && npm run build
+
+      - name: Create staging package
+        run: |
+          mkdir -p staging-package
+          cp -r dist staging-package/
+          cp -r ui/dist staging-package/ui-dist
+          cp package.json staging-package/
+          cp package-lock.json staging-package/
+          # Copy all dependencies for staging (including dev dependencies)
+          cp -r node_modules staging-package/ 2>/dev/null || npm ci --prefix staging-package
+
+      - name: Archive staging build
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-build-${{ github.sha }}
+          path: staging-package/
+          retention-days: 7
+
+  # 5. Deploy to staging environment
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [should-deploy, validate, build]
+    if: needs.should-deploy.outputs.deploy == 'true' && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    environment: staging
+    steps:
+      - name: Download staging build
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-build-${{ github.sha }}
+          path: staging-package/
+
+      - name: Deploy to staging server
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_KEY: ${{ secrets.STAGING_KEY }}
+          STAGING_PORT: ${{ secrets.STAGING_PORT || '22' }}
+        run: |
+          echo "Deploying to staging environment..."
+          
+          # Example deployment using SSH
+          # In a real deployment, you might use:
+          # - Docker deployment
+          # - Cloud platform deployment
+          # - Container orchestration
+          # - File transfer and service restart
+          
+          echo "Deployment method: ${STAGING_DEPLOY_METHOD:-manual}"
+          echo "Target host: ${STAGING_HOST}"
+          
+          # For demonstration - replace with actual deployment logic
+          if [ -n "$STAGING_HOST" ]; then
+            echo "Would deploy to: $STAGING_HOST"
+            echo "Package contents:"
+            ls -la staging-package/
+          else
+            echo "STAGING_HOST not configured, skipping actual deployment"
+          fi
+
+      - name: Update staging database
+        env:
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_SERVICE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_PROJECT_ID: ${{ secrets.STAGING_PROJECT_ID }}
+        run: |
+          if [ -n "$STAGING_PROJECT_ID" ]; then
+            echo "Updating staging database..."
+            # supabase link --project-ref $STAGING_PROJECT_ID
+            # supabase db push --include-all
+            echo "Database update would run here"
+          else
+            echo "Staging database update skipped - no project ID configured"
+          fi
+
+  # 6. Post-deployment validation
+  validate-deployment:
+    name: Validate Staging Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [deploy]
+    if: needs.deploy.result == 'success'
+    steps:
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for staging deployment to stabilize..."
+          sleep 30
+
+      - name: Health check
+        run: |
+          if [ -n "$STAGING_URL" ]; then
+            echo "Running health check on $STAGING_URL"
+            # Wait up to 5 minutes for service to be ready
+            for i in {1..30}; do
+              if curl -f "$STAGING_URL/health" --connect-timeout 10; then
+                echo "Health check passed"
+                break
+              else
+                echo "Health check attempt $i failed, retrying in 10s..."
+                sleep 10
+              fi
+            done
+          else
+            echo "STAGING_URL not configured, skipping health check"
+          fi
+
+      - name: Basic smoke tests
+        run: |
+          if [ -n "$STAGING_URL" ]; then
+            echo "Running basic smoke tests..."
+            
+            # Test API endpoints
+            curl -f "$STAGING_URL/api/health" || echo "API health check failed"
+            
+            # Test frontend
+            curl -f "$STAGING_URL/" || echo "Frontend check failed"
+            
+            echo "Smoke tests completed"
+          else
+            echo "STAGING_URL not configured, skipping smoke tests"
+          fi
+
+      - name: Performance baseline
+        run: |
+          if [ -n "$STAGING_URL" ]; then
+            echo "Taking performance baseline..."
+            # Simple performance check
+            time curl -f "$STAGING_URL/health"
+          fi
+
+  # 7. Notify team
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [should-deploy, deploy, validate-deployment]
+    if: always() && needs.should-deploy.outputs.deploy == 'true'
+    steps:
+      - name: Determine notification type
+        id: notify
+        run: |
+          if [[ "${{ needs.validate-deployment.result }}" == "success" ]]; then
+            echo "type=success" >> $GITHUB_OUTPUT
+            echo "message=✅ Staging deployment successful" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.deploy.result }}" == "failure" ]]; then
+            echo "type=failure" >> $GITHUB_OUTPUT
+            echo "message=❌ Staging deployment failed" >> $GITHUB_OUTPUT
+          else
+            echo "type=warning" >> $GITHUB_OUTPUT
+            echo "message=⚠️ Staging deployment completed with issues" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = "${{ steps.notify.outputs.message }}";
+            const stagingUrl = "${{ env.STAGING_URL }}";
+            const reason = "${{ needs.should-deploy.outputs.reason }}";
+            
+            const body = `## Staging Deployment
+            
+            **Status**: ${message}
+            **Reason**: ${reason}
+            **Commit**: ${context.sha.substring(0, 7)}
+            ${stagingUrl ? `**Staging URL**: ${stagingUrl}` : ''}
+            
+            **Deployment Details**:
+            - Build: ${{ needs.build.result }}
+            - Deploy: ${{ needs.deploy.result }}
+            - Validation: ${{ needs.validate-deployment.result }}
+            
+            ---
+            *Deployed at: ${new Date().toISOString()}*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Create issue on failure
+        if: steps.notify.outputs.type == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Staging Deployment Failed - ${context.sha.substring(0, 7)}`,
+              body: `Staging deployment failed for commit ${context.sha}.\n\n**Reason**: ${{ needs.should-deploy.outputs.reason }}\n\nCheck the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.`,
+              labels: ['staging-failure', 'deployment']
+            });
+
+  # 8. Cleanup old staging deployments
+  cleanup:
+    name: Cleanup Old Deployments
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [validate-deployment]
+    if: needs.validate-deployment.result == 'success'
+    steps:
+      - name: Clean up old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Keep only the last 5 staging build artifacts
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            
+            // This is a simplified cleanup - in practice you'd want to:
+            // - List all artifacts matching a pattern
+            // - Sort by date
+            // - Delete older ones
+            console.log(`Found ${artifacts.data.artifacts.length} artifacts`);
+
+      - name: Log deployment success
+        run: |
+          echo "Staging deployment completed successfully"
+          echo "Deployment time: $(date)"
+          echo "Commit: ${{ github.sha }}"

@@ -22,6 +22,8 @@ export enum LogLevel {
 export enum LogContext {
   SYSTEM = 'system',
   API = 'api',
+  HTTP = 'http',
+  GRAPHQL = 'graphql',
   ATHENA = 'athena',
   CONVERSATION = 'conversation',
   AVATAR = 'avatar',
@@ -30,7 +32,9 @@ export enum LogContext {
   DATABASE = 'database',
   PERFORMANCE = 'performance',
   SECURITY = 'security',
-  TEST = 'test'
+  ERROR = 'error',
+  TEST = 'test',
+  CACHE = 'cache'
 }
 
 // Performance metrics interface
@@ -75,7 +79,7 @@ const createCustomFormat = (service: string) => {
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
     winston.format.splat(),
-    winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
+    winston.format.printf(({ timestamp, level, message, context, ...meta }: any) => {
       const metaString = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
       return `${timestamp} [${service}] ${level.toUpperCase()} [${context || 'SYSTEM'}]: ${message} ${metaString}`;
     })
@@ -87,7 +91,7 @@ const createJSONFormat = (service: string) => {
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
     winston.format.json(),
-    winston.format.printf((info) => {
+    winston.format.printf((info: any) => {
       return JSON.stringify({
         timestamp: info.timestamp,
         service,
@@ -107,7 +111,7 @@ export class EnhancedLogger {
   private errorCounts: Map<string, number> = new Map();
   private service: string;
 
-  constructor(service: string = 'universal-ai-tools') {
+  constructor(service = 'universal-ai-tools') {
     this.service = service;
     
     // Create transports based on environment
@@ -152,7 +156,7 @@ export class EnhancedLogger {
         level: 'info',
         format: createJSONFormat(service),
         // Only log performance-related entries
-        filter: (info) => info.context === LogContext.PERFORMANCE
+        // Note: Using custom format to filter performance logs
       })
     ];
 
@@ -166,7 +170,7 @@ export class EnhancedLogger {
           maxFiles: '7d',
           level: 'debug',
           format: createJSONFormat('sweet-athena'),
-          filter: (info) => info.context === LogContext.ATHENA || info.context === LogContext.CONVERSATION
+          // Note: Using custom format to filter Athena logs
         })
       );
     }

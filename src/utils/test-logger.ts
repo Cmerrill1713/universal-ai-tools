@@ -4,7 +4,7 @@
  * Specialized logging for tests with detailed failure analysis,
  * screenshot capture, performance tracking, and Sweet Athena test debugging
  */
-import { logger, LogContext, EnhancedLogger } from './enhanced-logger';
+import { EnhancedLogger, LogContext, logger } from './enhanced-logger';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -142,7 +142,8 @@ export class TestLogger {
 
     // Log test completion
     const level = status === 'fail' ? 'error' : status === 'skip' ? 'warn' : 'info';
-    logger.logTestResult(testResult.context.testName, status, duration, {
+    const logStatus = status === 'timeout' ? 'fail' : status as 'pass' | 'fail' | 'skip';
+    logger.logTestResult(testResult.context.testName, logStatus, duration, {
       test_id: testId,
       test_context: testResult.context,
       assertions_count: testResult.assertions?.length || 0,
@@ -220,7 +221,7 @@ export class TestLogger {
     } catch (error) {
       logger.error(`Failed to capture screenshot for test ${testId}`, LogContext.TEST, {
         test_id: testId,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         description
       });
       throw error;
@@ -274,7 +275,7 @@ export class TestLogger {
       node_version: process.version,
       platform: process.platform,
       arch: process.arch,
-      memory_total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+      memory_total: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)  }MB`
     });
   }
 
@@ -292,13 +293,20 @@ export class TestLogger {
     const success = results.failed === 0;
     const level = success ? 'info' : 'error';
 
-    logger.log(level, `Test suite completed: ${suiteName}`, {
+    const logMessage = `Test suite completed: ${suiteName}`;
+    const logMeta = {
       context: LogContext.TEST,
       suite_name: suiteName,
       results,
-      success_rate: ((results.passed / results.total) * 100).toFixed(2) + '%',
+      success_rate: `${((results.passed / results.total) * 100).toFixed(2)  }%`,
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    if (level === 'error') {
+      logger.error(logMessage, LogContext.TEST, logMeta);
+    } else {
+      logger.info(logMessage, LogContext.TEST, logMeta);
+    }
   }
 
   // Generate detailed failure report
@@ -336,7 +344,7 @@ export class TestLogger {
     } catch (error) {
       logger.error(`Failed to generate failure report for ${testResult.testId}`, LogContext.TEST, {
         test_id: testResult.testId,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   }

@@ -1,5 +1,5 @@
 ;
-import { Settings as SettingsIcon, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Select } from '../components/Select';

@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '../../utils/logger';
 import { SearXNGClient, SearXNGResult } from './searxng-client';
-import { Browser, Page } from 'puppeteer';
-import { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
+import type { Page } from 'puppeteer';
+import { Browser } from 'puppeteer';
+import type { Page as PlaywrightPage } from 'playwright';
+import { Browser as PlaywrightBrowser } from 'playwright';
 import * as cheerio from 'cheerio';
 
 export interface ExtractionContext {
@@ -1203,7 +1205,7 @@ export class IntelligentExtractor {
   ): Promise<ValidationResult> {
     const fieldValue = extractedFields[rule.field];
     let passed = true;
-    let message = rule.message;
+    const {message} = rule;
     let suggestedFix: string | undefined;
 
     switch (rule.type) {
@@ -1699,7 +1701,7 @@ export class IntelligentExtractor {
     return Math.min(score, 1.0);
   }
 
-  private extractFieldValue(elements: cheerio.Cheerio<cheerio.Element>, field: ExtractionField): any {
+  private extractFieldValue(elements: cheerio.Cheerio<any>, field: ExtractionField): any {
     const element = elements.first();
     
     switch (field.type) {
@@ -2024,7 +2026,7 @@ export class IntelligentExtractor {
   }
 
   private calculateEfficiencyScore(result: ExtractionResult): number {
-    const totalTime = result.performanceMetrics.totalTime;
+    const {totalTime} = result.performanceMetrics;
     const dataExtracted = Object.keys(result.extractedData.structured).length;
     
     if (totalTime === 0 || dataExtracted === 0) return 0;

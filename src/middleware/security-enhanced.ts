@@ -1,14 +1,15 @@
-import { Request, Response, NextFunction, Application } from 'express';
+import type { Application, NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { logger } from '../utils/logger';
-import { config } from '../config';
+import crypto from 'crypto';
+import { LogContext, logger } from '../utils/enhanced-logger';
+import { config } from '../config/environment';
 import { RateLimiter } from './rate-limiter';
 import { CSRFProtection } from './csrf';
 import { SQLInjectionProtection } from './sql-injection-protection';
 import { JWTAuthService } from './auth-jwt';
 import { AuthMiddleware } from './auth';
-import { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface SecurityConfig {
   enableHelmet?: boolean;
@@ -94,7 +95,7 @@ export class EnhancedSecurityMiddleware {
     }
 
     // Log security middleware applied
-    logger.info('Enhanced security middleware applied', {
+    logger.info('Enhanced security middleware applied', LogContext.SECURITY, {
       features: {
         helmet: this.config.enableHelmet,
         cors: this.config.enableCORS,
@@ -109,73 +110,129 @@ export class EnhancedSecurityMiddleware {
   }
 
   /**
-   * Get Helmet configuration
+   * Get environment-aware Helmet configuration with production-ready CSP
    */
   private getHelmetConfig() {
+    const isProduction = config.server.isProduction;
+    
     return helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Adjust based on your needs
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-          fontSrc: ["'self'", 'data:'],
+          scriptSrc: [
+            "'self'",
+            // Production: Use nonces and specific hashes only
+            // Development: Allow unsafe for easier development
+            ...(isProduction ? [
+              // Add specific trusted script hashes here as needed
+              // "'sha256-HASH_OF_TRUSTED_SCRIPT'"
+            ] : [
+              "'unsafe-inline'", // Development only
+              "'unsafe-eval'"    // Development only
+            ])
+          ],
+          styleSrc: [
+            "'self'",
+            // Production: Use nonces and specific hashes only
+            // Development: Allow unsafe for easier development
+            ...(isProduction ? [
+              // Add specific trusted style hashes here as needed
+              "'sha256-HASH_OF_TRUSTED_STYLE'"
+            ] : [
+              "'unsafe-inline'" // Development only
+            ]),
+            // Always allow trusted CDNs
+            "https://fonts.googleapis.com"
+          ],
+          imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+          fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://fonts.googleapis.com'],
           connectSrc: [
             "'self'",
+            // Always allowed API endpoints
             'https://api.openai.com',
             'https://api.anthropic.com',
-            'https://supabase.co',
+            'https://api.groq.com',
+            'https://generativelanguage.googleapis.com',
+            'https://*.supabase.co',
             'wss://*.supabase.co',
+            // Development only endpoints
+            ...(isProduction ? [] : [
+              'http://localhost:*',
+              'ws://localhost:*',
+              'http://127.0.0.1:*',
+              'ws://127.0.0.1:*'
+            ])
           ],
-          mediaSrc: ["'self'"],
+          mediaSrc: ["'self'", 'blob:', 'data:'],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
           formAction: ["'self'"],
           frameAncestors: ["'none'"],
-          upgradeInsecureRequests: this.config.enableHTTPS ? [] : null,
+          workerSrc: ["'self'", 'blob:'],
+          childSrc: ["'self'", 'blob:'],
+          manifestSrc: ["'self'"],
+          ...(this.config.enableHTTPS && { upgradeInsecureRequests: [] })
         },
+        reportOnly: false // Always enforce CSP
       },
-      crossOriginEmbedderPolicy: true,
-      crossOriginOpenerPolicy: true,
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-      dnsPrefetchControl: true,
+      crossOriginEmbedderPolicy: isProduction, // Enable in production only
+      crossOriginOpenerPolicy: { policy: 'same-origin' },
+      crossOriginResourcePolicy: { policy: isProduction ? 'same-origin' : 'cross-origin' },
+      dnsPrefetchControl: { allow: false },
       frameguard: { action: 'deny' },
       hidePoweredBy: true,
       hsts: this.config.enableHSTS ? {
-        maxAge: 31536000,
+        maxAge: 31536000, // 1 year
         includeSubDomains: true,
-        preload: true,
+        preload: true
       } : false,
       ieNoOpen: true,
       noSniff: true,
       originAgentCluster: true,
       permittedCrossDomainPolicies: false,
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-      xssFilter: true,
+      xssFilter: true
     });
   }
 
   /**
-   * Get default CORS options
+   * Get environment-aware CORS options
    */
   private getDefaultCorsOptions(): cors.CorsOptions {
     return {
       origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl)
-        if (!origin) return callback(null, true);
+        // Allow requests with no origin (mobile apps, curl) only in development
+        if (!origin) {
+          if (config.server.isDevelopment) {
+            logger.warn('CORS: Allowing request with no origin (development mode)', LogContext.SECURITY);
+            return callback(null, true);
+          } else {
+            logger.warn('CORS: Rejecting request with no origin (production mode)', LogContext.SECURITY);
+            return callback(new Error('Origin header required in production'));
+          }
+        }
 
-        // Check allowed origins
+        // Get allowed origins from configuration
         const allowedOrigins = config.security.corsOrigins;
+        logger.debug('CORS: Checking origin against allowed list', LogContext.SECURITY, {
+          origin,
+          allowedOrigins,
+          environment: config.server.env
+        });
+
         if (allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
 
-        // Allow localhost in development
-        if (config.server.isDevelopment && origin.includes('localhost')) {
+        // In development, log warning but allow localhost
+        if (config.server.isDevelopment && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+          logger.warn('CORS: Allowing localhost origin in development mode', LogContext.SECURITY, { origin });
           return callback(null, true);
         }
 
-        callback(new Error('Not allowed by CORS'));
+        // Reject all other origins
+        logger.warn('CORS: Origin not allowed', LogContext.SECURITY, { origin, allowedOrigins });
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`));
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -189,6 +246,8 @@ export class EnhancedSecurityMiddleware {
         'Accept-Language',
         'Content-Language',
         'Origin',
+        'Referer',
+        'User-Agent'
       ],
       exposedHeaders: [
         'X-RateLimit-Limit',
@@ -196,13 +255,16 @@ export class EnhancedSecurityMiddleware {
         'X-RateLimit-Reset',
         'X-Response-Time',
         'X-Request-ID',
+        'X-API-Version'
       ],
-      maxAge: 86400, // 24 hours
+      maxAge: config.server.isProduction ? 86400 : 300, // 24 hours in prod, 5 minutes in dev
+      preflightContinue: false,
+      optionsSuccessStatus: 200
     };
   }
 
   /**
-   * Custom security headers
+   * Enhanced security headers with environment awareness
    */
   private securityHeaders() {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -211,46 +273,88 @@ export class EnhancedSecurityMiddleware {
       (req as any).id = requestId;
       res.set('X-Request-ID', requestId);
 
-      // Additional security headers
-      res.set({
+      // Generate nonce for CSP if needed
+      if (config.server.isProduction) {
+        const nonce = crypto.randomBytes(16).toString('base64');
+        res.locals.nonce = nonce;
+      }
+
+      // Production-ready security headers
+      const securityHeaders: Record<string, string> = {
         'X-XSS-Protection': '1; mode=block',
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-Download-Options': 'noopen',
         'X-Permitted-Cross-Domain-Policies': 'none',
-        'Expect-CT': 'enforce, max-age=86400',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Surrogate-Control': 'no-store',
-      });
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()',
+        'X-DNS-Prefetch-Control': 'off',
+        'X-Robots-Tag': 'noindex, nofollow, nosnippet, noarchive',
+      };
 
-      // Remove insecure headers
+      // Production-specific headers
+      if (config.server.isProduction) {
+        securityHeaders['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
+        securityHeaders['Expect-CT'] = 'enforce, max-age=86400';
+        securityHeaders['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate';
+        securityHeaders['Pragma'] = 'no-cache';
+        securityHeaders['Expires'] = '0';
+        securityHeaders['Surrogate-Control'] = 'no-store';
+      } else {
+        // Development-specific headers
+        securityHeaders['Cache-Control'] = 'no-cache';
+      }
+
+      // Apply all headers
+      res.set(securityHeaders);
+
+      // Remove insecure headers that might reveal server information
       res.removeHeader('X-Powered-By');
       res.removeHeader('Server');
+      res.removeHeader('X-AspNet-Version');
+      res.removeHeader('X-AspNetMvc-Version');
 
       next();
     };
   }
 
   /**
-   * Enforce HTTPS in production
+   * Environment-aware HTTPS enforcement
    */
   private enforceHTTPS() {
     return (req: Request, res: Response, next: NextFunction) => {
-      // Skip in development
+      // Skip HTTPS enforcement in development to allow local testing
       if (config.server.isDevelopment) {
+        logger.debug('HTTPS enforcement skipped in development mode', LogContext.SECURITY);
         return next();
       }
 
-      // Check if request is secure
+      // In production, enforce HTTPS
       if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
         return next();
       }
 
-      // Redirect to HTTPS
+      // Reject non-HTTPS requests in production
+      if (config.server.isProduction) {
+        logger.warn('Non-HTTPS request rejected in production', LogContext.SECURITY, {
+          url: req.url,
+          headers: {
+            host: req.headers.host,
+            'x-forwarded-proto': req.headers['x-forwarded-proto'],
+            'user-agent': req.headers['user-agent']
+          }
+        });
+        
+        return res.status(426).json({
+          error: 'HTTPS Required',
+          message: 'This server requires all requests to be made over HTTPS',
+          code: 'HTTPS_REQUIRED'
+        });
+      }
+
+      // Fallback: redirect to HTTPS (for staging environments)
       const httpsUrl = `https://${req.headers.host}${req.url}`;
-      logger.info('Redirecting to HTTPS', { from: req.url, to: httpsUrl });
+      logger.info('Redirecting to HTTPS', LogContext.SECURITY, { from: req.url, to: httpsUrl });
       
       res.redirect(301, httpsUrl);
     };
@@ -399,7 +503,7 @@ export class EnhancedSecurityMiddleware {
         
         // Log slow requests
         if (duration > 5000) {
-          logger.warn('Slow request detected', {
+          logger.warn('Slow request detected', LogContext.PERFORMANCE, {
             method: req.method,
             path: req.path,
             duration,
@@ -409,7 +513,7 @@ export class EnhancedSecurityMiddleware {
         
         // Log failed authentication attempts
         if (res.statusCode === 401 || res.statusCode === 403) {
-          logger.warn('Authentication failure', {
+          logger.warn('Authentication failure', LogContext.SECURITY, {
             method: req.method,
             path: req.path,
             statusCode: res.statusCode,

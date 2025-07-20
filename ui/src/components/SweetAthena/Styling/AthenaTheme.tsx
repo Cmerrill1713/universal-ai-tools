@@ -38,7 +38,7 @@ export interface AthenaThemeProps {
   theme?: Partial<AthenaTheme>;
 }
 
-export const AthenaTheme: React.FC<AthenaThemeProps> = ({ children, theme }) => {
+export const AthenaTheme: React.FC<AthenaThemeProps> = ({ children }) => {
   // For demo purposes, just return children
   return <>{children}</>;
 };

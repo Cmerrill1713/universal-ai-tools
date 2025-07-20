@@ -1,16 +1,21 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:9999/api';
-const LOCAL_DEV_KEY = 'local-dev-key';
-const AI_SERVICE = 'local-ui';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:9999/api';
+const API_KEY = process.env.REACT_APP_API_KEY || '';
+const AI_SERVICE = process.env.REACT_APP_AI_SERVICE || 'local-ui';
+
+// Warn if API key is not set
+if (!API_KEY) {
+  console.warn('⚠️  REACT_APP_API_KEY is not set. Authentication will fail.');
+}
 
 // Create axios instance with authentication headers
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'x-api-key': LOCAL_DEV_KEY,
+    'x-api-key': API_KEY,
     'x-ai-service': AI_SERVICE,
   },
   timeout: 30000, // 30 second timeout
@@ -20,7 +25,7 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Add authentication headers for every request
-    config.headers['x-api-key'] = LOCAL_DEV_KEY;
+    config.headers['x-api-key'] = API_KEY;
     config.headers['x-ai-service'] = AI_SERVICE;
     
     console.log(`🔌 API Request: ${config.method?.toUpperCase()} ${config.url}`);
@@ -41,11 +46,34 @@ apiClient.interceptors.response.use(
   (error) => {
     console.error(`❌ API Error: ${error.response?.status} ${error.config?.url}`, error.response?.data);
     
-    // Handle specific error cases
+    // Handle specific error cases with enhanced messaging
     if (error.response?.status === 401) {
       console.error('🔒 Authentication failed - check API keys');
+      error.message = 'Authentication failed. Please check your API credentials.';
+    } else if (error.response?.status === 403) {
+      console.error('🚫 Access forbidden - insufficient permissions');
+      error.message = 'Access forbidden. You don\'t have permission to perform this action.';
+    } else if (error.response?.status === 404) {
+      console.error('🔍 Resource not found');
+      error.message = 'The requested resource was not found.';
+    } else if (error.response?.status === 422) {
+      console.error('📝 Validation error');
+      error.message = error.response?.data?.message || 'Validation failed. Please check your input.';
+    } else if (error.response?.status === 429) {
+      console.error('⏱️ Rate limit exceeded');
+      error.message = 'Too many requests. Please try again later.';
     } else if (error.response?.status === 500) {
       console.error('🚨 Server error - check backend service');
+      error.message = 'Internal server error. Please try again or contact support.';
+    } else if (error.response?.status === 503) {
+      console.error('🔧 Service unavailable');
+      error.message = 'Service temporarily unavailable. Please try again later.';
+    } else if (error.code === 'ECONNREFUSED' || error.code === 'NETWORK_ERROR') {
+      console.error('🌐 Network connection failed');
+      error.message = 'Unable to connect to server. Please check your internet connection.';
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('⏰ Request timeout');
+      error.message = 'Request timed out. Please try again.';
     }
     
     return Promise.reject(error);
@@ -65,9 +93,13 @@ export interface MemoryItem {
   content: string;
   memory_type: string;
   importance_score: number;
+  importance?: number; // For backward compatibility
   tags?: string[];
   created_at: string;
   metadata?: Record<string, any>;
+  access_count?: number;
+  last_accessed?: string;
+  services_accessed?: string[];
 }
 
 export interface AgentItem {
@@ -112,7 +144,13 @@ export interface OrchestrationResponse {
 export const memoryApi = {
   search: async (query: string, limit = 20): Promise<MemoryItem[]> => {
     const response = await apiClient.post('/memory/search', { query, limit });
-    return response.data.memories || [];
+    // Backend returns data.results for search endpoint
+    const memories = response.data.data?.results || response.data.memories || [];
+    // Add backward compatibility alias
+    return memories.map((memory: any) => ({
+      ...memory,
+      importance: memory.importance_score || memory.importance
+    }));
   },
 
   store: async (memory: {
@@ -129,7 +167,12 @@ export const memoryApi = {
       tags: memory.tags,
       metadata: memory.metadata
     });
-    return response.data.memory;
+    // Backend returns data wrapped in success response
+    const memoryData = response.data.data || response.data.memory;
+    return {
+      ...memoryData,
+      importance: memoryData.importance_score || memoryData.importance
+    };
   },
 
   retrieve: async (memoryType?: string, limit = 50): Promise<MemoryItem[]> => {
@@ -138,7 +181,21 @@ export const memoryApi = {
     params.append('limit', limit.toString());
     
     const response = await apiClient.get(`/memory?${params.toString()}`);
-    return response.data.memories || [];
+    const memories = response.data.memories || [];
+    // Add backward compatibility alias
+    return memories.map((memory: any) => ({
+      ...memory,
+      importance: memory.importance_score || memory.importance
+    }));
+  },
+
+  updateImportance: async (id: string, importance: number): Promise<MemoryItem> => {
+    const response = await apiClient.put(`/memory/${id}/importance`, { importance });
+    const memoryData = response.data.memory;
+    return {
+      ...memoryData,
+      importance: memoryData.importance_score || memoryData.importance
+    };
   }
 };
 
@@ -377,6 +434,131 @@ export const systemApi = {
   }
 };
 
+// Supabase Ollama API (Direct Edge Function calls)
+export const supabaseOllamaApi = {
+  generate: async (request: {
+    prompt: string;
+    model?: string;
+    temperature?: number;
+    max_tokens?: number;
+    stream?: boolean;
+    system?: string;
+  }): Promise<{
+    response: string;
+    model: string;
+    usage: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    };
+  }> => {
+    const supabaseUrl = 'http://127.0.0.1:54321'; // Local Supabase
+    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/ollama-assistant`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey
+      },
+      body: JSON.stringify({
+        prompt: request.prompt,
+        model: request.model || 'llama3.2:3b',
+        temperature: request.temperature || 0.7,
+        max_tokens: request.max_tokens || 1000,
+        stream: false,
+        system: request.system || 'You are a helpful AI assistant.'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  generateStream: async function* (request: {
+    prompt: string;
+    model?: string;
+    temperature?: number;
+    max_tokens?: number;
+    system?: string;
+  }): AsyncGenerator<string> {
+    const supabaseUrl = 'http://127.0.0.1:54321'; // Local Supabase
+    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/ollama-assistant`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${anonKey}`,
+        'apikey': anonKey
+      },
+      body: JSON.stringify({
+        prompt: request.prompt,
+        model: request.model || 'llama3.2:3b',
+        temperature: request.temperature || 0.7,
+        max_tokens: request.max_tokens || 1000,
+        stream: true,
+        system: request.system || 'You are a helpful AI assistant.'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      
+      // Process all complete lines
+      for (let i = 0; i < lines.length - 1; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (!data.done && data.content) {
+              yield data.content;
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+      
+      // Keep the last incomplete line in the buffer
+      buffer = lines[lines.length - 1];
+    }
+  },
+
+  healthCheck: async (): Promise<boolean> => {
+    try {
+      await supabaseOllamaApi.generate({
+        prompt: 'Hello',
+        max_tokens: 10
+      });
+      return true;
+    } catch (error) {
+      console.error('Ollama health check failed:', error);
+      return false;
+    }
+  }
+};
+
 // Export default API object
 export const api = {
   memory: memoryApi,
@@ -386,6 +568,7 @@ export const api = {
   tools: toolsApi,
   performance: performanceApi,
   system: systemApi,
+  ollama: supabaseOllamaApi, // Direct Supabase Edge Function access
 };
 
 export default api;

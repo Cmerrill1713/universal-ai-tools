@@ -131,3 +131,6 @@ settings.local.json
 runtime/
 tmp/
 temp/
+
+# Claude context files
+.claude-context/

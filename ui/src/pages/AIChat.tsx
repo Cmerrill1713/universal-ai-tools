@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, Settings2, RefreshCw, Trash2, Copy, AlertCircle, Check } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Select } from '../components/Select';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '../lib/utils';
-import { chatApi, systemApi, ChatMessage } from '../lib/api';
+import { useChat } from '../hooks/useChat';
+import { useSystemStatus } from '../hooks/useSystemStatus';
+import { useStore } from '../store';
 
 interface OllamaModel {
   name: string;
@@ -13,89 +13,33 @@ interface OllamaModel {
 }
 
 export function AIChat() {
-  const queryClient = useQueryClient();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('llama3.2:3b');
-  const [conversationId] = useState(() => `chat-${Date.now()}`);
-  const [copySuccess, setCopySuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { globalError, clearGlobalError } = useStore();
+  const { 
+    isBackendConnected, 
+    isOllamaConnected, 
+    availableModels,
+    isCheckingOllama
+  } = useSystemStatus();
+  
+  const {
+    messages,
+    input,
+    setInput,
+    selectedModel,
+    setSelectedModel,
+    copySuccess,
+    isLoading,
+    isLoadingHistory,
+    sendMessage,
+    clearConversation,
+    copyToClipboard,
+    retryLastMessage,
+    messagesEndRef,
+    isSystemReady,
+  } = useChat();
 
-  // Check Ollama status and get available models
-  const { data: ollamaStatus, isLoading: statusLoading, error: statusError } = useQuery({
-    queryKey: ['ollama-status'],
-    queryFn: async () => {
-      try {
-        return await systemApi.getOllamaStatus();
-      } catch (error) {
-        console.error('Failed to fetch Ollama status:', error);
-        throw new Error('Failed to connect to Ollama service');
-      }
-    },
-    refetchInterval: 30000, // Refetch every 30 seconds
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
-
-  // Load conversation history on mount
-  const { data: conversationHistory, isLoading: historyLoading, error: historyError } = useQuery({
-    queryKey: ['conversation-history', conversationId],
-    queryFn: async () => {
-      try {
-        return await chatApi.getConversationHistory(conversationId, 50);
-      } catch (error) {
-        console.error('Failed to fetch conversation history:', error);
-        // Return empty array if conversation doesn't exist yet
-        return [];
-      }
-    },
-    enabled: !!conversationId,
-    retry: 1, // Only retry once for history
-  });
-
-  // Chat mutation
-  const chatMutation = useMutation({
-    mutationFn: async ({ message, model }: { message: string; model: string }) => {
-      try {
-        setError(null); // Clear any previous errors
-        return await chatApi.sendMessage(message, model, conversationId);
-      } catch (error: any) {
-        console.error('Chat error:', error);
-        const errorMessage = error.response?.data?.error || error.message || 'Failed to send message';
-        throw new Error(errorMessage);
-      }
-    },
-    onSuccess: (data) => {
-      const assistantMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: data.response,
-        timestamp: new Date(data.timestamp),
-        model: data.model,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      // Refresh conversation history
-      queryClient.invalidateQueries({ queryKey: ['conversation-history', conversationId] });
-    },
-    onError: (error: Error) => {
-      setError(error.message);
-      
-      // Add error message to chat
-      const errorMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `❌ Error: ${error.message}`,
-        timestamp: new Date(),
-        model: selectedModel,
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    },
-  });
-
-  // Get available models from Ollama status
-  const availableModels: OllamaModel[] = ollamaStatus?.models?.map((model: string) => ({
+  // Get available models with proper formatting
+  const modelOptions: OllamaModel[] = availableModels?.map((model: string) => ({
     name: model,
     label: model.charAt(0).toUpperCase() + model.slice(1),
   })) || [
@@ -107,81 +51,9 @@ export function AIChat() {
   ];
 
   const handleSend = async () => {
-    if (!input.trim() || chatMutation.isPending) return;
-
-    // Check if Ollama is available
-    if (ollamaStatus?.status !== 'available') {
-      setError('Ollama service is not available. Please ensure it is running and try again.');
-      return;
-    }
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    const currentInput = input.trim();
-    setInput('');
-    setError(null); // Clear any previous errors
-
-    // Send message to AI
-    chatMutation.mutate({
-      message: currentInput,
-      model: selectedModel,
-    });
+    if (!input.trim() || isLoading) return;
+    await sendMessage();
   };
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Set initial model from available models
-  useEffect(() => {
-    if (availableModels.length > 0 && !availableModels.find(m => m.name === selectedModel)) {
-      setSelectedModel(availableModels[0].name);
-    }
-  }, [availableModels, selectedModel]);
-
-  // Load conversation history when available
-  useEffect(() => {
-    if (conversationHistory && Array.isArray(conversationHistory)) {
-      // Convert timestamps to Date objects
-      const formattedMessages = conversationHistory.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp),
-      }));
-      setMessages(formattedMessages);
-    }
-  }, [conversationHistory]);
-
-  const clearConversation = () => {
-    setMessages([]);
-    setError(null);
-    // Invalidate conversation history to ensure it's refreshed
-    queryClient.invalidateQueries({ queryKey: ['conversation-history', conversationId] });
-  };
-
-  const copyToClipboard = async (text: string, messageId: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopySuccess(messageId);
-      setTimeout(() => setCopySuccess(null), 2000); // Clear success indicator after 2 seconds
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-      setError('Failed to copy text to clipboard');
-    }
-  };
-
-  // Clear error after 5 seconds
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
 
   return (
     <div className="flex h-full gap-6">
@@ -191,7 +63,7 @@ export function AIChat() {
           <div className="flex items-center justify-center h-full">
             <Bot className={cn(
               "w-24 h-24 text-muted-foreground",
-              chatMutation.isPending ? "animate-pulse text-blue-500" : "text-gray-600"
+              isLoading ? "animate-pulse text-blue-500" : "text-gray-600"
             )} />
           </div>
         </Card>
@@ -206,26 +78,34 @@ export function AIChat() {
               <span className="text-gray-400">Status</span>
               <span className={cn(
                 "font-medium",
-                chatMutation.isPending ? "text-yellow-400" : "text-green-400"
+                isLoading ? "text-yellow-400" : "text-green-400"
               )}>
-                {chatMutation.isPending ? "Processing" : "Ready"}
+                {isLoading ? "Processing" : "Ready"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Backend</span>
+              <span className={cn(
+                "font-medium",
+                isBackendConnected ? "text-green-400" : "text-red-400"
+              )}>
+                {isBackendConnected ? "Online" : "Offline"}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Ollama</span>
               <span className={cn(
                 "font-medium",
-                statusError ? "text-red-400" : 
-                ollamaStatus?.status === 'available' ? "text-green-400" : "text-yellow-400"
+                isCheckingOllama ? "text-yellow-400" :
+                isOllamaConnected ? "text-green-400" : "text-red-400"
               )}>
-                {statusLoading ? "Checking..." : 
-                 statusError ? "Error" :
-                 ollamaStatus?.status === 'available' ? "Online" : "Offline"}
+                {isCheckingOllama ? "Checking..." : 
+                 isOllamaConnected ? "Online" : "Offline"}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Models</span>
-              <span className="text-cyan-400">{ollamaStatus?.models?.length || 0}</span>
+              <span className="text-cyan-400">{availableModels?.length || 0}</span>
             </div>
           </div>
         </Card>
@@ -241,7 +121,7 @@ export function AIChat() {
               <Select
                 value={selectedModel}
                 onChange={setSelectedModel}
-                options={availableModels.map(model => ({
+                options={modelOptions.map(model => ({
                   value: model.name,
                   label: model.label
                 }))}
@@ -260,31 +140,54 @@ export function AIChat() {
               <Button 
                 variant="secondary" 
                 size="sm"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['ollama-status'] })}
-                disabled={statusLoading}
+                onClick={retryLastMessage}
+                disabled={isLoading || !messages.length}
+                title="Retry last message"
               >
-                <RefreshCw className={cn("h-4 w-4", statusLoading && "animate-spin")} />
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               </Button>
               <div className={cn(
                 "w-2 h-2 rounded-full",
-                statusError ? "bg-red-500" :
-                ollamaStatus?.status === 'available' ? "bg-green-500" : "bg-yellow-500"
+                !isBackendConnected ? "bg-red-500" :
+                isOllamaConnected ? "bg-green-500" : "bg-yellow-500"
               )} />
               <span className="text-sm text-gray-400">
-                {statusError ? 'Error' :
-                 ollamaStatus?.status === 'available' ? 'Connected' : 'Disconnected'}
+                {!isBackendConnected ? 'Backend Error' :
+                 isOllamaConnected ? 'Connected' : 'Ollama Offline'}
               </span>
             </div>
           </div>
 
           {/* Error Banner */}
-          {error && (
-            <div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-600 rounded-lg flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-              <span className="text-red-200 text-sm">{error}</span>
+          {globalError && (
+            <div className={cn(
+              "mx-4 mt-4 p-3 rounded-lg flex items-center space-x-2",
+              globalError.type === 'error' ? "bg-red-900/50 border border-red-600" :
+              globalError.type === 'warning' ? "bg-yellow-900/50 border border-yellow-600" :
+              "bg-blue-900/50 border border-blue-600"
+            )}>
+              <AlertCircle className={cn(
+                "h-5 w-5",
+                globalError.type === 'error' ? "text-red-400" :
+                globalError.type === 'warning' ? "text-yellow-400" :
+                "text-blue-400"
+              )} />
+              <span className={cn(
+                "text-sm",
+                globalError.type === 'error' ? "text-red-200" :
+                globalError.type === 'warning' ? "text-yellow-200" :
+                "text-blue-200"
+              )}>
+                {globalError.message}
+              </span>
               <button
-                onClick={() => setError(null)}
-                className="ml-auto text-red-400 hover:text-red-200"
+                onClick={clearGlobalError}
+                className={cn(
+                  "ml-auto hover:opacity-75",
+                  globalError.type === 'error' ? "text-red-400" :
+                  globalError.type === 'warning' ? "text-yellow-400" :
+                  "text-blue-400"
+                )}
               >
                 ×
               </button>
@@ -298,12 +201,17 @@ export function AIChat() {
                 <Bot className="h-12 w-12 mx-auto mb-4 text-gray-600" />
                 <p>Start a conversation with AI</p>
                 <p className="text-sm mt-2">Select a model and type your message</p>
-                {(statusError || ollamaStatus?.status !== 'available') && (
+                {!isBackendConnected && (
                   <p className="text-sm mt-2 text-red-400">
-                    {statusError ? 'Failed to connect to backend service.' : 'Ollama is not available. Please make sure it\'s running.'}
+                    Backend service is unavailable. Please check your connection.
                   </p>
                 )}
-                {historyLoading && (
+                {!isOllamaConnected && isBackendConnected && (
+                  <p className="text-sm mt-2 text-red-400">
+                    Ollama is not available. Please make sure it's running.
+                  </p>
+                )}
+                {isLoadingHistory && (
                   <p className="text-sm mt-2 text-blue-400">
                     Loading conversation history...
                   </p>
@@ -371,7 +279,7 @@ export function AIChat() {
                 </div>
               ))
             )}
-            {chatMutation.isPending && (
+            {isLoading && (
               <div className="flex items-center space-x-3">
                 <div className="p-2 rounded-lg bg-gray-700">
                   <Bot className="h-5 w-5" />
@@ -398,27 +306,27 @@ export function AIChat() {
                   }
                 }}
                 placeholder={
-                  ollamaStatus?.status !== 'available' ? 
-                  "Ollama service unavailable..." : 
+                  !isSystemReady ? 
+                  "System unavailable..." : 
                   "Type your message... (Press Enter to send)"
                 }
                 className={cn(
                   "flex-1 bg-gray-800 rounded-lg px-4 py-2 focus:outline-none focus:ring-2",
-                  ollamaStatus?.status === 'available' ? "focus:ring-blue-500" : "focus:ring-red-500"
+                  isSystemReady ? "focus:ring-blue-500" : "focus:ring-red-500"
                 )}
-                disabled={chatMutation.isPending || ollamaStatus?.status !== 'available'}
+                disabled={isLoading || !isSystemReady}
               />
               <Button
                 onClick={handleSend}
-                disabled={chatMutation.isPending || !input.trim() || ollamaStatus?.status !== 'available'}
+                disabled={isLoading || !input.trim() || !isSystemReady}
                 className="px-4"
                 title={
-                  ollamaStatus?.status !== 'available' ? 
-                  "Ollama service is unavailable" : 
-                  chatMutation.isPending ? "Sending message..." : "Send message"
+                  !isSystemReady ? 
+                  "System is unavailable" : 
+                  isLoading ? "Sending message..." : "Send message"
                 }
               >
-                {chatMutation.isPending ? (
+                {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <Send className="h-5 w-5" />

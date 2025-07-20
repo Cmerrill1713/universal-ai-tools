@@ -1,8 +1,18 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Avatar, type Emotion } from '@readyplayerme/visage';
-import { Group, Mesh } from 'three';
-import { HolographicMaterial } from './HolographicMaterialWrapper';
+import { Group } from 'three';
+
+// Try to import with fallback handling
+let Avatar: any;
+
+try {
+  const VisageModule = require('@readyplayerme/visage');
+  Avatar = VisageModule.Avatar || VisageModule.default?.Avatar;
+} catch (error) {
+  console.warn('ReadyPlayerMe Visage not available, using fallback:', error);
+  // Fallback Avatar component
+  Avatar = ({ children, ...props }: any) => <group {...props}>{children}</group>;
+}
 
 interface ReadyPlayerMeAvatarProps {
   modelUrl?: string;
@@ -18,7 +28,6 @@ export function ReadyPlayerMeAvatar({
   emotion = 'neutral'
 }: ReadyPlayerMeAvatarProps) {
   const groupRef = useRef<Group>(null);
-  const avatarRef = useRef<any>(null);
 
   // Animation based on state
   useFrame((state) => {
@@ -37,23 +46,15 @@ export function ReadyPlayerMeAvatar({
 
   // Apply holographic material to all meshes in the avatar
   useEffect(() => {
-    if (avatarRef.current && avatarRef.current.nodes) {
-      Object.values(avatarRef.current.nodes).forEach((node: any) => {
-        if (node instanceof Mesh) {
-          // Store original material for potential restoration
-          const originalMaterial = node.material;
-          node.userData.originalMaterial = originalMaterial;
-        }
-      });
-    }
+    // This would be used to modify avatar materials if needed
+    // Currently disabled to avoid ref issues
   }, []);
 
   return (
     <group ref={groupRef} scale={2}>
       <Avatar
-        ref={avatarRef}
         modelSrc={modelUrl}
-        emotion={emotion as Emotion}
+        emotion={emotion}
         headMovement={isThinking}
         speaking={isSpeaking}
         onLoaded={() => {

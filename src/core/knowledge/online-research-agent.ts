@@ -335,7 +335,7 @@ export class OnlineResearchAgent {
     }
   }
 
-  private async withRetry<T>(fn: () => Promise<T>, maxRetries: number = 2): Promise<T> {
+  private async withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
     let lastError: Error | null = null;
     
     for (let i = 0; i <= maxRetries; i++) {

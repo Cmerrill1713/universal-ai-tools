@@ -516,7 +516,7 @@ export class DSPyKnowledgeManager extends EventEmitter {
       return result;
     } catch (error) {
       logger.error('Module optimization failed:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -548,7 +548,7 @@ export class DSPyKnowledgeManager extends EventEmitter {
    * Update performance metrics for continuous learning
    */
   private _updatePerformanceMetrics(operation: string, score: number): void {
-    const metrics = this.performanceMetrics[operation];
+    const metrics = (this.performanceMetrics as any)[operation];
     if (!metrics) return;
 
     metrics.total++;

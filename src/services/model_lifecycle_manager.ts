@@ -333,7 +333,7 @@ export class ModelLifecycleManager extends EventEmitter {
     // Mock implementation - replace with actual model loading
     if (modelName.includes('mlx')) {
       // Load via MLX
-      console.log(`Loading ${modelName} via MLX`);
+      logger.info(`Loading model via MLX`, { modelName });
     } else {
       // Load via Ollama - just check if model exists
       try {
@@ -356,7 +356,7 @@ export class ModelLifecycleManager extends EventEmitter {
     if (model) {
       model.isLoaded = false;
       // In real implementation, would actually unload from memory
-      console.log(`Unloaded model: ${modelName}`);
+      logger.info('Model unloaded', { modelName });
       this.emit('model-unloaded', { model: modelName });
     }
   }

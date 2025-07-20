@@ -277,5 +277,4 @@ export const athenaCSS = {
   `,
 };
 
-// Export theme types for TypeScript
-export type { PersonalityMood, AthenaTheme };
+// Note: PersonalityMood and AthenaTheme are already exported above, no need to re-export

@@ -12,12 +12,15 @@
  * - Service startup coordination
  */
 
-import { SmartPortManager, ServiceConfig, PortConfiguration } from '../utils/smart-port-manager';
-import { PortHealthMonitor, createPortHealthMonitor, MonitoringConfig } from './port-health-monitor';
+import type { PortConfiguration, ServiceConfig } from '../utils/smart-port-manager';
+import { SmartPortManager } from '../utils/smart-port-manager';
+import type { PortHealthMonitor} from './port-health-monitor';
+import { MonitoringConfig, createPortHealthMonitor } from './port-health-monitor';
 import { SupabaseService } from './supabase_service';
 import { logger } from '../utils/logger';
-import { WebSocketServer, WebSocket } from 'ws';
-import { createServer, Server } from 'http';
+import { WebSocket, WebSocketServer } from 'ws';
+import type { Server } from 'http';
+import { createServer } from 'http';
 import { config } from '../config';
 
 export interface PortIntegrationConfig {
@@ -69,7 +72,7 @@ export class PortIntegrationService {
   private config: PortIntegrationConfig;
   private webSocketServer?: WebSocketServer;
   private httpServer?: Server;
-  private isInitialized: boolean = false;
+  private isInitialized = false;
   private startupResults: ServiceStartupResult[] = [];
 
   constructor(
@@ -173,7 +176,20 @@ export class PortIntegrationService {
     logger.info('🔍 Performing service discovery...');
     
     try {
-      const discoveredServices = await this.portManager.discoverServices();
+      // Use a timeout wrapper to prevent hanging
+      const discoveryTimeout = 5000; // 5 seconds max for discovery
+      const discoveryPromise = this.portManager.discoverServices();
+      
+      const discoveredServices = await Promise.race([
+        discoveryPromise,
+        new Promise<Map<string, any>>((_, reject) => 
+          setTimeout(() => reject(new Error('Service discovery timeout')), discoveryTimeout)
+        )
+      ]).catch((error) => {
+        logger.warn('Service discovery timed out or failed, using empty map:', error.message);
+        return new Map();
+      });
+      
       logger.info(`Found ${discoveredServices.size} active services`);
       
       // Log discovered services
@@ -190,7 +206,8 @@ export class PortIntegrationService {
       return discoveredServices;
     } catch (error) {
       logger.error('Service discovery failed:', error);
-      throw error;
+      // Return empty map instead of throwing to prevent startup failure
+      return new Map();
     }
   }
 
@@ -359,8 +376,14 @@ export class PortIntegrationService {
       const metric = await this.healthMonitor.monitorServiceHealth(serviceName);
       logger.info(`Health check for ${serviceName}: ${metric.status}`);
     } else {
-      await this.healthMonitor.performFullHealthCheck();
-      logger.info('Full health check completed');
+      // Trigger health checks for all known services
+      const services = await this.portManager.discoverServices();
+      const results = await Promise.all(
+        Array.from(services.keys()).map(service => 
+          this.healthMonitor.monitorServiceHealth(service)
+        )
+      );
+      logger.info(`Full health check completed for ${results.length} services`);
     }
   }
 

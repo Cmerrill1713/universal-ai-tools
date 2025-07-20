@@ -440,9 +440,41 @@ export class UniversalAgentRegistry extends EventEmitter {
             return ToolMakerAgent;
         }
       } else {
-        // For cognitive agents, use mock for now
-        const { default: MockAgentClass } = await import('./cognitive/mock_cognitive_agent');
-        return MockAgentClass;
+        // Import cognitive agents
+        switch (definition.name) {
+          case 'planner':
+            const { default: EnhancedPlannerAgent } = await import('./cognitive/enhanced_planner_agent');
+            return EnhancedPlannerAgent;
+          case 'retriever':
+            const { default: RetrieverAgent } = await import('./cognitive/retriever_agent');
+            return RetrieverAgent;
+          case 'devils_advocate':
+            const { default: DevilsAdvocateAgent } = await import('./cognitive/devils_advocate_agent');
+            return DevilsAdvocateAgent;
+          case 'synthesizer':
+            const { default: SynthesizerAgent } = await import('./cognitive/synthesizer_agent');
+            return SynthesizerAgent;
+          case 'reflector':
+            const { default: ReflectorAgent } = await import('./cognitive/reflector_agent');
+            return ReflectorAgent;
+          case 'user_intent':
+            const { default: UserIntentAgent } = await import('./cognitive/user_intent_agent');
+            return UserIntentAgent;
+          case 'tool_maker':
+            const { default: ToolMakerAgent } = await import('./cognitive/tool_maker_agent');
+            return ToolMakerAgent;
+          case 'ethics':
+            const { default: EthicsAgent } = await import('./cognitive/ethics_agent');
+            return EthicsAgent;
+          case 'resource_manager':
+            const { default: ResourceManagerAgent } = await import('./cognitive/resource_manager_agent');
+            return ResourceManagerAgent;
+          case 'orchestrator':
+            const { default: OrchestratorAgent } = await import('./cognitive/orchestrator_agent');
+            return OrchestratorAgent;
+          default:
+            throw new Error(`Unknown cognitive agent: ${definition.name}`);
+        }
       }
     } catch (error) {
       this.logger.error(`❌ Failed to import agent class ${definition.className}:`, error);

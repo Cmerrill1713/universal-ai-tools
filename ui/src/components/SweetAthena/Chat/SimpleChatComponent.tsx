@@ -28,6 +28,7 @@ export const SimpleChatComponent: React.FC<SimpleChatProps> = ({
     timestamp: Date;
   }>>([]);
   const [input, setInput] = useState('');
+  const _voiceEnabled = enableVoice; // Use the parameter to avoid unused warning
 
   const handleSendMessage = useCallback(async () => {
     if (!input.trim()) return;

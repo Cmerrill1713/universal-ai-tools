@@ -4,7 +4,7 @@
  * Comprehensive debugging utilities with verbose logging, test result aggregation,
  * performance profiling, and Sweet Athena interaction debugging
  */
-import { logger, LogContext, enhancedLogger } from './enhanced-logger';
+import { LogContext, enhancedLogger, logger } from './enhanced-logger';
 import { testLogger } from './test-logger';
 import { metricsCollector } from './prometheus-metrics';
 import * as fs from 'fs/promises';
@@ -335,7 +335,7 @@ export class DebugTools {
       mood: athenaDebug.personalityMood,
       sweetness: athenaDebug.sweetnessLevel,
       response_time: athenaDebug.responseTime,
-      has_errors: athenaDebug.errors.length > 0
+      has_errors: athenaDebug.errors ? athenaDebug.errors.length > 0 : false
     });
 
     // Record metrics if this is a significant interaction
@@ -386,7 +386,7 @@ export class DebugTools {
       failed,
       skipped,
       duration_ms: duration,
-      success_rate: ((passed / totalTests) * 100).toFixed(2) + '%'
+      success_rate: `${((passed / totalTests) * 100).toFixed(2)  }%`
     });
 
     return aggregation;
@@ -558,7 +558,7 @@ export class DebugTools {
     } catch (error) {
       logger.error(`Failed to generate debug report`, LogContext.SYSTEM, {
         session_id: session.sessionId,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
@@ -721,7 +721,7 @@ export class DebugTools {
         }
       }
     } catch (error) {
-      logger.error('Failed to cleanup debug files', LogContext.SYSTEM, { error: error.message });
+      logger.error('Failed to cleanup debug files', LogContext.SYSTEM, { error: error instanceof Error ? error.message : String(error) });
     }
   }
 }

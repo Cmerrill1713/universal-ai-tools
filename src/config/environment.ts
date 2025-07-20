@@ -101,8 +101,8 @@ export const config = {
     jwtSecret: env.JWT_SECRET,
     encryptionKey: env.ENCRYPTION_KEY,
     corsOrigins: env.NODE_ENV === 'production' 
-      ? ['https://your-production-domain.com']
-      : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:9999'],
+      ? (process.env.CORS_ORIGINS?.split(',').filter(origin => origin.trim()) || [])
+      : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080', 'http://localhost:9999'],
   },
   
   // AI Services
@@ -195,22 +195,42 @@ export function validateConfig(): void {
   }
   
   // Validate security keys
+  // JWT_SECRET validation (strict in production, relaxed in development)
   if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
-    errors.push('JWT_SECRET must be at least 32 characters long');
+    if (env.NODE_ENV === 'production') {
+      errors.push('JWT_SECRET must be at least 32 characters long in production');
+    } else {
+      warnings.push('JWT_SECRET should be at least 32 characters long');
+    }
   } else if (env.JWT_SECRET === 'your-jwt-secret-here' || env.JWT_SECRET.includes('example')) {
-    errors.push('JWT_SECRET appears to be a placeholder. Please generate a secure secret.');
+    if (env.NODE_ENV === 'production') {
+      errors.push('JWT_SECRET appears to be a placeholder. Please generate a secure secret.');
+    } else {
+      warnings.push('JWT_SECRET appears to be a placeholder - consider generating a secure secret');
+    }
   }
   
+  // ENCRYPTION_KEY validation (strict in production, relaxed in development)
   if (!env.ENCRYPTION_KEY || env.ENCRYPTION_KEY.length < 32) {
-    errors.push('ENCRYPTION_KEY must be at least 32 characters long');
+    if (env.NODE_ENV === 'production') {
+      errors.push('ENCRYPTION_KEY must be at least 32 characters long in production');
+    } else {
+      warnings.push('ENCRYPTION_KEY should be at least 32 characters long');
+    }
   } else if (env.ENCRYPTION_KEY === 'your-encryption-key-here' || env.ENCRYPTION_KEY.includes('example')) {
-    errors.push('ENCRYPTION_KEY appears to be a placeholder. Please generate a secure key.');
+    if (env.NODE_ENV === 'production') {
+      errors.push('ENCRYPTION_KEY appears to be a placeholder. Please generate a secure key.');
+    } else {
+      warnings.push('ENCRYPTION_KEY appears to be a placeholder - consider generating a secure key');
+    }
   }
   
-  // Check at least one AI service is configured
+  // Check at least one AI service is configured (only required in production)
   const hasAIService = env.OPENAI_API_KEY || env.ANTHROPIC_API_KEY || env.GOOGLE_AI_API_KEY;
   if (!hasAIService && env.NODE_ENV === 'production') {
     errors.push('At least one AI service API key must be configured in production');
+  } else if (!hasAIService && env.NODE_ENV !== 'production') {
+    warnings.push('No AI service API keys configured - some features may not work');
   }
   
   // Validate service URLs
@@ -279,9 +299,9 @@ export function generateSecureDefaults(): void {
   
   // Write updates to .env file
   if (updates.length > 0 && process.env.NODE_ENV !== 'production') {
-    const newContent = envContent + (envContent.endsWith('\n') ? '' : '\n') + 
-                      '\n# Auto-generated secure values\n' + 
-                      updates.join('\n') + '\n';
+    const newContent = `${envContent + (envContent.endsWith('\n') ? '' : '\n')  
+                      }\n# Auto-generated secure values\n${  
+                      updates.join('\n')  }\n`;
     
     fs.writeFileSync(envPath, newContent);
     logger.info('Generated secure default values for missing secrets');

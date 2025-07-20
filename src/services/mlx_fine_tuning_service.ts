@@ -8,6 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { logger } from '../utils/logger';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -88,10 +89,10 @@ export class MLXFineTuningService extends EventEmitter {
     try {
       await execAsync('python3 -c "import mlx_lm"');
       this.isMLXAvailable = true;
-      console.log('MLX fine-tuning available');
+      logger.info('MLX fine-tuning available');
     } catch {
       this.isMLXAvailable = false;
-      console.warn('MLX not available for fine-tuning');
+      logger.warn('MLX not available for fine-tuning');
     }
   }
 

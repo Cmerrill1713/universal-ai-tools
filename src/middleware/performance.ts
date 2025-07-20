@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { performanceMonitor } from '../utils/performance-monitor';
 import { ImprovedCacheManager } from '../utils/cache-manager-improved';
 import DatabaseOptimizer from '../utils/database-optimizer';
-import { logger } from '../utils/logger';
+import { LogContext, logger } from '../utils/enhanced-logger';
 import { config } from '../config';
 
 export interface PerformanceMiddlewareOptions {
@@ -50,7 +50,7 @@ export class PerformanceMiddleware {
       ...options,
     };
 
-    this.cache = new ImprovedCacheManager(config.cache?.redisUrl || 'redis://localhost:6379');
+    this.cache = new ImprovedCacheManager(config.redis?.url || 'redis://localhost:6379');
     this.dbOptimizer = new DatabaseOptimizer(supabase, this.cache);
     
     this.initializeMonitoring();
@@ -61,7 +61,7 @@ export class PerformanceMiddleware {
       performanceMonitor.startMonitoring(10000); // 10 seconds
       
       performanceMonitor.on('threshold-exceeded', (event) => {
-        logger.warn('Performance threshold exceeded:', event);
+        logger.warn('Performance threshold exceeded', LogContext.PERFORMANCE, { event });
         this.handleThresholdExceeded(event);
       });
     }
@@ -85,7 +85,7 @@ export class PerformanceMiddleware {
   }
 
   private handleMemoryThreshold(event: any): void {
-    logger.warn(`Memory threshold exceeded: ${event.value}MB`);
+    logger.warn(`Memory threshold exceeded: ${event.value}MB`, LogContext.PERFORMANCE);
     
     // Force garbage collection
     performanceMonitor.forceGarbageCollection();
@@ -95,25 +95,25 @@ export class PerformanceMiddleware {
     
     // Optionally restart workers or clear caches
     if (event.value > this.options.memoryThreshold! * 1.5) {
-      logger.error('Critical memory usage detected, clearing caches');
+      logger.error('Critical memory usage detected, clearing caches', LogContext.PERFORMANCE);
       this.cache.flush();
     }
   }
 
   private handleResponseTimeThreshold(event: any): void {
-    logger.warn(`Response time threshold exceeded: ${event.value}ms`);
+    logger.warn(`Response time threshold exceeded: ${event.value}ms`, LogContext.PERFORMANCE);
     
     // Could implement request queuing or load balancing here
   }
 
   private handleErrorRateThreshold(event: any): void {
-    logger.warn(`Error rate threshold exceeded: ${event.value}%`);
+    logger.warn(`Error rate threshold exceeded: ${event.value}%`, LogContext.PERFORMANCE);
     
     // Could implement circuit breaker pattern here
   }
 
   private handleCacheHitRateThreshold(event: any): void {
-    logger.warn(`Cache hit rate below threshold: ${event.value}%`);
+    logger.warn(`Cache hit rate below threshold: ${event.value}%`, LogContext.PERFORMANCE);
     
     // Could implement cache warming strategies here
   }
@@ -174,7 +174,7 @@ export class PerformanceMiddleware {
         
         // Log errors with more detail
         if (isError) {
-          logger.error(`Request error: ${req.method} ${req.url} - Status: ${res.statusCode} - Response time: ${responseTime}ms`, {
+          logger.error(`Request error: ${req.method} ${req.url} - Status: ${res.statusCode} - Response time: ${responseTime}ms`, LogContext.PERFORMANCE, {
             method: req.method,
             url: req.url,
             statusCode: res.statusCode,
@@ -186,12 +186,12 @@ export class PerformanceMiddleware {
         
         // Log slow requests
         if (responseTime > self.options.slowRequestThreshold!) {
-          logger.warn(`Slow request detected: ${req.method} ${req.url} - ${responseTime}ms`);
+          logger.warn(`Slow request detected: ${req.method} ${req.url} - ${responseTime}ms`, LogContext.PERFORMANCE);
         }
         
         // Log high memory usage
         if (memoryUsage > 50 * 1024 * 1024) { // 50MB
-          logger.warn(`High memory usage request: ${req.method} ${req.url} - ${memoryUsage / 1024 / 1024}MB`);
+          logger.warn(`High memory usage request: ${req.method} ${req.url} - ${memoryUsage / 1024 / 1024}MB`, LogContext.PERFORMANCE);
         }
 
         return originalEnd.apply(this, args as any);
@@ -244,7 +244,7 @@ export class PerformanceMiddleware {
         
         next();
       }).catch(error => {
-        logger.error('Cache middleware error:', error);
+        logger.error('Cache middleware error', LogContext.PERFORMANCE, { error });
         next();
       });
     };

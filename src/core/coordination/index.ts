@@ -7,7 +7,7 @@ export { AgentCoordinator } from './agent-coordinator';
 export { EnhancedAgentCoordinator } from './enhanced-dspy-coordinator'; // DSPy-powered coordinator
 export { BrowserAgentPool } from './agent-pool';
 export { MessageBroker } from './message-broker';
-export { TaskManager, Task, TaskExecutionResult } from './task-manager';
+export { TaskManager } from './task-manager';
 export { DSPyTaskExecutor } from './dspy-task-executor';
 
 // Hot reload functionality

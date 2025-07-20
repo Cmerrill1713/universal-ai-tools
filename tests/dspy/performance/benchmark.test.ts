@@ -42,7 +42,13 @@ describe('DSPy Performance Benchmarks', () => {
     
     // Initialize services
     dspyService = new DSPyService();
-    oldOrchestrator = new EnhancedOrchestrator();
+    oldOrchestrator = new EnhancedOrchestrator({
+      supabaseUrl: process.env.SUPABASE_URL || 'http://localhost:54321',
+      supabaseKey: process.env.SUPABASE_SERVICE_KEY || 'test-key',
+      enableMLX: false,
+      enableAdaptiveTools: false,
+      enableCaching: false
+    });
     
     // Ensure services are ready
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -70,7 +76,12 @@ describe('DSPy Performance Benchmarks', () => {
         timestamp: new Date()
       });
       
-      await oldOrchestrator.orchestrate('Warmup request', 'warmup');
+      await oldOrchestrator.processRequest({
+        requestId: uuidv4(),
+        userRequest: 'Warmup request',
+        userId: 'warmup',
+        timestamp: new Date()
+      });
     }
   }
 
@@ -176,10 +187,12 @@ describe('DSPy Performance Benchmarks', () => {
       const result = await measurePerformance(
         'Simple Orchestration',
         async () => {
-          await oldOrchestrator.orchestrate(
-            'What is the weather today?',
-            'benchmark-user'
-          );
+          await oldOrchestrator.processRequest({
+            requestId: uuidv4(),
+            userRequest: 'What is the weather today?',
+            userId: 'benchmark-user',
+            timestamp: new Date()
+          });
         },
         async () => {
           await dspyService.orchestrate({

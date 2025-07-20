@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 import { dspyService } from '../../services/dspy-service';
-import { BrowserAgentPool } from './agent-pool';
+import type { BrowserAgentPool } from './agent-pool';
 import { v4 as uuidv4 } from 'uuid';
 
 // Re-export interfaces for compatibility
@@ -60,7 +60,8 @@ export class DSPyCoordinator extends EventEmitter {
 
     try {
       // Get available agents
-      const availableAgents = Array.from(this.agentPool.getAvailableAgents().keys());
+      const agentMap = await this.agentPool.getAvailableAgents();
+      const availableAgents = Array.from(agentMap.keys()).map(String);
       
       // Use DSPy to coordinate agents
       const coordinationResult = await dspyService.coordinateAgents(
@@ -117,7 +118,7 @@ export class DSPyCoordinator extends EventEmitter {
         plan.results.push({ 
           agentId: assignment.agentId, 
           success: false, 
-          error: error.message 
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }

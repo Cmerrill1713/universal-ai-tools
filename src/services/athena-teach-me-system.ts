@@ -7,7 +7,8 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Logger } from 'winston';
-import { SweetAthenaPersonality, type AthenaResponse } from './sweet-athena-personality';
+import type { SweetAthenaPersonality} from './sweet-athena-personality';
+import { type AthenaResponse } from './sweet-athena-personality';
 
 export interface TeachingSession {
   id: string;
@@ -191,7 +192,7 @@ export class AthenaTeachMeSystem {
     message: string,
     intent: any
   ): Promise<AthenaResponse> {
-    const subject = intent.subject;
+    const {subject} = intent;
     const learnedContent = this.extractLearningContent(message);
 
     // Create teaching session
@@ -412,7 +413,7 @@ export class AthenaTeachMeSystem {
           response: `I think I understand! ${understanding}`,
           confidence: session.confidence,
           summary: understanding,
-          capability: capability
+          capability
         };
       } else {
         // Store as knowledge for future reference

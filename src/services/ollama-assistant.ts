@@ -45,14 +45,23 @@ export class OllamaAssistant {
   constructor(supabase: SupabaseClient) {
     this.ollamaUrl = process.env.OLLAMA_HOST || 'http://localhost:11434';
     this.supabase = supabase;
-    this.initializeModel();
+    // Don't initialize model in constructor - fully lazy initialization
+    logger.info('OllamaAssistant initialized - models will be loaded on first use');
   }
 
   private async initializeModel() {
     try {
-      // Get list of available models
-      const response = await axios.get(`${this.ollamaUrl}/api/tags`);
+      logger.info('Initializing Ollama models...');
+      // Get list of available models with short timeout
+      const response = await axios.get(`${this.ollamaUrl}/api/tags`, {
+        timeout: 3000, // 3 second timeout
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
       this.availableModels = response.data.models.map((m: any) => m.name);
+      logger.info(`Found ${this.availableModels.length} Ollama models`);
       
       // Select the first available preferred model
       for (const preferred of this.preferredModels) {
@@ -70,12 +79,14 @@ export class OllamaAssistant {
       }
       
       if (!this.model) {
-        logger.warn('No Ollama models available');
+        logger.warn('No Ollama models available, will use fallback');
+        this.model = process.env.OLLAMA_MODEL || 'llama3.2:3b'; // Default fallback
       }
     } catch (error) {
       logger.error('Failed to initialize Ollama model:', error);
-      // Try to use environment variable or a default
-      this.model = process.env.OLLAMA_MODEL || null;
+      // Fallback to environment variable or default
+      this.model = process.env.OLLAMA_MODEL || 'llama3.2:3b';
+      logger.info(`Using fallback model: ${this.model}`);
     }
   }
 

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import crypto from 'crypto';
 import { logger } from '../utils/logger';
 import { secretsManager } from '../config/secrets';
@@ -101,7 +101,7 @@ export class CSRFProtection {
       }
 
       // Check token age (24 hours)
-      const maxAge = this.options.cookie.maxAge;
+      const {maxAge} = this.options.cookie;
       if (maxAge !== undefined && Date.now() - storedData.createdAt > maxAge) {
         this.tokenStore.delete(sessionId);
         return false;
@@ -158,7 +158,7 @@ export class CSRFProtection {
           method: req.method,
           path: req.path,
           ip: req.ip,
-          token: token.substring(0, 10) + '...',
+          token: `${token.substring(0, 10)  }...`,
         });
         return res.status(403).json({
           error: 'Invalid CSRF token',
@@ -268,7 +268,7 @@ export class CSRFProtection {
    */
   private cleanupTokens(): void {
     const now = Date.now();
-    const maxAge = this.options.cookie.maxAge;
+    const {maxAge} = this.options.cookie;
 
     if (maxAge !== undefined) {
       for (const [sessionId, data] of this.tokenStore.entries()) {

@@ -1,9 +1,11 @@
 import WebSocket from 'ws';
-import { logger } from '../../utils/logger';
+import { logger, LogContext } from '../../utils/enhanced-logger';
 import { EventEmitter } from 'events';
-import { spawn, ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { SmartPortManager } from '../../utils/smart-port-manager';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,36 +28,60 @@ export interface DSPyResponse {
 export class DSPyBridge extends EventEmitter {
   private ws: WebSocket | null = null;
   private pythonProcess: ChildProcess | null = null;
-  private isConnected: boolean = false;
+  private isConnected = false;
   private requestQueue: Map<string, (response: DSPyResponse) => void> = new Map();
   private reconnectTimer: NodeJS.Timeout | null = null;
-  private port: number = 8766;
+  private port = 8766;
+  private portManager: SmartPortManager;
+  private startupPromise: Promise<void> | null = null;
 
   constructor() {
     super();
-    this.startPythonService();
+    this.portManager = new SmartPortManager([{
+      name: 'dspy-service',
+      defaultPort: 8766,
+      fallbackPorts: [8767, 8768, 8769, 8770],
+      isRequired: false,
+      serviceType: 'ai',
+      protocol: 'tcp'
+    }]);
+    
+    // Don't block constructor - start service asynchronously
+    this.startupPromise = this.startPythonService().catch(error => {
+      logger.error('Failed to start DSPy service:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
+    });
   }
 
   private async startPythonService(): Promise<void> {
     try {
-      logger.info('🐍 Starting DSPy Python service (mock mode for testing)...');
+      logger.info('🐍 Starting real DSPy Python service with MIPRO optimization...');
       
-      const pythonScript = path.join(__dirname, 'mock_server.py');
+      // Find an available port
+      const availablePort = await this.portManager.resolvePortConflict('dspy-service', this.port);
+      this.port = availablePort;
+      logger.info(`Using port ${this.port} for DSPy service`);
+      
+      const pythonScript = path.join(__dirname, 'server.py');
       this.pythonProcess = spawn('python', [pythonScript], {
         cwd: __dirname,
-        env: { ...process.env, PYTHONUNBUFFERED: '1' }
+        env: { 
+          ...process.env, 
+          PYTHONUNBUFFERED: '1',
+          NODE_ENV: process.env.NODE_ENV || 'development',
+          DSPY_PORT: this.port.toString() // Pass the port to Python
+        }
       });
 
       this.pythonProcess.stdout?.on('data', (data) => {
-        logger.info(`DSPy Mock: ${data.toString()}`);
+        logger.info(`DSPy Server: ${data.toString()}`);
       });
 
       this.pythonProcess.stderr?.on('data', (data) => {
-        logger.error(`DSPy Mock Error: ${data.toString()}`);
+        logger.error(`DSPy Server Error: ${data.toString()}`, LogContext.DSPY);
       });
 
       this.pythonProcess.on('exit', (code) => {
-        logger.warn(`DSPy mock process exited with code ${code}`);
+        logger.warn(`DSPy server process exited with code ${code}`);
         this.handleDisconnect();
       });
 
@@ -64,8 +90,8 @@ export class DSPyBridge extends EventEmitter {
       
       this.connectWebSocket();
     } catch (error) {
-      logger.error('Failed to start DSPy mock service:', error);
-      this.scheduleReconnect();
+      logger.error('Failed to start DSPy service:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
+      // Don't schedule reconnect here - let the service fail gracefully
     }
   }
 
@@ -88,19 +114,19 @@ export class DSPyBridge extends EventEmitter {
             this.requestQueue.delete(response.requestId);
           }
         } catch (error) {
-          logger.error('Failed to parse DSPy response:', error);
+          logger.error('Failed to parse DSPy response:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
         }
       });
 
       this.ws.on('error', (error) => {
-        logger.error('DSPy WebSocket error:', error);
+        logger.error('DSPy WebSocket error:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
       });
 
       this.ws.on('close', () => {
         this.handleDisconnect();
       });
     } catch (error) {
-      logger.error('Failed to connect to DSPy service:', error);
+      logger.error('Failed to connect to DSPy service:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
       this.scheduleReconnect();
     }
   }
@@ -124,7 +150,7 @@ export class DSPyBridge extends EventEmitter {
     }, 5000);
   }
 
-  async request(method: string, params: any, timeout: number = 30000): Promise<any> {
+  async request(method: string, params: any, timeout = 30000): Promise<any> {
     if (!this.isConnected || !this.ws) {
       throw new Error('DSPy service is not connected');
     }

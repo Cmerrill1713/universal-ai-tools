@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
-import { Task, TaskManager, TaskExecutionResult } from './task-manager';
+import type { Task, TaskExecutionResult, TaskManager } from './task-manager';
 import { dspyService } from '../../services/dspy-service';
-import { Browser, Page } from 'puppeteer';
-import { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
+import type { Browser, Page } from 'puppeteer';
+import type { Browser as PlaywrightBrowser, Page as PlaywrightPage } from 'playwright';
 
 export interface TaskExecutionContext {
   sessionId: string;

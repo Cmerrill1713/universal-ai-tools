@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { dspyService, DSPyOrchestrationRequest } from '../services/dspy-service';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { DSPyOrchestrationRequest } from '../services/dspy-service';
+import { dspyService } from '../services/dspy-service';
 import { logger } from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 

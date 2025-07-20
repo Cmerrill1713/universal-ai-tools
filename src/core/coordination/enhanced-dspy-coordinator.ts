@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 import { dspyService } from '../../services/dspy-service';
-import { BrowserAgentPool } from './agent-pool';
+import type { BrowserAgentPool } from './agent-pool';
 import { v4 as uuidv4 } from 'uuid';
-import { Task } from './task-manager';
+import type { Task } from './task-manager';
 
 // Re-export interfaces for compatibility
 export interface CoordinationPlan {
@@ -83,7 +83,8 @@ export class EnhancedDSPyCoordinator extends EventEmitter {
 
     try {
       // Get available agents
-      const availableAgents = Array.from(this.agentPool.getAvailableAgents().keys());
+      const agentMap = await this.agentPool.getAvailableAgents();
+      const availableAgents = Array.from(agentMap.keys());
       
       // Use DSPy for intelligent orchestration
       const orchestrationResult = await dspyService.orchestrate({
@@ -219,9 +220,11 @@ export class EnhancedDSPyCoordinator extends EventEmitter {
       dependencies: [],
       status: 'completed',
       priority: 'high',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      output: orchestrationResult.result
+      output: orchestrationResult.result,
+      metadata: {},
+      retryCount: 0,
+      maxRetries: 3,
+      timeout: 30000
     }];
     
     plan.tasks = tasks;

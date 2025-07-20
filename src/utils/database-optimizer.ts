@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { logger } from './logger';
+import { logger, LogContext } from './enhanced-logger';
 import type CacheManager from './cache-manager';
 import type { ImprovedCacheManager } from './cache-manager-improved';
 import { performanceMonitor } from './performance-monitor';
@@ -114,7 +114,7 @@ export class DatabaseOptimizer {
           throw error;
         }
         
-        logger.warn(`Database operation failed (attempt ${attempt}/${retries}):`, error);
+        logger.warn(`Database operation failed (attempt ${attempt}/${retries}):`, LogContext.DATABASE, { error });
         await new Promise(resolve => setTimeout(resolve, delay * attempt));
       }
     }
@@ -210,7 +210,7 @@ export class DatabaseOptimizer {
       const responseTime = seconds * 1000 + nanoseconds / 1000000;
       this.updateStats('select', responseTime, false, true);
       
-      logger.error(`Database select error on ${table}:`, error);
+      logger.error(`Database select error on ${table}:`, LogContext.DATABASE, { error });
       return { data: null, error, fromCache };
     }
   }
@@ -262,7 +262,7 @@ export class DatabaseOptimizer {
       const responseTime = seconds * 1000 + nanoseconds / 1000000;
       this.updateStats('insert', responseTime, false, true);
       
-      logger.error(`Database insert error on ${table}:`, error);
+      logger.error(`Database insert error on ${table}:`, LogContext.DATABASE, { error });
       return { data: null, error };
     }
   }
@@ -306,7 +306,7 @@ export class DatabaseOptimizer {
       const responseTime = seconds * 1000 + nanoseconds / 1000000;
       this.updateStats('update', responseTime, false, true);
       
-      logger.error(`Database update error on ${table}:`, error);
+      logger.error(`Database update error on ${table}:`, LogContext.DATABASE, { error });
       return { data: null, error };
     }
   }
@@ -349,7 +349,7 @@ export class DatabaseOptimizer {
       const responseTime = seconds * 1000 + nanoseconds / 1000000;
       this.updateStats('delete', responseTime, false, true);
       
-      logger.error(`Database delete error on ${table}:`, error);
+      logger.error(`Database delete error on ${table}:`, LogContext.DATABASE, { error });
       return { data: null, error };
     }
   }
@@ -385,7 +385,7 @@ export class DatabaseOptimizer {
       const responseTime = seconds * 1000 + nanoseconds / 1000000;
       this.updateStats('insert', responseTime, false, true);
       
-      logger.error(`Database upsert error on ${table}:`, error);
+      logger.error(`Database upsert error on ${table}:`, LogContext.DATABASE, { error });
       return { data: null, error };
     }
   }
@@ -436,7 +436,7 @@ export class DatabaseOptimizer {
       const responseTime = seconds * 1000 + nanoseconds / 1000000;
       this.updateStats('select', responseTime, false, true);
       
-      logger.error(`Database RPC error for ${functionName}:`, error);
+      logger.error(`Database RPC error for ${functionName}:`, LogContext.DATABASE, { error });
       return { data: null, error };
     }
   }
@@ -510,7 +510,7 @@ export class DatabaseOptimizer {
       
       return { suggestions, indexes };
     } catch (error) {
-      logger.error(`Error analyzing table ${table}:`, error);
+      logger.error(`Error analyzing table ${table}:`, LogContext.DATABASE, { error });
       return { suggestions: [], indexes: [] };
     }
   }

@@ -2,6 +2,8 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Points, PointMaterial } from '@react-three/drei';
 import * as THREE from 'three';
+import { useAdaptiveQuality } from '../Performance/AdaptiveQualityManager';
+import { useComponentPerformance } from '../../hooks/usePerformanceMonitor';
 
 interface ParticleSystemProps {
   count?: number;
@@ -15,13 +17,18 @@ export function ParticleSystem({
   color = '#00ffff'
 }: ParticleSystemProps) {
   const particlesRef = useRef<THREE.Points>(null);
+  const { getParticleCount, shouldEnableEffect } = useAdaptiveQuality();
+  const { renderCount } = useComponentPerformance('ParticleSystem');
+  
+  // Adaptive particle count based on quality settings
+  const adaptiveCount = getParticleCount(count);
   
   // Generate particle positions and velocities
   const [positions, velocities] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const vel = new Float32Array(count * 3);
+    const pos = new Float32Array(adaptiveCount * 3);
+    const vel = new Float32Array(adaptiveCount * 3);
     
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < adaptiveCount; i++) {
       // Random position within sphere
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
@@ -38,7 +45,7 @@ export function ParticleSystem({
     }
     
     return [pos, vel];
-  }, [count]);
+  }, [adaptiveCount]);
   
   useFrame((state) => {
     if (!particlesRef.current) return;
@@ -48,8 +55,8 @@ export function ParticleSystem({
     const positionAttribute = geometry.attributes.position;
     const positions = positionAttribute.array as Float32Array;
     
-    // Update particle positions
-    for (let i = 0; i < count; i++) {
+    // Update particle positions (optimized loop)
+    for (let i = 0; i < adaptiveCount; i++) {
       const idx = i * 3;
       
       // Get current position
@@ -113,11 +120,11 @@ export function ParticleSystem({
         transparent
         color={color}
         size={isActive ? 0.03 : 0.02}
-        sizeAttenuation={true}
+        sizeAttenuation={shouldEnableEffect('antialiasing')}
         alphaTest={0.001}
         opacity={isActive ? 0.8 : 0.4}
         vertexColors={false}
-        blending={THREE.AdditiveBlending}
+        blending={shouldEnableEffect('enableBloom') ? THREE.AdditiveBlending : THREE.NormalBlending}
         depthWrite={false}
       />
     </Points>

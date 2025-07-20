@@ -6,6 +6,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { execSync } from 'child_process';
 import * as os from 'os';
+import { logger } from '../utils/logger';
 
 export interface MLXModelConfig {
   name: string;
@@ -98,23 +99,23 @@ export class MLXManager {
    */
   async initialize(): Promise<void> {
     if (!this.isAppleSilicon) {
-      console.log('MLX optimization not available - not running on Apple Silicon');
+      logger.warn('MLX optimization not available - not running on Apple Silicon');
       return;
     }
 
-    console.log('🍎 Initializing MLX for Apple Silicon optimization...');
+    logger.info('Initializing MLX for Apple Silicon optimization');
 
     try {
       // Check if MLX is installed
       execSync('python3 -c "import mlx"', { stdio: 'ignore' });
     } catch {
-      console.log('Installing MLX...');
+      logger.info('Installing MLX dependencies');
       execSync('pip3 install mlx mlx-lm', { stdio: 'inherit' });
     }
 
     // Check available GPU memory
     const gpuInfo = this.getGPUInfo();
-    console.log(`GPU: ${gpuInfo.name}, Memory: ${gpuInfo.memory}GB`);
+    logger.info('GPU information', { gpu: gpuInfo.name, memory: `${gpuInfo.memory}GB` });
 
     // Load model routing configuration from Supabase
     await this.loadRoutingConfig();
@@ -178,7 +179,7 @@ export class MLXManager {
       return model.mlxPath;
     }
 
-    console.log(`Converting ${modelName} to MLX format...`);
+    logger.info('Converting model to MLX format', { modelName });
 
     const mlxPath = `/tmp/mlx_models/${modelName.replace(':', '_')}_mlx`;
     
@@ -234,7 +235,7 @@ mlx_lm.convert(
       await this.evictModels(model.memoryRequired);
     }
 
-    console.log(`Loading ${modelName} with MLX...`);
+    logger.info('Loading model with MLX', { modelName });
 
     try {
       const mlxPath = await this.convertToMLX(modelName);
@@ -280,7 +281,7 @@ print("Model loaded successfully")
       this.currentMemoryUsage -= model.memoryRequired;
       freedMemory += model.memoryRequired;
       
-      console.log(`Evicted ${modelName} to free ${model.memoryRequired / (1024 * 1024 * 1024)}GB`);
+      logger.info('Model evicted to free memory', { modelName, memoryFreed: `${model.memoryRequired / (1024 * 1024 * 1024)}GB` });
     }
   }
 
@@ -296,7 +297,7 @@ print("Model loaded successfully")
     const modelName = request.model || await this.routeRequest(request);
     await this.loadModel(modelName);
 
-    console.log(`Running MLX inference with ${modelName}...`);
+    logger.debug('Running MLX inference', { modelName });
 
     try {
       const inferenceScript = `
@@ -385,10 +386,10 @@ print(json.dumps({"response": response}))
       
       if (data) {
         // Apply custom routing rules
-        console.log('Loaded MLX routing configuration');
+        logger.info('Loaded MLX routing configuration');
       }
     } catch (error) {
-      console.log('No custom routing config found, using defaults');
+      logger.debug('No custom routing config found, using defaults');
     }
   }
 

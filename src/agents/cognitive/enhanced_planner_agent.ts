@@ -571,7 +571,7 @@ export class EnhancedPlannerAgent extends EnhancedMemoryAgent {
     const avgStepConfidence = stepConfidences.reduce((sum, c) => sum + c, 0) / stepConfidences.length;
     
     const domainConfidence = this.domainExpertise.get(this.extractDomain(context.userRequest)) || 0.5;
-    const memoryBonus = context.memoryContext?.relevantMemories?.length > 0 ? 0.1 : 0;
+    const memoryBonus = Array.isArray(context.memoryContext?.relevantMemories) && context.memoryContext.relevantMemories.length > 0 ? 0.1 : 0;
     
     return Math.min(1.0, (avgStepConfidence * 0.7) + (domainConfidence * 0.2) + memoryBonus);
   }

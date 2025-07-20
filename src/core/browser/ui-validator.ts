@@ -1,7 +1,7 @@
-import { BrowserAgent } from './agent-pool';
-import { logger } from '../../s../../utils/logger';
-import { Page } from 'puppeteer';
-import { Page as PlaywrightPage } from 'playwright';
+import type { BrowserAgent } from '../coordination/agent-pool';
+import { logger } from '../../utils/logger';
+import type { Page } from 'puppeteer';
+import type { Page as PlaywrightPage } from 'playwright';
 
 export interface ValidationResult {
   agentId: string;
@@ -67,7 +67,7 @@ export class UIValidator {
           const testResult = await test();
           result.tests.push(testResult);
         } catch (error) {
-          result.errors.push(`Test failed: ${error.message}`);
+          result.errors.push(`Test failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -77,7 +77,7 @@ export class UIValidator {
       logger.info(`UI validation complete for agent ${agent.id}: ${result.success ? 'PASSED' : 'FAILED'}`);
       
     } catch (error) {
-      result.errors.push(`Validation failed: ${error.message}`);
+      result.errors.push(`Validation failed: ${error instanceof Error ? error.message : String(error)}`);
       result.duration = Date.now() - startTime;
       logger.error(`UI validation error for agent ${agent.id}:`, error);
     }
@@ -125,7 +125,7 @@ export class UIValidator {
         name: 'Page Load',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -167,7 +167,7 @@ export class UIValidator {
         name: 'Navigation',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -211,7 +211,7 @@ export class UIValidator {
         name: 'Dashboard',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -255,7 +255,7 @@ export class UIValidator {
         name: 'Memory Page',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -299,7 +299,7 @@ export class UIValidator {
         name: 'Tools Page',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -343,7 +343,7 @@ export class UIValidator {
         name: 'Agents Page',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -387,7 +387,7 @@ export class UIValidator {
         name: 'Chat Page',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -434,7 +434,7 @@ export class UIValidator {
         name: 'Button Functionality',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -454,7 +454,7 @@ export class UIValidator {
           await modalButtons[0].click();
           
           // Wait a bit for modal to potentially open
-          await (agent.page as Page).waitForTimeout(500);
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       } else {
         await (agent.page as PlaywrightPage).goto(`${this.testUrl}/memory`, { waitUntil: 'networkidle' });
@@ -480,7 +480,7 @@ export class UIValidator {
         name: 'Modal Interactions',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -497,7 +497,7 @@ export class UIValidator {
         const responses = await (agent.page as Page).evaluate(() => {
           return fetch('http://localhost:9999/health')
             .then(response => response.json())
-            .then(data => data.status === 'healthy')
+            .then((data: any) => data.status === 'healthy')
             .catch(() => false);
         });
         
@@ -511,7 +511,7 @@ export class UIValidator {
         const responses = await (agent.page as PlaywrightPage).evaluate(() => {
           return fetch('http://localhost:9999/health')
             .then(response => response.json())
-            .then(data => data.status === 'healthy')
+            .then((data: any) => data.status === 'healthy')
             .catch(() => false);
         });
         
@@ -530,7 +530,7 @@ export class UIValidator {
         name: 'API Connectivity',
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -540,7 +540,7 @@ export class UIValidator {
     const path = `./tests/browser/screenshots/${filename}`;
     
     if (agent.type === 'puppeteer') {
-      await (agent.page as Page).screenshot({ path, fullPage: true });
+      await (agent.page as Page).screenshot({ path: path as any, fullPage: true });
     } else {
       await (agent.page as PlaywrightPage).screenshot({ path, fullPage: true });
     }

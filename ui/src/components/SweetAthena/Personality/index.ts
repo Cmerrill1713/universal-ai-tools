@@ -9,37 +9,23 @@
  * @version 1.0.0
  */
 
-// Mood System
+// Mood System - Basic exports from actual implementation
 export { 
-  MoodProvider, 
-  useMood, 
-  MoodIndicatorComponent 
+  MoodSystem,
+  EmotionalEngine
 } from './MoodSystem';
 
 export type {
-  MoodSystemConfig,
-  MoodTransitionRules,
-  MoodContextValue,
-  MoodChangeOptions,
-  MoodHistoryEntry,
-  MoodProviderProps
+  MoodSystemProps
 } from './MoodSystem';
 
-// Emotional Engine
+// Emotional Engine - Basic exports from actual implementation  
 export {
-  useEmotionalEngine,
-  EmotionalEngineProvider,
-  useEmotionalEngineContext
+  EmotionalEngine as EmotionalEngineComponent
 } from './EmotionalEngine';
 
 export type {
-  EmotionalIntensity,
-  EmotionalContext,
-  EmotionalResponse,
-  EmotionalEffect,
-  EmotionalEngineConfig,
-  EmotionalMemory,
-  EmotionalEngineProviderProps
+  EmotionalEngineProps
 } from './EmotionalEngine';
 
 // Re-export personality-related types for convenience

@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '../../utils/logger';
-import { BrowserAgent, BrowserAgentPool } from './agent-pool';
-import { OnlineResearchAgent } from './online-research-agent';
-import { AgentRegistry } from './agent-registry';
+import type { BrowserAgent, BrowserAgentPool } from './agent-pool';
+import { OnlineResearchAgent } from '../knowledge/online-research-agent';
+import { AgentRegistry } from '../agents/agent-registry';
 import { TaskManager } from './task-manager';
 import { MessageBroker } from './message-broker';
 
@@ -43,6 +43,8 @@ interface Message {
 
 export interface CoordinationContext {
   sessionId: string;
+  sourceAgent?: string;
+  urgency?: 'low' | 'medium' | 'high' | 'critical';
   sharedState: Record<string, any>;
   dependencies: Record<string, any>;
   resourceLimits: ResourceLimits;
@@ -142,6 +144,18 @@ export class AgentCoordinator extends EventEmitter {
   private sessions: Map<string, CoordinationSession> = new Map();
   private globalState: Map<string, any> = new Map();
   private capabilities: Map<string, AgentCapability[]> = new Map();
+  
+  // Memory management configuration
+  private readonly MAX_PLANS = 1000;
+  private readonly MAX_SESSIONS = 500;
+  private readonly PLAN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  private readonly SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+  private readonly CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly MAX_GLOBAL_STATE_ENTRIES = 10000;
+  
+  // Cleanup interval reference
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private isShuttingDown = false;
 
   constructor(agentPool: BrowserAgentPool) {
     super();
@@ -153,6 +167,361 @@ export class AgentCoordinator extends EventEmitter {
     this.setupCommunicationChannels();
     this.setupAgentCapabilities();
     this.setupEventHandlers();
+    this.startMemoryManagement();
+  }
+
+  /**
+   * Start automatic memory management with periodic cleanup
+   */
+  private startMemoryManagement(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+
+    this.cleanupInterval = setInterval(() => {
+      if (!this.isShuttingDown) {
+        this.performMemoryCleanup();
+      }
+    }, this.CLEANUP_INTERVAL_MS);
+
+    // Cleanup on process termination
+    process.on('SIGTERM', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+    process.on('beforeExit', () => this.shutdown());
+
+    logger.info('AgentCoordinator memory management started', {
+      cleanupInterval: this.CLEANUP_INTERVAL_MS,
+      maxPlans: this.MAX_PLANS,
+      maxSessions: this.MAX_SESSIONS
+    });
+  }
+
+  /**
+   * Perform comprehensive memory cleanup
+   */
+  private performMemoryCleanup(): void {
+    const startTime = Date.now();
+    const initialMemory = this.getMemoryUsage();
+
+    try {
+      // Clean expired plans
+      this.cleanupExpiredPlans();
+      
+      // Clean expired sessions
+      this.cleanupExpiredSessions();
+      
+      // Clean orphaned agent assignments
+      this.cleanupOrphanedAssignments();
+      
+      // Clean unused communication channels
+      this.cleanupUnusedChannels();
+      
+      // Clean excess global state
+      this.cleanupExcessGlobalState();
+      
+      // Enforce size limits
+      this.enforceSizeLimits();
+
+      const finalMemory = this.getMemoryUsage();
+      const cleanupTime = Date.now() - startTime;
+
+      logger.debug('Memory cleanup completed', {
+        duration: cleanupTime,
+        beforeCleanup: initialMemory,
+        afterCleanup: finalMemory,
+        freed: {
+          plans: initialMemory.plans - finalMemory.plans,
+          sessions: initialMemory.sessions - finalMemory.sessions,
+          assignments: initialMemory.assignments - finalMemory.assignments,
+          channels: initialMemory.channels - finalMemory.channels
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error during memory cleanup', { 
+        error: error instanceof Error ? error.message : String(error), 
+        stack: error instanceof Error ? error.stack : undefined 
+      });
+    }
+  }
+
+  /**
+   * Clean up expired coordination plans
+   */
+  private cleanupExpiredPlans(): void {
+    const now = Date.now();
+    const expiredPlans: string[] = [];
+
+    for (const [planId, plan] of this.activePlans) {
+      const planAge = now - plan.startTime;
+      const isExpired = planAge > this.PLAN_TTL_MS;
+      const isCompleted = plan.status === 'completed' || plan.status === 'failed';
+      
+      if (isExpired || (isCompleted && planAge > 60000)) { // Keep completed plans for 1 minute
+        expiredPlans.push(planId);
+      }
+    }
+
+    for (const planId of expiredPlans) {
+      this.removePlan(planId);
+    }
+
+    if (expiredPlans.length > 0) {
+      logger.debug('Cleaned up expired plans', { count: expiredPlans.length });
+    }
+  }
+
+  /**
+   * Clean up expired coordination sessions
+   */
+  private cleanupExpiredSessions(): void {
+    const now = Date.now();
+    const expiredSessions: string[] = [];
+
+    for (const [sessionId, session] of this.sessions) {
+      const sessionAge = now - session.lastActivity;
+      if (sessionAge > this.SESSION_TTL_MS) {
+        expiredSessions.push(sessionId);
+      }
+    }
+
+    for (const sessionId of expiredSessions) {
+      this.removeSession(sessionId);
+    }
+
+    if (expiredSessions.length > 0) {
+      logger.debug('Cleaned up expired sessions', { count: expiredSessions.length });
+    }
+  }
+
+  /**
+   * Clean up orphaned agent assignments
+   */
+  private cleanupOrphanedAssignments(): void {
+    const orphanedAgents: string[] = [];
+
+    for (const [agentId, planIds] of this.agentAssignments) {
+      // Filter out non-existent plans
+      const validPlanIds = planIds.filter(planId => this.activePlans.has(planId));
+      
+      if (validPlanIds.length === 0) {
+        orphanedAgents.push(agentId);
+      } else if (validPlanIds.length !== planIds.length) {
+        this.agentAssignments.set(agentId, validPlanIds);
+      }
+    }
+
+    for (const agentId of orphanedAgents) {
+      this.agentAssignments.delete(agentId);
+    }
+
+    if (orphanedAgents.length > 0) {
+      logger.debug('Cleaned up orphaned agent assignments', { count: orphanedAgents.length });
+    }
+  }
+
+  /**
+   * Clean up unused communication channels
+   */
+  private cleanupUnusedChannels(): void {
+    const unusedChannels: string[] = [];
+    
+    for (const [channelId, emitter] of this.communicationChannels) {
+      // Remove channels with no listeners
+      if (emitter.listenerCount('message') === 0) {
+        emitter.removeAllListeners();
+        unusedChannels.push(channelId);
+      }
+    }
+
+    for (const channelId of unusedChannels) {
+      this.communicationChannels.delete(channelId);
+    }
+
+    if (unusedChannels.length > 0) {
+      logger.debug('Cleaned up unused communication channels', { count: unusedChannels.length });
+    }
+  }
+
+  /**
+   * Clean up excess global state entries
+   */
+  private cleanupExcessGlobalState(): void {
+    if (this.globalState.size <= this.MAX_GLOBAL_STATE_ENTRIES) {
+      return;
+    }
+
+    // Convert to array and sort by usage/age (simplified LRU)
+    const entries = Array.from(this.globalState.entries());
+    const entriesToRemove = entries.slice(0, entries.length - this.MAX_GLOBAL_STATE_ENTRIES);
+
+    for (const [key] of entriesToRemove) {
+      this.globalState.delete(key);
+    }
+
+    logger.debug('Cleaned up excess global state entries', { 
+      removed: entriesToRemove.length,
+      remaining: this.globalState.size 
+    });
+  }
+
+  /**
+   * Enforce maximum size limits on all collections
+   */
+  private enforceSizeLimits(): void {
+    // Enforce plan limit by removing oldest completed plans
+    if (this.activePlans.size > this.MAX_PLANS) {
+      const plans = Array.from(this.activePlans.entries())
+        .filter(([_, plan]) => plan.status === 'completed' || plan.status === 'failed')
+        .sort(([_, a], [__, b]) => a.startTime - b.startTime);
+
+      const toRemove = plans.slice(0, this.activePlans.size - this.MAX_PLANS);
+      for (const [planId] of toRemove) {
+        this.removePlan(planId);
+      }
+
+      if (toRemove.length > 0) {
+        logger.debug('Enforced plan size limit', { removed: toRemove.length });
+      }
+    }
+
+    // Enforce session limit by removing oldest inactive sessions
+    if (this.sessions.size > this.MAX_SESSIONS) {
+      const sessions = Array.from(this.sessions.entries())
+        .sort(([_, a], [__, b]) => a.lastActivity - b.lastActivity);
+
+      const toRemove = sessions.slice(0, this.sessions.size - this.MAX_SESSIONS);
+      for (const [sessionId] of toRemove) {
+        this.removeSession(sessionId);
+      }
+
+      if (toRemove.length > 0) {
+        logger.debug('Enforced session size limit', { removed: toRemove.length });
+      }
+    }
+  }
+
+  /**
+   * Safely remove a coordination plan and its related data
+   */
+  private removePlan(planId: string): void {
+    const plan = this.activePlans.get(planId);
+    if (!plan) return;
+
+    // Remove from active plans
+    this.activePlans.delete(planId);
+
+    // Remove from agent assignments
+    for (const [agentId, planIds] of this.agentAssignments) {
+      const filteredPlanIds = planIds.filter(id => id !== planId);
+      if (filteredPlanIds.length === 0) {
+        this.agentAssignments.delete(agentId);
+      } else {
+        this.agentAssignments.set(agentId, filteredPlanIds);
+      }
+    }
+
+    // Emit cleanup event for external listeners
+    this.emit('planRemoved', { planId, plan });
+  }
+
+  /**
+   * Safely remove a coordination session and its related data
+   */
+  private removeSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+
+    // Remove session
+    this.sessions.delete(sessionId);
+
+    // Remove related communication channels
+    this.communicationChannels.delete(sessionId);
+
+    // Emit cleanup event for external listeners
+    this.emit('sessionRemoved', { sessionId, session });
+  }
+
+  /**
+   * Get current memory usage statistics
+   */
+  private getMemoryUsage() {
+    return {
+      plans: this.activePlans.size,
+      sessions: this.sessions.size,
+      assignments: this.agentAssignments.size,
+      channels: this.communicationChannels.size,
+      globalState: this.globalState.size,
+      capabilities: this.capabilities.size
+    };
+  }
+
+  /**
+   * Get detailed memory statistics
+   */
+  getMemoryStats() {
+    const usage = this.getMemoryUsage();
+    const process = require('process');
+    const memUsage = process.memoryUsage();
+
+    return {
+      collections: usage,
+      process: {
+        rss: memUsage.rss,
+        heapTotal: memUsage.heapTotal,
+        heapUsed: memUsage.heapUsed,
+        external: memUsage.external
+      },
+      limits: {
+        maxPlans: this.MAX_PLANS,
+        maxSessions: this.MAX_SESSIONS,
+        maxGlobalState: this.MAX_GLOBAL_STATE_ENTRIES
+      }
+    };
+  }
+
+  /**
+   * Force immediate memory cleanup
+   */
+  forceCleanup(): void {
+    logger.info('Forcing immediate memory cleanup');
+    this.performMemoryCleanup();
+  }
+
+  /**
+   * Graceful shutdown with cleanup
+   */
+  shutdown(): void {
+    if (this.isShuttingDown) return;
+    
+    logger.info('AgentCoordinator shutting down...');
+    this.isShuttingDown = true;
+
+    // Clear cleanup interval
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+
+    // Perform final cleanup
+    this.performMemoryCleanup();
+
+    // Clear all collections
+    this.activePlans.clear();
+    this.agentAssignments.clear();
+    this.sessions.clear();
+    this.globalState.clear();
+    
+    // Clean up communication channels
+    for (const emitter of this.communicationChannels.values()) {
+      emitter.removeAllListeners();
+    }
+    this.communicationChannels.clear();
+
+    // Remove all event listeners
+    this.removeAllListeners();
+
+    logger.info('AgentCoordinator shutdown complete');
   }
 
   async coordinateGroupFix(problem: string, context: any): Promise<CoordinationPlan> {
@@ -287,7 +656,8 @@ export class AgentCoordinator extends EventEmitter {
 
   private async createCoordinationPlan(analysis: ProblemAnalysis, problem: string): Promise<CoordinationPlan> {
     const planId = `plan-${Date.now()}`;
-    const availableAgents = Array.from(this.agentPool.getAvailableAgents().keys());
+    const availableAgentsList = await this.agentPool.getAvailableAgents();
+    const availableAgents = availableAgentsList.map(agent => agent.id);
     
     // Select agents based on problem type and severity
     const numAgents = this.calculateRequiredAgents(analysis.severity, analysis.problemType);
@@ -304,7 +674,22 @@ export class AgentCoordinator extends EventEmitter {
       strategies,
       status: 'planning',
       startTime: Date.now(),
-      results: []
+      results: [],
+      context: {
+        sessionId: this.sessions.values().next().value?.id || '',
+        sourceAgent: 'coordinator',
+        urgency: analysis.severity,
+        sharedState: {},
+        dependencies: {},
+        resourceLimits: {
+          maxConcurrentTasks: 10,
+          taskTimeout: 30000,
+          memoryLimit: 1024,
+          cpuLimit: 80
+        },
+        capabilities: []
+      },
+      tasks: []
     };
     
     this.activePlans.set(planId, plan);
@@ -450,7 +835,7 @@ export class AgentCoordinator extends EventEmitter {
           {
             id: 'diagnose-connection',
             description: 'Diagnose connection failure',
-            assignedAgents: [leader, researcher].filter(Boolean),
+            assignedAgents: [leader, researcher].filter((agent): agent is string => agent !== undefined),
             dependencies: [],
             timeout: 30000,
             expectedResults: ['Connection status identified', 'Root cause found']
@@ -458,7 +843,7 @@ export class AgentCoordinator extends EventEmitter {
           {
             id: 'check-services',
             description: 'Check if services are running',
-            assignedAgents: [tester, executor].filter(Boolean),
+            assignedAgents: [tester, executor].filter((agent): agent is string => agent !== undefined),
             dependencies: ['diagnose-connection'],
             timeout: 15000,
             expectedResults: ['Service status confirmed', 'Port availability checked']
@@ -466,7 +851,7 @@ export class AgentCoordinator extends EventEmitter {
           {
             id: 'restart-services',
             description: 'Restart required services',
-            assignedAgents: [executor].filter(Boolean),
+            assignedAgents: [executor].filter((agent): agent is string => agent !== undefined),
             dependencies: ['check-services'],
             timeout: 45000,
             expectedResults: ['Services restarted', 'Connection restored']
@@ -479,7 +864,7 @@ export class AgentCoordinator extends EventEmitter {
           {
             id: 'analyze-imports',
             description: 'Analyze module import structure',
-            assignedAgents: [researcher].filter(Boolean),
+            assignedAgents: [researcher].filter((agent): agent is string => agent !== undefined),
             dependencies: [],
             timeout: 20000,
             expectedResults: ['Import structure analyzed', 'Missing exports identified']
@@ -487,7 +872,7 @@ export class AgentCoordinator extends EventEmitter {
           {
             id: 'find-alternatives',
             description: 'Find alternative import methods',
-            assignedAgents: [researcher, tester].filter(Boolean),
+            assignedAgents: [researcher, tester].filter((agent): agent is string => agent !== undefined),
             dependencies: ['analyze-imports'],
             timeout: 30000,
             expectedResults: ['Alternative imports found', 'Compatibility verified']
@@ -495,7 +880,7 @@ export class AgentCoordinator extends EventEmitter {
           {
             id: 'apply-fix',
             description: 'Apply import fix',
-            assignedAgents: [executor].filter(Boolean),
+            assignedAgents: [executor].filter((agent): agent is string => agent !== undefined),
             dependencies: ['find-alternatives'],
             timeout: 25000,
             expectedResults: ['Fix applied', 'Imports working']
@@ -508,7 +893,7 @@ export class AgentCoordinator extends EventEmitter {
           {
             id: 'general-diagnosis',
             description: 'General problem diagnosis',
-            assignedAgents: [leader, researcher].filter(Boolean),
+            assignedAgents: [leader, researcher].filter((agent): agent is string => agent !== undefined),
             dependencies: [],
             timeout: 30000,
             expectedResults: ['Problem diagnosed', 'Solution strategy identified']
@@ -595,7 +980,7 @@ export class AgentCoordinator extends EventEmitter {
     
     // Execute step with each assigned agent
     const promises = step.assignedAgents.map(async (agentId) => {
-      const agent = this.agentPool.getAgent(agentId);
+      const agent = await this.agentPool.getAgent(agentId);
       if (!agent) {
         return {
           agentId,
@@ -628,7 +1013,7 @@ export class AgentCoordinator extends EventEmitter {
           stepId: step.id,
           success: false,
           data: null,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           timestamp: Date.now()
         };
       }
@@ -1015,8 +1400,12 @@ export class AgentCoordinator extends EventEmitter {
       for (const agentId of session.participants) {
         if (agentId !== message.fromAgent) {
           await this.messageBroker.sendMessage({
-            ...message,
-            toAgent: agentId
+            sessionId: message.sessionId,
+            fromAgent: message.fromAgent,
+            toAgent: agentId,
+            type: message.type,
+            content: message.content,
+            priority: 'medium'
           });
         }
       }
@@ -1045,7 +1434,6 @@ export class AgentCoordinator extends EventEmitter {
     const availableAgents = await this.agentRegistry.findAgentsByCapabilities(requiredCapabilities);
     
     await this.messageBroker.sendMessage({
-      id: `response-${Date.now()}`,
       sessionId: session.id,
       fromAgent: 'coordinator',
       toAgent: fromAgent,
@@ -1054,7 +1442,7 @@ export class AgentCoordinator extends EventEmitter {
         response: 'capability_discovery',
         availableAgents
       },
-      timestamp: Date.now()
+      priority: 'medium'
     });
   }
 
@@ -1069,7 +1457,6 @@ export class AgentCoordinator extends EventEmitter {
     });
     
     await this.messageBroker.sendMessage({
-      id: `task-${Date.now()}`,
       sessionId: session.id,
       fromAgent: 'coordinator',
       toAgent: request.targetAgent,
@@ -1078,7 +1465,39 @@ export class AgentCoordinator extends EventEmitter {
         task,
         delegatedBy: fromAgent
       },
-      timestamp: Date.now()
+      priority: 'medium'
+    });
+  }
+
+  private async handleResourceRequest(request: any, fromAgent: string, session: CoordinationSession): Promise<void> {
+    // TODO: Implement resource request handling
+    logger.info(`Handling resource request from ${fromAgent}`, request);
+    await this.messageBroker.sendMessage({
+      sessionId: session.id,
+      fromAgent: 'coordinator',
+      toAgent: fromAgent,
+      type: 'coordination',
+      content: {
+        response: 'resource_request',
+        status: 'pending'
+      },
+      priority: 'medium'
+    });
+  }
+
+  private async handleCoordinationRequest(request: any, fromAgent: string, session: CoordinationSession): Promise<void> {
+    // TODO: Implement coordination request handling
+    logger.info(`Handling coordination request from ${fromAgent}`, request);
+    await this.messageBroker.sendMessage({
+      sessionId: session.id,
+      fromAgent: 'coordinator',
+      toAgent: fromAgent,
+      type: 'coordination',
+      content: {
+        response: 'coordination_request',
+        status: 'acknowledged'
+      },
+      priority: 'medium'
     });
   }
 
@@ -1108,17 +1527,45 @@ export class AgentCoordinator extends EventEmitter {
     const plan = this.activePlans.get(task.planId);
     if (plan) {
       const requiredCapabilities = this.inferRequiredCapabilities(task);
-      const alternativeAgents = await this.agentRegistry.findAgentsByCapabilities(requiredCapabilities);
+      const alternativeAgents = await this.agentRegistry.findAgentsByCapabilities({
+        requiredSkills: requiredCapabilities
+      });
       
       if (alternativeAgents.length > 0) {
         const newTask = await this.taskManager.createTask({
-          ...task,
-          id: `${task.id}-retry`,
+          planId: task.planId,
+          type: task.type,
+          description: task.description,
           assignedAgent: alternativeAgents[0].id,
-          status: 'pending'
+          dependencies: task.dependencies,
+          input: task.input
         });
         logger.info(`🔄 Task reassigned to ${alternativeAgents[0].id}`);
       }
+    }
+  }
+
+  private async initiateErrorRecovery(agentId: string, error: any): Promise<void> {
+    logger.error(`🚨 Initiating error recovery for agent ${agentId}`, error);
+    
+    // Create an error recovery plan
+    const recoveryPlan = await this.coordinateGroupFix(`Error recovery for agent ${agentId}: ${error.message || error}`, { agentId, error });
+    
+    // Notify other agents about the error
+    const session = this.sessions.get(recoveryPlan.context.sessionId);
+    if (session) {
+      await this.messageBroker.sendMessage({
+        sessionId: session.id,
+        fromAgent: 'coordinator',
+        type: 'error',
+        content: {
+          errorType: 'agent_error',
+          agentId,
+          error,
+          recoveryPlanId: recoveryPlan.id
+        },
+        priority: 'high'
+      });
     }
   }
 
@@ -1154,7 +1601,7 @@ export class AgentCoordinator extends EventEmitter {
       
       return { backend, frontend, timestamp: Date.now() };
     } catch (error) {
-      return { backend: 'error', frontend: 'error', error: error.message };
+      return { backend: 'error', frontend: 'error', error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -1177,6 +1624,7 @@ export class AgentCoordinator extends EventEmitter {
     // Gather information from the page
     try {
       const pageInfo = await (agent.page as any).evaluate(() => {
+        // This code runs in the browser context
         return {
           title: document.title,
           url: window.location.href,
@@ -1187,7 +1635,7 @@ export class AgentCoordinator extends EventEmitter {
       
       return pageInfo;
     } catch (error) {
-      return { error: error.message };
+      return { error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -1206,12 +1654,13 @@ export class AgentCoordinator extends EventEmitter {
       
       // Test for JavaScript errors
       const errors = await (agent.page as any).evaluate(() => {
+        // This code runs in the browser context
         return (window as any).errors || [];
       });
       tests.push({ name: 'javascript_errors', result: errors.length === 0 ? 'pass' : 'fail' });
       
     } catch (error) {
-      tests.push({ name: 'test_execution', result: 'fail', error: error.message });
+      tests.push({ name: 'test_execution', result: 'fail', error: error instanceof Error ? error.message : String(error) });
     }
     
     return tests;

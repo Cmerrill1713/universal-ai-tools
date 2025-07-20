@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { z, ZodSchema, ZodError } from 'zod';
+import type { NextFunction, Request, Response } from 'express';
+import type { ZodError, ZodSchema } from 'zod';
+import { z } from 'zod';
 import { logger } from '../utils/logger';
 
 export interface ValidationOptions {

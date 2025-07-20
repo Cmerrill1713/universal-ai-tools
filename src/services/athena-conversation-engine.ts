@@ -7,7 +7,9 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Logger } from 'winston';
-import { SweetAthenaPersonality, type AthenaResponse, type ConversationContext } from './sweet-athena-personality';
+import type { SweetAthenaPersonality} from './sweet-athena-personality';
+import { type AthenaResponse, type ConversationContext } from './sweet-athena-personality';
+import { AthenaWidgetCreationService } from './athena-widget-creation-service';
 
 export interface ConversationRequest {
   userId: string;
@@ -17,7 +19,7 @@ export interface ConversationRequest {
 }
 
 export interface DevelopmentIntent {
-  type: 'create_table' | 'add_tool' | 'build_feature' | 'organize_data' | 'automate_task' | 'general_help';
+  type: 'create_table' | 'add_tool' | 'build_feature' | 'organize_data' | 'automate_task' | 'create_widget' | 'general_help';
   confidence: number;
   entities: {
     tableName?: string;
@@ -27,6 +29,8 @@ export interface DevelopmentIntent {
     columns?: string[];
     purpose?: string;
     automation?: string;
+    widgetType?: string;
+    componentType?: string;
   };
   userNeed: string;
   suggestedImplementation?: string;
@@ -55,6 +59,8 @@ export interface ImplementationStep {
 }
 
 export class AthenaConversationEngine {
+  private widgetCreationService: AthenaWidgetCreationService;
+  
   private intentPatterns = {
     create_table: [
       /(?:create|make|build|need).*?(?:table|database|storage)/i,
@@ -67,6 +73,13 @@ export class AthenaConversationEngine {
       /(?:add|implement).*?(?:feature|capability|function)/i,
       /(?:tool|function).*?(?:for|to).*?(?:help|assist|automate)/i,
       /(?:can you|help me).*?(?:build|create|make).*?(?:tool|function)/i
+    ],
+    create_widget: [
+      /(?:create|make|build|generate).*?(?:widget|component|ui element)/i,
+      /(?:build me|make me|create me).*?(?:a widget|a component)/i,
+      /(?:i need|i want).*?(?:widget|component).*?(?:for|to|that)/i,
+      /(?:widget|component).*?(?:that|which|to).*?(?:shows|displays|manages)/i,
+      /(?:create a widget that|build me a widget to|make a component for)/i
     ],
     build_feature: [
       /(?:build|create|implement|develop).*?(?:feature|system|component)/i,
@@ -85,21 +98,87 @@ export class AthenaConversationEngine {
       /(?:schedule|trigger|run automatically)/i,
       /(?:make.*?automatic|do.*?automatically)/i,
       /(?:can you|help me).*?(?:automate|make automatic)/i
+    ],
+    create_widget: [
+      /(?:create|make|build|need).*?(?:widget|component|ui|interface)/i,
+      /(?:react|ui).*?(?:component|widget)/i,
+      /(?:i need|i want).*?(?:widget|component|interface)/i,
+      /(?:can you|help me).*?(?:create|build|make).*?(?:widget|component)/i,
+      /(?:form|table|chart|card|list).*?(?:widget|component)/i
     ]
   };
 
   private entityExtractors = {
     tableName: /(?:table|database).*?(?:called|named|for)\s+["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?/i,
-    toolName: /(?:tool|function).*?(?:called|named|for)\s+["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?/i,
+    toolName: /(?:tool|function|widget|component).*?(?:called|named|for)\s+["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?/i,
     columns: /(?:columns?|fields?).*?(?:like|such as|including)?\s*[:;]?\s*([a-zA-Z0-9_,\s]+)/i,
-    purpose: /(?:for|to|that).*?(?:track|store|manage|handle|organize)\s+([^.!?]+)/i
+    purpose: /(?:for|to|that).*?(?:track|store|manage|handle|organize|shows?|displays?)\s+([^.!?]+)/i,
+    widgetType: /(?:widget|component).*?(?:that|which|to)\s+(?:shows?|displays?|manages?)\s+([a-zA-Z0-9\s]+)/i
   };
 
   constructor(
     private supabase: SupabaseClient,
     private logger: Logger,
     private personality: SweetAthenaPersonality
-  ) {}
+  ) {
+    this.widgetCreationService = new AthenaWidgetCreationService(supabase, logger);
+  }
+
+  /**
+   * Execute widget creation when approved
+   */
+  async executeWidgetCreation(plan: ImplementationPlan, userId: string): Promise<AthenaResponse> {
+    try {
+      // Extract widget description from the plan
+      const widgetDescription = plan.description.replace('Create create_widget based on: ', '');
+      
+      // Create the widget
+      const result = await this.widgetCreationService.createWidget({
+        description: widgetDescription,
+        userId: userId,
+        requirements: {
+          style: 'styled-components',
+          responsive: true,
+          theme: 'auto'
+        }
+      });
+
+      if (result.success && result.widget) {
+        return {
+          content: `I've created your widget successfully! 🎉\n\n**${result.widget.name}**\n${result.widget.description}\n\nYou can:\n- Preview it at: ${result.suggestions?.[0]}\n- Download it at: ${result.suggestions?.[1]}\n\nThe widget includes TypeScript definitions, tests, and full documentation. Would you like me to show you how to use it?`,
+          personalityMood: 'excited',
+          responseStyle: 'encouraging',
+          emotionalTone: 'proud',
+          confidenceLevel: 9,
+          sweetnessLevel: 10,
+          suggestedNextActions: [
+            'Preview the widget in your browser',
+            'Download and integrate into your project',
+            'Ask me to modify or enhance the widget'
+          ]
+        };
+      } else {
+        return {
+          content: `I encountered a small issue creating the widget: ${result.error}\n\n${result.suggestions?.join('\n')}\n\nWould you like me to try again with more specific requirements?`,
+          personalityMood: 'helpful',
+          responseStyle: 'gentle',
+          emotionalTone: 'supportive',
+          confidenceLevel: 6,
+          sweetnessLevel: 8
+        };
+      }
+    } catch (error) {
+      this.logger.error('Widget creation execution failed:', error);
+      return {
+        content: `Oh no! I had trouble creating the widget. Let me try a different approach. Could you tell me more about what you'd like the widget to do?`,
+        personalityMood: 'concerned',
+        responseStyle: 'gentle',
+        emotionalTone: 'apologetic',
+        confidenceLevel: 4,
+        sweetnessLevel: 8
+      };
+    }
+  }
 
   /**
    * Process a conversation message and determine if development is needed
@@ -208,9 +287,32 @@ export class AthenaConversationEngine {
       entities.purpose = purposeMatch[1].trim();
     }
 
+    // Extract widget type
+    if (intentType === 'create_widget' || intentType === 'add_tool') {
+      const widgetMatch = message.match(this.entityExtractors.widgetType);
+      if (widgetMatch) {
+        entities.widgetType = widgetMatch[1].trim();
+      }
+      
+      // Determine component type
+      if (message.match(/chart|graph|visualization/i)) {
+        entities.componentType = 'chart';
+      } else if (message.match(/list|table|grid/i)) {
+        entities.componentType = 'list';
+      } else if (message.match(/form|input|editor/i)) {
+        entities.componentType = 'form';
+      } else if (message.match(/profile|card|display/i)) {
+        entities.componentType = 'display';
+      }
+    }
+
     // Infer missing entities
     if (!entities.tableName && intentType === 'create_table' && entities.purpose) {
       entities.tableName = this.generateTableNameFromPurpose(entities.purpose);
+    }
+
+    if (!entities.toolName && (intentType === 'add_tool' || intentType === 'create_widget') && entities.purpose) {
+      entities.toolName = this.generateToolNameFromPurpose(entities.purpose);
     }
 
     return entities;
@@ -299,6 +401,11 @@ export class AthenaConversationEngine {
         plan.sweetExplanation = `I'll build a lovely tool called "${intent.entities.toolName}" that will make your work so much easier! 🛠️`;
         break;
         
+      case 'create_widget':
+        plan.steps = await this.generateWidgetCreationSteps(intent);
+        plan.sweetExplanation = `I'll create a beautiful widget called "${intent.entities.toolName}" that ${intent.entities.purpose}! It's going to look amazing! 🎨`;
+        break;
+        
       case 'build_feature':
         plan.steps = await this.generateFeatureCreationSteps(intent);
         plan.sweetExplanation = `I'll create this feature for you - it's going to work beautifully and make everything so much better! 🌟`;
@@ -312,6 +419,11 @@ export class AthenaConversationEngine {
       case 'automate_task':
         plan.steps = await this.generateAutomationSteps(intent);
         plan.sweetExplanation = `I'll set up automation that will work like magic - it'll handle this task for you automatically! 🪄`;
+        break;
+        
+      case 'create_widget':
+        plan.steps = await this.generateWidgetCreationSteps(intent);
+        plan.sweetExplanation = `I'll create a beautiful React component for you! It'll be fully typed, tested, and ready to use in your project! ✨`;
         break;
     }
 
@@ -429,6 +541,16 @@ COMMENT ON TABLE ${tableName} IS 'Created through conversation with Athena for: 
     return this.sanitizeIdentifier(relevantWords.slice(0, 2).join('_'));
   }
 
+  private generateToolNameFromPurpose(purpose: string): string {
+    const words = purpose.toLowerCase().split(' ');
+    const relevantWords = words.filter(word => 
+      word.length > 2 && 
+      !['the', 'and', 'for', 'with', 'that', 'this', 'shows', 'displays'].includes(word)
+    );
+    const baseName = relevantWords.slice(0, 2).join('_');
+    return this.sanitizeIdentifier(baseName + '_tool');
+  }
+
   private identifyNeededClarifications(intent: DevelopmentIntent): string[] {
     const needed = [];
     
@@ -541,6 +663,38 @@ COMMENT ON TABLE ${tableName} IS 'Created through conversation with Athena for: 
         id: 'create_automation',
         description: 'Set up automation workflow',
         type: 'code',
+        completed: false
+      }
+    ];
+  }
+
+  private async generateWidgetCreationSteps(intent: DevelopmentIntent): Promise<ImplementationStep[]> {
+    const widgetName = intent.entities.toolName || 'custom_widget';
+    const componentType = intent.entities.componentType || 'display';
+    
+    return [
+      {
+        id: 'design_widget',
+        description: `Design the ${widgetName} widget with ${componentType} layout`,
+        type: 'code',
+        completed: false
+      },
+      {
+        id: 'implement_functionality',
+        description: `Implement the widget functionality to ${intent.entities.purpose}`,
+        type: 'code',
+        completed: false
+      },
+      {
+        id: 'style_widget',
+        description: 'Apply beautiful styling and animations',
+        type: 'code',
+        completed: false
+      },
+      {
+        id: 'test_widget',
+        description: 'Test the widget and ensure it works perfectly',
+        type: 'validation',
         completed: false
       }
     ];

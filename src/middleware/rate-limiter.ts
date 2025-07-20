@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { logger } from '../utils/logger';
+import type { NextFunction, Request, Response } from 'express';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { LogContext, logger } from '../utils/enhanced-logger';
 import { config } from '../config';
 import crypto from 'crypto';
 
@@ -100,7 +100,7 @@ export class SupabaseRateLimitStore implements RateLimitStore {
         tier: data.tier,
       };
     } catch (error) {
-      logger.error('Rate limit store get error:', error);
+      logger.error('Rate limit store get error:', LogContext.SECURITY, { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -119,7 +119,7 @@ export class SupabaseRateLimitStore implements RateLimitStore {
           updated_at: new Date(),
         });
     } catch (error) {
-      logger.error('Rate limit store set error:', error);
+      logger.error('Rate limit store set error:', LogContext.SECURITY, { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -132,7 +132,7 @@ export class SupabaseRateLimitStore implements RateLimitStore {
       if (error) throw error;
       return data || 1;
     } catch (error) {
-      logger.error('Rate limit store increment error:', error);
+      logger.error('Rate limit store increment error:', LogContext.SECURITY, { error: error instanceof Error ? error.message : String(error) });
       return 1;
     }
   }
@@ -144,7 +144,7 @@ export class SupabaseRateLimitStore implements RateLimitStore {
         .delete()
         .eq('key', key);
     } catch (error) {
-      logger.error('Rate limit store reset error:', error);
+      logger.error('Rate limit store reset error:', LogContext.SECURITY, { error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -155,7 +155,7 @@ export class SupabaseRateLimitStore implements RateLimitStore {
         .delete()
         .lt('reset_time', new Date());
     } catch (error) {
-      logger.error('Rate limit store cleanup error:', error);
+      logger.error('Rate limit store cleanup error:', LogContext.SECURITY, { error: error instanceof Error ? error.message : String(error) });
     }
   }
 }
@@ -164,7 +164,7 @@ export class RateLimiter {
   private configs: Map<string, RateLimitConfig> = new Map();
   private defaultStore: RateLimitStore;
   private suspiciousIPs: Set<string> = new Set();
-  private ddosProtection: boolean = true;
+  private ddosProtection = true;
 
   constructor(store?: RateLimitStore) {
     this.defaultStore = store || new MemoryRateLimitStore();
@@ -225,7 +225,7 @@ export class RateLimiter {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         // Skip rate limiting in test environment
-        if (config.server.env === 'testing') {
+        if (process.env.NODE_ENV === 'testing') {
           return next();
         }
 
@@ -272,7 +272,7 @@ export class RateLimiter {
           await store.set(key, info, rateConfig.windowMs);
 
           // Log rate limit violation
-          logger.warn('Rate limit exceeded', {
+          logger.warn('Rate limit exceeded', LogContext.SECURITY, {
             key,
             count: info.count,
             max: rateConfig.max,
@@ -299,7 +299,7 @@ export class RateLimiter {
         // Continue
         next();
       } catch (error) {
-        logger.error('Rate limiting error:', error);
+        logger.error('Rate limiting error:', LogContext.SECURITY, { error: error instanceof Error ? error.message : String(error) });
         // Fail open - don't block requests on error
         next();
       }
@@ -317,8 +317,8 @@ export class RateLimiter {
    * Generate rate limit key
    */
   private generateKey(req: Request): string {
-    const user = (req as any).user;
-    const apiKey = (req as any).apiKey;
+    const {user} = (req as any);
+    const {apiKey} = (req as any);
     const ip = this.getIP(req);
 
     // Prioritize user ID > API key > IP
@@ -335,7 +335,7 @@ export class RateLimiter {
    * Get user tier for rate limiting
    */
   private getUserTier(req: Request): 'anonymous' | 'authenticated' | 'premium' | 'admin' {
-    const user = (req as any).user;
+    const {user} = (req as any);
     
     if (!user) return 'anonymous';
     if (user.role === 'admin') return 'admin';
@@ -391,7 +391,7 @@ export class RateLimiter {
   private handleSuspiciousRequest(req: Request, res: Response): void {
     const ip = this.getIP(req);
     
-    logger.warn('Suspicious request blocked', {
+    logger.warn('Suspicious request blocked', LogContext.SECURITY, {
       ip,
       endpoint: req.originalUrl,
       method: req.method,

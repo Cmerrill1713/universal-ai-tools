@@ -2,7 +2,7 @@
  * Simple Test to Verify Jest Configuration
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 
 describe('Simple Jest Test', () => {
   it('should pass basic arithmetic test', () => {

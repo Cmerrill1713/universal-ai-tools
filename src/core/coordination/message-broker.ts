@@ -63,7 +63,7 @@ export class MessageBroker extends EventEmitter {
   private routes: Map<string, MessageRoute> = new Map();
   private broadcastGroups: Map<string, BroadcastGroup> = new Map();
   private messageHistory: Message[] = [];
-  private maxHistorySize: number = 1000;
+  private maxHistorySize = 1000;
   private messageStats: MessageStats = {
     totalSent: 0,
     totalReceived: 0,
@@ -129,11 +129,11 @@ export class MessageBroker extends EventEmitter {
 
   async sendMessage(message: Omit<Message, 'id' | 'timestamp'>): Promise<string> {
     const fullMessage: Message = {
+      ...message,
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
-      priority: 'medium',
-      retryCount: 0,
-      ...message
+      priority: message.priority || 'medium',
+      retryCount: message.retryCount || 0
     };
 
     // Validate message
@@ -436,7 +436,20 @@ export class MessageBroker extends EventEmitter {
   }
 
   private updateStats(operation: 'sent' | 'received' | 'delivered' | 'failed', message: Message): void {
-    this.messageStats[`total${operation.charAt(0).toUpperCase() + operation.slice(1)}`]++;
+    switch (operation) {
+      case 'sent':
+        this.messageStats.totalSent++;
+        break;
+      case 'received':
+        this.messageStats.totalReceived++;
+        break;
+      case 'delivered':
+        this.messageStats.totalDelivered++;
+        break;
+      case 'failed':
+        this.messageStats.totalFailed++;
+        break;
+    }
     
     if (!this.messageStats.byType[message.type]) {
       this.messageStats.byType[message.type] = 0;
@@ -451,7 +464,7 @@ export class MessageBroker extends EventEmitter {
 
   private updateDeliveryStats(deliveryTime: number): void {
     const currentAvg = this.messageStats.averageDeliveryTime;
-    const totalDelivered = this.messageStats.totalDelivered;
+    const {totalDelivered} = this.messageStats;
     
     this.messageStats.averageDeliveryTime = totalDelivered === 1 
       ? deliveryTime 

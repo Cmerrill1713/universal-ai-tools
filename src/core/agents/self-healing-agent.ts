@@ -1,8 +1,10 @@
-import { BrowserAgent, BrowserAgentPool } from './agent-pool';
-import { UIValidator, ValidationResult } from './ui-validator';
-import { PerformanceMonitor } from './performance-monitor';
-import { OnlineResearchAgent, ResearchQuery } from './online-research-agent';
-import { logger } from '../../s../../utils/logger';
+import type { BrowserAgent, BrowserAgentPool } from '../coordination/agent-pool.js';
+import type { UIValidator} from '../browser/ui-validator.js';
+import { ValidationResult } from '../browser/ui-validator.js';
+import type { PerformanceMonitor } from '../coordination/performance-monitor.js';
+import type { ResearchQuery } from '../knowledge/online-research-agent.js';
+import { OnlineResearchAgent } from '../knowledge/online-research-agent.js';
+import { logger } from '../../utils/logger.js';
 import { EventEmitter } from 'events';
 
 export interface HealingAction {
@@ -32,6 +34,40 @@ export interface HealingResult {
   actionsApplied: string[];
   duration: number;
   error?: string;
+}
+
+export interface HealingContext {
+  issue: Issue;
+  agent?: BrowserAgent;
+  timestamp: number;
+  attempts: number;
+}
+
+export interface RecoveryAction {
+  id: string;
+  name: string;
+  execute: () => Promise<boolean>;
+}
+
+export interface DiagnosticResult {
+  healthy: boolean;
+  issues: Issue[];
+  metrics: any;
+}
+
+export interface SystemHealth {
+  status: 'healthy' | 'degraded' | 'critical';
+  agents: number;
+  activeIssues: number;
+  resolvedIssues: number;
+}
+
+export interface HealingReport {
+  period: string;
+  totalIssues: number;
+  resolvedIssues: number;
+  successRate: number;
+  averageHealingTime: number;
 }
 
 export class SelfHealingAgent extends EventEmitter {
@@ -110,14 +146,16 @@ export class SelfHealingAgent extends EventEmitter {
             if (agent.type === 'puppeteer') {
               const page = agent.page as any;
               await page.evaluate(() => {
-                localStorage.clear();
-                sessionStorage.clear();
+                // This code runs in the browser context where window is available
+                window.localStorage.clear();
+                window.sessionStorage.clear();
               });
             } else {
               const page = agent.page as any;
               await page.evaluate(() => {
-                localStorage.clear();
-                sessionStorage.clear();
+                // This code runs in the browser context where window is available
+                window.localStorage.clear();
+                window.sessionStorage.clear();
               });
             }
             logger.info(`Successfully cleared cache for agent ${agent.id}`);
@@ -222,7 +260,7 @@ export class SelfHealingAgent extends EventEmitter {
 
   private setupEventListeners(): void {
     // Listen for agent errors
-    this.agentPool.on('agent-error', (data) => {
+    this.agentPool.on('agent-error', (data: any) => {
       this.reportIssue({
         agentId: data.agentId,
         type: 'crash',
@@ -233,7 +271,7 @@ export class SelfHealingAgent extends EventEmitter {
     });
 
     // Listen for performance issues
-    this.performanceMonitor.on('performance-issue', (data) => {
+    this.performanceMonitor.on('performance-issue', (data: any) => {
       this.reportIssue({
         agentId: data.agentId,
         type: 'performance',
@@ -427,7 +465,7 @@ export class SelfHealingAgent extends EventEmitter {
           
         } catch (error) {
           logger.error(`Error applying healing action ${action.id}:`, error);
-          result.error = error.message;
+          result.error = error instanceof Error ? error.message : String(error);
         }
       }
       
@@ -440,7 +478,7 @@ export class SelfHealingAgent extends EventEmitter {
       }
       
     } catch (error) {
-      result.error = error.message;
+      result.error = error instanceof Error ? error.message : String(error);
       result.duration = Date.now() - startTime;
       logger.error(`Failed to heal issue ${issue.id}:`, error);
     }

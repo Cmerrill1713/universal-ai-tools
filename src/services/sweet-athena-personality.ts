@@ -65,7 +65,7 @@ export class SweetAthenaPersonality {
     interactionComfort: 8
   };
 
-  private sweetResponses = {
+  private sweetResponses: Record<string, Record<string, string[]>> = {
     greeting: {
       sweet: [
         "Hello there! I'm Athena, and I'm so happy to help you today. What would you like to work on together? 🌸",

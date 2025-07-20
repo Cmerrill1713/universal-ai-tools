@@ -11,38 +11,32 @@ export { SearXNGClient } from './searxng-client';
 // Re-export types from individual modules
 export type {
   KnowledgeItem,
-  KnowledgeSearchOptions,
-  KnowledgeUpdateOptions,
-  KnowledgeVerificationResult,
-  KnowledgeQueryOptions,
-  KnowledgeTag,
-  KnowledgeScore,
-  KnowledgeMetadata
-} from './knowledge-manager';
+  KnowledgeQuery,
+  KnowledgeType,
+  KnowledgeManagerConfig
+} from './dspy-knowledge-manager';
 
 export type {
   ExtractionResult,
-  ExtractionOptions,
-  ExtractorConfig,
-  ContentPattern,
-  ExtractionRule,
-  DataValidator,
-  ExtractionContext
+  ExtractionContext,
+  ExtractionPattern,
+  ExtractionField,
+  ValidationRule,
+  PatternEvolutionData,
+  PatternAdaptation,
+  PatternPerformanceMetrics,
+  PatternLearningEvent,
+  ExtractedData
 } from './intelligent-extractor';
 
 export type {
   ResearchQuery,
   ResearchResult,
-  ResearchOptions,
-  ResearchSource,
-  ResearchContext,
-  ResearchStrategy
+  OnlineResearchAgentConfig
 } from './online-research-agent';
 
 export type {
-  SearchQuery,
-  SearchResult,
-  SearchEngine,
-  SearchOptions,
-  SearchMetadata
+  SearXNGSearchParams,
+  SearXNGResult,
+  SearXNGResponse
 } from './searxng-client';

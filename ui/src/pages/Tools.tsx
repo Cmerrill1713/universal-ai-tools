@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { 
-  Wrench, Code, Search, Database, Download, Upload, Plus, Play, 
-  Loader, AlertCircle, Settings, Clock, CheckCircle, XCircle,
-  Save, X, Edit
+  Wrench, Code, Search, Database, Plus, Play, 
+  Loader, AlertCircle, Clock, CheckCircle, XCircle,
+  Save, X
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -20,17 +20,6 @@ interface Tool {
   is_active: boolean;
   created_at: string;
   created_by: string;
-}
-
-interface ToolExecution {
-  id: string;
-  tool_name: string;
-  input_params: any;
-  output_result?: any;
-  execution_time_ms: number;
-  status: 'success' | 'error' | 'pending';
-  error_message?: string;
-  created_at: string;
 }
 
 export function Tools() {
@@ -55,7 +44,7 @@ export function Tools() {
     queryFn: async () => {
       const response = await fetch('http://localhost:9999/api/tools', {
         headers: {
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
           'X-AI-Service': 'local-ui',
         },
       });
@@ -81,7 +70,7 @@ export function Tools() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
           'X-AI-Service': 'local-ui',
         },
         body,
@@ -98,7 +87,7 @@ export function Tools() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
           'X-AI-Service': 'local-ui',
         },
         body: JSON.stringify({

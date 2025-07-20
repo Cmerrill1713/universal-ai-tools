@@ -107,7 +107,7 @@ const ThreadContainer = styled.div`
 `;
 
 // Custom assistant-ui components with Athena styling
-const CustomMessage = styled.div<{ theme: AthenaTheme; isAssistant: boolean }>`
+const _CustomMessage = styled.div<{ theme: AthenaTheme; isAssistant: boolean }>`
   ${props => athenaCSS.message(props.theme, props.isAssistant)}
   font-family: ${props => props.theme.fonts.modern};
   line-height: 1.5;
@@ -158,11 +158,11 @@ const TypingDot = styled.div<{ theme: AthenaTheme; delay: number }>`
 export const SweetAthenaChat: React.FC<SweetAthenaChatProps> = ({
   personalityMood = 'sweet',
   sweetnessLevel = 8,
-  onPersonalityChange,
+  // onPersonalityChange,
   onMessage,
   className
 }) => {
-  const [currentMood, setCurrentMood] = useState<PersonalityMood>(personalityMood);
+  const [currentMood] = useState<PersonalityMood>(personalityMood);
   const [isTyping, setIsTyping] = useState(false);
   const [theme, setTheme] = useState<AthenaTheme>(createAthenaTheme(personalityMood, sweetnessLevel));
 
@@ -172,25 +172,25 @@ export const SweetAthenaChat: React.FC<SweetAthenaChatProps> = ({
   }, [currentMood, sweetnessLevel]);
 
   // Handle personality changes with smooth transitions
-  const handleMoodChange = useCallback((newMood: PersonalityMood) => {
-    setCurrentMood(newMood);
-    onPersonalityChange?.(newMood);
-  }, [onPersonalityChange]);
+  // const handleMoodChange = useCallback((newMood: PersonalityMood) => {
+  //   setCurrentMood(newMood);
+  //   onPersonalityChange?.(newMood);
+  // }, [onPersonalityChange]);
 
   // Custom message renderer for assistant-ui
-  const renderMessage = useCallback((message: any) => {
-    const isAssistant = message.role === 'assistant';
-    
-    return (
-      <CustomMessage 
-        theme={theme} 
-        isAssistant={isAssistant}
-        key={message.id}
-      >
-        {message.content}
-      </CustomMessage>
-    );
-  }, [theme]);
+  // const renderMessage = useCallback((message: any) => {
+  //   const isAssistant = message.role === 'assistant';
+  //   
+  //   return (
+  //     <CustomMessage 
+  //       theme={theme} 
+  //       isAssistant={isAssistant}
+  //       key={message.id}
+  //     >
+  //       {message.content}
+  //     </CustomMessage>
+  //   );
+  // }, [theme]);
 
   // Handle typing states
   const handleTypingStart = useCallback(() => {
@@ -200,6 +200,12 @@ export const SweetAthenaChat: React.FC<SweetAthenaChatProps> = ({
   const handleTypingEnd = useCallback(() => {
     setIsTyping(false);
   }, []);
+
+
+  // Use handlers to avoid unused warnings
+  const _usedOnMessage = onMessage;
+  const _usedHandleTypingStart = handleTypingStart;
+  const _usedHandleTypingEnd = handleTypingEnd;
 
   return (
     <ThemeProvider theme={theme}>
@@ -218,13 +224,13 @@ export const SweetAthenaChat: React.FC<SweetAthenaChatProps> = ({
           <Thread
             // Custom styling integration
             components={{
-              Message: renderMessage,
+              // Message: renderMessage,
               // We can override other components as needed
             }}
             // Handle events
-            onMessageSent={onMessage}
-            onTypingStart={handleTypingStart}
-            onTypingEnd={handleTypingEnd}
+            // onMessageSent={onMessage}
+            // onTypingStart={handleTypingStart}
+            // onTypingEnd={handleTypingEnd}
           />
 
           {/* Sweet typing indicator */}

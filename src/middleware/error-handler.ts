@@ -1,5 +1,5 @@
-import type { Request, Response, NextFunction } from 'express';
-import { logger } from '../utils/logger';
+import type { NextFunction, Request, Response } from 'express';
+import { LogContext, logger } from '../utils/enhanced-logger';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -39,7 +39,7 @@ export function errorHandler(
   next: NextFunction
 ) {
   // Log the error
-  logger.error('Request error:', {
+  logger.error('Request error', LogContext.API, {
     error: {
       message: err.message,
       code: err.code,
@@ -147,7 +147,7 @@ export function validateRequest(schema: any) {
 }
 
 // Timeout middleware
-export function timeoutMiddleware(timeoutMs: number = 30000) {
+export function timeoutMiddleware(timeoutMs = 30000) {
   return (req: Request, res: Response, next: NextFunction) => {
     const timeout = setTimeout(() => {
       if (!res.headersSent) {

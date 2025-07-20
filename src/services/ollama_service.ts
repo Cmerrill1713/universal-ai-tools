@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import { logger } from '../utils/logger';
 import { metalOptimizer } from '../utils/metal_optimizer';
+import { CircuitBreaker, circuitBreaker } from './circuit-breaker';
 
 export interface OllamaModel {
   name: string;
@@ -63,6 +64,11 @@ export class OllamaService {
     this.checkAvailability();
   }
 
+  @CircuitBreaker({ 
+    timeout: 5000, 
+    errorThresholdPercentage: 30,
+    fallback: () => false 
+  })
   async checkAvailability(): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/api/version`);
@@ -74,84 +80,93 @@ export class OllamaService {
       return this.isAvailable;
     } catch (error) {
       this.isAvailable = false;
-      return false;
+      throw error; // Re-throw for circuit breaker
     }
   }
 
   async listModels(): Promise<OllamaModel[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
-      if (!response.ok) throw new Error('Failed to list models');
-      
-      const data = await response.json() as any;
-      return data.models || [];
-    } catch (error) {
-      logger.error('Failed to list Ollama models:', error);
-      return [];
-    }
+    return circuitBreaker.httpRequest(
+      'ollama-list-models',
+      {
+        url: `${this.baseUrl}/api/tags`,
+        method: 'GET'
+      },
+      {
+        timeout: 5000,
+        fallback: () => {
+          logger.warn('Using cached model list due to circuit breaker');
+          return { models: [] };
+        }
+      }
+    ).then(data => data.models || []);
   }
 
   async generate(
     request: OllamaGenerateRequest,
     onStream?: (chunk: any) => void
   ): Promise<any> {
-    try {
-      // Apply Metal optimizations to request
-      if (metalOptimizer.getStatus().isAppleSilicon) {
-        request.options = {
-          ...request.options,
-          num_gpu: this.metalSettings.OLLAMA_NUM_GPU,
-          num_thread: this.metalSettings.OLLAMA_NUM_THREAD,
-          num_batch: this.metalSettings.OLLAMA_BATCH_SIZE,
-        };
-      }
+    // Apply Metal optimizations to request
+    if (metalOptimizer.getStatus().isAppleSilicon) {
+      request.options = {
+        ...request.options,
+        num_gpu: this.metalSettings.OLLAMA_NUM_GPU,
+        num_thread: this.metalSettings.OLLAMA_NUM_THREAD,
+        num_batch: this.metalSettings.OLLAMA_BATCH_SIZE,
+      };
+    }
 
-      const response = await fetch(`${this.baseUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-      });
+    return circuitBreaker.modelInference(
+      `ollama-${request.model}`,
+      async () => {
+        try {
+          const response = await fetch(`${this.baseUrl}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request),
+          });
 
-      if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.statusText}`);
-      }
+          if (!response.ok) {
+            throw new Error(`Ollama API error: ${response.statusText}`);
+          }
 
-      if (request.stream && onStream) {
-        // Handle streaming response
-        const body = response.body as ReadableStream<Uint8Array> | null;
-        if (!body) throw new Error('No response body');
-        const reader = body.getReader();
+          if (request.stream && onStream) {
+            // Handle streaming response
+            const body = response.body as ReadableStream<Uint8Array> | null;
+            if (!body) throw new Error('No response body');
+            const reader = body.getReader();
 
-        const decoder = new TextDecoder();
-        let buffer = '';
+            const decoder = new TextDecoder();
+            let buffer = '';
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
 
-          for (const line of lines) {
-            if (line.trim()) {
-              try {
-                const chunk = JSON.parse(line);
-                onStream(chunk);
-              } catch (e) {
-                // Skip invalid JSON
+              for (const line of lines) {
+                if (line.trim()) {
+                  try {
+                    const chunk = JSON.parse(line);
+                    onStream(chunk);
+                  } catch (_e) {
+                    // Skip invalid JSON
+                  }
+                }
               }
             }
+          } else {
+            // Non-streaming response
+            return await response.json();
           }
+        } catch (error) {
+          logger.error('Ollama generation error:', error);
+          throw error;
         }
-      } else {
-        // Non-streaming response
-        return await response.json();
       }
-    } catch (error) {
-      logger.error('Ollama generation error:', error);
-      throw error;
-    }
+    );
   }
 
   async embeddings(request: {
@@ -213,7 +228,7 @@ export class OllamaService {
               if (progress.status === 'success') {
                 logger.info(`Model ${modelName} pulled successfully`);
               }
-            } catch (e) {
+            } catch (_e) {
               // Skip invalid JSON
             }
           }
@@ -272,7 +287,7 @@ export class OllamaService {
         metalOptimized: metalOptimizer.getStatus().metalSupported,
         resourceUsage,
       };
-    } catch (error) {
+    } catch (_error) {
       return { status: 'unhealthy' };
     }
   }

@@ -1,7 +1,7 @@
 import { logger } from '../../s../../utils/logger';
-import { BrowserAgent } from './agent-pool';
-import { Page } from 'puppeteer';
-import { Page as PlaywrightPage } from 'playwright';
+import type { BrowserAgent } from './agent-pool';
+import type { Page } from 'puppeteer';
+import type { Page as PlaywrightPage } from 'playwright';
 import { EventEmitter } from 'events';
 
 export interface PerformanceMetrics {
@@ -142,7 +142,7 @@ export class PerformanceMonitor extends EventEmitter {
       
     } catch (error) {
       logger.error(`Performance measurement failed for agent ${agent.id}:`, error);
-      metrics.errors.push(error.message);
+      metrics.errors.push(error instanceof Error ? error.message : String(error));
       
       return {
         agentId: agent.id,
@@ -190,7 +190,7 @@ export class PerformanceMonitor extends EventEmitter {
         const page = agent.page as Page;
         
         // Collect performance metrics from the browser
-        const performanceMetrics = await page.evaluate(() => {
+        const performanceMetrics: any = await page.evaluate(() => {
           return new Promise((resolve) => {
             // Use Performance Observer API to collect Web Vitals
             const vitals: any = {};
@@ -219,7 +219,7 @@ export class PerformanceMonitor extends EventEmitter {
             // Get navigation timing
             const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
             if (navigation) {
-              vitals.timeToInteractive = navigation.domInteractive - navigation.navigationStart;
+              vitals.timeToInteractive = navigation.domInteractive - navigation.fetchStart;
             }
             
             // Get memory usage if available
@@ -249,7 +249,7 @@ export class PerformanceMonitor extends EventEmitter {
         const page = agent.page as PlaywrightPage;
         
         // Collect performance metrics from Playwright
-        const performanceMetrics = await page.evaluate(() => {
+        const performanceMetrics: any = await page.evaluate(() => {
           const vitals: any = {};
           
           // Get paint timings
@@ -263,7 +263,7 @@ export class PerformanceMonitor extends EventEmitter {
           // Get navigation timing
           const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
           if (navigation) {
-            vitals.timeToInteractive = navigation.domInteractive - navigation.navigationStart;
+            vitals.timeToInteractive = navigation.domInteractive - navigation.fetchStart;
           }
           
           // Get memory usage if available
@@ -287,7 +287,7 @@ export class PerformanceMonitor extends EventEmitter {
       }
     } catch (error) {
       logger.error('Failed to collect Web Vitals:', error);
-      metrics.errors.push(`Web Vitals collection failed: ${error.message}`);
+      metrics.errors.push(`Web Vitals collection failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -324,7 +324,7 @@ export class PerformanceMonitor extends EventEmitter {
       }
     } catch (error) {
       logger.error('Failed to collect memory usage:', error);
-      metrics.errors.push(`Memory usage collection failed: ${error.message}`);
+      metrics.errors.push(`Memory usage collection failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -407,7 +407,7 @@ export class PerformanceMonitor extends EventEmitter {
       }
     } catch (error) {
       logger.error('Failed to collect network metrics:', error);
-      metrics.errors.push(`Network metrics collection failed: ${error.message}`);
+      metrics.errors.push(`Network metrics collection failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -499,7 +499,7 @@ export class PerformanceMonitor extends EventEmitter {
       const apiStartTime = Date.now();
       await fetch(`${this.apiUrl}/api/stats`, {
         headers: {
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': process.env.DEV_API_KEY || '',
           'X-AI-Service': 'local-ui'
         }
       });
@@ -529,7 +529,7 @@ export class PerformanceMonitor extends EventEmitter {
       const apiStartTime = Date.now();
       await fetch(`${this.apiUrl}/api/stats`, {
         headers: {
-          'X-API-Key': 'local-dev-key',
+          'X-API-Key': process.env.DEV_API_KEY || '',
           'X-AI-Service': 'local-ui'
         }
       });
@@ -559,7 +559,7 @@ export class PerformanceMonitor extends EventEmitter {
         ui: { available: false, url: this.baseUrl },
         api: { available: false, responseTime: -1, url: this.apiUrl },
         overall: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

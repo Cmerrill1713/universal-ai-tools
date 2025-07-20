@@ -5,7 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
-import { logger } from '../utils/logger';
+import { logger, LogContext } from '../utils/enhanced-logger';
 
 export class SupabaseService {
   private static instance: SupabaseService;
@@ -58,7 +58,7 @@ export class SupabaseService {
 
       logger.info(`Context saved for user ${userId}`);
     } catch (error) {
-      logger.error('Failed to save context:', error);
+      logger.error('Failed to save context:', LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -81,7 +81,7 @@ export class SupabaseService {
 
       return data || [];
     } catch (error) {
-      logger.error('Failed to retrieve context:', error);
+      logger.error('Failed to retrieve context:', LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -109,7 +109,7 @@ export class SupabaseService {
 
       logger.info(`Memory saved: ${memory.type}`);
     } catch (error) {
-      logger.error('Failed to save memory:', error);
+      logger.error('Failed to save memory:', LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -137,7 +137,7 @@ export class SupabaseService {
 
       return data || [];
     } catch (error) {
-      logger.error('Failed to search memories:', error);
+      logger.error('Failed to search memories:', LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -163,7 +163,7 @@ export class SupabaseService {
 
       return data || [];
     } catch (error) {
-      logger.error(`Failed to query ${table}:`, error);
+      logger.error(`Failed to query ${table}:`, LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -185,7 +185,7 @@ export class SupabaseService {
 
       return insertedData;
     } catch (error) {
-      logger.error(`Failed to insert into ${table}:`, error);
+      logger.error(`Failed to insert into ${table}:`, LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -208,7 +208,7 @@ export class SupabaseService {
 
       return updatedData;
     } catch (error) {
-      logger.error(`Failed to update ${table}:`, error);
+      logger.error(`Failed to update ${table}:`, LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -229,8 +229,19 @@ export class SupabaseService {
 
       logger.info(`Deleted record ${id} from ${table}`);
     } catch (error) {
-      logger.error(`Failed to delete from ${table}:`, error);
+      logger.error(`Failed to delete from ${table}:`, LogContext.DATABASE, { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
+}
+
+// Export singleton instance for easy access
+export const supabase = SupabaseService.getInstance().client;
+
+// Export service instance
+export const supabaseService = SupabaseService.getInstance();
+
+// Export client factory function
+export function createSupabaseClient() {
+  return SupabaseService.getInstance().client;
 }
