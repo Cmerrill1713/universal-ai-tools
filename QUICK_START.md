@@ -3,12 +3,14 @@
 ## 🚀 Get Started in 5 Minutes
 
 ### 1. Prerequisites
+
 - Node.js 18+
 - PostgreSQL or Supabase account
 - Redis (optional)
 - Ollama (optional, for local models)
 
 ### 2. Installation
+
 ```bash
 # Clone repository
 git clone https://github.com/your-org/universal-ai-tools.git
@@ -23,6 +25,7 @@ cp .env.example .env
 ```
 
 ### 3. Configure Supabase
+
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
@@ -31,6 +34,7 @@ JWT_SECRET=your-secret-key
 ```
 
 ### 4. Initialize Database
+
 ```bash
 # Run database migrations
 npm run migrate
@@ -40,6 +44,7 @@ npm run scrape:supabase
 ```
 
 ### 5. Start Development
+
 ```bash
 # Start the server
 npm run dev
@@ -50,6 +55,7 @@ npm run dev
 ## 🎯 First API Call
 
 ### 1. Register Your Service
+
 ```bash
 curl -X POST http://localhost:3456/api/register \
   -H "Content-Type: application/json" \
@@ -68,6 +74,7 @@ curl -X POST http://localhost:3456/api/register \
 ```
 
 ### 2. Store a Memory
+
 ```bash
 curl -X POST http://localhost:3456/api/v1/memory \
   -H "X-API-Key: your-api-key" \
@@ -80,6 +87,7 @@ curl -X POST http://localhost:3456/api/v1/memory \
 ```
 
 ### 3. Search Memories
+
 ```bash
 curl -X POST http://localhost:3456/api/v1/memory/search \
   -H "X-API-Key: your-api-key" \
@@ -92,6 +100,7 @@ curl -X POST http://localhost:3456/api/v1/memory/search \
 ```
 
 ### 4. Chat with AI
+
 ```bash
 curl -X POST http://localhost:3456/api/v1/assistant/chat \
   -H "X-API-Key: your-api-key" \
@@ -106,18 +115,21 @@ curl -X POST http://localhost:3456/api/v1/assistant/chat \
 ## 📚 Key Features
 
 ### Memory Management
+
 - Store and retrieve contextual information
 - Semantic search capabilities
 - Automatic relevance scoring
 - Memory evolution and learning
 
 ### Multi-Model Support
+
 - OpenAI GPT models
 - Anthropic Claude
 - Local Ollama models
 - Custom model integration
 
 ### Supabase Integration
+
 - Database with RLS
 - Real-time subscriptions
 - Vector embeddings
@@ -126,6 +138,7 @@ curl -X POST http://localhost:3456/api/v1/assistant/chat \
 - Scheduled jobs
 
 ### API Features
+
 - RESTful endpoints
 - API versioning (/api/v1/)
 - WebSocket support
@@ -195,6 +208,7 @@ npm run type-check
 ## 🎉 Success!
 
 You now have a running Universal AI Tools service with:
+
 - ✅ Multi-model AI support
 - ✅ Advanced memory management
 - ✅ Supabase integration

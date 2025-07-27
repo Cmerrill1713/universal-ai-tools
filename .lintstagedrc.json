@@ -1,13 +1,14 @@
 {
   "*.{ts,tsx}": [
-    "eslint --fix",
+    "npx tsx scripts/auto-fix-syntax.ts",
+    "eslint --config .eslintrc.autofix.json --fix",
     "prettier --write"
   ],
   "*.{js,jsx}": [
-    "eslint --fix",
+    "npx tsx scripts/auto-fix-syntax.ts",
+    "eslint --config .eslintrc.autofix.json --fix",
     "prettier --write"
   ],
-  "*.{json,md,yml,yaml}": [
-    "prettier --write"
-  ]
+  "*.{json,md,yml,yaml}": ["prettier --write"],
+  "*.sql": ["prettier --write --parser sql"]
 }

@@ -1,0 +1,141 @@
+# Gitleaks configuration for universal-ai-tools project
+
+title = "Gitleaks config for universal-ai-tools"
+
+[extend]
+# Use the default config as a base
+useDefault = true
+
+# Allow list for project-specific patterns
+[allowlist]
+description = "Allow project-specific patterns"
+regexes = [
+    '''(password|secret|key|token)\s*[:=]\s*["\']?(test|demo|example|dummy|placeholder|changeme|your-.*|my-.*)["\']?''',
+    '''<[A-Z_]+>''',
+    '''\$\{[A-Z_]+\}''',
+    '''process\.env\.[A-Z_]+'''
+]
+paths = [
+    # Allow example and test files
+    '''.env.example''',
+    '''.env.test''',
+    '''.env.*.example''',
+    '''test/.*\.test\.(ts|js)''',
+    '''tests/.*\.test\.(ts|js)''',
+    '''__tests__/.*\.(ts|js)''',
+    
+    # Allow documentation
+    '''docs/.*\.md''',
+    '''README.*''',
+    '''CHANGELOG\.md''',
+    
+    # Allow configuration templates
+    '''docker-compose\..*\.yml''',
+    '''scripts/.*\.example''',
+    
+    # Build artifacts and dependencies
+    '''node_modules/.*''',
+    '''dist/.*''',
+    '''build/.*''',
+    '''.next/.*''',
+    '''ui/dist/.*''',
+    '''ui/build/.*''',
+    
+    # Python cache
+    '''__pycache__/.*''',
+    '''\.pyc$''',
+    
+    # IDE and editor files
+    '''\.vscode/.*''',
+    '''\.idea/.*''',
+    '''\.DS_Store''',
+    
+    # Temporary and backup files
+    '''.*\.backup\..*''',
+    '''.*\.bak$''',
+    '''.*\.tmp$''',
+    '''.*\.swp$''',
+    
+    # Archive folders
+    '''archive/.*''',
+    '''old/.*''',
+    '''legacy/.*'''
+]
+
+# Project-specific rules
+[[rules]]
+id = "supabase-anon-key"
+description = "Supabase anonymous key (safe to expose)"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+'''
+tags = ["key", "supabase"]
+[rules.allowlist]
+paths = [
+    '''.env.example''',
+    '''README.md''',
+    '''docs/.*'''
+]
+
+[[rules]]
+id = "localhost-urls"
+description = "Allow localhost URLs"
+regex = '''(https?://)?localhost(:[0-9]+)?'''
+tags = ["url"]
+[rules.allowlist]
+stopwords = ["localhost"]
+
+[[rules]]
+id = "internal-ports"
+description = "Allow internal port references"
+regex = '''(port|PORT)\s*[:=]\s*[0-9]{4,5}'''
+tags = ["port"]
+[rules.allowlist]
+regexes = [
+    '''(port|PORT)\s*[:=]\s*(3000|3001|5173|8080|8081|11434|1234|6379|5432|9876)'''
+]
+
+# Additional custom rules for AI/ML specific patterns
+[[rules]]
+id = "model-api-keys"
+description = "Detect AI model API keys"
+regex = '''(sk-|key-|api_key_|apikey_)(proj-)?[a-zA-Z0-9]{20,}'''
+tags = ["key", "ai"]
+
+[[rules]]
+id = "huggingface-tokens"
+description = "Detect HuggingFace API tokens"
+regex = '''hf_[a-zA-Z0-9]{30,}'''
+tags = ["key", "huggingface"]
+
+[[rules]]
+id = "jwt-secrets"
+description = "Detect JWT secrets in config"
+regex = '''(jwt_secret|JWT_SECRET|jwtSecret)\s*[:=]\s*["\']?[a-zA-Z0-9+/=]{16,}["\']?'''
+tags = ["secret", "jwt"]
+[rules.allowlist]
+regexes = [
+    '''(jwt_secret|JWT_SECRET|jwtSecret)\s*[:=]\s*["\']?(your-secret-key|change-this-secret|example-secret)["\']?'''
+]
+
+# Ignore certain file patterns completely
+[ignore]
+# Ignore build and dependency directories
+paths = [
+    '''node_modules''',
+    '''dist''',
+    '''build''',
+    '''.next''',
+    '''coverage''',
+    '''__pycache__''',
+    '''*.pyc''',
+    '''.git''',
+    '''.vscode''',
+    '''.idea'''
+]
+
+
+# Configuration for entropy checks
+[entropy]
+# Lower entropy threshold for shorter strings
+minLength = 20
+# Higher threshold for longer strings to reduce false positives
+threshold = 4.5

@@ -1,0 +1,297 @@
+/**;
+ * ONNX Runtime Integration for Universal LLM Orchestrator;
+ * Provides real ONNX model loading and inference capabilities;
+ */;
+
+import * as ort from 'onnxruntime-node';
+import * as path from 'path';
+import * as fs from 'fs/promises';
+import { logger } from '../../utils/enhanced-logger';
+export interface ONNXModelConfig {;
+  modelPath: string;
+  executionProviders?: string[];
+  graphOptimizationLevel?: 'disabled' | 'basic' | 'extended' | 'all';
+  enableCpuMemArena?: boolean;
+  enableMemPattern?: boolean;
+  interOpNumThreads?: number;
+  intraOpNumThreads?: number;
+;
+};
+
+export interface ONNXInferenceRequest {;
+  inputany;
+  inputNames?: string[];
+  outputNames?: string[];
+;
+};
+
+export interface ONNXInferenceResult {;
+  output: any;
+  outputShape?: number[];
+  inferenceTime: number;
+  metadata?: any;
+;
+};
+
+export class ONNXRuntime {;
+  private sessions: Map<string, ortInferenceSession> = new Map();
+  private modelConfigs: Map<string, ONNXModelConfig> = new Map();
+  /**;
+   * Load an ONNX model;
+   */;
+  async loadModel(modelId: string, config: ONNXModelConfig): Promise<void> {;
+    try {;
+      // Verify model file exists;
+      await fsaccess(configmodelPath);
+      loggerinfo(`Loading ONNX model: ${modelId} from ${configmodelPath}`);
+      // Create session options;
+      const sessionOptions: ortInferenceSessionSessionOptions = {;
+        executionProviders: configexecutionProviders || ['cpu'];
+        graphOptimizationLevel: configgraphOptimizationLevel || 'all';
+        enableCpuMemArena: configenableCpuMemArena ?? true;
+        enableMemPattern: configenableMemPattern ?? true;
+        executionMode: 'sequential';
+        logSeverityLevel: 2, // Warning level;
+      };
+      if (configinterOpNumThreads) {;
+        sessionOptionsinterOpNumThreads = configinterOpNumThreads;
+      };
+
+      if (configintraOpNumThreads) {;
+        sessionOptionsintraOpNumThreads = configintraOpNumThreads;
+      };
+
+      // Create inference session;
+      const session = await ortInferenceSessioncreate(configmodelPath, sessionOptions);
+      // Store session and config;
+      thissessionsset(modelId, session);
+      thismodelConfigsset(modelId, config);
+      // Log model information;
+      const { inputNames } = session;
+      const { outputNames } = session;
+      loggerinfo(`ONNX model ${modelId} loaded successfully:`);
+      loggerinfo(`  Inputs: ${inputNamesjoin(', ')}`);
+      loggerinfo(`  Outputs: ${outputNamesjoin(', ')}`);
+    } catch (error) {;
+      loggererror`Failed to load ONNX model ${modelId}:`, error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error);
+    };
+  };
+
+  /**;
+   * Run inference on an ONNX model;
+   */;
+  async runInference(modelId: string, requestONNXInferenceRequest): Promise<ONNXInferenceResult> {;
+    const session = thissessionsget(modelId);
+    if (!session) {;
+      throw new Error(`ONNX model ${modelId} not loaded`);
+    };
+
+    const startTime = Datenow();
+    try {;
+      // Prepare inputs;
+      const feeds = await thisprepareInputs(session, request;
+
+      // Run inference;
+      const results = await sessionrun(feeds);
+      // Process outputs;
+      const output = await thisprocessOutputs(results, requestoutputNames);
+      const inferenceTime = Datenow() - startTime;
+      loggerdebug(`ONNX inference completed for ${modelId} in ${inferenceTime}ms`);
+      return {;
+        output;
+        outputShape: thisgetOutputShape(results);
+        inferenceTime;
+        metadata: {;
+          modelId;
+          inputNames: sessioninputNames;
+          outputNames: sessionoutputNames;
+        ;
+};
+      };
+    } catch (error) {;
+      loggererror`ONNX inference failed for ${modelId}:`, error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error);
+    };
+  };
+
+  /**;
+   * Prepare inputs for ONNX model;
+   */;
+  private async prepareInputs(;
+    session: ortInferenceSession;
+    requestONNXInferenceRequest;
+  ): Promise<ortInferenceSessionOnnxValueMapType> {;
+    const feeds: ortInferenceSessionOnnxValueMapType = {};
+    if (requestinputNames && ArrayisArray(requestinput) {;
+      // Multiple named inputs;
+      requestinputNamesforEach((name, index) => {;
+        if (index < requestinputlength) {;
+          feeds[name] = thiscreateTensor(requestinputindex]);
+        };
+      });
+    } else if (sessioninputNameslength === 1) {;
+      // Single input;
+      feeds[sessioninputNames[0]] = thiscreateTensor(requestinput;
+    } else {;
+      // Try to match inputs automatically;
+      if (typeof requestinput=== 'object' && !ArrayisArray(requestinput) {;
+        // Input is an object with named fields;
+        for (const [key, value] of Objectentries(requestinput) {;
+          if (sessioninputNamesincludes(key)) {;
+            feeds[key] = thiscreateTensor(value);
+          };
+        };
+      } else {;
+        throw new Error('Unable to map inputs to model. Please provide inputNames.');
+      };
+    };
+
+    return feeds;
+  };
+
+  /**;
+   * Create ONNX tensor from _inputdata;
+   */;
+  private createTensor(data: any): ortTensor {;
+    // Handle different _inputtypes;
+    if (data instanceof ortTensor) {;
+      return data;
+    };
+
+    // Convert strings to token IDs (simplified - real implementation would use tokenizer);
+    if (typeof data === 'string') {;
+      const tokens = thissimpleTokenize(data);
+      return new ortTensor('int64', BigInt64Arrayfrom(tokensmap((t) => BigInt(t))), [;
+        1;
+        tokenslength;
+      ]);
+    };
+
+    // Handle numeric arrays;
+    if (ArrayisArray(data)) {;
+      if (dataevery((item) => typeof item === 'number')) {;
+        return new ortTensor('float32', Float32Arrayfrom(data), [datalength]);
+      };
+      // Handle nested arrays (2D+);
+      const flat = dataflat(Infinity);
+      const shape = thisinferShape(data);
+      return new ortTensor('float32', Float32Arrayfrom(flat), shape);
+    };
+
+    // Handle single numbers;
+    if (typeof data === 'number') {;
+      return new ortTensor('float32', Float32Arrayfrom([data]), [1]);
+    };
+
+    throw new Error(`Unsupported _inputtype: ${typeof data}`);
+  };
+
+  /**;
+   * Simple tokenization for text inputs;
+   */;
+  private simpleTokenize(text: string): number[] {;
+    // This is a very simple tokenizer - replace with proper tokenizer;
+    // for real text models;
+    const tokens = texttoLowerCase()split(/\s+/);
+    return tokensmap((token) => {;
+      // Simple hash function to convert words to IDs;
+      let hash = 0;
+      for (let i = 0; i < tokenlength; i++) {;
+        hash = (hash << 5) - hash + tokencharCodeAt(i);
+        hash = hash & hash; // Convert to 32-bit integer;
+      };
+      return Mathabs(hash) % 50000; // Vocab size limit;
+    });
+  };
+
+  /**;
+   * Infer tensor shape from nested array;
+   */;
+  private inferShape(arr: any[]): number[] {;
+    const shape: number[] = [];
+    let current = arr;
+    while (ArrayisArray(current)) {;
+      shapepush(currentlength);
+      current = current[0];
+    };
+
+    return shape;
+  };
+
+  /**;
+   * Process ONNX outputs;
+   */;
+  private async processOutputs(;
+    results: ortInferenceSessionOnnxValueMapType;
+    outputNames?: string[];
+  ): Promise<unknown> {;
+    const outputKeys = outputNames || Objectkeys(results);
+    if (outputKeyslength === 1) {;
+      // Single output;
+      const tensor = results[outputKeys[0]] as ortTensor;
+      return await tensorgetData();
+    };
+
+    // Multiple outputs;
+    const outputs: any = {};
+    for (const key of outputKeys) {;
+      if (results[key]) {;
+        const tensor = results[key] as ortTensor;
+        outputs[key] = await tensorgetData();
+      };
+    };
+
+    return outputs;
+  };
+
+  /**;
+   * Get output shape information;
+   */;
+  private getOutputShape(results: ortInferenceSessionOnnxValueMapType): number[] {;
+    const firstOutput = Objectvalues(results)[0] as ortTensor;
+    return firstOutput ? firstOutputdimsslice() : [];
+  };
+
+  /**;
+   * Unload a model to free memory;
+   */;
+  async unloadModel(modelId: string): Promise<void> {;
+    const session = thissessionsget(modelId);
+    if (session) {;
+      await sessionrelease();
+      thissessionsdelete(modelId);
+      thismodelConfigsdelete(modelId);
+      loggerinfo(`ONNX model ${modelId} unloaded`);
+    };
+  };
+
+  /**;
+   * Get loaded models;
+   */;
+  getLoadedModels(): string[] {;
+    return Arrayfrom(thissessionskeys());
+  };
+
+  /**;
+   * Get model metadata;
+   */;
+  getModelMetadata(modelId: string): any {;
+    const session = thissessionsget(modelId);
+    if (!session) {;
+      return null;
+    };
+
+    return {;
+      inputNames: sessioninputNames;
+      outputNames: sessionoutputNames;
+      // Additional metadata can be extracted if available;
+    ;
+};
+  };
+};
+
+// Singleton instance;
+export const onnxRuntime = new ONNXRuntime();
+// Export types;
+export type { ONNXRuntime };

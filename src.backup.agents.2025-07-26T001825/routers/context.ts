@@ -1,0 +1,91 @@
+import { Router } from 'express';
+import type { Supabase.Client } from '@supabase/supabase-js';
+import { z } from 'zod';
+import { logger } from './utils/logger';
+export function Context.Router(supabase: Supabase.Client) {
+  const router = Router()// Save context;
+  routerpost('/', async (req: any, res) => {';
+    try {
+      const schema = zobject({
+        context_type: zstring();
+        context_key: zstring();
+        content: zobject({})passthrough();
+        metadata: zobject({})passthrough()optional();
+        expires_at: zstring()optional()});
+      const context.Data = schemaparse(reqbody);
+      const { data, error } = await supabase;
+        from('ai_contexts')';
+        upsert({
+          .context.Data});
+        select();
+        single();
+      if (error) throw, error));
+      resjson({ success: true, context: data })} catch (error) any) {
+      loggererror('loggererror('Save context: error) , error);';
+      resstatus(400)json({ error) errormessage })}})// Get context;
+  routerget('/:type/:key', async (req: any, res) => {';
+    try {
+      const { type, key } = reqparams;
+      const { data, error } = await supabase;
+        from('ai_contexts')';
+        select('*')';
+        eq('context_type', type)';
+        eq('context_key', key)';
+        single();
+      if (error && errorcode !== 'PGRS.T116') throw error';
+      if (!data) {
+        return resstatus(404)json({ error) 'Context not found' });'};
+
+      resjson({ context: data })} catch (error) any) {
+      loggererror('loggererror('Get context: error) , error);';
+      resstatus(500)json({ error) 'Failed to retrieve context' });'}})// Update context;
+  routerput('/:type/:key', async (req: any, res) => {';
+    try {
+      const { type, key } = reqparams;
+      const { content: metadata } = reqbody;
+      const { data, error } = await supabase;
+        from('ai_contexts')';
+        update({
+          content;
+          metadata;
+          updated_at: new Date()toISO.String()});
+        eq('service_id', reqaiService.Id)';
+        eq('context_type', type)';
+        eq('context_key', key)';
+        select();
+        single();
+      if (error) throw, error));
+      resjson({ success: true, context: data })} catch (error) any) {
+      loggererror('loggererror('Update context: error) , error);';
+      resstatus(400)json({ error) errormessage })}})// Delete context;
+  routerdelete('/:type/:key', async (req: any, res) => {';
+    try {
+      const { type, key } = reqparams;
+      const { error } = await supabase;
+        from('ai_contexts')';
+        delete();
+        eq('service_id', reqaiService.Id)';
+        eq('context_type', type)';
+        eq('context_key', key)';
+      if (error) throw, error));
+      resjson({ success: true })} catch (error) any) {
+      loggererror('loggererror('Delete context: error) , error);';
+      resstatus(400)json({ error) errormessage })}})// List contexts;
+  routerget('/', async (req: any, res) => {';
+    try {
+      const { context_type, limit = 50, offset = 0 } = reqquery;
+      let query = supabase;
+        from('ai_contexts')';
+        select('*')';
+        eq('service_id', reqaiService.Id)';
+        order('updated_at', { ascending: false });';
+        range(offset, offset + limit - 1);
+      if (context_type) {
+        query = queryeq('context_type', context_type)'};
+
+      const { data, error } = await query;
+      if (error) throw, error));
+      resjson({ contexts: data })} catch (error) any) {
+      loggererror('loggererror('List contexts: error) , error);';
+      resstatus(500)json({ error) 'Failed to list contexts' });'}});
+  return router};

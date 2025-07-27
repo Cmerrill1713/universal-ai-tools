@@ -1,292 +1,602 @@
-import { Router, Request, Response } from 'express';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { logger, LogContext } from '../utils/enhanced-logger';
-import { 
-  sendSuccess, 
-  sendError, 
-  sendPaginatedSuccess,
-  createPaginationMeta,
-  apiResponseMiddleware 
-} from '../utils/api-response';
-import type { 
-  Memory, 
-  MemorySearchRequest, 
-  MemorySearchResponse,
-  ErrorCode 
-} from '../types';
+/**
+ * Memory Router - Manages AI memory storage and retrieval
+ * Provides CRUD operations for memories with vector search capabilities
+ */
 
-// Define extended Request interface
-interface AuthenticatedRequest extends Request {
-  user?: { id: string };
-  id?: string;
-  validatedData?: any;
-  aiService?: { service_name: string };
-  requestId?: string;
-  apiResponse?: any;
+import type { Request, Response } from 'express';
+import { NextFunction, Router } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import { LogContext, log } from '@/utils/logger';
+import { authenticate } from '@/middleware/auth';
+import { validateRequest } from '@/middleware/express-validator';
+import { body, param, query } from 'express-validator';
+
+interface Memory {
+  id: string;
+  userId: string;
+  content: string;
+  type: 'conversation' | 'knowledge' | 'context' | 'preference';
+  metadata: {
+    source?: string;
+    agentName?: string;
+    timestamp: string;
+    tags?: string[];
+    importance?: number;
+    accessCount: number;
+    lastAccessed?: string;
+  };
+  embedding?: number[]; // Vector embedding for similarity search
 }
 
-export function MemoryRouter(supabase: SupabaseClient) {
-  const router = Router();
-  
-  // Apply API response middleware to all routes
-  router.use(apiResponseMiddleware);
+interface SearchResult {
+  memory: Memory;
+  score: number;
+  distance?: number;
+}
 
-  // Enhanced validation middleware with proper error responses
-  const validateMemoryStore = (req: AuthenticatedRequest, res: Response, next: any) => {
-    const { content, metadata, tags } = req.body;
-    
-    if (!content) {
-      return sendError(res, 'MISSING_REQUIRED_FIELD' as ErrorCode, 'Content is required', 400);
-    }
-    
-    if (typeof content !== 'string' || content.length === 0) {
-      return sendError(res, 'INVALID_FORMAT' as ErrorCode, 'Content must be a non-empty string', 400);
-    }
-    
-    if (content.length > 10000) {
-      return sendError(res, 'REQUEST_TOO_LARGE' as ErrorCode, 'Content cannot exceed 10,000 characters', 413);
-    }
-    
-    req.validatedData = { 
-      content: content.trim(), 
-      metadata: metadata || {}, 
-      tags: Array.isArray(tags) ? tags : [] 
-    };
-    next();
-  };
+// In-memory storage for now (should be moved to vector database)
+const memories: Map<string, Memory> = new Map();
 
-  const validateMemorySearch = (req: AuthenticatedRequest, res: Response, next: any) => {
-    const { query, limit = 10, filters = {} } = req.body;
-    
-    if (!query) {
-      return sendError(res, 'MISSING_REQUIRED_FIELD' as ErrorCode, 'Query is required', 400);
-    }
-    
-    if (typeof query !== 'string' || query.trim().length === 0) {
-      return sendError(res, 'INVALID_FORMAT' as ErrorCode, 'Query must be a non-empty string', 400);
-    }
-    
-    const validatedLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
-    
-    req.validatedData = { 
-      query: query.trim(), 
-      limit: validatedLimit, 
-      filters: filters || {} 
-    };
-    next();
-  };
+const router = Router();
 
-  // Store memory
-  router.post('/', validateMemoryStore, async (req: AuthenticatedRequest, res: Response) => {
+/**
+ * GET /api/v1/memory
+ * List all memories for a user
+ */
+router.get(
+  '/',
+  authenticate,
+  [
+    query('type').optional().isIn(['conversation', 'knowledge', 'context', 'preference']),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be non-negative'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response) => {
     try {
-      const memoryData = req.validatedData;
+      const userId = (req as any).user?.id || 'anonymous';
+      const { type, limit = 50, offset = 0 } = req.query;
 
-      // Generate embedding if content is provided
-      let embedding: number[] | null = null;
-      try {
-        const embeddingResult = await supabase.rpc('ai_generate_embedding', {
-          content: memoryData.content
-        });
-        embedding = embeddingResult.data;
-      } catch (embeddingError) {
-        logger.warn('Failed to generate embedding, storing without it', LogContext.API, { 
-          error: embeddingError instanceof Error ? embeddingError.message : String(embeddingError),
-          content: memoryData.content.substring(0, 100) 
-        });
+      let userMemories = Array.from(memories.values()).filter((memory) => memory.userId === userId);
+
+      // Filter by type if specified
+      if (type) {
+        userMemories = userMemories.filter((memory) => memory.type === type);
       }
 
-      const { data, error } = await supabase
-        .from('memories')
-        .insert({
-          content: memoryData.content,
-          metadata: memoryData.metadata,
-          user_id: req.user?.id || 'anonymous',
-          embedding: embedding,
-          tags: memoryData.tags,
-          type: 'semantic',
-          importance: 0.5,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+      // Sort by timestamp (newest first)
+      userMemories.sort(
+        (a, b) =>
+          new Date(b.metadata.timestamp).getTime() - new Date(a.metadata.timestamp).getTime()
+      );
 
-      if (error) {
-        logger.error('Failed to store memory', LogContext.API, { error: error.message, memoryData });
-        return sendError(res, 'MEMORY_STORAGE_ERROR' as ErrorCode, 'Failed to store memory', 500, error.message);
-      }
-
-      // Transform to our Memory type
-      const memory: Memory = {
-        id: data.id,
-        type: data.type || 'semantic',
-        content: data.content,
-        metadata: data.metadata || {},
-        tags: data.tags || [],
-        importance: data.importance || 0.5,
-        timestamp: data.created_at,
-        embedding: data.embedding
-      };
-
-      logger.info('Memory stored successfully', LogContext.API, { 
-        memoryId: memory.id, 
-        contentLength: memory.content.length,
-        hasEmbedding: !!embedding 
-      });
-
-      sendSuccess(res, memory, 201);
-
-    } catch (error: any) {
-      logger.error('Store memory error', LogContext.API, { error: error.message, stack: error.stack });
-      sendError(res, 'INTERNAL_SERVER_ERROR' as ErrorCode, 'An unexpected error occurred while storing memory', 500, error.message);
-    }
-  });
-
-  // Retrieve memories
-  router.get('/', async (req: AuthenticatedRequest, res) => {
-    try {
-      const { memory_type, limit = 10, offset = 0, page = 1 } = req.query;
-      
-      // Calculate pagination
-      const pageNum = Math.max(1, parseInt(page as string) || 1);
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 10));
-      const offsetNum = (pageNum - 1) * limitNum;
-
-      let query = supabase
-        .from('memories')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(offsetNum, offsetNum + limitNum - 1);
-
-      if (memory_type) {
-        query = query.eq('type', memory_type);
-      }
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        logger.error('Failed to retrieve memories', LogContext.API, { error: error.message });
-        return sendError(res, 'MEMORY_STORAGE_ERROR' as ErrorCode, 'Failed to retrieve memories', 500, error.message);
-      }
-
-      // Transform to Memory type format
-      const memories: Memory[] = (data || []).map(item => ({
-        id: item.id,
-        type: item.type || 'semantic',
-        content: item.content,
-        metadata: item.metadata || {},
-        tags: item.tags || [],
-        importance: item.importance || 0.5,
-        timestamp: item.created_at,
-        embedding: item.embedding
-      }));
-
-      // Update access tracking (async, don't wait)
-      if (memories.length > 0) {
-        const memoryIds = memories.map(m => m.id);
-        // Fire and forget memory access tracking
-        (async () => {
-          try {
-            await supabase.rpc('update_memory_access', {
-              memory_ids: memoryIds,
-              service_name: req.aiService?.service_name || 'unknown'
-            });
-          } catch (error: any) {
-            logger.warn('Failed to update memory access tracking', LogContext.API, { error: error instanceof Error ? error.message : String(error) });
-          }
-        })();
-      }
-
-      const pagination = createPaginationMeta(pageNum, limitNum, count || 0);
-      
-      logger.info('Memories retrieved successfully', LogContext.API, { 
-        count: memories.length, 
-        totalCount: count,
-        page: pageNum 
-      });
-
-      sendPaginatedSuccess(res, memories, pagination);
-
-    } catch (error: any) {
-      logger.error('Retrieve memories error', LogContext.API, { error: error.message, stack: error.stack });
-      sendError(res, 'INTERNAL_SERVER_ERROR' as ErrorCode, 'An unexpected error occurred while retrieving memories', 500, error.message);
-    }
-  });
-
-  // Search memories
-  router.post('/search', validateMemorySearch, async (req: AuthenticatedRequest, res) => {
-    const startTime = Date.now();
-    try {
-      const searchParams = req.validatedData;
-
-      // Generate embedding for the query
-      const { data: embedding } = await supabase.rpc('ai_generate_embedding', {
-        content: searchParams.query
-      });
-
-      // Perform vector search
-      const { data, error } = await supabase.rpc('search_memories', {
-        query_embedding: embedding,
-        match_threshold: 0.7,
-        match_count: searchParams.limit,
-        filter: searchParams.filters
-      });
-
-      if (error) throw error;
+      // Apply pagination
+      const paginatedMemories = userMemories.slice(Number(offset), Number(offset) + Number(limit));
 
       res.json({
         success: true,
         data: {
-          results: data,
-          count: data.length,
-          query: searchParams.query
+          memories: paginatedMemories.map((memory) => ({
+            id: memory.id,
+            content: memory.content,
+            type: memory.type,
+            metadata: memory.metadata,
+          })),
+          pagination: {
+            total: userMemories.length,
+            limit: Number(limit),
+            offset: Number(offset),
+            hasMore: Number(offset) + Number(limit) < userMemories.length,
+          },
         },
         metadata: {
-          requestId: req.id,
           timestamp: new Date().toISOString(),
-          version: '1.0.0',
-          processingTime: Date.now() - startTime
-        }
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
       });
-    } catch (error: any) {
-      logger.error('Search memories error:', LogContext.API, { error: error instanceof Error ? error.message : String(error) });
-      res.status(400).json({
+    } catch (error) {
+      log.error('Failed to list memories', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'MEMORY_LIST_ERROR',
+          message: 'Failed to retrieve memories',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/v1/memory/:id
+ * Get a specific memory
+ */
+router.get(
+  '/:id',
+  authenticate,
+  [param('id').isUUID().withMessage('Invalid memory ID')],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.id || 'anonymous';
+
+      const memory = memories.get(id);
+      if (!memory) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'MEMORY_NOT_FOUND',
+            message: 'Memory not found',
+          },
+        });
+      }
+
+      // Check authorization
+      if (memory.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'You do not have access to this memory',
+          },
+        });
+      }
+
+      // Update access metadata
+      memory.metadata.accessCount++;
+      memory.metadata.lastAccessed = new Date().toISOString();
+
+      res.json({
+        success: true,
+        data: {
+          id: memory.id,
+          content: memory.content,
+          type: memory.type,
+          metadata: memory.metadata,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Failed to get memory', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+        memoryId: req.params.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'MEMORY_GET_ERROR',
+          message: 'Failed to retrieve memory',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/memory
+ * Create a new memory
+ */
+router.post(
+  '/',
+  authenticate,
+  [
+    body('content').isString().withMessage('Content is required'),
+    body('type')
+      .isIn(['conversation', 'knowledge', 'context', 'preference'])
+      .withMessage('Invalid memory type'),
+    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
+    body('tags').optional().isArray().withMessage('Tags must be an array'),
+    body('importance')
+      .optional()
+      .isFloat({ min: 0, max: 1 })
+      .withMessage('Importance must be between 0 and 1'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id || 'anonymous';
+      const { content, type, metadata = {}, tags = [], importance = 0.5 } = req.body;
+
+      const memory: Memory = {
+        id: uuidv4(),
+        userId,
+        content,
+        type,
+        metadata: {
+          ...metadata,
+          timestamp: new Date().toISOString(),
+          tags,
+          importance,
+          accessCount: 0,
+        },
+      };
+
+      // TODO: Generate vector embedding for the content
+      // memory.embedding = await generateEmbedding(content);
+
+      memories.set(memory.id, memory);
+
+      log.info('Memory created', LogContext.API, {
+        memoryId: memory.id,
+        type: memory.type,
+        userId,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          id: memory.id,
+          message: 'Memory created successfully',
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Failed to create memory', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'MEMORY_CREATE_ERROR',
+          message: 'Failed to create memory',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * PUT /api/v1/memory/:id
+ * Update a memory
+ */
+router.put(
+  '/:id',
+  authenticate,
+  [
+    param('id').isUUID().withMessage('Invalid memory ID'),
+    body('content').optional().isString().withMessage('Content must be a string'),
+    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
+    body('tags').optional().isArray().withMessage('Tags must be an array'),
+    body('importance')
+      .optional()
+      .isFloat({ min: 0, max: 1 })
+      .withMessage('Importance must be between 0 and 1'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.id || 'anonymous';
+      const updates = req.body;
+
+      const memory = memories.get(id);
+      if (!memory) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'MEMORY_NOT_FOUND',
+            message: 'Memory not found',
+          },
+        });
+      }
+
+      // Check authorization
+      if (memory.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'You do not have access to this memory',
+          },
+        });
+      }
+
+      // Update memory
+      if (updates.content) {
+        memory.content = updates.content;
+        // TODO: Regenerate embedding
+        // memory.embedding = await generateEmbedding(updates.content);
+      }
+
+      if (updates.metadata) {
+        memory.metadata = { ...memory.metadata, ...updates.metadata };
+      }
+
+      if (updates.tags) {
+        memory.metadata.tags = updates.tags;
+      }
+
+      if (updates.importance !== undefined) {
+        memory.metadata.importance = updates.importance;
+      }
+
+      log.info('Memory updated', LogContext.API, {
+        memoryId: id,
+        userId,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          id: memory.id,
+          message: 'Memory updated successfully',
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Failed to update memory', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+        memoryId: req.params.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'MEMORY_UPDATE_ERROR',
+          message: 'Failed to update memory',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /api/v1/memory/:id
+ * Delete a memory
+ */
+router.delete(
+  '/:id',
+  authenticate,
+  [param('id').isUUID().withMessage('Invalid memory ID')],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?.id || 'anonymous';
+
+      const memory = memories.get(id);
+      if (!memory) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'MEMORY_NOT_FOUND',
+            message: 'Memory not found',
+          },
+        });
+      }
+
+      // Check authorization
+      if (memory.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'You do not have access to this memory',
+          },
+        });
+      }
+
+      memories.delete(id);
+
+      log.info('Memory deleted', LogContext.API, {
+        memoryId: id,
+        userId,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          message: 'Memory deleted successfully',
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Failed to delete memory', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+        memoryId: req.params.id,
+      });
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'MEMORY_DELETE_ERROR',
+          message: 'Failed to delete memory',
+        },
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/memory/search
+ * Search memories by content similarity
+ */
+router.post(
+  '/search',
+  authenticate,
+  [
+    body('query').isString().withMessage('Query is required'),
+    body('limit')
+      .optional()
+      .isInt({ min: 1, max: 50 })
+      .withMessage('Limit must be between 1 and 50'),
+    body('threshold')
+      .optional()
+      .isFloat({ min: 0, max: 1 })
+      .withMessage('Threshold must be between 0 and 1'),
+    body('types').optional().isArray().withMessage('Types must be an array'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id || 'anonymous';
+      const { query, limit = 10, threshold = 0.7, types = [] } = req.body;
+
+      // Get user memories
+      let userMemories = Array.from(memories.values()).filter((memory) => memory.userId === userId);
+
+      // Filter by types if specified
+      if (types.length > 0) {
+        userMemories = userMemories.filter((memory) => types.includes(memory.type));
+      }
+
+      // TODO: Implement actual vector similarity search
+      // For now, do simple text matching
+      const searchResults: SearchResult[] = userMemories
+        .map((memory) => {
+          const content = memory.content.toLowerCase();
+          const searchQuery = query.toLowerCase();
+          const words = searchQuery.split(' ');
+
+          // Calculate simple relevance score
+          let score = 0;
+          for (const word of words) {
+            if (content.includes(word)) {
+              score += 1 / words.length;
+            }
+          }
+
+          return {
+            memory,
+            score,
+            distance: 1 - score, // Convert to distance metric
+          };
+        })
+        .filter((result) => result.score >= threshold)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+      res.json({
+        success: true,
+        data: {
+          results: searchResults.map((result) => ({
+            memory: {
+              id: result.memory.id,
+              content: result.memory.content,
+              type: result.memory.type,
+              metadata: result.memory.metadata,
+            },
+            score: result.score,
+            distance: result.distance,
+          })),
+          query,
+          resultsFound: searchResults.length,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Memory search failed', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      res.status(500).json({
         success: false,
         error: {
           code: 'MEMORY_SEARCH_ERROR',
-          message: error?.message || 'Unknown error',
-          details: error
+          message: 'Failed to search memories',
         },
-        metadata: {
-          requestId: req.id,
-          timestamp: new Date().toISOString(),
-          version: '1.0.0',
-          processingTime: Date.now() - startTime
-        }
       });
     }
-  });
+  }
+);
 
-  // Update memory importance
-  router.put('/:id/importance', async (req: AuthenticatedRequest, res) => {
+/**
+ * POST /api/v1/memory/bulk
+ * Create multiple memories at once
+ */
+router.post(
+  '/bulk',
+  authenticate,
+  [
+    body('memories')
+      .isArray({ min: 1, max: 100 })
+      .withMessage('Memories array is required (1-100 items)'),
+    body('memories.*.content').isString().withMessage('Each memory must have content'),
+    body('memories.*.type')
+      .isIn(['conversation', 'knowledge', 'context', 'preference'])
+      .withMessage('Each memory must have a valid type'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
-      const { importance } = req.body;
+      const userId = (req as any).user?.id || 'anonymous';
+      const { memories: memoryData } = req.body;
 
-      const { data, error } = await supabase
-        .from('ai_memories')
-        .update({ importance })
-        .eq('id', id)
-        .select()
-        .single();
+      const createdMemories: Memory[] = [];
 
-      if (error) throw error;
+      for (const data of memoryData) {
+        const memory: Memory = {
+          id: uuidv4(),
+          userId,
+          content: data.content,
+          type: data.type,
+          metadata: {
+            ...data.metadata,
+            timestamp: new Date().toISOString(),
+            tags: data.tags || [],
+            importance: data.importance || 0.5,
+            accessCount: 0,
+          },
+        };
 
-      res.json({ success: true, memory: data });
-    } catch (error: any) {
-      logger.error('Update memory importance error:', LogContext.API, { error: error instanceof Error ? error.message : String(error) });
-      res.status(400).json({ error: error?.message || 'Failed to update memory importance' });
+        memories.set(memory.id, memory);
+        createdMemories.push(memory);
+      }
+
+      log.info('Bulk memories created', LogContext.API, {
+        count: createdMemories.length,
+        userId,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          created: createdMemories.length,
+          memories: createdMemories.map((m) => ({ id: m.id, type: m.type })),
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Failed to create bulk memories', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'MEMORY_BULK_ERROR',
+          message: 'Failed to create memories',
+        },
+      });
     }
-  });
+  }
+);
 
-  return router;
-}
+export default router;

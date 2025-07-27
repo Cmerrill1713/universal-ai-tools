@@ -19,19 +19,19 @@ await telemetryService.initialize({
   enableConsoleExporter: true,
   enableJaeger: true,
   enableOTLP: true,
-  samplingRate: 1.0
+  samplingRate: 1.0,
 });
 
 // Middleware to generate traces
 app.use((req, res, next) => {
   const span = telemetryService.getTracer().startSpan(`HTTP ${req.method} ${req.path}`);
-  
+
   // Record HTTP metrics
   const startTime = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - startTime;
-    
+
     // Record metrics
     metricsCollector.recordHttpRequest(
       req.method,
@@ -42,12 +42,12 @@ app.use((req, res, next) => {
       parseInt(res.get('content-length') || '0'),
       'test-service'
     );
-    
+
     // Complete span
     span.setStatus({ code: SpanStatusCode.OK });
     span.end();
   });
-  
+
   next();
 });
 
@@ -57,7 +57,7 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'universal-ai-tools-test',
-    version: '1.0.0'
+    version: '1.0.0',
   });
 });
 
@@ -69,10 +69,10 @@ app.get('/api/health/detailed', (req, res) => {
     services: {
       telemetry: { status: 'healthy', message: 'Telemetry active' },
       metrics: { status: 'healthy', message: 'Metrics collection active' },
-      tracing: { status: 'healthy', message: 'Tracing active' }
+      tracing: { status: 'healthy', message: 'Tracing active' },
     },
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
   });
 });
 
@@ -100,7 +100,7 @@ app.post('/api/sweet-athena/interact', (req, res) => {
   const sessionId = 'test-session';
   const responseTime = Math.random() * 1000 + 100;
   const sweetnessLevel = Math.floor(Math.random() * 10) + 1;
-  
+
   // Record metrics
   metricsCollector.recordAthenaInteraction(
     interactionType,
@@ -111,12 +111,12 @@ app.post('/api/sweet-athena/interact', (req, res) => {
     sweetnessLevel,
     'test-model'
   );
-  
+
   res.json({
     response: `Sweet Athena says hello! (Sweetness: ${sweetnessLevel})`,
     interactionType,
     mood,
-    responseTime: responseTime + 'ms'
+    responseTime: responseTime + 'ms',
   });
 });
 
@@ -126,7 +126,7 @@ app.post('/api/memory/query', express.json(), (req, res) => {
   const memoryType = 'episodic';
   const duration = Math.random() * 500 + 50;
   const accuracy = Math.random();
-  
+
   // Record metrics
   metricsCollector.recordMemoryOperation(
     operationType,
@@ -135,11 +135,11 @@ app.post('/api/memory/query', express.json(), (req, res) => {
     duration,
     accuracy
   );
-  
+
   res.json({
     results: ['Test memory result 1', 'Test memory result 2'],
     accuracy: accuracy.toFixed(3),
-    duration: duration + 'ms'
+    duration: duration + 'ms',
   });
 });
 
@@ -151,7 +151,7 @@ app.post('/api/llm/chat', express.json(), (req, res) => {
   const inferenceTime = Math.random() * 2000 + 200;
   const inputTokens = Math.floor(Math.random() * 100) + 10;
   const outputTokens = Math.floor(Math.random() * 200) + 20;
-  
+
   // Record metrics
   metricsCollector.recordAiModelInference(
     modelName,
@@ -161,20 +161,20 @@ app.post('/api/llm/chat', express.json(), (req, res) => {
     inputTokens,
     outputTokens
   );
-  
+
   res.json({
     response: 'This is a test response from the AI model.',
     model: modelName,
     inputTokens,
     outputTokens,
-    inferenceTime: inferenceTime + 'ms'
+    inferenceTime: inferenceTime + 'ms',
   });
 });
 
 // Error simulation endpoint
 app.get('/api/test/error', (req, res) => {
   const span = telemetryService.getTracer().startSpan('Test Error');
-  
+
   try {
     throw new Error('Test error for monitoring validation');
   } catch (error) {
@@ -194,7 +194,7 @@ app.listen(PORT, () => {
   console.log(`🔍 Jaeger UI: http://localhost:16686`);
   console.log(`📈 Prometheus: http://localhost:9090`);
   console.log(`📊 Grafana: http://localhost:3003`);
-  
+
   // Generate some initial test data
   generateTestTraffic();
 });
@@ -206,27 +206,30 @@ function generateTestTraffic() {
     '/api/health/detailed',
     '/api/sweet-athena/interact',
     '/api/memory/query',
-    '/api/llm/chat'
+    '/api/llm/chat',
   ];
-  
+
   setInterval(() => {
     const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
-    const method = endpoint.includes('interact') || endpoint.includes('query') || endpoint.includes('chat') ? 'POST' : 'GET';
-    
-    import('axios').then(axios => {
+    const method =
+      endpoint.includes('interact') || endpoint.includes('query') || endpoint.includes('chat')
+        ? 'POST'
+        : 'GET';
+
+    import('axios').then((axios) => {
       const config = {
         method,
         url: `http://localhost:${PORT}${endpoint}`,
         headers: {
           'Content-Type': 'application/json',
-          'X-Test-Traffic': 'true'
-        }
+          'X-Test-Traffic': 'true',
+        },
       };
-      
+
       if (method === 'POST') {
         config.data = { test: true, message: 'Test request' };
       }
-      
+
       axios.default(config).catch(() => {}); // Ignore errors for test traffic
     });
   }, 2000); // Generate request every 2 seconds

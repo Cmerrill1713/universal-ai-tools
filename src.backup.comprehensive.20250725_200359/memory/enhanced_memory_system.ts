@@ -1,0 +1,941 @@
+/**
+ * Enhanced Memory System with Vector Search* Integrates Supabase pgvector for semantic memory capabilities*/
+
+import type { Supabase.Client } from '@supabase/supabase-js';
+import type { Logger } from 'winston';
+import type { Embedding.Config } from './production_embedding_service';
+import { Production.Embedding.Service } from './production_embedding_service';
+import type { Ollama.Embedding.Config } from './ollama_embedding_service';
+import { Ollama.Embedding.Service, getOllama.Embedding.Service } from './ollama_embedding_service';
+import type { Memory.Cache.System } from './memory_cache_system';
+import { get.Cache.System } from './memory_cache_system';
+import type { Contextual.Memory.Enricher } from './contextual_memory_enricher';
+import { get.Memory.Enricher } from './contextual_memory_enricher';
+import type { MultiStage.Search.Options, Search.Metrics } from './multi_stage_search';
+import { MultiStage.Search.System } from './multi_stage_search';
+import type {
+  Access.Pattern.Learner;
+  Learning.Insights;
+  Utility.Score} from './access_pattern_learner';
+import { getAccess.Pattern.Learner } from './access_pattern_learner';
+export interface Memory.Search.Options {
+  query?: string;
+  embedding?: number[];
+  similarity.Threshold?: number;
+  max.Results?: number;
+  category?: string;
+  agent.Filter?: string;
+  time.Range?: {
+    start: Date,
+    end: Date,
+  }// Multi-stage search options;
+  enable.Multi.Stage?: boolean;
+  search.Strategy?: 'balanced' | 'precision' | 'recall' | 'speed';
+  cluster.Search.Threshold?: number;
+  maxClusters.To.Search?: number;
+  enable.Fallback.Search?: boolean// Access _patternlearning options;
+  enable.Utility.Ranking?: boolean;
+  record.Access?: boolean;
+  session.Context?: string;
+  urgency?: 'low' | 'medium' | 'high' | 'critical';
+}
+export interface Memory {
+  id: string,
+  service.Id: string,
+  memory.Type: string,
+  contentstring;
+  metadata: Record<string, unknown>
+  embedding?: number[];
+  importance.Score: number,
+  access.Count: number,
+  last.Accessed?: Date;
+  keywords?: string[];
+  related.Entities?: any[];
+}
+export interface Memory.Connection {
+  source.Memory.Id: string,
+  target.Memory.Id: string,
+  connection.Type: string,
+  strength: number,
+  metadata?: Record<string, unknown>;
+
+export class Enhanced.Memory.System {
+  private supabase: Supabase.Client,
+  private logger: Logger,
+  private embedding.Service: Production.Embedding.Service | Ollama.Embedding.Service,
+  private cache.System: Memory.Cache.System,
+  private contextual.Enricher: Contextual.Memory.Enricher,
+  private multi.Stage.Search: MultiStage.Search.System,
+  private access.Learner: Access.Pattern.Learner,
+  private embedding.Model = 'nomic-embed-text';
+  private embedding.Dimension = 768;
+  private use.Ollama = true;
+  constructor(
+    supabase: Supabase.Client,
+    logger: Logger,
+    embedding.Config?: Embedding.Config | Ollama.Embedding.Config;
+    cache.Config?: any;
+    options?: { use.Ollama?: boolean }) {
+    thissupabase = supabase;
+    this.logger = logger;
+    thisuse.Ollama = options?use.Ollama ?? true;
+    if (thisuse.Ollama) {
+      // Use Ollama by default;
+      const ollama.Config = embedding.Config as Ollama.Embedding.Config;
+      const model = ollama.Config?model || 'nomic-embed-text'// Set dimensions based on model;
+      const dimensions = ollama.Config?dimensions || (model === 'nomic-embed-text' ? 768 : 768);
+      thisembedding.Service = getOllama.Embedding.Service({
+        dimensions;
+        max.Batch.Size: 16,
+        cache.Max.Size: 10000.ollama.Config,
+        model});
+      thisembedding.Model = model;
+      thisembedding.Dimension = dimensions} else {
+      // Fallback to Open.A.I;
+      const openai.Config = embedding.Config as Embedding.Config;
+      const model = openai.Config?model || 'text-embedding-3-large'// Set dimensions based on model;
+      const dimensions =
+        openai.Config?dimensions ||
+        (model === 'text-embedding-3-large'? 1536: model === 'text-embedding-3-small'? 1536: 1536), // Default to 1536 for Open.A.I;
+
+      thisembedding.Service = new Production.Embedding.Service({
+        dimensions;
+        max.Batch.Size: 32,
+        cache.Max.Size: 10000.openai.Config,
+        model});
+      thisembedding.Model = model;
+      thisembedding.Dimension = dimensions;
+
+    this.cache.System = get.Cache.System(cache.Config);
+    thiscontextual.Enricher = get.Memory.Enricher();
+    thismulti.Stage.Search = new MultiStage.Search.System(supabase, logger);
+    thisaccess.Learner = getAccess.Pattern.Learner(supabase, logger)}/**
+   * Store a memory with contextual enrichment and embedding generation*/
+  async store.Memory(
+    service.Id: string,
+    memory.Type: string,
+    content: string,
+    metadata: Record<string, unknown> = {;
+    keywords?: string[]): Promise<Memory> {
+    try {
+      // Perform contextual enrichment;
+      const enrichment.Result = thiscontextual.Enricherenrich.Memory(
+        content;
+        service.Id;
+        memory.Type;
+        metadata);
+      this.loggerdebug(
+        `Contextual enrichment extracted ${enrichment.Resultenrichmententitieslength} entities and ${enrichment.Resultenrichmentconceptslength} concepts`)// Generate embedding for the contextually enriched content;
+      const embedding = await thisgenerate.Embedding(enrichment.Resultcontextual.Content)// Determine importance score based on enrichment data;
+      const enriched.Importance.Score = thiscalculate.Enriched.Importance(
+        enrichment.Resultenrichment;
+        metadataimportance || 0.5)// Store memory with embedding and enriched metadata;
+      const { data, error } = await thissupabase;
+        from('ai_memories');
+        insert({
+          service_id: service.Id,
+          memory_type: memory.Type,
+          content;
+          metadata: enrichment.Resultenhanced.Metadata,
+          embedding;
+          embedding_model: thisembedding.Model,
+          keywords: keywords || thisextractKeywords.From.Enrichment(enrichment.Resultenrichment),
+          related_entities: enrichment.Resultenrichmententities,
+          importance_score: enriched.Importance.Score,
+          memory_category: thiscategorizeMemory.From.Enrichment(
+            enrichment.Resultenrichment;
+            memory.Type)});
+        select();
+        single();
+      if (error) throw error;
+      this.loggerinfo(
+        `Stored enriched memory with ${enrichment.Resultenrichmententitieslength} entities for ${service.Id}`)// Format memory for caching;
+      const formatted.Memory = thisformat.Memory(data)// Cache the memory in appropriate tier (importance-based);
+      this.cache.Systemstore.Memory(formatted.Memory)// Cache both original and contextual embeddings;
+      this.cache.Systemcache.Embedding(contentembedding);
+      this.cache.Systemcache.Embedding(enrichment.Resultcontextual.Content, embedding)// Invalidate search cache since new memory was added;
+      this.cacheSysteminvalidate.Search.Cache()// Automatically create connections to similar memories;
+      await thiscreate.Similarity.Connections(dataid, embedding);
+      return formatted.Memory} catch (error) {
+      this.loggererror('Failed to store enriched memory:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Search memories using vector similarity with caching*/
+  async search.Memories(options: Memory.Search.Options): Promise<Memory[]> {
+    try {
+      // Use multi-stage search if enabled;
+      if (optionsenable.Multi.Stage) {
+        const result = await thismultiStage.Search.Memories(options);
+        return resultresults;
+
+      let embedding: number[]// Generate embedding from query if not provided,
+      if (optionsquery && !optionsembedding) {
+        // Check cache for embedding first;
+        const cached.Embedding = this.cacheSystemget.Cached.Embedding(optionsquery);
+        if (cached.Embedding) {
+          embedding = cached.Embedding} else {
+          embedding = await thisgenerate.Embedding(optionsquery);
+          this.cache.Systemcache.Embedding(optionsquery, embedding)}} else if (optionsembedding) {
+        embedding = optionsembedding} else {
+        throw new Error('Either query or embedding must be provided')}// Create cache key for search results;
+      const search.Cache.Key = {
+        query.Hash: thishash.Query(optionsquery || JS.O.N.stringify(embedding)),
+        similarity.Threshold: optionssimilarity.Threshold || 0.7,
+        max.Results: optionsmax.Results || 20,
+        agent.Filter: optionsagent.Filter,
+        category: optionscategory}// Check search result cache,
+      const cached.Results = this.cacheSystemgetCached.Search.Results(search.Cache.Key);
+      if (cached.Results) {
+        this.loggerdebug('Search results served from cache')// Still track access for the top result;
+        if (cached.Resultslength > 0) {
+          await thistrack.Memory.Access(
+            cached.Results[0]id;
+            optionsagent.Filter || 'unknown';
+            embedding;
+            0.8 // Approximate similarity for cached results);
+
+        return cached.Results}// Call the vector search function;
+      const { data, error } = await thissupabaserpc('search_similar_memories', {
+        query_embedding: embedding,
+        similarity_threshold: optionssimilarity.Threshold || 0.7,
+        max_results: optionsmax.Results || 20,
+        category_filter: optionscategory || null,
+        agent_filter: optionsagent.Filter || null}),
+      if (error) throw error;
+      const formatted.Results = datamap((memory: any) => thisformat.Memory(memory))// Cache the search results,
+      this.cacheSystemcache.Search.Results(search.Cache.Key, formatted.Results)// Cache individual memories that were returned;
+      formatted.Resultsfor.Each((memory: Memory) => {
+        this.cache.Systemstore.Memory(memory)})// Apply utility-based re-ranking if enabled;
+      if (optionsenable.Utility.Ranking && formatted.Resultslength > 0) {
+        const re.Ranked.Results = await thisaccessLearnerre.Rank.Results(
+          formatted.Resultsmap((memory: Memory) => ({
+            .memory;
+            similarity.Score: datafind((d: any) => dmemory_id === memoryid)?similarity || 0})),
+          optionsagent.Filter || 'unknown';
+          {
+            query.Embedding: embedding,
+            session.Context: optionssession.Context,
+            urgency: optionsurgency,
+          })// Sort by new ranking and return;
+        const final.Results = re.Ranked.Results;
+          sort((a, b) => anew.Rank - bnew.Rank);
+          map((result) => {
+            const { original.Rank, new.Rank, utility.Score, final.Score, .memory } = result as any;
+            return memory as Memory})// Track access patterns for top result;
+        if (optionsrecord.Access !== false) {
+          await thisrecord.Memory.Access(
+            final.Results[0]id;
+            optionsagent.Filter || 'unknown';
+            'search';
+            {
+              query.Embedding: embedding,
+              similarity.Score: re.Ranked.Results[0]utility.Scorefinal.Score,
+              session.Context: optionssession.Context,
+              urgency: optionsurgency,
+            });
+
+        return final.Results}// Track access patterns for standard search;
+      if (formatted.Resultslength > 0 && optionsrecord.Access !== false) {
+        await thisrecord.Memory.Access(
+          formatted.Results[0]id;
+          optionsagent.Filter || 'unknown';
+          'search';
+          {
+            query.Embedding: embedding,
+            similarity.Score: data[0]similarity,
+            session.Context: optionssession.Context,
+            urgency: optionsurgency,
+          });
+
+      return formatted.Results} catch (error) {
+      this.loggererror('Failed to search memories:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Advanced multi-stage search with hierarchical clustering*/
+  async multiStage.Search.Memories(options: Memory.Search.Options): Promise<{
+    results: Memory[],
+    metrics: Search.Metrics}> {
+    try {
+      let embedding: number[]// Generate embedding from query if not provided,
+      if (optionsquery && !optionsembedding) {
+        const cached.Embedding = this.cacheSystemget.Cached.Embedding(optionsquery);
+        if (cached.Embedding) {
+          embedding = cached.Embedding} else {
+          embedding = await thisgenerate.Embedding(optionsquery);
+          this.cache.Systemcache.Embedding(optionsquery, embedding)}} else if (optionsembedding) {
+        embedding = optionsembedding} else {
+        throw new Error('Either query or embedding must be provided')}// Convert options to multi-stage format;
+      const multi.Stage.Options: MultiStage.Search.Options = {
+        embedding;
+        similarity.Threshold: optionssimilarity.Threshold,
+        max.Results: optionsmax.Results,
+        agent.Filter: optionsagent.Filter,
+        category: optionscategory,
+        cluster.Search.Threshold: optionscluster.Search.Threshold,
+        maxClusters.To.Search: optionsmaxClusters.To.Search,
+        enable.Fallback.Search: optionsenable.Fallback.Search,
+        search.Strategy: optionssearch.Strategy,
+      }// Perform multi-stage search;
+      const { results: search.Results, metrics } = await thismulti.Stage.Searchsearch(
+        embedding;
+        multi.Stage.Options)// Convert to Memory format;
+      const formatted.Results: Memory[] = search.Resultsmap((result) => ({
+        id: resultid,
+        service.Id: resultservice.Id,
+        memory.Type: resultmemory.Type,
+        content: resultcontent,
+        metadata: resultmetadata,
+        importance.Score: resultimportance.Score,
+        access.Count: resultaccess.Count,
+        keywords: [],
+        related.Entities: []}))// Cache the results,
+      const search.Cache.Key = {
+        query.Hash: thishash.Query(optionsquery || JS.O.N.stringify(embedding)),
+        similarity.Threshold: optionssimilarity.Threshold || 0.7,
+        max.Results: optionsmax.Results || 20,
+        agent.Filter: optionsagent.Filter,
+        category: optionscategory,
+      this.cacheSystemcache.Search.Results(search.Cache.Key, formatted.Results)// Track access patterns for top result;
+      if (formatted.Resultslength > 0) {
+        await thistrack.Memory.Access(
+          formatted.Results[0]id;
+          optionsagent.Filter || 'unknown';
+          embedding;
+          search.Results[0]similarity);
+
+      this.loggerinfo(
+        `Multi-stage search completed: ${metricsclusters.Evaluated} clusters, ${metricsmemories.Evaluated} memories in ${metricstotal.Search.Time}ms`);
+      return {
+        results: formatted.Results,
+        metrics;
+      }} catch (error) {
+      this.loggererror('Failed to perform multi-stage search:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Find memories across multiple agents*/
+  async cross.Agent.Search(
+    query: string,
+    agent.List: string[],
+    options: Partial<Memory.Search.Options> = {
+}): Promise<Record<string, Memory[]>> {
+    try {
+      const embedding = await thisgenerate.Embedding(query);
+      const { data, error } = await thissupabaserpc('cross_agent_memory_search', {
+        query_embedding: embedding,
+        agent_list: agent.List,
+        similarity_threshold: optionssimilarity.Threshold || 0.6,
+        max_per_agent: optionsmax.Results || 5}),
+      if (error) throw error// Group results by agent;
+      const grouped.Results: Record<string, Memory[]> = {;
+      datafor.Each((result: any) => {
+        if (!grouped.Results[resultservice_id]) {
+          grouped.Results[resultservice_id] = [];
+}        grouped.Results[resultservice_id]push(thisformat.Memory(result))});
+      return grouped.Results} catch (error) {
+      this.loggererror('Failed to perform cross-agent search:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Find connected memories (graph traversal)*/
+  async find.Connected.Memories(
+    memory.Id: string,
+    connection.Types?: string[];
+    max.Depth = 3): Promise<Memory[]> {
+    try {
+      const { data, error } = await thissupabaserpc('find_connected_memories', {
+        start_memory_id: memory.Id,
+        connection_types: connection.Types || null,
+        max_depth: max.Depth,
+        min_strength: 0.3}),
+      if (error) throw error;
+      return datamap((memory: any) => thisformat.Memory(memory))} catch (error) {
+      this.loggererror('Failed to find connected memories:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Get memory recommendations for a user*/
+  async get.Memory.Recommendations(
+    user.Id: string,
+    agent.Name: string,
+    current.Context?: string): Promise<Memory[]> {
+    try {
+      let context.Embedding = null;
+      if (current.Context) {
+        context.Embedding = await thisgenerate.Embedding(current.Context);
+
+      const { data, error } = await thissupabaserpc('recommend_related_memories', {
+        user_id: user.Id,
+        agent_name: agent.Name,
+        currentcontext: context.Embedding,
+        limit_results: 10}),
+      if (error) throw error;
+      return datamap((memory: any) => thisformat.Memory(memory))} catch (error) {
+      this.loggererror('Failed to get memory recommendations:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Update memory importance based on access*/
+  async update.Memory.Importance(memory.Id: string, boost = 0.1): Promise<void> {
+    try {
+      // Get current values first;
+      const { data: current.Memory } = await thissupabase,
+        from('ai_memories');
+        select('importance_score, access_count');
+        eq('id', memory.Id);
+        single();
+      if (current.Memory) {
+        const new.Importance = Math.min(current.Memoryimportance_score + boost, 1.0);
+        const new.Access.Count = current.Memoryaccess_count + 1;
+        const { error instanceof Error ? errormessage : String(error)  = await thissupabase;
+          from('ai_memories');
+          update({
+            importance_score: new.Importance,
+            access_count: new.Access.Count,
+            last_accessed: new Date()toIS.O.String()}),
+          eq('id', memory.Id);
+        if (error) throw error}} catch (error) {
+      this.loggererror('Failed to update memory importance:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Create a connection between memories*/
+  async create.Memory.Connection(
+    source.Id: string,
+    target.Id: string,
+    connection.Type: string,
+    strength = 0.5;
+    metadata: Record<string, unknown> = {}): Promise<void> {
+    try {
+      const { error instanceof Error ? errormessage : String(error)  = await thissupabasefrom('memory_connections')upsert({
+        source_memory_id: source.Id,
+        target_memory_id: target.Id,
+        connection_type: connection.Type,
+        strength;
+        metadata});
+      if (error) throw error;
+      this.loggerinfo(`Created ${connection.Type} connection between memories`)} catch (error) {
+      this.loggererror('Failed to create memory connection:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Generate embedding using configured service (Ollama or Open.A.I)*/
+  private async generate.Embedding(text: string): Promise<number[]> {
+    try {
+      return await thisembedding.Servicegenerate.Embedding(text)} catch (error) {
+      this.loggererror;
+        `Failed to generate embedding using ${thisuse.Ollama ? 'Ollama' : 'Open.A.I'}:`;
+        error)// If using Ollama and it fails, check if it's available;
+      if (thisuse.Ollama && thisembedding.Service instanceof Ollama.Embedding.Service) {
+        const health = await thisembedding.Servicecheck.Health();
+        if (!healthavailable) {
+          this.loggerwarn(
+            'Ollama is not available. Make sure Ollama is running at http://localhost:11434')} else if (!healthmodel.Loaded) {
+          this.loggerwarn(
+            `Model ${thisembedding.Model} is not loaded. Try running: ollama pull ${thisembedding.Model}`)}}// Fallback to mock embedding if service fails,
+      this.loggerwarn('Falling back to mock embedding');
+      return new Array(thisembedding.Dimension)fill(0)map(() => Mathrandom())}}/**
+   * Generate multiple embeddings efficiently*/
+  private async generate.Embeddings(texts: string[]): Promise<number[][]> {
+    try {
+      return await thisembedding.Servicegenerate.Embeddings(texts)} catch (error) {
+      this.loggererror('Failed to generate batch embeddings:', error instanceof Error ? errormessage : String(error)// Fallback to individual generation;
+      const embeddings: number[][] = [],
+      for (const text of texts) {
+        embeddingspush(await thisgenerate.Embedding(text));
+      return embeddings}}/**
+   * Get embedding service statistics*/
+  get.Embedding.Stats() {
+    return thisembedding.Serviceget.Stats()}/**
+   * Pre-warm embedding cache with common terms*/
+  async preWarm.Embedding.Cache(common.Texts: string[]): Promise<void> {
+    await thisembeddingServicepre.Warm.Cache(common.Texts);
+  }/**
+   * Get cache statistics for monitoring*/
+  get.Cache.Stats() {
+    return {
+      embedding: thisembedding.Serviceget.Stats(),
+      memory: this.cacheSystemget.Cache.Stats(),
+    }}/**
+   * Optimize cache performance*/
+  optimize.Caches(): {
+    memory: { promoted: number, demoted: number ,
+    overview: any} {
+    const memory.Optimization = this.cacheSystemoptimize.Cache.Tiers();
+    const hot.Entries = this.cacheSystemget.Hot.Entries();
+    return {
+      memory: memory.Optimization,
+      overview: {
+        hot.Memories: hot.Entrieshot.Memorieslength,
+        hot.Searches: hot.Entrieshot.Searcheslength,
+        hot.Embeddings: hot.Entrieshot.Embeddingslength,
+      }}}/**
+   * Clear all caches*/
+  clear.Caches(): void {
+    thisembedding.Serviceclear.Cache();
+    this.cacheSystemclear.All.Caches();
+  }/**
+   * Pre-warm memory cache with frequently accessed memories*/
+  async preWarm.Memory.Cache(limit = 100): Promise<void> {
+    try {
+      const { data: frequent.Memories, error instanceof Error ? errormessage : String(error)  = await thissupabase;
+        from('ai_memories');
+        select('*');
+        order('access_count', { ascending: false }),
+        order('importance_score', { ascending: false }),
+        limit(limit);
+      if (error) throw error;
+      if (frequent.Memories) {
+        const formatted.Memories = frequent.Memoriesmap(thisformat.Memory);
+        this.cacheSystempre.Warm.Cache(formatted.Memories);
+        this.loggerinfo(
+          `Pre-warmed cache with ${formatted.Memorieslength} frequently accessed memories`)}} catch (error) {
+      this.loggererror('Failed to pre-warm memory cache:', error instanceof Error ? errormessage : String(error)  }}/**
+   * Hash query for cache key generation*/
+  private hash.Query(query: string): string {
+    const crypto = require('crypto');
+    return cryptocreate.Hash('md5')update(querytrim()to.Lower.Case())digest('hex')}/**
+   * Calculate enriched importance score based on contextual analysis*/
+  private calculate.Enriched.Importance(enrichment: any, base.Importance: number): number {
+    let adjusted.Importance = base.Importance// Boost importance based on urgency;
+    if (enrichmentintenturgency === 'critical') {
+      adjusted.Importance += 0.3} else if (enrichmentintenturgency === 'high') {
+      adjusted.Importance += 0.2} else if (enrichmentintenturgency === 'low') {
+      adjusted.Importance -= 0.1}// Boost importance for action items;
+    if (enrichmentintentcategory === 'action' || enrichmentintentcategory === 'request {
+      adjusted.Importance += 0.15}// Boost importance for entities (people, organizations, etc.);
+    const important.Entity.Types = ['person', 'organization', 'email', 'phone'];
+    const has.Important.Entities = enrichmententitiessome((e: any) =>
+      important.Entity.Typesincludes(etype));
+    if (has.Important.Entities) {
+      adjusted.Importance += 0.1}// Boost importance for technical content;
+    if (
+      enrichmentcomplexitytechnical.Level === 'expert' || enrichmentcomplexitytechnical.Level === 'advanced') {
+      adjusted.Importance += 0.1}// Boost importance for concepts with high relevance;
+    const high.Relevance.Concepts = enrichmentconceptsfilter((c: any) => crelevance > 0.8),
+    adjusted.Importance += high.Relevance.Conceptslength * 0.05;
+    return Math.min(1.0, Math.max(0.0, adjusted.Importance))}/**
+   * Extract keywords from enrichment data*/
+  private extractKeywords.From.Enrichment(enrichment: any): string[] {
+    const keywords: string[] = []// Add intent and category as keywords,
+    keywordspush(enrichmentintentintent, enrichmentintentcategory)// Add entity values as keywords;
+    enrichmententitiesfor.Each((entity: any) => {
+      if (entitytype !== 'other' && entityvaluelength <= 50) {
+        keywordspush(entityvalueto.Lower.Case());
+      }})// Add top concepts as keywords;
+    enrichmentconcepts;
+      filter((concept: any) => conceptrelevance > 0.5),
+      slice(0, 10);
+      for.Each((concept: any) => {
+        keywordspush(.conceptkeywords)})// Add temporal keywords if present;
+    if (enrichmenttemporalhas.Time.Reference) {
+      keywordspush(enrichmenttemporaltemporal.Type);
+      if (enrichmenttemporalurgency) {
+        keywordspush(enrichmenttemporalurgency)}}// Remove duplicates and filter out very short keywords;
+    return [.new Set(keywords)]filter((keyword) => keyword && keywordlength >= 3)slice(0, 20)// Limit to top 20 keywords}/**
+   * Categorize memory based on enrichment data*/
+  private categorizeMemory.From.Enrichment(enrichment: any, memory.Type: string): string {
+    // Check intent-based categorization first;
+    if (enrichmentintentcategory === 'action' || enrichmentintentcategory === 'request {
+      return 'task';
+
+    if (enrichmentintentcategory === 'question') {
+      return 'inquiry'}// Check concept-based categorization;
+    const action.Concepts = enrichmentconceptsfilter((c: any) => ccategory === 'action'),
+    const technical.Concepts = enrichmentconceptsfilter((c: any) => ccategory === 'technical'),
+    const temporal.Concepts = enrichmentconceptsfilter((c: any) => ccategory === 'temporal'),
+    if (action.Conceptslength > 0) {
+      return 'task';
+
+    if (technical.Conceptslength > 0) {
+      return 'technical';
+
+    if (temporal.Conceptslength > 0 || enrichmenttemporalhas.Time.Reference) {
+      return 'scheduled'}// Check entity-based categorization;
+    const has.Person.Entities = enrichmententitiessome((e: any) => etype === 'person'),
+    const has.Org.Entities = enrichmententitiessome((e: any) => etype === 'organization'),
+    if (has.Person.Entities || has.Org.Entities) {
+      return 'social'}// Fallback to memory type or general;
+    if (memory.Type === 'consolidated') return 'consolidated';
+    return 'general'}/**
+   * Contextual search that enriches queries before searching*/
+  async contextual.Search(
+    query: string,
+    options: Memory.Search.Options = {
+}): Promise<{
+    results: Memory[],
+    query.Enrichment: any,
+    search.Strategy: string}> {
+    try {
+      // Enrich the query for better context understanding;
+      const query.Enrichment = thiscontextual.Enricherenrich.Memory(
+        query;
+        optionsagent.Filter || 'system';
+        'search_query');
+      this.loggerdebug(
+        `Query enrichment found ${query.Enrichmentenrichmententitieslength} entities and ${query.Enrichmentenrichmentconceptslength} concepts`)// Use contextual contentfor embedding generation;
+      const enriched.Options = {
+        .options;
+        query: query.Enrichmentcontextual.Content}// Perform the search with enriched query,
+      const results = await thissearch.Memories(enriched.Options)// Determine search strategy based on enrichment;
+      let search.Strategy = 'standard';
+      if (query.Enrichmentenrichmentintenturgency === 'critical') {
+        search.Strategy = 'priority'} else if (query.Enrichmentenrichmententitieslength > 2) {
+        search.Strategy = 'entity-focused'} else if (queryEnrichmentenrichmenttemporalhas.Time.Reference) {
+        search.Strategy = 'temporal-aware';
+
+      return {
+        results;
+        query.Enrichment: query.Enrichmentenrichment,
+        search.Strategy;
+      }} catch (error) {
+      this.loggererror('Failed to perform contextual search:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Extract keywords from content*/
+  private extract.Keywords(contentstring): string[] {
+    // Simple keyword extraction - in production, use N.L.P;
+    const words = content;
+      to.Lower.Case();
+      split(/\W+/);
+      filter((word) => wordlength > 4);
+    const word.Freq: Record<string, number> = {;
+    wordsfor.Each((word) => {
+      word.Freq[word] = (word.Freq[word] || 0) + 1});
+    return Objectentries(word.Freq);
+      sort((a, b) => b[1] - a[1]);
+      slice(0, 10);
+      map(([word]) => word)}/**
+   * Extract entities from content*/
+  private extract.Entities(contentstring): any[] {
+    // Simple entity extraction - in production, use N.E.R;
+    const entities: any[] = []// Extract emails,
+    const emails = contentmatch(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2}\b/g);
+    if (emails) {
+      entitiespush(.emailsmap((email) => ({ type: 'email', value: email })))}// Extract U.R.Ls,
+    const urls = contentmatch(
+      /https?:\/\/(www\.)?[-a-z.A-Z0-9@:%._\+~#=]{1,256}\.[a-z.A-Z0-9()]{1,6}\b([-a-z.A-Z0-9()@:%_\+.~#?&//=]*)/g);
+    if (urls) {
+      entitiespush(.urlsmap((url) => ({ type: 'url', value: url }))),
+
+    return entities}/**
+   * Categorize memory based on type and content*/
+  private categorize.Memory(memory.Type: string, contentstring): string {
+    // Simple categorization logic;
+    if (memory.Type === 'consolidated') return 'consolidated';
+    if (contentto.Lower.Case()includes('task') || contentto.Lower.Case()includes('todo'));
+      return 'task';
+    if (contentto.Lower.Case()includes('meeting') || contentto.Lower.Case()includes('appointment'));
+      return 'calendar';
+    if (contentto.Lower.Case()includes('code') || contentto.Lower.Case()includes('function'));
+      return 'technical';
+    return 'general'}/**
+   * Create automatic connections to similar memories*/
+  private async create.Similarity.Connections(memory.Id: string, embedding: number[]): Promise<void> {
+    try {
+      // Find top 3 similar memories;
+      const { data } = await thissupabaserpc('search_similar_memories', {
+        query_embedding: embedding,
+        similarity_threshold: 0.8,
+        max_results: 4, // Include self, so we get 3 others});
+      if (data) {
+        for (const similar of data) {
+          if (similarmemory_id !== memory.Id) {
+            await thiscreate.Memory.Connection(
+              memory.Id;
+              similarmemory_id;
+              'semantic_similarity';
+              similarsimilarity)}}}} catch (error) {
+      this.loggerwarn('Failed to create similarity connections:', error instanceof Error ? errormessage : String(error)  }}/**
+   * Record memory access _patternusing the access learner*/
+  async record.Memory.Access(
+    memory.Id: string,
+    agent.Name: string,
+    access.Type: 'search' | 'direct' | 'related' | 'contextual',
+    options: {
+      query.Embedding?: number[];
+      similarity.Score?: number;
+      response.Useful?: boolean;
+      interaction.Duration?: number;
+      session.Context?: string;
+      urgency?: 'low' | 'medium' | 'high' | 'critical'} = {}): Promise<void> {
+    try {
+      await thisaccess.Learnerrecord.Access(memory.Id, agent.Name, access.Type, {
+        query.Embedding: optionsquery.Embedding,
+        similarity.Score: optionssimilarity.Score,
+        response.Useful: optionsresponse.Useful,
+        interaction.Duration: optionsinteraction.Duration,
+        contextual.Factors: {
+          time.Of.Day: new Date()get.Hours(),
+          session.Length: 0, // Could be tracked from session start;
+          task.Type: optionssession.Context,
+          urgency: optionsurgency,
+        }})} catch (error) {
+      this.loggerwarn('Failed to record memory access:', error instanceof Error ? errormessage : String(error)  }}/**
+   * Record user feedback for a memory interaction*/
+  async record.User.Feedback(
+    memory.Id: string,
+    agent.Name: string,
+    feedback: {
+      relevance: number// 1-5 scale,
+      helpfulness: number// 1-5 scale,
+      accuracy: number// 1-5 scale,
+    follow.Up.Queries?: string[]): Promise<void> {
+    try {
+      await thisaccessLearnerrecord.User.Feedback(memory.Id, agent.Name, feedback, follow.Up.Queries);
+      this.loggerinfo(
+        `Recorded user feedback for memory ${memory.Id}: relevance=${feedbackrelevance}`)} catch (error) {
+      this.loggererror('Failed to record user feedback:', error instanceof Error ? errormessage : String(error)  }}/**
+   * Track memory access patterns (legacy method for compatibility)*/
+  private async track.Memory.Access(
+    memory.Id: string,
+    agent.Name: string,
+    query.Embedding: number[],
+    similarity.Score: number): Promise<void> {
+    await thisrecord.Memory.Access(memory.Id, agent.Name, 'search', {
+      query.Embedding;
+      similarity.Score;
+      response.Useful: true})}/**
+   * Format raw database memory to Memory interface*/
+  private format.Memory(data: any): Memory {
+    return {
+      id: dataid || datamemory_id,
+      service.Id: dataservice_id,
+      memory.Type: datamemory_type,
+      content: datacontent,
+      metadata: datametadata || {
+}      embedding: dataembedding,
+      importance.Score: dataimportance_score || dataadjusted_score || 0.5,
+      access.Count: dataaccess_count || 0,
+      last.Accessed: datalast_accessed ? new Date(datalast_accessed) : undefined,
+      keywords: datakeywords || [],
+      related.Entities: datarelated_entities || [],
+    }}/**
+   * Get memory statistics*/
+  async get.Memory.Stats(agent.Name?: string): Promise<unknown> {
+    try {
+      const query = thissupabase;
+        from('ai_memories');
+        select('service_id, memory_type, importance_score, access_count', { count: 'exact' }),
+      if (agent.Name) {
+        queryeq('service_id', agent.Name);
+
+      const { data, count, error instanceof Error ? errormessage : String(error)  = await query;
+      if (error) throw error;
+      return {
+        total.Memories: count,
+        by.Type: thisgroup.By(data, 'memory_type');
+        by.Agent: thisgroup.By(data, 'service_id');
+        avg.Importance: datareduce((sum, m) => sum + mimportance_score, 0) / datalength;
+        total.Accesses: datareduce((sum, m) => sum + maccess_count, 0)}} catch (error) {
+      this.loggererror('Failed to get memory stats:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)};
+
+  private group.By(array: any[], key: string): Record<string, number> {
+    return arrayreduce((result, item) => {
+      result[item[key]] = (result[item[key]] || 0) + 1;
+      return result}, {})}/**
+   * Get cluster statistics and health metrics*/
+  async get.Cluster.Statistics(): Promise<unknown> {
+    try {
+      return await thismultiStageSearchget.Cluster.Statistics()} catch (error) {
+      this.loggererror('Failed to get cluster statistics:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Refresh semantic clusters for improved search performance*/
+  async refresh.Semantic.Clusters(): Promise<{
+    clusters.Created: number,
+    memories.Processed: number,
+    processing.Time: number}> {
+    try {
+      const result = await thismultiStageSearchrefresh.Semantic.Clusters()// Clear relevant caches after cluster refresh;
+      this.cacheSysteminvalidate.Search.Cache();
+      thismultiStage.Searchclear.Cache();
+      this.loggerinfo(
+        `Semantic clusters refreshed: ${resultclusters.Created} clusters created, ${resultmemories.Processed} memories processed`);
+      return result} catch (error) {
+      this.loggererror('Failed to refresh semantic clusters:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Analyze search performance and get optimization recommendations*/
+  analyze.Search.Performance(search.Metrics: Search.Metrics[]): {
+    recommendations: string[],
+    average.Performance: any} {
+    return thismultiStageSearchanalyze.Search.Performance(search.Metrics)}/**
+   * Get comprehensive system statistics including clustering*/
+  async get.System.Statistics(): Promise<{
+    memory: any,
+    cluster: any,
+    cache: any,
+    embedding: any}> {
+    try {
+      const [memory.Stats, cluster.Stats, cache.Stats, embedding.Stats] = await Promiseall([
+        thisget.Memory.Stats();
+        thisget.Cluster.Statistics();
+        Promiseresolve(thisget.Cache.Stats());
+        Promiseresolve(thisget.Embedding.Stats())]);
+      return {
+        memory: memory.Stats,
+        cluster: cluster.Stats,
+        cache: cache.Stats,
+        embedding: embedding.Stats,
+      }} catch (error) {
+      this.loggererror('Failed to get system statistics:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Clear all caches including multi-stage search cache*/
+  clear.All.Caches(): void {
+    thisclear.Caches();
+    thismultiStage.Searchclear.Cache();
+  }/**
+   * Check Ollama health and model availability*/
+  async checkEmbedding.Service.Health(): Promise<{
+    service: string,
+    available: boolean,
+    model.Loaded?: boolean;
+    version?: string;
+    error instanceof Error ? errormessage : String(error)  string;
+    recommendations?: string[]}> {
+    if (thisuse.Ollama && thisembedding.Service instanceof Ollama.Embedding.Service) {
+      const health = await thisembedding.Servicecheck.Health();
+      const recommendations: string[] = [],
+      if (!healthavailable) {
+        recommendationspush('Start Ollama: brew install ollama && ollama serve'),
+        recommendationspush('Or download from: https://ollamaai')} else if (!healthmodel.Loaded) {
+        recommendationspush(`Pull the embedding model: ollama pull ${thisembedding.Model}`),
+        recommendationspush(
+          'Alternative models: ollama pull all-minilm, ollama pull mxbai-embed-large');
+
+      return {
+        service: 'Ollama',
+        available: healthavailable,
+        model.Loaded: healthmodel.Loaded,
+        version: healthversion,
+        error instanceof Error ? errormessage : String(error) healtherror;
+        recommendations: recommendationslength > 0 ? recommendations : undefined,
+      }} else {
+      return {
+        service: 'Open.A.I',
+        available: !!process.envOPENAI_API_K.E.Y,
+        error instanceof Error ? errormessage : String(error) process.envOPENAI_API_K.E.Y? undefined: 'OPENAI_API_K.E.Y environment variable not set',
+        recommendations: process.envOPENAI_API_K.E.Y? undefined: ['Set OPENAI_API_K.E.Y environment variable', 'Or switch to Ollama for local embeddings']}}}/**
+   * Download/pull an embedding model (Ollama only)*/
+  async pull.Embedding.Model(model?: string): Promise<void> {
+    if (thisuse.Ollama && thisembedding.Service instanceof Ollama.Embedding.Service) {
+      await thisembedding.Servicepull.Model(model);
+      this.loggerinfo(`Successfully pulled model: ${model || thisembedding.Model}`)} else {
+      throw new Error('Model pulling is only available when using Ollama')}}/**
+   * List available embedding models (Ollama only)*/
+  async list.Available.Models(): Promise<Array<{ name: string; size: number, modified_at: string }>> {
+    if (thisuse.Ollama && thisembedding.Service instanceof Ollama.Embedding.Service) {
+      return await thisembedding.Servicelist.Models()} else {
+      throw new Error('Model listing is only available when using Ollama')}}/**
+   * Switch between Ollama and Open.A.I embedding services*/
+  switch.Embedding.Service(
+    use.Ollama: boolean,
+    config?: Embedding.Config | Ollama.Embedding.Config): void {
+    thisuse.Ollama = use.Ollama;
+    if (use.Ollama) {
+      const ollama.Config = config as Ollama.Embedding.Config;
+      const model = ollama.Config?model || 'nomic-embed-text';
+      const dimensions = ollama.Config?dimensions || (model === 'nomic-embed-text' ? 768 : 768);
+      thisembedding.Service = getOllama.Embedding.Service({
+        dimensions;
+        max.Batch.Size: 16,
+        cache.Max.Size: 10000.ollama.Config,
+        model});
+      thisembedding.Model = model;
+      thisembedding.Dimension = dimensions;
+      this.loggerinfo(`Switched to Ollama embedding service (${model}, ${dimensions} dimensions)`)} else {
+      const openai.Config = config as Embedding.Config;
+      const model = openai.Config?model || 'text-embedding-3-large';
+      const dimensions =
+        openai.Config?dimensions || (model === 'text-embedding-3-large'? 1536: model === 'text-embedding-3-small'? 1536: 1536);
+      thisembedding.Service = new Production.Embedding.Service({
+        dimensions;
+        max.Batch.Size: 32,
+        cache.Max.Size: 10000.openai.Config,
+        model});
+      thisembedding.Model = model;
+      thisembedding.Dimension = dimensions;
+      this.loggerinfo(`Switched to Open.A.I embedding service (${model}, ${dimensions} dimensions)`)}// Clear caches when switching services due to different dimensions;
+    thisclear.All.Caches()}/**
+   * Get embedding service information*/
+  getEmbedding.Service.Info(): {
+    service: string,
+    model: string,
+    dimensions: number,
+    use.Ollama: boolean} {
+    return {
+      service: thisuse.Ollama ? 'Ollama' : 'Open.A.I',
+      model: thisembedding.Model,
+      dimensions: thisembedding.Dimension,
+      use.Ollama: thisuse.Ollama,
+    }}/**
+   * Get learning insights for an agent*/
+  async get.Learning.Insights(agent.Name: string): Promise<Learning.Insights> {
+    try {
+      return await thisaccessLearnerget.Learning.Insights(agent.Name)} catch (error) {
+      this.loggererror('Failed to get learning insights:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Calculate utility score for a memory*/
+  async calculateMemory.Utility.Score(
+    memory.Id: string,
+    agent.Name: string,
+    base.Score: number,
+    contextual.Factors?: {
+      current.Time?: Date;
+      query.Embedding?: number[];
+      session.Context?: string;
+      urgency?: string;
+    }): Promise<Utility.Score> {
+    try {
+      return await thisaccessLearnercalculate.Utility.Score(
+        memory.Id;
+        agent.Name;
+        base.Score;
+        contextual.Factors)} catch (error) {
+      this.loggererror('Failed to calculate utility score:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Get current adaptive weights for learning*/
+  get.Adaptive.Weights(): {
+    recency.Weight: number,
+    frequency.Weight: number,
+    similarity.Weight: number,
+    importance.Weight: number,
+    user.Feedback.Weight: number} {
+    return thisaccessLearnerget.Adaptive.Weights()}/**
+   * Perform intelligent search with all enhancements enabled*/
+  async intelligent.Search(
+    query: string,
+    agent.Name: string,
+    options: Partial<Memory.Search.Options> = {
+}): Promise<{
+    results: Memory[],
+    query.Enrichment?: any;
+    search.Strategy?: string;
+    metrics?: Search.Metrics;
+    utility.Ranking.Applied: boolean}> {
+    try {
+      // Enable all advanced features by default;
+      const search.Options: Memory.Search.Options = {
+        query;
+        agent.Filter: agent.Name,
+        enable.Multi.Stage: true,
+        enable.Utility.Ranking: true,
+        record.Access: true,
+        search.Strategy: 'balanced',
+        max.Results: 10,
+        similarity.Threshold: 0.6.options,
+      }// Use contextual search if available;
+      if (thiscontextual.Enricher) {
+        const contextual.Result = await thiscontextual.Search(query, search.Options);
+        return {
+          results: contextual.Resultresults,
+          query.Enrichment: contextual.Resultquery.Enrichment,
+          search.Strategy: contextual.Resultsearch.Strategy,
+          utility.Ranking.Applied: !!searchOptionsenable.Utility.Ranking,
+        }} else {
+        // Fallback to multi-stage search;
+        if (searchOptionsenable.Multi.Stage) {
+          const multi.Stage.Result = await thismultiStage.Search.Memories(search.Options);
+          return {
+            results: multi.Stage.Resultresults,
+            metrics: multi.Stage.Resultmetrics,
+            utility.Ranking.Applied: !!searchOptionsenable.Utility.Ranking,
+          }} else {
+          // Standard search;
+          const results = await thissearch.Memories(search.Options);
+          return {
+            results;
+            utility.Ranking.Applied: !!searchOptionsenable.Utility.Ranking,
+          }}}} catch (error) {
+      this.loggererror('Failed to perform intelligent search:', error instanceof Error ? errormessage : String(error);
+      throw error instanceof Error ? errormessage : String(error)}}/**
+   * Clear all learning data and caches*/
+  clearAll.Learning.Data(): void {
+    thisclear.All.Caches();
+    thisaccess.Learnerclear.Cache();
+  };

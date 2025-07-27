@@ -16,6 +16,7 @@ Your system automatically discovers and uses these models:
 ## 🔄 Special Models Requiring Integration
 
 ### LFM2-1.2B (Liquid Foundation Model)
+
 - **Status**: Model architecture not yet supported by MLX
 - **Type**: Custom MLX format requiring `lfm2` model implementation
 - **Options**:
@@ -25,6 +26,7 @@ Your system automatically discovers and uses these models:
   4. Contact Liquid AI for integration guidance
 
 ### Kokoro-82M (TTS Model)
+
 - **Status**: Text-to-Speech model (not for text generation)
 - **Type**: PyTorch model for voice synthesis
 - **Use Case**: Generate speech from text, not for DSPy/MIPRO
@@ -37,6 +39,7 @@ Your system automatically discovers and uses these models:
 4. **Graceful Fallback**: Uses next best if preferred unavailable
 
 ### Example Task Routing:
+
 ```
 "What is 2+2?" → gemma:2b (fast, simple)
 "Write Python code" → qwen2.5:7b (coding optimized)
@@ -46,6 +49,7 @@ Your system automatically discovers and uses these models:
 ## 📝 Adding New Models
 
 ### For Standard Models:
+
 ```bash
 # Just download any Ollama model
 ollama pull modelname
@@ -54,6 +58,7 @@ ollama pull modelname
 ```
 
 ### For Custom Models like LFM2:
+
 1. Convert to GGUF format using llama.cpp
 2. Create with Ollama: `ollama create custom-lfm2 -f Modelfile`
 3. System will auto-discover
@@ -68,6 +73,7 @@ ollama pull modelname
 ## 💡 Current Recommendation
 
 Your existing model collection provides excellent coverage:
+
 - **Speed**: gemma:2b, phi:2.7b
 - **Balance**: qwen2.5:7b, gemma3n:e2b
 - **Quality**: deepseek-r1:14b, devstral:24b

@@ -14,11 +14,37 @@ env:
   SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
 
 jobs:
+  # Security Scanning with Gitleaks
+  security-scan:
+    name: Security Scan - Gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+      - name: Upload Gitleaks results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-ci-results
+          path: gitleaks-report.json
+          retention-days: 7
+
   # 1. Code Quality and Linting
   lint-and-format:
     name: Code Quality & Linting
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: security-scan
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -12,7 +12,7 @@ services:
     container_name: universal-ai-tools-api
     restart: always
     ports:
-      - "9998:9999"
+      - '9998:9999'
     environment:
       - NODE_ENV=production
       - PORT=9999
@@ -47,10 +47,10 @@ services:
           cpus: '1'
           memory: 2G
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 
   # Redis Cache
   redis:
@@ -66,11 +66,11 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "127.0.0.1:6380:6379"
+      - '127.0.0.1:6380:6379'
     networks:
       - ai-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -86,7 +86,7 @@ services:
     container_name: universal-ai-tools-ollama
     restart: always
     ports:
-      - "127.0.0.1:11434:11434"
+      - '127.0.0.1:11434:11434'
     volumes:
       - ollama_models:/root/.ollama
     environment:
@@ -117,8 +117,8 @@ services:
     container_name: universal-ai-tools-nginx
     restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -128,10 +128,10 @@ services:
     networks:
       - ai-network
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "5m"
-        max-file: "2"
+        max-size: '5m'
+        max-file: '2'
 
   # Prometheus Monitoring
   prometheus:
@@ -139,7 +139,7 @@ services:
     container_name: universal-ai-tools-prometheus
     restart: always
     ports:
-      - "127.0.0.1:9090:9090"
+      - '127.0.0.1:9090:9090'
     volumes:
       - ./monitoring/prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -163,7 +163,7 @@ services:
     container_name: universal-ai-tools-grafana
     restart: always
     ports:
-      - "127.0.0.1:3000:3000"
+      - '127.0.0.1:3000:3000'
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}

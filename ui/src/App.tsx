@@ -1,142 +1,80 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './contexts/AuthContext';
-import { LayoutSimple as Layout } from './components/Layout-simple';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
-import { ToastContainer } from './components/Toast';
-import { Dashboard } from './pages/Dashboard';
-import { AIChat } from './pages/AIChat';
-import { Memory } from './pages/Memory';
-import { Agents } from './pages/Agents';
-import { Tools } from './pages/Tools';
-import { Monitoring } from './pages/Monitoring';
-import { Settings } from './pages/Settings';
-import { DSPyOrchestration } from './pages/DSPyOrchestration';
-import { SweetAthenaDemo } from './pages/SweetAthenaDemo';
-import { AthenaDashboard } from './pages/AthenaDashboard';
-import WidgetCreatorPage from './pages/WidgetCreator';
-import PerformanceDashboard from './pages/PerformanceDashboard';
-import OptimizedAthenaDemo from './pages/OptimizedAthenaDemo';
+import React from 'react'
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
+import { Provider, defaultTheme } from '@adobe/react-spectrum'
+import Navigation from './components/Navigation/Navigation'
+import Dashboard from './pages/Dashboard'
+import ChatEnhanced from './pages/ChatEnhanced'
+import ChatModern from './pages/ChatModern'
+import VisionStudio from './pages/VisionStudio'
+import MLXTraining from './pages/MLXTraining'
+import OrchestrationDashboard from './pages/OrchestrationDashboard'
+import MonitoringDashboard from './pages/MonitoringDashboard'
+import ModelsManager from './pages/ModelsManager'
+import Agents from './pages/Agents'
+import Memory from './pages/Memory'
+import AgentPerformanceDemo from './pages/AgentPerformanceDemo'
+import AgentActivityMonitorDemo from './pages/AgentActivityMonitorDemo'
+import TaskExecutionDemo from './pages/TaskExecutionDemo'
+import ApiKeysManager from './pages/ApiKeysManager'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: (failureCount, error: any) => {
-        // Don't retry on authentication errors
-        if (error?.response?.status === 401) return false;
-        // Don't retry on client errors (4xx)
-        if (error?.response?.status >= 400 && error?.response?.status < 500) return false;
-        // Retry up to 2 times for server errors
-        return failureCount < 2;
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    },
-    mutations: {
-      retry: 1,
-      retryDelay: 1000,
-    },
-  },
-});
-
-// Note: Authentication is skipped for local development
-
-function AppRoutes() {
-  return (
-    <Routes>
-      <Route path="/login" element={<Navigate to="/" />} />
-      <Route
-        path="/*"
-        element={
-          <Layout>
-            <Routes>
-              <Route path="/" element={
-                <ErrorBoundary name="AthenaDashboard">
-                  <AthenaDashboard />
-                </ErrorBoundary>
-              } />
-              <Route path="/classic-dashboard" element={
-                <ErrorBoundary name="Dashboard">
-                  <Dashboard />
-                </ErrorBoundary>
-              } />
-              <Route path="/chat" element={
-                <ErrorBoundary name="AIChat">
-                  <AIChat />
-                </ErrorBoundary>
-              } />
-              <Route path="/memory" element={
-                <ErrorBoundary name="Memory">
-                  <Memory />
-                </ErrorBoundary>
-              } />
-              <Route path="/agents" element={
-                <ErrorBoundary name="Agents">
-                  <Agents />
-                </ErrorBoundary>
-              } />
-              <Route path="/tools" element={
-                <ErrorBoundary name="Tools">
-                  <Tools />
-                </ErrorBoundary>
-              } />
-              <Route path="/dspy" element={
-                <ErrorBoundary name="DSPyOrchestration">
-                  <DSPyOrchestration />
-                </ErrorBoundary>
-              } />
-              <Route path="/sweet-athena" element={
-                <ErrorBoundary name="SweetAthenaDemo">
-                  <SweetAthenaDemo />
-                </ErrorBoundary>
-              } />
-              <Route path="/optimized-athena" element={
-                <ErrorBoundary name="OptimizedAthenaDemo">
-                  <OptimizedAthenaDemo />
-                </ErrorBoundary>
-              } />
-              <Route path="/widget-studio" element={
-                <ErrorBoundary name="WidgetCreator">
-                  <WidgetCreatorPage />
-                </ErrorBoundary>
-              } />
-              <Route path="/performance" element={
-                <ErrorBoundary name="PerformanceDashboard">
-                  <PerformanceDashboard />
-                </ErrorBoundary>
-              } />
-              <Route path="/monitoring" element={
-                <ErrorBoundary name="Monitoring">
-                  <Monitoring />
-                </ErrorBoundary>
-              } />
-              <Route path="/settings" element={
-                <ErrorBoundary name="Settings">
-                  <Settings />
-                </ErrorBoundary>
-              } />
-            </Routes>
-          </Layout>
-        }
-      />
-    </Routes>
-  );
+// Layout component with navigation - Dashboard has its own header
+function DashboardLayout() {
+  return <Outlet />
 }
+
+// Layout component with navigation for other pages
+function AppLayout() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#111827', color: '#f9fafb' }}>
+      <Navigation />
+      <main>
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+
+// Create router with future flags enabled
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <DashboardLayout />,
+    children: [
+      { index: true, element: <Dashboard /> },
+    ],
+  },
+  {
+    path: '/',
+    element: <AppLayout />,
+    children: [
+      { path: 'chat', element: <ChatModern /> },
+      { path: 'chat-classic', element: <ChatEnhanced /> },
+      { path: 'vision', element: <VisionStudio /> },
+      { path: 'mlx', element: <MLXTraining /> },
+      { path: 'orchestration', element: <OrchestrationDashboard /> },
+      { path: 'monitoring', element: <MonitoringDashboard /> },
+      { path: 'models', element: <ModelsManager /> },
+      { path: 'agents', element: <Agents /> },
+      { path: 'memory', element: <Memory /> },
+      { path: 'performance', element: <AgentPerformanceDemo /> },
+      { path: 'activity', element: <AgentActivityMonitorDemo /> },
+      { path: 'tasks', element: <TaskExecutionDemo /> },
+      { path: 'api-keys', element: <ApiKeysManager /> },
+    ],
+  },
+], {
+  future: {
+    v7_skipActionErrorRevalidation: true,
+    v7_relativeSplatPath: true,
+  },
+})
 
 function App() {
   return (
-    <GlobalErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <AuthProvider>
-            <AppRoutes />
-            <ToastContainer />
-          </AuthProvider>
-        </Router>
-      </QueryClientProvider>
-    </GlobalErrorBoundary>
-  );
+    <Provider theme={defaultTheme} colorScheme="dark">
+      <RouterProvider router={router} />
+    </Provider>
+  )
 }
 
-export default App;
+export default App

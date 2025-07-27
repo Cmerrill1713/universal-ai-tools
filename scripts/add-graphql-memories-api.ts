@@ -5,7 +5,10 @@ import { readFileSync } from 'fs';
 // Memory data for GraphQL knowledge
 const memories = [
   {
-    content: readFileSync('/Users/christianmerrill/Desktop/universal-ai-tools/graphql_apollo_server_memory_1.md', 'utf8'),
+    content: readFileSync(
+      '/Users/christianmerrill/Desktop/universal-ai-tools/graphql_apollo_server_memory_1.md',
+      'utf8'
+    ),
     metadata: {
       serviceId: 'universal-ai-tools-knowledge',
       memoryType: 'graphql_apollo_server',
@@ -18,18 +21,21 @@ const memories = [
         'typescript-graphql',
         'schema-first-development',
         'production-deployment',
-        'express-integration'
+        'express-integration',
       ],
       technologies: ['Apollo Server 5.x', 'TypeScript', 'Express', 'GraphQL'],
       difficulty: 'intermediate',
       importance: 0.95,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     },
     tags: ['graphql', 'apollo-server', 'typescript', 'best-practices', 'setup', 'express'],
-    userId: 'system'
+    userId: 'system',
   },
   {
-    content: readFileSync('/Users/christianmerrill/Desktop/universal-ai-tools/graphql_performance_memory_2.md', 'utf8'),
+    content: readFileSync(
+      '/Users/christianmerrill/Desktop/universal-ai-tools/graphql_performance_memory_2.md',
+      'utf8'
+    ),
     metadata: {
       serviceId: 'universal-ai-tools-knowledge',
       memoryType: 'graphql_performance',
@@ -42,18 +48,21 @@ const memories = [
         'query-optimization',
         'caching-strategies',
         'pagination-implementation',
-        'performance-monitoring'
+        'performance-monitoring',
       ],
       technologies: ['DataLoader', 'Redis', 'APQ', 'Relay Pagination'],
       difficulty: 'advanced',
       importance: 0.92,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     },
     tags: ['graphql', 'performance', 'optimization', 'dataloader', 'caching', 'pagination'],
-    userId: 'system'
+    userId: 'system',
   },
   {
-    content: readFileSync('/Users/christianmerrill/Desktop/universal-ai-tools/graphql_architecture_memory_3.md', 'utf8'),
+    content: readFileSync(
+      '/Users/christianmerrill/Desktop/universal-ai-tools/graphql_architecture_memory_3.md',
+      'utf8'
+    ),
     metadata: {
       serviceId: 'universal-ai-tools-knowledge',
       memoryType: 'graphql_architecture',
@@ -66,16 +75,16 @@ const memories = [
         'schema-organization',
         'error-handling',
         'security-implementation',
-        'real-time-subscriptions'
+        'real-time-subscriptions',
       ],
       technologies: ['GraphQL Tools', 'Federation', 'WebSockets', 'Jest'],
       difficulty: 'advanced',
       importance: 0.94,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     },
     tags: ['graphql', 'architecture', 'patterns', 'security', 'testing', 'subscriptions'],
-    userId: 'system'
-  }
+    userId: 'system',
+  },
 ];
 
 async function addGraphQLMemories() {
@@ -90,9 +99,9 @@ async function addGraphQLMemories() {
         headers: {
           'Content-Type': 'application/json',
           'X-Service-Name': 'universal-ai-tools',
-          'X-Service-Version': '1.0.0'
+          'X-Service-Version': '1.0.0',
         },
-        body: JSON.stringify(memory)
+        body: JSON.stringify(memory),
       });
 
       if (!response.ok) {
@@ -102,30 +111,36 @@ async function addGraphQLMemories() {
       }
 
       const result = await response.json();
-      console.log(`✅ Successfully added memory: ${memory.metadata.title} (ID: ${result.data?.id})`);
-      
+      console.log(
+        `✅ Successfully added memory: ${memory.metadata.title} (ID: ${result.data?.id})`
+      );
     } catch (error) {
       console.error('❌ Network error:', error);
     }
   }
 
   console.log('🎉 GraphQL knowledge upload attempts completed!');
-  
+
   // Verify memories were added
   try {
-    const verifyResponse = await fetch('http://localhost:9999/api/v1/memory?memory_type=graphql_apollo_server,graphql_performance,graphql_architecture', {
-      headers: {
-        'X-Service-Name': 'universal-ai-tools',
-        'X-Service-Version': '1.0.0'
+    const verifyResponse = await fetch(
+      'http://localhost:9999/api/v1/memory?memory_type=graphql_apollo_server,graphql_performance,graphql_architecture',
+      {
+        headers: {
+          'X-Service-Name': 'universal-ai-tools',
+          'X-Service-Version': '1.0.0',
+        },
       }
-    });
+    );
 
     if (verifyResponse.ok) {
       const verifyData = await verifyResponse.json();
       console.log('\n📊 Verification - Added memories:');
       if (verifyData.memories && verifyData.memories.length > 0) {
         verifyData.memories.forEach((memory: any) => {
-          console.log(`   - ${memory.memory_type}: ${memory.metadata?.title || 'No title'} (ID: ${memory.id})`);
+          console.log(
+            `   - ${memory.memory_type}: ${memory.metadata?.title || 'No title'} (ID: ${memory.id})`
+          );
         });
       } else {
         console.log('   No memories found matching the criteria');

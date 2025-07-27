@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render, resetMocks } from '../../test/utils';
-import { ErrorBoundary } from '../../components/ErrorBoundary';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 // Component that throws an error for testing
 const ThrowError = ({ shouldThrow = false, errorMessage = 'Test error' }: { 

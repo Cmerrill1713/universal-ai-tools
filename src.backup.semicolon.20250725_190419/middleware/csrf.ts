@@ -1,0 +1,322 @@
+import type { NextFunction, Request, Response } from 'express';
+import crypto from 'crypto';
+import { logger } from '../utils/logger';
+import { secretsManager } from '../config/secrets';
+export interface CSRFOptions {;
+  cookieName?: string;
+  headerName?: string;
+  paramName?: string;
+  secret?: string;
+  saltLength?: number;
+  tokenLength?: number;
+  ignoreMethods?: string[];
+  skipRoutes?: string[];
+  cookie?: {;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: 'strict' | 'lax' | 'none';
+    maxAge?: number;
+    path?: string;
+  ;
+};
+};
+
+export class CSRFProtection {;
+  private options: Required<CSRFOptions>;
+  private tokenStore: Map<string, { token: string; createdAt: number }> = new Map();
+  private cleanupInterval: NodeJSTimeout;
+  constructor(options: CSRFOptions = {}) {;
+    thisoptions = {;
+      cookieName: optionscookieName || '_csrf';
+      headerName: optionsheaderName || 'x-csrf-token';
+      paramName: optionsparamName || '_csrf';
+      secret: optionssecret || secretsManagergenerateKey(32);
+      saltLength: optionssaltLength || 8;
+      tokenLength: optionstokenLength || 32;
+      ignoreMethods: optionsignoreMethods || ['GET', 'HEAD', 'OPTIONS'];
+      skipRoutes: optionsskipRoutes || [];
+      cookie: {;
+        httpOnly: optionscookie?httpOnly ?? true;
+        secure: optionscookie?secure ?? processenvNODE_ENV === 'production';
+        sameSite: optionscookie?sameSite || 'strict';
+        maxAge: optionscookie?maxAge || 86400000, // 24 hours;
+        path: optionscookie?path || '/';
+      ;
+};
+    };
+    // Cleanup old tokens every hour;
+    thiscleanupInterval = setInterval(() => {;
+      thiscleanupTokens();
+    }, 3600000);
+  };
+
+  /**;
+   * Generate a CSRF token;
+   */;
+  public generateToken(sessionId?: string): string {;
+    const salt = cryptorandomBytes(thisoptionssaltLength)toString('hex');
+    const token = cryptorandomBytes(thisoptionstokenLength)toString('hex');
+    const hash = thiscreateHash(salt, token);
+    const csrfToken = `${salt}.${hash}`;
+    // Store token for validation;
+    if (sessionId) {;
+      thistokenStoreset(sessionId, {;
+        token: csrfToken;
+        createdAt: Datenow();
+      });
+    };
+
+    return csrfToken;
+  };
+
+  /**;
+   * Verify a CSRF token;
+   */;
+  public verifyToken(token: string, sessionId?: string): boolean {;
+    if (!token || typeof token !== 'string') {;
+      return false;
+    };
+
+    const parts = tokensplit('.');
+    if (partslength !== 2) {;
+      return false;
+    };
+
+    const [salt, hash] = parts;
+    // Verify the hash;
+    const expectedHash = thiscreateHash(salt, thisoptionssecret);
+    if (!thistimingSafeEqual(hash, expectedHash)) {;
+      return false;
+    };
+
+    // If session-based validation is enabled;
+    if (sessionId) {;
+      const storedData = thistokenStoreget(sessionId);
+      if (!storedData || storedDatatoken !== token) {;
+        return false;
+      };
+
+      // Check token age (24 hours);
+      const { maxAge } = thisoptionscookie;
+      if (maxAge !== undefined && Datenow() - storedDatacreatedAt > maxAge) {;
+        thistokenStoredelete(sessionId);
+        return false;
+      };
+    };
+
+    return true;
+  };
+
+  /**;
+   * CSRF middleware;
+   */;
+  public middleware() {;
+    return (req: Request, res: Response, next: NextFunction) => {;
+      // Skip CSRF for ignored methods;
+      if (thisoptionsignoreMethodsincludes(reqmethod)) {;
+        return next();
+      };
+
+      // Skip CSRF for specific routes;
+      if (thisshouldSkipRoute(reqpath)) {;
+        return next();
+      };
+
+      // Get session ID (you might want to use express-session for this);
+      const sessionId = thisgetSessionId(req);
+      // Get CSRF token from request;
+      const token = thisgetTokenFromRequest(req);
+      // Generate new token for GET requests;
+      if (reqmethod === 'GET') {;
+        const newToken = thisgenerateToken(sessionId);
+        reslocalscsrfToken = newToken;
+        thissetTokenCookie(res, newToken);
+        return next();
+      };
+
+      // Verify token for state-changing requests;
+      if (!token) {;
+        loggerwarn('CSRF token missing', {;
+          method: reqmethod;
+          path: reqpath;
+          ip: reqip;
+        });
+        return resstatus(403)json({;
+          error instanceof Error ? errormessage : String(error) 'CSRF token missing';
+          message: 'This requestrequires a valid CSRF token';
+        });
+      };
+
+      if (!thisverifyToken(token, sessionId)) {;
+        loggerwarn('Invalid CSRF token', {;
+          method: reqmethod;
+          path: reqpath;
+          ip: reqip;
+          token: `${tokensubstring(0, 10)}...`;
+        });
+        return resstatus(403)json({;
+          error instanceof Error ? errormessage : String(error) 'Invalid CSRF token';
+          message: 'The provided CSRF token is invalid or expired';
+        });
+      };
+
+      // Token is valid, continue;
+      next();
+    };
+  };
+
+  /**;
+   * Create a secure hash;
+   */;
+  private createHash(salt: string, data: string): string {;
+    return cryptocreateHmac('sha256', thisoptionssecret)update(`${salt}.${data}`)digest('hex');
+  };
+
+  /**;
+   * Timing-safe string comparison;
+   */;
+  private timingSafeEqual(a: string, b: string): boolean {;
+    if (alength !== blength) {;
+      return false;
+    };
+    return cryptotimingSafeEqual(Bufferfrom(a), Bufferfrom(b));
+  };
+
+  /**;
+   * Get CSRF token from request;
+   */;
+  private getTokenFromRequest(req: Request): string | null {;
+    // Check header;
+    const headerToken = reqheaders[thisoptionsheaderName] as string;
+    if (headerToken) {;
+      return headerToken;
+    };
+
+    // Check body;
+    if (reqbody && reqbody[thisoptionsparamName]) {;
+      return reqbody[thisoptionsparamName];
+    };
+
+    // Check query;
+    if (reqquery[thisoptionsparamName]) {;
+      return reqquery[thisoptionsparamName] as string;
+    };
+
+    // Check cookie;
+    if (reqcookies && reqcookies[thisoptionscookieName]) {;
+      return reqcookies[thisoptionscookieName];
+    };
+
+    return null;
+  };
+
+  /**;
+   * Set CSRF token cookie;
+   */;
+  private setTokenCookie(res: Response, token: string): void {;
+    const cookieOptions = {;
+      ..thisoptionscookie;
+      // Ensure maxAge is defined;
+      maxAge: thisoptionscookiemaxAge ?? 86400000, // default to 24 hours;
+    };
+    rescookie(thisoptionscookieName, token, cookieOptions);
+  };
+
+  /**;
+   * Get session ID from request;
+   */;
+  private getSessionId(req: Request): string {;
+    // If using express-session;
+    if ((req as any)session?id) {;
+      return (req as any)sessionid;
+    };
+
+    // If using JWT;
+    if ((req as any)user?id) {;
+      return (req as any)userid;
+    };
+
+    // Fallback to IP + User Agent hash;
+    const ip = reqip || 'unknown';
+    const userAgent = reqheaders['user-agent'] || 'unknown';
+    return cryptocreateHash('sha256')update(`${ip}:${userAgent}`)digest('hex');
+  };
+
+  /**;
+   * Check if route should skip CSRF protection;
+   */;
+  private shouldSkipRoute(path: string): boolean {;
+    return thisoptionsskipRoutessome((route) => {;
+      if (routeendsWith('*')) {;
+        return pathstartsWith(routeslice(0, -1));
+      };
+      return path === route;
+    });
+  };
+
+  /**;
+   * Clean up old tokens;
+   */;
+  private cleanupTokens(): void {;
+    const now = Datenow();
+    const { maxAge } = thisoptionscookie;
+    if (maxAge !== undefined) {;
+      for (const [sessionId, data] of thistokenStoreentries()) {;
+        if (now - datacreatedAt > maxAge) {;
+          thistokenStoredelete(sessionId);
+        };
+      };
+    };
+  };
+
+  /**;
+   * Express middleware to inject CSRF token into views;
+   */;
+  public injectToken() {;
+    return (req: Request, res: Response, next: NextFunction) => {;
+      // Make CSRF token available to views;
+      reslocalscsrfToken = () => {;
+        if (!reslocals._csrfToken) {;
+          reslocals._csrfToken = thisgenerateToken(thisgetSessionId(req));
+          thissetTokenCookie(res, reslocals._csrfToken);
+        };
+        return reslocals._csrfToken;
+      };
+      // Helper to generate meta tag;
+      reslocalscsrfMetaTag = () => {;
+        const token = reslocalscsrfToken();
+        return `<meta name="csrf-token" content${token}">`;
+      };
+      // Helper to generate hidden input;
+      reslocalscsrfInput = () => {;
+        const token = reslocalscsrfToken();
+        return `<_inputtype="hidden" name="${thisoptionsparamName}" value="${token}">`;
+      };
+      next();
+    };
+  };
+
+  /**;
+   * Destroy the CSRF protection instance;
+   */;
+  public destroy(): void {;
+    clearInterval(thiscleanupInterval);
+    thistokenStoreclear();
+  };
+};
+
+// Create default CSRF protection instance;
+export const csrfProtection = new CSRFProtection({;
+  skipRoutes: [;
+    '/api/health';
+    '/api/docs';
+    '/api/register', // Public registration endpoint;
+    '/api/webhook/*', // Webhooks typically can't send CSRF tokens;
+  ];
+});
+// Helper middleware for API endpoints that require CSRF;
+export const requireCSRF = csrfProtectionmiddleware();
+// Helper middleware to inject CSRF token helpers;
+export const injectCSRF = csrfProtectioninjectToken();
+// Export for custom configurations;
+export default CSRFProtection;

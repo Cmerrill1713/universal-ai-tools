@@ -5,25 +5,22 @@ Sets up LaunchAgent for auto-start and system integration
 """
 
 import os
-import shutil
-import subprocess
-import json
-from pathlib import Path
+
 
 def create_launch_agent():
     """Create a LaunchAgent plist for auto-starting the service"""
-    
+
     launch_agents_dir = os.path.expanduser("~/Library/LaunchAgents")
     plist_path = os.path.join(launch_agents_dir, "com.universal.ai-tools.plist")
     app_path = "/Users/christianmerrill/Desktop/Universal AI Tools.app/Contents/Resources"
-    
+
     print("🔧 Creating LaunchAgent for Universal AI Tools...")
-    
+
     # Ensure LaunchAgents directory exists
     os.makedirs(launch_agents_dir, exist_ok=True)
-    
+
     # Create the plist content
-    plist_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+    plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -55,22 +52,23 @@ def create_launch_agent():
     </dict>
 </dict>
 </plist>
-'''
-    
-    with open(plist_path, 'w') as f:
+"""
+
+    with open(plist_path, "w") as f:
         f.write(plist_content)
-    
+
     print(f"   ✅ Created LaunchAgent: {plist_path}")
-    
+
     return plist_path
+
 
 def create_service_manager():
     """Create a service management script"""
-    
+
     manager_path = "/Users/christianmerrill/Desktop/universal-ai-tools/service-manager.sh"
     app_path = "/Users/christianmerrill/Desktop/Universal AI Tools.app/Contents/Resources"
-    
-    manager_content = f'''#!/bin/bash
+
+    manager_content = f"""#!/bin/bash
 # Universal AI Tools Service Manager
 
 PLIST_PATH="$HOME/Library/LaunchAgents/com.universal.ai-tools.plist"
@@ -297,22 +295,23 @@ case "$1" in
         exit 1
         ;;
 esac
-'''
-    
-    with open(manager_path, 'w') as f:
+"""
+
+    with open(manager_path, "w") as f:
         f.write(manager_content)
-    
+
     # Make executable
     os.chmod(manager_path, 0o755)
     print(f"   ✅ Created service manager: {manager_path}")
-    
+
     return manager_path
+
 
 def create_menu_bar_app():
     """Create a simple menu bar application for system tray integration"""
-    
+
     menu_app_path = "/Users/christianmerrill/Desktop/universal-ai-tools/menu-bar-app.py"
-    
+
     menu_app_content = '''#!/usr/bin/env python3
 """
 Universal AI Tools Menu Bar App
@@ -437,62 +436,64 @@ if __name__ == "__main__":
         print("rumps not installed. Install with: pip3 install rumps")
         print("Alternatively, use the command line service manager.")
 '''
-    
-    with open(menu_app_path, 'w') as f:
+
+    with open(menu_app_path, "w") as f:
         f.write(menu_app_content)
-    
+
     os.chmod(menu_app_path, 0o755)
     print(f"   ✅ Created menu bar app: {menu_app_path}")
-    
+
     return menu_app_path
+
 
 def main():
     """Main service integration setup"""
     print("🔧 Setting up Universal AI Tools Service Integration")
     print("=" * 55)
-    
+
     # Create LaunchAgent
     plist_path = create_launch_agent()
-    
+
     # Create service manager
     manager_path = create_service_manager()
-    
+
     # Create menu bar app
     menu_app_path = create_menu_bar_app()
-    
+
     # Create desktop shortcuts
     print("\n📱 Creating desktop shortcuts...")
-    
+
     # Service manager shortcut
     manager_shortcut = "/Users/christianmerrill/Desktop/Universal AI Tools Manager.command"
-    with open(manager_shortcut, 'w') as f:
+    with open(manager_shortcut, "w") as f:
         f.write(f'#!/bin/bash\n"{manager_path}" "$@"\n')
     os.chmod(manager_shortcut, 0o755)
-    print(f"   ✅ Created: Universal AI Tools Manager.command")
-    
+    print("   ✅ Created: Universal AI Tools Manager.command")
+
     # Quick start shortcut
     quick_start = "/Users/christianmerrill/Desktop/Start Universal AI Tools.command"
-    with open(quick_start, 'w') as f:
+    with open(quick_start, "w") as f:
         f.write(f'#!/bin/bash\n"{manager_path}" start\n')
     os.chmod(quick_start, 0o755)
-    print(f"   ✅ Created: Start Universal AI Tools.command")
-    
+    print("   ✅ Created: Start Universal AI Tools.command")
+
     print("\n🎉 Service integration complete!")
     print("\n📋 Available Commands:")
     print(f"   • Service Manager: {manager_path}")
     print(f"   • Menu Bar App: {menu_app_path} (requires: pip3 install rumps)")
-    print(f"   • Desktop shortcuts created on Desktop")
-    
+    print("   • Desktop shortcuts created on Desktop")
+
     print("\n🚀 Quick Start:")
     print("   1. Run: ./service-manager.sh start")
     print("   2. Or double-click 'Start Universal AI Tools.command'")
     print("   3. Access at: http://localhost:9999")
-    
+
     print("\n⚙️  Auto-start (optional):")
     print("   • Enable: ./service-manager.sh install")
     print("   • Disable: ./service-manager.sh uninstall")
-    
+
     return True
+
 
 if __name__ == "__main__":
     main()

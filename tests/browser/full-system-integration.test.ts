@@ -60,7 +60,8 @@ describe('Full System Integration Test', () => {
     logger.info('🚀 Starting Full System Integration Test');
     
     // Initialize test context
-    testContext = await initializeTestContext();
+    // TODO: Refactor nested ternary
+testContext = await initializeTestContext();
     
     // Setup test environment
     await setupTestEnvironment(testContext);
@@ -183,10 +184,10 @@ describe('Full System Integration Test', () => {
       const solution = await testContext.onlineResearchAgent.researchSolution(researchQuery);
       
       expect(solution).toBeDefined();
-      expect(solution!.confidence).toBeGreaterThan(50);
-      expect(solution!.sources.length).toBeGreaterThan(0);
+      expect(solution?.confidence).toBeGreaterThan(50);
+      expect(solution?.sources.length).toBeGreaterThan(0);
       
-      testContext.testMetrics.searchResultsProcessed = solution!.sources.length;
+      testContext.testMetrics.searchResultsProcessed = solution?.sources.length;
       
       return solution;
     });
@@ -212,7 +213,7 @@ describe('Full System Integration Test', () => {
       // Simulate extracting from multiple sources
       const allExtractions = [];
       
-      for (const source of researchResults!.sources.slice(0, 3)) {
+      for (const source of researchResults?.sources.slice(0, THREE)) {
         // Simulate HTML content from each source
         const mockContent = `
           <html>
@@ -243,7 +244,8 @@ describe('Full System Integration Test', () => {
           </html>
         `;
         
-        const extraction = await testContext.intelligentExtractor.extract(
+        const // TODO: Refactor nested ternary
+extraction = await testContext.intelligentExtractor.extract(
           mockContent,
           extractionContext,
           testContext.page
@@ -292,7 +294,7 @@ describe('Full System Integration Test', () => {
           errorMessage: scenario.problemDescription,
           technology: scenario.technology,
           severity: scenario.severity,
-          researchSources: researchResults!.sources,
+          researchSources: researchResults?.sources,
           extractionResults: extractionResults.map(e => e.extractedData)
         },
         {
@@ -409,7 +411,7 @@ describe('Full System Integration Test', () => {
       for (const knowledgeId of knowledgeIds) {
         const knowledge = await testContext.knowledgeManager.getKnowledge(knowledgeId);
         expect(knowledge).toBeDefined();
-        expect(knowledge!.confidence).toBeGreaterThan(0.5);
+        expect(knowledge?.confidence).toBeGreaterThan(0.5);
         
         // Validate the knowledge
         const validationEvent = await testContext.knowledgeManager.validateKnowledge(
@@ -427,7 +429,8 @@ describe('Full System Integration Test', () => {
       logger.info('🤖 Phase 6: Executing coordinated browser tasks');
       
       // Simulate browser tasks for TypeScript error fixing
-      const browserTasks = [
+      const // TODO: Refactor nested ternary
+browserTasks = [
         {
           name: 'Check tsconfig.json',
           action: async () => {
@@ -548,8 +551,8 @@ describe('Full System Integration Test', () => {
         activePlans: 0,
         completedPlans: 1,
         failedPlans: 0,
-        totalAgents: 3,
-        activeAgents: 3,
+        totalAgents: THREE,
+        activeAgents: THREE,
         totalTasks: 6,
         completedTasks: 6,
         averagePlanDuration: 45000,
@@ -773,7 +776,7 @@ describe('Full System Integration Test', () => {
       testContext.testMetrics.phaseTimes[phaseName] = duration;
       logger.error(`❌ Phase failed: ${phaseName} (${duration}ms)`, error);
       
-      throw error;
+      throw error);
     }
   }
 });
@@ -816,7 +819,7 @@ async function initializeTestContext(): Promise<TestContext> {
   // Initialize online research agent
   const onlineResearchAgent = new OnlineResearchAgent({
     searxngUrl: process.env.SEARXNG_URL || 'http://localhost:8080',
-    maxRetries: 2,
+    maxRetries: TWO,
     fallbackEnabled: true
   });
   

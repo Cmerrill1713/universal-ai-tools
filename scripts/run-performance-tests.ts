@@ -7,7 +7,7 @@ import chalk from 'chalk';
 async function main() {
   const args = process.argv.slice(2);
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-  
+
   // Parse command line arguments
   const options = {
     duration: 60,
@@ -17,12 +17,13 @@ async function main() {
     include_stress_tests: args.includes('--stress'),
     data_size: 'medium' as 'small' | 'medium' | 'large',
     generate_report: true,
-    output_format: 'console' as 'json' | 'html' | 'console'
+    output_format: 'console' as 'json' | 'html' | 'console',
   };
 
   // Override defaults with environment variables
   if (process.env.TEST_DURATION) options.duration = parseInt(process.env.TEST_DURATION);
-  if (process.env.CONCURRENT_USERS) options.concurrent_users = parseInt(process.env.CONCURRENT_USERS);
+  if (process.env.CONCURRENT_USERS)
+    options.concurrent_users = parseInt(process.env.CONCURRENT_USERS);
   if (process.env.DATA_SIZE) options.data_size = process.env.DATA_SIZE as any;
   if (process.env.OUTPUT_FORMAT) options.output_format = process.env.OUTPUT_FORMAT as any;
 
@@ -39,13 +40,12 @@ async function main() {
   try {
     const runner = new PerformanceTestRunner(baseUrl);
     const results = await runner.runComprehensivePerformanceTests(options);
-    
+
     console.log(chalk.green('\n✅ Performance testing completed successfully!'));
     console.log(chalk.cyan(`Overall Performance Score: ${results.test_summary.overall_score}/100`));
-    
+
     // Exit with appropriate code
     process.exit(results.test_summary.tests_failed > 0 ? 1 : 0);
-    
   } catch (error) {
     console.error(chalk.red('\n❌ Performance testing failed:'));
     console.error(error);

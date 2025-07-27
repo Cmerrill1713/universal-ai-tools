@@ -1,0 +1,390 @@
+# Universal AI Tools GraphQL Schema
+# Temporal Knowledge Graph with Agent Coordination
+
+scalar DateTime
+scalar JSON
+scalar UUID
+
+# ============================================================================
+# TEMPORAL TYPES
+# ============================================================================
+
+enum TemporalType {
+  PAST
+  PRESENT
+  FUTURE
+  RECURRING
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+type TemporalContext {
+  timeType: TemporalType!
+  urgency: UrgencyLevel!
+  timeExpressions: [String!]!
+  validFrom: DateTime!
+  validTo: DateTime
+}
+
+# ============================================================================
+# KNOWLEDGE GRAPH TYPES
+# ============================================================================
+
+interface Node {
+  id: UUID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+interface TemporalNode {
+  id: UUID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  validFrom: DateTime!
+  validTo: DateTime
+  versionId: UUID!
+}
+
+type KnowledgeEntity implements TemporalNode {
+  id: UUID!
+  entityType: String!
+  name: String!
+  description: String
+  properties: JSON!
+  embedding: [Float!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: UUID
+  validFrom: DateTime!
+  validTo: DateTime
+  versionId: UUID!
+  previousVersionId: UUID
+  
+  # Graph relationships
+  outgoingRelationships(
+    types: [String!]
+    limit: Int = 10
+  ): [KnowledgeRelationship!]!
+  
+  incomingRelationships(
+    types: [String!]
+    limit: Int = 10
+  ): [KnowledgeRelationship!]!
+  
+  # Connected entities (graph traversal)
+  connectedEntities(
+    maxDepth: Int = 3
+    relationshipTypes: [String!]
+  ): [ConnectedEntity!]!
+}
+
+type KnowledgeRelationship implements TemporalNode {
+  id: UUID!
+  sourceEntityId: UUID!
+  targetEntityId: UUID!
+  relationshipType: String!
+  strength: Float!
+  confidence: Float!
+  properties: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: UUID
+  validFrom: DateTime!
+  validTo: DateTime
+  versionId: UUID!
+  previousVersionId: UUID
+  
+  # Related entities
+  sourceEntity: KnowledgeEntity!
+  targetEntity: KnowledgeEntity!
+}
+
+type ConnectedEntity {
+  entity: KnowledgeEntity!
+  pathLength: Int!
+  relationshipPath: [String!]!
+}
+
+type KnowledgeEvent implements Node {
+  id: UUID!
+  eventType: String!
+  entityId: UUID
+  relationshipId: UUID
+  agentId: String
+  eventData: JSON!
+  timestamp: DateTime!
+  causalEventId: UUID
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Related objects
+  entity: KnowledgeEntity
+  relationship: KnowledgeRelationship
+  causalEvent: KnowledgeEvent
+}
+
+# ============================================================================
+# AGENT TYPES
+# ============================================================================
+
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+  BUSY
+  ERROR
+  IDLE
+}
+
+type Agent implements Node {
+  id: UUID!
+  name: String!
+  status: AgentStatus!
+  priority: Int!
+  lastActive: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Memory and performance
+  memories(
+    first: Int = 10
+    after: String
+    importance: Float
+  ): MemoryConnection!
+  
+  performance: AgentPerformance!
+  
+  # Coordination
+  coordinatedAgents: [Agent!]!
+  workloadScore: Float!
+  coordinationWeight: Float!
+  
+  # Knowledge entities related to this agent
+  knowledgeEntities: [KnowledgeEntity!]!
+}
+
+type AgentPerformance {
+  memoryCount: Int!
+  avgMemoryImportance: Float!
+  highImportanceMemories: Int!
+  activeDays: Int!
+  lifespanDays: Float!
+  memoriesPerDay: Float!
+  successRate: Float
+  avgLatency: Float
+}
+
+# ============================================================================
+# MEMORY TYPES
+# ============================================================================
+
+type Memory implements Node {
+  id: UUID!
+  content: String!
+  importance: Float!
+  agentId: String!
+  embedding: [Float!]
+  temporalContext: TemporalContext
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  
+  # Graph connections
+  connections: [MemoryConnection!]!
+  agent: Agent!
+  
+  # Search relevance (populated during search)
+  relevanceScore: Float
+  temporalScore: Float
+  finalScore: Float
+}
+
+type MemoryConnection {
+  edges: [MemoryEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type MemoryEdge {
+  node: Memory!
+  cursor: String!
+  strength: Float!
+  connectionType: String!
+  target: Memory!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# ============================================================================
+# TEMPORAL KNOWLEDGE GRAPH QUERIES
+# ============================================================================
+
+type KnowledgeSnapshot {
+  timestamp: DateTime!
+  entities: [KnowledgeEntity!]!
+  relationships: [KnowledgeRelationship!]!
+  version: String!
+}
+
+type KnowledgeEvolution {
+  events: [KnowledgeEvent!]!
+  startTime: DateTime!
+  endTime: DateTime!
+  totalEvents: Int!
+}
+
+# ============================================================================
+# COORDINATION TYPES
+# ============================================================================
+
+type AgentCoordinationData {
+  agentId: UUID!
+  agentName: String!
+  status: AgentStatus!
+  workloadScore: Float!
+  memoryCount: Int!
+  avgMemoryImportance: Float!
+  lastActive: DateTime
+  coordinationWeight: Float!
+}
+
+# ============================================================================
+# INPUT TYPES
+# ============================================================================
+
+input KnowledgeEntityInput {
+  entityType: String!
+  name: String!
+  description: String
+  properties: JSON
+}
+
+input KnowledgeRelationshipInput {
+  sourceEntityId: UUID!
+  targetEntityId: UUID!
+  relationshipType: String!
+  strength: Float = 0.5
+  confidence: Float = 0.5
+  properties: JSON
+}
+
+input MemorySearchInput {
+  query: String!
+  agentId: String
+  importanceThreshold: Float = 0.3
+  limit: Int = 10
+  temporalWeight: Float = 0.3
+}
+
+input KnowledgeSearchInput {
+  embedding: [Float!]!
+  similarityThreshold: Float = 0.7
+  limit: Int = 10
+}
+
+# ============================================================================
+# QUERY ROOT
+# ============================================================================
+
+type Query {
+  # Agent queries
+  agent(id: UUID!): Agent
+  agents(
+    ids: [UUID!]
+    status: AgentStatus
+    limit: Int = 10
+  ): [Agent!]!
+  
+  agentCoordination(agentIds: [UUID!]): [AgentCoordinationData!]!
+  
+  # Memory queries
+  memory(id: UUID!): Memory
+  searchMemories(input: MemorySearchInput!): [Memory!]!
+  
+  # Knowledge graph queries
+  knowledgeEntity(id: UUID!): KnowledgeEntity
+  knowledgeEntities(
+    entityType: String
+    limit: Int = 10
+  ): [KnowledgeEntity!]!
+  
+  searchKnowledgeEntities(input: KnowledgeSearchInput!): [KnowledgeEntity!]!
+  
+  findConnectedEntities(
+    startEntityId: UUID!
+    maxDepth: Int = 3
+    relationshipTypes: [String!]
+  ): [ConnectedEntity!]!
+  
+  # Temporal queries
+  knowledgeSnapshotAtTime(timestamp: DateTime!): KnowledgeSnapshot!
+  currentKnowledgeSnapshot: KnowledgeSnapshot!
+  knowledgeEvolution(startTime: DateTime!, endTime: DateTime!): KnowledgeEvolution!
+  
+  # System queries
+  systemHealth: SystemHealth!
+}
+
+type SystemHealth {
+  status: String!
+  agentCount: Int!
+  memoryCount: Int!
+  knowledgeEntityCount: Int!
+  uptime: String!
+}
+
+# ============================================================================
+# MUTATION ROOT
+# ============================================================================
+
+type Mutation {
+  # Knowledge graph mutations
+  createKnowledgeEntity(input: KnowledgeEntityInput!): KnowledgeEntity!
+  updateKnowledgeEntity(id: UUID!, input: KnowledgeEntityInput!): KnowledgeEntity!
+  deleteKnowledgeEntity(id: UUID!): Boolean!
+  
+  createKnowledgeRelationship(input: KnowledgeRelationshipInput!): KnowledgeRelationship!
+  updateKnowledgeRelationship(id: UUID!, input: KnowledgeRelationshipInput!): KnowledgeRelationship!
+  deleteKnowledgeRelationship(id: UUID!): Boolean!
+  
+  # Agent mutations
+  updateAgentStatus(id: UUID!, status: AgentStatus!): Agent!
+  
+  # Memory mutations
+  createMemory(
+    content: String!
+    agentId: String!
+    importance: Float!
+    temporalContext: JSON
+  ): Memory!
+}
+
+# ============================================================================
+# SUBSCRIPTION ROOT
+# ============================================================================
+
+type Subscription {
+  # Agent coordination subscriptions
+  agentStatusChanged: Agent!
+  agentCoordinationUpdated: [AgentCoordinationData!]!
+  
+  # Memory subscriptions
+  memoryCreated(agentId: String): Memory!
+  memoryUpdated(agentId: String): Memory!
+  
+  # Knowledge graph subscriptions
+  knowledgeEntityCreated: KnowledgeEntity!
+  knowledgeEntityUpdated: KnowledgeEntity!
+  knowledgeRelationshipCreated: KnowledgeRelationship!
+  
+  # System subscriptions
+  systemHealthChanged: SystemHealth!
+}

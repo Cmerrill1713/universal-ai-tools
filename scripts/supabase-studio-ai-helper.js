@@ -1,9 +1,9 @@
 // Supabase Studio AI Helper - Paste this in the browser console
 // This integrates Ollama with Supabase Studio
 
-(function() {
+(function () {
   const OLLAMA_URL = 'http://localhost:8080';
-  
+
   // Create global AI helper
   window.AI = {
     async generate(prompt, model = 'llama3.2:3b') {
@@ -16,18 +16,21 @@
             model,
             prompt: `You are a PostgreSQL expert. Generate only SQL code for this request, no explanations or markdown: ${prompt}`,
             stream: false,
-            temperature: 0.1
-          })
+            temperature: 0.1,
+          }),
         });
-        
+
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
+
         const data = await response.json();
-        const sql = data.response.replace(/```sql\n?/gi, '').replace(/```\n?/gi, '').trim();
-        
+        const sql = data.response
+          .replace(/```sql\n?/gi, '')
+          .replace(/```\n?/gi, '')
+          .trim();
+
         console.log('✅ Generated SQL:');
         console.log(sql);
-        
+
         // Try to insert into SQL editor if available
         const editor = document.querySelector('.monaco-editor textarea');
         if (editor) {
@@ -35,14 +38,14 @@
           editor.dispatchEvent(new Event('input', { bubbles: true }));
           console.log('📝 SQL inserted into editor');
         }
-        
+
         return sql;
       } catch (error) {
         console.error('❌ Error:', error.message);
         throw error;
       }
     },
-    
+
     async explain(query) {
       console.log('🔍 Explaining query...');
       try {
@@ -53,12 +56,12 @@
             model: 'llama3.2:3b',
             prompt: `Explain this PostgreSQL query in simple terms: ${query}`,
             stream: false,
-            temperature: 0.3
-          })
+            temperature: 0.3,
+          }),
         });
-        
+
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
+
         const data = await response.json();
         console.log('📖 Explanation:');
         console.log(data.response);
@@ -68,7 +71,7 @@
         throw error;
       }
     },
-    
+
     async optimize(query) {
       console.log('⚡ Optimizing query...');
       try {
@@ -79,15 +82,18 @@
             model: 'llama3.2:3b',
             prompt: `Optimize this PostgreSQL query for better performance. Return only the optimized SQL: ${query}`,
             stream: false,
-            temperature: 0.1
-          })
+            temperature: 0.1,
+          }),
         });
-        
+
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
+
         const data = await response.json();
-        const sql = data.response.replace(/```sql\n?/gi, '').replace(/```\n?/gi, '').trim();
-        
+        const sql = data.response
+          .replace(/```sql\n?/gi, '')
+          .replace(/```\n?/gi, '')
+          .trim();
+
         console.log('✅ Optimized SQL:');
         console.log(sql);
         return sql;
@@ -96,7 +102,7 @@
         throw error;
       }
     },
-    
+
     help() {
       console.log(`
 🤖 Supabase Studio AI Helper (Powered by Ollama)
@@ -127,25 +133,25 @@ Available commands:
    - Use getCurrentQuery() to get the current editor content
    - All functions return the result for further use
       `);
-    }
+    },
   };
-  
+
   // Helper to get current SQL from editor
-  window.getCurrentQuery = function() {
+  window.getCurrentQuery = function () {
     const editor = document.querySelector('.monaco-editor textarea');
     if (editor && editor.value) {
       return editor.value;
     }
-    
+
     // Try CodeMirror (older Supabase versions)
     const cm = document.querySelector('.CodeMirror');
     if (cm && cm.CodeMirror) {
       return cm.CodeMirror.getValue();
     }
-    
+
     return '';
   };
-  
+
   // Add keyboard shortcut (Ctrl/Cmd + Shift + G)
   document.addEventListener('keydown', async (e) => {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'G') {
@@ -156,7 +162,7 @@ Available commands:
       }
     }
   });
-  
+
   // Show success message
   console.log(`
 ✅ Ollama AI Helper Loaded!
@@ -169,10 +175,10 @@ Examples:
 - await AI.explain(getCurrentQuery())
 - await AI.optimize('SELECT * FROM large_table')
   `);
-  
+
   // Test connection
   fetch(`${OLLAMA_URL}/api/tags`)
-    .then(r => r.json())
-    .then(data => console.log(`🟢 Connected to Ollama (${data.models?.length || 0} models)`))
+    .then((r) => r.json())
+    .then((data) => console.log(`🟢 Connected to Ollama (${data.models?.length || 0} models)`))
     .catch(() => console.warn('🔴 Cannot connect to Ollama. Is nginx proxy running?'));
 })();

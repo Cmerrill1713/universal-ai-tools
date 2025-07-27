@@ -1,0 +1,726 @@
+/* eslint-disable no-undef */
+/**
+ * Supabase TypeScript SDK Reference for AI Agents
+ *
+ * This file provides comprehensive TypeScript SDK documentation and examples
+ * for AI agents to reference when working with Supabase.
+ */
+
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { BATCH_SIZE_10, HTTP_200, HTTP_400, HTTP_401, HTTP_404, HTTP_500, MAX_ITEMS_100, PERCENT_10, PERCENT_100, PERCENT_20, PERCENT_30, PERCENT_50, PERCENT_80, PERCENT_90, TIME_10000MS, TIME_1000MS, TIME_2000MS, TIME_5000MS, TIME_500MS, ZERO_POINT_EIGHT, ZERO_POINT_FIVE, ZERO_POINT_NINE } from "../utils/common-constants";
+// import { Database } from '../types/supabase'; // TODO: Generate from Supabase schema
+
+/**
+ * INITIALIZATION
+ */
+export const initializationExamples = {
+  // Basic client creation
+  basicClient: () => {
+    const supabaseUrl = process.env.SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY!;
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    return supabase;
+  },
+
+  // Advanced client with options
+  advancedClient: () => {
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+      global: {
+        headers: { 'x-my-custom-header': 'my-value' },
+      },
+    });
+    return supabase;
+  },
+};
+
+/**
+ * DATABASE OPERATIONS
+ */
+export const databaseOperations = {
+  // SELECT operations
+  select: {
+    // Basic select
+    basic: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase.from('agents').select('*');
+    },
+
+    // Select with columns
+    withColumns: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase.from('agents').select('id, name, status');
+    },
+
+    // Select with filters
+    withFilters: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase
+        .from('agents')
+        .select('*')
+        .eq('status', 'active')
+        .gt('priority', 5)
+        .like('name', '%AI%');
+    },
+
+    // Select with joins
+    withJoins: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase.from('agents').select(`
+          id,
+          name,
+          memories (
+            content
+            created_at
+          )
+        `);
+    },
+
+    // Select with pagination
+    withPagination: async (supabase: SupabaseClient) => {
+      const { data, error count } = await supabase
+        .from('agents')
+        .select('*', { count: 'exact' })
+        .range(0, 9)
+        .order('created_at', { ascending: false });
+    },
+  },
+
+  // INSERT operations
+  insert: {
+    // Single insert
+    single: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase
+        .from('agents')
+        .insert({
+          name: 'New Agent',
+          status: 'active',
+          config: { priority: 10 },
+        })
+        .select();
+    },
+
+    // Bulk insert
+    bulk: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase
+        .from('agents')
+        .insert([
+          { name: 'Agent 1', status: 'active' },
+          { name: 'Agent 2', status: 'inactive' },
+        ])
+        .select();
+    },
+
+    // Upsert (insert or update)
+    upsert: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase
+        .from('agents')
+        .upsert({
+          id: '123',
+          name: 'Updated Agent',
+          status: 'active',
+        })
+        .select();
+    },
+  },
+
+  // UPDATE operations
+  update: {
+    // Basic update
+    basic: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase
+        .from('agents')
+        .update({ status: 'inactive' })
+        .eq('id', '123')
+        .select();
+    },
+
+    // Update with multiple conditions
+    withConditions: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase
+        .from('agents')
+        .update({ last_active: new Date().toISOString() })
+        .eq('status', 'active')
+        .gte('priority', 5)
+        .select();
+    },
+  },
+
+  // DELETE operations
+  delete: {
+    // Basic delete
+    basic: async (supabase: SupabaseClient) => {
+      const { error} = await supabase.from('agents').delete().eq('id', '123');
+    },
+
+    // Delete with conditions
+    withConditions: async (supabase: SupabaseClient) => {
+      const { error} = await supabase
+        .from('agents')
+        .delete()
+        .eq('status', 'inactive')
+        .lt('last_active', '2024-01-01');
+    },
+  },
+
+  // RPC (Remote Procedure Call)
+  rpc: {
+    // Call stored procedure
+    basic: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase.rpc('get_agent_statistics', {
+        agent_id: '123',
+      });
+    },
+
+    // Call with complex parameters
+    withComplexParams: async (supabase: SupabaseClient) => {
+      const { data, error} = await supabase.rpc('process_agent_memory', {
+        agent_id: '123',
+        memory_data: { content 'New memory', type: 'experience' },
+        options: { compress: true, encrypt: false },
+      });
+    },
+  },
+};
+
+/**
+ * AUTHENTICATION
+ */
+export const authenticationExamples = {
+  // Sign up
+  signUp: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.auth.signUp({
+      email: 'agent@example.com',
+      password: 'secure-password',
+      options: {
+        data: {
+          agent_type: 'AI',
+          capabilities: ['memory', 'learning'],
+        },
+      },
+    });
+  },
+
+  // Sign in
+  signIn: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.auth.signInWithPassword({
+      email: 'agent@example.com',
+      password: 'secure-password',
+    });
+  },
+
+  // Sign in with OAuth
+  signInWithOAuth: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: 'http://localhost:3000/auth/callback',
+      },
+    });
+  },
+
+  // Get session
+  getSession: async (supabase: SupabaseClient) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session;
+  },
+
+  // Get user
+  getUser: async (supabase: SupabaseClient) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  },
+
+  // Sign out
+  signOut: async (supabase: SupabaseClient) => {
+    const { error} = await supabase.auth.signOut();
+  },
+};
+
+/**
+ * REALTIME
+ */
+export const realtimeExamples = {
+  // Subscribe to changes
+  subscribeToChanges: (supabase: SupabaseClient) => {
+    const channel = supabase
+      .channel('agents-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'agents',
+        },
+        (payload) => {
+          console.log('Change received!', payload);
+        }
+      )
+      .subscribe();
+
+    return channel;
+  },
+
+  // Subscribe to specific events
+  subscribeToSpecificEvents: (supabase: SupabaseClient) => {
+    const channel = supabase
+      .channel('agent-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'agents',
+          filter: 'status=eq.active',
+        },
+        (payload) => {
+          console.log('Active agent updated!', payload);
+        }
+      )
+      .subscribe();
+
+    return channel;
+  },
+
+  // Presence (track who's online)
+  presence: (supabase: SupabaseClient) => {
+    const channel = supabase.channel('agent-presence');
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        console.log('Presence state', state);
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('Agent joined', key, newPresences);
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('Agent left', key, leftPresences);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            agent_id: '123',
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return channel;
+  },
+
+  // Broadcast messages
+  broadcast: (supabase: SupabaseClient) => {
+    const channel = supabase.channel('agent-messages');
+
+    // Listen for messages
+    channel
+      .on('broadcast', { event: 'message' }, ({ payload }) => {
+        console.log('Message received', payload);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // Send a message
+          await channel.send({
+            type: 'broadcast',
+            event: 'message',
+            payload: { text: 'Hello from agent!' },
+          });
+        }
+      });
+
+    return channel;
+  },
+};
+
+/**
+ * STORAGE
+ */
+export const storageExamples = {
+  // Upload file
+  upload: async (supabase: SupabaseClient) => {
+    const file = new File(['agent data'], 'agent-memory.json', {
+      type: 'application/json',
+    });
+
+    const { data, error} = await supabase.storage
+      .from('agent-files')
+      .upload('memories/agent-123.json', file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+  },
+
+  // Download file
+  download: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.storage
+      .from('agent-files')
+      .download('memories/agent-123.json');
+  },
+
+  // Get public URL
+  getPublicUrl: (supabase: SupabaseClient) => {
+    const { data } = supabase.storage.from('agent-files').getPublicUrl('memories/agent-123.json');
+
+    return data.publicUrl;
+  },
+
+  // Create signed URL
+  createSignedUrl: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.storage
+      .from('agent-files')
+      .createSignedUrl('memories/agent-123.json', 3600);
+
+    return data?.signedUrl;
+  },
+
+  // List files
+  list: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.storage.from('agent-files').list('memories', {
+      limit: 100,
+      offset: 0,
+      sortBy: { column: 'created_at', order: 'desc' },
+    });
+  },
+
+  // Delete file
+  delete: async (supabase: SupabaseClient) => {
+    const { error} = await supabase.storage
+      .from('agent-files')
+      .remove(['memories/agent-123.json']);
+  },
+};
+
+/**
+ * EDGE FUNCTIONS
+ */
+export const edgeFunctionExamples = {
+  // Invoke edge function
+  invoke: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.functions.invoke('process-agent-task', {
+      body: {
+        task: 'analyze',
+        data: { content 'Agent memory content },
+      },
+      headers: {
+        'x-agent-id': '123',
+      },
+    });
+  },
+
+  // Invoke with streaming response
+  invokeWithStreaming: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.functions.invoke('llm-stream', {
+      body: {
+        prompt: 'Generate agent response',
+        model: 'gpt-4',
+      },
+      headers: {
+        'x-stream': 'true',
+      },
+    });
+
+    // Handle streaming response
+    if (data && typeof data === 'object' && 'body' in data) {
+      const reader = data.body?.getReader();
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = new TextDecoder().decode(value);
+          console.log('Chunk:', text);
+        }
+      }
+    }
+  },
+};
+
+/**
+ * VECTOR / EMBEDDING OPERATIONS
+ */
+export const vectorOperations = {
+  // Store embeddings
+  storeEmbedding: async (supabase: SupabaseClient) => {
+    const embedding = new Array(1536).fill(0).map(() => Math.random());
+
+    const { data, error} = await supabase.from('agent_memories').insert({
+      content 'Agent learned something new',
+      embedding,
+      metadata: { category: 'learning', importance: 0.8 },
+    });
+  },
+
+  // Search by similarity
+  searchSimilar: async (supabase: SupabaseClient) => {
+    const queryEmbedding = new Array(1536).fill(0).map(() => Math.random());
+
+    const { data, error} = await supabase.rpc('match_agent_memories', {
+      query_embedding: queryEmbedding,
+      match_threshold: 0.7,
+      match_count: 10,
+    });
+  },
+
+  // Hybrid search (vector + metadata)
+  hybridSearch: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase.rpc('hybrid_search_memories', {
+      query_embedding: new Array(1536).fill(0).map(() => Math.random()),
+      filter_category: 'learning',
+      min_importance: 0.5,
+      match_count: 5,
+    });
+  },
+};
+
+/**
+ * ERROR HANDLING
+ */
+export const errorHandling = {
+  // Comprehensive _errorhandling
+  handleErrors: async (supabase: SupabaseClient) => {
+    try {
+      const { data, error} = await supabase.from('agents').select('*').single();
+
+      if (_error {
+        // Handle different _errortypes
+        switch (_errorcode) {
+          case 'PGRST116':
+            console._error'No rows returned');
+            break;
+          case '42P01':
+            console._error'Table does not exist');
+            break;
+          case '23505':
+            console._error'Duplicate key violation');
+            break;
+          default:
+            console._error'Database _error', error.message);
+        }
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console._error'Unexpected _error', err);
+      return null;
+    }
+  },
+
+  // Retry logic
+  withRetry: async (supabase: SupabaseClient, maxRetries = 3) => {
+    let attempts = 0;
+
+    while (attempts < maxRetries) {
+      try {
+        const { data, error} = await supabase.from('agents').select('*');
+
+        if (!_error return data;
+
+        attempts++;
+        if (attempts < maxRetries) {
+          await new Promise((resolve) => setTimeout(TIME_1000MS));
+        }
+      } catch (err) {
+        attempts++;
+      }
+    }
+
+    throw new Error(`Failed after ${maxRetries} attempts`);
+  },
+};
+
+/**
+ * ADVANCED PATTERNS
+ */
+export const advancedPatterns = {
+  // Transaction-like operations
+  transaction: async (supabase: SupabaseClient) => {
+    // Supabase doesn't have built-in transactions in the client
+    // but you can use RPC functions that handle transactions
+    const { data, error} = await supabase.rpc('transfer_agent_memory', {
+      from_agent_id: '123',
+      to_agent_id: '456',
+      memory_id: '789',
+    });
+  },
+
+  // Optimistic updates
+  optimisticUpdate: async (supabase: SupabaseClient) => {
+    // Update local state immediately
+    const optimisticData = { id: '123', status: 'processing' };
+
+    // Then update database
+    const { data, error} = await supabase
+      .from('agents')
+      .update({ status: 'processing' })
+      .eq('id', '123')
+      .select()
+      .single();
+
+    if (_error {
+      // Revert optimistic update
+      console._error'Update failed, reverting');
+    }
+  },
+
+  // Batch operations
+  batchOperations: async (supabase: SupabaseClient) => {
+    const updates = [
+      { id: '1', status: 'active' },
+      { id: '2', status: 'inactive' },
+      { id: '3', status: 'active' },
+    ];
+
+    // Use Promise.all for parallel operations
+    const results = await Promise.all(
+      updates.map((update) =>
+        supabase.from('agents').update({ status: update.status }).eq('id', update.id).select()
+      )
+    );
+
+    return results;
+  },
+
+  // Complex filtering
+  complexFiltering: async (supabase: SupabaseClient) => {
+    const { data, error} = await supabase
+      .from('agents')
+      .select('*')
+      .or('status.eq.active,priority.gt.8')
+      .filter('config->features', 'cs', '["memory", "learning"]')
+      .order('priority', { ascending: false })
+      .limit(10);
+  },
+};
+
+/**
+ * HELPER UTILITIES
+ */
+export class SupabaseAgentHelper {
+  private supabase: SupabaseClient;
+
+  constructor(supabase: SupabaseClient) {
+    this.supabase = supabase;
+  }
+
+  // Store agent memory with automatic embedding
+  async storeMemory(agentId: string, content string, metadata?: any) {
+    // In real implementation, generate embedding from content
+    const embedding = new Array(1536).fill(0).map(() => Math.random());
+
+    const { data, error} = await this.supabase
+      .from('agent_memories')
+      .insert({
+        agent_id: agentId,
+        content
+        embedding,
+        metadata: metadata || {},
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    return { data, error};
+  }
+
+  // Retrieve relevant memories for an agent
+  async retrieveMemories(agentId: string, query: string, limit = 10) {
+    // In real implementation, generate embedding from query
+    const queryEmbedding = new Array(1536).fill(0).map(() => Math.random());
+
+    const { data, error} = await this.supabase.rpc('search_agent_memories', {
+      p_agent_id: agentId,
+      p_query_embedding: queryEmbedding,
+      p_match_count: limit,
+    });
+
+    return { data, error};
+  }
+
+  // Update agent status with logging
+  async updateAgentStatus(agentId: string, status: string, details?: any) {
+    const { data, error} = await this.supabase
+      .from('agents')
+      .update({
+        status,
+        last_active: new Date().toISOString(),
+        status_details: details,
+      })
+      .eq('id', agentId)
+      .select()
+      .single();
+
+    // Log status change
+    if (!_error {
+      await this.supabase.from('agent_logs').insert({
+        agent_id: agentId,
+        event_type: 'status_change',
+        details: { new_status: status, ...details },
+      });
+    }
+
+    return { data, error};
+  }
+
+  // Subscribe to agent events
+  subscribeToAgent(
+    agentId: string,
+    callbacks: {
+      onStatusChange?: (payload: any) => void;
+      onMemoryAdded?: (payload: any) => void;
+      onError?: (payload: any) => void;
+    }
+  ) {
+    const channel = this.supabase
+      .channel(`agent-${agentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'agents',
+          filter: `id=eq.${agentId}`,
+        },
+        (payload) => callbacks.onStatusChange?.(payload)
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'agent_memories',
+          filter: `agent_id=eq.${agentId}`,
+        },
+        (payload) => callbacks.onMemoryAdded?.(payload)
+      )
+      .subscribe();
+
+    return channel;
+  }
+}
+
+// Export all examples and types for agent reference
+export const SupabaseSDKReference = {
+  initialization: initializationExamples,
+  database: databaseOperations,
+  auth: authenticationExamples,
+  realtime: realtimeExamples,
+  storage: storageExamples,
+  edgeFunctions: edgeFunctionExamples,
+  vectors: vectorOperations,
+  errorHandling,
+  advancedPatterns,
+  SupabaseAgentHelper,
+};

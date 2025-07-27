@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Error Checker</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #fff; }
+        .error { color: #ff6b6b; margin: 10px 0; padding: 10px; background: #2a2a2a; border-radius: 4px; }
+        .warn { color: #ffd93d; margin: 10px 0; padding: 10px; background: #2a2a2a; border-radius: 4px; }
+        .success { color: #51cf66; margin: 10px 0; padding: 10px; background: #2a2a2a; border-radius: 4px; }
+        .info { color: #74c0fc; margin: 10px 0; padding: 10px; background: #2a2a2a; border-radius: 4px; }
+        iframe { width: 100%; height: 400px; border: 1px solid #444; margin-top: 20px; }
+        pre { background: #2a2a2a; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Frontend Error Checker</h1>
+    <div id="status" class="info">Checking frontend...</div>
+    <div id="errors"></div>
+    <div id="warnings"></div>
+    <div id="logs"></div>
+    
+    <h2>Live Preview:</h2>
+    <iframe id="preview" src="http://localhost:5173" sandbox="allow-same-origin allow-scripts"></iframe>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const errorsEl = document.getElementById('errors');
+        const warningsEl = document.getElementById('warnings');
+        const logsEl = document.getElementById('logs');
+        
+        let errorCount = 0;
+        let warnCount = 0;
+
+        // Check if frontend is accessible
+        fetch('http://localhost:5173')
+            .then(res => {
+                if (res.ok) {
+                    statusEl.className = 'success';
+                    statusEl.textContent = '✅ Frontend is accessible';
+                } else {
+                    statusEl.className = 'error';
+                    statusEl.textContent = `❌ Frontend returned status: ${res.status}`;
+                }
+                return res.text();
+            })
+            .then(html => {
+                // Check for error messages in HTML
+                if (html.includes('error') || html.includes('Error')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'warn';
+                    errorDiv.textContent = '⚠️ Found "error" keyword in HTML response';
+                    warningsEl.appendChild(errorDiv);
+                }
+            })
+            .catch(err => {
+                statusEl.className = 'error';
+                statusEl.textContent = `❌ Cannot connect to frontend: ${err.message}`;
+            });
+
+        // Check common API endpoints
+        const endpoints = [
+            '/api/health',
+            '/api/agents',
+            '/api/sweet-athena/status'
+        ];
+
+        endpoints.forEach(endpoint => {
+            fetch(`http://localhost:9999${endpoint}`, {
+                headers: {
+                    'X-API-Key': 'universal-ai-tools-production-key-2025',
+                    'X-AI-Service': 'local-ui'
+                }
+            })
+            .then(res => {
+                const div = document.createElement('div');
+                if (res.ok) {
+                    div.className = 'success';
+                    div.textContent = `✅ ${endpoint} - Status: ${res.status}`;
+                } else {
+                    div.className = 'error';
+                    div.textContent = `❌ ${endpoint} - Status: ${res.status}`;
+                    errorCount++;
+                }
+                logsEl.appendChild(div);
+            })
+            .catch(err => {
+                const div = document.createElement('div');
+                div.className = 'error';
+                div.textContent = `❌ ${endpoint} - Error: ${err.message}`;
+                errorCount++;
+                logsEl.appendChild(div);
+            });
+        });
+
+        // Listen for messages from iframe
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'error') {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `<strong>Runtime Error:</strong><pre>${event.data.message}</pre>`;
+                errorsEl.appendChild(errorDiv);
+                errorCount++;
+            }
+        });
+
+        // Summary after checks
+        setTimeout(() => {
+            const summary = document.createElement('div');
+            summary.className = errorCount > 0 ? 'error' : 'success';
+            summary.innerHTML = `<h2>Summary: ${errorCount} errors, ${warnCount} warnings</h2>`;
+            document.body.insertBefore(summary, document.getElementById('logs'));
+        }, 3000);
+    </script>
+</body>
+</html>

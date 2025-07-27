@@ -3,14 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
 async function verifyMemories() {
   console.log('Verifying stored reranking memories...\n');
-  
+
   // Fetch all reranking memories
   const { data: memories, error } = await supabase
     .from('ai_memories')
@@ -37,11 +34,13 @@ async function verifyMemories() {
     }
 
     // Check for connections
-    const memoryIds = memories.map(m => m.id);
+    const memoryIds = memories.map((m) => m.id);
     const { data: connections, error: connError } = await supabase
       .from('memory_connections')
       .select('*')
-      .or(`source_memory_id.in.(${memoryIds.join(',')}),target_memory_id.in.(${memoryIds.join(',')})`);
+      .or(
+        `source_memory_id.in.(${memoryIds.join(',')}),target_memory_id.in.(${memoryIds.join(',')})`
+      );
 
     if (!connError && connections && connections.length > 0) {
       console.log(`\nFound ${connections.length} memory connections:`);

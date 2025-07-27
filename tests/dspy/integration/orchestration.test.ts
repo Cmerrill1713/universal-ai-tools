@@ -21,20 +21,20 @@ describe('DSPy Orchestration Integration', () => {
     // Set up test environment
     process.env.NODE_ENV = 'test';
     process.env.DSPY_TEST_MODE = 'true';
-    
+
     // Initialize services
     logger.info('🧪 Starting DSPy integration tests...');
-    
+
     // Start mock Python service for testing
     await startMockPythonService();
-    
+
     // Initialize real services
     dspyService = new DSPyService();
     agentRegistry = UniversalAgentRegistry.getInstance();
     memorySystem = EnhancedMemorySystem.getInstance();
-    
+
     // Wait for services to initialize
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   });
 
   afterAll(async () => {
@@ -56,17 +56,17 @@ describe('DSPy Orchestration Integration', () => {
   async function startMockPythonService(): Promise<void> {
     // Create a mock WebSocket server that simulates DSPy responses
     wsServer = new WebSocket.Server({ port: 8765 });
-    
+
     wsServer.on('connection', (ws) => {
       logger.info('Mock DSPy service connected');
-      
+
       ws.on('message', (data: string) => {
         const request = JSON.parse(data);
         logger.info(`Mock DSPy received: ${request.method}`);
-        
+
         // Simulate different responses based on method
-        let response: any;
-        
+        let response: unknown;
+
         switch (request.method) {
           case 'orchestrate':
             response = {
@@ -75,71 +75,71 @@ describe('DSPy Orchestration Integration', () => {
               data: {
                 orchestration_mode: request.params.context?.mode || 'standard',
                 consensus: `Orchestrated response for: ${request.params.userRequest}`,
-                complexity: 3,
+                complexity: THREE,
                 confidence: 0.85,
                 coordination_plan: 'Selected optimal agents for task',
-                selected_agents: 'planner,code_assistant'
-              }
+                selected_agents: 'planner,code_assistant',
+              },
             };
             break;
-            
+
           case 'coordinate_agents':
             response = {
               requestId: request.requestId,
               success: true,
               data: {
-                selected_agents: request.params.agents.slice(0, 2),
+                selected_agents: request.params.agents.slice(0, TWO),
                 coordination_plan: 'Agents coordinated successfully',
-                agent_assignments: request.params.agents.slice(0, 2).map((agent: string) => ({
+                agent_assignments: request.params.agents.slice(0, TWO).map((agent: string) => ({
                   agent,
-                  task: `Subtask for ${agent}`
-                }))
-              }
+                  task: `Subtask for ${agent}`,
+                })),
+              },
             };
             break;
-            
+
           case 'manage_knowledge':
             response = {
               requestId: request.requestId,
               success: true,
-              data: handleKnowledgeOperation(request.params)
+              data: handleKnowledgeOperation(request.params),
             };
             break;
-            
+
           default:
             response = {
               requestId: request.requestId,
               success: false,
-              error: `Unknown method: ${request.method}`
+              error: `Unknown method: ${request.method}`,
             };
         }
-        
+
         ws.send(JSON.stringify(response));
       });
     });
   }
 
-  function handleKnowledgeOperation(params: any): any {
+  function handleKnowledgeOperation(params: unknown): unknown {
     switch (params.operation) {
       case 'search':
         return {
           results: [
             { content: 'Result 1', score: 0.9 },
-            { content: 'Result 2', score: 0.8 }
+            { content: 'Result 2', score: 0.8 },
           ],
-          total: 2
+          total: TWO,
         };
       case 'extract':
         return {
           entities: ['entity1', 'entity2'],
           concepts: ['concept1'],
-          relationships: []
+          relationships: [],
         };
       case 'evolve':
         return {
           evolved_knowledge: params.data.existing_knowledge + ' ' + params.data.new_information,
           changes: ['Added new information'],
-          confidence: 0.9
+          confidence: 0.9,
         };
       default:
         return { error: 'Unknown operation' };
@@ -152,7 +152,7 @@ describe('DSPy Orchestration Integration', () => {
         requestId: uuidv4(),
         userRequest: 'Help me write a hello world program',
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       const response = await dspyService.orchestrate(request);
@@ -166,18 +166,18 @@ describe('DSPy Orchestration Integration', () => {
 
     it('should handle different orchestration modes', async () => {
       const modes = ['simple', 'standard', 'cognitive', 'adaptive'] as const;
-      
+
       for (const mode of modes) {
         const request = {
           requestId: uuidv4(),
           userRequest: `Test ${mode} orchestration`,
           userId: 'test-user',
           orchestrationMode: mode,
-          timestamp: new Date()
+          timestamp: new Date(),
         };
 
         const response = await dspyService.orchestrate(request);
-        
+
         expect(response.success).toBe(true);
         expect(response.mode).toBe(mode);
       }
@@ -190,7 +190,7 @@ describe('DSPy Orchestration Integration', () => {
         'planner_agent',
         'code_assistant_agent',
         'file_manager_agent',
-        'web_scraper_agent'
+        'web_scraper_agent',
       ];
 
       const result = await dspyService.coordinateAgents(
@@ -203,19 +203,15 @@ describe('DSPy Orchestration Integration', () => {
       expect(result.selectedAgents).toHaveLength(2);
       expect(result.coordinationPlan).toBeTruthy();
       expect(result.assignments).toHaveLength(2);
-      
-      result.assignments.forEach((assignment: any) => {
+
+      result.assignments.forEach((assignment: unknown) => {
         expect(assignment).toHaveProperty('agent');
         expect(assignment).toHaveProperty('task');
       });
     });
 
     it('should handle empty agent list', async () => {
-      const result = await dspyService.coordinateAgents(
-        'Some task',
-        [],
-        {}
-      );
+      const result = await dspyService.coordinateAgents('Some task', [], {});
 
       expect(result.success).toBe(true);
       expect(result.selectedAgents).toHaveLength(0);
@@ -224,10 +220,10 @@ describe('DSPy Orchestration Integration', () => {
 
   describe('Knowledge Management Integration', () => {
     it('should search knowledge successfully', async () => {
-      const result = await dspyService.searchKnowledge(
-        'TypeScript best practices',
-        { limit: 5, threshold: 0.7 }
-      );
+      const result = await dspyService.searchKnowledge('TypeScript best practices', {
+        limit: 5,
+        threshold: 0.7,
+      });
 
       expect(result.success).toBe(true);
       expect(result.operation).toBe('search');
@@ -243,7 +239,7 @@ describe('DSPy Orchestration Integration', () => {
 
       const result = await dspyService.extractKnowledge(content, {
         domain: 'programming',
-        language: 'en'
+        language: 'en',
       });
 
       expect(result.success).toBe(true);
@@ -274,9 +270,9 @@ describe('DSPy Orchestration Integration', () => {
         orchestrationMode: 'cognitive' as const,
         context: {
           fileType: 'CSV',
-          analysisType: 'statistical'
+          analysisType: 'statistical',
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       const orchestrationResponse = await dspyService.orchestrate(orchestrationRequest);
@@ -294,10 +290,9 @@ describe('DSPy Orchestration Integration', () => {
       expect(coordinationResult.selectedAgents).toHaveLength(2);
 
       // Step 3: Search for relevant knowledge
-      const knowledgeResult = await dspyService.searchKnowledge(
-        'CSV parsing Python pandas',
-        { limit: 10 }
-      );
+      const knowledgeResult = await dspyService.searchKnowledge('CSV parsing Python pandas', {
+        limit: 10,
+      });
 
       expect(knowledgeResult.success).toBe(true);
       expect(knowledgeResult.result.results.length).toBeGreaterThan(0);
@@ -308,12 +303,10 @@ describe('DSPy Orchestration Integration', () => {
         requestId: uuidv4(),
         userRequest: `Concurrent request ${i}`,
         userId: `user-${i}`,
-        timestamp: new Date()
+        timestamp: new Date(),
       }));
 
-      const responses = await Promise.all(
-        requests.map(req => dspyService.orchestrate(req))
-      );
+      const responses = await Promise.all(requests.map((req) => dspyService.orchestrate(req)));
 
       expect(responses).toHaveLength(5);
       responses.forEach((response, i) => {
@@ -334,18 +327,18 @@ describe('DSPy Orchestration Integration', () => {
         requestId: uuidv4(),
         userRequest: 'Test during disconnection',
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       const response = await dspyService.orchestrate(request);
-      
+
       expect(response.success).toBe(false);
       expect(response.mode).toBe('fallback');
       expect(response.error).toBeTruthy();
 
       // Restart the server
       await startMockPythonService();
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     });
 
     it('should handle malformed requests', async () => {
@@ -353,11 +346,11 @@ describe('DSPy Orchestration Integration', () => {
         requestId: uuidv4(),
         userRequest: '', // Empty request
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       const response = await dspyService.orchestrate(request);
-      
+
       // Should still process but with appropriate handling
       expect(response).toBeTruthy();
       expect(response.requestId).toBe(request.requestId);
@@ -370,7 +363,7 @@ describe('DSPy Orchestration Integration', () => {
         requestId: uuidv4(),
         userRequest: 'Simple performance test',
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       const startTime = Date.now();
@@ -388,17 +381,15 @@ describe('DSPy Orchestration Integration', () => {
         requestId: uuidv4(),
         userRequest: `Queue test ${i}`,
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       }));
 
       const startTime = Date.now();
-      const responses = await Promise.all(
-        requests.map(req => dspyService.orchestrate(req))
-      );
+      const responses = await Promise.all(requests.map((req) => dspyService.orchestrate(req)));
       const totalTime = Date.now() - startTime;
 
       expect(responses).toHaveLength(10);
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.success).toBe(true);
       });
 
@@ -414,7 +405,7 @@ describe('DSPy Orchestration Integration', () => {
       expect(status).toHaveProperty('initialized');
       expect(status).toHaveProperty('connected');
       expect(status).toHaveProperty('queueSize');
-      
+
       expect(typeof status.initialized).toBe('boolean');
       expect(typeof status.connected).toBe('boolean');
       expect(typeof status.queueSize).toBe('number');
@@ -425,19 +416,19 @@ describe('DSPy Orchestration Integration', () => {
       const initialQueueSize = initialStatus.queueSize;
 
       // Start multiple async operations
-      const promises = Array.from({ length: 3 }, (_, i) => 
+      const promises = Array.from({ length: 3 }, (_, i) =>
         dspyService.orchestrate({
           requestId: uuidv4(),
           userRequest: `Queue tracking ${i}`,
           userId: 'test-user',
-          timestamp: new Date()
+          timestamp: new Date(),
         })
       );
 
       // Check status while operations are in progress
       // Note: This might not always catch the queue in action due to timing
-      const midStatus = dspyService.getStatus();
-      
+      const _midStatus = dspyService.getStatus();
+
       // Wait for all to complete
       await Promise.all(promises);
 

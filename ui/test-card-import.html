@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Card Import</title>
+</head>
+<body>
+    <div id="root">Loading...</div>
+    <script>
+        // Try to access the Agents page
+        fetch('http://localhost:5174/')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('root').innerHTML = 'UI Server is running on port 5174';
+                    
+                    // Now try to navigate to agents page
+                    fetch('http://localhost:5174/agents')
+                        .then(r => {
+                            if (r.ok) {
+                                document.getElementById('root').innerHTML += '<br>Agents page accessible';
+                            } else {
+                                document.getElementById('root').innerHTML += '<br>Agents page returned status: ' + r.status;
+                            }
+                        });
+                } else {
+                    document.getElementById('root').innerHTML = 'UI Server error: ' + response.status;
+                }
+            })
+            .catch(error => {
+                document.getElementById('root').innerHTML = 'Failed to connect to UI server: ' + error.message;
+            });
+    </script>
+</body>
+</html>

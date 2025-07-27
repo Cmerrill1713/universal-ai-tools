@@ -81,12 +81,14 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 ### Metal-Specific Settings
 
 1. **Memory Allocation**
+
    ```bash
    # Set Ollama memory limit (in GB)
    export OLLAMA_MAX_MEMORY=8
    ```
 
 2. **Model Loading**
+
    ```bash
    # Optimize for Metal
    export OLLAMA_ACCELERATOR=metal
@@ -182,11 +184,11 @@ docker system prune -a
 
 Typical performance on Apple Silicon with Metal:
 
-| Model | M1 | M1 Pro | M2 | M3 |
-|-------|----|----|----|----|
+| Model       | M1        | M1 Pro    | M2        | M3        |
+| ----------- | --------- | --------- | --------- | --------- |
 | llama3.2:1b | 120 tok/s | 150 tok/s | 140 tok/s | 160 tok/s |
-| llama3.2:3b | 60 tok/s | 80 tok/s | 75 tok/s | 90 tok/s |
-| mistral:7b | 30 tok/s | 45 tok/s | 40 tok/s | 55 tok/s |
+| llama3.2:3b | 60 tok/s  | 80 tok/s  | 75 tok/s  | 90 tok/s  |
+| mistral:7b  | 30 tok/s  | 45 tok/s  | 40 tok/s  | 55 tok/s  |
 
 ## Additional Resources
 

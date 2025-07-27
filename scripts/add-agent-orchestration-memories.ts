@@ -19,15 +19,18 @@ const logger = winston.createLogger({
     winston.format.colorize(),
     winston.format.simple()
   ),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  logger.error('Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_KEY/SUPABASE_SERVICE_ROLE_KEY');
+  logger.error(
+    'Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_KEY/SUPABASE_SERVICE_ROLE_KEY'
+  );
   process.exit(1);
 }
 
@@ -90,9 +93,9 @@ class ChainOfThought extends DSPyModule {
       category: 'dspy_fundamentals',
       importance: 10,
       tags: ['dspy', 'framework', 'declarative', 'prompting'],
-      implementation_patterns: true
+      implementation_patterns: true,
     },
-    keywords: ['dspy', 'declarative', 'signatures', 'modules', 'optimization', 'self-improvement']
+    keywords: ['dspy', 'declarative', 'signatures', 'modules', 'optimization', 'self-improvement'],
   },
   {
     service_id: 'agent-orchestration-system',
@@ -289,9 +292,9 @@ const result = await researcher.forward({
       category: 'typescript_implementation',
       importance: 10,
       tags: ['typescript', 'dspy', 'ax-framework', 'implementation'],
-      code_examples: true
+      code_examples: true,
     },
-    keywords: ['typescript', 'dspy', 'ax', 'signature', 'module', 'predict', 'optimizer']
+    keywords: ['typescript', 'dspy', 'ax', 'signature', 'module', 'predict', 'optimizer'],
   },
   {
     service_id: 'agent-orchestration-system',
@@ -605,9 +608,9 @@ export class AgentStateManager {
       category: 'orchestration_patterns',
       importance: 10,
       tags: ['orchestration', 'multi-agent', 'coordination', 'typescript'],
-      production_ready: true
+      production_ready: true,
     },
-    keywords: ['orchestration', 'multi-agent', 'registry', 'workflow', 'communication', 'state']
+    keywords: ['orchestration', 'multi-agent', 'registry', 'workflow', 'communication', 'state'],
   },
   {
     service_id: 'agent-orchestration-system',
@@ -983,9 +986,17 @@ export class CircuitBreaker {
       category: 'production_architecture',
       importance: 10,
       tags: ['production', 'lifecycle', 'monitoring', 'resources', 'error-handling'],
-      production_patterns: true
+      production_patterns: true,
     },
-    keywords: ['lifecycle', 'monitoring', 'observability', 'resources', 'load-balancing', 'circuit-breaker', 'error-handling']
+    keywords: [
+      'lifecycle',
+      'monitoring',
+      'observability',
+      'resources',
+      'load-balancing',
+      'circuit-breaker',
+      'error-handling',
+    ],
   },
   {
     service_id: 'agent-orchestration-system',
@@ -1392,12 +1403,20 @@ export class QLearningAgent extends BaseAgent {
       category: 'advanced_patterns',
       importance: 10,
       tags: ['hierarchical', 'swarm', 'self-organizing', 'adaptive', 'learning'],
-      advanced_techniques: true
+      advanced_techniques: true,
     },
-    keywords: ['hierarchical', 'swarm', 'self-organizing', 'adaptive', 'q-learning', 'gossip', 'aco']
+    keywords: [
+      'hierarchical',
+      'swarm',
+      'self-organizing',
+      'adaptive',
+      'q-learning',
+      'gossip',
+      'aco',
+    ],
   },
   {
-    service_id: 'agent-orchestration-system', 
+    service_id: 'agent-orchestration-system',
     memory_type: 'practical_implementation_examples',
     content: `# Practical Agent Orchestration Examples
 
@@ -1969,19 +1988,27 @@ export class ConsensusEngine {
       category: 'practical_examples',
       importance: 10,
       tags: ['examples', 'document-processing', 'data-streaming', 'customer-support', 'trading'],
-      real_world_applications: true
+      real_world_applications: true,
     },
-    keywords: ['document-processing', 'ocr', 'nlp', 'data-streaming', 'customer-support', 'trading', 'consensus']
-  }
+    keywords: [
+      'document-processing',
+      'ocr',
+      'nlp',
+      'data-streaming',
+      'customer-support',
+      'trading',
+      'consensus',
+    ],
+  },
 ];
 
 async function addMemories() {
   try {
     logger.info('Starting to add agent orchestration memories...');
-    
+
     for (const memory of agentOrchestrationMemories) {
       logger.info(`Adding memory: ${memory.memory_type}`);
-      
+
       // Store memory in Supabase
       const { data, error } = await supabase
         .from('ai_memories')
@@ -1996,28 +2023,27 @@ async function addMemories() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           memory_category: memory.metadata.category || 'agent_orchestration',
-          related_entities: memory.metadata.tags || []
+          related_entities: memory.metadata.tags || [],
         })
         .select()
         .single();
-      
+
       if (error) {
         logger.error(`Failed to add memory ${memory.memory_type}:`, error);
       } else {
         logger.info(`Successfully added memory: ${memory.memory_type} (ID: ${data.id})`);
       }
     }
-    
+
     logger.info('Finished adding agent orchestration memories');
-    
+
     // Verify memories were added
     const { data: count } = await supabase
       .from('ai_memories')
       .select('count', { count: 'exact' })
       .eq('service_id', 'agent-orchestration-system');
-    
+
     logger.info(`Total agent orchestration memories in system: ${count?.[0]?.count || 0}`);
-    
   } catch (error) {
     logger.error('Error adding memories:', error);
     process.exit(1);
@@ -2025,10 +2051,12 @@ async function addMemories() {
 }
 
 // Run the script
-addMemories().then(() => {
-  logger.info('Script completed successfully');
-  process.exit(0);
-}).catch(error => {
-  logger.error('Script failed:', error);
-  process.exit(1);
-});
+addMemories()
+  .then(() => {
+    logger.info('Script completed successfully');
+    process.exit(0);
+  })
+  .catch((error) => {
+    logger.error('Script failed:', error);
+    process.exit(1);
+  });

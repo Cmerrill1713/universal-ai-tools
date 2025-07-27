@@ -3,10 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
 interface MemoryData {
   content: string;
@@ -108,12 +105,18 @@ async def async_rerank(cross_encoder, queries, documents):
       type: 'technical_pattern',
       category: 'reranking_fundamentals',
       importance: 10,
-      keywords: ['cross-encoder', 'bi-encoder', 'two-stage-retrieval', 'reranking', 'accuracy-speed-tradeoff'],
+      keywords: [
+        'cross-encoder',
+        'bi-encoder',
+        'two-stage-retrieval',
+        'reranking',
+        'accuracy-speed-tradeoff',
+      ],
       related_concepts: ['vector-search', 'semantic-search', 'information-retrieval'],
       implementation_complexity: 'medium',
-      performance_impact: 'high'
+      performance_impact: 'high',
     },
-    tags: ['reranking', 'cross-encoder', 'retrieval', 'search', 'ai-patterns']
+    tags: ['reranking', 'cross-encoder', 'retrieval', 'search', 'ai-patterns'],
   },
 
   // Advanced Reranking Strategies
@@ -347,12 +350,18 @@ def evaluate_reranker(reranker, test_queries, ground_truth):
       type: 'technical_pattern',
       category: 'advanced_reranking',
       importance: 10,
-      keywords: ['hybrid-reranking', 'llm-reranking', 'feature-engineering', 'domain-specific', 'evaluation-metrics'],
+      keywords: [
+        'hybrid-reranking',
+        'llm-reranking',
+        'feature-engineering',
+        'domain-specific',
+        'evaluation-metrics',
+      ],
       related_concepts: ['machine-learning', 'nlp', 'information-retrieval', 'search-quality'],
       implementation_complexity: 'high',
-      performance_impact: 'high'
+      performance_impact: 'high',
     },
-    tags: ['reranking', 'advanced-strategies', 'llm', 'feature-engineering', 'evaluation']
+    tags: ['reranking', 'advanced-strategies', 'llm', 'feature-engineering', 'evaluation'],
   },
 
   // Production Implementation Patterns
@@ -793,18 +802,25 @@ class RerankingDashboard:
       type: 'technical_pattern',
       category: 'production_implementation',
       importance: 10,
-      keywords: ['caching', 'batch-processing', 'cost-optimization', 'ab-testing', 'monitoring', 'performance'],
+      keywords: [
+        'caching',
+        'batch-processing',
+        'cost-optimization',
+        'ab-testing',
+        'monitoring',
+        'performance',
+      ],
       related_concepts: ['production-systems', 'scalability', 'reliability', 'observability'],
       implementation_complexity: 'high',
-      performance_impact: 'critical'
+      performance_impact: 'critical',
     },
-    tags: ['reranking', 'production', 'caching', 'optimization', 'monitoring', 'a/b-testing']
-  }
+    tags: ['reranking', 'production', 'caching', 'optimization', 'monitoring', 'a/b-testing'],
+  },
 ];
 
 async function storeMemories() {
   console.log('Starting to store reranking memories...');
-  
+
   for (const memory of rerankingMemories) {
     try {
       // Store memory in ai_memories table
@@ -818,8 +834,11 @@ async function storeMemories() {
           importance_score: memory.metadata.importance / 10,
           memory_category: memory.metadata.category,
           keywords: memory.metadata.keywords,
-          related_entities: memory.metadata.related_concepts.map(concept => ({ type: 'concept', value: concept }))
-        }
+          related_entities: memory.metadata.related_concepts.map((concept) => ({
+            type: 'concept',
+            value: concept,
+          })),
+        },
       };
 
       const { data, error } = await supabase
@@ -832,7 +851,7 @@ async function storeMemories() {
         console.error('Error storing memory:', error);
       } else {
         console.log(`Successfully stored memory: ${memory.metadata.category}`);
-        
+
         // Create connections between related memories if they exist
         if (data && memory.metadata.related_concepts.length > 0) {
           // Search for related memories by checking metadata
@@ -842,24 +861,25 @@ async function storeMemories() {
             .eq('service_id', 'reranking-knowledge-base')
             .neq('id', data.id)
             .limit(10);
-          
+
           if (relatedMemories && relatedMemories.length > 0) {
             for (const related of relatedMemories) {
               // Check if they share any keywords or concepts
               const relatedKeywords = related.metadata?.keywords || [];
-              const sharedKeywords = memory.metadata.keywords.filter(k => 
+              const sharedKeywords = memory.metadata.keywords.filter((k) =>
                 relatedKeywords.includes(k)
               );
-              
+
               const relatedConcepts = related.metadata?.related_concepts || [];
-              const sharedConcepts = memory.metadata.related_concepts.filter(c => 
+              const sharedConcepts = memory.metadata.related_concepts.filter((c) =>
                 relatedConcepts.includes(c)
               );
-              
+
               if (sharedKeywords.length > 0 || sharedConcepts.length > 0) {
-                const strength = (sharedKeywords.length + sharedConcepts.length) / 
+                const strength =
+                  (sharedKeywords.length + sharedConcepts.length) /
                   (memory.metadata.keywords.length + memory.metadata.related_concepts.length);
-                
+
                 await supabase
                   .from('memory_connections')
                   .insert({
@@ -867,11 +887,11 @@ async function storeMemories() {
                     target_memory_id: related.id,
                     connection_type: 'semantic_similarity',
                     strength: Math.min(strength, 0.9),
-                    metadata: { 
+                    metadata: {
                       connection_reason: 'shared_concepts',
                       shared_keywords: sharedKeywords,
-                      shared_concepts: sharedConcepts
-                    }
+                      shared_concepts: sharedConcepts,
+                    },
                   })
                   .select();
               }
@@ -881,7 +901,7 @@ async function storeMemories() {
       }
 
       // Add delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error) {
       console.error('Unexpected error:', error);
     }

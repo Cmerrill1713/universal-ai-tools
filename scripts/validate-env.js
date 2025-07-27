@@ -10,11 +10,11 @@ const requiredEnvVars = [
   // Add your required environment variables here
 ];
 
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0) {
   console.error('\x1b[31mError: Missing required environment variables:\x1b[0m');
-  missingVars.forEach(varName => {
+  missingVars.forEach((varName) => {
     console.error(`  - ${varName}`);
   });
   process.exit(1);

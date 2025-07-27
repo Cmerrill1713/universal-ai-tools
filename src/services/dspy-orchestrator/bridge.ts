@@ -1,11 +1,10 @@
 import WebSocket from 'ws';
-import { logger, LogContext } from '../../utils/enhanced-logger';
+import { LogContext, log } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { SmartPortManager } from '../../utils/smart-port-manager';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,204 +12,168 @@ const __dirname = path.dirname(__filename);
 export interface DSPyRequest {
   requestId: string;
   method: string;
-  params: any;
-  metadata?: any;
+  params: unknown;
+  metadata?: unknown;
 }
 
 export interface DSPyResponse {
   requestId: string;
   success: boolean;
-  data: any;
+  data: unknown;
   error?: string;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export class DSPyBridge extends EventEmitter {
-  private ws: WebSocket | null = null;
+  private ws:
+    | WebSocket // TODO: Refactor nested ternary
+    | null = null;
   private pythonProcess: ChildProcess | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000;
   private isConnected = false;
-  private requestQueue: Map<string, (response: DSPyResponse) => void> = new Map();
-  private reconnectTimer: NodeJS.Timeout | null = null;
   private port = 8766;
-  private portManager: SmartPortManager;
-  private startupPromise: Promise<void> | null = null;
 
   constructor() {
     super();
-    this.portManager = new SmartPortManager([{
-      name: 'dspy-service',
-      defaultPort: 8766,
-      fallbackPorts: [8767, 8768, 8769, 8770],
-      isRequired: false,
-      serviceType: 'ai',
-      protocol: 'tcp'
-    }]);
-    
-    // Don't block constructor - start service asynchronously
-    this.startupPromise = this.startPythonService().catch(error => {
-      logger.error('Failed to start DSPy service:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
+    this.startPythonService().catch((error) => {
+      log.error('Failed to start DSPy service:', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error),
+      });
     });
   }
 
   private async startPythonService(): Promise<void> {
-    try {
-      logger.info('🐍 Starting real DSPy Python service with MIPRO optimization...');
-      
-      // Find an available port
-      const availablePort = await this.portManager.resolvePortConflict('dspy-service', this.port);
-      this.port = availablePort;
-      logger.info(`Using port ${this.port} for DSPy service`);
-      
-      const pythonScript = path.join(__dirname, 'server.py');
-      this.pythonProcess = spawn('python', [pythonScript], {
-        cwd: __dirname,
-        env: { 
-          ...process.env, 
-          PYTHONUNBUFFERED: '1',
-          NODE_ENV: process.env.NODE_ENV || 'development',
-          DSPY_PORT: this.port.toString() // Pass the port to Python
-        }
-      });
+    const serverPath = path.join(__dirname, 'server.py');
 
-      this.pythonProcess.stdout?.on('data', (data) => {
-        logger.info(`DSPy Server: ${data.toString()}`);
-      });
+    log.info('🚀 Starting DSPy Python service', LogContext.AI, {
+      serverPath,
+      port: this.port,
+    });
 
-      this.pythonProcess.stderr?.on('data', (data) => {
-        logger.error(`DSPy Server Error: ${data.toString()}`, LogContext.DSPY);
-      });
+    this.pythonProcess = spawn('python3', [serverPath], {
+      cwd: __dirname,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, DSPY_PORT: this.port.toString() },
+    });
 
-      this.pythonProcess.on('exit', (code) => {
-        logger.warn(`DSPy server process exited with code ${code}`);
-        this.handleDisconnect();
-      });
+    this.pythonProcess.stdout?.on('data', (data) => {
+      const output = data.toString().trim();
+      if (output.includes('DSPy server ready')) {
+        this.connectWebSocket();
+      }
+      log.info('DSPy server output', LogContext.AI, { output });
+    });
 
-      // Give Python service time to start
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      this.connectWebSocket();
-    } catch (error) {
-      logger.error('Failed to start DSPy service:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
-      // Don't schedule reconnect here - let the service fail gracefully
-    }
+    this.pythonProcess.stderr?.on('data', (data) => {
+      const error = data.toString().trim();
+      log.warn('DSPy server error', LogContext.AI, { error });
+    });
+
+    this.pythonProcess.on('exit', (code) => {
+      log.info('DSPy server exited', LogContext.AI, { code });
+      this.isConnected = false;
+      this.pythonProcess = null;
+    });
+
+    // Wait for server to start
+    await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
   private connectWebSocket(): void {
-    try {
-      this.ws = new WebSocket(`ws://localhost:${this.port}`);
-
-      this.ws.on('open', () => {
-        logger.info('✅ Connected to DSPy service');
-        this.isConnected = true;
-        this.emit('connected');
-      });
-
-      this.ws.on('message', (data: string) => {
-        try {
-          const response: DSPyResponse = JSON.parse(data);
-          const callback = this.requestQueue.get(response.requestId);
-          if (callback) {
-            callback(response);
-            this.requestQueue.delete(response.requestId);
-          }
-        } catch (error) {
-          logger.error('Failed to parse DSPy response:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
-        }
-      });
-
-      this.ws.on('error', (error) => {
-        logger.error('DSPy WebSocket error:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
-      });
-
-      this.ws.on('close', () => {
-        this.handleDisconnect();
-      });
-    } catch (error) {
-      logger.error('Failed to connect to DSPy service:', LogContext.DSPY, { error: error instanceof Error ? error.message : String(error) });
-      this.scheduleReconnect();
+    if (this.ws) {
+      this.ws.close();
     }
-  }
 
-  private handleDisconnect(): void {
-    this.isConnected = false;
-    this.ws = null;
-    this.emit('disconnected');
-    this.scheduleReconnect();
-  }
+    const wsUrl = `ws://localhost:${this.port}`;
+    this.ws = new WebSocket(wsUrl);
 
-  private scheduleReconnect(): void {
-    if (this.reconnectTimer) return;
-    
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      if (!this.isConnected) {
-        logger.info('🔄 Attempting to reconnect to DSPy service...');
-        this.connectWebSocket();
+    this.ws.on('open', () => {
+      log.info('✅ Connected to DSPy service', LogContext.AI, { port: this.port });
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
+      this.emit('connected');
+    });
+
+    this.ws.on('message', (data) => {
+      try {
+        const response: DSPyResponse = JSON.parse(data.toString());
+        this.emit('response', response);
+      } catch (error) {
+        log.error('Failed to parse DSPy response', LogContext.AI, { error });
       }
-    }, 5000);
-  }
+    });
 
-  async request(method: string, params: any, timeout = 30000): Promise<any> {
-    if (!this.isConnected || !this.ws) {
-      throw new Error('DSPy service is not connected');
-    }
+    this.ws.on('close', () => {
+      log.warn('DSPy WebSocket closed', LogContext.AI);
+      this.isConnected = false;
+      this.emit('disconnected');
+      this.attemptReconnect();
+    });
 
-    const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const request: DSPyRequest = {
-      requestId,
-      method,
-      params
-    };
-
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.requestQueue.delete(requestId);
-        reject(new Error(`DSPy request timeout: ${method}`));
-      }, timeout);
-
-      this.requestQueue.set(requestId, (response: DSPyResponse) => {
-        clearTimeout(timer);
-        if (response.success) {
-          resolve(response.data);
-        } else {
-          reject(new Error(response.error || 'Unknown DSPy error'));
-        }
-      });
-
-      this.ws!.send(JSON.stringify(request));
+    this.ws.on('error', (error) => {
+      log.error('DSPy WebSocket error', LogContext.AI, { error });
+      this.isConnected = false;
     });
   }
 
-  async orchestrate(userRequest: string, context: any = {}): Promise<any> {
-    return this.request('orchestrate', { userRequest, context });
-  }
-
-  async coordinateAgents(task: string, agents: string[], context: any = {}): Promise<any> {
-    return this.request('coordinate_agents', { task, agents, context });
-  }
-
-  async manageKnowledge(operation: string, data: any): Promise<any> {
-    return this.request('manage_knowledge', { operation, data });
-  }
-
-  async optimizePrompts(examples: any[]): Promise<any> {
-    return this.request('optimize_prompts', { examples });
-  }
-
-  getStatus(): { connected: boolean; queueSize: number } {
-    return {
-      connected: this.isConnected,
-      queueSize: this.requestQueue.size
-    };
-  }
-
-  async shutdown(): Promise<void> {
-    logger.info('🛑 Shutting down DSPy bridge...');
-    
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
+  private attemptReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      log.error('Max reconnection attempts reached', LogContext.AI);
+      return;
     }
+
+    this.reconnectAttempts++;
+    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+
+    log.info('Attempting to reconnect to DSPy service', LogContext.AI, {
+      attempt: this.reconnectAttempts,
+      delay,
+    });
+
+    setTimeout(() => {
+      this.connectWebSocket();
+    }, delay);
+  }
+
+  public async sendRequest(request: DSPyRequest): Promise<DSPyResponse> {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected || !this.ws) {
+        reject(new Error('DSPy service not connected'));
+        return;
+      }
+
+      const timeout = setTimeout(() => {
+        reject(new Error('DSPy request timeout'));
+      }, 30000);
+
+      const responseHandler = (response: DSPyResponse) => {
+        if (response.requestId === request.requestId) {
+          clearTimeout(timeout);
+          this.off('response', responseHandler);
+          resolve(response);
+        }
+      };
+
+      this.on('response', responseHandler);
+
+      try {
+        this.ws.send(JSON.stringify(request));
+      } catch (error) {
+        clearTimeout(timeout);
+        this.off('response', responseHandler);
+        reject(error);
+      }
+    });
+  }
+
+  public isReady(): boolean {
+    return this.isConnected;
+  }
+
+  public async shutdown(): Promise<void> {
+    log.info('🛑 Shutting down DSPy service', LogContext.AI);
 
     if (this.ws) {
       this.ws.close();
@@ -218,14 +181,35 @@ export class DSPyBridge extends EventEmitter {
     }
 
     if (this.pythonProcess) {
-      this.pythonProcess.kill();
+      this.pythonProcess.kill('SIGTERM');
+
+      // Wait for graceful shutdown
+      await new Promise((resolve) => {
+        if (!this.pythonProcess) {
+          resolve(void 0);
+          return;
+        }
+
+        const timeout = setTimeout(() => {
+          if (this.pythonProcess) {
+            this.pythonProcess.kill('SIGKILL');
+          }
+          resolve(void 0);
+        }, 5000);
+
+        this.pythonProcess.on('exit', () => {
+          clearTimeout(timeout);
+          resolve(void 0);
+        });
+      });
+
       this.pythonProcess = null;
     }
 
-    this.requestQueue.clear();
-    this.removeAllListeners();
+    this.isConnected = false;
   }
 }
 
 // Singleton instance
 export const dspyBridge = new DSPyBridge();
+export default dspyBridge;

@@ -118,7 +118,7 @@ jobs:
           cp -r ui/dist docker-build/ui-dist
           cp package.json docker-build/
           cp package-lock.json docker-build/
-          
+
           # Create production package.json (only production dependencies)
           cd docker-build
           npm ci --omit=dev
@@ -145,57 +145,57 @@ jobs:
           # Multi-stage build for Universal AI Tools
           # Stage 1: Base image with security hardening
           FROM node:20-alpine AS base
-          
+
           # Security: Create non-root user
           RUN addgroup -g 1001 -S nodejs && \
               adduser -S nextjs -u 1001 -G nodejs
-          
+
           # Security: Update packages and remove package manager cache
           RUN apk update && apk upgrade && \
               apk add --no-cache dumb-init && \
               rm -rf /var/cache/apk/*
-          
+
           # Set working directory
           WORKDIR /app
-          
+
           # Stage 2: Dependencies
           FROM base AS deps
-          
+
           # Copy package files
           COPY package*.json ./
-          
+
           # Install production dependencies only
           RUN npm ci --omit=dev && npm cache clean --force
-          
+
           # Stage 3: Final runtime image
           FROM base AS runtime
-          
+
           # Security: Set environment variables
           ENV NODE_ENV=production
           ENV PORT=3000
           ENV HOST=0.0.0.0
-          
+
           # Security: Don't run as root
           USER nodejs
-          
+
           # Copy dependencies from deps stage
           COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
-          
+
           # Copy application files
           COPY --chown=nodejs:nodejs dist ./dist
           COPY --chown=nodejs:nodejs ui-dist ./ui-dist
           COPY --chown=nodejs:nodejs package.json ./
-          
+
           # Health check
           HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
               CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
-          
+
           # Security: Use dumb-init to handle signals properly
           ENTRYPOINT ["dumb-init", "--"]
-          
+
           # Expose port
           EXPOSE 3000
-          
+
           # Start application
           CMD ["node", "dist/server.js"]
           EOF
@@ -239,35 +239,35 @@ jobs:
           cat > Dockerfile << 'EOF'
           # Multi-stage build for Universal AI Tools
           FROM node:20-alpine AS base
-          
+
           RUN addgroup -g 1001 -S nodejs && \
               adduser -S nextjs -u 1001 -G nodejs
-          
+
           RUN apk update && apk upgrade && \
               apk add --no-cache dumb-init && \
               rm -rf /var/cache/apk/*
-          
+
           WORKDIR /app
-          
+
           FROM base AS deps
           COPY docker-build/package*.json ./
           RUN npm ci --omit=dev && npm cache clean --force
-          
+
           FROM base AS runtime
           ENV NODE_ENV=production
           ENV PORT=3000
           ENV HOST=0.0.0.0
-          
+
           USER nodejs
-          
+
           COPY --from=deps --chown=nodejs:nodejs /app/node_modules ./node_modules
           COPY --chown=nodejs:nodejs docker-build/dist ./dist
           COPY --chown=nodejs:nodejs docker-build/ui-dist ./ui-dist
           COPY --chown=nodejs:nodejs docker-build/package.json ./
-          
+
           HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
               CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
-          
+
           ENTRYPOINT ["dumb-init", "--"]
           EXPOSE 3000
           CMD ["node", "dist/server.js"]
@@ -346,7 +346,7 @@ jobs:
       - name: Analyze security scan results
         run: |
           echo "Analyzing container security scan results..."
-          
+
           # Count vulnerabilities by severity
           if [ -f trivy-results.json ]; then
             echo "Trivy scan results:"
@@ -390,16 +390,16 @@ jobs:
       - name: Test container startup
         run: |
           echo "Testing container startup and health..."
-          
+
           # Start container
           docker run -d --name test-container -p 3000:3000 \
             -e NODE_ENV=production \
             -e JWT_SECRET=test-secret \
             security-scan:latest
-          
+
           # Wait for startup
           sleep 30
-          
+
           # Test health endpoint
           for i in {1..10}; do
             if curl -f http://localhost:3000/health; then
@@ -410,11 +410,11 @@ jobs:
               sleep 5
             fi
           done
-          
+
           # Check container logs
           echo "Container logs:"
           docker logs test-container
-          
+
           # Stop container
           docker stop test-container
           docker rm test-container
@@ -422,7 +422,7 @@ jobs:
       - name: Test container security
         run: |
           echo "Testing container security configuration..."
-          
+
           # Test that container doesn't run as root
           user_check=$(docker run --rm security-scan:latest whoami)
           if [ "$user_check" != "nodejs" ]; then
@@ -431,7 +431,7 @@ jobs:
           else
             echo "✅ Container runs as non-root user: $user_check"
           fi
-          
+
           # Test read-only filesystem (optional)
           echo "Testing container filesystem permissions..."
           docker run --rm security-scan:latest ls -la /app/
@@ -439,15 +439,15 @@ jobs:
       - name: Test container resource limits
         run: |
           echo "Testing container with resource limits..."
-          
+
           # Test with memory limit
           docker run -d --name resource-test --memory=512m \
             -e NODE_ENV=production \
             -e JWT_SECRET=test-secret \
             security-scan:latest
-          
+
           sleep 20
-          
+
           # Check if container is still running
           if docker ps | grep resource-test; then
             echo "✅ Container runs successfully with resource limits"
@@ -455,7 +455,7 @@ jobs:
             echo "❌ Container failed with resource limits"
             docker logs resource-test
           fi
-          
+
           docker stop resource-test 2>/dev/null || true
           docker rm resource-test 2>/dev/null || true
 
@@ -479,24 +479,24 @@ jobs:
           echo "Commit: ${{ github.sha }}" >> container-report.md
           echo "Image: ${{ needs.prepare.outputs.image_tag }}" >> container-report.md
           echo "" >> container-report.md
-          
+
           echo "## Build Status" >> container-report.md
           echo "- Docker Build: ${{ needs.build-docker.result }}" >> container-report.md
           echo "- Security Scan: ${{ needs.security-scan.result }}" >> container-report.md
           echo "- Compliance Test: ${{ needs.compliance-test.result }}" >> container-report.md
           echo "" >> container-report.md
-          
+
           echo "## Security Summary" >> container-report.md
           if [[ "${{ env.CRITICAL_VULNS }}" == "true" ]]; then
             echo "❌ Critical vulnerabilities found: ${{ env.CRITICAL_COUNT }}" >> container-report.md
           else
             echo "✅ No critical vulnerabilities found" >> container-report.md
           fi
-          
+
           if [[ "${{ env.HIGH_VULNS }}" == "true" ]]; then
             echo "⚠️ High severity vulnerabilities: ${{ env.HIGH_COUNT }}" >> container-report.md
           fi
-          
+
           echo "" >> container-report.md
           echo "## Recommendations" >> container-report.md
           echo "1. Regularly update base images" >> container-report.md
@@ -518,7 +518,7 @@ jobs:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('container-report.md', 'utf8');
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

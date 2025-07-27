@@ -200,17 +200,17 @@ jobs:
           STAGING_PORT: ${{ secrets.STAGING_PORT || '22' }}
         run: |
           echo "Deploying to staging environment..."
-          
+
           # Example deployment using SSH
           # In a real deployment, you might use:
           # - Docker deployment
           # - Cloud platform deployment
           # - Container orchestration
           # - File transfer and service restart
-          
+
           echo "Deployment method: ${STAGING_DEPLOY_METHOD:-manual}"
           echo "Target host: ${STAGING_HOST}"
-          
+
           # For demonstration - replace with actual deployment logic
           if [ -n "$STAGING_HOST" ]; then
             echo "Would deploy to: $STAGING_HOST"
@@ -321,22 +321,22 @@ jobs:
             const message = "${{ steps.notify.outputs.message }}";
             const stagingUrl = "${{ env.STAGING_URL }}";
             const reason = "${{ needs.should-deploy.outputs.reason }}";
-            
+
             const body = `## Staging Deployment
-            
+
             **Status**: ${message}
             **Reason**: ${reason}
             **Commit**: ${context.sha.substring(0, 7)}
             ${stagingUrl ? `**Staging URL**: ${stagingUrl}` : ''}
-            
+
             **Deployment Details**:
             - Build: ${{ needs.build.result }}
             - Deploy: ${{ needs.deploy.result }}
             - Validation: ${{ needs.validate-deployment.result }}
-            
+
             ---
             *Deployed at: ${new Date().toISOString()}*`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -375,7 +375,7 @@ jobs:
               repo: context.repo.repo,
               run_id: context.runId,
             });
-            
+
             // This is a simplified cleanup - in practice you'd want to:
             // - List all artifacts matching a pattern
             // - Sort by date

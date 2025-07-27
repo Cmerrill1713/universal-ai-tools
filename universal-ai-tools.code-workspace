@@ -1,0 +1,212 @@
+{
+  "folders": [
+    {
+      "name": "Universal AI Tools",
+      "path": "."
+    }
+  ],
+  "settings": {
+    // TypeScript configuration for development phase
+    "typescript.tsdk": "./node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+    "typescript.validate.enable": true,
+    "typescript.reportStyleChecksAsWarnings": true,
+    "typescript.noSemanticsValidation": false,
+    "typescript.noSyntaxValidation": false,
+    "typescript.maxTsServerMemory": 8192,
+    "typescript.workspaceSymbols.scope": "currentProject",
+    "typescript.suggest.completeFunctionCalls": true,
+    "typescript.suggest.paths": true,
+    "typescript.format.enable": true,
+    "typescript.format.semicolons": "insert",
+    
+    // ESLint configuration
+    "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+    "eslint.options": {
+      "configFile": ".eslintrc.development.json"
+    },
+    "eslint.run": "onSave",
+    "eslint.workingDirectories": ["."],
+    
+    // Editor settings for better error visibility
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "editor.quickSuggestions": {
+      "strings": true,
+      "comments": false,
+      "other": true
+    },
+    "editor.parameterHints.enabled": true,
+    "editor.hover.enabled": true,
+    "editor.suggest.preview": true,
+    "editor.inlineSuggest.enabled": true,
+    
+    // Problem filtering during development
+    "problems.showCurrentInStatus": true,
+    "problems.sortOrder": "severity",
+    "problems.decorations.enabled": true,
+    
+    // File watching optimization
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/dist/**": true,
+      "**/coverage/**": true,
+      "**/logs/**": true,
+      "**/src.backup.*/**": true,
+      "**/*.backup.*": true,
+      "**/*.old.*": true,
+      "**/scripts/**": true
+    },
+    
+    // Search optimization
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/coverage": true,
+      "**/logs": true,
+      "**/src.backup.*": true,
+      "**/*.backup.*": true,
+      "**/*.old.*": true,
+      "**/package-lock.json": true,
+      "**/yarn.lock": true
+    },
+    
+    // Formatting
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    
+    // Terminal environment for development
+    "terminal.integrated.env.osx": {
+      "NODE_ENV": "development",
+      "TS_NODE_PROJECT": "./tsconfig.development.json",
+      "AI_ENHANCED": "true",
+      "DEV_MODE": "true"
+    },
+    
+    // Color customization for development phase
+    "workbench.colorCustomizations": {
+      "statusBar.background": "#ff6b35",
+      "statusBar.foreground": "#ffffff",
+      "statusBar.noFolderBackground": "#ff6b35",
+      "editorError.foreground": "#ff6b6b80",
+      "editorWarning.foreground": "#ffd93d80",
+      "editorInfo.foreground": "#4fc3f780",
+      "tab.activeBorder": "#ff6b35",
+      "activityBar.activeBorder": "#ff6b35"
+    },
+    
+    // Git settings
+    "git.ignoreLimitWarning": true,
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    
+    // Performance optimization
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 2000,
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Type Check (Development)",
+        "type": "shell",
+        "command": "npm",
+        "args": ["run", "type-check:dev"],
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        },
+        "problemMatchers": ["$tsc"]
+      },
+      {
+        "label": "Lint (Development)",
+        "type": "shell",
+        "command": "npm",
+        "args": ["run", "lint:dev:fix"],
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Reverse Corruption",
+        "type": "shell",
+        "command": "./scripts/reverse-corruption.sh",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": true,
+          "panel": "new"
+        }
+      },
+      {
+        "label": "Start Development Server",
+        "type": "shell",
+        "command": "npm",
+        "args": ["run", "dev"],
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "dedicated"
+        },
+        "isBackground": true,
+        "problemMatchers": []
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Server (Development)",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/src/server-working.ts",
+        "args": [],
+        "runtimeArgs": ["--loader", "tsx/esm"],
+        "env": {
+          "NODE_ENV": "development",
+          "TS_NODE_PROJECT": "./tsconfig.development.json"
+        },
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "skipFiles": ["<node_internals>/**"],
+        "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "dbaeumer.vscode-eslint",
+      "ms-vscode.vscode-json",
+      "bradlc.vscode-tailwindcss",
+      "ms-python.python",
+      "ms-python.pylance"
+    ]
+  }
+}

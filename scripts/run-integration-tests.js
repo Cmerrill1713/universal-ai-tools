@@ -8,22 +8,16 @@ console.log('🧪 Universal AI Tools - Integration Test Runner');
 console.log('================================================');
 
 // Check if required dependencies are installed
-const requiredPackages = [
-  'jest',
-  'ts-jest',
-  '@jest/globals',
-  'puppeteer',
-  '@supabase/supabase-js'
-];
+const requiredPackages = ['jest', 'ts-jest', '@jest/globals', 'puppeteer', '@supabase/supabase-js'];
 
 console.log('📦 Checking required packages...');
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
 const installedPackages = {
   ...packageJson.dependencies,
-  ...packageJson.devDependencies
+  ...packageJson.devDependencies,
 };
 
-const missingPackages = requiredPackages.filter(pkg => !installedPackages[pkg]);
+const missingPackages = requiredPackages.filter((pkg) => !installedPackages[pkg]);
 if (missingPackages.length > 0) {
   console.error('❌ Missing required packages:', missingPackages.join(', '));
   console.log('💡 Please install missing packages with: npm install');
@@ -51,13 +45,13 @@ if (!fs.existsSync(distPath)) {
 function runTests() {
   console.log('🚀 Starting integration tests...');
   console.log('');
-  
+
   // Create test reports directory
   const reportsDir = path.join(__dirname, '..', 'test-reports');
   if (!fs.existsSync(reportsDir)) {
     fs.mkdirSync(reportsDir, { recursive: true });
   }
-  
+
   // Run Jest with specific configuration for integration tests
   const jestCommand = [
     'npx jest',
@@ -69,29 +63,29 @@ function runTests() {
     '--coverage',
     '--coverageDirectory=test-reports/coverage',
     '--maxWorkers=1',
-    '--runInBand'
+    '--runInBand',
   ].join(' ');
-  
+
   console.log('🔧 Command:', jestCommand);
   console.log('');
-  
-  const testProcess = exec(jestCommand, { 
+
+  const testProcess = exec(jestCommand, {
     cwd: path.join(__dirname, '..'),
     env: {
       ...process.env,
       NODE_ENV: 'test',
-      LOG_LEVEL: 'info'
-    }
+      LOG_LEVEL: 'info',
+    },
   });
-  
+
   testProcess.stdout.on('data', (data) => {
     process.stdout.write(data);
   });
-  
+
   testProcess.stderr.on('data', (data) => {
     process.stderr.write(data);
   });
-  
+
   testProcess.on('close', (code) => {
     console.log('');
     if (code === 0) {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
-import { Memory } from '../../pages/Memory';
+import Memory from '../../pages/Memory';
 import { render, mockMemoryItem, resetMocks } from '../../test/utils';
 
 // Mock the API module
@@ -82,7 +82,7 @@ describe('Memory Component', () => {
     expect(screen.getByText('Memory Bank')).toBeInTheDocument();
   });
 
-  it('displays connected status when WebSocket is connected', () => {
+  it('displays this.connected status when WebSocket is this.connected', () => {
     render(<Memory />);
     expect(screen.getByText(/● Connected/)).toBeInTheDocument();
   });

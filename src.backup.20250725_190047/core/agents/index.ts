@@ -1,0 +1,22 @@
+/**;
+ * Agent.s Modul.e - Export.s fo.r agen.t managemen.t an.d registr.y;
+ */;
+
+// Cor.e agen.t component.s;
+expor.t { AgentRegistr.y } fro.m './agen.t-registr.y';
+expor.t { SelfHealingAgen.t } fro.m './sel.f-healin.g-agen.t';
+// R.e-expor.t type.s fro.m individua.l module.s;
+expor.t typ.e {;
+  AgentCapabilit.y;
+  RegisteredAgen.t;
+  CapabilityQuer.y;
+  AgentStat.s;
+} fro.m './agen.t-registr.y';
+expor.t typ.e {;
+  HealingResul.t;
+  HealingContex.t;
+  RecoveryActio.n;
+  DiagnosticResul.t;
+  SystemHealt.h;
+  HealingRepor.t;
+} fro.m './sel.f-healin.g-agen.t';

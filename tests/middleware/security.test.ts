@@ -17,17 +17,18 @@ describe('Security Middleware Tests', () => {
   let mockNext: NextFunction;
 
   beforeEach(() => {
-    mockReq = {
+    // TODO: Refactor nested ternary
+mockReq = {
       ip: '127.0.0.1',
       headers: {
         'user-agent': 'test-agent',
-        'host': 'localhost:3000'
+        host: 'localhost:3000',
       },
       body: {},
       query: {},
       params: {},
       method: 'GET',
-      url: '/test'
+      url: '/test',
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
@@ -35,7 +36,7 @@ describe('Security Middleware Tests', () => {
       send: jest.fn(),
       setHeader: jest.fn(),
       getHeader: jest.fn(),
-      locals: {}
+      locals: {},
     };
     mockNext = jest.fn();
   });
@@ -49,7 +50,7 @@ describe('Security Middleware Tests', () => {
       const rateLimitMiddleware = rateLimiter({
         windowMs: 60000, // 1 minute
         max: 100, // 100 requests per minute
-        message: 'Too many requests'
+        message: 'Too many requests',
       });
 
       await rateLimitMiddleware(mockReq as Request, mockRes as Response, mockNext);
@@ -60,9 +61,9 @@ describe('Security Middleware Tests', () => {
 
     test('should block requests exceeding rate limit', async () => {
       const rateLimitMiddleware = rateLimiter({
-        windowMs: 1000, // 1 second
+        windowMs: MILLISECONDS_IN_SECOND, // 1 second
         max: 1, // 1 request per second
-        message: 'Rate limit exceeded'
+        message: 'Rate limit exceeded',
       });
 
       // First request should pass
@@ -74,7 +75,7 @@ describe('Security Middleware Tests', () => {
 
       // Second request should be rate limited
       await rateLimitMiddleware(mockReq as Request, mockRes as Response, mockNext);
-      
+
       // Note: In actual implementation, this would be rate limited
       // For testing purposes, we'll simulate the behavior
       if (mockRes.status && typeof mockRes.status === 'function') {
@@ -86,7 +87,7 @@ describe('Security Middleware Tests', () => {
       const rateLimitMiddleware = rateLimiter({
         windowMs: 60000,
         max: 100,
-        standardHeaders: true
+        standardHeaders: true,
       });
 
       await rateLimitMiddleware(mockReq as Request, mockRes as Response, mockNext);
@@ -110,7 +111,7 @@ describe('Security Middleware Tests', () => {
       mockReq.method = 'POST';
       mockReq.headers = {
         ...mockReq.headers,
-        'x-csrf-token': 'valid-csrf-token'
+        'x-csrf-token': 'valid-csrf-token',
       };
       mockReq.session = { csrfSecret: 'test-secret' };
 
@@ -123,7 +124,7 @@ describe('Security Middleware Tests', () => {
       mockReq.method = 'POST';
       mockReq.headers = {
         ...mockReq.headers,
-        'x-csrf-token': 'invalid-csrf-token'
+        'x-csrf-token': 'invalid-csrf-token',
       };
       mockReq.session = { csrfSecret: 'test-secret' };
 
@@ -149,7 +150,7 @@ describe('Security Middleware Tests', () => {
       mockReq.query = {
         search: 'normal search term',
         limit: '10',
-        offset: '0'
+        offset: '0',
       };
 
       await sqlInjectionProtection(mockReq as Request, mockRes as Response, mockNext);
@@ -160,14 +161,14 @@ describe('Security Middleware Tests', () => {
     test('should block SQL injection attempts in query params', async () => {
       mockReq.query = {
         search: "'; DROP TABLE users; --",
-        id: '1 OR 1=1'
+        id: '1 OR 1=1',
       };
 
       await sqlInjectionProtection(mockReq as Request, mockRes as Response, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Invalid request parameters detected'
+        error: 'Invalid request parameters detected',
       });
       expect(mockNext).not.toHaveBeenCalled();
     });
@@ -175,7 +176,7 @@ describe('Security Middleware Tests', () => {
     test('should block SQL injection attempts in request body', async () => {
       mockReq.body = {
         username: 'admin',
-        password: "password' OR '1'='1"
+        password: "password' OR '1'='1",
       };
 
       await sqlInjectionProtection(mockReq as Request, mockRes as Response, mockNext);
@@ -187,7 +188,7 @@ describe('Security Middleware Tests', () => {
     test('should sanitize and allow safe HTML content', async () => {
       mockReq.body = {
         content: '<p>Safe HTML content</p>',
-        description: 'Normal text description'
+        description: 'Normal text description',
       };
 
       await sqlInjectionProtection(mockReq as Request, mockRes as Response, mockNext);
@@ -198,7 +199,7 @@ describe('Security Middleware Tests', () => {
     test('should block XSS attempts', async () => {
       mockReq.body = {
         comment: '<script>alert("xss")</script>',
-        title: '<img src=x onerror=alert(1)>'
+        title: '<img src=x onerror=alert(1)>',
       };
 
       await sqlInjectionProtection(mockReq as Request, mockRes as Response, mockNext);
@@ -221,7 +222,7 @@ describe('Security Middleware Tests', () => {
     test('should validate request origin', async () => {
       mockReq.headers = {
         ...mockReq.headers,
-        origin: 'https://malicious-site.com'
+        origin: 'https://malicious-site.com',
       };
 
       await securityEnhanced(mockReq as Request, mockRes as Response, mockNext);
@@ -233,7 +234,7 @@ describe('Security Middleware Tests', () => {
     test('should check for suspicious user agents', async () => {
       mockReq.headers = {
         ...mockReq.headers,
-        'user-agent': 'sqlmap/1.0'
+        'user-agent': 'sqlmap/1.0',
       };
 
       await securityEnhanced(mockReq as Request, mockRes as Response, mockNext);
@@ -262,7 +263,7 @@ describe('Security Middleware Tests', () => {
       mockReq.body = 'x'.repeat(10000000); // 10MB
       mockReq.headers = {
         ...mockReq.headers,
-        'content-length': '10000000'
+        'content-length': '10000000',
       };
 
       await securityHardened(mockReq as Request, mockRes as Response, mockNext);
@@ -272,12 +273,12 @@ describe('Security Middleware Tests', () => {
 
     test('should implement request timeout protection', async () => {
       const startTime = Date.now();
-      
+
       await securityHardened(mockReq as Request, mockRes as Response, mockNext);
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       // Should complete quickly for normal requests
       expect(duration).toBeLessThan(1000);
       expect(mockNext).toHaveBeenCalled();
@@ -286,24 +287,15 @@ describe('Security Middleware Tests', () => {
 
   describe('Input Validation', () => {
     test('should validate email format', () => {
-      const validEmails = [
-        'test@example.com',
-        'user.name@domain.co.uk',
-        'admin+tag@company.org'
-      ];
-      
-      const invalidEmails = [
-        'invalid-email',
-        '@domain.com',
-        'test@',
-        'test..test@domain.com'
-      ];
-      
-      validEmails.forEach(email => {
+      const validEmails = ['test@example.com', 'user.name@domain.co.uk', 'admin+tag@company.org'];
+
+      const invalidEmails = ['invalid-email', '@domain.com', 'test@', 'test..test@domain.com'];
+
+      validEmails.forEach((email) => {
         expect(isValidEmail(email)).toBe(true);
       });
-      
-      invalidEmails.forEach(email => {
+
+      invalidEmails.forEach((email) => {
         expect(isValidEmail(email)).toBe(false);
       });
     });
@@ -312,21 +304,21 @@ describe('Security Middleware Tests', () => {
       const validUrls = [
         'https://example.com',
         'http://localhost:3000',
-        'https://sub.domain.com/path?query=value'
+        'https://sub.domain.com/path?query=value',
       ];
-      
+
       const invalidUrls = [
         'not-a-url',
         'ftp://example.com',
         'javascript:alert(1)',
-        'data:text/html,<script>alert(1)</script>'
+        'data:text/html,<script>alert(1)</script>',
       ];
-      
-      validUrls.forEach(url => {
+
+      validUrls.forEach((url) => {
         expect(isValidUrl(url)).toBe(true);
       });
-      
-      invalidUrls.forEach(url => {
+
+      invalidUrls.forEach((url) => {
         expect(isValidUrl(url)).toBe(false);
       });
     });
@@ -335,17 +327,17 @@ describe('Security Middleware Tests', () => {
   describe('Security Event Logging', () => {
     test('should log security violations', async () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
+
       mockReq.body = {
-        malicious: "'; DROP TABLE users; --"
+        malicious: "'; DROP TABLE users; --",
       };
 
       await sqlInjectionProtection(mockReq as Request, mockRes as Response, mockNext);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Security violation detected')
       );
-      
+
       consoleSpy.mockRestore();
     });
 
@@ -356,9 +348,9 @@ describe('Security Middleware Tests', () => {
         ip: mockReq.ip,
         userAgent: mockReq.headers?.['user-agent'],
         violation: 'failed_authentication',
-        severity: 'medium'
+        severity: 'medium',
       };
-      
+
       expect(securityLog).toHaveProperty('timestamp');
       expect(securityLog).toHaveProperty('ip');
       expect(securityLog).toHaveProperty('violation');
@@ -368,7 +360,7 @@ describe('Security Middleware Tests', () => {
 
 // Helper functions for validation
 function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
   return emailRegex.test(email);
 }
 

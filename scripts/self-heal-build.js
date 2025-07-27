@@ -24,25 +24,25 @@ class BuildHealer {
 
   async heal() {
     console.log('📋 Analyzing build issues...\n');
-    
+
     // Step 1: Clean previous builds
     this.cleanBuild();
-    
+
     // Step 2: Install dependencies
     this.installDependencies();
-    
+
     // Step 3: Fix common TypeScript issues
     this.fixTypeScriptIssues();
-    
+
     // Step 4: Fix module resolution
     this.fixModuleResolution();
-    
+
     // Step 5: Attempt build
     const buildSuccess = this.attemptBuild();
-    
+
     // Step 6: Report results
     this.report(buildSuccess);
-    
+
     return buildSuccess;
   }
 
@@ -77,18 +77,18 @@ class BuildHealer {
 
   fixTypeScriptIssues() {
     console.log('🔧 Fixing common TypeScript issues...');
-    
+
     // Fix tsconfig.json module resolution
     try {
       const tsconfigPath = path.join(__dirname, '..', 'tsconfig.json');
       const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'));
-      
+
       // Ensure proper module resolution
       tsconfig.compilerOptions.moduleResolution = 'node';
       tsconfig.compilerOptions.allowSyntheticDefaultImports = true;
       tsconfig.compilerOptions.esModuleInterop = true;
       tsconfig.compilerOptions.skipLibCheck = true;
-      
+
       fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2));
       console.log('✅ Fixed tsconfig.json\n');
       this.healingActions.push('Fixed TypeScript configuration');
@@ -101,26 +101,23 @@ class BuildHealer {
 
   fixModuleResolution() {
     console.log('🔗 Fixing module resolution issues...');
-    
+
     // Add .js extensions to imports in specific files
     const problemFiles = [
       'src/agents/base_agent.ts',
       'src/core/agents/self-healing-agent.ts',
-      'src/services/circuit-breaker.ts'
+      'src/services/circuit-breaker.ts',
     ];
-    
-    problemFiles.forEach(file => {
+
+    problemFiles.forEach((file) => {
       try {
         const filePath = path.join(__dirname, '..', file);
         if (fs.existsSync(filePath)) {
           let content = fs.readFileSync(filePath, 'utf8');
-          
+
           // Fix imports without extensions
-          content = content.replace(
-            /from ['"](\.[\.\/]+[^'"]+)(?<!\.js)['"];/g,
-            "from '$1.js';"
-          );
-          
+          content = content.replace(/from ['"](\.[\.\/]+[^'"]+)(?<!\.js)['"];/g, "from '$1.js';");
+
           fs.writeFileSync(filePath, content);
           console.log(`✅ Fixed imports in ${file}`);
           this.fixes++;
@@ -130,7 +127,7 @@ class BuildHealer {
         this.errors.push(`Module fix failed for ${file}: ${error.message}`);
       }
     });
-    
+
     if (this.fixes > 0) {
       this.healingActions.push(`Fixed module resolution in ${this.fixes} files`);
     }
@@ -147,14 +144,14 @@ class BuildHealer {
     } catch (error) {
       console.error('❌ Build still failing\n');
       this.errors.push('Build failed after healing attempts');
-      
+
       // Try to extract specific errors
       if (error.stdout) {
         const output = error.stdout.toString();
         const errorMatch = output.match(/ERROR in (.+)/g);
         if (errorMatch) {
           console.log('Build errors found:');
-          errorMatch.slice(0, 5).forEach(err => console.log(`  - ${err}`));
+          errorMatch.slice(0, 5).forEach((err) => console.log(`  - ${err}`));
           if (errorMatch.length > 5) {
             console.log(`  ... and ${errorMatch.length - 5} more errors`);
           }
@@ -168,23 +165,23 @@ class BuildHealer {
     console.log('\n' + '='.repeat(60));
     console.log('📊 SELF-HEALING REPORT');
     console.log('='.repeat(60));
-    
+
     console.log('\n✅ Healing Actions Performed:');
-    this.healingActions.forEach(action => {
+    this.healingActions.forEach((action) => {
       console.log(`   - ${action}`);
     });
-    
+
     if (this.errors.length > 0) {
       console.log('\n❌ Errors Encountered:');
-      this.errors.forEach(error => {
+      this.errors.forEach((error) => {
         console.log(`   - ${error}`);
       });
     }
-    
+
     console.log('\n📈 Summary:');
     console.log(`   - Total fixes applied: ${this.fixes}`);
     console.log(`   - Build status: ${success ? '✅ SUCCESS' : '❌ FAILED'}`);
-    
+
     if (!success) {
       console.log('\n💡 Next Steps:');
       console.log('   1. Review the specific TypeScript errors above');
@@ -192,7 +189,7 @@ class BuildHealer {
       console.log('   3. Check for missing type definitions');
       console.log('   4. Ensure all imports have correct paths');
     }
-    
+
     console.log('\n' + '='.repeat(60));
   }
 }
@@ -201,7 +198,7 @@ class BuildHealer {
 (async () => {
   const healer = new BuildHealer();
   const success = await healer.heal();
-  
+
   if (success) {
     console.log('\n🎉 Self-healing successful! Your agent system should now work.');
     console.log('   Try running: npm run dev');
@@ -209,6 +206,6 @@ class BuildHealer {
     console.log('\n⚠️  Self-healing could not fix all issues.');
     console.log('   Manual intervention may be required.');
   }
-  
+
   process.exit(success ? 0 : 1);
 })();

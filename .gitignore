@@ -137,3 +137,10 @@ temp/
 # Embedded git repositories (models)
 models/agents/LFM2-1.2B-bf16/
 models/tts/Kokoro-82M/
+
+# Gitleaks
+gitleaks-report.json
+gitleaks-report.sarif
+gitleaks-temp.json
+.gitleaks-baseline.json
+.secrets.baseline

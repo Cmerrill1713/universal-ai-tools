@@ -7,10 +7,10 @@
  * - Test environment setup
  * - Test execution
  * - Results analysis and reporting
- * 
+ *
  * Usage:
  *   node scripts/run-phase1-tests.js [options]
- * 
+ *
  * Options:
  *   --generate-only    Generate test data only
  *   --tests-only       Run tests only (assumes data exists)
@@ -43,7 +43,7 @@ const config = {
   testSuite: 'src/tests/integration/phase1-test-suite.test.ts',
   reportDir: join(projectRoot, 'test-reports'),
   timeout: 300000, // 5 minutes
-  retries: 2
+  retries: 2,
 };
 
 // Parse command line arguments
@@ -54,7 +54,7 @@ const options = {
   cleanup: args.includes('--cleanup'),
   verbose: args.includes('--verbose'),
   fast: args.includes('--fast'),
-  report: args.includes('--report')
+  report: args.includes('--report'),
 };
 
 class Phase1TestRunner {
@@ -63,7 +63,7 @@ class Phase1TestRunner {
       dataGeneration: { success: false, duration: 0, error: null },
       testExecution: { success: false, duration: 0, tests: {}, error: null },
       cleanup: { success: false, duration: 0, error: null },
-      overall: { success: false, duration: 0 }
+      overall: { success: false, duration: 0 },
     };
     this.startTime = Date.now();
   }
@@ -71,14 +71,15 @@ class Phase1TestRunner {
   // Log with timestamp
   log(message, level = 'info') {
     const timestamp = new Date().toISOString();
-    const prefix = {
-      info: '📋',
-      success: '✅',
-      error: '❌',
-      warning: '⚠️ ',
-      debug: '🔍'
-    }[level] || '📋';
-    
+    const prefix =
+      {
+        info: '📋',
+        success: '✅',
+        error: '❌',
+        warning: '⚠️ ',
+        debug: '🔍',
+      }[level] || '📋';
+
     console.log(`[${timestamp}] ${prefix} ${message}`);
   }
 
@@ -92,7 +93,7 @@ class Phase1TestRunner {
       const child = spawn('bash', ['-c', command], {
         cwd,
         stdio: options.verbose ? 'inherit' : 'pipe',
-        env: { ...process.env, NODE_ENV: 'test' }
+        env: { ...process.env, NODE_ENV: 'test' },
       });
 
       let stdout = '';
@@ -129,11 +130,13 @@ class Phase1TestRunner {
 
     try {
       await this.executeCommand(`node "${config.testDataScript}" generate`);
-      
+
       this.results.dataGeneration.success = true;
       this.results.dataGeneration.duration = Date.now() - startTime;
-      this.log(`Test data generation completed in ${this.results.dataGeneration.duration}ms`, 'success');
-      
+      this.log(
+        `Test data generation completed in ${this.results.dataGeneration.duration}ms`,
+        'success'
+      );
     } catch (error) {
       this.results.dataGeneration.error = error.message;
       this.log(`Test data generation failed: ${error.message}`, 'error');
@@ -148,7 +151,7 @@ class Phase1TestRunner {
     const checks = [
       { name: 'Node.js version', check: () => process.version },
       { name: 'Test database config', check: () => process.env.SUPABASE_URL },
-      { name: 'Project dependencies', check: () => this.checkDependencies() }
+      { name: 'Project dependencies', check: () => this.checkDependencies() },
     ];
 
     for (const { name, check } of checks) {
@@ -173,11 +176,11 @@ class Phase1TestRunner {
     try {
       const packageJson = await fs.readFile(join(projectRoot, 'package.json'), 'utf8');
       const pkg = JSON.parse(packageJson);
-      
+
       // Check for key dependencies
       const requiredDeps = ['@supabase/supabase-js', 'jest', 'supertest'];
-      const missing = requiredDeps.filter(dep => 
-        !pkg.dependencies?.[dep] && !pkg.devDependencies?.[dep]
+      const missing = requiredDeps.filter(
+        (dep) => !pkg.dependencies?.[dep] && !pkg.devDependencies?.[dep]
       );
 
       if (missing.length > 0) {
@@ -202,11 +205,11 @@ class Phase1TestRunner {
         testTimeout: config.timeout,
         verbose: options.verbose,
         detectOpenHandles: true,
-        forceExit: true
+        forceExit: true,
       };
 
       let jestCommand = 'npx jest';
-      
+
       if (options.fast) {
         jestCommand += ' --testNamePattern="^(?!.*Performance Tests|.*Concurrent)"';
       }
@@ -226,32 +229,36 @@ class Phase1TestRunner {
       try {
         const resultsJson = await fs.readFile(join(projectRoot, 'test-results.json'), 'utf8');
         const testResults = JSON.parse(resultsJson);
-        
+
         this.results.testExecution.tests = {
           total: testResults.numTotalTests,
           passed: testResults.numPassedTests,
           failed: testResults.numFailedTests,
           skipped: testResults.numTodoTests + testResults.numPendingTests,
-          success: testResults.success
+          success: testResults.success,
         };
 
         // Cleanup results file
         await fs.unlink(join(projectRoot, 'test-results.json')).catch(() => {});
-        
       } catch (parseError) {
         this.log('Could not parse test results, assuming tests completed', 'warning');
-        this.results.testExecution.tests = { total: 1, passed: 1, failed: 0, skipped: 0, success: true };
+        this.results.testExecution.tests = {
+          total: 1,
+          passed: 1,
+          failed: 0,
+          skipped: 0,
+          success: true,
+        };
       }
 
       this.results.testExecution.success = true;
       this.results.testExecution.duration = Date.now() - startTime;
       this.log(`Test execution completed in ${this.results.testExecution.duration}ms`, 'success');
-      
     } catch (error) {
       this.results.testExecution.error = error.message;
       this.results.testExecution.duration = Date.now() - startTime;
       this.log(`Test execution failed: ${error.message}`, 'error');
-      
+
       // Don't throw here, we want to continue with cleanup
     }
   }
@@ -263,11 +270,10 @@ class Phase1TestRunner {
 
     try {
       await this.executeCommand(`node "${config.testDataScript}" cleanup`);
-      
+
       this.results.cleanup.success = true;
       this.results.cleanup.duration = Date.now() - startTime;
       this.log(`Test data cleanup completed in ${this.results.cleanup.duration}ms`, 'success');
-      
     } catch (error) {
       this.results.cleanup.error = error.message;
       this.results.cleanup.duration = Date.now() - startTime;
@@ -292,11 +298,11 @@ class Phase1TestRunner {
           environment: {
             nodeVersion: process.version,
             platform: process.platform,
-            arch: process.arch
-          }
+            arch: process.arch,
+          },
         },
         results: this.results,
-        summary: this.generateSummary()
+        summary: this.generateSummary(),
       };
 
       const reportFile = join(config.reportDir, `phase1-test-report-${Date.now()}.json`);
@@ -309,7 +315,6 @@ class Phase1TestRunner {
 
       this.log(`Test report generated: ${reportFile}`, 'success');
       this.log(`Markdown report: ${markdownFile}`, 'success');
-
     } catch (error) {
       this.log(`Report generation failed: ${error.message}`, 'error');
     }
@@ -318,48 +323,48 @@ class Phase1TestRunner {
   // Generate summary
   generateSummary() {
     const { dataGeneration, testExecution, cleanup } = this.results;
-    
+
     return {
       overallSuccess: dataGeneration.success && testExecution.success,
       phases: {
         dataGeneration: dataGeneration.success ? 'PASS' : 'FAIL',
         testExecution: testExecution.success ? 'PASS' : 'FAIL',
-        cleanup: cleanup.success ? 'PASS' : 'WARN'
+        cleanup: cleanup.success ? 'PASS' : 'WARN',
       },
       testStats: testExecution.tests,
       totalDuration: this.results.overall.duration,
-      recommendation: this.getRecommendation()
+      recommendation: this.getRecommendation(),
     };
   }
 
   // Get recommendation based on results
   getRecommendation() {
     const { dataGeneration, testExecution } = this.results;
-    
+
     if (!dataGeneration.success) {
       return 'CRITICAL: Test data generation failed. Check database configuration and connectivity.';
     }
-    
+
     if (!testExecution.success) {
       return 'CRITICAL: Test execution failed. Review test logs and fix failing tests before Phase 1 completion.';
     }
-    
+
     const tests = testExecution.tests;
     if (tests.failed > 0) {
       return `WARNING: ${tests.failed} tests failed. Review failures and address issues before Phase 1 completion.`;
     }
-    
+
     if (tests.passed === 0) {
       return 'WARNING: No tests passed. Verify test suite is working correctly.';
     }
-    
+
     return 'SUCCESS: All Phase 1 tests passed. System ready for Phase 1 completion.';
   }
 
   // Generate markdown report
   generateMarkdownReport(report) {
     const { metadata, results, summary } = report;
-    
+
     return `# Phase 1 Test Report
 
 ## Summary
@@ -416,20 +421,20 @@ Generated by Phase 1 Test Runner at ${metadata.timestamp}
   // Print final results
   printResults() {
     const summary = this.generateSummary();
-    
+
     console.log('\n' + '='.repeat(60));
     console.log('📊 PHASE 1 TEST RESULTS');
     console.log('='.repeat(60));
-    
+
     console.log(`\n🎯 Overall Status: ${summary.overallSuccess ? '✅ PASS' : '❌ FAIL'}`);
     console.log(`⏱️  Total Duration: ${summary.totalDuration}ms`);
-    
+
     console.log('\n📋 Phase Results:');
     Object.entries(summary.phases).forEach(([phase, status]) => {
       const icon = status === 'PASS' ? '✅' : status === 'WARN' ? '⚠️' : '❌';
       console.log(`   ${icon} ${phase}: ${status}`);
     });
-    
+
     if (summary.testStats.total) {
       console.log('\n🧪 Test Statistics:');
       console.log(`   Total: ${summary.testStats.total}`);
@@ -437,63 +442,62 @@ Generated by Phase 1 Test Runner at ${metadata.timestamp}
       console.log(`   Failed: ${summary.testStats.failed}`);
       console.log(`   Skipped: ${summary.testStats.skipped}`);
     }
-    
+
     console.log('\n💡 Recommendation:');
     console.log(`   ${summary.recommendation}`);
-    
+
     console.log('\n' + '='.repeat(60));
   }
 
   // Main execution workflow
   async run() {
     this.log('🚀 Starting Phase 1 Test Runner\n');
-    
+
     try {
       // Validate environment first
       await this.validateEnvironment();
-      
+
       // Generate test data (unless tests-only)
       if (!options.testsOnly) {
         await this.generateTestData();
       }
-      
+
       // Run tests (unless generate-only)
       if (!options.generateOnly) {
         await this.runTests();
       }
-      
+
       // Cleanup if requested or if tests ran
       if (options.cleanup && !options.generateOnly) {
         await this.cleanupTestData();
       }
-      
+
       // Calculate total duration
       this.results.overall.duration = Date.now() - this.startTime;
-      this.results.overall.success = this.results.dataGeneration.success && 
-                                   this.results.testExecution.success;
-      
+      this.results.overall.success =
+        this.results.dataGeneration.success && this.results.testExecution.success;
+
       // Generate report if requested
       if (options.report) {
         await this.generateReport();
       }
-      
+
       // Print final results
       this.printResults();
-      
+
       // Exit with appropriate code
       const exitCode = this.results.overall.success ? 0 : 1;
       process.exit(exitCode);
-      
     } catch (error) {
       this.log(`Test runner failed: ${error.message}`, 'error');
-      
+
       if (options.verbose) {
         console.error(error.stack);
       }
-      
+
       this.results.overall.duration = Date.now() - this.startTime;
       this.results.overall.success = false;
-      
+
       this.printResults();
       process.exit(1);
     }

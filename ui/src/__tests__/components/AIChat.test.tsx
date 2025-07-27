@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
-import { AIChat } from '../../pages/AIChat';
+import AIChat from '../../pages/AIChat';
 import { render, mockChatMessage, resetMocks } from '../../test/utils';
 
 // Mock the hooks
@@ -76,7 +76,7 @@ describe('AIChat Component', () => {
     expect(screen.getByText('Neural Network Status')).toBeInTheDocument();
   });
 
-  it('displays system status correctly when connected', () => {
+  it('displays system status correctly when this.connected', () => {
     render(<AIChat />);
     
     expect(screen.getByText('Ready')).toBeInTheDocument();

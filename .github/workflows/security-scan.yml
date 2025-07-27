@@ -94,12 +94,12 @@ jobs:
           echo "# Vulnerability Scan Summary" > vulnerability-summary.md
           echo "Generated on: $(date)" >> vulnerability-summary.md
           echo "" >> vulnerability-summary.md
-          
+
           if [ -f npm-audit-backend.json ]; then
             echo "## Backend Dependencies" >> vulnerability-summary.md
             jq -r '.metadata | "High: \(.vulnerabilities.high), Moderate: \(.vulnerabilities.moderate), Low: \(.vulnerabilities.low)"' npm-audit-backend.json >> vulnerability-summary.md
           fi
-          
+
           if [ -f npm-audit-frontend.json ]; then
             echo "## Frontend Dependencies" >> vulnerability-summary.md
             jq -r '.metadata | "High: \(.vulnerabilities.high), Moderate: \(.vulnerabilities.moderate), Low: \(.vulnerabilities.low)"' npm-audit-frontend.json >> vulnerability-summary.md
@@ -138,16 +138,16 @@ jobs:
       - name: Check for common credential patterns
         run: |
           echo "Checking for common credential patterns..."
-          
+
           # Check for hardcoded API keys
           grep -r -i "api[_-]key\s*=\s*['\"][^'\"]{20,}['\"]" . --exclude-dir=node_modules --exclude-dir=.git || true
-          
+
           # Check for hardcoded passwords
           grep -r -i "password\s*=\s*['\"][^'\"]{8,}['\"]" . --exclude-dir=node_modules --exclude-dir=.git || true
-          
+
           # Check for AWS credentials
           grep -r -E "AKIA[0-9A-Z]{16}" . --exclude-dir=node_modules --exclude-dir=.git || true
-          
+
           # Check for private keys
           grep -r "BEGIN.*PRIVATE.*KEY" . --exclude-dir=node_modules --exclude-dir=.git || true
 
@@ -195,7 +195,7 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:javascript"
+          category: '/language:javascript'
 
       - name: Run ESLint security rules
         run: |
@@ -255,13 +255,13 @@ jobs:
       - name: Check for insecure configurations
         run: |
           echo "Checking for insecure configurations..."
-          
+
           # Check for weak CORS settings
           grep -r "cors.*origin.*\*" . --include="*.ts" --include="*.js" || true
-          
+
           # Check for disabled security features
           grep -r "helmet.*false\|security.*false" . --include="*.ts" --include="*.js" || true
-          
+
           # Check for debug mode in production configs
           grep -r "debug.*true\|DEBUG.*true" . --include="*.ts" --include="*.js" || true
 
@@ -310,7 +310,7 @@ jobs:
       - name: Identify problematic licenses
         run: |
           echo "Checking for problematic licenses..."
-          
+
           # Check for copyleft licenses that might be problematic
           if [ -f backend-licenses.json ]; then
             jq -r 'to_entries[] | select(.value.licenses | contains("GPL") or contains("AGPL")) | "\(.key): \(.value.licenses)"' backend-licenses.json || true
@@ -347,7 +347,7 @@ jobs:
           echo "Generated on: $(date)" >> security-report.md
           echo "Commit: ${{ github.sha }}" >> security-report.md
           echo "" >> security-report.md
-          
+
           echo "## Scan Results Summary" >> security-report.md
           echo "- Dependency Scan: ${{ needs.dependency-scan.result }}" >> security-report.md
           echo "- Secret Scan: ${{ needs.secret-scan.result }}" >> security-report.md
@@ -355,9 +355,9 @@ jobs:
           echo "- Infrastructure Scan: ${{ needs.infrastructure-scan.result }}" >> security-report.md
           echo "- License Scan: ${{ needs.license-scan.result }}" >> security-report.md
           echo "" >> security-report.md
-          
+
           echo "## Detailed Results" >> security-report.md
-          
+
           # Process vulnerability results if available
           if [ -d "scan-results/vulnerability-reports-${{ github.sha }}" ]; then
             echo "### Dependency Vulnerabilities" >> security-report.md
@@ -365,7 +365,7 @@ jobs:
               echo "Backend vulnerabilities found - see attached reports" >> security-report.md
             fi
           fi
-          
+
           # Add security recommendations
           echo "" >> security-report.md
           echo "## Recommendations" >> security-report.md
@@ -388,7 +388,7 @@ jobs:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('security-report.md', 'utf8');
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -420,9 +420,9 @@ jobs:
       - name: Calculate security score
         run: |
           echo "Calculating security score..."
-          
+
           score=100
-          
+
           # Deduct points for failures
           if [[ "${{ needs.dependency-scan.result }}" == "failure" ]]; then
             score=$((score - 25))
@@ -436,7 +436,7 @@ jobs:
           if [[ "${{ needs.infrastructure-scan.result }}" == "failure" ]]; then
             score=$((score - 20))
           fi
-          
+
           echo "Security Score: $score/100"
           echo "SECURITY_SCORE=$score" >> $GITHUB_ENV
 

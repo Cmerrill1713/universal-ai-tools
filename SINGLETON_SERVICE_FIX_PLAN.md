@@ -1,9 +1,11 @@
 # Singleton Service Initialization Fix Plan
 
 ## Problem Summary
+
 The application hangs during startup due to singleton services being instantiated at import time with blocking constructors and circular dependencies.
 
 ## Root Causes
+
 1. **Eager instantiation**: Services are created using `export const service = new Service()` at module level
 2. **Blocking constructors**: Some services perform async operations or wait for connections in constructors
 3. **Circular dependencies**: Services import each other creating dependency cycles
@@ -36,14 +38,14 @@ Separate construction from initialization:
 ```typescript
 class DSPyService {
   private initialized = false;
-  
+
   constructor() {
     // Only set up basic properties, no async operations
   }
-  
+
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     // Move all async/blocking operations here
     await this.connectToBridge();
     this.initialized = true;
@@ -60,13 +62,13 @@ class ServiceManager {
   private services: Map<string, any> = new Map();
   private initOrder = [
     'supabase',
-    'memoryManager', 
+    'memoryManager',
     'circuitBreaker',
     'dspyBridge',
     'dspyService',
     // ... other services in dependency order
   ];
-  
+
   async initializeAll(): Promise<void> {
     for (const serviceName of this.initOrder) {
       await this.initializeService(serviceName);
@@ -86,7 +88,7 @@ import { serviceManager } from './services/service-manager';
 async function startServer() {
   logger.info('Initializing services...');
   await serviceManager.initializeAll();
-  
+
   logger.info('Starting Express server...');
   // ... rest of server setup
 }
@@ -134,14 +136,14 @@ let _instance: DSPyService | null = null;
 
 export class DSPyService {
   private initialized = false;
-  
+
   constructor() {
     // No async operations here
   }
-  
+
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     try {
       if (process.env.ENABLE_DSPY_MOCK === 'true') {
         await this.waitForConnection(5000);
@@ -165,7 +167,7 @@ export const dspyService = new Proxy({} as DSPyService, {
   get(target, prop) {
     logger.warn('Direct access to dspyService is deprecated. Use getDSPyService() instead.');
     return getDSPyService()[prop as keyof DSPyService];
-  }
+  },
 });
 ```
 

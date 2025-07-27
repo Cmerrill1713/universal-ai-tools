@@ -4,47 +4,49 @@ Integrate Personal Agents with Universal AI Tools Main Application
 Creates unified API endpoints and dashboard integration for all personal agents
 """
 
-import os
 import shutil
 from pathlib import Path
+
 
 class PersonalAgentIntegrator:
     def __init__(self):
         self.project_root = Path("/Users/christianmerrill/Desktop/universal-ai-tools")
         self.dist_dir = self.project_root / "dist"
         self.personal_agents_dir = self.dist_dir / "personal"
-        self.app_bundle = Path("/Users/christianmerrill/Desktop/Universal AI Tools.app/Contents/Resources")
-        
+        self.app_bundle = Path(
+            "/Users/christianmerrill/Desktop/Universal AI Tools.app/Contents/Resources"
+        )
+
     def integrate_agents(self):
         """Integrate personal agents with main application"""
         print("🤖 Universal AI Tools - Personal Agents Integration")
         print("=" * 60)
-        
+
         # Check if personal agents exist
         if not self.personal_agents_dir.exists():
             print("❌ Personal agents directory not found!")
             return False
-            
+
         # Create integration endpoints
         self.create_agent_endpoints()
-        
+
         # Update main server
         self.update_main_server()
-        
+
         # Create agent dashboard
         self.create_agent_dashboard()
-        
+
         # Update app bundle
         self.update_app_bundle()
-        
+
         print("\n🎉 Personal agents successfully integrated!")
         return True
-        
+
     def create_agent_endpoints(self):
         """Create API endpoints for personal agents"""
         print("\n📡 Creating personal agent API endpoints...")
-        
-        router_content = '''const express = require('express');
+
+        router_content = """const express = require('express');
 const path = require('path');
 
 // Import personal agents (CommonJS compatible)
@@ -267,68 +269,68 @@ function PersonalAgentRouter(supabase) {
     return router;
 }
 
-module.exports = PersonalAgentRouter;'''
-        
+module.exports = PersonalAgentRouter;"""
+
         # Write the router file
         router_file = self.project_root / "personal_agent_router.js"
-        with open(router_file, 'w') as f:
+        with open(router_file, "w") as f:
             f.write(router_content)
-            
+
         print("   ✅ Personal agent API router created")
-        
+
     def update_main_server(self):
         """Update main server to include personal agent endpoints"""
         print("\n🔧 Updating main server with personal agent integration...")
-        
+
         server_path = self.app_bundle / "dist/server.js"
-        
+
         # Read current server content
         if server_path.exists():
-            with open(server_path, 'r') as f:
+            with open(server_path) as f:
                 content = f.read()
         else:
             print("   ❌ Server file not found")
             return
-            
+
         # Check if already integrated
-        if 'PersonalAgentRouter' in content:
+        if "PersonalAgentRouter" in content:
             print("   ✅ Personal agents already integrated")
             return
-            
+
         # Add personal agent router import
         import_line = "const PersonalAgentRouter = require('../../personal_agent_router');"
-        
+
         # Find where to insert the import (after other requires)
-        lines = content.split('\n')
+        lines = content.split("\n")
         insert_index = 0
         for i, line in enumerate(lines):
-            if line.startswith('const') and 'require(' in line:
+            if line.startswith("const") and "require(" in line:
                 insert_index = i + 1
-                
+
         # Insert import
         lines.insert(insert_index, import_line)
-        
+
         # Add route mounting
         route_line = "app.use('/api/personal', PersonalAgentRouter(supabase));"
-        
+
         # Find where to insert route (after other app.use statements)
         for i, line in enumerate(lines):
-            if 'app.use(express.static' in line:
+            if "app.use(express.static" in line:
                 lines.insert(i + 1, route_line)
                 break
-                
+
         # Update server file
-        updated_content = '\n'.join(lines)
-        with open(server_path, 'w') as f:
+        updated_content = "\n".join(lines)
+        with open(server_path, "w") as f:
             f.write(updated_content)
-            
+
         print("   ✅ Main server updated with personal agent endpoints")
-        
+
     def create_agent_dashboard(self):
         """Create dashboard interface for personal agents"""
         print("\n🖥️  Creating personal agents dashboard...")
-        
-        dashboard_content = '''<!DOCTYPE html>
+
+        dashboard_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -803,28 +805,28 @@ module.exports = PersonalAgentRouter;'''
         }
     </script>
 </body>
-</html>'''
-        
+</html>"""
+
         dashboard_file = self.project_root / "personal_agents_dashboard.html"
-        with open(dashboard_file, 'w') as f:
+        with open(dashboard_file, "w") as f:
             f.write(dashboard_content)
-            
+
         # Copy to app bundle
         if self.app_bundle.exists():
             shutil.copy2(dashboard_file, self.app_bundle / "personal_agents_dashboard.html")
-            
+
         print("   ✅ Personal agents dashboard created")
-        
+
     def update_app_bundle(self):
         """Update app bundle with personal agent integration"""
         print("\n📦 Updating app bundle with personal agents...")
-        
+
         # Copy personal agent router to app bundle
         router_source = self.project_root / "personal_agent_router.js"
         if router_source.exists() and self.app_bundle.exists():
             shutil.copy2(router_source, self.app_bundle / "personal_agent_router.js")
             print("   ✅ Personal agent router copied to app bundle")
-            
+
         # Copy personal agents if they exist
         if self.personal_agents_dir.exists() and self.app_bundle.exists():
             dest_dir = self.app_bundle / "dist" / "personal"
@@ -832,12 +834,14 @@ module.exports = PersonalAgentRouter;'''
                 shutil.rmtree(dest_dir)
             shutil.copytree(self.personal_agents_dir, dest_dir)
             print("   ✅ Personal agents copied to app bundle")
-            
+
         print("   ✅ App bundle updated with personal agent integration")
+
 
 def main():
     integrator = PersonalAgentIntegrator()
     integrator.integrate_agents()
+
 
 if __name__ == "__main__":
     main()

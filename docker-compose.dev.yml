@@ -5,13 +5,13 @@ name: universal-ai-tools-dev
 services:
   # Development Universal AI Tools Service
   universal-ai-tools-dev:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
       target: development
     container_name: universal-ai-tools-dev
     ports:
-      - "9999:9999"
+      - '9999:9999'
     environment:
       - NODE_ENV=development
       - PORT=9999
@@ -57,7 +57,7 @@ services:
     networks:
       - ai-tools-dev-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9999/api/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:9999/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -68,7 +68,7 @@ services:
     image: redis:7-alpine
     container_name: universal-ai-redis-dev
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_dev_data:/data
     command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
@@ -81,7 +81,7 @@ services:
     image: ollama/ollama:latest
     container_name: universal-ai-ollama-dev
     ports:
-      - "11434:11434"
+      - '11434:11434'
     volumes:
       - ollama_dev_models:/root/.ollama
     environment:
@@ -98,7 +98,7 @@ services:
     image: postgres:15-alpine
     container_name: universal-ai-postgres-dev
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       - POSTGRES_USER=universal_ai_dev
       - POSTGRES_PASSWORD=dev_password
@@ -116,7 +116,7 @@ services:
     image: rediscommander/redis-commander:latest
     container_name: universal-ai-redis-commander
     ports:
-      - "8081:8081"
+      - '8081:8081'
     environment:
       - REDIS_HOSTS=local:redis:6379
     depends_on:

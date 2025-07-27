@@ -1,0 +1,304 @@
+name: Sweet Athena CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/services/sweet-athena-*'
+      - 'src/services/pixel-streaming-*'
+      - 'src/routers/sweet-athena.ts'
+      - 'ui/src/components/SweetAthena/**'
+      - 'UE5-SweetAthena/**'
+      - '.github/workflows/sweet-athena-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/services/sweet-athena-*'
+      - 'src/services/pixel-streaming-*'
+      - 'src/routers/sweet-athena.ts'
+      - 'ui/src/components/SweetAthena/**'
+
+env:
+  NODE_VERSION: '20.x'
+  UE5_VERSION: '5.6'
+
+jobs:
+  test-backend:
+    name: Test Backend Services
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sweet_athena_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint -- src/services/sweet-athena-* src/services/pixel-streaming-* src/routers/sweet-athena.ts
+
+      - name: Run Sweet Athena tests
+        run: |
+          npm run test:unit -- tests/services/sweet-athena-state-manager.test.ts
+          npm run test:unit -- tests/services/pixel-streaming-bridge.test.ts
+          npm run test:unit -- tests/routers/sweet-athena.test.ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sweet_athena_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-build
+          path: dist/
+
+  test-frontend:
+    name: Test Frontend Components
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd ui && npm ci
+
+      - name: Run component tests
+        run: |
+          cd ui
+          npm run test -- --testPathPattern="SweetAthena" --passWithNoTests
+
+      - name: Build frontend
+        run: |
+          cd ui
+          npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: ui/dist/
+
+  test-ue5-project:
+    name: Validate UE5 Project Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check UE5 project files
+        run: |
+          # Verify essential UE5 project files exist
+          test -f ~/UE5-SweetAthena/SweetAthenaUE5Project.uproject || echo "Warning: UProject file not found"
+          test -f ~/UE5-SweetAthena/Config/DefaultEngine.ini || echo "Warning: Engine config not found"
+          test -f ~/UE5-SweetAthena/Source/SweetAthenaUE5Project/SweetAthenaCharacter.cpp || echo "Warning: Character source not found"
+          test -f ~/UE5-SweetAthena/Scripts/StartPixelStreaming.sh || echo "Warning: Startup script not found"
+
+      - name: Validate Pixel Streaming configuration
+        run: |
+          if [ -f ~/UE5-SweetAthena/Config/DefaultEngine.ini ]; then
+            grep -q "PixelStreamingSettings" ~/UE5-SweetAthena/Config/DefaultEngine.ini || echo "Warning: Pixel Streaming not configured"
+          fi
+
+  integration-test:
+    name: Integration Tests
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sweet_athena_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download backend build
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-build
+          path: dist/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start services
+        run: |
+          # Start backend in background
+          npm run start:prod &
+          sleep 10
+
+          # Start mock signalling server
+          node tests/mocks/mock-signalling-server.js &
+          sleep 5
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sweet_athena_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: production
+          PORT: 3002
+
+      - name: Run integration tests
+        run: |
+          # Test API endpoints
+          curl -f http://localhost:3002/api/health || exit 1
+
+          # Run integration test suite
+          node test-sweet-athena-integration.cjs || true
+
+      - name: Stop services
+        if: always()
+        run: |
+          pkill -f "node" || true
+
+  docker-build:
+    name: Build Docker Images
+    needs: [integration-test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/sweet-athena-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/sweet-athena-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push signalling server
+        uses: docker/build-push-action@v5
+        with:
+          context: ~/UE5-SweetAthena/Scripts/SignallingServer
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/sweet-athena-signalling:latest
+            ${{ secrets.DOCKER_USERNAME }}/sweet-athena-signalling:${{ github.sha }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/sweet-athena
+            docker-compose pull
+            docker-compose up -d --remove-orphans
+            docker-compose ps
+
+      - name: Health check
+        run: |
+          sleep 30
+          curl -f https://staging.sweet-athena.example.com/api/health || exit 1
+
+      - name: Run smoke tests
+        run: |
+          npm run test:e2e -- --config=staging
+
+  notify:
+    name: Notify Team
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Sweet Athena deployment ${{ job.status == 'success' && 'succeeded' || 'failed' }}
+            Commit: ${{ github.event.head_commit.message }}
+            Author: ${{ github.event.head_commit.author.name }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()

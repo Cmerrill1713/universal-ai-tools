@@ -2,9 +2,9 @@ name: Adaptive Autofix CI/CD
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   schedule:
     # Run adaptive autofix daily at 2 AM UTC
     - cron: '0 2 * * *'
@@ -16,10 +16,10 @@ on:
         default: 'adaptive'
         type: choice
         options:
-        - adaptive
-        - advanced
-        - intelligent
-        - all
+          - adaptive
+          - advanced
+          - intelligent
+          - all
       memory_mode:
         description: 'Enable memory persistence'
         required: false
@@ -29,269 +29,269 @@ on:
 jobs:
   autofix:
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
       pull-requests: write
-      
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: |
-        npm ci
-        npm install -g tsx
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install -g tsx
 
-    - name: Configure Supabase (if available)
-      if: vars.SUPABASE_URL && secrets.SUPABASE_ANON_KEY
-      run: |
-        echo "SUPABASE_URL=${{ vars.SUPABASE_URL }}" >> $GITHUB_ENV
-        echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
-        echo "✅ Supabase configured for memory persistence"
+      - name: Configure Supabase (if available)
+        if: vars.SUPABASE_URL && secrets.SUPABASE_ANON_KEY
+        run: |
+          echo "SUPABASE_URL=${{ vars.SUPABASE_URL }}" >> $GITHUB_ENV
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
+          echo "✅ Supabase configured for memory persistence"
 
-    - name: Run lint analysis (before)
-      run: |
-        echo "## 📊 Lint Analysis Before Autofix" >> $GITHUB_STEP_SUMMARY
-        npm run lint 2>&1 | grep -E "(error|warning)" | wc -l > before_count.txt
-        BEFORE_COUNT=$(cat before_count.txt)
-        echo "**Issues before autofix:** $BEFORE_COUNT" >> $GITHUB_STEP_SUMMARY
-        echo "BEFORE_COUNT=$BEFORE_COUNT" >> $GITHUB_ENV
+      - name: Run lint analysis (before)
+        run: |
+          echo "## 📊 Lint Analysis Before Autofix" >> $GITHUB_STEP_SUMMARY
+          npm run lint 2>&1 | grep -E "(error|warning)" | wc -l > before_count.txt
+          BEFORE_COUNT=$(cat before_count.txt)
+          echo "**Issues before autofix:** $BEFORE_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "BEFORE_COUNT=$BEFORE_COUNT" >> $GITHUB_ENV
 
-    - name: Run Adaptive Autofix
-      if: github.event.inputs.fix_type == 'adaptive' || github.event.inputs.fix_type == 'all' || github.event_name != 'workflow_dispatch'
-      run: |
-        echo "🔄 Running adaptive autofix..." >> $GITHUB_STEP_SUMMARY
-        npm run fix:adaptive 2>&1 | tee adaptive_log.txt
-        echo "### Adaptive Autofix Results" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        tail -10 adaptive_log.txt >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Run Adaptive Autofix
+        if: github.event.inputs.fix_type == 'adaptive' || github.event.inputs.fix_type == 'all' || github.event_name != 'workflow_dispatch'
+        run: |
+          echo "🔄 Running adaptive autofix..." >> $GITHUB_STEP_SUMMARY
+          npm run fix:adaptive 2>&1 | tee adaptive_log.txt
+          echo "### Adaptive Autofix Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -10 adaptive_log.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-    - name: Run Advanced Pattern Autofix
-      if: github.event.inputs.fix_type == 'advanced' || github.event.inputs.fix_type == 'all'
-      run: |
-        echo "🔬 Running advanced pattern autofix..." >> $GITHUB_STEP_SUMMARY
-        npm run fix:advanced 2>&1 | tee advanced_log.txt
-        echo "### Advanced Pattern Results" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        tail -10 advanced_log.txt >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Run Advanced Pattern Autofix
+        if: github.event.inputs.fix_type == 'advanced' || github.event.inputs.fix_type == 'all'
+        run: |
+          echo "🔬 Running advanced pattern autofix..." >> $GITHUB_STEP_SUMMARY
+          npm run fix:advanced 2>&1 | tee advanced_log.txt
+          echo "### Advanced Pattern Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -10 advanced_log.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-    - name: Run Intelligent Autofix
-      if: github.event.inputs.fix_type == 'intelligent' || github.event.inputs.fix_type == 'all'
-      run: |
-        echo "🧠 Running intelligent autofix..." >> $GITHUB_STEP_SUMMARY
-        npm run fix:intelligent 2>&1 | tee intelligent_log.txt
-        echo "### Intelligent Autofix Results" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        tail -10 intelligent_log.txt >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Run Intelligent Autofix
+        if: github.event.inputs.fix_type == 'intelligent' || github.event.inputs.fix_type == 'all'
+        run: |
+          echo "🧠 Running intelligent autofix..." >> $GITHUB_STEP_SUMMARY
+          npm run fix:intelligent 2>&1 | tee intelligent_log.txt
+          echo "### Intelligent Autofix Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -10 intelligent_log.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-    - name: Run standard ESLint autofix
-      run: |
-        echo "🔧 Running standard ESLint autofix..." >> $GITHUB_STEP_SUMMARY
-        npm run lint:fix || true
+      - name: Run standard ESLint autofix
+        run: |
+          echo "🔧 Running standard ESLint autofix..." >> $GITHUB_STEP_SUMMARY
+          npm run lint:fix || true
 
-    - name: Format code
-      run: |
-        echo "🎨 Formatting code..." >> $GITHUB_STEP_SUMMARY
-        npm run format || true
+      - name: Format code
+        run: |
+          echo "🎨 Formatting code..." >> $GITHUB_STEP_SUMMARY
+          npm run format || true
 
-    - name: Run lint analysis (after)
-      run: |
-        echo "## 📈 Lint Analysis After Autofix" >> $GITHUB_STEP_SUMMARY
-        npm run lint 2>&1 | grep -E "(error|warning)" | wc -l > after_count.txt
-        AFTER_COUNT=$(cat after_count.txt)
-        IMPROVEMENT=$((BEFORE_COUNT - AFTER_COUNT))
-        echo "**Issues after autofix:** $AFTER_COUNT" >> $GITHUB_STEP_SUMMARY
-        echo "**Issues fixed:** $IMPROVEMENT" >> $GITHUB_STEP_SUMMARY
-        echo "AFTER_COUNT=$AFTER_COUNT" >> $GITHUB_ENV
-        echo "IMPROVEMENT=$IMPROVEMENT" >> $GITHUB_ENV
-        
-        if [ $IMPROVEMENT -gt 0 ]; then
-          echo "🎉 **Autofix successful!** Fixed $IMPROVEMENT issues" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "ℹ️ No new issues fixed this run" >> $GITHUB_STEP_SUMMARY
-        fi
+      - name: Run lint analysis (after)
+        run: |
+          echo "## 📈 Lint Analysis After Autofix" >> $GITHUB_STEP_SUMMARY
+          npm run lint 2>&1 | grep -E "(error|warning)" | wc -l > after_count.txt
+          AFTER_COUNT=$(cat after_count.txt)
+          IMPROVEMENT=$((BEFORE_COUNT - AFTER_COUNT))
+          echo "**Issues after autofix:** $AFTER_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "**Issues fixed:** $IMPROVEMENT" >> $GITHUB_STEP_SUMMARY
+          echo "AFTER_COUNT=$AFTER_COUNT" >> $GITHUB_ENV
+          echo "IMPROVEMENT=$IMPROVEMENT" >> $GITHUB_ENV
 
-    - name: Check for changes
-      id: changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        
-        if [ -n "$(git status --porcelain)" ]; then
-          echo "changes=true" >> $GITHUB_OUTPUT
-          echo "📝 Changes detected in codebase" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "changes=false" >> $GITHUB_OUTPUT
-          echo "✨ No changes needed" >> $GITHUB_STEP_SUMMARY
-        fi
+          if [ $IMPROVEMENT -gt 0 ]; then
+            echo "🎉 **Autofix successful!** Fixed $IMPROVEMENT issues" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ No new issues fixed this run" >> $GITHUB_STEP_SUMMARY
+          fi
 
-    - name: Generate autofix report
-      if: steps.changes.outputs.changes == 'true'
-      run: |
-        cat > autofix_report.md << EOF
-        # 🤖 Automated Code Quality Improvements
-        
-        ## Summary
-        - **Issues before:** $BEFORE_COUNT
-        - **Issues after:** $AFTER_COUNT  
-        - **Issues fixed:** $IMPROVEMENT
-        - **Success rate:** $(echo "scale=1; $IMPROVEMENT * 100 / $BEFORE_COUNT" | bc -l)%
-        
-        ## Changes Applied
-        - ✅ Adaptive pattern learning
-        - ✅ Advanced TypeScript fixes
-        - ✅ Standard ESLint autofix
-        - ✅ Code formatting
-        
-        ## Memory Learning
-        $(if [ -n "$SUPABASE_URL" ]; then echo "🧠 All fixes stored in Supabase for continuous learning"; else echo "📝 Running in offline mode"; fi)
-        
-        ## Next Steps
-        - Review the changes in this PR
-        - Merge if the improvements look good
-        - The system will continue learning from these patterns
-        
-        *Generated by Claude Code Autofix System* 🚀
-        EOF
+      - name: Check for changes
+        id: changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
 
-    - name: Create Pull Request
-      if: steps.changes.outputs.changes == 'true' && github.event_name != 'pull_request'
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: |
-          🤖 Automated code quality improvements
-          
-          - Fixed ${{ env.IMPROVEMENT }} lint issues
-          - Applied adaptive learning patterns
-          - Enhanced TypeScript types and imports
-          
-          Generated with Claude Code Autofix System
-        title: "🤖 Automated Code Quality Improvements (${{ env.IMPROVEMENT }} fixes)"
-        body-path: autofix_report.md
-        branch: autofix/adaptive-${{ github.run_number }}
-        delete-branch: true
-        labels: |
-          autofix
-          code-quality
-          automated
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "📝 Changes detected in codebase" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "✨ No changes needed" >> $GITHUB_STEP_SUMMARY
+          fi
 
-    - name: Comment on existing PR
-      if: steps.changes.outputs.changes == 'true' && github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const report = fs.readFileSync('autofix_report.md', 'utf8');
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: report
-          });
+      - name: Generate autofix report
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          cat > autofix_report.md << EOF
+          # 🤖 Automated Code Quality Improvements
 
-    - name: Update learning metrics
-      if: always() && vars.SUPABASE_URL && secrets.SUPABASE_ANON_KEY
-      run: |
-        cat > update_metrics.mjs << 'EOF'
-        import { createClient } from '@supabase/supabase-js';
-        
-        const supabase = createClient(
-          process.env.SUPABASE_URL,
-          process.env.SUPABASE_ANON_KEY
-        );
-        
-        try {
-          await supabase
-            .from('memories')
-            .insert({
-              content: `CI/CD autofix run: ${process.env.IMPROVEMENT} issues fixed`,
-              metadata: {
-                memory_type: 'ci_cd_run',
-                before_count: process.env.BEFORE_COUNT,
-                after_count: process.env.AFTER_COUNT,
-                improvement: process.env.IMPROVEMENT,
-                workflow: 'adaptive-autofix',
-                git_ref: process.env.GITHUB_REF,
-                run_id: process.env.GITHUB_RUN_ID,
-                tags: ['ci-cd', 'autofix', 'metrics']
-              },
-              user_id: 'github-actions'
+          ## Summary
+          - **Issues before:** $BEFORE_COUNT
+          - **Issues after:** $AFTER_COUNT  
+          - **Issues fixed:** $IMPROVEMENT
+          - **Success rate:** $(echo "scale=1; $IMPROVEMENT * 100 / $BEFORE_COUNT" | bc -l)%
+
+          ## Changes Applied
+          - ✅ Adaptive pattern learning
+          - ✅ Advanced TypeScript fixes
+          - ✅ Standard ESLint autofix
+          - ✅ Code formatting
+
+          ## Memory Learning
+          $(if [ -n "$SUPABASE_URL" ]; then echo "🧠 All fixes stored in Supabase for continuous learning"; else echo "📝 Running in offline mode"; fi)
+
+          ## Next Steps
+          - Review the changes in this PR
+          - Merge if the improvements look good
+          - The system will continue learning from these patterns
+
+          *Generated by Claude Code Autofix System* 🚀
+          EOF
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changes == 'true' && github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            🤖 Automated code quality improvements
+
+            - Fixed ${{ env.IMPROVEMENT }} lint issues
+            - Applied adaptive learning patterns
+            - Enhanced TypeScript types and imports
+
+            Generated with Claude Code Autofix System
+          title: '🤖 Automated Code Quality Improvements (${{ env.IMPROVEMENT }} fixes)'
+          body-path: autofix_report.md
+          branch: autofix/adaptive-${{ github.run_number }}
+          delete-branch: true
+          labels: |
+            autofix
+            code-quality
+            automated
+
+      - name: Comment on existing PR
+        if: steps.changes.outputs.changes == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('autofix_report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
             });
-          
-          console.log('✅ Metrics stored in Supabase');
-        } catch (error) {
-          console.log(`⚠️ Failed to store metrics: ${error.message}`);
-        }
-        EOF
-        
-        node update_metrics.mjs
 
-    - name: Archive logs
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: autofix-logs
-        path: |
-          *_log.txt
-          autofix_report.md
-        retention-days: 30
+      - name: Update learning metrics
+        if: always() && vars.SUPABASE_URL && secrets.SUPABASE_ANON_KEY
+        run: |
+          cat > update_metrics.mjs << 'EOF'
+          import { createClient } from '@supabase/supabase-js';
+
+          const supabase = createClient(
+            process.env.SUPABASE_URL,
+            process.env.SUPABASE_ANON_KEY
+          );
+
+          try {
+            await supabase
+              .from('memories')
+              .insert({
+                content: `CI/CD autofix run: ${process.env.IMPROVEMENT} issues fixed`,
+                metadata: {
+                  memory_type: 'ci_cd_run',
+                  before_count: process.env.BEFORE_COUNT,
+                  after_count: process.env.AFTER_COUNT,
+                  improvement: process.env.IMPROVEMENT,
+                  workflow: 'adaptive-autofix',
+                  git_ref: process.env.GITHUB_REF,
+                  run_id: process.env.GITHUB_RUN_ID,
+                  tags: ['ci-cd', 'autofix', 'metrics']
+                },
+                user_id: 'github-actions'
+              });
+            
+            console.log('✅ Metrics stored in Supabase');
+          } catch (error) {
+            console.log(`⚠️ Failed to store metrics: ${error.message}`);
+          }
+          EOF
+
+          node update_metrics.mjs
+
+      - name: Archive logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: autofix-logs
+          path: |
+            *_log.txt
+            autofix_report.md
+          retention-days: 30
 
   performance-check:
     needs: autofix
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Run type check
-      run: |
-        echo "## 🔍 Type Check Results" >> $GITHUB_STEP_SUMMARY
-        if npm run type-check; then
-          echo "✅ Type check passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Type check failed - autofix may have introduced issues" >> $GITHUB_STEP_SUMMARY
-        fi
+      - name: Run type check
+        run: |
+          echo "## 🔍 Type Check Results" >> $GITHUB_STEP_SUMMARY
+          if npm run type-check; then
+            echo "✅ Type check passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Type check failed - autofix may have introduced issues" >> $GITHUB_STEP_SUMMARY
+          fi
 
-    - name: Run tests
-      run: |
-        echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
-        if npm run test:fast; then
-          echo "✅ Tests passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "⚠️ Some tests failed - review required" >> $GITHUB_STEP_SUMMARY
-        fi
+      - name: Run tests
+        run: |
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          if npm run test:fast; then
+            echo "✅ Tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Some tests failed - review required" >> $GITHUB_STEP_SUMMARY
+          fi
 
-    - name: Build check
-      run: |
-        echo "## 🏗️ Build Check" >> $GITHUB_STEP_SUMMARY
-        if npm run build; then
-          echo "✅ Build successful" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Build failed - autofix may have broken something" >> $GITHUB_STEP_SUMMARY
-        fi
+      - name: Build check
+        run: |
+          echo "## 🏗️ Build Check" >> $GITHUB_STEP_SUMMARY
+          if npm run build; then
+            echo "✅ Build successful" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build failed - autofix may have broken something" >> $GITHUB_STEP_SUMMARY
+          fi

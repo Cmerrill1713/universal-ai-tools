@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sweet Athena Command Tester</title>
+    <style>
+        body {
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: monospace;
+        }
+        button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+        #log {
+            background: #0a0a0a;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        .sent { color: #4CAF50; }
+        .received { color: #2196F3; }
+        .error { color: #F44336; }
+    </style>
+</head>
+<body>
+    <h1>🌸 Sweet Athena Command Tester</h1>
+    
+    <div class="section">
+        <h2>Connection Status</h2>
+        <div id="status">Disconnected</div>
+        <button onclick="connect()">Connect to UE5 (Port 8888)</button>
+    </div>
+    
+    <div class="section">
+        <h2>Test Personality Changes</h2>
+        <button onclick="sendCommand({type:'personality',value:'sweet'})">🌸 Sweet</button>
+        <button onclick="sendCommand({type:'personality',value:'shy'})">🌺 Shy</button>
+        <button onclick="sendCommand({type:'personality',value:'confident'})">💪 Confident</button>
+        <button onclick="sendCommand({type:'personality',value:'caring'})">💖 Caring</button>
+        <button onclick="sendCommand({type:'personality',value:'playful'})">🎉 Playful</button>
+    </div>
+    
+    <div class="section">
+        <h2>Test Actions</h2>
+        <button onclick="sendCommand({type:'action',value:'wave'})">👋 Wave</button>
+        <button onclick="sendCommand({type:'action',value:'dance'})">💃 Dance</button>
+        <button onclick="sendCommand({type:'action',value:'laugh'})">😄 Laugh</button>
+    </div>
+    
+    <div class="section">
+        <h2>Custom Command</h2>
+        <textarea id="customCommand" rows="4" style="width:100%; background:#0a0a0a; color:white; border:1px solid #333;">
+{
+    "type": "personality",
+    "value": "sweet"
+}</textarea>
+        <button onclick="sendCustomCommand()">Send Custom Command</button>
+    </div>
+    
+    <div class="section">
+        <h2>Command Log</h2>
+        <div id="log"></div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let pc = null;
+        let dataChannel = null;
+        
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function updateStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+        
+        function connect() {
+            log('Connecting to ws://localhost:8888...', 'sent');
+            
+            ws = new WebSocket('ws://localhost:8888');
+            
+            ws.onopen = () => {
+                updateStatus('Connected to signaling server');
+                log('WebSocket connected', 'received');
+                setupWebRTC();
+            };
+            
+            ws.onmessage = async (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    log(`Received: ${data.type}`, 'received');
+                    
+                    if (data.type === 'offer') {
+                        await handleOffer(data);
+                    }
+                } catch (e) {
+                    log(`Error: ${e.message}`, 'error');
+                }
+            };
+            
+            ws.onerror = (e) => {
+                log('WebSocket error', 'error');
+                updateStatus('Connection error');
+            };
+            
+            ws.onclose = () => {
+                log('WebSocket closed', 'error');
+                updateStatus('Disconnected');
+            };
+        }
+        
+        function setupWebRTC() {
+            pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+            
+            // Create data channel for sending commands
+            dataChannel = pc.createDataChannel('athena-commands', {
+                ordered: true
+            });
+            
+            dataChannel.onopen = () => {
+                log('Data channel opened - Ready to send commands!', 'received');
+                updateStatus('Connected to UE5 - Ready for commands');
+            };
+            
+            dataChannel.onmessage = (event) => {
+                log(`UE5 Response: ${event.data}`, 'received');
+            };
+            
+            dataChannel.onerror = (e) => {
+                log(`Data channel error: ${e}`, 'error');
+            };
+            
+            pc.onicecandidate = (event) => {
+                if (event.candidate && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'iceCandidate',
+                        candidate: event.candidate
+                    }));
+                }
+            };
+        }
+        
+        async function handleOffer(data) {
+            await pc.setRemoteDescription(data.offer || data.sdp);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            
+            ws.send(JSON.stringify({
+                type: 'answer',
+                answer: answer
+            }));
+            
+            log('WebRTC handshake complete', 'received');
+        }
+        
+        function sendCommand(command) {
+            const cmdStr = JSON.stringify(command);
+            log(`Sending: ${cmdStr}`, 'sent');
+            
+            if (dataChannel && dataChannel.readyState === 'open') {
+                dataChannel.send(cmdStr);
+                log('Command sent via data channel', 'sent');
+            } else if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'command',
+                    data: command
+                }));
+                log('Command sent via WebSocket', 'sent');
+            } else {
+                log('Not connected! Click Connect first.', 'error');
+            }
+        }
+        
+        function sendCustomCommand() {
+            try {
+                const command = JSON.parse(document.getElementById('customCommand').value);
+                sendCommand(command);
+            } catch (e) {
+                log(`Invalid JSON: ${e.message}`, 'error');
+            }
+        }
+        
+        // Auto-connect on load
+        window.onload = () => {
+            log('Page loaded. Click Connect to start.', 'info');
+        };
+    </script>
+</body>
+</html>

@@ -1,528 +1,440 @@
 /**
  * Knowledge Scraper Service
- * Collects and processes knowledge from various external sources
+ * Scrapes various databases and knowledge sources to enhance agent capabilities
  */
 
-import { chromium, Browser, Page } from 'playwright';
-import Parser from 'rss-parser';
+import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { createHash } from 'crypto';
-import { logger } from '../utils/logger';
-import { supabase } from './supabase_service';
-import { KnowledgeSource, KNOWLEDGE_SOURCES } from '../config/knowledge-sources';
+import { LogContext, log } from '../utils/logger';
 import { RateLimiter } from 'limiter';
-import * as cron from 'node-cron';
+import { THOUSAND, TWO } from '../utils/common-constants';
+import { rerankingService } from './reranking-service';
 
-interface ScrapedContent {
-  sourceId: string;
+interface ScrapingSource {
+  name: string;
+  type: 'api' | 'web' | 'dump';
   url: string;
+  rateLimit: number; // requests per minute
+  parser: (data: any) => KnowledgeEntry[];
+  enabled: boolean;
+}
+
+interface KnowledgeEntry {
+  source: string;
+  category: string;
   title: string;
   content: string;
-  contentHash: string;
   metadata: Record<string, any>;
-  categories: string[];
-  scrapedAt: Date;
-  quality?: number;
+  embedding?: number[];
+  timestamp: Date;
 }
 
 export class KnowledgeScraperService {
-  private browser: Browser | null = null;
-  private rssParser: Parser;
-  private rateLimiters: Map<string, RateLimiter> = new Map();
-  private scheduledJobs: Map<string, cron.ScheduledTask> = new Map();
+  private supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
+
+  private sources: ScrapingSource[] = [
+    {
+      name: 'MDN Web Docs',
+      type: 'web',
+      url: 'https://developer.mozilla.org/en-US/docs/Web',
+      rateLimit: 30,
+      enabled: true,
+      parser: this.parseMDN.bind(this),
+    },
+    {
+      name: 'Stack Overflow',
+      type: 'api',
+      url: 'https://api.stackexchange.com/2.3/questions',
+      rateLimit: 300, // With key: 10,000/day
+      enabled: true,
+      parser: this.parseStackOverflow.bind(this),
+    },
+    {
+      name: 'Papers with Code',
+      type: 'api',
+      url: 'https://paperswithcode.com/api/v1/papers',
+      rateLimit: 60,
+      enabled: true,
+      parser: this.parsePapersWithCode.bind(this),
+    },
+    {
+      name: 'Hugging Face',
+      type: 'api',
+      url: 'https://huggingface.co/api/models',
+      rateLimit: 100,
+      enabled: true,
+      parser: this.parseHuggingFace.bind(this),
+    },
+    {
+      name: 'DevDocs',
+      type: 'api',
+      url: 'https://devdocs.io/docs.json',
+      rateLimit: 60,
+      enabled: true,
+      parser: this.parseDevDocs.bind(this),
+    },
+  ];
+
+  private limiters: Map<string, RateLimiter> = new Map();
 
   constructor() {
-    this.rssParser = new Parser();
-    this.initializeRateLimiters();
-  }
-
-  async initialize(): Promise<void> {
-    try {
-      // Initialize browser for scraping
-      this.browser = await chromium.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-
-      // Schedule scraping jobs
-      await this.scheduleScrapingJobs();
-
-      logger.info('Knowledge scraper service initialized');
-    } catch (error) {
-      logger.error('Failed to initialize knowledge scraper', error);
-      throw error;
-    }
-  }
-
-  private initializeRateLimiters(): void {
-    KNOWLEDGE_SOURCES.forEach(source => {
-      const rateLimit = source.scrapeConfig?.rateLimit || 60;
-      this.rateLimiters.set(
-        source.id,
-        new RateLimiter({ tokensPerInterval: rateLimit, interval: 'minute' })
+    // Initialize rate limiters
+    this.sources.forEach((source) => {
+      this.limiters.set(
+        source.name,
+        new RateLimiter({ tokensPerInterval: source.rateLimit, interval: 'minute' })
       );
     });
   }
 
-  private async scheduleScrapingJobs(): Promise<void> {
-    for (const source of KNOWLEDGE_SOURCES) {
+  /**
+   * Scrape all enabled sources and store in Supabase
+   */
+  async scrapeAllSources(
+    options: {
+      categories?: string[];
+      limit?: number;
+      updateExisting?: boolean;
+    } = {}
+  ): Promise<void> {
+    log.info('🔍 Starting knowledge scraping', LogContext.SERVICE);
+
+    for (const source of this.sources) {
       if (!source.enabled) continue;
 
-      const job = cron.schedule(source.updateFrequency, async () => {
-        try {
-          await this.scrapeSource(source);
-        } catch (error) {
-          logger.error(`Failed to scrape source ${source.id}`, error);
-        }
-      });
-
-      this.scheduledJobs.set(source.id, job);
-      job.start();
+      try {
+        await this.scrapeSource(source, options);
+      } catch (error) {
+        log.error(`Failed to scrape ${source.name}`, LogContext.SERVICE, { error });
+      }
     }
+
+    log.info('✅ Knowledge scraping completed', LogContext.SERVICE);
   }
 
-  async scrapeSource(source: KnowledgeSource): Promise<ScrapedContent[]> {
-    const rateLimiter = this.rateLimiters.get(source.id);
-    if (rateLimiter) {
-      await rateLimiter.removeTokens(1);
-    }
+  /**
+   * Scrape a specific source
+   */
+  async scrapeSource(
+    source: ScrapingSource,
+    options: {
+      categories?: string[];
+      limit?: number;
+      updateExisting?: boolean;
+    } = {}
+  ): Promise<void> {
+    const limiter = this.limiters.get(source.name)!;
 
-    logger.info(`Scraping source: ${source.name}`);
-
-    switch (source.type) {
-      case 'scraper':
-        return this.scrapeWebsite(source);
-      case 'rss':
-        return this.scrapeRSSFeed(source);
-      case 'api':
-        return this.scrapeAPI(source);
-      case 'github':
-        return this.scrapeGitHub(source);
-      case 'forum':
-        return this.scrapeForum(source);
-      default:
-        throw new Error(`Unknown source type: ${source.type}`);
-    }
-  }
-
-  private async scrapeWebsite(source: KnowledgeSource): Promise<ScrapedContent[]> {
-    if (!this.browser) {
-      throw new Error('Browser not initialized');
-    }
-
-    const contents: ScrapedContent[] = [];
-    const page = await this.browser.newPage();
+    log.info(`Scraping ${source.name}...`, LogContext.SERVICE);
 
     try {
-      await page.goto(source.url, { waitUntil: 'networkidle' });
+      // Wait for rate limit
+      await limiter.removeTokens(1);
 
-      // Extract main content
-      const content = await this.extractPageContent(page, source);
-      if (content) {
-        contents.push(content);
-      }
-
-      // Handle pagination if enabled
-      if (source.scrapeConfig?.paginate) {
-        const links = await this.extractDocumentationLinks(page, source);
-        const pageLimiter = this.rateLimiters.get(source.id);
-        
-        for (const link of links.slice(0, 50)) { // Limit to 50 pages per run
-          if (pageLimiter) {
-            await pageLimiter.removeTokens(1);
-          }
-
-          try {
-            await page.goto(link, { waitUntil: 'networkidle' });
-            const pageContent = await this.extractPageContent(page, source);
-            if (pageContent) {
-              contents.push(pageContent);
-            }
-          } catch (error) {
-            logger.error(`Failed to scrape page: ${link}`, error);
-          }
-        }
-      }
-    } finally {
-      await page.close();
-    }
-
-    // Store scraped content
-    await this.storeScrapedContent(contents);
-    return contents;
-  }
-
-  private async extractPageContent(
-    page: Page,
-    source: KnowledgeSource
-  ): Promise<ScrapedContent | null> {
-    const selectors = source.scrapeConfig?.selectors || {};
-
-    try {
-      const title = await page.textContent(selectors.title || 'h1') || 'Untitled';
-      const content = await page.textContent(selectors.content || 'body') || '';
-      
-      // Extract code blocks
-      const codeBlocks: string[] = [];
-      if (selectors.codeBlocks) {
-        const elements = await page.$$(selectors.codeBlocks);
-        for (const element of elements) {
-          const code = await element.textContent();
-          if (code) codeBlocks.push(code);
-        }
-      }
-
-      // Extract last updated date if available
-      let lastUpdated: Date | null = null;
-      if (selectors.lastUpdated) {
-        const dateText = await page.textContent(selectors.lastUpdated);
-        if (dateText) {
-          lastUpdated = new Date(dateText);
-        }
-      }
-
-      const url = page.url();
-      const contentHash = this.hashContent(content);
-
-      return {
-        sourceId: source.id,
-        url,
-        title,
-        content,
-        contentHash,
-        metadata: {
-          codeBlocks,
-          lastUpdated,
-          wordCount: content.split(/\s+/).length,
-          hasCodeExamples: codeBlocks.length > 0
-        },
-        categories: source.categories,
-        scrapedAt: new Date()
-      };
-    } catch (error) {
-      logger.error(`Failed to extract content from ${page.url()}`, error);
-      return null;
-    }
-  }
-
-  private async extractDocumentationLinks(
-    page: Page,
-    source: KnowledgeSource
-  ): Promise<string[]> {
-    const links = await page.$$eval('a[href]', (elements) => 
-      elements
-        .map(el => el.getAttribute('href'))
-        .filter(href => href !== null) as string[]
-    );
-
-    const baseUrl = new URL(source.url);
-    return links
-      .map(link => {
-        try {
-          return new URL(link, baseUrl).href;
-        } catch {
-          return null;
-        }
-      })
-      .filter((link): link is string => 
-        link !== null && 
-        link.startsWith(baseUrl.origin) &&
-        !link.includes('#') &&
-        !link.endsWith('.pdf')
-      );
-  }
-
-  private async scrapeRSSFeed(source: KnowledgeSource): Promise<ScrapedContent[]> {
-    try {
-      const feed = await this.rssParser.parseURL(source.url);
-      const contents: ScrapedContent[] = [];
-
-      for (const item of feed.items || []) {
-        const contentHash = this.hashContent(item.content || item.description || '');
-        
-        contents.push({
-          sourceId: source.id,
-          url: item.link || source.url,
-          title: item.title || 'Untitled',
-          content: item.content || item.description || '',
-          contentHash,
-          metadata: {
-            author: item.creator,
-            publishedDate: item.pubDate ? new Date(item.pubDate) : null,
-            categories: item.categories || []
+      let data;
+      if (source.type === 'api') {
+        const response = await axios.get(source.url, {
+          params: {
+            pagesize: options.limit || 100,
+            order: 'desc',
+            sort: 'votes',
+            tagged: options.categories?.join(';'),
           },
-          categories: source.categories,
-          scrapedAt: new Date()
+          headers: {
+            'User-Agent': 'Universal-AI-Tools/1.0',
+          },
+        });
+        data = response.data;
+      } else if (source.type === 'web') {
+        const response = await axios.get(source.url);
+        data = response.data;
+      }
+
+      // Parse entries
+      const entries = source.parser(data);
+
+      // Store in Supabase
+      await this.storeKnowledge(entries, options.updateExisting || false);
+
+      log.info(`✅ Scraped ${entries.length} entries from ${source.name}`, LogContext.SERVICE);
+    } catch (error) {
+      throw new Error(`Scraping ${source.name} failed: ${error}`);
+    }
+  }
+
+  /**
+   * Store knowledge entries in Supabase
+   */
+  async storeKnowledge(entries: KnowledgeEntry[], updateExisting: boolean): Promise<void> {
+    const batchSize = 100;
+
+    for (let i = 0; i < entries.length; i += batchSize) {
+      const batch = entries.slice(i, i + batchSize);
+
+      // Generate embeddings if not present
+      for (const entry of batch) {
+        if (!entry.embedding) {
+          entry.embedding = await this.generateEmbedding(entry.content);
+        }
+      }
+
+      if (updateExisting) {
+        await this.supabase.from('knowledge_base').upsert(batch, { onConflict: 'source,title' });
+      } else {
+        await this.supabase.from('knowledge_base').insert(batch);
+      }
+    }
+  }
+
+  /**
+   * Generate embedding for content
+   */
+  async generateEmbedding(content: string): Promise<number[]> {
+    // This would call your embedding service
+    // For now, return a mock embedding
+    const mockEmbedding = Array(1536)
+      .fill(0)
+      .map(() => Math.random());
+    return mockEmbedding;
+  }
+
+  // Parsers for different sources
+
+  private parseMDN(html: string): KnowledgeEntry[] {
+    const $ = cheerio.load(html);
+    const entries: KnowledgeEntry[] = [];
+
+    $('article').each((_, element) => {
+      const title = $(element).find('h1').text().trim();
+      const content = $(element).find('.section-content').text().trim();
+      const category = 'web-development';
+
+      if (title && content) {
+        entries.push({
+          source: 'MDN',
+          category,
+          title,
+          content,
+          metadata: {
+            url: $(element).find('link[rel="canonical"]').attr('href'),
+            lastModified: new Date().toISOString(),
+          },
+          timestamp: new Date(),
         });
       }
-
-      await this.storeScrapedContent(contents);
-      return contents;
-    } catch (error) {
-      logger.error(`Failed to scrape RSS feed: ${source.url}`, error);
-      return [];
-    }
-  }
-
-  private async scrapeAPI(source: KnowledgeSource): Promise<ScrapedContent[]> {
-    try {
-      const headers: Record<string, string> = {};
-      
-      if (source.authentication) {
-        switch (source.authentication.type) {
-          case 'api_key':
-            headers['Authorization'] = `Bearer ${source.authentication.credentials.token}`;
-            break;
-          case 'basic':
-            const auth = Buffer.from(
-              `${source.authentication.credentials.username}:${source.authentication.credentials.password}`
-            ).toString('base64');
-            headers['Authorization'] = `Basic ${auth}`;
-            break;
-        }
-      }
-
-      const response = await axios.get(source.url, { 
-        headers,
-        params: source.authentication?.credentials.query ? 
-          { q: source.authentication.credentials.query } : {}
-      });
-
-      const contents: ScrapedContent[] = [];
-      
-      // Handle different API response formats
-      if (source.id === 'arxiv-ai') {
-        contents.push(...this.parseArxivResponse(response.data, source));
-      } else if (source.id === 'github-trending') {
-        contents.push(...this.parseGitHubResponse(response.data, source));
-      } else if (source.id === 'stackoverflow-ai') {
-        contents.push(...this.parseStackOverflowResponse(response.data, source));
-      } else if (source.id === 'huggingface-models') {
-        contents.push(...this.parseHuggingFaceResponse(response.data, source));
-      }
-
-      await this.storeScrapedContent(contents);
-      return contents;
-    } catch (error) {
-      logger.error(`Failed to scrape API: ${source.url}`, error);
-      return [];
-    }
-  }
-
-  private parseArxivResponse(data: any, source: KnowledgeSource): ScrapedContent[] {
-    const $ = cheerio.load(data, { xmlMode: true });
-    const contents: ScrapedContent[] = [];
-
-    $('entry').each((_, entry) => {
-      const $entry = $(entry);
-      const title = $entry.find('title').text();
-      const summary = $entry.find('summary').text();
-      const authors = $entry.find('author name').map((_, el) => $(el).text()).get();
-      const url = $entry.find('id').text();
-      const published = new Date($entry.find('published').text());
-
-      contents.push({
-        sourceId: source.id,
-        url,
-        title,
-        content: summary,
-        contentHash: this.hashContent(summary),
-        metadata: {
-          authors,
-          published,
-          categories: $entry.find('category').map((_, el) => $(el).attr('term')).get()
-        },
-        categories: source.categories,
-        scrapedAt: new Date()
-      });
     });
 
-    return contents;
+    return entries;
   }
 
-  private parseGitHubResponse(data: any, source: KnowledgeSource): ScrapedContent[] {
-    const contents: ScrapedContent[] = [];
+  private parseStackOverflow(data: any): KnowledgeEntry[] {
+    return (data.items || []).map((item: any) => ({
+      source: 'StackOverflow',
+      category: item.tags?.[0] || 'general',
+      title: item.title,
+      content: `Q: ${item.title}\n\nA: ${item.accepted_answer?.body || 'No accepted answer'}`,
+      metadata: {
+        questionId: item.question_id,
+        score: item.score,
+        viewCount: item.view_count,
+        tags: item.tags,
+        link: item.link,
+      },
+      timestamp: new Date(),
+    }));
+  }
 
-    for (const repo of data.items || []) {
-      contents.push({
-        sourceId: source.id,
-        url: repo.html_url,
-        title: repo.full_name,
-        content: repo.description || '',
-        contentHash: this.hashContent(repo.description || ''),
-        metadata: {
-          stars: repo.stargazers_count,
-          language: repo.language,
-          topics: repo.topics || [],
-          lastUpdated: new Date(repo.updated_at)
-        },
-        categories: source.categories,
-        scrapedAt: new Date()
-      });
+  private parsePapersWithCode(data: any): KnowledgeEntry[] {
+    return (data.results || []).map((paper: any) => ({
+      source: 'PapersWithCode',
+      category: 'ai-ml',
+      title: paper.title,
+      content: paper.abstract || '',
+      metadata: {
+        paperId: paper.id,
+        arxivId: paper.arxiv_id,
+        urlPdf: paper.url_pdf,
+        publishedDate: paper.published,
+        authors: paper.authors,
+      },
+      timestamp: new Date(),
+    }));
+  }
+
+  private parseHuggingFace(data: any): KnowledgeEntry[] {
+    return (data || []).slice(0, 100).map((model: any) => ({
+      source: 'HuggingFace',
+      category: 'ai-models',
+      title: model.modelId,
+      content: `Model: ${model.modelId}\nTask: ${model.pipeline_tag || 'unknown'}\n\n${model.description || 'No description'}`,
+      metadata: {
+        modelId: model.modelId,
+        task: model.pipeline_tag,
+        downloads: model.downloads,
+        likes: model.likes,
+        tags: model.tags,
+      },
+      timestamp: new Date(),
+    }));
+  }
+
+  private parseDevDocs(data: any): KnowledgeEntry[] {
+    return (data || []).map((doc: any) => ({
+      source: 'DevDocs',
+      category: 'api-reference',
+      title: `${doc.name} ${doc.version || ''}`.trim(),
+      content: `${doc.name} documentation - ${doc.slug}`,
+      metadata: {
+        slug: doc.slug,
+        type: doc.type,
+        version: doc.version,
+        mtime: doc.mtime,
+      },
+      timestamp: new Date(),
+    }));
+  }
+
+  /**
+   * Search knowledge base with optional reranking
+   */
+  async searchKnowledge(
+    query: string,
+    options: {
+      sources?: string[];
+      categories?: string[];
+      limit?: number;
+      useReranking?: boolean;
+      rerankingModel?: string;
+    } = {}
+  ): Promise<KnowledgeEntry[]> {
+    const embedding = await this.generateEmbedding(query);
+    const searchLimit = options.useReranking ? (options.limit || 10) * 10 : options.limit || 10;
+
+    let queryBuilder = this.supabase.rpc('search_knowledge', {
+      query_embedding: embedding,
+      match_count: searchLimit,
+    });
+
+    if (options.sources?.length) {
+      queryBuilder = queryBuilder.in('source', options.sources);
     }
 
-    return contents;
-  }
-
-  private parseStackOverflowResponse(data: any, source: KnowledgeSource): ScrapedContent[] {
-    const contents: ScrapedContent[] = [];
-
-    for (const question of data.items || []) {
-      contents.push({
-        sourceId: source.id,
-        url: question.link,
-        title: question.title,
-        content: question.body || '',
-        contentHash: this.hashContent(question.body || ''),
-        metadata: {
-          tags: question.tags,
-          score: question.score,
-          answerCount: question.answer_count,
-          viewCount: question.view_count,
-          isAnswered: question.is_answered
-        },
-        categories: source.categories,
-        scrapedAt: new Date()
-      });
+    if (options.categories?.length) {
+      queryBuilder = queryBuilder.in('category', options.categories);
     }
 
-    return contents;
-  }
+    const { data, error } = await queryBuilder;
 
-  private parseHuggingFaceResponse(data: any[], source: KnowledgeSource): ScrapedContent[] {
-    const contents: ScrapedContent[] = [];
-
-    for (const model of data.slice(0, 50)) { // Limit to top 50 models
-      contents.push({
-        sourceId: source.id,
-        url: `https://huggingface.co/${model.id}`,
-        title: model.id,
-        content: model.description || '',
-        contentHash: this.hashContent(model.description || ''),
-        metadata: {
-          likes: model.likes,
-          downloads: model.downloads,
-          tags: model.tags,
-          library: model.library_name,
-          pipeline: model.pipeline_tag
-        },
-        categories: source.categories,
-        scrapedAt: new Date()
-      });
+    if (error) {
+      throw new Error(`Knowledge search failed: ${error.message}`);
     }
 
-    return contents;
+    const results = data || [];
+
+    // Apply reranking if enabled
+    if (options.useReranking && results.length > 0) {
+      log.info('🔄 Applying reranking to search results', LogContext.SERVICE, {
+        initialCount: results.length,
+        targetCount: options.limit || 10,
+      });
+
+      try {
+        // Convert to reranking candidates
+        const candidates = results.map((result) => ({
+          id: result.id,
+          content: `${result.title}\n\n${result.content}`,
+          metadata: result.metadata,
+          biEncoderScore: result.similarity || 0,
+        }));
+
+        // Rerank the candidates
+        const rerankedResults = await rerankingService.rerank(query, candidates, {
+          topK: options.limit || 10,
+          model: options.rerankingModel,
+        });
+
+        // Convert back to KnowledgeEntry format
+        return rerankedResults.map((reranked) => {
+          const original = results.find((r) => r.id === reranked.id)!;
+          return {
+            ...original,
+            similarity: reranked.finalScore,
+            reranking_score: reranked.crossEncoderScore,
+          };
+        });
+      } catch (rerankError) {
+        log.warn('⚠️ Reranking failed, returning original results', LogContext.SERVICE, {
+          error: rerankError,
+        });
+        return results.slice(0, options.limit || 10);
+      }
+    }
+
+    return results;
   }
 
-  private async scrapeGitHub(source: KnowledgeSource): Promise<ScrapedContent[]> {
-    // GitHub scraping is handled by the API method
-    return this.scrapeAPI(source);
-  }
+  /**
+   * Get scraping status
+   */
+  async getScrapingStatus(): Promise<{
+    sources: Array<{
+      name: string;
+      enabled: boolean;
+      lastScraped?: Date;
+      entryCount?: number;
+    }>;
+    totalEntries: number;
+  }> {
+    try {
+      // Get counts by source
+      const { data: entries, error: entriesError } = await this.supabase
+        .from('knowledge_base')
+        .select('source')
+        .not('source', 'is', null);
 
-  private async scrapeForum(source: KnowledgeSource): Promise<ScrapedContent[]> {
-    // Forum scraping would be implemented based on specific forum APIs
-    // For now, treat Reddit as an API source
-    if (source.id === 'reddit-ai') {
-      const response = await axios.get(source.url);
-      const contents: ScrapedContent[] = [];
-
-      for (const post of response.data.data.children || []) {
-        const data = post.data;
-        contents.push({
-          sourceId: source.id,
-          url: `https://reddit.com${data.permalink}`,
-          title: data.title,
-          content: data.selftext || data.url,
-          contentHash: this.hashContent(data.selftext || data.url),
-          metadata: {
-            author: data.author,
-            score: data.score,
-            subreddit: data.subreddit,
-            commentCount: data.num_comments,
-            created: new Date(data.created_utc * 1000)
-          },
-          categories: source.categories,
-          scrapedAt: new Date()
+      if (entriesError) {
+        log.warn('Failed to get knowledge base entries', LogContext.DATABASE, {
+          error: entriesError,
         });
       }
 
-      await this.storeScrapedContent(contents);
-      return contents;
-    }
-
-    return [];
-  }
-
-  private async storeScrapedContent(contents: ScrapedContent[]): Promise<void> {
-    if (contents.length === 0) return;
-
-    try {
-      // Check for existing content by hash to avoid duplicates
-      const hashes = contents.map(c => c.contentHash);
-      const { data: existing } = await supabase
-        .from('scraped_knowledge')
-        .select('content_hash')
-        .in('content_hash', hashes);
-
-      const existingHashes = new Set(existing?.map(e => e.content_hash) || []);
-      const newContents = contents.filter(c => !existingHashes.has(c.contentHash));
-
-      if (newContents.length > 0) {
-        const { error } = await supabase
-          .from('scraped_knowledge')
-          .insert(newContents.map(content => ({
-            source_id: content.sourceId,
-            url: content.url,
-            title: content.title,
-            content: content.content,
-            content_hash: content.contentHash,
-            metadata: content.metadata,
-            categories: content.categories,
-            scraped_at: content.scrapedAt,
-            quality_score: content.quality
-          })));
-
-        if (error) {
-          logger.error('Failed to store scraped content', error);
-        } else {
-          logger.info(`Stored ${newContents.length} new knowledge items`);
-        }
+      // Count entries by source
+      const sourceCounts = new Map<string, number>();
+      if (entries) {
+        entries.forEach((entry) => {
+          const source = entry.source || 'unknown';
+          sourceCounts.set(source, (sourceCounts.get(source) || 0) + 1);
+        });
       }
+
+      // Get total count
+      const { count: totalEntries } = await this.supabase
+        .from('knowledge_base')
+        .select('*', { count: 'exact', head: true });
+
+      return {
+        sources: this.sources.map((source) => ({
+          name: source.name,
+          enabled: source.enabled,
+          entryCount: sourceCounts.get(source.name) || 0,
+        })),
+        totalEntries: totalEntries || 0,
+      };
     } catch (error) {
-      logger.error('Error storing scraped content', error);
-    }
-  }
-
-  private hashContent(content: string): string {
-    return createHash('sha256').update(content).digest('hex');
-  }
-
-  async shutdown(): Promise<void> {
-    // Stop all scheduled jobs
-    this.scheduledJobs.forEach(job => job.stop());
-    this.scheduledJobs.clear();
-
-    // Close browser
-    if (this.browser) {
-      await this.browser.close();
+      log.error('Failed to get scraping status', LogContext.SERVICE, { error });
+      // Return safe defaults
+      return {
+        sources: this.sources.map((source) => ({
+          name: source.name,
+          enabled: source.enabled,
+          entryCount: 0,
+        })),
+        totalEntries: 0,
+      };
     }
   }
 }
 
-// Lazy initialization to prevent blocking during import
-let _knowledgeScraperService: KnowledgeScraperService | null = null;
-
-export function getKnowledgeScraperService(): KnowledgeScraperService {
-  if (!_knowledgeScraperService) {
-    _knowledgeScraperService = new KnowledgeScraperService();
-  }
-  return _knowledgeScraperService;
-}
-
-// For backward compatibility
-export const knowledgeScraperService = new Proxy({} as KnowledgeScraperService, {
-  get(target, prop) {
-    return getKnowledgeScraperService()[prop as keyof KnowledgeScraperService];
-  }
-});
+// Create singleton instance
+export const knowledgeScraperService = new KnowledgeScraperService();

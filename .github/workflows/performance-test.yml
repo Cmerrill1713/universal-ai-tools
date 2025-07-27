@@ -38,9 +38,9 @@ on:
 
 env:
   NODE_VERSION: '20'
-  PERFORMANCE_THRESHOLD_RESPONSE_TIME: 2000  # ms
-  PERFORMANCE_THRESHOLD_MEMORY: 512  # MB
-  PERFORMANCE_THRESHOLD_CPU: 80  # %
+  PERFORMANCE_THRESHOLD_RESPONSE_TIME: 2000 # ms
+  PERFORMANCE_THRESHOLD_MEMORY: 512 # MB
+  PERFORMANCE_THRESHOLD_CPU: 80 # %
 
 jobs:
   # 1. Determine if performance tests should run
@@ -139,7 +139,7 @@ jobs:
           npm start &
           APP_PID=$!
           echo "APP_PID=$APP_PID" >> $GITHUB_ENV
-          
+
           # Wait for application to start
           echo "Waiting for application to start..."
           for i in {1..30}; do
@@ -183,38 +183,38 @@ jobs:
       - name: Run API response time tests
         run: |
           echo "Testing API response times..."
-          
+
           # Test health endpoint
           autocannon -c 10 -d 30 -j > health-perf.json ${{ needs.setup.outputs.app_url }}/health
-          
+
           # Test API endpoints
           autocannon -c 5 -d 30 -j > api-perf.json ${{ needs.setup.outputs.app_url }}/api/health
 
       - name: Memory usage test
         run: |
           echo "Testing memory usage..."
-          
+
           # Monitor memory usage during light load
           echo "Initial memory check..."
           curl ${{ needs.setup.outputs.app_url }}/api/health
-          
+
           # Light load test
           autocannon -c 5 -d 60 ${{ needs.setup.outputs.app_url }}/health > /dev/null &
           LOAD_PID=$!
-          
+
           # Monitor memory for 60 seconds
           for i in {1..12}; do
             echo "Memory check $i/12..."
             ps aux | grep node || true
             sleep 5
           done
-          
+
           wait $LOAD_PID
 
       - name: Analyze quick test results
         run: |
           echo "Analyzing quick performance test results..."
-          
+
           if [ -f health-perf.json ]; then
             echo "Health endpoint performance:"
             jq -r '"Average latency: " + (.latency.average | tostring) + "ms"' health-perf.json
@@ -314,7 +314,7 @@ jobs:
       - name: Analyze load test results
         run: |
           echo "Analyzing load test results..."
-          
+
           if [ -f load-test-results.json ]; then
             # Extract key metrics
             echo "Load test summary:"
@@ -371,18 +371,18 @@ jobs:
       - name: Memory leak detection test
         run: |
           echo "Running memory leak detection..."
-          
+
           # Start application with memory monitoring
           clinic doctor -- node dist/server.js &
           APP_PID=$!
-          
+
           # Wait for startup
           sleep 10
-          
+
           # Run sustained load to detect memory leaks
           autocannon -c 5 -d 300 ${{ needs.setup.outputs.app_url }}/health &
           LOAD_PID=$!
-          
+
           # Monitor memory usage
           for i in {1..30}; do
             memory_usage=$(ps -p $APP_PID -o rss= 2>/dev/null || echo "0")
@@ -390,7 +390,7 @@ jobs:
             echo "${i}0,${memory_usage}" >> memory-usage.csv
             sleep 10
           done
-          
+
           # Stop load test and application
           kill $LOAD_PID 2>/dev/null || true
           kill $APP_PID 2>/dev/null || true
@@ -399,7 +399,7 @@ jobs:
       - name: Analyze memory usage
         run: |
           echo "Analyzing memory usage patterns..."
-          
+
           if [ -f memory-usage.csv ]; then
             echo "Memory usage over time:"
             cat memory-usage.csv
@@ -456,15 +456,15 @@ jobs:
           echo "Commit: ${{ github.sha }}" >> performance-report.md
           echo "Test Type: ${{ needs.should-run.outputs.test_type }}" >> performance-report.md
           echo "" >> performance-report.md
-          
+
           echo "## Test Results Summary" >> performance-report.md
           echo "- Quick Tests: ${{ needs.quick-tests.result }}" >> performance-report.md
           echo "- Load Tests: ${{ needs.load-tests.result }}" >> performance-report.md
           echo "- Memory Tests: ${{ needs.memory-tests.result }}" >> performance-report.md
           echo "" >> performance-report.md
-          
+
           echo "## Performance Metrics" >> performance-report.md
-          
+
           # Process quick test results
           if [ -d "performance-results/quick-performance-results-${{ github.sha }}" ]; then
             echo "### Response Times" >> performance-report.md
@@ -477,31 +477,31 @@ jobs:
               echo "- Throughput: ${throughput} req/s" >> performance-report.md
             fi
           fi
-          
+
           # Add warnings section
           echo "" >> performance-report.md
           echo "## Warnings and Issues" >> performance-report.md
-          
+
           if [[ "${{ env.PERF_WARNING_LATENCY }}" == "true" ]]; then
             echo "⚠️ High latency detected in quick tests" >> performance-report.md
           fi
-          
+
           if [[ "${{ env.LOAD_TEST_ERRORS }}" == "true" ]]; then
             echo "⚠️ Server errors detected during load testing" >> performance-report.md
           fi
-          
+
           if [[ "${{ env.LOAD_TEST_SLOW }}" == "true" ]]; then
             echo "⚠️ Slow response times detected during load testing" >> performance-report.md
           fi
-          
+
           if [[ "${{ env.MEMORY_LEAK_DETECTED }}" == "true" ]]; then
             echo "⚠️ Potential memory leak detected" >> performance-report.md
           fi
-          
+
           if [[ "${{ env.MEMORY_THRESHOLD_EXCEEDED }}" == "true" ]]; then
             echo "⚠️ Memory usage exceeded threshold" >> performance-report.md
           fi
-          
+
           # Add recommendations
           echo "" >> performance-report.md
           echo "## Recommendations" >> performance-report.md
@@ -524,7 +524,7 @@ jobs:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('performance-report.md', 'utf8');
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -540,7 +540,7 @@ jobs:
             const issues = [];
             if (process.env.LOAD_TEST_ERRORS === 'true') issues.push('Load test errors');
             if (process.env.MEMORY_LEAK_DETECTED === 'true') issues.push('Memory leak detected');
-            
+
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,

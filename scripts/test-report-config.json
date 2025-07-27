@@ -97,27 +97,12 @@
   },
   "phase1Requirements": {
     "minimumPassRate": 95,
-    "requiredTests": [
-      "Phase 1 Fixes",
-      "Security Validation"
-    ],
-    "criticalEndpoints": [
-      "/api/health",
-      "/api/performance/metrics"
-    ]
+    "requiredTests": ["Phase 1 Fixes", "Security Validation"],
+    "criticalEndpoints": ["/api/health", "/api/performance/metrics"]
   },
-  "reportFormats": [
-    "markdown",
-    "json",
-    "html"
-  ],
+  "reportFormats": ["markdown", "json", "html"],
   "charts": {
     "enabled": true,
-    "types": [
-      "health-score",
-      "test-results",
-      "performance-trends",
-      "security-scores"
-    ]
+    "types": ["health-score", "test-results", "performance-trends", "security-scores"]
   }
 }

@@ -18,33 +18,33 @@ const CONFIG = {
       name: 'Phase 1 Fixes',
       script: 'tests/test-phase1-fixes.js',
       weight: 40, // Most important for production readiness
-      category: 'critical'
+      category: 'critical',
     },
     {
       name: 'Security Validation',
       script: 'tests/test-security-validation.js',
       weight: 35, // Critical for security
-      category: 'security'
+      category: 'security',
     },
     {
       name: 'Performance Tests',
       script: 'test-performance-middleware.js',
       weight: 15,
-      category: 'performance'
+      category: 'performance',
     },
     {
       name: 'Integration Tests',
       script: 'test-comprehensive-e2e.js',
       weight: 10,
-      category: 'integration'
-    }
+      category: 'integration',
+    },
   ],
   healthChecks: [
     { name: 'Server Health', endpoint: '/api/health' },
     { name: 'GraphQL', endpoint: '/graphql' },
     { name: 'Performance Metrics', endpoint: '/api/performance/metrics' },
-    { name: 'Security Status', endpoint: '/api/security/status' }
-  ]
+    { name: 'Security Status', endpoint: '/api/security/status' },
+  ],
 };
 
 const colors = {
@@ -55,7 +55,7 @@ const colors = {
   cyan: '\x1b[36m',
   magenta: '\x1b[35m',
   reset: '\x1b[0m',
-  bold: '\x1b[1m'
+  bold: '\x1b[1m',
 };
 
 class TestReportGenerator {
@@ -69,9 +69,9 @@ class TestReportGenerator {
       security: {},
       summary: {},
       recommendations: [],
-      phase1Progress: 0
+      phase1Progress: 0,
     };
-    
+
     this.ensureOutputDir();
   }
 
@@ -84,7 +84,7 @@ class TestReportGenerator {
   log(level, message, ...args) {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] ${level.toUpperCase()}:`;
-    
+
     switch (level) {
       case 'info':
         console.log(`${colors.blue}${prefix}${colors.reset} ${message}`, ...args);
@@ -108,7 +108,7 @@ class TestReportGenerator {
       const proc = spawn(command, args, {
         stdio: 'pipe',
         cwd: path.join(__dirname, '..'),
-        ...options
+        ...options,
       });
 
       let stdout = '';
@@ -127,7 +127,7 @@ class TestReportGenerator {
           code,
           stdout,
           stderr,
-          success: code === 0
+          success: code === 0,
         });
       });
 
@@ -144,7 +144,7 @@ class TestReportGenerator {
         const startTime = Date.now();
         const response = await axios.get(`${CONFIG.baseUrl}${check.endpoint}`, {
           timeout: 5000,
-          validateStatus: () => true
+          validateStatus: () => true,
         });
         const duration = Date.now() - startTime;
 
@@ -153,7 +153,7 @@ class TestReportGenerator {
           status: response.status < 400 ? 'healthy' : 'unhealthy',
           statusCode: response.status,
           responseTime: duration,
-          endpoint: check.endpoint
+          endpoint: check.endpoint,
         });
 
         this.log('success', `${check.name}: ${response.status} (${duration}ms)`);
@@ -162,20 +162,20 @@ class TestReportGenerator {
           name: check.name,
           status: 'error',
           error: error.message,
-          endpoint: check.endpoint
+          endpoint: check.endpoint,
         });
         this.log('error', `${check.name}: ${error.message}`);
       }
     }
 
     this.results.healthChecks = healthResults;
-    return healthResults.every(check => check.status === 'healthy');
+    return healthResults.every((check) => check.status === 'healthy');
   }
 
   async runTestSuite(suite) {
     this.log('info', `Running ${suite.name}...`);
     const scriptPath = path.join(__dirname, '..', suite.script);
-    
+
     if (!fs.existsSync(scriptPath)) {
       this.log('warn', `Test script not found: ${suite.script}`);
       return {
@@ -183,7 +183,7 @@ class TestReportGenerator {
         status: 'skipped',
         reason: 'Script not found',
         weight: suite.weight,
-        category: suite.category
+        category: suite.category,
       };
     }
 
@@ -194,7 +194,7 @@ class TestReportGenerator {
 
       // Parse test results from output
       const testResult = this.parseTestOutput(result.stdout, result.stderr);
-      
+
       return {
         name: suite.name,
         status: result.success ? 'passed' : 'failed',
@@ -205,8 +205,8 @@ class TestReportGenerator {
         details: testResult,
         output: {
           stdout: result.stdout,
-          stderr: result.stderr
-        }
+          stderr: result.stderr,
+        },
       };
     } catch (error) {
       this.log('error', `Failed to run ${suite.name}: ${error.message}`);
@@ -215,7 +215,7 @@ class TestReportGenerator {
         status: 'error',
         error: error.message,
         weight: suite.weight,
-        category: suite.category
+        category: suite.category,
       };
     }
   }
@@ -228,7 +228,7 @@ class TestReportGenerator {
       failed: 0,
       skipped: 0,
       coverage: null,
-      details: []
+      details: [],
     };
 
     // Look for common test result patterns
@@ -242,7 +242,7 @@ class TestReportGenerator {
           result.total = parseInt(match[3]);
         }
       }
-      
+
       // Coverage patterns
       if (line.includes('Coverage:') || line.includes('%')) {
         const coverageMatch = line.match(/(\d+(?:\.\d+)?)%/);
@@ -256,12 +256,12 @@ class TestReportGenerator {
         const totalMatch = line.match(/Total Tests:\s*(\d+)/);
         if (totalMatch) result.total = parseInt(totalMatch[1]);
       }
-      
+
       if (line.includes('Passed:')) {
         const passedMatch = line.match(/Passed:\s*(\d+)/);
         if (passedMatch) result.passed = parseInt(passedMatch[1]);
       }
-      
+
       if (line.includes('Failed:')) {
         const failedMatch = line.match(/Failed:\s*(\d+)/);
         if (failedMatch) result.failed = parseInt(failedMatch[1]);
@@ -281,17 +281,17 @@ class TestReportGenerator {
 
   async gatherPerformanceMetrics() {
     this.log('info', 'Gathering performance metrics...');
-    
+
     try {
       const response = await axios.get(`${CONFIG.baseUrl}/api/performance/metrics`, {
-        timeout: 5000
+        timeout: 5000,
       });
-      
+
       this.results.performance = {
         ...response.data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
+
       this.log('success', 'Performance metrics collected');
     } catch (error) {
       this.log('warn', `Could not gather performance metrics: ${error.message}`);
@@ -301,7 +301,7 @@ class TestReportGenerator {
 
   async runAllTests() {
     this.log('info', 'Starting comprehensive test run...');
-    
+
     // Check server health first
     const serverHealthy = await this.checkServerHealth();
     if (!serverHealthy) {
@@ -319,10 +319,10 @@ class TestReportGenerator {
 
     // Calculate overall health score
     this.calculateOverallHealth();
-    
+
     // Generate recommendations
     this.generateRecommendations();
-    
+
     // Calculate Phase 1 progress
     this.calculatePhase1Progress();
   }
@@ -333,69 +333,69 @@ class TestReportGenerator {
 
     for (const suite of this.results.testSuites) {
       if (suite.status === 'skipped') continue;
-      
+
       totalWeight += suite.weight;
-      
+
       let suiteScore = 0;
       if (suite.status === 'passed') {
         suiteScore = 100;
       } else if (suite.status === 'failed' && suite.details) {
         // Partial credit based on pass rate
-        const passRate = suite.details.total > 0 
-          ? (suite.details.passed / suite.details.total) * 100 
-          : 0;
+        const passRate =
+          suite.details.total > 0 ? (suite.details.passed / suite.details.total) * 100 : 0;
         suiteScore = passRate;
       }
-      
+
       weightedScore += (suiteScore * suite.weight) / 100;
     }
 
     this.results.overallHealth = totalWeight > 0 ? (weightedScore / totalWeight) * 100 : 0;
-    
+
     // Factor in health checks
-    const healthyChecks = this.results.healthChecks.filter(c => c.status === 'healthy').length;
+    const healthyChecks = this.results.healthChecks.filter((c) => c.status === 'healthy').length;
     const healthCheckScore = (healthyChecks / this.results.healthChecks.length) * 100;
-    
+
     // Weighted combination: 80% test results, 20% health checks
-    this.results.overallHealth = (this.results.overallHealth * 0.8) + (healthCheckScore * 0.2);
+    this.results.overallHealth = this.results.overallHealth * 0.8 + healthCheckScore * 0.2;
 
     this.log('info', `Overall health score: ${this.results.overallHealth.toFixed(2)}%`);
   }
 
   calculatePhase1Progress() {
-    const phase1Suite = this.results.testSuites.find(s => s.name === 'Phase 1 Fixes');
+    const phase1Suite = this.results.testSuites.find((s) => s.name === 'Phase 1 Fixes');
     if (phase1Suite && phase1Suite.details) {
-      this.results.phase1Progress = phase1Suite.details.total > 0 
-        ? (phase1Suite.details.passed / phase1Suite.details.total) * 100 
-        : 0;
+      this.results.phase1Progress =
+        phase1Suite.details.total > 0
+          ? (phase1Suite.details.passed / phase1Suite.details.total) * 100
+          : 0;
     }
   }
 
   generateRecommendations() {
     const recommendations = [];
-    
+
     // Critical issues
     const failedCritical = this.results.testSuites.filter(
-      s => s.category === 'critical' && s.status === 'failed'
+      (s) => s.category === 'critical' && s.status === 'failed'
     );
-    
+
     if (failedCritical.length > 0) {
       recommendations.push({
         priority: 'critical',
         title: 'Critical Infrastructure Issues',
         description: 'Fix all Phase 1 critical issues before proceeding',
-        action: 'Run npm run test:phase1 and address all failing tests'
+        action: 'Run npm run test:phase1 and address all failing tests',
       });
     }
 
     // Security issues
-    const securitySuite = this.results.testSuites.find(s => s.category === 'security');
+    const securitySuite = this.results.testSuites.find((s) => s.category === 'security');
     if (securitySuite && securitySuite.details && securitySuite.details.securityScore < 80) {
       recommendations.push({
         priority: 'high',
         title: 'Security Vulnerabilities Detected',
         description: `Security score: ${securitySuite.details.securityScore}/100`,
-        action: 'Review security validation report and fix vulnerabilities'
+        action: 'Review security validation report and fix vulnerabilities',
       });
     }
 
@@ -405,18 +405,18 @@ class TestReportGenerator {
         priority: 'medium',
         title: 'Performance Monitoring Unavailable',
         description: 'Cannot gather performance metrics',
-        action: 'Check if performance middleware is enabled'
+        action: 'Check if performance middleware is enabled',
       });
     }
 
     // Health check issues
-    const unhealthyChecks = this.results.healthChecks.filter(c => c.status !== 'healthy');
+    const unhealthyChecks = this.results.healthChecks.filter((c) => c.status !== 'healthy');
     if (unhealthyChecks.length > 0) {
       recommendations.push({
         priority: 'medium',
         title: 'Service Health Issues',
         description: `${unhealthyChecks.length} services are not responding properly`,
-        action: 'Check server logs and restart services if needed'
+        action: 'Check server logs and restart services if needed',
       });
     }
 
@@ -426,14 +426,14 @@ class TestReportGenerator {
         priority: 'critical',
         title: 'System Not Production Ready',
         description: `Overall health: ${this.results.overallHealth.toFixed(1)}% (Target: 95%+)`,
-        action: 'Do not deploy to production. Focus on Phase 1 completion.'
+        action: 'Do not deploy to production. Focus on Phase 1 completion.',
       });
     } else if (this.results.overallHealth < 80) {
       recommendations.push({
         priority: 'high',
         title: 'Significant Issues Detected',
         description: `Overall health: ${this.results.overallHealth.toFixed(1)}% (Target: 95%+)`,
-        action: 'Address failing tests before considering deployment'
+        action: 'Address failing tests before considering deployment',
       });
     }
 
@@ -449,15 +449,26 @@ class TestReportGenerator {
 
     // Executive Summary
     md += `## 🎯 Executive Summary\n\n`;
-    const healthStatus = this.results.overallHealth >= 95 ? '🟢 Excellent' : 
-                        this.results.overallHealth >= 80 ? '🟡 Good' :
-                        this.results.overallHealth >= 60 ? '🟠 Fair' : '🔴 Poor';
+    const healthStatus =
+      this.results.overallHealth >= 95
+        ? '🟢 Excellent'
+        : this.results.overallHealth >= 80
+          ? '🟡 Good'
+          : this.results.overallHealth >= 60
+            ? '🟠 Fair'
+            : '🔴 Poor';
     md += `**System Health:** ${healthStatus} (${this.results.overallHealth.toFixed(1)}%)\n\n`;
-    
+
     const totalTests = this.results.testSuites.reduce((sum, s) => sum + (s.details?.total || 0), 0);
-    const passedTests = this.results.testSuites.reduce((sum, s) => sum + (s.details?.passed || 0), 0);
-    const failedTests = this.results.testSuites.reduce((sum, s) => sum + (s.details?.failed || 0), 0);
-    
+    const passedTests = this.results.testSuites.reduce(
+      (sum, s) => sum + (s.details?.passed || 0),
+      0
+    );
+    const failedTests = this.results.testSuites.reduce(
+      (sum, s) => sum + (s.details?.failed || 0),
+      0
+    );
+
     md += `- **Total Tests:** ${totalTests}\n`;
     md += `- **Passed:** ${passedTests} ✅\n`;
     md += `- **Failed:** ${failedTests} ❌\n`;
@@ -467,18 +478,26 @@ class TestReportGenerator {
     md += `## 📊 Test Suite Results\n\n`;
     md += `| Suite | Status | Score | Duration | Category |\n`;
     md += `|-------|--------|-------|----------|----------|\n`;
-    
+
     for (const suite of this.results.testSuites) {
-      const status = suite.status === 'passed' ? '✅ Passed' :
-                    suite.status === 'failed' ? '❌ Failed' :
-                    suite.status === 'skipped' ? '⏭️ Skipped' : '❌ Error';
-      
-      const score = suite.details?.total > 0 
-        ? `${((suite.details.passed / suite.details.total) * 100).toFixed(1)}%`
-        : suite.status === 'passed' ? '100%' : '0%';
-      
+      const status =
+        suite.status === 'passed'
+          ? '✅ Passed'
+          : suite.status === 'failed'
+            ? '❌ Failed'
+            : suite.status === 'skipped'
+              ? '⏭️ Skipped'
+              : '❌ Error';
+
+      const score =
+        suite.details?.total > 0
+          ? `${((suite.details.passed / suite.details.total) * 100).toFixed(1)}%`
+          : suite.status === 'passed'
+            ? '100%'
+            : '0%';
+
       const duration = suite.duration ? `${suite.duration}ms` : 'N/A';
-      
+
       md += `| ${suite.name} | ${status} | ${score} | ${duration} | ${suite.category} |\n`;
     }
     md += `\n`;
@@ -487,12 +506,16 @@ class TestReportGenerator {
     md += `## 🏥 Service Health Checks\n\n`;
     md += `| Service | Status | Response Time | Endpoint |\n`;
     md += `|---------|--------|---------------|----------|\n`;
-    
+
     for (const check of this.results.healthChecks) {
-      const status = check.status === 'healthy' ? '✅ Healthy' :
-                    check.status === 'unhealthy' ? '⚠️ Unhealthy' : '❌ Error';
+      const status =
+        check.status === 'healthy'
+          ? '✅ Healthy'
+          : check.status === 'unhealthy'
+            ? '⚠️ Unhealthy'
+            : '❌ Error';
       const responseTime = check.responseTime ? `${check.responseTime}ms` : 'N/A';
-      
+
       md += `| ${check.name} | ${status} | ${responseTime} | ${check.endpoint} |\n`;
     }
     md += `\n`;
@@ -506,7 +529,7 @@ class TestReportGenerator {
     }
 
     // Security Summary
-    const securitySuite = this.results.testSuites.find(s => s.category === 'security');
+    const securitySuite = this.results.testSuites.find((s) => s.category === 'security');
     if (securitySuite) {
       md += `## 🔒 Security Summary\n\n`;
       if (securitySuite.details?.securityScore !== undefined) {
@@ -519,9 +542,9 @@ class TestReportGenerator {
     // Recommendations
     if (this.results.recommendations.length > 0) {
       md += `## 🚨 Recommendations\n\n`;
-      const criticalRecs = this.results.recommendations.filter(r => r.priority === 'critical');
-      const highRecs = this.results.recommendations.filter(r => r.priority === 'high');
-      const mediumRecs = this.results.recommendations.filter(r => r.priority === 'medium');
+      const criticalRecs = this.results.recommendations.filter((r) => r.priority === 'critical');
+      const highRecs = this.results.recommendations.filter((r) => r.priority === 'high');
+      const mediumRecs = this.results.recommendations.filter((r) => r.priority === 'medium');
 
       if (criticalRecs.length > 0) {
         md += `### 🔴 Critical Issues\n\n`;
@@ -554,10 +577,11 @@ class TestReportGenerator {
     // Phase 1 Progress Tracker
     md += `## 📈 Phase 1 Progress Tracker\n\n`;
     md += `Current Progress: ${this.results.phase1Progress.toFixed(1)}%\n\n`;
-    const progressBar = '█'.repeat(Math.floor(this.results.phase1Progress / 5)) + 
-                       '░'.repeat(20 - Math.floor(this.results.phase1Progress / 5));
+    const progressBar =
+      '█'.repeat(Math.floor(this.results.phase1Progress / 5)) +
+      '░'.repeat(20 - Math.floor(this.results.phase1Progress / 5));
     md += `\`${progressBar}\` ${this.results.phase1Progress.toFixed(1)}%\n\n`;
-    
+
     if (this.results.phase1Progress >= 100) {
       md += `✅ **Phase 1 Complete!** Ready to proceed to Phase 2.\n\n`;
     } else if (this.results.phase1Progress >= 80) {
@@ -573,7 +597,7 @@ class TestReportGenerator {
       md += `- **Status:** ${suite.status}\n`;
       md += `- **Category:** ${suite.category}\n`;
       md += `- **Weight:** ${suite.weight}%\n`;
-      
+
       if (suite.details) {
         md += `- **Tests:** ${suite.details.passed}/${suite.details.total} passed\n`;
         if (suite.details.coverage) {
@@ -583,15 +607,15 @@ class TestReportGenerator {
           md += `- **Security Score:** ${suite.details.securityScore}/100\n`;
         }
       }
-      
+
       if (suite.duration) {
         md += `- **Duration:** ${suite.duration}ms\n`;
       }
-      
+
       if (suite.error) {
         md += `- **Error:** ${suite.error}\n`;
       }
-      
+
       md += `\n`;
     }
 
@@ -600,7 +624,7 @@ class TestReportGenerator {
 
   generateHtmlReport() {
     const md = this.generateMarkdownReport();
-    
+
     // Simple HTML wrapper for markdown content
     const html = `
 <!DOCTYPE html>
@@ -655,14 +679,14 @@ class TestReportGenerator {
     <pre>${md.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
 </body>
 </html>`;
-    
+
     return html;
   }
 
   async saveReports() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const baseFilename = `test-report-${timestamp}`;
-    
+
     try {
       // Save markdown report
       const mdPath = path.join(CONFIG.outputDir, `${baseFilename}.md`);
@@ -690,11 +714,11 @@ class TestReportGenerator {
         if (fs.existsSync(latestMd)) fs.unlinkSync(latestMd);
         if (fs.existsSync(latestJson)) fs.unlinkSync(latestJson);
         if (fs.existsSync(latestHtml)) fs.unlinkSync(latestHtml);
-        
+
         fs.symlinkSync(path.basename(mdPath), latestMd);
         fs.symlinkSync(path.basename(jsonPath), latestJson);
         fs.symlinkSync(path.basename(htmlPath), latestHtml);
-        
+
         this.log('success', 'Latest report symlinks created');
       } catch (error) {
         // Symlinks might not be supported on all systems
@@ -704,7 +728,7 @@ class TestReportGenerator {
       return {
         markdown: mdPath,
         json: jsonPath,
-        html: htmlPath
+        html: htmlPath,
       };
     } catch (error) {
       this.log('error', `Failed to save reports: ${error.message}`);
@@ -715,25 +739,43 @@ class TestReportGenerator {
   printSummary() {
     console.log(`\n${colors.bold}${colors.cyan}=====================================`);
     console.log(`${colors.bold}${colors.cyan}UNIVERSAL AI TOOLS - TEST SUMMARY`);
-    console.log(`${colors.bold}${colors.cyan}=====================================${colors.reset}\n`);
+    console.log(
+      `${colors.bold}${colors.cyan}=====================================${colors.reset}\n`
+    );
 
-    const healthColor = this.results.overallHealth >= 80 ? colors.green :
-                       this.results.overallHealth >= 60 ? colors.yellow : colors.red;
-    
-    console.log(`${colors.bold}Overall Health Score:${colors.reset} ${healthColor}${this.results.overallHealth.toFixed(2)}%${colors.reset}`);
-    console.log(`${colors.bold}Phase 1 Progress:${colors.reset} ${this.results.phase1Progress.toFixed(2)}%`);
-    
+    const healthColor =
+      this.results.overallHealth >= 80
+        ? colors.green
+        : this.results.overallHealth >= 60
+          ? colors.yellow
+          : colors.red;
+
+    console.log(
+      `${colors.bold}Overall Health Score:${colors.reset} ${healthColor}${this.results.overallHealth.toFixed(2)}%${colors.reset}`
+    );
+    console.log(
+      `${colors.bold}Phase 1 Progress:${colors.reset} ${this.results.phase1Progress.toFixed(2)}%`
+    );
+
     const totalTests = this.results.testSuites.reduce((sum, s) => sum + (s.details?.total || 0), 0);
-    const passedTests = this.results.testSuites.reduce((sum, s) => sum + (s.details?.passed || 0), 0);
-    const failedTests = this.results.testSuites.reduce((sum, s) => sum + (s.details?.failed || 0), 0);
-    
-    console.log(`${colors.bold}Test Results:${colors.reset} ${colors.green}${passedTests} passed${colors.reset}, ${colors.red}${failedTests} failed${colors.reset}, ${totalTests} total\n`);
+    const passedTests = this.results.testSuites.reduce(
+      (sum, s) => sum + (s.details?.passed || 0),
+      0
+    );
+    const failedTests = this.results.testSuites.reduce(
+      (sum, s) => sum + (s.details?.failed || 0),
+      0
+    );
+
+    console.log(
+      `${colors.bold}Test Results:${colors.reset} ${colors.green}${passedTests} passed${colors.reset}, ${colors.red}${failedTests} failed${colors.reset}, ${totalTests} total\n`
+    );
 
     // Show critical recommendations
-    const criticalRecs = this.results.recommendations.filter(r => r.priority === 'critical');
+    const criticalRecs = this.results.recommendations.filter((r) => r.priority === 'critical');
     if (criticalRecs.length > 0) {
       console.log(`${colors.red}${colors.bold}🚨 CRITICAL ISSUES:${colors.reset}`);
-      criticalRecs.forEach(rec => {
+      criticalRecs.forEach((rec) => {
         console.log(`${colors.red}• ${rec.title}${colors.reset}`);
         console.log(`  ${rec.description}`);
       });
@@ -744,33 +786,38 @@ class TestReportGenerator {
     if (this.results.overallHealth >= 95) {
       console.log(`${colors.green}${colors.bold}✅ SYSTEM READY FOR PRODUCTION${colors.reset}`);
     } else if (this.results.overallHealth >= 80) {
-      console.log(`${colors.yellow}${colors.bold}⚠️  SOME ISSUES DETECTED - REVIEW BEFORE DEPLOYMENT${colors.reset}`);
+      console.log(
+        `${colors.yellow}${colors.bold}⚠️  SOME ISSUES DETECTED - REVIEW BEFORE DEPLOYMENT${colors.reset}`
+      );
     } else {
-      console.log(`${colors.red}${colors.bold}🔴 NOT READY FOR PRODUCTION - CRITICAL ISSUES MUST BE ADDRESSED${colors.reset}`);
+      console.log(
+        `${colors.red}${colors.bold}🔴 NOT READY FOR PRODUCTION - CRITICAL ISSUES MUST BE ADDRESSED${colors.reset}`
+      );
     }
   }
 }
 
 async function main() {
   const generator = new TestReportGenerator();
-  
+
   try {
-    console.log(`${colors.bold}${colors.blue}🧪 Universal AI Tools - Comprehensive Test Report Generator${colors.reset}\n`);
-    
+    console.log(
+      `${colors.bold}${colors.blue}🧪 Universal AI Tools - Comprehensive Test Report Generator${colors.reset}\n`
+    );
+
     await generator.runAllTests();
     const reportPaths = await generator.saveReports();
-    
+
     generator.printSummary();
-    
+
     console.log(`\n${colors.bold}Reports Generated:${colors.reset}`);
     console.log(`• Markdown: ${reportPaths.markdown}`);
     console.log(`• JSON: ${reportPaths.json}`);
     console.log(`• HTML: ${reportPaths.html}`);
-    
+
     // Exit with appropriate code for CI/CD integration
     const exitCode = generator.results.overallHealth >= 80 ? 0 : 1;
     process.exit(exitCode);
-    
   } catch (error) {
     generator.log('error', `Test report generation failed: ${error.message}`);
     process.exit(1);

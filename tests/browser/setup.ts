@@ -4,19 +4,19 @@ import { logger } from '../../src/utils/logger';
 // Browser test setup
 beforeAll(async () => {
   logger.info('🚀 Setting up browser tests...');
-  
+
   // Wait for services to be ready
   await waitForServices();
-  
+
   logger.info('✅ Browser test setup complete');
 });
 
 afterAll(async () => {
   logger.info('🧹 Cleaning up browser tests...');
-  
+
   // Clean up any remaining resources
   await cleanup();
-  
+
   logger.info('✅ Browser test cleanup complete');
 });
 
@@ -32,8 +32,8 @@ afterEach(async () => {
 
 async function waitForServices(): Promise<void> {
   const maxAttempts = 30;
-  const delay = 1000; // 1 second
-  
+  const delay = MILLISECONDS_IN_SECOND; // 1 second
+
   // Wait for UI service
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -46,10 +46,10 @@ async function waitForServices(): Promise<void> {
       if (i === maxAttempts - 1) {
         throw new Error('UI service not ready after 30 seconds');
       }
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-  
+
   // Wait for API service
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -62,7 +62,7 @@ async function waitForServices(): Promise<void> {
       if (i === maxAttempts - 1) {
         throw new Error('API service not ready after 30 seconds');
       }
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 }

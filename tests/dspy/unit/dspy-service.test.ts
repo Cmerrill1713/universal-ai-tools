@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { DSPyService, DSPyOrchestrationRequest, DSPyOrchestrationResponse } from '../../../src/services/dspy-service';
+import {
+  DSPyService,
+  DSPyOrchestrationRequest,
+  DSPyOrchestrationResponse,
+} from '../../../src/services/dspy-service';
 import { dspyBridge } from '../../../src/services/dspy-orchestrator/bridge';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,8 +17,8 @@ jest.mock('../../../src/services/dspy-orchestrator/bridge', () => ({
     optimizePrompts: jest.fn(),
     shutdown: jest.fn(),
     on: jest.fn(),
-    removeAllListeners: jest.fn()
-  }
+    removeAllListeners: jest.fn(),
+  },
 }));
 
 // Mock logger
@@ -23,22 +27,22 @@ jest.mock('../../../src/utils/logger', () => ({
     info: jest.fn(),
     error: jest.fn(),
     warn: jest.fn(),
-    debug: jest.fn()
-  }
+    debug: jest.fn(),
+  },
 }));
 
 describe('DSPyService', () => {
   let dspyService: DSPyService;
-  let mockBridge: any;
+  let mockBridge: unknown;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockBridge = dspyBridge as jest.Mocked<typeof dspyBridge>;
-    
+
     // Set up default mock behaviors
     mockBridge.getStatus.mockReturnValue({
       connected: true,
-      queueSize: 0
+      queueSize: 0,
     });
 
     dspyService = new DSPyService();
@@ -51,8 +55,8 @@ describe('DSPyService', () => {
   describe('initialization', () => {
     it('should initialize successfully when bridge is connected', async () => {
       // Wait for initialization
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       const status = dspyService.getStatus();
       expect(status.initialized).toBe(true);
       expect(status.connected).toBe(true);
@@ -66,18 +70,20 @@ describe('DSPyService', () => {
         .mockReturnValue({ connected: true, queueSize: 0 });
 
       const newService = new DSPyService();
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       expect(mockBridge.getStatus).toHaveBeenCalledTimes(3);
     });
 
     it('should throw error on connection timeout', async () => {
       mockBridge.getStatus.mockReturnValue({ connected: false, queueSize: 0 });
-      
+
       const newService = new DSPyService();
-      
+
       // Use private method to test timeout behavior
-      await expect((newService as any).waitForConnection(1000)).rejects.toThrow('DSPy connection timeout');
+      await expect((newService as any).waitForConnection(1000)).rejects.toThrow(
+        'DSPy connection timeout'
+      );
     });
   });
 
@@ -89,16 +95,16 @@ describe('DSPyService', () => {
         userId: 'test-user',
         orchestrationMode: 'cognitive',
         context: { language: 'Python' },
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       const mockResult = {
         orchestration_mode: 'cognitive',
         consensus: 'Here is a Python fibonacci function...',
-        complexity: 3,
+        complexity: THREE,
         confidence: 0.95,
         coordination_plan: 'Using code assistant and planner agents',
-        selected_agents: 'code_assistant, planner'
+        selected_agents: 'code_assistant, planner',
       };
 
       mockBridge.orchestrate.mockResolvedValue(mockResult);
@@ -110,10 +116,10 @@ describe('DSPyService', () => {
         success: true,
         mode: 'cognitive',
         result: mockResult.consensus,
-        complexity: 3,
+        complexity: THREE,
         confidence: 0.95,
         reasoning: mockResult.coordination_plan,
-        participatingAgents: ['code_assistant', 'planner']
+        participatingAgents: ['code_assistant', 'planner'],
       });
       expect(response.executionTime).toBeGreaterThan(0);
     });
@@ -123,7 +129,7 @@ describe('DSPyService', () => {
         requestId: uuidv4(),
         userRequest: 'Test error handling',
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       mockBridge.orchestrate.mockRejectedValue(new Error('Connection failed'));
@@ -135,14 +141,18 @@ describe('DSPyService', () => {
         success: false,
         mode: 'fallback',
         result: null,
-        error: 'Connection failed'
+        error: 'Connection failed',
       });
       expect(response.executionTime).toBeGreaterThan(0);
     });
 
     it('should handle different orchestration modes', async () => {
-      const modes: Array<'simple' | 'standard' | 'cognitive' | 'adaptive'> = 
-        ['simple', 'standard', 'cognitive', 'adaptive'];
+      const modes: Array<'simple' | 'standard' | 'cognitive' | 'adaptive'> = [
+        'simple',
+        'standard',
+        'cognitive',
+        'adaptive',
+      ];
 
       for (const mode of modes) {
         const request: DSPyOrchestrationRequest = {
@@ -150,12 +160,12 @@ describe('DSPyService', () => {
           userRequest: `Test ${mode} mode`,
           userId: 'test-user',
           orchestrationMode: mode,
-          timestamp: new Date()
+          timestamp: new Date(),
         };
 
         mockBridge.orchestrate.mockResolvedValue({
           orchestration_mode: mode,
-          consensus: `Result for ${mode} mode`
+          consensus: `Result for ${mode} mode`,
         });
 
         const response = await dspyService.orchestrate(request);
@@ -175,8 +185,8 @@ describe('DSPyService', () => {
         coordination_plan: 'Code assistant writes, tester validates',
         agent_assignments: [
           { agent: 'code_assistant', task: 'Write sorting algorithm' },
-          { agent: 'tester', task: 'Create unit tests' }
-        ]
+          { agent: 'tester', task: 'Create unit tests' },
+        ],
       };
 
       mockBridge.coordinateAgents.mockResolvedValue(mockResult);
@@ -187,7 +197,7 @@ describe('DSPyService', () => {
         success: true,
         selectedAgents: mockResult.selected_agents,
         coordinationPlan: mockResult.coordination_plan,
-        assignments: mockResult.agent_assignments
+        assignments: mockResult.agent_assignments,
       });
 
       expect(mockBridge.coordinateAgents).toHaveBeenCalledWith(task, availableAgents, context);
@@ -196,9 +206,9 @@ describe('DSPyService', () => {
     it('should handle coordination errors', async () => {
       mockBridge.coordinateAgents.mockRejectedValue(new Error('No suitable agents'));
 
-      await expect(
-        dspyService.coordinateAgents('Complex task', [])
-      ).rejects.toThrow('No suitable agents');
+      await expect(dspyService.coordinateAgents('Complex task', [])).rejects.toThrow(
+        'No suitable agents'
+      );
     });
   });
 
@@ -211,9 +221,9 @@ describe('DSPyService', () => {
         const mockSearchResult = {
           results: [
             { content: 'Async/await pattern...', score: 0.9 },
-            { content: 'Promise patterns...', score: 0.85 }
+            { content: 'Promise patterns...', score: 0.85 },
           ],
-          total: 2
+          total: TWO,
         };
 
         mockBridge.manageKnowledge.mockResolvedValue(mockSearchResult);
@@ -223,12 +233,12 @@ describe('DSPyService', () => {
         expect(result).toEqual({
           success: true,
           operation: 'search',
-          result: mockSearchResult
+          result: mockSearchResult,
         });
 
         expect(mockBridge.manageKnowledge).toHaveBeenCalledWith('search', {
           query,
-          ...options
+          ...options,
         });
       });
     });
@@ -241,9 +251,7 @@ describe('DSPyService', () => {
         const mockExtractResult = {
           entities: ['TypeScript', 'JavaScript'],
           concepts: ['typed language', 'superset'],
-          relationships: [
-            { from: 'TypeScript', to: 'JavaScript', type: 'superset_of' }
-          ]
+          relationships: [{ from: 'TypeScript', to: 'JavaScript', type: 'superset_of' }],
         };
 
         mockBridge.manageKnowledge.mockResolvedValue(mockExtractResult);
@@ -253,7 +261,7 @@ describe('DSPyService', () => {
         expect(result).toEqual({
           success: true,
           operation: 'extract',
-          result: mockExtractResult
+          result: mockExtractResult,
         });
       });
     });
@@ -264,9 +272,10 @@ describe('DSPyService', () => {
         const newInfo = 'Python 3.12 introduces new syntax features';
 
         const mockEvolveResult = {
-          evolved_knowledge: 'Python is a programming language. Python 3.12 introduces new syntax features.',
+          evolved_knowledge:
+            'Python is a programming language. Python 3.12 introduces new syntax features.',
           changes: ['Added version 3.12 information', 'Added syntax features mention'],
-          confidence: 0.9
+          confidence: 0.9,
         };
 
         mockBridge.manageKnowledge.mockResolvedValue(mockEvolveResult);
@@ -276,7 +285,7 @@ describe('DSPyService', () => {
         expect(result).toEqual({
           success: true,
           operation: 'evolve',
-          result: mockEvolveResult
+          result: mockEvolveResult,
         });
       });
     });
@@ -284,9 +293,9 @@ describe('DSPyService', () => {
     it('should handle knowledge management errors', async () => {
       mockBridge.manageKnowledge.mockRejectedValue(new Error('Knowledge base unavailable'));
 
-      await expect(
-        dspyService.searchKnowledge('test query')
-      ).rejects.toThrow('Knowledge management failed');
+      await expect(dspyService.searchKnowledge('test query')).rejects.toThrow(
+        'Knowledge management failed'
+      );
     });
   });
 
@@ -294,16 +303,13 @@ describe('DSPyService', () => {
     it('should optimize prompts successfully', async () => {
       const examples = [
         { input: 'Write a function', output: 'def func():' },
-        { input: 'Create a class', output: 'class MyClass:' }
+        { input: 'Create a class', output: 'class MyClass:' },
       ];
 
       const mockOptimizeResult = {
         optimized: true,
-        improvements: [
-          'Added context clarity',
-          'Improved instruction specificity'
-        ],
-        performance_gain: 0.25
+        improvements: ['Added context clarity', 'Improved instruction specificity'],
+        performance_gain: 0.25,
       };
 
       mockBridge.optimizePrompts.mockResolvedValue(mockOptimizeResult);
@@ -314,16 +320,14 @@ describe('DSPyService', () => {
         success: true,
         optimized: true,
         improvements: mockOptimizeResult.improvements,
-        performanceGain: 0.25
+        performanceGain: 0.25,
       });
     });
 
     it('should handle optimization errors', async () => {
       mockBridge.optimizePrompts.mockRejectedValue(new Error('Insufficient examples'));
 
-      await expect(
-        dspyService.optimizePrompts([])
-      ).rejects.toThrow('Prompt optimization failed');
+      await expect(dspyService.optimizePrompts([])).rejects.toThrow('Prompt optimization failed');
     });
   });
 
@@ -334,14 +338,14 @@ describe('DSPyService', () => {
       expect(status).toEqual({
         initialized: true,
         connected: true,
-        queueSize: 0
+        queueSize: 0,
       });
     });
 
     it('should reflect bridge status changes', () => {
       mockBridge.getStatus.mockReturnValue({
         connected: false,
-        queueSize: 5
+        queueSize: 5,
       });
 
       const status = dspyService.getStatus();
@@ -366,11 +370,11 @@ describe('DSPyService', () => {
         requestId: uuidv4(),
         userRequest: '',
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       mockBridge.orchestrate.mockResolvedValue({
-        consensus: 'Please provide a valid request'
+        consensus: 'Please provide a valid request',
       });
 
       const response = await dspyService.orchestrate(request);
@@ -380,7 +384,7 @@ describe('DSPyService', () => {
     it('should handle very large contexts', async () => {
       const largeContext = {
         data: 'x'.repeat(10000),
-        nested: { deep: { structure: Array(100).fill('item') } }
+        nested: { deep: { structure: Array(100).fill('item') } },
       };
 
       const request: DSPyOrchestrationRequest = {
@@ -388,11 +392,11 @@ describe('DSPyService', () => {
         userRequest: 'Process large context',
         userId: 'test-user',
         context: largeContext,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       mockBridge.orchestrate.mockResolvedValue({
-        consensus: 'Processed successfully'
+        consensus: 'Processed successfully',
       });
 
       const response = await dspyService.orchestrate(request);
@@ -404,19 +408,17 @@ describe('DSPyService', () => {
         requestId: uuidv4(),
         userRequest: `Concurrent request ${i}`,
         userId: 'test-user',
-        timestamp: new Date()
+        timestamp: new Date(),
       }));
 
       mockBridge.orchestrate.mockImplementation(async (req) => ({
-        consensus: `Processed: ${req}`
+        consensus: `Processed: ${req}`,
       }));
 
-      const responses = await Promise.all(
-        requests.map(req => dspyService.orchestrate(req))
-      );
+      const responses = await Promise.all(requests.map((req) => dspyService.orchestrate(req)));
 
       expect(responses).toHaveLength(10);
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.success).toBe(true);
       });
     });

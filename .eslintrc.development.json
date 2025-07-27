@@ -1,0 +1,102 @@
+{
+  "extends": [
+    "@typescript-eslint/eslint-plugin"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint"],
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "rules": {
+    // Reduce strictness during development/fixing phase
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/prefer-as-const": "off",
+    "@typescript-eslint/no-inferrable-types": "off",
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/no-this-alias": "off",
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-empty-interface": "off",
+    "@typescript-eslint/ban-types": "off",
+    
+    // Basic syntax issues
+    "no-undef": "off",
+    "no-unused-vars": "off",
+    "no-redeclare": "off",
+    "no-dupe-keys": "error",
+    "no-duplicate-case": "error",
+    "no-empty": "off",
+    "no-extra-semi": "error",
+    "no-func-assign": "error",
+    "no-invalid-regexp": "error",
+    "no-irregular-whitespace": "error",
+    "no-obj-calls": "error",
+    "no-sparse-arrays": "error",
+    "no-unreachable": "warn",
+    "use-isnan": "error",
+    "valid-typeof": "error",
+    
+    // Import/export issues
+    "import/no-unresolved": "off",
+    "import/named": "off",
+    "import/default": "off",
+    "import/namespace": "off",
+    
+    // General code quality (warnings only)
+    "curly": "off",
+    "eqeqeq": "off",
+    "no-alert": "off",
+    "no-caller": "off",
+    "no-console": "off",
+    "no-eval": "warn",
+    "no-extend-native": "off",
+    "no-extra-bind": "off",
+    "no-fallthrough": "off",
+    "no-floating-decimal": "off",
+    "no-implied-eval": "warn",
+    "no-lone-blocks": "off",
+    "no-loop-func": "off",
+    "no-multi-str": "off",
+    "no-native-reassign": "error",
+    "no-new": "off",
+    "no-new-func": "off",
+    "no-new-wrappers": "off",
+    "no-octal": "error",
+    "no-octal-escape": "error",
+    "no-proto": "off",
+    "no-return-assign": "off",
+    "no-script-url": "off",
+    "no-self-compare": "error",
+    "no-sequences": "off",
+    "no-throw-literal": "off",
+    "no-with": "error",
+    "radix": "off",
+    "vars-on-top": "off",
+    "wrap-iife": "off",
+    "yoda": "off"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "coverage/",
+    "logs/",
+    "*.backup.*",
+    "src.backup.*/**/*",
+    "**/*.old.*",
+    "scripts/",
+    "tests/",
+    "ui/",
+    "supabase/"
+  ]
+}

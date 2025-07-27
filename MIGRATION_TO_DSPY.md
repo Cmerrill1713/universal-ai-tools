@@ -5,6 +5,7 @@ This guide explains how to migrate from the old Enhanced Orchestrator to the new
 ## Overview
 
 The Enhanced Orchestrator has been replaced with a more powerful DSPy service that provides:
+
 - Better performance and scalability
 - Advanced prompt optimization
 - Improved multi-agent coordination
@@ -15,6 +16,7 @@ The Enhanced Orchestrator has been replaced with a more powerful DSPy service th
 ### 1. Direct API Usage
 
 **Old way (Enhanced Orchestrator):**
+
 ```typescript
 import { EnhancedOrchestrator } from './agents/enhanced_orchestrator';
 
@@ -26,11 +28,12 @@ const response = await orchestrator.processRequest({
   userRequest: 'Help me with task X',
   userId: 'user-123',
   orchestrationMode: 'cognitive',
-  timestamp: new Date()
+  timestamp: new Date(),
 });
 ```
 
 **New way (DSPy Service):**
+
 ```typescript
 import { dspyService } from './services/dspy-service';
 
@@ -39,7 +42,7 @@ const response = await dspyService.orchestrate({
   userRequest: 'Help me with task X',
   userId: 'user-123',
   orchestrationMode: 'cognitive',
-  timestamp: new Date()
+  timestamp: new Date(),
 });
 ```
 
@@ -71,6 +74,7 @@ const orchestrator = createEnhancedOrchestrator(config);
 ## Response Format Changes
 
 ### Enhanced Orchestrator Response:
+
 ```json
 {
   "requestId": "req-123",
@@ -90,6 +94,7 @@ const orchestrator = createEnhancedOrchestrator(config);
 ```
 
 ### DSPy Service Response:
+
 ```json
 {
   "requestId": "req-123",
@@ -108,39 +113,38 @@ const orchestrator = createEnhancedOrchestrator(config);
 ## New Features Available
 
 ### 1. Knowledge Management
+
 The DSPy service provides advanced knowledge management:
 
 ```typescript
 // Search knowledge
 const searchResult = await dspyService.searchKnowledge('query', {
   filters: { type: 'technical' },
-  limit: 10
+  limit: 10,
 });
 
 // Extract knowledge from content
-const extraction = await dspyService.extractKnowledge(
-  'Some complex content...',
-  { domain: 'engineering' }
-);
+const extraction = await dspyService.extractKnowledge('Some complex content...', {
+  domain: 'engineering',
+});
 
 // Evolve knowledge with new information
-const evolved = await dspyService.evolveKnowledge(
-  'existing knowledge',
-  'new information'
-);
+const evolved = await dspyService.evolveKnowledge('existing knowledge', 'new information');
 ```
 
 ### 2. Prompt Optimization
+
 Optimize your prompts for better performance:
 
 ```typescript
 const optimized = await dspyService.optimizePrompts([
   { input: 'example input 1', output: 'expected output 1' },
-  { input: 'example input 2', output: 'expected output 2' }
+  { input: 'example input 2', output: 'expected output 2' },
 ]);
 ```
 
 ### 3. Agent Coordination
+
 Better multi-agent coordination:
 
 ```typescript
@@ -162,6 +166,7 @@ const coordination = await dspyService.coordinateAgents(
 ## Support
 
 If you encounter any issues during migration:
+
 1. Check the service status: `GET /api/orchestration/status`
 2. Review the logs for any errors
 3. Use the backward compatibility adapter as a temporary solution

@@ -1,9 +1,9 @@
 // Add Ollama AI Assistant to Supabase Studio
 // This adds a working AI button that uses Ollama
 
-(function() {
+(function () {
   console.log('🤖 Adding Ollama AI Assistant...');
-  
+
   // Create floating AI assistant
   const assistant = document.createElement('div');
   assistant.id = 'ollama-assistant';
@@ -139,9 +139,9 @@
       <div id="ollama-result"></div>
     </div>
   `;
-  
+
   document.body.appendChild(assistant);
-  
+
   // Toggle panel
   document.getElementById('ollama-btn').addEventListener('click', () => {
     document.getElementById('ollama-panel').classList.toggle('show');
@@ -149,21 +149,21 @@
       document.getElementById('ollama-input').focus();
     }
   });
-  
+
   // Generate SQL
   async function generateSQL() {
     const input = document.getElementById('ollama-input');
     const button = document.getElementById('ollama-generate');
     const result = document.getElementById('ollama-result');
-    
+
     const prompt = input.value.trim();
     if (!prompt) return;
-    
+
     button.disabled = true;
     button.textContent = 'Generating...';
     result.style.display = 'block';
     result.textContent = 'Thinking...';
-    
+
     try {
       const response = await fetch('http://localhost:8080/api/generate', {
         method: 'POST',
@@ -172,37 +172,42 @@
           model: 'llama3.2:3b',
           prompt: `You are a PostgreSQL expert. Generate only SQL code for: ${prompt}. No explanations, no markdown, just SQL.`,
           stream: false,
-          temperature: 0.1
-        })
+          temperature: 0.1,
+        }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to generate SQL');
       }
-      
+
       const data = await response.json();
       let sql = data.response || '';
-      
+
       // Clean SQL
-      sql = sql.replace(/```sql\n?/gi, '').replace(/```\n?/gi, '').trim();
-      
+      sql = sql
+        .replace(/```sql\n?/gi, '')
+        .replace(/```\n?/gi, '')
+        .trim();
+
       result.textContent = sql;
-      
+
       // Copy to clipboard button
       const copyBtn = document.createElement('button');
       copyBtn.textContent = '📋 Copy';
-      copyBtn.style.cssText = 'margin-top: 8px; padding: 4px 8px; background: #e5e7eb; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
+      copyBtn.style.cssText =
+        'margin-top: 8px; padding: 4px 8px; background: #e5e7eb; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
       copyBtn.onclick = () => {
         navigator.clipboard.writeText(sql);
         copyBtn.textContent = '✅ Copied!';
-        setTimeout(() => copyBtn.textContent = '📋 Copy', 2000);
+        setTimeout(() => (copyBtn.textContent = '📋 Copy'), 2000);
       };
       result.appendChild(copyBtn);
-      
+
       // Insert into editor button
       const insertBtn = document.createElement('button');
       insertBtn.textContent = '📝 Insert into Editor';
-      insertBtn.style.cssText = 'margin-left: 8px; margin-top: 8px; padding: 4px 8px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
+      insertBtn.style.cssText =
+        'margin-left: 8px; margin-top: 8px; padding: 4px 8px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
       insertBtn.onclick = () => {
         // Find Monaco editor
         const monaco = document.querySelector('.monaco-editor');
@@ -212,7 +217,7 @@
           if (model) {
             model.setValue(sql);
             insertBtn.textContent = '✅ Inserted!';
-            setTimeout(() => insertBtn.textContent = '📝 Insert into Editor', 2000);
+            setTimeout(() => (insertBtn.textContent = '📝 Insert into Editor'), 2000);
           }
         } else {
           // Fallback: try to find textarea
@@ -221,12 +226,11 @@
             textarea.value = sql;
             textarea.dispatchEvent(new Event('input', { bubbles: true }));
             insertBtn.textContent = '✅ Inserted!';
-            setTimeout(() => insertBtn.textContent = '📝 Insert into Editor', 2000);
+            setTimeout(() => (insertBtn.textContent = '📝 Insert into Editor'), 2000);
           }
         }
       };
       result.appendChild(insertBtn);
-      
     } catch (error) {
       result.textContent = `Error: ${error.message}\n\nMake sure Ollama is running and the nginx proxy is started:\nnpm run ollama:nginx:start`;
       console.error('❌ Error:', error);
@@ -235,30 +239,31 @@
       button.textContent = 'Generate SQL';
     }
   }
-  
+
   // Button click
   document.getElementById('ollama-generate').addEventListener('click', generateSQL);
-  
+
   // Enter key
   document.getElementById('ollama-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       generateSQL();
     }
   });
-  
+
   // Test connection
   fetch('http://localhost:8080/api/tags')
-    .then(r => r.json())
-    .then(data => {
+    .then((r) => r.json())
+    .then((data) => {
       console.log(`✅ Ollama connected (${data.models?.length || 0} models)`);
-      document.getElementById('ollama-btn').title = `Ollama AI Assistant (${data.models?.length || 0} models available)`;
+      document.getElementById('ollama-btn').title =
+        `Ollama AI Assistant (${data.models?.length || 0} models available)`;
     })
     .catch(() => {
       console.warn('❌ Cannot connect to Ollama');
       document.getElementById('ollama-btn').style.background = '#ef4444';
       document.getElementById('ollama-btn').title = 'Ollama not connected - Start nginx proxy';
     });
-  
+
   console.log(`
 ✅ Ollama AI Assistant Added!
 ============================

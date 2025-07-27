@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 import { createClient } from '@supabase/supabase-js';
-import { EnhancedContextService, EnhancedContextExamples } from '../src/services/enhanced-context-service';
+import {
+  EnhancedContextService,
+  EnhancedContextExamples,
+} from '../src/services/enhanced-context-service';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -34,7 +37,7 @@ async function main() {
       {
         intent: 'implementation',
         domains: ['supabase', 'graphql'],
-        maxResults: 5
+        maxResults: 5,
       }
     );
     console.log(`✅ Found ${searchResults.length} results`);
@@ -53,7 +56,7 @@ async function main() {
       'Supabase performance optimization',
       {
         traversalDepth: 2,
-        maxPaths: 3
+        maxPaths: 3,
       }
     );
     console.log(`✅ Found ${knowledgePaths.length} knowledge paths`);
@@ -66,10 +69,7 @@ async function main() {
 
     // Test 4: Learning paths
     console.log('4️⃣ Testing learning path discovery...');
-    const learningPaths = await contextService.discoverLearningPaths(
-      'supabase',
-      'intermediate'
-    );
+    const learningPaths = await contextService.discoverLearningPaths('supabase', 'intermediate');
     console.log(`✅ Found ${learningPaths.length} learning paths`);
     learningPaths.forEach((path, i) => {
       console.log(`\n  Learning Path ${i + 1}:`);
@@ -110,7 +110,7 @@ async function main() {
       {
         intent: 'optimization',
         includeRelated: true,
-        maxDepth: 2
+        maxDepth: 2,
       }
     );
     console.log('✅ Comprehensive context built:');
@@ -123,7 +123,7 @@ async function main() {
     // Test 8: Usage patterns
     console.log('8️⃣ Testing knowledge usage patterns...');
     const usagePatterns = await contextService.getKnowledgeUsagePatterns({
-      minUsefulnessRate: 0.7
+      minUsefulnessRate: 0.7,
     });
     console.log(`✅ Found ${usagePatterns.length} highly useful knowledge items`);
     usagePatterns.slice(0, 3).forEach((pattern) => {
@@ -137,7 +137,7 @@ async function main() {
 
     // Test 9: Example scenarios
     console.log('9️⃣ Testing example scenarios...');
-    
+
     console.log('\n  📚 Learning Scenario:');
     const learningExample = await EnhancedContextExamples.learningScenario(contextService);
     console.log(`  Found ${learningExample.learningPaths.length} learning paths`);
@@ -154,7 +154,6 @@ async function main() {
     console.log(`  Found ${optimizationExample.paths.length} optimization paths`);
 
     console.log('\n✅ All tests completed successfully!');
-
   } catch (error) {
     console.error('❌ Error during testing:', error);
     process.exit(1);

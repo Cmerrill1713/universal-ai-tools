@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { Dashboard } from '../../pages/Dashboard';
+import Dashboard from '../../pages/Dashboard';
 import { render, mockSystemStats, resetMocks } from '../../test/utils';
 import { systemApi } from '../../lib/api';
 

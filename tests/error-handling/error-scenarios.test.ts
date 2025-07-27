@@ -148,7 +148,7 @@ describe('Error Handling Tests', () => {
       const rateLimitError = new Error('Rate limit exceeded');
       rateLimitError.name = 'RateLimitError';
       (rateLimitError as any).statusCode = 429;
-      (rateLimitError as any).retryAfter = 60;
+      (rateLimitError as any).retryAfter = SECONDS_IN_MINUTE;
       
       await errorHandler(rateLimitError, mockReq as Request, mockRes as Response, mockNext);
       
@@ -156,7 +156,7 @@ describe('Error Handling Tests', () => {
       expect(mockRes.json).toHaveBeenCalledWith({
         error: 'Too Many Requests',
         message: 'Rate limit exceeded',
-        retryAfter: 60,
+        retryAfter: SECONDS_IN_MINUTE,
         requestId: expect.any(String)
       });
     });
@@ -222,8 +222,8 @@ describe('Error Handling Tests', () => {
     beforeEach(() => {
       mockService = jest.fn();
       circuitBreaker = new CircuitBreaker(mockService, {
-        failureThreshold: 3,
-        recoveryTimeout: 1000,
+        failureThreshold: THREE,
+        recoveryTimeout: MILLISECONDS_IN_SECOND,
         monitoringPeriod: 2000
       });
     });
@@ -246,7 +246,7 @@ describe('Error Handling Tests', () => {
       mockService.mockRejectedValue(serviceError);
       
       // Fail enough times to open circuit
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < THREE; i++) {
         try {
           await circuitBreaker.execute(`request-${i}`);
         } catch (error) {
@@ -272,7 +272,7 @@ describe('Error Handling Tests', () => {
       mockService.mockRejectedValue(serviceError);
       
       // Open the circuit
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < THREE; i++) {
         try {
           await circuitBreaker.execute(`request-${i}`);
         } catch (error) {
@@ -486,12 +486,12 @@ describe('Error Handling Tests', () => {
         .mockRejectedValueOnce(new Error('Temporary failure 2'))
         .mockResolvedValue('success');
       
-      const retryWithBackoff = async (fn: Function, maxRetries: number = 3) => {
+      const retryWithBackoff = async (fn: Function, maxRetries: number = THREE) => {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
           try {
             return await fn();
           } catch (error) {
-            if (attempt === maxRetries) throw error;
+            if (attempt === maxRetries) throw error);
             const delay = Math.pow(2, attempt) * 100; // Exponential backoff
             await new Promise(resolve => setTimeout(resolve, delay));
           }
@@ -528,12 +528,12 @@ describe('Error Handling Tests', () => {
     test('should implement dead letter queue for failed messages', async () => {
       const messages = [
         { id: 1, data: 'valid message' },
-        { id: 2, data: null }, // Invalid message
-        { id: 3, data: 'another valid message' }
+        { id: TWO, data: null }, // Invalid message
+        { id: THREE, data: 'another valid message' }
       ];
       
-      const processedMessages: any[] = [];
-      const deadLetterQueue: any[] = [];
+      const processedMessages: unknown[] = [];
+      const deadLetterQueue: unknown[] = [];
       
       for (const message of messages) {
         try {
@@ -581,7 +581,7 @@ describe('Error Handling Tests', () => {
     });
 
     test('should trigger alerts for critical errors', () => {
-      const alerts: any[] = [];
+      const alerts: unknown[] = [];
       
       const triggerAlert = (severity: string, message: string) => {
         alerts.push({

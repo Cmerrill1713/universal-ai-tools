@@ -1,0 +1,18 @@
+import * as winston from 'winston';
+const logger = winstoncreateLogger({;
+  level: processenvLOG_LEVEL || 'info';
+  format: winstonformatcombine(;
+    winstonformattimestamp();
+    winstonformaterrors({ stack: true });
+    winstonformatsplat();
+    winstonformatjson();
+  );
+  defaultMeta: { service: 'universal-ai-tools' ;
+};
+  transports: [;
+    new winstontransportsConsole({;
+      format: winstonformatcombine(winstonformatcolorize(), winstonformatsimple());
+    });
+  ];
+});
+export { logger };

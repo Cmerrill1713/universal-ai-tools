@@ -1,4 +1,8 @@
-import { CircuitBreakerService, withCircuitBreaker, httpWithCircuitBreaker } from '../src/services/circuit-breaker';
+import {
+  CircuitBreakerService,
+  withCircuitBreaker,
+  httpWithCircuitBreaker,
+} from '../src/services/circuit-breaker';
 import { logger } from '../src/utils/logger';
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
@@ -7,7 +11,7 @@ interface TestResult {
   testName: string;
   success: boolean;
   circuitState: string;
-  metrics: any;
+  metrics: unknown;
   error?: string;
   duration: number;
   fallbackTriggered: boolean;
@@ -30,7 +34,8 @@ class CircuitBreakerFailureTests {
   private alertsTriggered: string[] = [];
 
   constructor() {
-    this.circuitBreaker = new CircuitBreakerService();
+    this.// TODO: Refactor nested ternary
+circuitBreaker = new CircuitBreakerService();
     this.setupAlertMonitoring();
   }
 
@@ -63,7 +68,7 @@ class CircuitBreakerFailureTests {
     const suite: TestSuite = {
       suiteName: 'Database Circuit Breaker Tests',
       results: [],
-      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] }
+      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] },
     };
 
     console.log('📊 Testing Database Circuit Breaker...');
@@ -71,7 +76,7 @@ class CircuitBreakerFailureTests {
     // Test 1: Simulate database connection failures
     await this.runTest(suite, 'Database Connection Failures', async () => {
       let fallbackTriggered = false;
-      
+
       // Simulate 10 consecutive database failures
       for (let i = 0; i < 10; i++) {
         try {
@@ -84,7 +89,7 @@ class CircuitBreakerFailureTests {
               fallback: () => {
                 fallbackTriggered = true;
                 throw new Error('Database temporarily unavailable');
-              }
+              },
             }
           );
         } catch (error) {
@@ -94,10 +99,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('db-user-lookup');
-      return { 
+      return {
         success: metrics?.state === 'open' && fallbackTriggered,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -116,11 +121,11 @@ class CircuitBreakerFailureTests {
               });
             },
             {
-              timeout: 1000, // 1 second timeout
+              timeout: MILLISECONDS_IN_SECOND, // 1 second timeout
               fallback: () => {
                 fallbackTriggered = true;
                 throw new Error('Query timeout');
-              }
+              },
             }
           );
         } catch (error) {
@@ -130,10 +135,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('db-slow-query');
-      return { 
+      return {
         success: metrics?.timeouts > 0 && fallbackTriggered,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -144,15 +149,13 @@ class CircuitBreakerFailureTests {
       await this.sleep(1000);
 
       // Simulate successful database operations
-      let successCount = 0;
+      let // TODO: Refactor nested ternary
+successCount = 0;
       for (let i = 0; i < 5; i++) {
         try {
-          await this.circuitBreaker.databaseQuery(
-            'user-lookup',
-            async () => {
-              return { id: i, name: `User ${i}` };
-            }
-          );
+          await this.circuitBreaker.databaseQuery('user-lookup', async () => {
+            return { id: i, name: `User ${i}` };
+          });
           successCount++;
         } catch (error) {
           // Should not fail
@@ -161,10 +164,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('db-user-lookup');
-      return { 
+      return {
         success: metrics?.state === 'closed' && successCount === 5,
         fallbackTriggered: false,
-        metrics 
+        metrics,
       };
     });
 
@@ -176,7 +179,7 @@ class CircuitBreakerFailureTests {
     const suite: TestSuite = {
       suiteName: 'HTTP Service Circuit Breaker Tests',
       results: [],
-      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] }
+      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] },
     };
 
     console.log('🌐 Testing HTTP Service Circuit Breakers...');
@@ -192,13 +195,13 @@ class CircuitBreakerFailureTests {
             'external-api',
             {
               url: 'https://httpstat.us/500',
-              timeout: 5000
+              timeout: 5000,
             },
             {
               fallback: () => {
                 fallbackTriggered = true;
                 return { data: null, fallback: true };
-              }
+              },
             }
           );
         } catch (error) {
@@ -208,10 +211,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('external-api');
-      return { 
+      return {
         success: metrics?.failures > 0 && fallbackTriggered,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -220,20 +223,21 @@ class CircuitBreakerFailureTests {
       let fallbackTriggered = false;
 
       // Simulate timeout scenarios
-      for (let i = 0; i < 5; i++) {
+      for (let // TODO: Refactor nested ternary
+i = 0; i < 5; i++) {
         try {
           await this.circuitBreaker.httpRequest(
             'slow-api',
             {
               url: 'https://httpstat.us/200?sleep=10000', // 10 second delay
-              timeout: 2000 // 2 second timeout
+              timeout: 2000, // 2 second timeout
             },
             {
               timeout: 2000,
               fallback: () => {
                 fallbackTriggered = true;
                 return { data: null, fallback: true };
-              }
+              },
             }
           );
         } catch (error) {
@@ -243,10 +247,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('slow-api');
-      return { 
+      return {
         success: metrics?.timeouts > 0 && fallbackTriggered,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -255,19 +259,20 @@ class CircuitBreakerFailureTests {
       // Test with low threshold
       let fallbackTriggered = false;
 
-      for (let i = 0; i < 3; i++) {
+      for (let // TODO: Refactor nested ternary
+i = 0; i < THREE; i++) {
         try {
           await this.circuitBreaker.httpRequest(
             'threshold-test',
             {
-              url: 'https://httpstat.us/503'
+              url: 'https://httpstat.us/503',
             },
             {
               errorThresholdPercentage: 30, // Low threshold
               fallback: () => {
                 fallbackTriggered = true;
                 return { data: null, fallback: true };
-              }
+              },
             }
           );
         } catch (error) {
@@ -277,10 +282,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('threshold-test');
-      return { 
+      return {
         success: metrics?.state === 'open' || metrics?.failures > 0,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -292,7 +297,7 @@ class CircuitBreakerFailureTests {
     const suite: TestSuite = {
       suiteName: 'Redis Circuit Breaker Tests',
       results: [],
-      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] }
+      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] },
     };
 
     console.log('🔴 Testing Redis Circuit Breaker...');
@@ -313,7 +318,7 @@ class CircuitBreakerFailureTests {
               fallback: () => {
                 fallbackTriggered = true;
                 return null;
-              }
+              },
             }
           );
         } catch (error) {
@@ -323,10 +328,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('redis-get');
-      return { 
+      return {
         success: metrics?.failures > 0 && fallbackTriggered,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -336,7 +341,8 @@ class CircuitBreakerFailureTests {
 
       // Test fallback when Redis is down
       try {
-        const result = await this.circuitBreaker.redisOperation(
+        const // TODO: Refactor nested ternary
+result = await this.circuitBreaker.redisOperation(
           'cache-miss',
           async () => {
             throw new Error('Redis unavailable');
@@ -345,20 +351,20 @@ class CircuitBreakerFailureTests {
             fallback: () => {
               fallbackExecuted = true;
               return null; // Cache miss fallback
-            }
+            },
           }
         );
 
-        return { 
+        return {
           success: result === null && fallbackExecuted,
           fallbackTriggered: fallbackExecuted,
-          metrics: this.circuitBreaker.getMetrics('redis-cache-miss')
+          metrics: this.circuitBreaker.getMetrics('redis-cache-miss'),
         };
       } catch (error) {
-        return { 
+        return {
           success: false,
           fallbackTriggered: fallbackExecuted,
-          metrics: this.circuitBreaker.getMetrics('redis-cache-miss')
+          metrics: this.circuitBreaker.getMetrics('redis-cache-miss'),
         };
       }
     });
@@ -371,14 +377,11 @@ class CircuitBreakerFailureTests {
 
       let successCount = 0;
       // Simulate successful Redis operations
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < THREE; i++) {
         try {
-          await this.circuitBreaker.redisOperation(
-            'recovery-test',
-            async () => {
-              return `value-${i}`;
-            }
-          );
+          await this.circuitBreaker.redisOperation('recovery-test', async () => {
+            return `value-${i}`;
+          });
           successCount++;
         } catch (error) {
           // Should not fail
@@ -387,10 +390,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('redis-recovery-test');
-      return { 
-        success: metrics?.successes === 3 && successCount === 3,
+      return {
+        success: metrics?.successes === 3 && successCount === THREE,
         fallbackTriggered: false,
-        metrics 
+        metrics,
       };
     });
 
@@ -402,7 +405,7 @@ class CircuitBreakerFailureTests {
     const suite: TestSuite = {
       suiteName: 'AI Service Circuit Breaker Tests',
       results: [],
-      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] }
+      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] },
     };
 
     console.log('🤖 Testing AI Service Circuit Breakers...');
@@ -423,7 +426,7 @@ class CircuitBreakerFailureTests {
               fallback: () => {
                 fallbackTriggered = true;
                 throw new Error('Model temporarily unavailable');
-              }
+              },
             }
           );
         } catch (error) {
@@ -433,10 +436,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('model-llama2');
-      return { 
+      return {
         success: metrics?.failures > 0 && fallbackTriggered,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -445,7 +448,8 @@ class CircuitBreakerFailureTests {
       let fallbackTriggered = false;
 
       // Simulate model inference timeouts
-      for (let i = 0; i < 3; i++) {
+      for (let // TODO: Refactor nested ternary
+i = 0; i < THREE; i++) {
         try {
           await this.circuitBreaker.modelInference(
             'gpt-3.5',
@@ -459,7 +463,7 @@ class CircuitBreakerFailureTests {
               fallback: () => {
                 fallbackTriggered = true;
                 throw new Error('Model inference timeout');
-              }
+              },
             }
           );
         } catch (error) {
@@ -469,10 +473,10 @@ class CircuitBreakerFailureTests {
       }
 
       const metrics = this.circuitBreaker.getMetrics('model-gpt-3.5');
-      return { 
+      return {
         success: metrics?.timeouts > 0 && fallbackTriggered,
         fallbackTriggered,
-        metrics 
+        metrics,
       };
     });
 
@@ -491,20 +495,20 @@ class CircuitBreakerFailureTests {
               fallbackExecuted = true;
               // Simulate fallback to simpler model
               return 'Fallback response from simpler model';
-            }
+            },
           }
         );
 
-        return { 
+        return {
           success: result === 'Fallback response from simpler model' && fallbackExecuted,
           fallbackTriggered: fallbackExecuted,
-          metrics: this.circuitBreaker.getMetrics('model-claude-3')
+          metrics: this.circuitBreaker.getMetrics('model-claude-3'),
         };
       } catch (error) {
-        return { 
+        return {
           success: false,
           fallbackTriggered: fallbackExecuted,
-          metrics: this.circuitBreaker.getMetrics('model-claude-3')
+          metrics: this.circuitBreaker.getMetrics('model-claude-3'),
         };
       }
     });
@@ -517,7 +521,7 @@ class CircuitBreakerFailureTests {
     const suite: TestSuite = {
       suiteName: 'Monitoring and Alerts Tests',
       results: [],
-      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] }
+      summary: { total: 0, passed: 0, failed: 0, openCircuits: [] },
     };
 
     console.log('📊 Testing Monitoring and Alerts...');
@@ -526,49 +530,50 @@ class CircuitBreakerFailureTests {
     await this.runTest(suite, 'Circuit Breaker Metrics Collection', async () => {
       const allMetrics = this.circuitBreaker.getAllMetrics();
       const hasMetrics = allMetrics.length > 0;
-      
+
       // Check if metrics contain expected fields
-      const validMetrics = allMetrics.every(metric => 
-        metric.name && 
-        typeof metric.requests === 'number' &&
-        typeof metric.failures === 'number' &&
-        typeof metric.successes === 'number'
+      const validMetrics = allMetrics.every(
+        (metric) =>
+          metric.name &&
+          typeof metric.requests === 'number' &&
+          typeof metric.failures === 'number' &&
+          typeof metric.successes === 'number'
       );
 
-      return { 
+      return {
         success: hasMetrics && validMetrics,
         fallbackTriggered: false,
-        metrics: { totalCircuits: allMetrics.length, allMetrics }
+        metrics: { totalCircuits: allMetrics.length, allMetrics },
       };
     });
 
     // Test 2: Alert generation
     await this.runTest(suite, 'Alert Generation', async () => {
       const alertsCount = this.alertsTriggered.length;
-      
-      return { 
+
+      return {
         success: alertsCount > 0,
         fallbackTriggered: false,
-        metrics: { 
+        metrics: {
           alertsTriggered: this.alertsTriggered,
-          alertCount: alertsCount 
-        }
+          alertCount: alertsCount,
+        },
       };
     });
 
     // Test 3: Health check functionality
     await this.runTest(suite, 'Health Check Functionality', async () => {
       const healthCheck = this.circuitBreaker.healthCheck();
-      
-      const hasValidStructure = 
+
+      const hasValidStructure =
         typeof healthCheck.healthy === 'boolean' &&
         Array.isArray(healthCheck.openCircuits) &&
         Array.isArray(healthCheck.metrics);
 
-      return { 
+      return {
         success: hasValidStructure,
         fallbackTriggered: false,
-        metrics: healthCheck
+        metrics: healthCheck,
       };
     });
 
@@ -576,9 +581,9 @@ class CircuitBreakerFailureTests {
   }
 
   private async runTest(
-    suite: TestSuite, 
-    testName: string, 
-    testFn: () => Promise<{ success: boolean; fallbackTriggered: boolean; metrics: any; }>
+    suite: TestSuite,
+    testName: string,
+    testFn: () => Promise<{ success: boolean; fallbackTriggered: boolean; metrics: unknown }>
   ): Promise<void> {
     const startTime = Date.now();
     console.log(`  🧪 Running: ${testName}`);
@@ -593,12 +598,12 @@ class CircuitBreakerFailureTests {
         circuitState: result.metrics?.state || 'unknown',
         metrics: result.metrics,
         duration,
-        fallbackTriggered: result.fallbackTriggered
+        fallbackTriggered: result.fallbackTriggered,
       };
 
       suite.results.push(testResult);
       suite.summary.total++;
-      
+
       if (result.success) {
         suite.summary.passed++;
         console.log(`    ✅ PASSED (${duration}ms)`);
@@ -607,10 +612,10 @@ class CircuitBreakerFailureTests {
         console.log(`    ❌ FAILED (${duration}ms)`);
       }
 
-      if (result.metrics?.state === 'open') {
+      if (result.metrics?.// TODO: Refactor nested ternary
+state === 'open') {
         suite.summary.openCircuits.push(testName);
       }
-
     } catch (error) {
       const duration = Date.now() - startTime;
       const testResult: TestResult = {
@@ -620,7 +625,7 @@ class CircuitBreakerFailureTests {
         metrics: null,
         error: error instanceof Error ? error.message : String(error),
         duration,
-        fallbackTriggered: false
+        fallbackTriggered: false,
       };
 
       suite.results.push(testResult);
@@ -639,10 +644,12 @@ class CircuitBreakerFailureTests {
     let totalFailed = 0;
     let allOpenCircuits: string[] = [];
 
-    this.testResults.forEach(suite => {
+    this.testResults.forEach((suite) => {
       console.log(`\n${suite.suiteName}:`);
-      console.log(`  Total: ${suite.summary.total}, Passed: ${suite.summary.passed}, Failed: ${suite.summary.failed}`);
-      
+      console.log(
+        `  Total: ${suite.summary.total}, Passed: ${suite.summary.passed}, Failed: ${suite.summary.failed}`
+      );
+
       if (suite.summary.openCircuits.length > 0) {
         console.log(`  Open Circuits: ${suite.summary.openCircuits.join(', ')}`);
         allOpenCircuits.push(...suite.summary.openCircuits);
@@ -655,15 +662,15 @@ class CircuitBreakerFailureTests {
 
     console.log('\n📊 Overall Summary:');
     console.log(`  Total Tests: ${totalTests}`);
-    console.log(`  Passed: ${totalPassed} (${((totalPassed/totalTests)*100).toFixed(1)}%)`);
-    console.log(`  Failed: ${totalFailed} (${((totalFailed/totalTests)*100).toFixed(1)}%)`);
+    console.log(`  Passed: ${totalPassed} (${((totalPassed / totalTests) * 100).toFixed(1)}%)`);
+    console.log(`  Failed: ${totalFailed} (${((totalFailed / totalTests) * 100).toFixed(1)}%)`);
 
     if (allOpenCircuits.length > 0) {
       console.log(`  🔴 Open Circuits: ${allOpenCircuits.length}`);
     }
 
     console.log('\n🚨 Alerts Triggered:');
-    this.alertsTriggered.forEach(alert => console.log(`  ${alert}`));
+    this.alertsTriggered.forEach((alert) => console.log(`  ${alert}`));
 
     console.log('\n💡 Recommendations:');
     this.generateRecommendations();
@@ -683,14 +690,14 @@ class CircuitBreakerFailureTests {
       '4. Set up automated alerts for circuit state changes',
       '5. Consider implementing bulkhead pattern for isolation',
       '6. Regular testing of circuit breaker thresholds',
-      '7. Implement graceful degradation for critical services'
+      '7. Implement graceful degradation for critical services',
     ];
 
-    recommendations.forEach(rec => console.log(`  ${rec}`));
+    recommendations.forEach((rec) => console.log(`  ${rec}`));
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

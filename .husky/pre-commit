@@ -1,4 +1,39 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
 
-npm run pre-commit
+# Run Gitleaks security scan on staged files
+echo "🔒 Running Gitleaks security scan on staged files..."
+gitleaks protect --staged --config .gitleaks.toml --verbose
+GITLEAKS_EXIT_CODE=$?
+
+if [ $GITLEAKS_EXIT_CODE -ne 0 ]; then
+    echo "❌ Gitleaks found potential secrets in staged files!"
+    echo "💡 Tips:"
+    echo "   - Remove the secret from your code"
+    echo "   - Use environment variables instead"
+    echo "   - If it's a false positive, update .gitleaks.toml"
+    echo ""
+    echo "To bypass (use with caution): git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ No secrets detected in staged files"
+
+# Run comprehensive syntax auto-fix on staged files
+echo "🔧 Running comprehensive syntax auto-fix on staged files..."
+npx tsx scripts/auto-syntax-fixer.ts --staged --verbose
+
+# Run additional syntax validation
+echo "🔍 Running syntax validation..."
+npx tsx scripts/validate-syntax.ts --staged
+
+# Run linting on staged files only
+echo "📋 Running ESLint on staged files..."
+npx lint-staged
+
+# Run TypeScript type checking
+echo "📘 Running TypeScript type check..."
+npm run type-check
+
+# If any of the above commands fail, the commit will be aborted
+echo "✅ Pre-commit checks passed!"

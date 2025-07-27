@@ -1,0 +1,904 @@
+/**
+ * Secure File System A.P.I Router*
+ * Provides RE.S.Tful endpoints for file system operations with comprehensive security: measures:
+ * - Path sanitization and validation* - Authentication and authorization* - Rate limiting* - Input validation* - Activity logging* - Web.Socket support for real-time events*/
+import type { Request, Response } from 'express';
+import { Next.Function, Router } from 'express';
+import path from 'path';
+import fs from 'fs/promises';
+import { create.Read.Stream, create.Write.Stream } from 'fs';
+import { pipeline } from 'stream/promises';
+import crypto from 'crypto';
+import { z } from 'zod';
+import { logger } from './utils/logger';
+import { JWT.Auth.Service } from './middleware/auth-jwt';
+import { Rate.Limiter } from './middleware/rate-limiter';
+import { Common.Validators, strict.Validation } from './middleware/comprehensive-validation';
+import type { Supabase.Client } from '@supabase/supabase-js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import mime from 'mime-types';
+import chokidar from 'chokidar';
+import Web.Socket from 'ws';
+const exec.Async = promisify(exec)// Request/Response schemas;
+const Browse.Request.Schema = zobject({
+  path: zstring()optional(),
+  show.Hidden: zboolean()optional()default(false),
+  recursive: zboolean()optional()default(false),
+  max.Depth: znumber()int()min(1)max(5)optional()default(1),
+  filter: z,
+    object({
+      type: zenum(['file', 'directory', 'all'])optional()default('all'),';
+      _pattern zstring()optional();
+      extensions: zarray(zstring())optional()}),
+    optional()});
+const Read.Request.Schema = zobject({
+  path: zstring(),
+  encoding: zenum(['utf8', 'base64', 'hex', 'binary'])optional()default('utf8'),';
+  range: z,
+    object({
+      start: znumber()int()min(0)optional(),
+      end: znumber()int()min(0)optional()}),
+    optional()});
+const Write.Request.Schema = zobject({
+  path: zstring(),
+  contentzstring();
+  encoding: zenum(['utf8', 'base64', 'hex'])optional()default('utf8'),';
+  mode: zenum(['overwrite', 'append', 'create'])optional()default('overwrite'),';
+  permissions: z,
+    string();
+    regex(/^[0-7]{3,4}$/);
+    optional()});
+const Execute.Request.Schema = zobject({
+  command: zstring()max(1000),
+  args: zarray(zstring())optional()default([]),
+  cwd: zstring()optional(),
+  timeout: znumber()int()min(1000)max(300000)optional()default(30000), // 30 seconds default;
+  env: zrecord(zstring())optional()}),
+const Move.Request.Schema = zobject({
+  source: zstring(),
+  destination: zstring(),
+  overwrite: zboolean()optional()default(false)}),
+const Copy.Request.Schema = zobject({
+  source: zstring(),
+  destination: zstring(),
+  overwrite: zboolean()optional()default(false),
+  recursive: zboolean()optional()default(false)}),
+const Delete.Request.Schema = zobject({
+  path: zstring(),
+  recursive: zboolean()optional()default(false),
+  force: zboolean()optional()default(false)}),
+const Search.Request.Schema = zobject({
+  path: zstring(),
+  query: zstring()min(1)max(100),
+  options: z,
+    object({
+      case.Sensitive: zboolean()optional()default(false),
+      whole.Word: zboolean()optional()default(false),
+      regex: zboolean()optional()default(false),
+      max.Results: znumber()int()min(1)max(1000)optional()default(100),
+      include.Content: zboolean()optional()default(false),
+      extensions: zarray(zstring())optional()}),
+    optional()})// File system entry type;
+interface File.System.Entry {
+  name: string,
+  path: string,
+  type: 'file' | 'directory' | 'symlink' | 'other';';
+  size: number,
+  created: Date,
+  modified: Date,
+  accessed: Date,
+  permissions: string,
+  owner?: string;
+  group?: string;
+  mime.Type?: string;
+  is.Hidden: boolean,
+  is.Readable: boolean,
+  is.Writable: boolean,
+  children?: File.System.Entry[];
+}// Web.Socket message types;
+interface FSWeb.Socket.Message {
+  type: 'watch' | 'unwatch' | 'event' | 'error) | 'ping' | 'pong';';
+  path?: string;
+  event?: 'add' | 'change' | 'unlink' | 'add.Dir' | 'unlink.Dir';';
+  data?: any;
+  id?: string;
+  timestamp?: number;
+}
+class FileSystem.Router.Class {
+  private: router: Router,
+  private: supabase: Supabase.Client,
+  private: rate.Limiter: Rate.Limiter,
+  private: base.Dir: string,
+  private: allowed.Paths: string[],
+  private: blocked.Paths: string[],
+  private: blocked.Patterns: Reg.Exp[],
+  private: watchers: Map<string, chokidarF.S.Watcher> = new Map();
+  private: ws.Clients: Map<string, Web.Socket> = new Map();
+  constructor(supabase: Supabase.Client) {
+    thisrouter = Router();
+    thissupabase = supabase;
+    thisrate.Limiter = new Rate.Limiter()// Security configuration;
+    thisbase.Dir = process.envFS_BASE_D.I.R || processcwd();
+    thisallowed.Paths = (process.envFS_ALLOWED_PAT.H.S || '')split(',')filter(Boolean);';
+    thisblocked.Paths = [
+      '/etc',';
+      '/sys',';
+      '/proc',';
+      '/dev',';
+      '/boot',';
+      '/root',';
+      '/var/log',';
+      '/ssh',';
+      '/git',';
+      '/node_modules',';
+      'env',';
+      'envlocal',';
+      'envproduction',';
+      'secrets',';
+      'credentials',';
+      'password',';
+      'private',';
+      'id_rsa',';
+      'id_dsa',';
+      'id_ecdsa',';
+      'id_ed25519','];
+    thisblocked.Patterns = [
+      /\env(\.|$)/i/\.(pem|key|crt|cer|pfx|p12)$/i/\.(id_rsa|id_dsa|id_ecdsa|id_ed25519)$/i/\.(kdbx|keychain|gnupg|ssh)$/i/\/(\git|\svn|\hg|\bzr)\//i/\.(sqlite|db|mdb)$/i/\.(log|logs)$/i/secrets?\//i/credentials?\//i/passwords?\//i/private\//i];
+    thissetup.Routes()}/**
+   * Validate and sanitize file paths*/
+  private sanitize.Path(input.Path: string): string | null {
+    try {
+      // Remove any null bytes;
+      input.Path = input.Pathreplace(/\0/g, '');'// Resolve the absolute path;
+      const resolved.Path = pathresolve(thisbase.Dir, input.Path)// Ensure the path is within the base directory;
+      if (!resolved.Pathstarts.With(thisbase.Dir)) {
+        loggerwarn('Path traversal attempt detected', { input.Path, resolved.Path });';
+        return null}// Check against blocked paths;
+      const normalized.Path = resolvedPathto.Lower.Case();
+      for (const blocked of thisblocked.Paths) {
+        if (normalized.Pathincludes(blockedto.Lower.Case())) {
+          loggerwarn('Access to blocked path attempted', { path: resolved.Path });';
+          return null}}// Check against blocked patterns;
+      for (const _patternof thisblocked.Patterns) {
+        if (_patterntest(resolved.Path)) {
+          loggerwarn('Access to blocked _patternattempted', {';
+            path: resolved.Path,
+            _pattern _patternto.String()});
+          return null}}// If allowed paths are specified, ensure the path is within one of them;
+      if (thisallowed.Pathslength > 0) {
+        const is.Allowed = thisallowed.Pathssome((allowed) =>
+          resolved.Pathstarts.With(pathresolve(thisbase.Dir, allowed)));
+        if (!is.Allowed) {
+          loggerwarn('Access to non-allowed path attempted', { path: resolved.Path });';
+          return null};
+
+      return resolved.Path} catch (error) {
+      loggererror('loggererror('Path sanitization: error) , error);';
+      return null}}/**
+   * Log file system operations*/
+  private async log.Operation();
+    user.Id: string,
+    operation: string,
+    path: string,
+    success: boolean,
+    details?: any): Promise<void> {
+    try {
+      await thissupabasefrom('fs_audit_log')insert({';
+        user_id: user.Id,
+        operation;
+        path;
+        success;
+        details;
+        ip_address: details?ip,
+        user_agent: details?user.Agent,
+        timestamp: new Date()})} catch (error) {
+      loggererror('Failed to log file system: operation:', error);'}}/**
+   * Get file system entry information*/
+  private async get.File.Info(file.Path: string): Promise<File.System.Entry | null> {
+    try {
+      const stats = await promisesstat(file.Path);
+      const name = pathbasename(file.Path);
+      return {
+        name;
+        path: file.Path,
+        type: statsis.Directory()? 'directory';': statsis.File()? 'file';': statsis.Symbolic.Link()? 'symlink';': 'other',';
+        size: statssize,
+        created: statsbirthtime,
+        modified: statsmtime,
+        accessed: statsatime,
+        permissions: statsmodeto.String(8)slice(-3),
+        is.Hidden: namestarts.With('.'),';
+        is.Readable: true, // Simplified - would need proper permission check;
+        is.Writable: true, // Simplified - would need proper permission check;
+        mime.Type: statsis.File() ? mimelookup(file.Path) || 'application/octet-stream' : undefined,'}} catch (error) {
+      loggererror('Failed to get file: info:', error);';
+      return null}}/**
+   * Setup all routes*/
+  private setup.Routes(): void {
+    // Apply rate limiting;
+    thisrouteruse();
+      thisrate.Limiterlimit({
+        window.Ms: 60 * 1000, // 1 minute;
+        max: 100, // 100 requests per minute}))// Browse endpoint;
+    thisrouterpost('/browse', thishandle.Browsebind(this));'// Read endpoint;
+    thisrouterpost('/read', thishandle.Readbind(this));'// Write endpoint;
+    thisrouterpost('/write', thishandle.Writebind(this));'// Execute endpoint (with stricter rate, limiting));
+    thisrouterpost(
+      '/execute',';
+      thisrate.Limiterlimit({
+        window.Ms: 60 * 1000, // 1 minute;
+        max: 10, // 10 executions per minute});
+      thishandle.Executebind(this))// File operations;
+    thisrouterpost('/move', thishandle.Movebind(this));';
+    thisrouterpost('/copy', thishandle.Copybind(this));';
+    thisrouterpost('/delete', thishandle.Deletebind(this));'// Search endpoint;
+    thisrouterpost('/search', thishandle.Searchbind(this));'// File upload endpoint;
+    thisrouterpost('/upload', thishandle.Uploadbind(this));'// File download endpoint;
+    thisrouterget('/download', thishandle.Downloadbind(this));'// Web.Socket endpoint for real-time file watching// Note: Web.Socket handling needs to be set up separately in the server// System information endpoint,
+    thisrouterget('/info', thishandle.System.Infobind(this));'}/**
+   * Handle browse requests*/
+  private async handle.Browse(req: Request, res: Response): Promise<void> {
+    try {
+      const validation = BrowseRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { path: request.Path = '', show.Hidden, recursive, max.Depth, filter } = validationdata;';
+      const user.Id = (req as, any))userid// Sanitize path;
+      const sanitized.Path = thissanitize.Path(request.Path);
+      if (!sanitized.Path) {
+        await thislog.Operation(user.Id, 'browse', request.Path, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return}// Read directory;
+      const: entries: File.System.Entry[] = [],
+      const read.Dir = async (dir.Path: string, depth = 0): Promise<void> => {
+        if (depth >= max.Depth) return;
+        try {
+          const files = await promisesreaddir(dir.Path);
+          for (const file of, files)) {
+            // Skip hidden files if not requested;
+            if (!show.Hidden && filestarts.With('.')) continue;';
+            const file.Path = pathjoin(dir.Path, file);
+            const file.Info = await thisget.File.Info(file.Path);
+            if (!file.Info) continue// Apply filters;
+            if (filter) {
+              if (filtertype !== 'all' && file.Infotype !== filtertype) continue;';
+              if (filter._pattern&& !fileincludes(filter._pattern) continue;
+              if (filterextensions && file.Infotype === 'file') {';
+                const ext = pathextname(file)to.Lower.Case();
+                if (!filterextensionsincludes(ext)) continue};
+
+            entriespush(file.Info)// Recursively read subdirectories;
+            if (recursive && file.Infotype === 'directory' && depth < max.Depth - 1) {';
+              await read.Dir(file.Path, depth + 1)}}} catch (error) {
+          loggererror('Error reading: directory:', error);'};
+      await read.Dir(sanitized.Path)// Log successful operation;
+      await thislog.Operation(user.Id, 'browse', sanitized.Path, true, {';
+        entries.Count: entrieslength,
+        ip: reqip,
+        user.Agent: reqheaders['user-agent'],'});
+      resjson({
+        path: sanitized.Path,
+        entries;
+        total: entrieslength})} catch (error) {
+      loggererror('loggererror('Browse: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle read requests*/
+  private async handle.Read(req: Request, res: Response): Promise<void> {
+    try {
+      const validation = ReadRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { path: request.Path, encoding, range } = validationdata;
+      const user.Id = (req as, any))userid// Sanitize path;
+      const sanitized.Path = thissanitize.Path(request.Path);
+      if (!sanitized.Path) {
+        await thislog.Operation(user.Id, 'read', request.Path, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return}// Check if file exists;
+      try {
+        const stats = await promisesstat(sanitized.Path);
+        if (!statsis.File()) {
+          resstatus(400)json({ error) 'Path is not a file' });';
+          return}} catch (error) {
+        resstatus(404)json({ error) 'File not found' });';
+        return}// Read file with range support;
+      if (range && (rangestart !== undefined || rangeend !== undefined)) {
+        const  stream = create.Read.Stream(sanitized.Path, {
+          start: rangestart,
+          end: rangeend,
+          encoding: encoding as Buffer.Encoding}),
+        let content '';';
+        streamon('data', (chunk) => (content += chunk));';
+        streamon('end', () => {';
+          resjson({
+            path: sanitized.Path,
+            content;
+            encoding;
+            partial: true})}),
+        streamon('error', (error) => {';
+          loggererror('loggererror('Read stream: error) , error);';
+          resstatus(500)json({ error) 'Failed to read file' });'})} else {
+        // Read entire file;
+        const content await promisesread.File(sanitized.Path, encoding as, Buffer.Encoding))// Log successful operation;
+        await thislog.Operation(user.Id, 'read', sanitized.Path, true, {';
+          size: contentlength,
+          encoding;
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resjson({
+          path: sanitized.Path,
+          content;
+          encoding;
+          size: contentlength})}} catch (error) {
+      loggererror('loggererror('Read: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle write requests*/
+  private async handle.Write(req: Request, res: Response): Promise<void> {
+    try {
+      const validation = WriteRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { path: request.Path, contentencoding, mode, permissions } = validationdata;
+      const user.Id = (req as, any))userid// Sanitize path;
+      const sanitized.Path = thissanitize.Path(request.Path);
+      if (!sanitized.Path) {
+        await thislog.Operation(user.Id, 'write', request.Path, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return}// Check if file exists;
+      let exists = false;
+      try {
+        await promisesstat(sanitized.Path);
+        exists = true} catch (error) {
+        // File doesn't exist'}// Handle different write modes;
+      if (mode === 'create' && exists) {';
+        resstatus(409)json({ error) 'File already exists' });';
+        return;
+
+      if ((mode === 'overwrite' || mode === 'append') && !exists) {'// Create directory if it doesn't exist';
+        const dir = pathdirname(sanitized.Path);
+        await promisesmkdir(dir, { recursive: true })}// Decode contentif needed,
+      let: data: Buffer | string = content,
+      if (encoding === 'base64') {';
+        data = Bufferfrom(content'base64');'} else if (encoding === 'hex') {';
+        data = Bufferfrom(content'hex');'}// Write file;
+      if (mode === 'append') {';
+        await promisesappend.File(sanitized.Path, data)} else {
+        await promiseswrite.File(sanitized.Path, data)}// Set permissions if specified;
+      if (permissions) {
+        await promiseschmod(sanitized.Path, parse.Int(permissions, 8, 10))}// Get file info;
+      const file.Info = await thisget.File.Info(sanitized.Path)// Log successful operation;
+      await thislog.Operation(user.Id, 'write', sanitized.Path, true, {';
+        mode;
+        size: contentlength,
+        encoding;
+        ip: reqip,
+        user.Agent: reqheaders['user-agent'],'})// Emit Web.Socket event;
+      thisemit.File.Event('change', sanitized.Path);';
+      resjson({
+        path: sanitized.Path,
+        size: file.Info?size || 0,
+        mode;
+        success: true})} catch (error) {
+      loggererror('loggererror('Write: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle execute requests (with extreme, caution))*/
+  private async handle.Execute(req: Request, res: Response): Promise<void> {
+    try {
+      // Check if user has execute permissions;
+      const user.Id = (req as, any))userid;
+      const user.Role = (req as, any))userrole;
+      if (user.Role !== 'admin') {';
+        await thislog.Operation(user.Id, 'execute', '', false, {';
+          reason: 'Insufficient permissions',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Execute permission required' });';
+        return;
+
+      const validation = ExecuteRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { command, args, cwd, timeout, env } = validationdata// Validate and sanitize working directory;
+      let working.Dir = thisbase.Dir;
+      if (cwd) {
+        const sanitized.Cwd = thissanitize.Path(cwd);
+        if (!sanitized.Cwd) {
+          resstatus(403)json({ error) 'Invalid working directory' });';
+          return;
+        working.Dir = sanitized.Cwd}// Create safe environment variables;
+      const safe.Env = {
+        .process.env.env// Override potentially dangerous env vars;
+        PA.T.H: process.envPA.T.H,
+        LD_LIBRARY_PA.T.H: undefined,
+        LD_PRELO.A.D: undefined,
+        DYLD_INSERT_LIBRARI.E.S: undefined}// Build command with arguments,
+      const full.Command = [command, .args];
+        map();
+          (arg) =>
+            // Quote arguments to prevent injection;
+            `'${argreplace(/'/g, "'\\''")}'`;'");
+        join(' ');'// Execute command with timeout;
+      try {
+        const { stdout, stderr } = await exec.Async(full.Command, {
+          cwd: working.Dir,
+          timeout;
+          env: safe.Env,
+          max.Buffer: 1024 * 1024 * 10, // 10M.B max output})// Log successful operation;
+        await thislog.Operation(user.Id, 'execute', command, true, {';
+          args;
+          cwd: working.Dir,
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resjson({
+          command;
+          args;
+          stdout;
+          stderr;
+          exit.Code: 0,
+          success: true})} catch (error) any) {
+        // Log failed operation;
+        await thislog.Operation(user.Id, 'execute', command, false, {';
+          args;
+          cwd: working.Dir,
+          error) errormessage;
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resjson({
+          command;
+          args;
+          stdout: errorstdout || '',';
+          stderr: errorstderr || errormessage,
+          exit.Code: errorcode || 1,
+          success: false,
+          error) errormessage})}} catch (error) {
+      loggererror('loggererror('Execute: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle move requests*/
+  private async handle.Move(req: Request, res: Response): Promise<void> {
+    try {
+      const validation = MoveRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { source, destination, overwrite } = validationdata;
+      const user.Id = (req as, any))userid// Sanitize paths;
+      const sanitized.Source = thissanitize.Path(source);
+      const sanitized.Dest = thissanitize.Path(destination);
+      if (!sanitized.Source || !sanitized.Dest) {
+        await thislog.Operation(user.Id, 'move', `${source} -> ${destination}`, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return}// Check if source exists;
+      try {
+        await promisesstat(sanitized.Source)} catch (error) {
+        resstatus(404)json({ error) 'Source not found' });';
+        return}// Check if destination exists;
+      let dest.Exists = false;
+      try {
+        await promisesstat(sanitized.Dest);
+        dest.Exists = true} catch (error) {
+        // Destination doesn't exist';
+
+      if (dest.Exists && !overwrite) {
+        resstatus(409)json({ error) 'Destination already exists' });';
+        return}// Create destination directory if needed;
+      const dest.Dir = pathdirname(sanitized.Dest);
+      await promisesmkdir(dest.Dir, { recursive: true })// Move file/directory,
+      await promisesrename(sanitized.Source, sanitized.Dest)// Log successful operation;
+      await thislog.Operation(user.Id, 'move', `${sanitized.Source} -> ${sanitized.Dest}`, true, {';
+        overwrite;
+        ip: reqip,
+        user.Agent: reqheaders['user-agent'],'})// Emit Web.Socket events;
+      thisemit.File.Event('unlink', sanitized.Source);';
+      thisemit.File.Event('add', sanitized.Dest);';
+      resjson({
+        source: sanitized.Source,
+        destination: sanitized.Dest,
+        success: true})} catch (error) {
+      loggererror('loggererror('Move: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle copy requests*/
+  private async handle.Copy(req: Request, res: Response): Promise<void> {
+    try {
+      const validation = CopyRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { source, destination, overwrite, recursive } = validationdata;
+      const user.Id = (req as, any))userid// Sanitize paths;
+      const sanitized.Source = thissanitize.Path(source);
+      const sanitized.Dest = thissanitize.Path(destination);
+      if (!sanitized.Source || !sanitized.Dest) {
+        await thislog.Operation(user.Id, 'copy', `${source} -> ${destination}`, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return}// Check if source exists;
+      let source.Stats;
+      try {
+        source.Stats = await promisesstat(sanitized.Source)} catch (error) {
+        resstatus(404)json({ error) 'Source not found' });';
+        return}// Check if destination exists;
+      let dest.Exists = false;
+      try {
+        await promisesstat(sanitized.Dest);
+        dest.Exists = true} catch (error) {
+        // Destination doesn't exist';
+
+      if (dest.Exists && !overwrite) {
+        resstatus(409)json({ error) 'Destination already exists' });';
+        return}// Create destination directory if needed;
+      const dest.Dir = pathdirname(sanitized.Dest);
+      await promisesmkdir(dest.Dir, { recursive: true })// Copy file or directory,
+      if (source.Statsis.File()) {
+        // Copy file;
+        await pipeline(create.Read.Stream(sanitized.Source), create.Write.Stream(sanitized.Dest))} else if (source.Statsis.Directory() && recursive) {
+        // Copy directory recursively;
+        await thiscopy.Directory(sanitized.Source, sanitized.Dest, overwrite)} else {
+        resstatus(400)json({ error) 'Cannot copy directory without recursive flag' });';
+        return}// Log successful operation;
+      await thislog.Operation(user.Id, 'copy', `${sanitized.Source} -> ${sanitized.Dest}`, true, {';
+        overwrite;
+        recursive;
+        ip: reqip,
+        user.Agent: reqheaders['user-agent'],'})// Emit Web.Socket event;
+      thisemit.File.Event('add', sanitized.Dest);';
+      resjson({
+        source: sanitized.Source,
+        destination: sanitized.Dest,
+        success: true})} catch (error) {
+      loggererror('loggererror('Copy: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle delete requests*/
+  private async handle.Delete(req: Request, res: Response): Promise<void> {
+    try {
+      const validation = DeleteRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { path: request.Path, recursive, force } = validationdata;
+      const user.Id = (req as, any))userid// Sanitize path;
+      const sanitized.Path = thissanitize.Path(request.Path);
+      if (!sanitized.Path) {
+        await thislog.Operation(user.Id, 'delete', request.Path, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return}// Don't allow deletion of base directory';
+      if (sanitized.Path === thisbase.Dir) {
+        resstatus(403)json({ error) 'Cannot delete base directory' });';
+        return}// Check if path exists;
+      let stats;
+      try {
+        stats = await promisesstat(sanitized.Path)} catch (error) {
+        resstatus(404)json({ error) 'Path not found' });';
+        return}// Delete file or directory;
+      if (statsis.Directory()) {
+        if (!recursive) {
+          resstatus(400)json({ error) 'Cannot delete directory without recursive flag' });';
+          return;
+        await promisesrm(sanitized.Path, { recursive: true, force })} else {
+        await promisesunlink(sanitized.Path)}// Log successful operation;
+      await thislog.Operation(user.Id, 'delete', sanitized.Path, true, {';
+        recursive;
+        force;
+        type: statsis.Directory() ? 'directory' : 'file',';
+        ip: reqip,
+        user.Agent: reqheaders['user-agent'],'})// Emit Web.Socket event;
+      thisemit.File.Event(statsis.Directory() ? 'unlink.Dir' : 'unlink', sanitized.Path);';
+      resjson({
+        path: sanitized.Path,
+        success: true})} catch (error) {
+      loggererror('loggererror('Delete: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle search requests*/
+  private async handle.Search(req: Request, res: Response): Promise<void> {
+    try {
+      const validation = SearchRequest.Schemasafe.Parse(reqbody);
+      if (!validationsuccess) {
+        resstatus(400)json({
+          error) 'Invalid request'';
+          details: validationerror) errors}),
+        return;
+
+      const { path: search.Path, query, options = {} } = validationdata;
+      const user.Id = (req as, any))userid// Sanitize path;
+      const sanitized.Path = thissanitize.Path(search.Path);
+      if (!sanitized.Path) {
+        await thislog.Operation(user.Id, 'search', search.Path, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return;
+
+      const: results: any[] = [],
+      const search.Regex = options?regex? new Reg.Exp(query, options?case.Sensitive ? 'g' : 'gi');': new Reg.Exp();
+            options?whole.Word? `\\b${queryreplace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`;': queryreplace(/[.*+?^${}()|[\]\\]/g, '\\$&'),';
+            options?case.Sensitive ? 'g' : 'gi';');
+      const search.Directory = async (dir.Path: string): Promise<void> => {
+        if (resultslength >= (options?max.Results || 100)) return;
+        try {
+          const files = await promisesreaddir(dir.Path);
+          for (const file of, files)) {
+            if (resultslength >= (options?max.Results || 100)) break;
+            const file.Path = pathjoin(dir.Path, file);
+            const file.Info = await thisget.File.Info(file.Path);
+            if (!file.Info) continue// Search in file name;
+            if (search.Regextest(file)) {
+              const: result: any = {
+                path: file.Path,
+                name: file,
+                type: file.Infotype,
+                size: file.Infosize,
+                modified: file.Infomodified,
+                match.Type: 'filename',';
+              resultspush(result)}// Search in file contentif requested;
+            if (
+              options?include.Content &&
+              file.Infotype === 'file' &&';
+              resultslength < (options?max.Results || 100)) {
+              // Check file extension if filter is specified;
+              if (options?extensions) {
+                const ext = pathextname(file)to.Lower.Case();
+                if (!options?extensionsincludes(ext)) continue;
+
+              try {
+                const content await promisesread.File(file.Path, 'utf8');';
+                const matches = contentmatch(search.Regex);
+                if (matches && matcheslength > 0) {
+                  const: result: any = {
+                    path: file.Path,
+                    name: file,
+                    type: file.Infotype,
+                    size: file.Infosize,
+                    modified: file.Infomodified,
+                    match.Type: 'content;';
+                    matches: matchesslice(0, 5), // First 5 matches;
+                    match.Count: matcheslength,
+                  resultspush(result)}} catch (error) {
+                // Skip files that can't be read as text'}}// Search subdirectories;
+            if (file.Infotype === 'directory') {';
+              await search.Directory(file.Path)}}} catch (error) {
+          loggererror('loggererror('Search directory: error) , error);'};
+      await search.Directory(sanitized.Path)// Log successful operation;
+      await thislog.Operation(user.Id, 'search', sanitized.Path, true, {';
+        query;
+        results.Count: resultslength,
+        options;
+        ip: reqip,
+        user.Agent: reqheaders['user-agent'],'});
+      resjson({
+        query;
+        path: sanitized.Path,
+        results;
+        total: resultslength,
+        truncated: resultslength >= (options?max.Results || 100)})} catch (error) {
+      loggererror('loggererror('Search: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle file upload*/
+  private async handle.Upload(req: Request, res: Response): Promise<void> {
+    // Implementation would depend on multer or similar middleware;
+    resstatus(501)json({ error) 'Upload not implemented' });'}/**
+   * Handle file download*/
+  private async handle.Download(req: Request, res: Response): Promise<void> {
+    try {
+      const { path: download.Path } = reqquery,
+      const user.Id = (req as, any))userid;
+      if (!download.Path || typeof download.Path !== 'string') {';
+        resstatus(400)json({ error) 'Path parameter required' });';
+        return}// Sanitize path;
+      const sanitized.Path = thissanitize.Path(download.Path);
+      if (!sanitized.Path) {
+        await thislog.Operation(user.Id, 'download', download.Path, false, {';
+          reason: 'Invalid path',';
+          ip: reqip,
+          user.Agent: reqheaders['user-agent'],'});
+        resstatus(403)json({ error) 'Access denied' });';
+        return}// Check if file exists and is a file;
+      let stats;
+      try {
+        stats = await promisesstat(sanitized.Path);
+        if (!statsis.File()) {
+          resstatus(400)json({ error) 'Path is not a file' });';
+          return}} catch (error) {
+        resstatus(404)json({ error) 'File not found' });';
+        return}// Set headers;
+      const filename = pathbasename(sanitized.Path);
+      const mime.Type = mimelookup(sanitized.Path) || 'application/octet-stream';';
+      resset.Header('Content-Type', mime.Type);';
+      resset.Header('Content-Length', statssize);';
+      resset.Header('Content-Disposition', `attachment; filename="${filename}"`);'"// Stream file;
+      const  stream = create.Read.Stream(sanitized.Path);
+      streampipe(res)// Log successful operation;
+      await thislog.Operation(user.Id, 'download', sanitized.Path, true, {';
+        size: statssize,
+        mime.Type;
+        ip: reqip,
+        user.Agent: reqheaders['user-agent'],'})} catch (error) {
+      loggererror('loggererror('Download: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Handle Web.Socket connections for file watching*/
+  private handle.Web.Socket(ws: Web.Socket, req: Request): void {
+    const user.Id = (req as, any))user?id || 'anonymous';';
+    const client.Id = cryptorandomUU.I.D();
+    thisws.Clientsset(client.Id, ws);
+    wson('message', async (message: string) => {',
+      try {
+        const: data: FSWeb.Socket.Message = JS.O.N.parse(message),
+        switch (datatype) {
+          case 'watch':';
+            if (datapath) {
+              const sanitized.Path = thissanitize.Path(datapath);
+              if (sanitized.Path) {
+                await thiswatch.Path(client.Id, sanitized.Path);
+                wssend();
+                  JS.O.N.stringify({
+                    type: 'event',';
+                    event: 'watching',';
+                    path: sanitized.Path,
+                    timestamp: Date.now()}))} else {
+                wssend();
+                  JS.O.N.stringify({
+                    type: 'error);';
+                    error) 'Invalid path',';
+                    path: datapath,
+                    timestamp: Date.now()}))},
+            break;
+          case 'unwatch':';
+            if (datapath) {
+              const sanitized.Path = thissanitize.Path(datapath);
+              if (sanitized.Path) {
+                await thisunwatch.Path(client.Id, sanitized.Path);
+                wssend();
+                  JS.O.N.stringify({
+                    type: 'event',';
+                    event: 'unwatched',';
+                    path: sanitized.Path,
+                    timestamp: Date.now()}))},
+            break;
+          case 'ping':';
+            wssend();
+              JS.O.N.stringify({
+                type: 'pong',';
+                timestamp: Date.now()})),
+            break}} catch (error) {
+        loggererror('loggererror('Web.Socket message: error) , error);';
+        wssend();
+          JS.O.N.stringify({
+            type: 'error);';
+            error) 'Invalid message',';
+            timestamp: Date.now()}))}}),
+    wson('close', () => {'// Clean up watchers for this client;
+      thiswatchersfor.Each((watcher, path) => {
+        // In a real implementation, track which clients are watching which paths});
+      thisws.Clientsdelete(client.Id)})}/**
+   * Handle system info requests*/
+  private async handle.System.Info(req: Request, res: Response): Promise<void> {
+    const user.Id = (req as, any))userid;
+    try {
+      const info = {
+        base.Dir: thisbase.Dir,
+        allowed.Paths: thisallowed.Paths,
+        features: {
+          browse: true,
+          read: true,
+          write: true,
+          execute: (req as, any))userrole === 'admin',';
+          move: true,
+          copy: true,
+          delete: true,
+          search: true,
+          upload: false, // Not implemented;
+          download: true,
+          watch: true,
+        limits: {
+          max.Upload.Size: 100 * 1024 * 1024, // 100M.B;
+          max.Execution.Time: 30000, // 30 seconds;
+          max.Search.Results: 1000},
+      resjson(info)} catch (error) {
+      loggererror('loggererror('System info: error) , error);';
+      resstatus(500)json({ error) 'Internal server: error)});'}}/**
+   * Helper: Copy directory recursively*/
+  private async copy.Directory();
+    source: string,
+    destination: string,
+    overwrite: boolean): Promise<void> {
+    await promisesmkdir(destination, { recursive: true }),
+    const files = await promisesreaddir(source);
+    for (const file of, files)) {
+      const source.Path = pathjoin(source, file);
+      const dest.Path = pathjoin(destination, file);
+      const stats = await promisesstat(source.Path);
+      if (statsis.Directory()) {
+        await thiscopy.Directory(source.Path, dest.Path, overwrite)} else {
+        if (overwrite || !(await thisfile.Exists(dest.Path))) {
+          await pipeline(create.Read.Stream(source.Path), create.Write.Stream(dest.Path))}}}}/**
+   * Helper: Check if file exists*/
+  private async file.Exists(file.Path: string): Promise<boolean> {
+    try {
+      await promisesstat(file.Path);
+      return true} catch (error) {
+      return false}}/**
+   * Watch a path for changes*/
+  private async watch.Path(client.Id: string, watch.Path: string): Promise<void> {
+    const watcher.Id = `${client.Id}:${watch.Path}`// Don't create duplicate watchers';
+    if (thiswatchershas(watcher.Id)) return;
+    const watcher = chokidarwatch(watch.Path, {
+      persistent: true,
+      ignore.Initial: true,
+      follow.Symlinks: false,
+      depth: 0}),
+    watcheron('all', (event, file.Path) => {';
+      const ws = thisws.Clientsget(client.Id);
+      if (ws && wsready.State === WebSocketOP.E.N) {
+        wssend();
+          JS.O.N.stringify({
+            type: 'event',';
+            event;
+            path: file.Path,
+            timestamp: Date.now()}))}}),
+    thiswatchersset(watcher.Id, watcher)}/**
+   * Stop watching a path*/
+  private async unwatch.Path(client.Id: string, watch.Path: string): Promise<void> {
+    const watcher.Id = `${client.Id}:${watch.Path}`;
+    const watcher = thiswatchersget(watcher.Id);
+    if (watcher) {
+      await watcherclose();
+      thiswatchersdelete(watcher.Id)}}/**
+   * Emit file system event to all Web.Socket clients*/
+  private emit.File.Event(event: string, file.Path: string): void {
+    const message = JS.O.N.stringify({
+      type: 'event',';
+      event;
+      path: file.Path,
+      timestamp: Date.now()}),
+    thisws.Clientsfor.Each((ws) => {
+      if (wsready.State === WebSocketOP.E.N) {
+        wssend(message)}})}/**
+   * Get the router*/
+  public get.Router(): Router {
+    return thisrouter}}/**
+ * Export router factory function*/
+export function File.System.Router(supabase: Supabase.Client): Router {
+  const fs.Router = new FileSystem.Router.Class(supabase);
+  return fs.Routerget.Router();

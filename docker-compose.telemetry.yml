@@ -6,18 +6,18 @@ services:
     image: jaegertracing/all-in-one:1.53
     container_name: jaeger
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "14250:14250"  # gRPC
-      - "14268:14268"  # HTTP
-      - "14269:14269"  # Admin HTTP
-      - "6831:6831/udp"  # UDP
-      - "6832:6832/udp"  # UDP
-      - "5778:5778"    # Config server
+      - '16686:16686' # Jaeger UI
+      - '14250:14250' # gRPC
+      - '14268:14268' # HTTP
+      - '14269:14269' # Admin HTTP
+      - '6831:6831/udp' # UDP
+      - '6832:6832/udp' # UDP
+      - '5778:5778' # Config server
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
       - COLLECTOR_OTLP_ENABLED=true
-    command: 
-      - "--log-level=debug"
+    command:
+      - '--log-level=debug'
     networks:
       - telemetry
 
@@ -26,7 +26,7 @@ services:
     image: openzipkin/zipkin:3.2
     container_name: zipkin
     ports:
-      - "9411:9411"
+      - '9411:9411'
     environment:
       - STORAGE_TYPE=mem
     networks:
@@ -37,7 +37,7 @@ services:
     image: prom/prometheus:v2.49.1
     container_name: prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -57,7 +57,7 @@ services:
     image: grafana/grafana:10.2.3
     container_name: grafana
     ports:
-      - "3003:3000"
+      - '3003:3000'
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -73,15 +73,15 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.92.0
     container_name: otel-collector
-    command: ["--config=/etc/otel-collector-config.yml"]
+    command: ['--config=/etc/otel-collector-config.yml']
     volumes:
       - ./monitoring/otel-collector-config.yml:/etc/otel-collector-config.yml
     ports:
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
-      - "8888:8888"   # Prometheus metrics
-      - "8889:8889"   # Prometheus metrics (alternative)
-      - "13133:13133" # Health check
+      - '4317:4317' # OTLP gRPC receiver
+      - '4318:4318' # OTLP HTTP receiver
+      - '8888:8888' # Prometheus metrics
+      - '8889:8889' # Prometheus metrics (alternative)
+      - '13133:13133' # Health check
     depends_on:
       - jaeger
       - prometheus
@@ -93,7 +93,7 @@ services:
     image: prom/alertmanager:v0.26.0
     container_name: alertmanager
     ports:
-      - "9093:9093"
+      - '9093:9093'
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
       - alertmanager_data:/alertmanager
@@ -120,7 +120,7 @@ services:
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "9100:9100"
+      - '9100:9100'
     networks:
       - telemetry
 
@@ -131,7 +131,7 @@ services:
     command:
       - '--redis.addr=redis://redis:6379'
     ports:
-      - "9121:9121"
+      - '9121:9121'
     depends_on:
       - redis
     networks:
@@ -142,7 +142,7 @@ services:
     image: grafana/loki:2.9.4
     container_name: loki
     ports:
-      - "3100:3100"
+      - '3100:3100'
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml
@@ -168,7 +168,7 @@ services:
     image: redis:7.2-alpine
     container_name: redis
     ports:
-      - "6380:6379"
+      - '6380:6379'
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data

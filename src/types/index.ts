@@ -1,119 +1,178 @@
-/**
- * Universal AI Tools - Shared Type Definitions
- * 
- * This module exports all shared types for use across the application
- * and for coordination with the frontend.
- * 
- * Usage:
- * import { ApiResponse, Agent, Memory } from '../types';
- * import type { WebSocketMessage } from '../types/websocket';
- * import { ErrorCode } from '../types/errors';
- */
-
-// Re-export all API types
-export * from './api';
-
-// Re-export WebSocket types
-export * from './websocket';
-
-// Re-export Error types
-export * from './errors';
-
-// Version information for API compatibility
-export const API_VERSION = '1.0.0';
-export const TYPE_DEFINITIONS_VERSION = '1.0.0';
-
-// Type guards for runtime type checking
-export function isApiResponse<T = any>(obj: any): obj is import('./api').ApiResponse<T> {
-  return typeof obj === 'object' && 
-         obj !== null && 
-         typeof obj.success === 'boolean';
+// Core Types for Universal AI Tools
+export interface AgentConfig {
+  name: string;
+  description: string;
+  priority: number;
+  capabilities: AgentCapability[];
+  maxLatencyMs: number;
+  retryAttempts: number;
+  dependencies: string[];
+  memoryEnabled?: boolean;
+  toolExecutionEnabled?: boolean;
+  allowedTools?: string[];
 }
 
-export function isApiError(obj: any): obj is import('./api').ApiError {
-  return typeof obj === 'object' && 
-         obj !== null && 
-         typeof obj.code === 'string' && 
-         typeof obj.message === 'string' && 
-         typeof obj.timestamp === 'string';
+export interface AgentCapability {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  outputSchema: Record<string, unknown>;
+  requiresTools?: string[];
 }
 
-export function isWebSocketMessage(obj: any): obj is import('./websocket').WebSocketMessage {
-  return typeof obj === 'object' && 
-         obj !== null && 
-         obj.event && 
-         typeof obj.event.type === 'string' && 
-         typeof obj.event.timestamp === 'string';
+export interface AgentContext {
+  userRequest: string;
+  requestId: string;
+  workingDirectory?: string;
+  memoryContext?: unknown;
+  userId?: string;
+  previousContext?: unknown;
+  metadata?: Record<string, any>;
 }
 
-// Utility types for common patterns
-export type PartialExcept<T, K extends keyof T> = Partial<T> & Pick<T, K>;
-export type OptionalExcept<T, K extends keyof T> = Partial<T> & Required<Pick<T, K>>;
+export interface AgentResponse {
+  success: boolean;
+  data: unknown;
+  confidence: number;
+  message: string;
+  reasoning: string;
+  metadata?: Record<string, unknown>;
+}
 
-// Common request/response wrappers
-export type ApiRequest<T = any> = {
-  data: T;
-  meta?: {
-    requestId?: string;
-    timestamp?: string;
-    userAgent?: string;
-    sessionId?: string;
+export interface Memory {
+  id: string;
+  type: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  tags: string[];
+  importance: number;
+  timestamp: string;
+  embedding?: number[];
+}
+
+export interface OrchestrationRequest {
+  requestId: string;
+  userRequest: string;
+  userId: string;
+  orchestrationMode?: 'simple' | 'standard' | 'cognitive' | 'adaptive';
+  context: Record<string, unknown>;
+  timestamp: Date;
+}
+
+export interface OrchestrationResponse {
+  requestId: string;
+  success: boolean;
+  mode: string;
+  result: unknown;
+  complexity?: string;
+  confidence?: number;
+  reasoning?: string;
+  participatingAgents?: string[];
+  executionTime?: number;
+  error?: string;
+}
+
+export enum AgentCategory {
+  CORE = 'core',
+  COGNITIVE = 'cognitive',
+  PERSONAL = 'personal',
+  UTILITY = 'utility',
+  SPECIALIZED = 'specialized',
+}
+
+export interface AgentDefinition {
+  name: string;
+  category: AgentCategory;
+  description: string;
+  priority: number;
+  className: string;
+  modulePath: string;
+  dependencies: string[];
+  capabilities: string[];
+  memoryEnabled: boolean;
+  maxLatencyMs: number;
+  retryAttempts: number;
+}
+
+export interface ServiceConfig {
+  port: number;
+  environment: string;
+  database: {
+    url: string;
+    poolSize: number;
   };
-};
-
-export type PaginatedResponse<T> = import('./api').ApiResponse<T[]> & {
-  meta: import('./api').ResponseMeta & {
-    pagination: import('./api').PaginationMeta;
+  redis?: {
+    url: string;
+    retryAttempts: number;
   };
-};
+  supabase: {
+    url: string;
+    anonKey: string;
+    serviceKey: string;
+  };
+  jwt: {
+    secret: string;
+    expiresIn: string;
+  };
+  llm: {
+    openaiApiKey?: string;
+    anthropicApiKey?: string;
+    ollamaUrl?: string;
+  };
+  vision: {
+    enableSdxlRefiner: boolean;
+    sdxlRefinerPath: string;
+    preferredBackend: 'mlx' | 'gguf' | 'auto';
+    maxVram: number;
+    enableCaching: boolean;
+  };
+}
 
-// Agent-specific type combinations
-export type AgentWithMetrics = import('./api').Agent & {
-  metrics: Required<import('./api').AgentMetrics>;
-};
+export interface ErrorCode {
+  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD';
+  INVALID_FORMAT: 'INVALID_FORMAT';
+  REQUEST_TOO_LARGE: 'REQUEST_TOO_LARGE';
+  MEMORY_STORAGE_ERROR: 'MEMORY_STORAGE_ERROR';
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR';
+  AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR';
+  AGENT_NOT_FOUND: 'AGENT_NOT_FOUND';
+  ORCHESTRATION_ERROR: 'ORCHESTRATION_ERROR';
+  VALIDATION_ERROR: 'VALIDATION_ERROR';
+  NOT_FOUND: 'NOT_FOUND';
+  UNAUTHORIZED: 'UNAUTHORIZED';
+  INTERNAL_ERROR: 'INTERNAL_ERROR';
+  ANALYSIS_ERROR: 'ANALYSIS_ERROR';
+  GENERATION_ERROR: 'GENERATION_ERROR';
+  EMBEDDING_ERROR: 'EMBEDDING_ERROR';
+  SERVICE_ERROR: 'SERVICE_ERROR';
+  REFINEMENT_ERROR: 'REFINEMENT_ERROR';
+}
 
-export type MemoryWithEmbedding = import('./api').Memory & {
-  embedding: number[];
-};
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: keyof ErrorCode;
+    message: string;
+    details?: unknown;
+  };
+  metadata?: {
+    requestId: string;
+    timestamp: string;
+    version: string;
+    processingTime?: number;
+  };
+}
 
-// WebSocket event type helpers
-export type WebSocketEventType = import('./websocket').AnyWebSocketEvent['type'];
-export type WebSocketEventData<T extends WebSocketEventType> = 
-  Extract<import('./websocket').AnyWebSocketEvent, { type: T }>['data'];
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
 
-// Error type helpers
-export type ErrorCodeType = import('./errors').ErrorCode;
-export type ErrorSeverityType = import('./errors').ErrorSeverity;
-
-// Constants for frontend coordination
-export const DEFAULT_API_CONFIG = {
-  baseURL: 'http://localhost:9999/api',
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-} as const;
-
-export const DEFAULT_WEBSOCKET_CONFIG = {
-  url: 'ws://localhost:9999/ws',
-  reconnectInterval: 3000,
-  maxReconnectAttempts: 5,
-  heartbeatInterval: 30000,
-  timeout: 30000,
-} as const;
-
-export const DEFAULT_PAGINATION = {
-  page: 1,
-  limit: 10,
-  sort: 'createdAt',
-  order: 'desc' as const,
-};
-
-// Type definitions for package.json if this becomes a shared package
-export const PACKAGE_INFO = {
-  name: '@universal-ai-tools/types',
-  version: TYPE_DEFINITIONS_VERSION,
-  description: 'Shared TypeScript type definitions for Universal AI Tools',
-  main: 'index.ts',
-  types: 'index.ts',
-} as const;
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
+  pagination: PaginationMeta;
+}

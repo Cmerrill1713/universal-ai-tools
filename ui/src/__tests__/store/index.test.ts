@@ -95,10 +95,10 @@ describe('Zustand Store', () => {
       const { result } = renderHook(() => useStore());
       
       act(() => {
-        result.current.setConnectionStatus('backend', 'connected');
+        result.current.setConnectionStatus('backend', 'this.connected');
       });
       
-      expect(result.current.connectionStatus.backend).toBe('connected');
+      expect(result.current.connectionStatus.backend).toBe('this.connected');
       
       act(() => {
         result.current.setConnectionStatus('ollama', 'checking');

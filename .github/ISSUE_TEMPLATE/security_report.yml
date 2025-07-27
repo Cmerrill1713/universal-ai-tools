@@ -1,7 +1,7 @@
 name: Security Report
 description: Report a security vulnerability (privately)
-title: "[Security]: "
-labels: ["security", "urgent", "triage"]
+title: '[Security]: '
+labels: ['security', 'urgent', 'triage']
 assignees:
   - christianmerrill
 
@@ -10,9 +10,9 @@ body:
     attributes:
       value: |
         # Security Vulnerability Report
-        
+
         **⚠️ IMPORTANT: If this is a critical security vulnerability, please email security@universalaitools.com instead of creating a public issue.**
-        
+
         For non-critical security improvements or questions, please continue with this form.
 
   - type: input
@@ -167,12 +167,12 @@ body:
     attributes:
       value: |
         ---
-        
+
         ## Next Steps
-        
+
         1. **Critical Issues**: For critical vulnerabilities, please also email security@universalaitools.com with detailed information
         2. **Response Time**: We aim to respond to security reports within 48 hours
         3. **Updates**: We will keep you informed of our progress on addressing the issue
         4. **Credit**: We're happy to acknowledge security researchers who help improve our security
-        
+
         Thank you for helping keep Universal AI Tools secure! 🔐

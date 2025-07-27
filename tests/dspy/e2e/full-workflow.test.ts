@@ -12,7 +12,7 @@ import { spawn } from 'child_process';
 interface WorkflowStep {
   name: string;
   action: () => Promise<any>;
-  validate: (result: any) => void;
+  validate: (result: unknown) => void;
 }
 
 interface WorkflowResult {
@@ -21,7 +21,7 @@ interface WorkflowResult {
     name: string;
     success: boolean;
     duration: number;
-    result?: any;
+    result?: unknown;
     error?: string;
   }>;
   totalDuration: number;
@@ -38,22 +38,23 @@ describe('DSPy End-to-End Workflows', () => {
 
   beforeAll(async () => {
     logger.info('🚀 Starting E2E workflow tests...');
-    
+
     // Initialize services
-    testUserId = `test-user-${uuidv4()}`;
+    // TODO: Refactor nested ternary
+testUserId = `test-user-${uuidv4()}`;
     testWorkspace = path.join(process.cwd(), 'tests', 'dspy', 'e2e', 'workspace', testUserId);
-    
+
     // Create test workspace
     await fs.mkdir(testWorkspace, { recursive: true });
-    
+
     // Initialize services
     dspyService = new DSPyService();
     agentRegistry = UniversalAgentRegistry.getInstance();
     memorySystem = EnhancedMemorySystem.getInstance();
     supabaseService = SupabaseService.getInstance();
-    
+
     // Wait for services to be ready
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   });
 
   afterAll(async () => {
@@ -66,10 +67,7 @@ describe('DSPy End-to-End Workflows', () => {
     jest.clearAllMocks();
   });
 
-  async function executeWorkflow(
-    name: string,
-    steps: WorkflowStep[]
-  ): Promise<WorkflowResult> {
+  async function executeWorkflow(name: string, steps: WorkflowStep[]): Promise<WorkflowResult> {
     const workflowId = uuidv4();
     const workflowStart = Date.now();
     const results: WorkflowResult['steps'] = [];
@@ -80,31 +78,31 @@ describe('DSPy End-to-End Workflows', () => {
     for (const step of steps) {
       const stepStart = Date.now();
       logger.info(`  ▶️ Executing: ${step.name}`);
-      
+
       try {
         const result = await step.action();
         step.validate(result);
-        
+
         const duration = Date.now() - stepStart;
         results.push({
           name: step.name,
           success: true,
           duration,
-          result
+          result,
         });
-        
+
         logger.info(`  ✅ Completed: ${step.name} (${duration}ms)`);
       } catch (error) {
         const duration = Date.now() - stepStart;
         overallSuccess = false;
-        
+
         results.push({
           name: step.name,
           success: false,
           duration,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
-        
+
         logger.error(`  ❌ Failed: ${step.name} - ${error}`);
       }
     }
@@ -116,36 +114,37 @@ describe('DSPy End-to-End Workflows', () => {
       workflowId,
       steps: results,
       totalDuration,
-      success: overallSuccess
+      success: overallSuccess,
     };
   }
 
   describe('Code Development Workflow', () => {
     it('should complete a full code development workflow', async () => {
       const projectPath = path.join(testWorkspace, 'todo-api');
-      
+
       const workflow = await executeWorkflow('Code Development', [
         {
           name: 'Project Planning',
           action: async () => {
             return await dspyService.orchestrate({
               requestId: uuidv4(),
-              userRequest: 'Plan a REST API for a todo list application with TypeScript, Express, and PostgreSQL',
+              userRequest:
+                'Plan a REST API for a todo list application with TypeScript, Express, and PostgreSQL',
               userId: testUserId,
               orchestrationMode: 'cognitive',
               context: {
                 projectType: 'REST API',
                 technologies: ['TypeScript', 'Express', 'PostgreSQL'],
-                outputPath: projectPath
+                outputPath: projectPath,
               },
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.reasoning).toBeTruthy();
             expect(result.participatingAgents).toContain('planner');
-          }
+          },
         },
         {
           name: 'Code Generation',
@@ -157,7 +156,7 @@ describe('DSPy End-to-End Workflows', () => {
               {
                 projectPath,
                 endpoints: ['/todos', '/todos/:id'],
-                methods: ['GET', 'POST', 'PUT', 'DELETE']
+                methods: ['GET', 'POST', 'PUT', 'DELETE'],
               }
             );
           },
@@ -165,7 +164,7 @@ describe('DSPy End-to-End Workflows', () => {
             expect(result.success).toBe(true);
             expect(result.selectedAgents).toHaveLength(2);
             expect(result.assignments).toBeTruthy();
-          }
+          },
         },
         {
           name: 'Test Creation',
@@ -178,15 +177,15 @@ describe('DSPy End-to-End Workflows', () => {
               context: {
                 projectPath,
                 testFramework: 'jest',
-                coverageTarget: 80
+                coverageTarget: 80,
               },
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.result).toBeTruthy();
-          }
+          },
         },
         {
           name: 'Documentation',
@@ -196,15 +195,15 @@ describe('DSPy End-to-End Workflows', () => {
               context: {
                 type: 'API Documentation',
                 format: 'OpenAPI',
-                projectPath
-              }
+                projectPath,
+              },
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.result).toHaveProperty('entities');
             expect(result.result).toHaveProperty('concepts');
-          }
+          },
         },
         {
           name: 'Knowledge Storage',
@@ -214,20 +213,19 @@ describe('DSPy End-to-End Workflows', () => {
               name: 'todo-api',
               description: 'REST API for todo list management',
               technologies: ['TypeScript', 'Express', 'PostgreSQL'],
-              timestamp: new Date()
+              timestamp: new Date(),
             };
-            
-            return await memorySystem.store(
-              JSON.stringify(knowledge),
-              testUserId,
-              { projectId: 'todo-api', type: 'project-metadata' }
-            );
+
+            return await memorySystem.store(JSON.stringify(knowledge), testUserId, {
+              projectId: 'todo-api',
+              type: 'project-metadata',
+            });
           },
           validate: (result) => {
             expect(result).toBeTruthy();
             expect(typeof result).toBe('string'); // Memory ID
-          }
-        }
+          },
+        },
       ]);
 
       expect(workflow.success).toBe(true);
@@ -240,21 +238,21 @@ describe('DSPy End-to-End Workflows', () => {
     it('should complete a research workflow with knowledge evolution', async () => {
       const researchTopic = 'Quantum Computing Applications in Cryptography';
       let accumulatedKnowledge = '';
-      
+
       const workflow = await executeWorkflow('Research and Analysis', [
         {
           name: 'Initial Research',
           action: async () => {
             return await dspyService.searchKnowledge(researchTopic, {
               limit: 20,
-              includeRelated: true
+              includeRelated: true,
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.result.results).toBeTruthy();
             expect(Array.isArray(result.result.results)).toBe(true);
-          }
+          },
         },
         {
           name: 'Deep Dive Analysis',
@@ -266,9 +264,9 @@ describe('DSPy End-to-End Workflows', () => {
               orchestrationMode: 'cognitive',
               context: {
                 depth: 'expert',
-                includeReferences: true
+                includeReferences: true,
               },
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
@@ -276,63 +274,62 @@ describe('DSPy End-to-End Workflows', () => {
             expect(result.mode).toBe('cognitive');
             expect(result.result).toBeTruthy();
             accumulatedKnowledge = result.result;
-          }
+          },
         },
         {
           name: 'Knowledge Extraction',
           action: async () => {
             return await dspyService.extractKnowledge(accumulatedKnowledge, {
               domain: 'quantum-cryptography',
-              extractTypes: ['concepts', 'entities', 'relationships', 'implications']
+              extractTypes: ['concepts', 'entities', 'relationships', 'implications'],
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.result.concepts).toBeTruthy();
             expect(result.result.entities).toBeTruthy();
-          }
+          },
         },
         {
           name: 'Knowledge Evolution',
           action: async () => {
-            const newInformation = 'Recent breakthrough in quantum key distribution using entangled photons';
-            return await dspyService.evolveKnowledge(
-              accumulatedKnowledge,
-              newInformation
-            );
+            const newInformation =
+              'Recent breakthrough in quantum key distribution using entangled photons';
+            return await dspyService.evolveKnowledge(accumulatedKnowledge, newInformation);
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.result.evolved_knowledge).toContain('quantum key distribution');
             expect(result.result.confidence).toBeGreaterThan(0.7);
-          }
+          },
         },
         {
           name: 'Report Generation',
           action: async () => {
             return await dspyService.orchestrate({
               requestId: uuidv4(),
-              userRequest: 'Generate an executive summary of the quantum cryptography research findings',
+              userRequest:
+                'Generate an executive summary of the quantum cryptography research findings',
               userId: testUserId,
               orchestrationMode: 'standard',
               context: {
                 format: 'executive-summary',
                 maxLength: 500,
-                audience: 'technical-leadership'
+                audience: 'technical-leadership',
               },
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.result).toBeTruthy();
             expect(result.result.length).toBeLessThan(1000); // Reasonable summary length
-          }
-        }
+          },
+        },
       ]);
 
       expect(workflow.success).toBe(true);
-      expect(workflow.steps.every(step => step.success)).toBe(true);
+      expect(workflow.steps.every((step) => step.success)).toBe(true);
     });
   });
 
@@ -342,7 +339,7 @@ describe('DSPy End-to-End Workflows', () => {
         type: 'web-scraper',
         target: 'e-commerce-prices',
         features: ['pagination', 'rate-limiting', 'data-export'],
-        outputFormat: 'JSON'
+        outputFormat: 'JSON',
       };
 
       const workflow = await executeWorkflow('Multi-Agent Collaboration', [
@@ -352,7 +349,7 @@ describe('DSPy End-to-End Workflows', () => {
             const availableAgents = await agentRegistry.getAvailableAgents();
             return await dspyService.coordinateAgents(
               'Build a web scraper for e-commerce price monitoring',
-              availableAgents.map(a => a.id),
+              availableAgents.map((a) => a.id),
               projectRequirements
             );
           },
@@ -361,7 +358,7 @@ describe('DSPy End-to-End Workflows', () => {
             expect(result.selectedAgents.length).toBeGreaterThan(1);
             expect(result.assignments).toBeTruthy();
             expect(result.assignments.length).toBeGreaterThan(0);
-          }
+          },
         },
         {
           name: 'Parallel Execution',
@@ -369,27 +366,27 @@ describe('DSPy End-to-End Workflows', () => {
             const subtasks = [
               {
                 request: 'Design the scraper architecture',
-                mode: 'standard' as const
+                mode: 'standard' as const,
               },
               {
                 request: 'Implement rate limiting logic',
-                mode: 'simple' as const
+                mode: 'simple' as const,
               },
               {
                 request: 'Create data export functionality',
-                mode: 'standard' as const
-              }
+                mode: 'standard' as const,
+              },
             ];
 
             const results = await Promise.all(
-              subtasks.map(task => 
+              subtasks.map((task) =>
                 dspyService.orchestrate({
                   requestId: uuidv4(),
                   userRequest: task.request,
                   userId: testUserId,
                   orchestrationMode: task.mode,
                   context: projectRequirements,
-                  timestamp: new Date()
+                  timestamp: new Date(),
                 })
               )
             );
@@ -399,10 +396,10 @@ describe('DSPy End-to-End Workflows', () => {
           validate: (results) => {
             expect(Array.isArray(results)).toBe(true);
             expect(results).toHaveLength(3);
-            results.forEach(result => {
+            results.forEach((result) => {
               expect(result.success).toBe(true);
             });
-          }
+          },
         },
         {
           name: 'Integration Testing',
@@ -415,22 +412,22 @@ describe('DSPy End-to-End Workflows', () => {
               context: {
                 components: ['scraper', 'rate-limiter', 'exporter'],
                 testingFramework: 'jest',
-                mockData: true
+                mockData: true,
               },
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.participatingAgents.length).toBeGreaterThan(0);
-          }
+          },
         },
         {
           name: 'Performance Optimization',
           action: async () => {
             const testCases = [
               { url: 'https://example.com/page1', expectedTime: 1000 },
-              { url: 'https://example.com/page2', expectedTime: 1200 }
+              { url: 'https://example.com/page2', expectedTime: 1200 },
             ];
 
             return await dspyService.optimizePrompts(testCases);
@@ -439,20 +436,20 @@ describe('DSPy End-to-End Workflows', () => {
             expect(result.success).toBe(true);
             expect(result.optimized).toBe(true);
             expect(result.performanceGain).toBeGreaterThanOrEqual(0);
-          }
-        }
+          },
+        },
       ]);
 
       expect(workflow.success).toBe(true);
-      expect(workflow.steps.filter(s => s.success).length).toBeGreaterThanOrEqual(3);
+      expect(workflow.steps.filter((s) => s.success).length).toBeGreaterThanOrEqual(3);
     });
   });
 
   describe('Adaptive Workflow with Error Recovery', () => {
     it('should adapt to changing requirements and handle errors', async () => {
-      let currentContext: any = {
+      let currentContext: unknown = {
         complexity: 'simple',
-        retryCount: 0
+        retryCount: 0,
       };
 
       const workflow = await executeWorkflow('Adaptive Error Recovery', [
@@ -465,14 +462,14 @@ describe('DSPy End-to-End Workflows', () => {
               userId: testUserId,
               orchestrationMode: 'adaptive',
               context: currentContext,
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.mode).toBeTruthy();
             currentContext.lastMode = result.mode;
-          }
+          },
         },
         {
           name: 'Complex Task Requiring Adaptation',
@@ -480,18 +477,19 @@ describe('DSPy End-to-End Workflows', () => {
             currentContext.complexity = 'high';
             return await dspyService.orchestrate({
               requestId: uuidv4(),
-              userRequest: 'Design and implement a distributed cache invalidation strategy for a microservices architecture with eventual consistency requirements',
+              userRequest:
+                'Design and implement a distributed cache invalidation strategy for a microservices architecture with eventual consistency requirements',
               userId: testUserId,
               orchestrationMode: 'adaptive',
               context: currentContext,
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.mode).not.toBe('simple'); // Should adapt to higher complexity
             expect(result.participatingAgents.length).toBeGreaterThan(1);
-          }
+          },
         },
         {
           name: 'Error Simulation and Recovery',
@@ -503,21 +501,21 @@ describe('DSPy End-to-End Workflows', () => {
               userId: testUserId,
               orchestrationMode: 'adaptive' as const,
               context: { ...currentContext, allowEmpty: false },
-              timestamp: new Date()
+              timestamp: new Date(),
             };
 
             const result = await dspyService.orchestrate(problematicRequest);
-            
+
             if (!result.success) {
               // Retry with corrected request
               currentContext.retryCount++;
               return await dspyService.orchestrate({
                 ...problematicRequest,
                 userRequest: 'Retry: Provide a default response for empty requests',
-                context: { ...currentContext, isRetry: true }
+                context: { ...currentContext, isRetry: true },
               });
             }
-            
+
             return result;
           },
           validate: (result) => {
@@ -526,16 +524,15 @@ describe('DSPy End-to-End Workflows', () => {
             if (currentContext.retryCount > 0) {
               expect(result.success).toBe(true);
             }
-          }
+          },
         },
         {
           name: 'Context Persistence',
           action: async () => {
-            const memoryId = await memorySystem.store(
-              JSON.stringify(currentContext),
-              testUserId,
-              { type: 'workflow-context', workflowType: 'adaptive' }
-            );
+            const memoryId = await memorySystem.store(JSON.stringify(currentContext), testUserId, {
+              type: 'workflow-context',
+              workflowType: 'adaptive',
+            });
 
             // Retrieve to verify persistence
             const retrieved = await memorySystem.retrieve(memoryId);
@@ -544,12 +541,12 @@ describe('DSPy End-to-End Workflows', () => {
           validate: (result) => {
             expect(result.retrieved).toEqual(result.stored);
             expect(result.retrieved.retryCount).toBe(currentContext.retryCount);
-          }
-        }
+          },
+        },
       ]);
 
       expect(workflow.success).toBe(true);
-      expect(workflow.steps.filter(s => s.success).length).toBeGreaterThanOrEqual(3);
+      expect(workflow.steps.filter((s) => s.success).length).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -567,19 +564,18 @@ describe('DSPy End-to-End Workflows', () => {
               sessionId,
               userId: testUserId,
               startTime: new Date(),
-              goals: ['Learn about DSPy', 'Build a test application', 'Optimize performance']
+              goals: ['Learn about DSPy', 'Build a test application', 'Optimize performance'],
             };
 
-            return await memorySystem.store(
-              JSON.stringify(sessionData),
-              testUserId,
-              { type: 'session', sessionId }
-            );
+            return await memorySystem.store(JSON.stringify(sessionData), testUserId, {
+              type: 'session',
+              sessionId,
+            });
           },
           validate: (result) => {
             expect(result).toBeTruthy();
             expect(typeof result).toBe('string');
-          }
+          },
         },
         {
           name: 'Progressive Learning',
@@ -587,7 +583,7 @@ describe('DSPy End-to-End Workflows', () => {
             const topics = [
               'What is DSPy and how does it work?',
               'How to implement prompt optimization with DSPy?',
-              'Best practices for agent coordination'
+              'Best practices for agent coordination',
             ];
 
             const results = [];
@@ -599,9 +595,9 @@ describe('DSPy End-to-End Workflows', () => {
                 orchestrationMode: 'cognitive',
                 context: {
                   sessionId,
-                  previousKnowledge: knowledgeBase
+                  previousKnowledge: knowledgeBase,
                 },
-                timestamp: new Date()
+                timestamp: new Date(),
               });
 
               if (response.success) {
@@ -614,27 +610,28 @@ describe('DSPy End-to-End Workflows', () => {
           },
           validate: (results) => {
             expect(results).toHaveLength(3);
-            results.forEach(result => {
+            results.forEach((result) => {
               expect(result.success).toBe(true);
               expect(result.result).toBeTruthy();
             });
             expect(knowledgeBase).toHaveLength(3);
-          }
+          },
         },
         {
           name: 'Knowledge Synthesis',
           action: async () => {
             return await dspyService.orchestrate({
               requestId: uuidv4(),
-              userRequest: 'Synthesize all the learned information about DSPy into a practical implementation guide',
+              userRequest:
+                'Synthesize all the learned information about DSPy into a practical implementation guide',
               userId: testUserId,
               orchestrationMode: 'cognitive',
               context: {
                 sessionId,
                 knowledgeBase,
-                outputFormat: 'step-by-step-guide'
+                outputFormat: 'step-by-step-guide',
               },
-              timestamp: new Date()
+              timestamp: new Date(),
             });
           },
           validate: (result) => {
@@ -642,7 +639,7 @@ describe('DSPy End-to-End Workflows', () => {
             expect(result.mode).toBe('cognitive');
             expect(result.result).toContain('DSPy');
             expect(result.reasoning).toBeTruthy();
-          }
+          },
         },
         {
           name: 'Implementation Planning',
@@ -650,11 +647,11 @@ describe('DSPy End-to-End Workflows', () => {
             const allAgents = await agentRegistry.getAvailableAgents();
             return await dspyService.coordinateAgents(
               'Create a sample DSPy application based on the synthesized guide',
-              allAgents.map(a => a.id),
+              allAgents.map((a) => a.id),
               {
                 sessionId,
                 guide: knowledgeBase[knowledgeBase.length - 1],
-                targetLanguage: 'TypeScript'
+                targetLanguage: 'TypeScript',
               }
             );
           },
@@ -663,7 +660,7 @@ describe('DSPy End-to-End Workflows', () => {
             expect(result.selectedAgents).toBeTruthy();
             expect(result.coordinationPlan).toBeTruthy();
             expect(result.assignments.length).toBeGreaterThan(0);
-          }
+          },
         },
         {
           name: 'Performance Analysis',
@@ -672,21 +669,20 @@ describe('DSPy End-to-End Workflows', () => {
             const metrics = {
               totalRequests: 5,
               successfulRequests: 5,
-              averageResponseTime: 1000,
+              averageResponseTime: MILLISECONDS_IN_SECOND,
               knowledgeItemsCreated: knowledgeBase.length,
-              agentsUsed: new Set<string>()
+              agentsUsed: new Set<string>(),
             };
 
             // Store performance metrics
-            return await memorySystem.store(
-              JSON.stringify(metrics),
-              testUserId,
-              { type: 'performance-metrics', sessionId }
-            );
+            return await memorySystem.store(JSON.stringify(metrics), testUserId, {
+              type: 'performance-metrics',
+              sessionId,
+            });
           },
           validate: (result) => {
             expect(result).toBeTruthy();
-          }
+          },
         },
         {
           name: 'Session Cleanup',
@@ -695,22 +691,22 @@ describe('DSPy End-to-End Workflows', () => {
             return {
               sessionId,
               itemsProcessed: knowledgeBase.length,
-              success: true
+              success: true,
             };
           },
           validate: (result) => {
             expect(result.success).toBe(true);
             expect(result.itemsProcessed).toBeGreaterThan(0);
-          }
-        }
+          },
+        },
       ]);
 
       expect(workflow.success).toBe(true);
       expect(workflow.steps).toHaveLength(6);
       expect(workflow.totalDuration).toBeLessThan(60000); // Complete within 1 minute
-      
+
       // Verify all steps completed successfully
-      const failedSteps = workflow.steps.filter(s => !s.success);
+      const failedSteps = workflow.steps.filter((s) => !s.success);
       expect(failedSteps).toHaveLength(0);
     });
   });
@@ -721,8 +717,9 @@ describe('DSPy End-to-End Workflows', () => {
       const requestsPerUser = 5;
 
       const userWorkflows = await Promise.all(
-        Array.from({ length: concurrentUsers }, (_, userIndex) => 
-          executeWorkflow(`User ${userIndex} Workflow`, 
+        Array.from({ length: concurrentUsers }, (_, userIndex) =>
+          executeWorkflow(
+            `User ${userIndex} Workflow`,
             Array.from({ length: requestsPerUser }, (_, reqIndex) => ({
               name: `Request ${reqIndex}`,
               action: async () => {
@@ -731,12 +728,12 @@ describe('DSPy End-to-End Workflows', () => {
                   userRequest: `User ${userIndex} request ${reqIndex}: Perform a simple calculation`,
                   userId: `stress-test-user-${userIndex}`,
                   orchestrationMode: 'simple',
-                  timestamp: new Date()
+                  timestamp: new Date(),
                 });
               },
               validate: (result) => {
                 expect(result.success).toBe(true);
-              }
+              },
             }))
           )
         )
@@ -744,10 +741,10 @@ describe('DSPy End-to-End Workflows', () => {
 
       // Analyze results
       const totalRequests = concurrentUsers * requestsPerUser;
-      const successfulWorkflows = userWorkflows.filter(w => w.success).length;
+      const successfulWorkflows = userWorkflows.filter((w) => w.success).length;
       const totalSteps = userWorkflows.reduce((sum, w) => sum + w.steps.length, 0);
       const successfulSteps = userWorkflows.reduce(
-        (sum, w) => sum + w.steps.filter(s => s.success).length, 
+        (sum, w) => sum + w.steps.filter((s) => s.success).length,
         0
       );
 
@@ -756,7 +753,7 @@ describe('DSPy End-to-End Workflows', () => {
       logger.info(`Successful Workflows: ${successfulWorkflows}`);
       logger.info(`Total Requests: ${totalRequests}`);
       logger.info(`Successful Requests: ${successfulSteps}`);
-      logger.info(`Success Rate: ${(successfulSteps / totalSteps * 100).toFixed(2)}%`);
+      logger.info(`Success Rate: ${((successfulSteps / totalSteps) * 100).toFixed(2)}%`);
 
       expect(successfulSteps / totalSteps).toBeGreaterThan(0.95); // 95% success rate
     });

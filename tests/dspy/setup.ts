@@ -19,9 +19,9 @@ jest.mock('../../src/services/supabase_service', () => ({
       query: jest.fn().mockResolvedValue({ data: [], error: null }),
       insert: jest.fn().mockResolvedValue({ data: { id: 'mock-id' }, error: null }),
       update: jest.fn().mockResolvedValue({ data: {}, error: null }),
-      delete: jest.fn().mockResolvedValue({ data: {}, error: null })
-    })
-  }
+      delete: jest.fn().mockResolvedValue({ data: {}, error: null }),
+    }),
+  },
 }));
 
 // Global setup
@@ -34,7 +34,7 @@ beforeAll(async () => {
 // Global teardown
 afterAll(async () => {
   console.log('✅ DSPy Test Suite Completed');
-  
+
   // Clean up any remaining resources
   const timers = setTimeout(() => {}, 0);
   for (let i = 0; i <= timers; i++) {
@@ -69,12 +69,12 @@ expect.extend({
       };
     }
   },
-  
-  toContainObject(received: any[], expected: object) {
-    const pass = received.some(item => 
-      Object.keys(expected).every(key => item[key] === expected[key])
+
+  toContainObject(received: unknown[], expected: object) {
+    const pass = received.some((item) =>
+      Object.keys(expected).every((key) => item[key] === expected[key])
     );
-    
+
     if (pass) {
       return {
         message: () => `expected array not to contain object matching ${JSON.stringify(expected)}`,
@@ -86,7 +86,7 @@ expect.extend({
         pass: false,
       };
     }
-  }
+  },
 });
 
 // Extend Jest matchers TypeScript definitions

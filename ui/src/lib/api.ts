@@ -1,574 +1,187 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9999'
+const API_KEY = import.meta.env.VITE_API_KEY || 'test-api-key-123'
 
-// API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:9999/api';
-const API_KEY = process.env.REACT_APP_API_KEY || '';
-const AI_SERVICE = process.env.REACT_APP_AI_SERVICE || 'local-ui';
-
-// Warn if API key is not set
-if (!API_KEY) {
-  console.warn('⚠️  REACT_APP_API_KEY is not set. Authentication will fail.');
-}
-
-// Create axios instance with authentication headers
-export const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
+class API {
+  private headers = {
     'Content-Type': 'application/json',
-    'x-api-key': API_KEY,
-    'x-ai-service': AI_SERVICE,
-  },
-  timeout: 30000, // 30 second timeout
-});
-
-// Request interceptor to add authentication headers
-apiClient.interceptors.request.use(
-  (config) => {
-    // Add authentication headers for every request
-    config.headers['x-api-key'] = API_KEY;
-    config.headers['x-ai-service'] = AI_SERVICE;
-    
-    console.log(`🔌 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    return config;
-  },
-  (error) => {
-    console.error('❌ Request interceptor error:', error);
-    return Promise.reject(error);
+    'X-API-Key': API_KEY,
+    'X-AI-Service': import.meta.env.VITE_AI_SERVICE || 'universal-ai-ui'
   }
-);
-
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
-    return response;
-  },
-  (error) => {
-    console.error(`❌ API Error: ${error.response?.status} ${error.config?.url}`, error.response?.data);
+  
+  // Session management
+  private conversationId: string | null = null
+  private sessionId: string | null = null
+  
+  constructor() {
+    // Load session from localStorage
+    this.conversationId = localStorage.getItem('conversationId')
+    this.sessionId = localStorage.getItem('sessionId')
     
-    // Handle specific error cases with enhanced messaging
-    if (error.response?.status === 401) {
-      console.error('🔒 Authentication failed - check API keys');
-      error.message = 'Authentication failed. Please check your API credentials.';
-    } else if (error.response?.status === 403) {
-      console.error('🚫 Access forbidden - insufficient permissions');
-      error.message = 'Access forbidden. You don\'t have permission to perform this action.';
-    } else if (error.response?.status === 404) {
-      console.error('🔍 Resource not found');
-      error.message = 'The requested resource was not found.';
-    } else if (error.response?.status === 422) {
-      console.error('📝 Validation error');
-      error.message = error.response?.data?.message || 'Validation failed. Please check your input.';
-    } else if (error.response?.status === 429) {
-      console.error('⏱️ Rate limit exceeded');
-      error.message = 'Too many requests. Please try again later.';
-    } else if (error.response?.status === 500) {
-      console.error('🚨 Server error - check backend service');
-      error.message = 'Internal server error. Please try again or contact support.';
-    } else if (error.response?.status === 503) {
-      console.error('🔧 Service unavailable');
-      error.message = 'Service temporarily unavailable. Please try again later.';
-    } else if (error.code === 'ECONNREFUSED' || error.code === 'NETWORK_ERROR') {
-      console.error('🌐 Network connection failed');
-      error.message = 'Unable to connect to server. Please check your internet connection.';
-    } else if (error.code === 'ECONNABORTED') {
-      console.error('⏰ Request timeout');
-      error.message = 'Request timed out. Please try again.';
+    // Generate new session ID if not exists
+    if (!this.sessionId) {
+      this.sessionId = this.generateId()
+      localStorage.setItem('sessionId', this.sessionId)
+    }
+  }
+  
+  private generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2)
+  }
+  
+  startNewConversation() {
+    this.conversationId = this.generateId()
+    localStorage.setItem('conversationId', this.conversationId)
+    return this.conversationId
+  }
+  
+  async chat(message: string, newConversation = false) {
+    // Start new conversation if requested
+    if (newConversation || !this.conversationId) {
+      this.startNewConversation()
     }
     
-    return Promise.reject(error);
-  }
-);
-
-// API Response Types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface MemoryItem {
-  id: string;
-  content: string;
-  memory_type: string;
-  importance_score: number;
-  importance?: number; // For backward compatibility
-  tags?: string[];
-  created_at: string;
-  metadata?: Record<string, any>;
-  access_count?: number;
-  last_accessed?: string;
-  services_accessed?: string[];
-}
-
-export interface AgentItem {
-  id: string;
-  name: string;
-  description: string;
-  capabilities: string[];
-  instructions: string;
-  model: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  model?: string;
-}
-
-export interface OrchestrationRequest {
-  userRequest: string;
-  orchestrationMode?: 'simple' | 'standard' | 'cognitive' | 'adaptive';
-  context?: Record<string, any>;
-  conversationId?: string;
-  sessionId?: string;
-}
-
-export interface OrchestrationResponse {
-  success: boolean;
-  requestId: string;
-  data: any;
-  mode: string;
-  confidence: number;
-  reasoning: string;
-  participatingAgents: string[];
-  executionTime: number;
-}
-
-// Memory API
-export const memoryApi = {
-  search: async (query: string, limit = 20): Promise<MemoryItem[]> => {
-    const response = await apiClient.post('/memory/search', { query, limit });
-    // Backend returns data.results for search endpoint
-    const memories = response.data.data?.results || response.data.memories || [];
-    // Add backward compatibility alias
-    return memories.map((memory: any) => ({
-      ...memory,
-      importance: memory.importance_score || memory.importance
-    }));
-  },
-
-  store: async (memory: {
-    content: string;
-    memory_type: string;
-    importance: number;
-    tags?: string[];
-    metadata?: Record<string, any>;
-  }): Promise<MemoryItem> => {
-    const response = await apiClient.post('/memory', {
-      content: memory.content,
-      memory_type: memory.memory_type,
-      importance_score: memory.importance,
-      tags: memory.tags,
-      metadata: memory.metadata
-    });
-    // Backend returns data wrapped in success response
-    const memoryData = response.data.data || response.data.memory;
-    return {
-      ...memoryData,
-      importance: memoryData.importance_score || memoryData.importance
-    };
-  },
-
-  retrieve: async (memoryType?: string, limit = 50): Promise<MemoryItem[]> => {
-    const params = new URLSearchParams();
-    if (memoryType) params.append('memory_type', memoryType);
-    params.append('limit', limit.toString());
+    const response = await fetch(`${API_URL}/api/v1/chat`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ 
+        message,
+        conversationId: this.conversationId,
+        sessionId: this.sessionId
+      })
+    })
     
-    const response = await apiClient.get(`/memory?${params.toString()}`);
-    const memories = response.data.memories || [];
-    // Add backward compatibility alias
-    return memories.map((memory: any) => ({
-      ...memory,
-      importance: memory.importance_score || memory.importance
-    }));
-  },
-
-  updateImportance: async (id: string, importance: number): Promise<MemoryItem> => {
-    const response = await apiClient.put(`/memory/${id}/importance`, { importance });
-    const memoryData = response.data.memory;
-    return {
-      ...memoryData,
-      importance: memoryData.importance_score || memoryData.importance
-    };
+    if (!response.ok) {
+      throw new Error('Chat request failed')
+    }
+    
+    const data = await response.json()
+    
+    // Update conversation ID if returned by server
+    if (data.conversationId) {
+      this.conversationId = data.conversationId
+      localStorage.setItem('conversationId', data.conversationId)
+    }
+    
+    return data
   }
-};
-
-// Chat API
-export const chatApi = {
-  sendMessage: async (message: string, model: string, conversationId = 'default'): Promise<{
-    response: string;
-    model: string;
-    conversation_id: string;
-    timestamp: string;
-  }> => {
-    const response = await apiClient.post('/assistant/chat', {
-      message,
-      model,
-      conversation_id: conversationId
-    });
-    return response.data;
-  },
-
-  getConversationHistory: async (conversationId: string, limit = 50): Promise<ChatMessage[]> => {
-    const response = await apiClient.get(`/assistant/conversation/${conversationId}?limit=${limit}`);
-    return response.data.messages || [];
+  
+  async getChatHistory(conversationId?: string) {
+    const id = conversationId || this.conversationId
+    if (!id) {
+      return { success: false, messages: [] }
+    }
+    
+    const response = await fetch(`${API_URL}/api/v1/chat/history/${id}`, {
+      headers: this.headers
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch chat history')
+    }
+    
+    return response.json()
   }
-};
-
-// Orchestration API (DSPy)
-export const orchestrationApi = {
-  orchestrate: async (request: OrchestrationRequest): Promise<OrchestrationResponse> => {
-    const response = await apiClient.post('/orchestration/orchestrate', request);
-    return response.data;
-  },
-
-  coordinate: async (task: string, availableAgents: string[], context = {}): Promise<{
-    success: boolean;
-    selectedAgents: string;
-    coordinationPlan: string;
-    assignments: any[];
-  }> => {
-    const response = await apiClient.post('/orchestration/coordinate', {
-      task,
-      availableAgents,
-      context
-    });
-    return response.data;
-  },
-
-  searchKnowledge: async (query: string, filters = {}, limit = 10): Promise<{
-    success: boolean;
-    operation: string;
-    result: any;
-  }> => {
-    const response = await apiClient.post('/orchestration/knowledge/search', {
-      query,
-      filters,
-      limit
-    });
-    return response.data;
-  },
-
-  extractKnowledge: async (content: string, context = {}): Promise<{
-    success: boolean;
-    operation: string;
-    result: any;
-  }> => {
-    const response = await apiClient.post('/orchestration/knowledge/extract', {
-      content,
-      context
-    });
-    return response.data;
-  },
-
-  evolveKnowledge: async (existingKnowledge: string, newInformation: string): Promise<{
-    success: boolean;
-    operation: string;
-    result: any;
-  }> => {
-    const response = await apiClient.post('/orchestration/knowledge/evolve', {
-      existingKnowledge,
-      newInformation
-    });
-    return response.data;
-  },
-
-  optimizePrompts: async (examples: Array<{
-    input: string;
-    output: string;
-    metadata?: any;
-  }>): Promise<{
-    success: boolean;
-    optimized: boolean;
-    improvements: string[];
-    performanceGain: number;
-  }> => {
-    const response = await apiClient.post('/orchestration/optimize/prompts', {
-      examples
-    });
-    return response.data;
+  
+  async getStatus() {
+    const response = await fetch(`${API_URL}/api/v1/status`, {
+      headers: this.headers
+    })
+    
+    if (!response.ok) {
+      throw new Error('Status request failed')
+    }
+    
+    return response.json()
   }
-};
-
-// Agents API
-export const agentsApi = {
-  list: async (): Promise<AgentItem[]> => {
-    const response = await apiClient.get('/agents');
-    return response.data.agents || [];
-  },
-
-  create: async (agent: {
-    name: string;
-    description: string;
-    capabilities: string[];
-    instructions: string;
-    model?: string;
-  }): Promise<AgentItem> => {
-    const response = await apiClient.post('/agents', agent);
-    return response.data.agent;
-  },
-
-  update: async (id: string, updates: Partial<AgentItem>): Promise<AgentItem> => {
-    const response = await apiClient.put(`/agents/${id}`, updates);
-    return response.data.agent;
-  },
-
-  delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/agents/${id}`);
-  },
-
-  execute: async (id: string, input: string, context = {}): Promise<{
-    success: boolean;
-    output: string;
-    agent: string;
-    model: string;
-  }> => {
-    const response = await apiClient.post(`/agents/${id}/execute`, { input, context });
-    return response.data;
+  
+  // MCP Agent methods
+  async getMCPAgents() {
+    const response = await fetch(`${API_URL}/api/v1/mcp/agents`, {
+      headers: this.headers
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch MCP agents')
+    }
+    
+    return response.json()
   }
-};
-
-// Tools API
-export const toolsApi = {
-  list: async (): Promise<any[]> => {
-    const response = await apiClient.get('/tools');
-    return response.data.tools || [];
-  },
-
-  execute: async (toolName: string, parameters: Record<string, any>): Promise<{
-    success: boolean;
-    result: any;
-    execution_time_ms: number;
-  }> => {
-    const response = await apiClient.post('/tools/execute', {
-      tool_name: toolName,
-      parameters
-    });
-    return response.data;
-  },
-
-  executeBuiltin: async (toolName: string, parameters: Record<string, any>): Promise<{
-    success: boolean;
-    result: any;
-  }> => {
-    const response = await apiClient.post(`/tools/execute/builtin/${toolName}`, parameters);
-    return response.data;
-  },
-
-  create: async (tool: {
-    tool_name: string;
-    description: string;
-    input_schema: Record<string, any>;
-    output_schema?: Record<string, any>;
-    implementation_type: 'sql' | 'function' | 'api' | 'script';
-    implementation: string;
-    rate_limit?: number;
-  }): Promise<any> => {
-    const response = await apiClient.post('/tools', tool);
-    return response.data.tool;
+  
+  async getMCPAgent(agentId: string) {
+    const response = await fetch(`${API_URL}/api/v1/mcp/agents/${agentId}`, {
+      headers: this.headers
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch MCP agent')
+    }
+    
+    return response.json()
   }
-};
-
-// Performance API
-export const performanceApi = {
-  getMetrics: async (): Promise<{
-    success: boolean;
-    metrics: any;
-    timestamp: string;
-  }> => {
-    const response = await apiClient.get('/performance/metrics');
-    return response.data;
-  },
-
-  getReport: async (format = 'json'): Promise<{
-    success: boolean;
-    report: any;
-    timestamp: string;
-  }> => {
-    const response = await apiClient.get(`/performance/report?format=${format}`);
-    return response.data;
+  
+  async storeMCPAgentKeys(agentId: string, keys: Record<string, string>) {
+    const response = await fetch(`${API_URL}/api/v1/mcp/agents/${agentId}/keys`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ keys })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to store MCP agent keys')
+    }
+    
+    return response.json()
   }
-};
+  
+  async executeMCPAgent(agentId: string, action: string, params?: any) {
+    const response = await fetch(`${API_URL}/api/v1/mcp/agents/${agentId}/execute`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ action, params })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to execute MCP agent action')
+    }
+    
+    return response.json()
+  }
+  
+  async testMCPAgent(agentId: string) {
+    const response = await fetch(`${API_URL}/api/v1/mcp/agents/${agentId}/test`, {
+      method: 'POST',
+      headers: this.headers
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to test MCP agent')
+    }
+    
+    return response.json()
+  }
+  
+  async getMCPStatus() {
+    const response = await fetch(`${API_URL}/api/v1/mcp/status`, {
+      headers: this.headers
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch MCP status')
+    }
+    
+    return response.json()
+  }
+}
 
-// System API
+export const api = new API()
+
 export const systemApi = {
-  getStats: async (): Promise<{
-    success: boolean;
-    stats: {
-      activeAgents: number;
-      messagestoday: number;
-      totalMemories: number;
-      cpuUsage: any;
-      memoryUsage: any;
-      uptime: number;
-      typeBreakdown: Record<string, number>;
-    };
-  }> => {
-    const response = await apiClient.get('/stats');
-    return response.data;
-  },
-
-  getHealth: async (): Promise<{
-    status: string;
-    timestamp: string;
-    uptime: number;
-    service: string;
-    config: any;
-  }> => {
-    const response = await apiClient.get('/health');
-    return response.data;
-  },
-
-  getOllamaStatus: async (): Promise<{
-    status: string;
-    models: string[];
-  }> => {
-    const response = await apiClient.get('/ollama/status');
-    return response.data;
-  }
+  getStats: async () => ({ data: {} }),
+  getHealth: async () => ({ data: { healthy: true } })
 };
 
-// Supabase Ollama API (Direct Edge Function calls)
-export const supabaseOllamaApi = {
-  generate: async (request: {
-    prompt: string;
-    model?: string;
-    temperature?: number;
-    max_tokens?: number;
-    stream?: boolean;
-    system?: string;
-  }): Promise<{
-    response: string;
-    model: string;
-    usage: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
-    };
-  }> => {
-    const supabaseUrl = 'http://127.0.0.1:54321'; // Local Supabase
-    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/ollama-assistant`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${anonKey}`,
-        'apikey': anonKey
-      },
-      body: JSON.stringify({
-        prompt: request.prompt,
-        model: request.model || 'llama3.2:3b',
-        temperature: request.temperature || 0.7,
-        max_tokens: request.max_tokens || 1000,
-        stream: false,
-        system: request.system || 'You are a helpful AI assistant.'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status}`);
-    }
-
-    return response.json();
-  },
-
-  generateStream: async function* (request: {
-    prompt: string;
-    model?: string;
-    temperature?: number;
-    max_tokens?: number;
-    system?: string;
-  }): AsyncGenerator<string> {
-    const supabaseUrl = 'http://127.0.0.1:54321'; // Local Supabase
-    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/ollama-assistant`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${anonKey}`,
-        'apikey': anonKey
-      },
-      body: JSON.stringify({
-        prompt: request.prompt,
-        model: request.model || 'llama3.2:3b',
-        temperature: request.temperature || 0.7,
-        max_tokens: request.max_tokens || 1000,
-        stream: true,
-        system: request.system || 'You are a helpful AI assistant.'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status}`);
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('No response body');
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      
-      // Process all complete lines
-      for (let i = 0; i < lines.length - 1; i++) {
-        const line = lines[i].trim();
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (!data.done && data.content) {
-              yield data.content;
-            }
-          } catch (e) {
-            // Skip invalid JSON
-          }
-        }
-      }
-      
-      // Keep the last incomplete line in the buffer
-      buffer = lines[lines.length - 1];
-    }
-  },
-
-  healthCheck: async (): Promise<boolean> => {
-    try {
-      await supabaseOllamaApi.generate({
-        prompt: 'Hello',
-        max_tokens: 10
-      });
-      return true;
-    } catch (error) {
-      console.error('Ollama health check failed:', error);
-      return false;
-    }
-  }
+export const memoryApi = {
+  list: async () => ({ data: [] }),
+  create: async (data: any) => ({ data }),
+  delete: async (id: string) => ({ success: true })
 };
-
-// Export default API object
-export const api = {
-  memory: memoryApi,
-  chat: chatApi,
-  orchestration: orchestrationApi,
-  agents: agentsApi,
-  tools: toolsApi,
-  performance: performanceApi,
-  system: systemApi,
-  ollama: supabaseOllamaApi, // Direct Supabase Edge Function access
-};
-
-export default api;

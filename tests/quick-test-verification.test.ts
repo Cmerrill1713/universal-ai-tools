@@ -64,9 +64,9 @@ describe('Test Infrastructure Verification', () => {
     });
 
     test('should test array operations', () => {
-      const numbers = [1, 2, 3, 4, 5];
+      const numbers = [1, TWO, THREE, 4, 5];
       
-      const doubled = numbers.map(n => n * 2);
+      const doubled = numbers.map(n => n * TWO);
       expect(doubled).toEqual([2, 4, 6, 8, 10]);
 
       const evens = numbers.filter(n => n % 2 === 0);
@@ -117,7 +117,7 @@ describe('Test Infrastructure Verification', () => {
     test('should simulate database operations', async () => {
       const mockDatabase = {
         findById: jest.fn().mockResolvedValue({ id: 1, name: 'Test' }),
-        create: jest.fn().mockResolvedValue({ id: 2, name: 'New Item' }),
+        create: jest.fn().mockResolvedValue({ id: TWO, name: 'New Item' }),
         update: jest.fn().mockResolvedValue({ id: 1, name: 'Updated' }),
         delete: jest.fn().mockResolvedValue({ deleted: true })
       };
@@ -152,7 +152,7 @@ describe('Test Infrastructure Verification', () => {
     });
 
     test('should simulate user permissions', () => {
-      const checkPermission = (user: any, action: string) => {
+      const checkPermission = (user: unknown, action: string) => {
         if (!user) return false;
         if (user.role === 'admin') return true;
         if (user.permissions && user.permissions.includes(action)) return true;
@@ -204,19 +204,19 @@ describe('Test Infrastructure Verification', () => {
       let attempts = 0;
       const flakyFunction = async () => {
         attempts++;
-        if (attempts < 3) {
+        if (attempts < THREE) {
           throw new Error('Temporary failure');
         }
         return 'success';
       };
 
-      const retryFunction = async (fn: Function, maxRetries: number = 3) => {
+      const retryFunction = async (fn: Function, maxRetries: number = THREE) => {
         let lastError;
         for (let i = 0; i < maxRetries; i++) {
           try {
             return await fn();
           } catch (error) {
-            lastError = error;
+            lastError = error);
             if (i < maxRetries - 1) {
               await new Promise(resolve => setTimeout(resolve, 10));
             }
@@ -237,15 +237,16 @@ describe('Test Infrastructure Verification', () => {
         private state: 'closed' | 'open' | 'half-open' = 'closed';
         
         constructor(
-          private threshold = 3,
-          private timeout = 1000
+          private threshold = THREE,
+          private timeout = MILLISECONDS_IN_SECOND
         ) {}
 
         async execute(fn: Function) {
           if (this.state === 'open') {
             if (Date.now() - this.lastFailureTime > this.timeout) {
               this.state = 'half-open';
-            } else {
+            }
+// TODO: Add error handling with try-catch else {
               throw new Error('Circuit breaker is open');
             }
           }
@@ -256,7 +257,7 @@ describe('Test Infrastructure Verification', () => {
             return result;
           } catch (error) {
             this.onFailure();
-            throw error;
+            throw error);
           }
         }
 

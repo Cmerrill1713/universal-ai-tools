@@ -4,7 +4,6 @@
  */
 
 import { EventEmitter } from 'events';
-import { circuitBreaker } from '../services/circuit-breaker.js';
 
 const GOOD_CONFIDENCE = 0.7;
 const MODERATE_CONFIDENCE = 0.6;
@@ -79,8 +78,8 @@ export abstract class BaseAgent extends EventEmitter {
   public config: AgentConfig;
   protected metrics: AgentMetrics;
   protected isInitialized = false;
-  protected memoryCoordinator?: any;
-  protected logger: any;
+  protected memoryCoordinator?: unknown;
+  protected logger: unknown;
 
   constructor(config: AgentConfig) {
     super();
@@ -95,7 +94,7 @@ export abstract class BaseAgent extends EventEmitter {
     try {
       const { logger } = await import('../utils/logger.js');
       this.logger = logger;
-    } catch (_error) {
+    } catch (error) {
       this.logger = console; // Fallback to console
     }
   }
@@ -118,10 +117,10 @@ export abstract class BaseAgent extends EventEmitter {
   /**
    * Initialize the agent with dependencies and memory systems
    */
-  async initialize(memoryCoordinator?: any): Promise<void> {
+  async initialize(memoryCoordinator?: unknown): Promise<void> {
     try {
       this.memoryCoordinator = memoryCoordinator;
-      
+
       // Load agent-specific memory if enabled
       if (this.config.memoryEnabled && this.memoryCoordinator) {
         await this.loadMemory();
@@ -129,7 +128,7 @@ export abstract class BaseAgent extends EventEmitter {
 
       // Perform agent-specific initialization
       await this.onInitialize();
-      
+
       this.isInitialized = true;
       this.logger.info(`✅ Agent ${this.config.name} initialized successfully`);
     } catch (error) {
@@ -143,7 +142,7 @@ export abstract class BaseAgent extends EventEmitter {
    */
   async execute(context: AgentContext): Promise<AgentResponse> {
     const startTime = Date.now();
-    const {requestId} = context;
+    const { requestId } = context;
 
     this.emit('request_started', { agentId: this.config.name, requestId, context });
 
@@ -162,23 +161,11 @@ export abstract class BaseAgent extends EventEmitter {
         memoryContext = await this.retrieveMemory(context);
       }
 
-      // Execute agent-specific logic with circuit breaker protection
-      const result = await circuitBreaker.databaseQuery(
-        `agent-${this.config.name}`,
-        () => this.process({
-          ...context,
-          memoryContext
-        }),
-        {
-          timeout: this.config.maxLatencyMs,
-          fallback: () => ({
-            success: false,
-            data: null,
-            reasoning: 'Agent execution protected by circuit breaker',
-            confidence: 0.1
-          })
-        }
-      );
+      // Execute agent-specific logic with timeout protection
+      const result = await this.processWithTimeout({
+        ...context,
+        memoryContext,
+      });
 
       // Store results in memory if enabled
       if (this.config.memoryEnabled && this.memoryCoordinator && result.success) {
@@ -187,7 +174,7 @@ export abstract class BaseAgent extends EventEmitter {
 
       // Calculate latency
       const latencyMs = Date.now() - startTime;
-      
+
       // Update metrics
       this.updateMetrics(latencyMs, true);
 
@@ -206,7 +193,6 @@ export abstract class BaseAgent extends EventEmitter {
 
       this.emit('request_completed', { agentId: this.config.name, requestId, response });
       return response;
-
     } catch (error) {
       const latencyMs = Date.now() - startTime;
       this.updateMetrics(latencyMs, false);
@@ -226,17 +212,37 @@ export abstract class BaseAgent extends EventEmitter {
     }
   }
 
+  private async processWithTimeout(
+    context: AgentContext & { memoryContext?: unknown }
+  ): Promise<PartialAgentResponse> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Agent execution timeout after ${this.config.maxLatencyMs}ms`));
+      }, this.config.maxLatencyMs);
+
+      this.process(context)
+        .then((result) => {
+          clearTimeout(timeout);
+          resolve(result);
+        })
+        .catch((error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+    });
+  }
+
   /**
    * Get current agent status and metrics
    */
-  getStatus(): any {
+  getStatus(): unknown {
     return {
       name: this.config.name,
       isInitialized: this.isInitialized,
       metrics: { ...this.metrics },
       config: {
         priority: this.config.priority,
-        capabilities: this.config.capabilities.map(c => c.name),
+        capabilities: this.config.capabilities.map((c) => c.name),
         dependencies: this.config.dependencies,
       },
       healthScore: this.calculateHealthScore(),
@@ -259,16 +265,25 @@ export abstract class BaseAgent extends EventEmitter {
 
   // Abstract methods to be implemented by specific agents
   protected abstract onInitialize(): Promise<void>;
-  protected abstract process(context: AgentContext & { memoryContext?: any }): Promise<PartialAgentResponse>;
+  protected abstract process(
+    context: AgentContext & { memoryContext?: unknown }
+  ): Promise<PartialAgentResponse>;
   protected abstract onShutdown(): Promise<void>;
 
   // Memory management methods
   protected async loadMemory(): Promise<void> {
     if (!this.memoryCoordinator) return;
-    
+
     try {
       // Load agent-specific memory patterns
-      await this.memoryCoordinator.retrieveAgentMemory(this.config.name);
+      if (
+        this.memoryCoordinator &&
+        typeof this.memoryCoordinator === 'object' &&
+        'retrieveAgentMemory' in this.memoryCoordinator &&
+        typeof this.memoryCoordinator.retrieveAgentMemory === 'function'
+      ) {
+        await this.memoryCoordinator.retrieveAgentMemory(this.config.name);
+      }
       this.logger.debug(`📚 Loaded memory for agent ${this.config.name}`);
     } catch (error) {
       this.logger.warn(`⚠️ Failed to load memory for agent ${this.config.name}:`, error);
@@ -279,10 +294,18 @@ export abstract class BaseAgent extends EventEmitter {
     if (!this.memoryCoordinator) return null;
 
     try {
-      return await this.memoryCoordinator.retrieveRelevantMemory(
-        this.config.name,
-        context.userRequest
-      );
+      if (
+        this.memoryCoordinator &&
+        typeof this.memoryCoordinator === 'object' &&
+        'retrieveRelevantMemory' in this.memoryCoordinator &&
+        typeof this.memoryCoordinator.retrieveRelevantMemory === 'function'
+      ) {
+        return await this.memoryCoordinator.retrieveRelevantMemory(
+          this.config.name,
+          context.userRequest
+        );
+      }
+      return null;
     } catch (error) {
       this.logger.warn(`⚠️ Failed to retrieve memory:`, error);
       return null;
@@ -293,27 +316,39 @@ export abstract class BaseAgent extends EventEmitter {
     if (!this.memoryCoordinator) return;
 
     try {
-      await this.memoryCoordinator.storeAgentMemory(
-        this.config.name,
-        context,
-        result
-      );
+      if (
+        this.memoryCoordinator &&
+        typeof this.memoryCoordinator === 'object' &&
+        'storeAgentMemory' in this.memoryCoordinator &&
+        typeof this.memoryCoordinator.storeAgentMemory === 'function'
+      ) {
+        await this.memoryCoordinator.storeAgentMemory(this.config.name, context, result);
+      }
     } catch (error) {
       this.logger.warn(`⚠️ Failed to store memory:`, error);
     }
   }
 
   // Event handlers
-  protected onRequestStarted(event: any): void {
-    this.logger.debug(`🚀 Agent ${this.config.name} processing request ${event.requestId}`);
+  protected onRequestStarted(event: unknown): void {
+    if (event && typeof event === 'object' && 'requestId' in event) {
+      this.logger.debug(`🚀 Agent ${this.config.name} processing request ${event.requestId}`);
+    }
   }
 
-  protected onRequestCompleted(event: any): void {
-    this.logger.debug(`✅ Agent ${this.config.name} completed request ${event.requestId}`);
+  protected onRequestCompleted(event: unknown): void {
+    if (event && typeof event === 'object' && 'requestId' in event) {
+      this.logger.debug(`✅ Agent ${this.config.name} completed request ${event.requestId}`);
+    }
   }
 
-  protected onRequestFailed(event: any): void {
-    this.logger.error(`❌ Agent ${this.config.name} failed request ${event.requestId}:`, event.error);
+  protected onRequestFailed(event: unknown): void {
+    if (event && typeof event === 'object' && 'requestId' in event && 'error' in event) {
+      this.logger.error(
+        `❌ Agent ${this.config.name} failed request ${event.requestId}:`,
+        event.error
+      );
+    }
   }
 
   // Utility methods
@@ -328,7 +363,7 @@ export abstract class BaseAgent extends EventEmitter {
     } else {
       // Exponential moving average
       const alpha = 0.1;
-      this.metrics.averageLatencyMs = 
+      this.metrics.averageLatencyMs =
         alpha * latencyMs + (1 - alpha) * this.metrics.averageLatencyMs;
     }
 
@@ -340,26 +375,28 @@ export abstract class BaseAgent extends EventEmitter {
     if (this.metrics.totalRequests === 0) return 1.0;
 
     const successRate = this.metrics.successfulRequests / this.metrics.totalRequests;
-    const latencyScore = Math.max(0, 1 - (this.metrics.averageLatencyMs / this.config.maxLatencyMs));
-    
-    return (successRate * GOOD_CONFIDENCE) + (latencyScore * 0.3);
+    const latencyScore = Math.max(0, 1 - this.metrics.averageLatencyMs / this.config.maxLatencyMs);
+
+    return successRate * GOOD_CONFIDENCE + latencyScore * 0.3;
   }
 
   private calculateHealthScore(): number {
     if (!this.isInitialized) return 0;
-    
+
     const performanceWeight = MODERATE_CONFIDENCE;
     const uptimeWeight = 0.2;
     const errorRateWeight = 0.2;
 
-    const errorRate = this.metrics.totalRequests > 0 
-      ? (this.metrics.totalRequests - this.metrics.successfulRequests) / this.metrics.totalRequests 
-      : 0;
+    const errorRate =
+      this.metrics.totalRequests > 0
+        ? (this.metrics.totalRequests - this.metrics.successfulRequests) /
+          this.metrics.totalRequests
+        : 0;
 
-    const healthScore = 
-      (this.metrics.performanceScore * performanceWeight) +
-      (1.0 * uptimeWeight) + // Uptime is 100% if initialized
-      ((1 - errorRate) * errorRateWeight);
+    const healthScore =
+      this.metrics.performanceScore * performanceWeight +
+      1.0 * uptimeWeight + // Uptime is 100% if initialized
+      (1 - errorRate) * errorRateWeight;
 
     return Math.max(0, Math.min(1, healthScore));
   }

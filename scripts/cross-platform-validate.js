@@ -14,9 +14,9 @@ const command = process.argv[2];
 const args = process.argv.slice(3);
 
 const scripts = {
-  'validate': 'production-validation.js',
+  validate: 'production-validation.js',
   'fix-guide': 'fix-guide.js',
-  'context': 'claude-context.js'
+  context: 'claude-context.js',
 };
 
 const scriptFile = scripts[command];
@@ -31,7 +31,7 @@ const nodeExecutable = process.execPath;
 
 const child = spawn(nodeExecutable, [scriptPath, ...args], {
   stdio: 'inherit',
-  shell: false
+  shell: false,
 });
 
 child.on('exit', (code) => {

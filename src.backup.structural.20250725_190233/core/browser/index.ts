@@ -1,0 +1,28 @@
+/**;
+ * Browser Module - Exports for browser automation and UI validation;
+ */;
+
+// Core browser components;
+export { BrowserAgentMessageHandler } from './browser-agent-message-handler';
+export { UIValidator } from './ui-validator';
+// Re-export types from individual modules;
+export type {;
+  BrowserAgentMessage;
+  BrowserAgentMessageType;
+  BrowserAgentMessageContent;
+  TaskAssignmentMessage;
+  TaskDelegationMessage;
+  ProgressUpdateMessage;
+  StatusReportMessage;
+  ResourceRequestMessage;
+  ResourceShareMessage;
+  CoordinationSyncMessage;
+  ErrorNotificationMessage;
+  RecoveryRequestMessage;
+  KnowledgeShareMessage;
+  PerformanceMetricsMessage;
+  CoordinationFeedbackMessage;
+  MessageHandlerConfig;
+  MessageHandlerStats;
+} from './browser-agent-message-handler';
+export type { ValidationResult, TestResult } from './ui-validator';

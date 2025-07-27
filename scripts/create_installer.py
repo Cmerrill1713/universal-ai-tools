@@ -7,9 +7,8 @@ Creates a professional .pkg installer for easy distribution and installation
 import os
 import shutil
 import subprocess
-import tempfile
-import json
 from pathlib import Path
+
 
 class InstallerCreator:
     def __init__(self):
@@ -17,74 +16,70 @@ class InstallerCreator:
         self.app_bundle = Path("/Users/christianmerrill/Desktop/Universal AI Tools.app")
         self.installer_dir = self.project_root / "installer"
         self.temp_dir = None
-        
+
     def create_installer(self):
         """Create complete installer package"""
         print("🚀 Universal AI Tools - Installer Package Creator")
         print("=" * 60)
-        
+
         # Setup
         self.setup_directories()
-        
+
         # Create installer components
         self.create_payload()
         self.create_scripts()
         self.create_distribution_xml()
         self.create_resources()
-        
+
         # Build the installer
         self.build_package()
-        
+
         print("\n🎉 Installer package created successfully!")
         print(f"📦 Location: {self.installer_dir / 'Universal AI Tools Installer.pkg'}")
-        
+
     def setup_directories(self):
         """Setup installer directory structure"""
         print("\n📁 Setting up installer directories...")
-        
+
         # Clean and recreate installer directory
         if self.installer_dir.exists():
             shutil.rmtree(self.installer_dir)
         self.installer_dir.mkdir(exist_ok=True)
-        
+
         # Create subdirectories
         (self.installer_dir / "payload").mkdir()
         (self.installer_dir / "scripts").mkdir()
         (self.installer_dir / "resources").mkdir()
         (self.installer_dir / "build").mkdir()
-        
+
         print("   ✅ Directory structure created")
-        
+
     def create_payload(self):
         """Create installer payload with app bundle and dependencies"""
         print("\n📦 Creating installer payload...")
-        
+
         payload_dir = self.installer_dir / "payload"
         applications_dir = payload_dir / "Applications"
         applications_dir.mkdir()
-        
+
         # Copy app bundle
         if self.app_bundle.exists():
             shutil.copytree(self.app_bundle, applications_dir / "Universal AI Tools.app")
             print("   ✅ App bundle copied")
         else:
             raise FileNotFoundError("App bundle not found")
-            
+
         # Create ~/Applications shortcut directory structure
         user_apps_dir = payload_dir / "Users" / "Shared" / "Universal AI Tools"
         user_apps_dir.mkdir(parents=True)
-        
+
         # Copy service manager and desktop shortcuts
         if (self.project_root / "service-manager.sh").exists():
             shutil.copy2(self.project_root / "service-manager.sh", user_apps_dir)
-            
+
         # Copy documentation and dashboard files
-        docs_to_copy = [
-            "supabase_dashboard.html",
-            "docs/QUICK_REFERENCE.md",
-            "docs/SETUP_GUIDE.md"
-        ]
-        
+        docs_to_copy = ["supabase_dashboard.html", "docs/QUICK_REFERENCE.md", "docs/SETUP_GUIDE.md"]
+
         for doc in docs_to_copy:
             src_path = self.project_root / doc
             if src_path.exists():
@@ -92,15 +87,15 @@ class InstallerCreator:
                     shutil.copy2(src_path, user_apps_dir)
                 else:
                     shutil.copytree(src_path, user_apps_dir / doc)
-                    
+
         print("   ✅ Documentation and tools copied")
-        
+
     def create_scripts(self):
         """Create pre/post installation scripts"""
         print("\n📝 Creating installation scripts...")
-        
+
         # Pre-installation script
-        preinstall_script = '''#!/bin/bash
+        preinstall_script = """#!/bin/bash
 # Universal AI Tools - Pre-installation Script
 
 echo "🔧 Preparing system for Universal AI Tools installation..."
@@ -121,10 +116,10 @@ fi
 
 echo "   ✅ System prepared"
 exit 0
-'''
+"""
 
         # Post-installation script
-        postinstall_script = '''#!/bin/bash
+        postinstall_script = """#!/bin/bash
 # Universal AI Tools - Post-installation Script
 
 echo "🚀 Configuring Universal AI Tools..."
@@ -224,26 +219,26 @@ echo "   • Quick Reference: /Users/Shared/Universal AI Tools/"
 echo "   • Dashboard: Open supabase_dashboard.html"
 
 exit 0
-'''
+"""
 
         # Write scripts
         scripts_dir = self.installer_dir / "scripts"
-        
-        with open(scripts_dir / "preinstall", 'w') as f:
+
+        with open(scripts_dir / "preinstall", "w") as f:
             f.write(preinstall_script)
         os.chmod(scripts_dir / "preinstall", 0o755)
-        
-        with open(scripts_dir / "postinstall", 'w') as f:
+
+        with open(scripts_dir / "postinstall", "w") as f:
             f.write(postinstall_script)
         os.chmod(scripts_dir / "postinstall", 0o755)
-        
+
         print("   ✅ Installation scripts created")
-        
+
     def create_distribution_xml(self):
         """Create distribution XML for installer"""
         print("\n📄 Creating distribution configuration...")
-        
-        distribution_xml = '''<?xml version="1.0" encoding="utf-8"?>
+
+        distribution_xml = """<?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="2">
     <title>Universal AI Tools</title>
     <organization>universal.ai.tools</organization>
@@ -273,21 +268,21 @@ exit 0
     
     <pkg-ref id="com.universal.ai-tools" version="1.0.0" onConclusion="none">universal-ai-tools.pkg</pkg-ref>
     
-</installer-gui-script>'''
-        
-        with open(self.installer_dir / "distribution.xml", 'w') as f:
+</installer-gui-script>"""
+
+        with open(self.installer_dir / "distribution.xml", "w") as f:
             f.write(distribution_xml)
-            
+
         print("   ✅ Distribution XML created")
-        
+
     def create_resources(self):
         """Create installer resources (welcome, license, background)"""
         print("\n🎨 Creating installer resources...")
-        
+
         resources_dir = self.installer_dir / "resources"
-        
+
         # Welcome HTML
-        welcome_html = '''<!DOCTYPE html>
+        welcome_html = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -323,10 +318,10 @@ exit 0
     <p><strong>The service will start automatically after installation at:</strong><br>
     <a href="http://localhost:9999">http://localhost:9999</a></p>
 </body>
-</html>'''
+</html>"""
 
         # License HTML
-        license_html = '''<!DOCTYPE html>
+        license_html = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -359,77 +354,87 @@ exit 0
         <p>By installing this software, you agree to these terms.</p>
     </div>
 </body>
-</html>'''
+</html>"""
 
         # Write HTML files
-        with open(resources_dir / "welcome.html", 'w') as f:
+        with open(resources_dir / "welcome.html", "w") as f:
             f.write(welcome_html)
-            
-        with open(resources_dir / "license.html", 'w') as f:
+
+        with open(resources_dir / "license.html", "w") as f:
             f.write(license_html)
-            
+
         # Create simple background (placeholder - would normally be a PNG)
-        with open(resources_dir / "background.png", 'w') as f:
+        with open(resources_dir / "background.png", "w") as f:
             f.write("# Placeholder for background image")
-            
+
         print("   ✅ Installer resources created")
-        
+
     def build_package(self):
         """Build the final installer package"""
         print("\n🔨 Building installer package...")
-        
+
         payload_dir = self.installer_dir / "payload"
         scripts_dir = self.installer_dir / "scripts"
         resources_dir = self.installer_dir / "resources"
         build_dir = self.installer_dir / "build"
-        
+
         # Build component package
         component_pkg = build_dir / "universal-ai-tools.pkg"
-        
+
         pkgbuild_cmd = [
             "pkgbuild",
-            "--root", str(payload_dir),
-            "--scripts", str(scripts_dir),
-            "--identifier", "com.universal.ai-tools",
-            "--version", "1.0.0",
-            "--install-location", "/",
-            str(component_pkg)
+            "--root",
+            str(payload_dir),
+            "--scripts",
+            str(scripts_dir),
+            "--identifier",
+            "com.universal.ai-tools",
+            "--version",
+            "1.0.0",
+            "--install-location",
+            "/",
+            str(component_pkg),
         ]
-        
+
         try:
             subprocess.run(pkgbuild_cmd, check=True, capture_output=True, text=True)
             print("   ✅ Component package built")
         except subprocess.CalledProcessError as e:
             print(f"   ❌ Component package build failed: {e.stderr}")
             return False
-            
+
         # Build final installer
         final_installer = self.installer_dir / "Universal AI Tools Installer.pkg"
-        
+
         productbuild_cmd = [
             "productbuild",
-            "--distribution", str(self.installer_dir / "distribution.xml"),
-            "--resources", str(resources_dir),
-            "--package-path", str(build_dir),
-            str(final_installer)
+            "--distribution",
+            str(self.installer_dir / "distribution.xml"),
+            "--resources",
+            str(resources_dir),
+            "--package-path",
+            str(build_dir),
+            str(final_installer),
         ]
-        
+
         try:
             subprocess.run(productbuild_cmd, check=True, capture_output=True, text=True)
             print("   ✅ Final installer package built")
-            
+
             # Get package size
             size = final_installer.stat().st_size / (1024 * 1024)
             print(f"   📦 Package size: {size:.1f} MB")
-            
+
             return True
         except subprocess.CalledProcessError as e:
             print(f"   ❌ Final installer build failed: {e.stderr}")
             return False
 
+
 def main():
     creator = InstallerCreator()
     creator.create_installer()
+
 
 if __name__ == "__main__":
     main()

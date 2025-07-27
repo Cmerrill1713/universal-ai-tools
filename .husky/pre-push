@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-push hook - run quality checks before pushing
+echo "🚀 Running pre-push quality checks..."
+
+# Run tests
+echo "📦 Running tests..."
+npm run test:fast
+
+# Check for TypeScript errors
+echo "🔍 Checking TypeScript..."
+npm run type-check
+
+# Check for security issues
+echo "🔒 Checking security..."
+npm run security:audit
+
+echo "✅ Pre-push checks passed!"

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Agents } from '../../pages/Agents';
+import Agents from '../../pages/Agents';
 import { render, mockApiResponse, resetMocks } from '../../test/utils';
 
 // Mock the API calls
@@ -235,7 +235,7 @@ describe('Agents Component', () => {
 
   it('handles agent start/stop controls', async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
-      if (url.includes('/start') || url.includes('/stop') || url.includes('/pause')) {
+      if ((typeof url === 'string' ? url : url.toString()).includes('/start') || (typeof url === 'string' ? url : url.toString()).includes('/stop') || (typeof url === 'string' ? url : url.toString()).includes('/pause')) {
         return Promise.resolve(mockApiResponse({ success: true }));
       }
       return Promise.resolve(mockApiResponse({ agents: mockAgents }));
@@ -263,7 +263,7 @@ describe('Agents Component', () => {
 
   it('handles agent pause functionality', async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
-      if (url.includes('/pause')) {
+      if ((typeof url === 'string' ? url : url.toString()).includes('/pause')) {
         return Promise.resolve(mockApiResponse({ success: true }));
       }
       return Promise.resolve(mockApiResponse({ agents: mockAgents }));
@@ -309,7 +309,7 @@ describe('Agents Component', () => {
 
   it('handles agent execution flow', async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
-      if (url.includes('/execute')) {
+      if ((typeof url === 'string' ? url : url.toString()).includes('/execute')) {
         return Promise.resolve(mockApiResponse({
           success: true,
           execution_id: 'exec-123',
@@ -375,7 +375,7 @@ describe('Agents Component', () => {
 
   it('handles agent creation flow', async () => {
     vi.mocked(global.fetch).mockImplementation((url, options) => {
-      if (options?.method === 'POST' && url.includes('/agents')) {
+      if (options?.method === 'POST' && (typeof url === 'string' ? url : url.toString()).includes('/agents')) {
         return Promise.resolve(mockApiResponse({
           success: true,
           agent: {
@@ -473,7 +473,7 @@ describe('Agents Component', () => {
 
   it('handles Start All functionality', async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
-      if (url.includes('/start')) {
+      if ((typeof url === 'string' ? url : url.toString()).includes('/start')) {
         return Promise.resolve(mockApiResponse({ success: true }));
       }
       return Promise.resolve(mockApiResponse({ agents: mockAgents }));
@@ -534,7 +534,7 @@ describe('Agents Component', () => {
 
   it('displays execution results in modal', async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
-      if (url.includes('/execute')) {
+      if ((typeof url === 'string' ? url : url.toString()).includes('/execute')) {
         return Promise.resolve(mockApiResponse({
           success: true,
           execution_id: 'exec-123',

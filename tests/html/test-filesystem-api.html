@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File System API Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input {
+            flex: 1;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .file-item:hover {
+            background: #f0f0f0;
+        }
+        .file-item.directory {
+            font-weight: bold;
+            color: #0066cc;
+        }
+        .file-item.file {
+            color: #333;
+        }
+        .file-icon {
+            margin-right: 8px;
+        }
+        .file-size {
+            margin-left: auto;
+            color: #666;
+            font-size: 12px;
+        }
+        .content-viewer {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f8f8f8;
+        }
+        .search-result {
+            padding: 8px;
+            margin: 4px 0;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        .search-result .path {
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 4px;
+        }
+        .search-result .match {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            background: #ffeb3b;
+            padding: 0 2px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .ws-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .ws-status.connected {
+            background: #28a745;
+        }
+        .ws-status.disconnected {
+            background: #dc3545;
+        }
+        .log-viewer {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-entry.event {
+            color: #4ec9b0;
+        }
+        .log-entry.error {
+            color: #f44747;
+        }
+    </style>
+</head>
+<body>
+    <h1>File System API Test</h1>
+
+    <!-- Authentication -->
+    <div class="container">
+        <h2>Authentication</h2>
+        <div class="controls">
+            <input type="text" id="apiKey" placeholder="Enter your API key or JWT token">
+            <button onclick="authenticate()">Authenticate</button>
+        </div>
+        <div id="authStatus"></div>
+    </div>
+
+    <!-- File Browser -->
+    <div class="container">
+        <h2>File Browser</h2>
+        <div class="controls">
+            <input type="text" id="browsePath" placeholder="Path to browse (e.g., /)" value="/">
+            <label>
+                <input type="checkbox" id="showHidden"> Show Hidden
+            </label>
+            <label>
+                <input type="checkbox" id="recursive"> Recursive
+            </label>
+            <button onclick="browse()">Browse</button>
+        </div>
+        <div id="browseStatus"></div>
+        <div class="file-list" id="fileList"></div>
+    </div>
+
+    <!-- File Content Viewer -->
+    <div class="container">
+        <h2>File Content</h2>
+        <div class="controls">
+            <input type="text" id="readPath" placeholder="File path to read">
+            <select id="encoding">
+                <option value="utf8">UTF-8</option>
+                <option value="base64">Base64</option>
+                <option value="hex">Hex</option>
+            </select>
+            <button onclick="readFile()">Read File</button>
+        </div>
+        <div id="readStatus"></div>
+        <div class="content-viewer" id="fileContent"></div>
+    </div>
+
+    <!-- File Writer -->
+    <div class="container">
+        <h2>Write File</h2>
+        <div class="controls">
+            <input type="text" id="writePath" placeholder="File path to write">
+            <select id="writeMode">
+                <option value="overwrite">Overwrite</option>
+                <option value="append">Append</option>
+                <option value="create">Create New</option>
+            </select>
+            <button onclick="writeFile()">Write File</button>
+        </div>
+        <textarea id="writeContent" rows="5" style="width: 100%; margin-top: 10px;" placeholder="Enter content to write..."></textarea>
+        <div id="writeStatus"></div>
+    </div>
+
+    <!-- File Search -->
+    <div class="container">
+        <h2>Search Files</h2>
+        <div class="controls">
+            <input type="text" id="searchPath" placeholder="Search path" value="/">
+            <input type="text" id="searchQuery" placeholder="Search query">
+            <label>
+                <input type="checkbox" id="searchContent"> Search in content
+            </label>
+            <button onclick="searchFiles()">Search</button>
+        </div>
+        <div id="searchStatus"></div>
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- Command Execution -->
+    <div class="container">
+        <h2>Execute Command (Admin Only)</h2>
+        <div class="controls">
+            <input type="text" id="command" placeholder="Command to execute (e.g., ls, pwd)">
+            <input type="text" id="commandArgs" placeholder="Arguments (space-separated)">
+            <button onclick="executeCommand()">Execute</button>
+        </div>
+        <div id="executeStatus"></div>
+        <div class="content-viewer" id="commandOutput"></div>
+    </div>
+
+    <!-- WebSocket File Watching -->
+    <div class="container">
+        <h2>Real-time File Watching</h2>
+        <div class="controls">
+            <span class="ws-status" id="wsStatus"></span>
+            <span id="wsStatusText">Disconnected</span>
+            <button onclick="connectWebSocket()" id="wsConnectBtn">Connect WebSocket</button>
+        </div>
+        <div class="controls" style="margin-top: 10px;">
+            <input type="text" id="watchPath" placeholder="Path to watch">
+            <button onclick="watchPath()">Watch Path</button>
+            <button onclick="unwatchPath()">Unwatch Path</button>
+        </div>
+        <div id="watchStatus"></div>
+        <div class="log-viewer" id="wsLog"></div>
+    </div>
+
+    <script>
+        let authToken = '';
+        let ws = null;
+        const API_BASE = 'http://localhost:3456/api/v1/filesystem';
+
+        // Helper functions
+        function showStatus(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.className = isError ? 'status error' : 'status success';
+            element.textContent = message;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        function formatFileSize(bytes) {
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            return `${size.toFixed(1)} ${units[unitIndex]}`;
+        }
+
+        // Authentication
+        async function authenticate() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                showStatus('authStatus', 'Please enter an API key or JWT token', true);
+                return;
+            }
+
+            authToken = apiKey;
+            
+            // Test authentication by calling the info endpoint
+            try {
+                const response = await fetch(`${API_BASE}/info`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    showStatus('authStatus', 'Authentication successful!');
+                } else {
+                    showStatus('authStatus', 'Authentication failed', true);
+                    authToken = '';
+                }
+            } catch (error) {
+                showStatus('authStatus', `Error: ${error.message}`, true);
+                authToken = '';
+            }
+        }
+
+        // Browse files
+        async function browse() {
+            if (!authToken) {
+                showStatus('browseStatus', 'Please authenticate first', true);
+                return;
+            }
+
+            const path = document.getElementById('browsePath').value || '/';
+            const showHidden = document.getElementById('showHidden').checked;
+            const recursive = document.getElementById('recursive').checked;
+
+            try {
+                const response = await fetch(`${API_BASE}/browse`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        path,
+                        showHidden,
+                        recursive,
+                        maxDepth: 2
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Browse failed');
+                }
+
+                const data = await response.json();
+                displayFiles(data.entries);
+                showStatus('browseStatus', `Found ${data.total} items`);
+            } catch (error) {
+                showStatus('browseStatus', `Error: ${error.message}`, true);
+            }
+        }
+
+        function displayFiles(files) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+
+            files.sort((a, b) => {
+                if (a.type === 'directory' && b.type !== 'directory') return -1;
+                if (a.type !== 'directory' && b.type === 'directory') return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = `file-item ${file.type}`;
+                
+                const icon = document.createElement('span');
+                icon.className = 'file-icon';
+                icon.textContent = file.type === 'directory' ? '📁' : '📄';
+                
+                const name = document.createElement('span');
+                name.textContent = file.name;
+                
+                const size = document.createElement('span');
+                size.className = 'file-size';
+                size.textContent = file.type === 'file' ? formatFileSize(file.size) : '';
+                
+                item.appendChild(icon);
+                item.appendChild(name);
+                item.appendChild(size);
+                
+                item.onclick = () => {
+                    if (file.type === 'directory') {
+                        document.getElementById('browsePath').value = file.path;
+                        browse();
+                    } else {
+                        document.getElementById('readPath').value = file.path;
+                        readFile();
+                    }
+                };
+                
+                fileList.appendChild(item);
+            });
+        }
+
+        // Read file
+        async function readFile() {
+            if (!authToken) {
+                showStatus('readStatus', 'Please authenticate first', true);
+                return;
+            }
+
+            const path = document.getElementById('readPath').value;
+            const encoding = document.getElementById('encoding').value;
+
+            if (!path) {
+                showStatus('readStatus', 'Please enter a file path', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/read`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ path, encoding })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Read failed');
+                }
+
+                const data = await response.json();
+                document.getElementById('fileContent').textContent = data.content;
+                showStatus('readStatus', `Read ${formatFileSize(data.size)} from ${path}`);
+            } catch (error) {
+                showStatus('readStatus', `Error: ${error.message}`, true);
+                document.getElementById('fileContent').textContent = '';
+            }
+        }
+
+        // Write file
+        async function writeFile() {
+            if (!authToken) {
+                showStatus('writeStatus', 'Please authenticate first', true);
+                return;
+            }
+
+            const path = document.getElementById('writePath').value;
+            const content = document.getElementById('writeContent').value;
+            const mode = document.getElementById('writeMode').value;
+
+            if (!path) {
+                showStatus('writeStatus', 'Please enter a file path', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/write`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ path, content, mode })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Write failed');
+                }
+
+                const data = await response.json();
+                showStatus('writeStatus', `Successfully wrote ${formatFileSize(data.size)} to ${path}`);
+                document.getElementById('writeContent').value = '';
+            } catch (error) {
+                showStatus('writeStatus', `Error: ${error.message}`, true);
+            }
+        }
+
+        // Search files
+        async function searchFiles() {
+            if (!authToken) {
+                showStatus('searchStatus', 'Please authenticate first', true);
+                return;
+            }
+
+            const path = document.getElementById('searchPath').value || '/';
+            const query = document.getElementById('searchQuery').value;
+            const includeContent = document.getElementById('searchContent').checked;
+
+            if (!query) {
+                showStatus('searchStatus', 'Please enter a search query', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        path,
+                        query,
+                        options: {
+                            includeContent,
+                            maxResults: 50
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Search failed');
+                }
+
+                const data = await response.json();
+                displaySearchResults(data.results);
+                showStatus('searchStatus', `Found ${data.total} results${data.truncated ? ' (truncated)' : ''}`);
+            } catch (error) {
+                showStatus('searchStatus', `Error: ${error.message}`, true);
+            }
+        }
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '';
+
+            results.forEach(result => {
+                const item = document.createElement('div');
+                item.className = 'search-result';
+                
+                const path = document.createElement('div');
+                path.className = 'path';
+                path.textContent = result.path;
+                
+                item.appendChild(path);
+                
+                if (result.matches && result.matches.length > 0) {
+                    const matches = document.createElement('div');
+                    matches.innerHTML = `Matches: ${result.matches.slice(0, 3).map(m => 
+                        `<span class="match">${escapeHtml(m)}</span>`
+                    ).join(', ')}${result.matches.length > 3 ? '...' : ''}`;
+                    item.appendChild(matches);
+                }
+                
+                item.onclick = () => {
+                    if (result.type === 'file') {
+                        document.getElementById('readPath').value = result.path;
+                        readFile();
+                    }
+                };
+                
+                container.appendChild(item);
+            });
+        }
+
+        // Execute command
+        async function executeCommand() {
+            if (!authToken) {
+                showStatus('executeStatus', 'Please authenticate first', true);
+                return;
+            }
+
+            const command = document.getElementById('command').value;
+            const args = document.getElementById('commandArgs').value.split(' ').filter(Boolean);
+
+            if (!command) {
+                showStatus('executeStatus', 'Please enter a command', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ command, args })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Execute failed');
+                }
+
+                const data = await response.json();
+                let output = '';
+                if (data.stdout) output += `STDOUT:\n${data.stdout}\n\n`;
+                if (data.stderr) output += `STDERR:\n${data.stderr}\n\n`;
+                output += `Exit Code: ${data.exitCode}`;
+                
+                document.getElementById('commandOutput').textContent = output;
+                showStatus('executeStatus', data.success ? 'Command executed successfully' : 'Command failed');
+            } catch (error) {
+                showStatus('executeStatus', `Error: ${error.message}`, true);
+                document.getElementById('commandOutput').textContent = '';
+            }
+        }
+
+        // WebSocket functions
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+                return;
+            }
+
+            if (!authToken) {
+                showStatus('watchStatus', 'Please authenticate first', true);
+                return;
+            }
+
+            ws = new WebSocket('ws://localhost:3456/api/filesystem/ws');
+            
+            ws.onopen = () => {
+                updateWSStatus(true);
+                addWSLog('Connected to WebSocket', 'event');
+                
+                // Send authentication
+                ws.send(JSON.stringify({
+                    type: 'auth',
+                    token: authToken
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                
+                switch (message.type) {
+                    case 'event':
+                        if (message.event === 'authenticated') {
+                            addWSLog('Authenticated successfully', 'event');
+                        } else if (message.event === 'watching') {
+                            addWSLog(`Now watching: ${message.path}`, 'event');
+                        } else if (message.event === 'unwatched') {
+                            addWSLog(`Stopped watching: ${message.path}`, 'event');
+                        } else if (message.event) {
+                            addWSLog(`File ${message.event}: ${message.path}`, 'event');
+                        }
+                        break;
+                    case 'error':
+                        addWSLog(`Error: ${message.data.error}`, 'error');
+                        break;
+                    case 'ping':
+                        ws.send(JSON.stringify({ type: 'pong' }));
+                        break;
+                }
+            };
+
+            ws.onerror = (error) => {
+                addWSLog(`WebSocket error: ${error.message}`, 'error');
+            };
+
+            ws.onclose = () => {
+                updateWSStatus(false);
+                addWSLog('Disconnected from WebSocket', 'event');
+            };
+        }
+
+        function watchPath() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                showStatus('watchStatus', 'WebSocket not connected', true);
+                return;
+            }
+
+            const path = document.getElementById('watchPath').value;
+            if (!path) {
+                showStatus('watchStatus', 'Please enter a path to watch', true);
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'watch',
+                path: path
+            }));
+        }
+
+        function unwatchPath() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                showStatus('watchStatus', 'WebSocket not connected', true);
+                return;
+            }
+
+            const path = document.getElementById('watchPath').value;
+            if (!path) {
+                showStatus('watchStatus', 'Please enter a path to unwatch', true);
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'unwatch',
+                path: path
+            }));
+        }
+
+        function updateWSStatus(connected) {
+            const status = document.getElementById('wsStatus');
+            const statusText = document.getElementById('wsStatusText');
+            const connectBtn = document.getElementById('wsConnectBtn');
+            
+            status.className = connected ? 'ws-status connected' : 'ws-status disconnected';
+            statusText.textContent = connected ? 'Connected' : 'Disconnected';
+            connectBtn.textContent = connected ? 'Disconnect' : 'Connect WebSocket';
+        }
+
+        function addWSLog(message, type = 'event') {
+            const log = document.getElementById('wsLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            
+            // Keep only last 100 entries
+            while (log.children.length > 100) {
+                log.removeChild(log.firstChild);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        updateWSStatus(false);
+    </script>
+</body>
+</html>

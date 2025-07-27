@@ -3,59 +3,76 @@ version: '3.8'
 name: universal-ai-tools
 
 services:
-  # Main Universal AI Tools Service
-  universal-ai-tools:
-    build: 
+  # Main Universal AI Tools Application
+  app:
+    build:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: universal-ai-tools
+    container_name: universal-ai-tools-app
+    restart: unless-stopped
     ports:
       - "9999:9999"
     environment:
+      # Server Configuration
       - NODE_ENV=production
       - PORT=9999
-      # Database
+      - HOST=0.0.0.0
+      
+      # Database Configuration
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/universal_ai_tools
       - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      
+      # Redis Configuration
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      
       # Security
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-}
+      
       # AI Services
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
-      # Local LLM
+      
+      # Local LLM Services
       - OLLAMA_URL=http://ollama:11434
-      - LM_STUDIO_URL=http://lm-studio:1234
-      # Features
+      - LM_STUDIO_URL=${LM_STUDIO_URL:-http://host.docker.internal:1234}
+      
+      # Feature Flags
       - ENABLE_WEBSOCKETS=true
       - ENABLE_MEMORY_SYSTEM=true
       - ENABLE_ANTI_HALLUCINATION=true
       - ENABLE_COGNITIVE_AGENTS=true
-      # Performance
-      - MAX_CONCURRENT_REQUESTS=20
-      - REQUEST_TIMEOUT=60000
-      - MEMORY_CACHE_SIZE=2000
+      
+      # Performance Settings
+      - MAX_CONCURRENT_REQUESTS=50
+      - REQUEST_TIMEOUT=120000
+      - MEMORY_CACHE_SIZE=5000
+      
       # Monitoring
       - ENABLE_TELEMETRY=true
-      - LOG_LEVEL=info
-      # External Services
-      - REDIS_URL=redis://redis:6379
-      - SEARXNG_URL=http://searxng:8080
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     volumes:
       - ./logs:/app/logs
       - ./cache:/app/cache
-      - model_cache:/app/models
       - ./data:/app/data
+      - model_cache:/app/models
     depends_on:
-      - redis
-      - ollama
-      - searxng
-    restart: unless-stopped
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
     networks:
-      - ai-tools-network
+      - ai-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9999/api/health"]
       interval: 30s
@@ -63,121 +80,130 @@ services:
       retries: 3
       start_period: 40s
 
-  # Ollama Service for Local Model Execution (Metal/Apple Silicon)
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: universal-ai-tools-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=universal_ai_tools
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Rate Limiting
+  redis:
+    image: redis:7-alpine
+    container_name: universal-ai-tools-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 4gb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama for Local LLM Inference
   ollama:
     image: ollama/ollama:latest
+    container_name: universal-ai-tools-ollama
+    restart: unless-stopped
     ports:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
-      # Mount Metal Performance Shaders framework for GPU acceleration
-      - /System/Library/Frameworks/Metal.framework:/System/Library/Frameworks/Metal.framework:ro
-      - /System/Library/PrivateFrameworks/MetalPerformanceShaders.framework:/System/Library/PrivateFrameworks/MetalPerformanceShaders.framework:ro
     environment:
+      - OLLAMA_KEEP_ALIVE=5m
       - OLLAMA_NUM_PARALLEL=4
       - OLLAMA_MAX_LOADED_MODELS=3
-      - OLLAMA_MODELS=/root/.ollama/models
-      # Enable Metal acceleration
-      - OLLAMA_ACCELERATOR=metal
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - ai-network
     deploy:
       resources:
         limits:
-          memory: 16G
-        reservations:
           memory: 8G
-    restart: unless-stopped
-    networks:
-      - ai-tools-network
+        reservations:
+          memory: 4G
+    # Automatically pull popular models on startup
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        ollama serve &
+        sleep 5
+        ollama pull llama3.2:3b || true
+        ollama pull mistral:7b || true
+        ollama pull codellama:7b || true
+        wait
 
-  # Redis for Model Parameter Caching & Session Management
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: universal-ai-tools-nginx
     restart: unless-stopped
-    networks:
-      - ai-tools-network
-
-  # SearXNG for Privacy-Focused Web Search
-  searxng:
-    image: searxng/searxng:latest
     ports:
-      - "8080:8080"
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./searxng:/etc/searxng:rw
-    environment:
-      - SEARXNG_BASE_URL=http://localhost:8080/
-      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-ultrasecretkey}
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
-    restart: unless-stopped
-    networks:
-      - ai-tools-network
-
-  # Dashboard Service with WebSocket Support
-  dashboard:
-    build:
-      context: .
-      dockerfile: Dockerfile.dashboard
-    container_name: universal-ai-dashboard
-    ports:
-      - "3001:3001"
-      - "3002:3002"  # WebSocket port
-    environment:
-      - NODE_ENV=production
-      - API_URL=http://universal-ai-tools:9999
-      - REDIS_URL=redis://redis:6379
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-    volumes:
-      - ./dashboard:/app/dashboard
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
     depends_on:
-      - universal-ai-tools
-      - redis
-    restart: unless-stopped
+      - app
     networks:
-      - ai-tools-network
+      - ai-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # PostgreSQL for Additional Data Storage (if needed)
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-aitools}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-aitools123}
-      - POSTGRES_DB=${POSTGRES_DB:-aitools}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    networks:
-      - ai-tools-network
-
-  # Monitoring Stack - Prometheus
+  # Prometheus for Metrics
   prometheus:
     image: prom/prometheus:latest
+    container_name: universal-ai-tools-prometheus
+    restart: unless-stopped
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus:/etc/prometheus
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-    restart: unless-stopped
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
     networks:
-      - ai-tools-network
+      - ai-network
 
-  # Monitoring Stack - Grafana
+  # Grafana for Visualization
   grafana:
     image: grafana/grafana:latest
+    container_name: universal-ai-tools-grafana
+    restart: unless-stopped
     ports:
       - "3003:3000"
     environment:
@@ -186,47 +212,65 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus
-    restart: unless-stopped
     networks:
-      - ai-tools-network
+      - ai-network
 
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: universal-ai-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - universal-ai-tools
-      - dashboard
-      - grafana
+  # pgAdmin for Database Management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: universal-ai-tools-pgadmin
     restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@example.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     networks:
-      - ai-tools-network
+      - ai-network
+    profiles:
+      - tools
+
+  # Redis Commander for Redis Management (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: universal-ai-tools-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-}
+    depends_on:
+      - redis
+    networks:
+      - ai-network
+    profiles:
+      - tools
 
 volumes:
-  model_cache:
-    driver: local
-  ollama_models:
+  postgres_data:
     driver: local
   redis_data:
     driver: local
-  postgres_data:
+  ollama_models:
+    driver: local
+  model_cache:
     driver: local
   prometheus_data:
     driver: local
   grafana_data:
     driver: local
+  nginx_cache:
+    driver: local
+  pgadmin_data:
+    driver: local
 
 networks:
-  ai-tools-network:
+  ai-network:
     driver: bridge
     ipam:
       config:

@@ -33,16 +33,36 @@ class TypeScriptDocsScraper {
       '/docs/handbook/modules.html',
       '/docs/handbook/declaration-files/introduction.html',
       '/docs/handbook/compiler-options.html',
-      '/tsconfig'
+      '/tsconfig',
     ];
 
     // Common TypeScript errors and their documentation
     const errorPages = [
-      { code: 'TS2339', desc: 'Property does not exist on type', url: '/docs/handbook/2/understanding-errors.html' },
-      { code: 'TS2345', desc: 'Argument not assignable to parameter', url: '/docs/handbook/2/understanding-errors.html' },
-      { code: 'TS2322', desc: 'Type not assignable', url: '/docs/handbook/2/understanding-errors.html' },
-      { code: 'TS7053', desc: 'Element implicitly has any type', url: '/docs/handbook/2/understanding-errors.html' },
-      { code: 'TS2739', desc: 'Type is missing properties', url: '/docs/handbook/2/understanding-errors.html' }
+      {
+        code: 'TS2339',
+        desc: 'Property does not exist on type',
+        url: '/docs/handbook/2/understanding-errors.html',
+      },
+      {
+        code: 'TS2345',
+        desc: 'Argument not assignable to parameter',
+        url: '/docs/handbook/2/understanding-errors.html',
+      },
+      {
+        code: 'TS2322',
+        desc: 'Type not assignable',
+        url: '/docs/handbook/2/understanding-errors.html',
+      },
+      {
+        code: 'TS7053',
+        desc: 'Element implicitly has any type',
+        url: '/docs/handbook/2/understanding-errors.html',
+      },
+      {
+        code: 'TS2739',
+        desc: 'Type is missing properties',
+        url: '/docs/handbook/2/understanding-errors.html',
+      },
     ];
 
     // Scrape handbook pages
@@ -64,7 +84,7 @@ class TypeScriptDocsScraper {
    */
   async scrapePage(path, category) {
     const url = this.baseUrl + path;
-    
+
     if (this.processedUrls.has(url)) {
       return;
     }
@@ -77,7 +97,7 @@ class TypeScriptDocsScraper {
       // Extract main content
       const title = $('h1').first().text().trim() || $('title').text().trim();
       const content = $('article, .content, main').first().text().trim();
-      
+
       // Extract code examples
       const codeExamples = [];
       $('pre code').each((i, elem) => {
@@ -91,14 +111,13 @@ class TypeScriptDocsScraper {
         content: content.substring(0, 2000), // Limit content size
         codeExamples: codeExamples.slice(0, 5), // Store first 5 examples
         category,
-        documentationType: 'typescript_reference'
+        documentationType: 'typescript_reference',
       });
 
       this.processedUrls.add(url);
-      
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
+      // Rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
       console.error(`❌ Error scraping ${url}:`, error.message);
     }
@@ -117,7 +136,7 @@ class TypeScriptDocsScraper {
         errorCode: error.code,
         category: 'typescript_error',
         documentationType: 'error_reference',
-        tags: ['typescript', 'error', error.code]
+        tags: ['typescript', 'error', error.code],
       });
     }
   }
@@ -136,7 +155,7 @@ class TypeScriptDocsScraper {
           'Use type assertion if you know the property exists: (obj as any).property',
           'Check if property name is spelled correctly',
           'Use optional chaining: obj?.property',
-          'Define proper interface extending the base type'
+          'Define proper interface extending the base type',
         ],
         example: `
 // Fix 1: Add to interface
@@ -151,7 +170,7 @@ const value = (myObject as any).dynamicProperty;
 // Fix 3: Type guard
 if ('property' in myObject) {
   console.log(myObject.property);
-}`
+}`,
       },
       {
         error: 'TS2345: Argument of type X is not assignable to parameter of type Y',
@@ -160,7 +179,7 @@ if ('property' in myObject) {
           'Add missing properties to the object',
           'Use type assertion if types are compatible',
           'Update function parameter type to accept the argument type',
-          'Create a proper type that extends or implements required interface'
+          'Create a proper type that extends or implements required interface',
         ],
         example: `
 // Fix 1: Match the expected type
@@ -177,7 +196,7 @@ const obj: ExpectedType = {
 // Fix 2: Update parameter type
 function myFunc(param: ExpectedType | PartialType) {
   // Handle both types
-}`
+}`,
       },
       {
         error: 'TS2739: Type is missing the following properties',
@@ -186,7 +205,7 @@ function myFunc(param: ExpectedType | PartialType) {
           'Use Partial<T> if properties are optional',
           'Spread existing object and add missing properties',
           'Create factory function that ensures all properties',
-          'Use satisfies operator for better type inference'
+          'Use satisfies operator for better type inference',
         ],
         example: `
 // Fix 1: Add missing properties
@@ -199,7 +218,7 @@ const obj: CompleteType = {
 // Fix 2: Use Partial for optional properties
 function processData(data: Partial<CompleteType>) {
   // Handle partial data
-}`
+}`,
       },
       {
         error: 'TS7053: Element implicitly has any type (index signature)',
@@ -208,7 +227,7 @@ function processData(data: Partial<CompleteType>) {
           'Use Record<string, type> for dynamic keys',
           'Check key exists before accessing',
           'Use Map instead of object for dynamic keys',
-          'Define explicit keys with literal types'
+          'Define explicit keys with literal types',
         ],
         example: `
 // Fix 1: Add index signature
@@ -225,8 +244,8 @@ type MyRecord = Record<string, string>;
 const key = 'dynamicKey';
 if (key in obj) {
   const value = obj[key as keyof typeof obj];
-}`
-      }
+}`,
+      },
     ];
 
     for (const fix of commonFixes) {
@@ -236,7 +255,7 @@ if (key in obj) {
         codeExample: fix.example,
         category: 'typescript_fix',
         documentationType: 'solution',
-        tags: ['typescript', 'fix', 'error', fix.error.split(':')[0]]
+        tags: ['typescript', 'fix', 'error', fix.error.split(':')[0]],
       });
     }
   }
@@ -254,20 +273,17 @@ if (key in obj) {
           source_url: data.url || 'typescript_handbook',
           title: data.title,
           category: data.category,
-          scraped_at: new Date().toISOString()
-        }
+          scraped_at: new Date().toISOString(),
+        },
       };
 
-      const { error } = await this.supabase.client
-        .from('ai_memories')
-        .insert(memory);
+      const { error } = await this.supabase.client.from('ai_memories').insert(memory);
 
       if (error) {
         console.error('Error storing memory:', error);
       } else {
         console.log(`✅ Stored: ${data.title}`);
       }
-
     } catch (error) {
       console.error('Error in storeInMemory:', error);
     }
@@ -278,7 +294,7 @@ if (key in obj) {
 async function main() {
   const scraper = new TypeScriptDocsScraper();
   await scraper.scrapeTypeScriptDocs();
-  
+
   console.log('\n📊 Scraping Summary:');
   console.log(`- Pages processed: ${scraper.processedUrls.size}`);
   console.log('- Categories: handbook, typescript_error, typescript_fix');

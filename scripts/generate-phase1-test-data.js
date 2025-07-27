@@ -3,7 +3,7 @@
 /**
  * Phase 1 Test Data Generator for Universal AI Tools
  * Generates comprehensive test data for Phase 1 development and testing
- * 
+ *
  * Features:
  * - Sample agents (cognitive and personal types)
  * - Test memory records for the memory system
@@ -12,10 +12,10 @@
  * - Test configuration data
  * - ES module compatible
  * - Cleanup functions for test reset
- * 
+ *
  * Usage:
  *   node scripts/generate-phase1-test-data.js [command] [options]
- * 
+ *
  * Commands:
  *   generate    - Generate all test data
  *   cleanup     - Remove all test data
@@ -44,7 +44,7 @@ const config = {
   supabase: {
     url: process.env.SUPABASE_URL,
     serviceKey: process.env.SUPABASE_SERVICE_KEY,
-    anonKey: process.env.SUPABASE_ANON_KEY
+    anonKey: process.env.SUPABASE_ANON_KEY,
   },
   testData: {
     agentCount: 20,
@@ -52,12 +52,12 @@ const config = {
     userCount: 10,
     conversationCount: 25,
     contextCount: 50,
-    toolCount: 15
+    toolCount: 15,
   },
   cleanup: {
     preserveSystem: true,
-    confirmDelete: true
-  }
+    confirmDelete: true,
+  },
 };
 
 // Test data generators
@@ -72,7 +72,7 @@ class Phase1TestDataGenerator {
       contexts: [],
       tools: [],
       apiKeys: [],
-      sessions: []
+      sessions: [],
     };
     this.testPrefix = 'TEST_';
     this.batchSize = 10;
@@ -87,18 +87,18 @@ class Phase1TestDataGenerator {
     this.supabase = createClient(config.supabase.url, config.supabase.serviceKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     });
 
     console.log('✅ Supabase client initialized');
-    
+
     // Test connection
     const { data, error } = await this.supabase.from('ai_memories').select('count').limit(1);
     if (error) {
       throw new Error(`Supabase connection failed: ${error.message}`);
     }
-    
+
     console.log('✅ Database connection verified');
   }
 
@@ -123,11 +123,11 @@ class Phase1TestDataGenerator {
       'reflector',
       'resource_manager',
       'retriever',
-      'synthesizer'
+      'synthesizer',
     ];
 
     const agents = [];
-    
+
     cognitiveTypes.forEach((type, index) => {
       for (let i = 0; i < 2; i++) {
         agents.push({
@@ -140,7 +140,7 @@ class Phase1TestDataGenerator {
           config: this.generateAgentConfig(type),
           metrics: this.generateAgentMetrics(),
           created_at: this.generateTimestamp(Math.floor(Math.random() * 30)),
-          updated_at: this.generateTimestamp(Math.floor(Math.random() * 7))
+          updated_at: this.generateTimestamp(Math.floor(Math.random() * 7)),
         });
       }
     });
@@ -155,11 +155,11 @@ class Phase1TestDataGenerator {
       'tool_maker',
       'photo_organizer',
       'file_manager',
-      'memory_assistant'
+      'memory_assistant',
     ];
 
     const agents = [];
-    
+
     personalTypes.forEach((type, index) => {
       for (let i = 0; i < 2; i++) {
         agents.push({
@@ -172,7 +172,7 @@ class Phase1TestDataGenerator {
           config: this.generateAgentConfig(type),
           metrics: this.generateAgentMetrics(),
           created_at: this.generateTimestamp(Math.floor(Math.random() * 60)),
-          updated_at: this.generateTimestamp(Math.floor(Math.random() * 14))
+          updated_at: this.generateTimestamp(Math.floor(Math.random() * 14)),
         });
       }
     });
@@ -194,7 +194,7 @@ class Phase1TestDataGenerator {
       tool_maker: ['code_generation', 'api_creation', 'tool_validation'],
       photo_organizer: ['image_analysis', 'face_recognition', 'metadata_extraction'],
       file_manager: ['file_operations', 'pattern_matching', 'automation_rules'],
-      memory_assistant: ['memory_storage', 'retrieval_optimization', 'context_management']
+      memory_assistant: ['memory_storage', 'retrieval_optimization', 'context_management'],
     };
 
     return [...baseCapabilities, ...(specificCapabilities[agentType] || [])];
@@ -207,35 +207,37 @@ class Phase1TestDataGenerator {
       temperature: Math.random() * 0.8 + 0.2,
       model: ['gpt-4', 'claude-3', 'llama3.2:3b'][Math.floor(Math.random() * 3)],
       memory: true,
-      tools: []
+      tools: [],
     };
 
     const specificConfigs = {
       devils_advocate: {
-        systemPrompt: "You are a critical thinking agent that challenges assumptions and identifies potential flaws in reasoning.",
+        systemPrompt:
+          'You are a critical thinking agent that challenges assumptions and identifies potential flaws in reasoning.',
         biasDetection: true,
-        argumentStrength: 0.8
+        argumentStrength: 0.8,
       },
       enhanced_planner: {
-        systemPrompt: "You are a strategic planning agent that breaks down complex tasks into manageable steps.",
-        planningHorizon: "long_term",
-        resourceAware: true
+        systemPrompt:
+          'You are a strategic planning agent that breaks down complex tasks into manageable steps.',
+        planningHorizon: 'long_term',
+        resourceAware: true,
       },
       calendar: {
-        calendarSources: ["google", "outlook"],
+        calendarSources: ['google', 'outlook'],
         reminderLeadTime: 15,
-        conflictDetection: true
+        conflictDetection: true,
       },
       tool_maker: {
-        allowedLanguages: ["javascript", "python", "bash"],
-        securityLevel: "high",
-        testGeneration: true
-      }
+        allowedLanguages: ['javascript', 'python', 'bash'],
+        securityLevel: 'high',
+        testGeneration: true,
+      },
     };
 
     return {
       ...baseConfig,
-      ...(specificConfigs[agentType] || {})
+      ...(specificConfigs[agentType] || {}),
     };
   }
 
@@ -246,20 +248,26 @@ class Phase1TestDataGenerator {
       successRate: Math.random() * 0.3 + 0.7, // 70-100%
       averageResponseTime: Math.floor(Math.random() * 2000) + 500, // 500-2500ms
       lastUsed: this.generateTimestamp(Math.floor(Math.random() * 7)),
-      memoryUsage: Math.floor(Math.random() * 512) + 128 // 128-640MB
+      memoryUsage: Math.floor(Math.random() * 512) + 128, // 128-640MB
     };
   }
 
   // Generate test memories
   generateMemories() {
     const memoryTypes = ['semantic', 'procedural', 'episodic'];
-    const categories = ['user_preference', 'system_knowledge', 'conversation_history', 'tool_usage', 'error_pattern'];
+    const categories = [
+      'user_preference',
+      'system_knowledge',
+      'conversation_history',
+      'tool_usage',
+      'error_pattern',
+    ];
     const memories = [];
 
     for (let i = 0; i < config.testData.memoryCount; i++) {
       const type = memoryTypes[Math.floor(Math.random() * memoryTypes.length)];
       const category = categories[Math.floor(Math.random() * categories.length)];
-      
+
       memories.push({
         id: this.generateTestId('MEM_'),
         service_id: `test_service_${Math.floor(Math.random() * 5) + 1}`,
@@ -272,10 +280,11 @@ class Phase1TestDataGenerator {
         keywords: this.generateKeywords(category),
         importance_score: Math.random(),
         access_count: Math.floor(Math.random() * 50),
-        last_accessed: Math.random() > 0.3 ? this.generateTimestamp(Math.floor(Math.random() * 7)) : null,
+        last_accessed:
+          Math.random() > 0.3 ? this.generateTimestamp(Math.floor(Math.random() * 7)) : null,
         related_entities: this.generateRelatedEntities(),
         embedding: this.generateEmbedding(), // Mock embedding vector
-        embedding_model: 'text-embedding-ada-002'
+        embedding_model: 'text-embedding-ada-002',
       });
     }
 
@@ -286,26 +295,40 @@ class Phase1TestDataGenerator {
   generateMemoryContent(type, category) {
     const templates = {
       semantic: {
-        user_preference: "User prefers dark mode interface with condensed view. Response style should be concise and technical.",
-        system_knowledge: "The universal AI tools system uses Supabase for data persistence and Redis for caching.",
-        conversation_history: "Previous conversation about TypeScript configuration and build optimization.",
-        tool_usage: "User frequently uses the code analysis tool for JavaScript and TypeScript projects.",
-        error_pattern: "Common error: Failed to connect to Redis cache, fallback to in-memory storage used."
+        user_preference:
+          'User prefers dark mode interface with condensed view. Response style should be concise and technical.',
+        system_knowledge:
+          'The universal AI tools system uses Supabase for data persistence and Redis for caching.',
+        conversation_history:
+          'Previous conversation about TypeScript configuration and build optimization.',
+        tool_usage:
+          'User frequently uses the code analysis tool for JavaScript and TypeScript projects.',
+        error_pattern:
+          'Common error: Failed to connect to Redis cache, fallback to in-memory storage used.',
       },
       procedural: {
-        user_preference: "Steps to configure user dashboard: 1. Set theme 2. Configure widgets 3. Save layout",
-        system_knowledge: "To restart services: 1. Stop all processes 2. Clear cache 3. Reload configuration 4. Start services",
-        conversation_history: "Procedure discussed: How to backup and restore system configuration",
-        tool_usage: "Tool execution sequence: validate input -> process data -> generate output -> store results",
-        error_pattern: "Error recovery procedure: 1. Log error details 2. Attempt retry 3. Fallback to safe mode 4. Notify user"
+        user_preference:
+          'Steps to configure user dashboard: 1. Set theme 2. Configure widgets 3. Save layout',
+        system_knowledge:
+          'To restart services: 1. Stop all processes 2. Clear cache 3. Reload configuration 4. Start services',
+        conversation_history: 'Procedure discussed: How to backup and restore system configuration',
+        tool_usage:
+          'Tool execution sequence: validate input -> process data -> generate output -> store results',
+        error_pattern:
+          'Error recovery procedure: 1. Log error details 2. Attempt retry 3. Fallback to safe mode 4. Notify user',
       },
       episodic: {
-        user_preference: "User session on 2024-01-15: Customized agent behaviors, showed preference for detailed explanations",
-        system_knowledge: "System upgrade on 2024-01-10: Migrated to new vector database, performance improved by 40%",
-        conversation_history: "Conversation thread about implementing new authentication system, lasted 2 hours",
-        tool_usage: "Tool usage spike on weekend: Photo organizer processed 1000+ images successfully",
-        error_pattern: "Critical error event: Database connection lost for 5 minutes, auto-recovery successful"
-      }
+        user_preference:
+          'User session on 2024-01-15: Customized agent behaviors, showed preference for detailed explanations',
+        system_knowledge:
+          'System upgrade on 2024-01-10: Migrated to new vector database, performance improved by 40%',
+        conversation_history:
+          'Conversation thread about implementing new authentication system, lasted 2 hours',
+        tool_usage:
+          'Tool usage spike on weekend: Photo organizer processed 1000+ images successfully',
+        error_pattern:
+          'Critical error event: Database connection lost for 5 minutes, auto-recovery successful',
+      },
     };
 
     return templates[type][category] + ` (Generated for testing - ID: ${this.generateTestId()})`;
@@ -323,7 +346,7 @@ class Phase1TestDataGenerator {
       userId: `test_user_${Math.floor(Math.random() * config.testData.userCount) + 1}`,
       sessionId: this.generateTestId('SESSION_'),
       contextual: true,
-      testData: true
+      testData: true,
     };
   }
 
@@ -334,7 +357,7 @@ class Phase1TestDataGenerator {
       system_knowledge: ['system', 'architecture', 'configuration', 'technical', 'infrastructure'],
       conversation_history: ['conversation', 'dialogue', 'discussion', 'interaction', 'chat'],
       tool_usage: ['tool', 'usage', 'execution', 'process', 'workflow'],
-      error_pattern: ['error', 'exception', 'failure', 'recovery', 'debugging']
+      error_pattern: ['error', 'exception', 'failure', 'recovery', 'debugging'],
     };
 
     const base = keywordSets[category] || ['general', 'test', 'data'];
@@ -345,12 +368,12 @@ class Phase1TestDataGenerator {
   generateRelatedEntities() {
     const entities = [];
     const entityCount = Math.floor(Math.random() * 5) + 1;
-    
+
     for (let i = 0; i < entityCount; i++) {
       entities.push({
         type: ['user', 'agent', 'tool', 'session'][Math.floor(Math.random() * 4)],
         id: this.generateTestId(),
-        relevance: Math.random()
+        relevance: Math.random(),
       });
     }
 
@@ -361,18 +384,18 @@ class Phase1TestDataGenerator {
   generateEmbedding() {
     const dimensions = 1536;
     const embedding = [];
-    
+
     for (let i = 0; i < dimensions; i++) {
       embedding.push((Math.random() - 0.5) * 2); // Random values between -1 and 1
     }
-    
+
     return embedding;
   }
 
   // Generate test users
   generateUsers() {
     const users = [];
-    
+
     for (let i = 0; i < config.testData.userCount; i++) {
       users.push({
         id: this.generateTestId('USER_'),
@@ -383,16 +406,16 @@ class Phase1TestDataGenerator {
           theme: ['light', 'dark'][Math.floor(Math.random() * 2)],
           language: 'en',
           notifications: Math.random() > 0.5,
-          aiPersonality: ['professional', 'friendly', 'casual'][Math.floor(Math.random() * 3)]
+          aiPersonality: ['professional', 'friendly', 'casual'][Math.floor(Math.random() * 3)],
         },
         permissions: this.generateUserPermissions(),
         rateLimits: {
           requests_per_minute: 100,
           memory_operations_per_hour: 1000,
-          file_uploads_per_day: 50
+          file_uploads_per_day: 50,
         },
         created_at: this.generateTimestamp(Math.floor(Math.random() * 180)),
-        last_login: this.generateTimestamp(Math.floor(Math.random() * 30))
+        last_login: this.generateTimestamp(Math.floor(Math.random() * 30)),
       });
     }
 
@@ -402,20 +425,28 @@ class Phase1TestDataGenerator {
   // Generate user permissions
   generateUserPermissions() {
     const allPermissions = [
-      'read_memories', 'write_memories', 'delete_memories',
-      'use_agents', 'create_agents', 'modify_agents',
-      'access_tools', 'create_tools', 'admin_tools',
-      'view_metrics', 'export_data', 'system_admin'
+      'read_memories',
+      'write_memories',
+      'delete_memories',
+      'use_agents',
+      'create_agents',
+      'modify_agents',
+      'access_tools',
+      'create_tools',
+      'admin_tools',
+      'view_metrics',
+      'export_data',
+      'system_admin',
     ];
 
-    const permissionCount = Math.floor(Math.random() * allPermissions.length / 2) + 3;
+    const permissionCount = Math.floor((Math.random() * allPermissions.length) / 2) + 3;
     return allPermissions.sort(() => 0.5 - Math.random()).slice(0, permissionCount);
   }
 
   // Generate API keys for testing
   generateApiKeys() {
     const keys = [];
-    
+
     for (let i = 0; i < config.testData.userCount; i++) {
       keys.push({
         id: this.generateTestId('KEY_'),
@@ -425,9 +456,10 @@ class Phase1TestDataGenerator {
         permissions: this.generateUserPermissions(),
         rate_limit: 1000,
         expires_at: this.generateTimestamp(-30), // Expires in 30 days
-        last_used: Math.random() > 0.3 ? this.generateTimestamp(Math.floor(Math.random() * 7)) : null,
+        last_used:
+          Math.random() > 0.3 ? this.generateTimestamp(Math.floor(Math.random() * 7)) : null,
         created_at: this.generateTimestamp(Math.floor(Math.random() * 90)),
-        is_active: Math.random() > 0.1 // 90% active
+        is_active: Math.random() > 0.1, // 90% active
       });
     }
 
@@ -437,11 +469,11 @@ class Phase1TestDataGenerator {
   // Generate conversation data
   generateConversations() {
     const conversations = [];
-    
+
     for (let i = 0; i < config.testData.conversationCount; i++) {
       const messageCount = Math.floor(Math.random() * 20) + 5;
       const messages = [];
-      
+
       for (let j = 0; j < messageCount; j++) {
         messages.push({
           role: j % 2 === 0 ? 'user' : 'assistant',
@@ -450,8 +482,8 @@ class Phase1TestDataGenerator {
           metadata: {
             tokens: Math.floor(Math.random() * 500) + 50,
             model: 'gpt-4',
-            confidence: Math.random()
-          }
+            confidence: Math.random(),
+          },
         });
       }
 
@@ -463,11 +495,13 @@ class Phase1TestDataGenerator {
         metadata: {
           total_messages: messageCount,
           duration_minutes: messageCount * 5,
-          agents_used: this.generatedData.agents.slice(0, Math.floor(Math.random() * 3) + 1).map(a => a.id),
-          topic: ['coding', 'planning', 'analysis', 'research'][Math.floor(Math.random() * 4)]
+          agents_used: this.generatedData.agents
+            .slice(0, Math.floor(Math.random() * 3) + 1)
+            .map((a) => a.id),
+          topic: ['coding', 'planning', 'analysis', 'research'][Math.floor(Math.random() * 4)],
         },
         created_at: this.generateTimestamp(Math.floor(Math.random() * 30)),
-        updated_at: this.generateTimestamp(Math.floor(Math.random() * 7))
+        updated_at: this.generateTimestamp(Math.floor(Math.random() * 7)),
       });
     }
 
@@ -477,25 +511,27 @@ class Phase1TestDataGenerator {
   // Generate conversation messages
   generateConversationMessage(role, index) {
     const userMessages = [
-      "Can you help me analyze this code?",
+      'Can you help me analyze this code?',
       "What's the best way to implement authentication?",
-      "How do I optimize database queries?",
-      "Explain the agent coordination system",
-      "Generate a test plan for the memory system"
+      'How do I optimize database queries?',
+      'Explain the agent coordination system',
+      'Generate a test plan for the memory system',
     ];
 
     const assistantMessages = [
       "I'd be happy to help you analyze the code. Let me examine the structure and identify potential improvements.",
-      "For authentication, I recommend implementing JWT tokens with proper refresh mechanisms and role-based access control.",
-      "Database query optimization involves proper indexing, query analysis, and connection pooling. Let me show you specific techniques.",
-      "The agent coordination system uses a message broker pattern with Redis for state management and task distribution.",
-      "Here's a comprehensive test plan covering unit tests, integration tests, and performance benchmarks for the memory system."
+      'For authentication, I recommend implementing JWT tokens with proper refresh mechanisms and role-based access control.',
+      'Database query optimization involves proper indexing, query analysis, and connection pooling. Let me show you specific techniques.',
+      'The agent coordination system uses a message broker pattern with Redis for state management and task distribution.',
+      "Here's a comprehensive test plan covering unit tests, integration tests, and performance benchmarks for the memory system.",
     ];
 
     if (role === 'user') {
       return userMessages[index % userMessages.length] + ` (Test message ${index + 1})`;
     } else {
-      return assistantMessages[index % assistantMessages.length] + ` (Generated response ${index + 1})`;
+      return (
+        assistantMessages[index % assistantMessages.length] + ` (Generated response ${index + 1})`
+      );
     }
   }
 
@@ -503,10 +539,10 @@ class Phase1TestDataGenerator {
   generateContexts() {
     const contexts = [];
     const contextTypes = ['conversation', 'document', 'system'];
-    
+
     for (let i = 0; i < config.testData.contextCount; i++) {
       const type = contextTypes[Math.floor(Math.random() * contextTypes.length)];
-      
+
       contexts.push({
         id: this.generateTestId('CTX_'),
         type,
@@ -516,11 +552,11 @@ class Phase1TestDataGenerator {
           category: type,
           importance: Math.random(),
           tags: this.generateKeywords(type),
-          testData: true
+          testData: true,
         },
         timestamp: this.generateTimestamp(Math.floor(Math.random() * 60)),
         weight: Math.random(),
-        user_id: `test_user_${Math.floor(Math.random() * config.testData.userCount) + 1}`
+        user_id: `test_user_${Math.floor(Math.random() * config.testData.userCount) + 1}`,
       });
     }
 
@@ -532,7 +568,7 @@ class Phase1TestDataGenerator {
     const templates = {
       conversation: `Previous conversation context about system architecture and implementation details. Discussed performance optimization and scaling strategies. Context ${index + 1}`,
       document: `Technical documentation reference: API endpoints, configuration options, and best practices for system integration. Document ${index + 1}`,
-      system: `System state information: current load, active agents, memory usage, and performance metrics at timestamp. System context ${index + 1}`
+      system: `System state information: current load, active agents, memory usage, and performance metrics at timestamp. System context ${index + 1}`,
     };
 
     return templates[type] || `Generic context content for testing purposes. Item ${index + 1}`;
@@ -542,10 +578,10 @@ class Phase1TestDataGenerator {
   generateTools() {
     const tools = [];
     const toolTypes = ['javascript', 'python', 'bash', 'sql', 'api'];
-    
+
     for (let i = 0; i < config.testData.toolCount; i++) {
       const type = toolTypes[Math.floor(Math.random() * toolTypes.length)];
-      
+
       tools.push({
         id: this.generateTestId('TOOL_'),
         tool_name: `test_tool_${type}_${i + 1}`,
@@ -558,13 +594,13 @@ class Phase1TestDataGenerator {
           version: '1.0.0',
           author: 'test_generator',
           category: type,
-          testTool: true
+          testTool: true,
         },
         created_by: `test_user_${Math.floor(Math.random() * config.testData.userCount) + 1}`,
         is_active: Math.random() > 0.2, // 80% active
         rate_limit: Math.floor(Math.random() * 100) + 10,
         created_at: this.generateTimestamp(Math.floor(Math.random() * 90)),
-        updated_at: this.generateTimestamp(Math.floor(Math.random() * 14))
+        updated_at: this.generateTimestamp(Math.floor(Math.random() * 14)),
       });
     }
 
@@ -593,7 +629,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
   "method": "POST",
   "headers": {"Content-Type": "application/json"},
   "response": {"result": "processed", "status": "success"}
-}`
+}`,
     };
 
     return implementations[type] || 'console.log("Generic test tool");';
@@ -606,15 +642,21 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
       python: { type: 'object', properties: { input_data: { type: 'any' } } },
       bash: { type: 'string' },
       sql: { type: 'object', properties: { query_param: { type: 'string' } } },
-      api: { type: 'object', properties: { endpoint_data: { type: 'object' } } }
+      api: { type: 'object', properties: { endpoint_data: { type: 'object' } } },
     };
 
     const outputSchemas = {
-      javascript: { type: 'object', properties: { result: { type: 'string' }, data: { type: 'any' } } },
+      javascript: {
+        type: 'object',
+        properties: { result: { type: 'string' }, data: { type: 'any' } },
+      },
       python: { type: 'object', properties: { result: { type: 'string' }, data: { type: 'any' } } },
       bash: { type: 'string' },
       sql: { type: 'object', properties: { result: { type: 'string' }, data: { type: 'string' } } },
-      api: { type: 'object', properties: { result: { type: 'string' }, status: { type: 'string' } } }
+      api: {
+        type: 'object',
+        properties: { result: { type: 'string' }, status: { type: 'string' } },
+      },
     };
 
     return direction === 'input' ? inputSchemas[type] : outputSchemas[type];
@@ -629,15 +671,13 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
 
     console.log(`📊 Storing ${data.length} records in ${tableName}...`);
     let stored = 0;
-    
+
     try {
       // Process in batches
       for (let i = 0; i < data.length; i += this.batchSize) {
         const batch = data.slice(i, i + this.batchSize);
-        
-        const { error } = await this.supabase
-          .from(tableName)
-          .insert(batch);
+
+        const { error } = await this.supabase.from(tableName).insert(batch);
 
         if (error) {
           console.error(`❌ Error storing batch in ${tableName}:`, error.message);
@@ -649,7 +689,6 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
 
       console.log(`✅ Stored ${stored}/${data.length} records in ${tableName}`);
       return { success: true, count: stored };
-      
     } catch (error) {
       console.error(`❌ Failed to store data in ${tableName}:`, error.message);
       return { success: false, error: error.message, count: stored };
@@ -664,7 +703,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
     console.log('1. Generating agents...');
     this.generatedData.agents = [
       ...this.generateCognitiveAgents(),
-      ...this.generatePersonalAgents()
+      ...this.generatePersonalAgents(),
     ];
     console.log(`   Generated ${this.generatedData.agents.length} agents`);
 
@@ -721,7 +760,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
       conversations: this.generatedData.conversations,
       agents: this.generatedData.agents,
       generation_timestamp: new Date().toISOString(),
-      config: config.testData
+      config: config.testData,
     };
 
     // Store metadata in ai_contexts table
@@ -729,7 +768,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
       id: this.generateTestId('META_'),
       context_type: 'test_metadata',
       context_key: 'phase1_test_data',
-      content: metadata
+      content: metadata,
     };
 
     results.metadata = await this.storeData('ai_contexts', [metadataContext]);
@@ -758,7 +797,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
         .from('ai_memories')
         .delete()
         .like('service_id', 'test_%');
-      
+
       results.memories = { success: !memError, count: memCount, error: memError?.message };
 
       // Delete tools
@@ -767,7 +806,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
         .from('ai_custom_tools')
         .delete()
         .like('tool_name', 'test_%');
-      
+
       results.tools = { success: !toolError, count: toolCount, error: toolError?.message };
 
       // Delete contexts
@@ -776,12 +815,11 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
         .from('ai_contexts')
         .delete()
         .eq('context_type', 'test_metadata');
-      
+
       results.contexts = { success: !ctxError, count: ctxCount, error: ctxError?.message };
 
       console.log('\n✅ Cleanup complete!');
       this.printCleanupResults(results);
-
     } catch (error) {
       console.error('❌ Cleanup failed:', error.message);
       results.error = error.message;
@@ -798,7 +836,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
       memories: { exists: false, count: 0, valid: false },
       tools: { exists: false, count: 0, valid: false },
       contexts: { exists: false, count: 0, valid: false },
-      overall: { valid: false, score: 0 }
+      overall: { valid: false, score: 0 },
     };
 
     try {
@@ -807,7 +845,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
         .from('ai_memories')
         .select('count')
         .like('service_id', 'test_%');
-      
+
       validation.memories.exists = !memError && memories;
       validation.memories.count = memories?.length || 0;
       validation.memories.valid = validation.memories.count >= 10;
@@ -817,7 +855,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
         .from('ai_custom_tools')
         .select('count')
         .like('tool_name', 'test_%');
-      
+
       validation.tools.exists = !toolError && tools;
       validation.tools.count = tools?.length || 0;
       validation.tools.valid = validation.tools.count >= 5;
@@ -827,7 +865,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
         .from('ai_contexts')
         .select('count')
         .eq('context_type', 'test_metadata');
-      
+
       validation.contexts.exists = !ctxError && contexts;
       validation.contexts.count = contexts?.length || 0;
       validation.contexts.valid = validation.contexts.count >= 1;
@@ -836,18 +874,25 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
       const validCount = [
         validation.memories.valid,
         validation.tools.valid,
-        validation.contexts.valid
+        validation.contexts.valid,
       ].filter(Boolean).length;
-      
+
       validation.overall.score = (validCount / 3) * 100;
       validation.overall.valid = validation.overall.score >= 66; // 2/3 valid
 
       console.log('📊 Validation Results:');
-      console.log(`   Memories: ${validation.memories.count} records (${validation.memories.valid ? '✅' : '❌'})`);
-      console.log(`   Tools: ${validation.tools.count} records (${validation.tools.valid ? '✅' : '❌'})`);
-      console.log(`   Contexts: ${validation.contexts.count} records (${validation.contexts.valid ? '✅' : '❌'})`);
-      console.log(`   Overall: ${validation.overall.score.toFixed(1)}% (${validation.overall.valid ? '✅' : '❌'})`);
-
+      console.log(
+        `   Memories: ${validation.memories.count} records (${validation.memories.valid ? '✅' : '❌'})`
+      );
+      console.log(
+        `   Tools: ${validation.tools.count} records (${validation.tools.valid ? '✅' : '❌'})`
+      );
+      console.log(
+        `   Contexts: ${validation.contexts.count} records (${validation.contexts.valid ? '✅' : '❌'})`
+      );
+      console.log(
+        `   Overall: ${validation.overall.score.toFixed(1)}% (${validation.overall.valid ? '✅' : '❌'})`
+      );
     } catch (error) {
       console.error('❌ Validation failed:', error.message);
       validation.error = error.message;
@@ -859,8 +904,12 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
   // Print generation summary
   printSummary() {
     console.log('\n📈 Generation Summary:');
-    console.log(`   Cognitive Agents: ${this.generatedData.agents.filter(a => a.type === 'cognitive').length}`);
-    console.log(`   Personal Agents: ${this.generatedData.agents.filter(a => a.type === 'personal').length}`);
+    console.log(
+      `   Cognitive Agents: ${this.generatedData.agents.filter((a) => a.type === 'cognitive').length}`
+    );
+    console.log(
+      `   Personal Agents: ${this.generatedData.agents.filter((a) => a.type === 'personal').length}`
+    );
     console.log(`   Memory Records: ${this.generatedData.memories.length}`);
     console.log(`   Test Users: ${this.generatedData.users.length}`);
     console.log(`   API Keys: ${this.generatedData.apiKeys.length}`);
@@ -874,9 +923,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
     console.log('\n📊 Storage Results:');
     Object.entries(results).forEach(([key, result]) => {
       const status = result.success ? '✅' : '❌';
-      const message = result.success 
-        ? `${result.count} records stored`
-        : `Failed: ${result.error}`;
+      const message = result.success ? `${result.count} records stored` : `Failed: ${result.error}`;
       console.log(`   ${key}: ${status} ${message}`);
     });
   }
@@ -887,7 +934,7 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
     Object.entries(results).forEach(([key, result]) => {
       if (key === 'error') return;
       const status = result.success ? '✅' : '❌';
-      const message = result.success 
+      const message = result.success
         ? `${result.count || 0} records deleted`
         : `Failed: ${result.error}`;
       console.log(`   ${key}: ${status} ${message}`);
@@ -898,23 +945,22 @@ echo '{"result": "processed", "data": "'$1'", "timestamp": "'$(date -Iseconds)'"
   async saveToFile() {
     const filename = `phase1-test-data-${Date.now()}.json`;
     const filepath = join(projectRoot, 'test-data', filename);
-    
+
     try {
       // Ensure test-data directory exists
       await fs.mkdir(join(projectRoot, 'test-data'), { recursive: true });
-      
+
       const output = {
         metadata: {
           generated_at: new Date().toISOString(),
           generator_version: '1.0.0',
-          config: config.testData
+          config: config.testData,
         },
-        data: this.generatedData
+        data: this.generatedData,
       };
 
       await fs.writeFile(filepath, JSON.stringify(output, null, 2));
       console.log(`💾 Test data saved to: ${filepath}`);
-      
     } catch (error) {
       console.error('❌ Failed to save test data file:', error.message);
     }
@@ -973,13 +1019,12 @@ async function main() {
         console.log('   cleanup      - Remove all test data');
         console.log('   reset        - Cleanup and regenerate');
         console.log('   validate     - Validate existing test data');
-        console.log('   generate-only - Generate data but don\'t store');
+        console.log("   generate-only - Generate data but don't store");
         console.log('   store-only   - Store previously generated data');
         process.exit(1);
     }
 
     console.log('\n🎉 Phase 1 test data generator completed successfully!');
-
   } catch (error) {
     console.error('\n❌ Test data generator failed:', error.message);
     if (process.env.NODE_ENV === 'development') {

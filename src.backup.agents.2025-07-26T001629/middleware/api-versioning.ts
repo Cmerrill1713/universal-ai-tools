@@ -1,0 +1,241 @@
+import { type Next.Function, type Request, type Response, Router } from 'express';
+import { logger } from './utils/logger';
+import { z } from 'zod'// Extend Express Request type;
+declare module 'express' {
+  interface Request {
+    api.Version?: string;
+  }}// Version configuration schema;
+const VersionConfig.Schema = zobject({
+  version: zstring()regex(/^v\d+$/);
+  active: zboolean();
+  deprecated: zboolean()default(false);
+  deprecation.Date: zstring()optional();
+  sunset.Date: zstring()optional();
+  changes: zarray(zstring())optional()});
+export interface Api.Version {
+  version: string;
+  active: boolean;
+  deprecated: boolean;
+  deprecation.Date?: Date;
+  sunset.Date?: Date;
+  changes?: string[];
+};
+
+export interface Versioned.Request extends Request {
+  api.Version?: string;
+  deprecation.Warning?: string;
+};
+
+export class ApiVersioning.Middleware {
+  private versions: Map<string, Api.Version> = new Map();
+  private default.Version = 'v1';
+  private latest.Version = 'v1';
+  constructor() {
+    thisinitialize.Versions()};
+
+  private initialize.Versions() {
+    // Define AP.I versions;
+    const versions: Api.Version[] = [
+      {
+        version: 'v1';
+        active: true;
+        deprecated: false;
+        changes: ['Initial AP.I version', 'All endpoints available under /api/v1/']}// Future versions can be added here// {
+      //   version: 'v2'//   active: false//   deprecated: false//   changes: [
+      //     'Breaking change: Modified response format'//     'New feature: Advanced agent capabilities'//   ]// }];
+    versionsfor.Each((v) => {
+      thisversionsset(vversion, v)})// Find latest active version;
+    const active.Versions = Arrayfrom(thisversionsvalues());
+      filter((v) => vactive);
+      sort((a, b) => {
+        const a.Num = parse.Int(aversionslice(1, 10), 10);
+        const b.Num = parse.Int(bversionslice(1, 10), 10);
+        return b.Num - a.Num});
+    if (active.Versionslength > 0) {
+      thislatest.Version = active.Versions[0]version}}/**
+   * Version detection middleware* Extracts AP.I version from UR.L path or headers*/
+  version.Detection() {
+    return (req: Versioned.Request, res: Response, next: Next.Function) => {
+      let version: string | undefined// Check UR.L path for version;
+      const path.Match = reqpathmatch(/^\/api\/(v\d+)\//);
+      if (path.Match) {
+        version = path.Match[1]}// Check Accept header for version (AP.I version in media type);
+      const accept.Header = reqget('Accept');
+      if (!version && accept.Header) {
+        const version.Match = accept.Headermatch(
+          /application\/vnd\universal-ai-tools\.(v\d+)\+json/);
+        if (version.Match) {
+          version = version.Match[1]}}// Check custom header for version;
+      if (!version) {
+        const apiVersion.Header = reqget('X-AP.I-Version');
+        if (apiVersion.Header && apiVersion.Headermatch(/^v\d+$/)) {
+          version = apiVersion.Header}}// Use default version if none specified;
+      if (!version) {
+        version = thisdefault.Version}// Validate version;
+      const version.Info = thisversionsget(version);
+      if (!version.Info) {
+        return resstatus(400)json({
+          success: false;
+          error instanceof Error ? errormessage : String(error) {
+            code: 'INVALID_API_VERSIO.N';
+            message: `AP.I version ${version} is not supported`;
+            supported.Versions: Arrayfrom(thisversionskeys());
+            latest.Version: thislatest.Version;
+          }})};
+
+      if (!version.Infoactive) {
+        return resstatus(410)json({
+          success: false;
+          error instanceof Error ? errormessage : String(error) {
+            code: 'VERSION_NOT_ACTIV.E';
+            message: `AP.I version ${version} is no longer active`;
+            latest.Version: thislatest.Version;
+            sunset.Date: versionInfosunset.Date;
+          }})}// Set version on request;
+      reqapi.Version = version// Add deprecation warning if applicable;
+      if (version.Infodeprecated) {
+        const warning = `AP.I version ${version} is deprecated and will be sunset on ${versionInfosunset.Date}. Please upgrade to ${thislatest.Version}.`;
+        reqdeprecation.Warning = warning;
+        resset('X-AP.I-Deprecation-Warning', warning);
+        resset('X-AP.I-Sunset-Date', versionInfosunset.Date?toISO.String() || '')}// Add version headers to response;
+      resset('X-AP.I-Version', version);
+      resset('X-AP.I-Latest-Version', thislatest.Version);
+      next()}}/**
+   * Version routing middleware* Routes requests to appropriate version handlers*/
+  version.Router() {
+    const router = Router()// Version info endpoint;
+    routerget('/versions', (req, res) => {
+      const versions = Arrayfrom(thisversionsvalues())map((v) => ({
+        version: vversion;
+        active: vactive;
+        deprecated: vdeprecated;
+        deprecation.Date: vdeprecation.Date?toISO.String();
+        sunset.Date: vsunset.Date?toISO.String();
+        changes: vchanges}));
+      resjson({
+        success: true;
+        current.Version: (req as any)api.Version || thisdefault.Version;
+        default.Version: thisdefault.Version;
+        latest.Version: thislatest.Version;
+        versions})});
+    return router}/**
+   * UR.L rewriting middleware* Rewrites non-versioned AP.I paths to include version prefix*/
+  url.Rewriter() {
+    return (req: Request, res: Response, next: Next.Function) => {
+      // Skip if already has version in path;
+      if (reqpathmatch(/^\/api\/v\d+\//)) {
+        return next()}// Skip non-AP.I paths;
+      if (!reqpathstarts.With('/api/')) {
+        return next()}// Skip special endpoints that should not be versioned;
+      const unversioned.Paths = [
+        '/api/docs';
+        '/api/register';
+        '/api/versions';
+        '/api/health';
+        '/api/config';
+        '/api/config/health';
+        '/metrics'];
+      if (unversioned.Pathsincludes(reqpath)) {
+        return next()}// Rewrite UR.L to include version;
+      const version = (req as Versioned.Request)api.Version || thisdefault.Version;
+      const new.Path = reqpathreplace(/^\/api/, `/api/${version}`);
+      loggerdebug(`Rewriting AP.I path from ${reqpath} to ${new.Path}`);
+      requrl = new.Path + (requrlincludes('?') ? requrlsubstring(requrlindex.Of('?')) : '');
+      next()}}/**
+   * Version compatibility middleware* Handles backward compatibility between versions*/
+  compatibility.Handler() {
+    return (req: Versioned.Request, res: Response, next: Next.Function) => {
+      const version = reqapi.Version || thisdefault.Version// Add response transformation based on version;
+      const original.Json = resjsonbind(res);
+      resjson = function (data: any) {
+        // Transform response based on AP.I version;
+        const transformed.Data = transform.Response(data, version)// Add metadata;
+        if (typeof transformed.Data === 'object' && !Array.is.Array(transformed.Data)) {
+          transformed.Datametadata = {
+            .transformed.Datametadata;
+            api.Version: version;
+            timestamp: new Date()toISO.String();
+          }// Add deprecation warning to response if applicable;
+          if (reqdeprecation.Warning) {
+            transformedDatametadatadeprecation.Warning = reqdeprecation.Warning}};
+;
+        return original.Json(transformed.Data)};
+      next()}}/**
+   * Version negotiation middleware* Handles content negotiation for AP.I versions*/
+  content.Negotiation() {
+    return (req: Versioned.Request, res: Response, next: Next.Function) => {
+      const accept.Header = reqget('Accept');
+      if (accept.Header && accept.Headerincludes('application/vnduniversal-ai-tools')) {
+        // Set appropriate content-type based on version;
+        const version = reqapi.Version || thisdefault.Version;
+        restype(`application/vnduniversal-ai-tools.${version}+json`)} else {
+        restype('application/json')};
+
+      next()}}/**
+   * Get version information*/
+  getVersion.Info(version: string): Api.Version | undefined {
+    return thisversionsget(version)}/**
+   * Add a new version*/
+  add.Version(version: Api.Version): void {
+    const validated = VersionConfig.Schemaparse(version);
+    thisversionsset(validatedversion, {
+      version: validatedversion;
+      active: validatedactive;
+      deprecated: validateddeprecated;
+      changes: validatedchanges;
+      deprecation.Date: validateddeprecation.Date ? new Date(validateddeprecation.Date) : undefined;
+      sunset.Date: validatedsunset.Date ? new Date(validatedsunset.Date) : undefined})// Update latest version if needed;
+    if (validatedactive) {
+      const currentLatest.Num = parse.Int(thislatest.Versionslice(1, 10), 10);
+      const newVersion.Num = parse.Int(validatedversionslice(1, 10), 10);
+      if (newVersion.Num > currentLatest.Num) {
+        thislatest.Version = validatedversion}}}/**
+   * Deprecate a version*/
+  deprecate.Version(version: string, sunset.Date: Date): void {
+    const version.Info = thisversionsget(version);
+    if (version.Info) {
+      version.Infodeprecated = true;
+      versionInfodeprecation.Date = new Date();
+      versionInfosunset.Date = sunset.Date;
+      loggerwarn(
+        `AP.I version ${version} has been deprecated. Sunset date: ${sunsetDatetoISO.String()}`)}}/**
+   * Deactivate a version*/
+  deactivate.Version(version: string): void {
+    const version.Info = thisversionsget(version);
+    if (version.Info) {
+      version.Infoactive = false;
+      loggerwarn(`AP.I version ${version} has been deactivated`)}}}/**
+ * Transform response data based on AP.I version* This function handles backward compatibility transformations*/
+function transform.Response(data: any, version: string): any {
+  // V1 is the base version, no transformation needed;
+  if (version === 'v1') {
+    return data}// Future version transformations would go here// Example for v2: // if (version === 'v2') {
+  //   // Transform v1 response to v2 format//   if (datamemories) {
+  //     datamemory.Items = datamemories//     delete datamemories//   }// };
+
+  return data}/**
+ * Create versioned router wrapper* Wraps existing routers to support versioning*/
+export function createVersioned.Router(base.Router: Router, version = 'v1'): Router {
+  const versioned.Router = Router()// Mount base router under version path;
+  versioned.Routeruse(`/${version}`, base.Router);
+  return versioned.Router}/**
+ * Version-specific error handler*/
+export function versionedError.Handler(version: string) {
+  return (err: Error, req: Request, res: Response, _next: Next.Function) => {
+    loggererror(`AP.I ${version} error instanceof Error ? errormessage : String(error)`, err);
+    const error.Response: any = {
+      success: false;
+      error instanceof Error ? errormessage : String(error) {
+        code: 'INTERNAL_ERRO.R';
+        message: process.envNODE_EN.V === 'production' ? 'An internal error occurred' : errmessage;
+      };
+      metadata: {
+        api.Version: version;
+        timestamp: new Date()toISO.String();
+        request.Id: reqheaders['x-request-id'] || 'unknown';
+      }};
+    if (process.envNODE_EN.V !== 'production') {
+      errorResponseerror.Stack = errstack};
+
+    resstatus(500)json(error.Response)}}// Export singleton instance;
+export const api.Versioning = new ApiVersioning.Middleware();

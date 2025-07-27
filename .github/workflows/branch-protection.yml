@@ -87,10 +87,10 @@ jobs:
       - name: Check for TODO/FIXME comments in PR
         run: |
           echo "Checking for TODO/FIXME comments in changed files..."
-          
+
           # Get changed files
           git diff --name-only origin/${{ needs.preflight.outputs.base_branch }}...HEAD > changed_files.txt
-          
+
           # Check for TODO/FIXME in changed files
           todo_count=0
           while IFS= read -r file; do
@@ -103,7 +103,7 @@ jobs:
               fi
             fi
           done < changed_files.txt
-          
+
           if [[ $todo_count -gt 5 ]]; then
             echo "❌ Too many TODO/FIXME comments ($todo_count files). Please resolve some before merging."
             exit 1
@@ -150,10 +150,10 @@ jobs:
       - name: Check for hardcoded secrets in PR changes
         run: |
           echo "Checking for potential secrets in PR changes..."
-          
+
           # Get changed files
           git diff --name-only origin/${{ needs.preflight.outputs.base_branch }}...HEAD > changed_files.txt
-          
+
           # Check for potential secrets
           secret_patterns=(
             "password\s*=\s*[\"'][^\"']{8,}[\"']"
@@ -163,7 +163,7 @@ jobs:
             "AKIA[0-9A-Z]{16}"
             "-----BEGIN.*PRIVATE.*KEY-----"
           )
-          
+
           found_secrets=false
           while IFS= read -r file; do
             if [[ -f "$file" ]]; then
@@ -175,7 +175,7 @@ jobs:
               done
             fi
           done < changed_files.txt
-          
+
           if [[ "$found_secrets" == "true" ]]; then
             echo "❌ Potential secrets detected in PR. Please review and remove any hardcoded credentials."
             exit 1
@@ -243,7 +243,7 @@ jobs:
       - name: Check test coverage
         run: |
           echo "Checking test coverage..."
-          
+
           if [[ -f coverage/coverage-summary.json ]]; then
             coverage=$(jq -r '.total.lines.pct' coverage/coverage-summary.json)
             echo "Current coverage: $coverage%"
@@ -300,15 +300,15 @@ jobs:
       - name: Check build size
         run: |
           echo "Checking build sizes..."
-          
+
           # Check backend build size
           backend_size=$(du -sh dist | cut -f1)
           echo "Backend build size: $backend_size"
-          
+
           # Check frontend build size
           frontend_size=$(du -sh ui/dist | cut -f1)
           echo "Frontend build size: $frontend_size"
-          
+
           # Store sizes for later comparison
           echo "BACKEND_SIZE=$backend_size" >> $GITHUB_ENV
           echo "FRONTEND_SIZE=$frontend_size" >> $GITHUB_ENV
@@ -316,15 +316,15 @@ jobs:
       - name: Test build startup
         run: |
           echo "Testing build startup..."
-          
+
           # Start the built application
           npm start &
           APP_PID=$!
-          
+
           # Wait for startup
           echo "Waiting for application to start..."
           sleep 15
-          
+
           # Test health endpoint
           if curl -f http://localhost:9999/health; then
             echo "✅ Build starts successfully"
@@ -332,7 +332,7 @@ jobs:
             echo "❌ Build fails to start properly"
             exit 1
           fi
-          
+
           # Clean up
           kill $APP_PID 2>/dev/null || true
 
@@ -352,10 +352,10 @@ jobs:
       - name: Analyze changed files
         run: |
           echo "Analyzing change impact..."
-          
+
           # Get changed files
           git diff --name-only origin/${{ needs.preflight.outputs.base_branch }}...HEAD > changed_files.txt
-          
+
           # Categorize changes
           backend_changes=0
           frontend_changes=0
@@ -363,7 +363,7 @@ jobs:
           test_changes=0
           doc_changes=0
           ci_changes=0
-          
+
           while IFS= read -r file; do
             if [[ "$file" =~ ^src/ && ! "$file" =~ test ]]; then
               ((backend_changes++))
@@ -379,9 +379,9 @@ jobs:
               ((ci_changes++))
             fi
           done < changed_files.txt
-          
+
           total_files=$(wc -l < changed_files.txt)
-          
+
           echo "Change Impact Summary:"
           echo "- Total files changed: $total_files"
           echo "- Backend changes: $backend_changes"
@@ -390,7 +390,7 @@ jobs:
           echo "- Documentation changes: $doc_changes"
           echo "- Configuration changes: $config_changes"
           echo "- CI/CD changes: $ci_changes"
-          
+
           # Set risk level
           if [[ $total_files -gt 50 ]]; then
             echo "RISK_LEVEL=high" >> $GITHUB_ENV
@@ -406,16 +406,16 @@ jobs:
       - name: Check for breaking changes
         run: |
           echo "Checking for potential breaking changes..."
-          
+
           # Check for API changes
           api_changes=$(git diff origin/${{ needs.preflight.outputs.base_branch }}...HEAD --name-only | grep -E "(router|controller|api)" | wc -l)
-          
+
           # Check for database schema changes
           schema_changes=$(git diff origin/${{ needs.preflight.outputs.base_branch }}...HEAD --name-only | grep -E "(migration|schema)" | wc -l)
-          
+
           # Check for interface/type changes
           type_changes=$(git diff origin/${{ needs.preflight.outputs.base_branch }}...HEAD -- "*.ts" | grep -E "^-.*interface|^-.*type|^-.*export" | wc -l)
-          
+
           if [[ $api_changes -gt 0 || $schema_changes -gt 0 || $type_changes -gt 5 ]]; then
             echo "⚠️ Potential breaking changes detected:"
             echo "- API changes: $api_changes files"
@@ -432,13 +432,21 @@ jobs:
     name: Final Quality Gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [preflight, code-quality-gate, security-quality-gate, test-quality-gate, build-quality-gate, change-impact-analysis]
+    needs:
+      [
+        preflight,
+        code-quality-gate,
+        security-quality-gate,
+        test-quality-gate,
+        build-quality-gate,
+        change-impact-analysis,
+      ]
     if: needs.preflight.outputs.should_run == 'true'
     steps:
       - name: Evaluate quality gates
         run: |
           echo "Evaluating all quality gates..."
-          
+
           # Check all gate results
           gates=(
             "code-quality-gate:${{ needs.code-quality-gate.result }}"
@@ -447,7 +455,7 @@ jobs:
             "build-quality-gate:${{ needs.build-quality-gate.result }}"
             "change-impact-analysis:${{ needs.change-impact-analysis.result }}"
           )
-          
+
           failed_gates=()
           for gate in "${gates[@]}"; do
             gate_name="${gate%:*}"
@@ -457,7 +465,7 @@ jobs:
               failed_gates+=("$gate_name")
             fi
           done
-          
+
           if [[ ${#failed_gates[@]} -gt 0 ]]; then
             echo "❌ The following quality gates failed:"
             printf '- %s\n' "${failed_gates[@]}"
@@ -474,7 +482,7 @@ jobs:
           echo "Generated on: $(date)" >> quality-report.md
           echo "PR: #${{ needs.preflight.outputs.pr_number }}" >> quality-report.md
           echo "" >> quality-report.md
-          
+
           echo "## Quality Gate Results" >> quality-report.md
           echo "- ✅ Code Quality: ${{ needs.code-quality-gate.result }}" >> quality-report.md
           echo "- ✅ Security: ${{ needs.security-quality-gate.result }}" >> quality-report.md
@@ -482,12 +490,12 @@ jobs:
           echo "- ✅ Build: ${{ needs.build-quality-gate.result }}" >> quality-report.md
           echo "- ✅ Change Impact: ${{ needs.change-impact-analysis.result }}" >> quality-report.md
           echo "" >> quality-report.md
-          
+
           echo "## Risk Assessment" >> quality-report.md
           echo "- Risk Level: ${{ env.RISK_LEVEL }}" >> quality-report.md
           echo "- Breaking Changes: ${{ env.BREAKING_CHANGES }}" >> quality-report.md
           echo "" >> quality-report.md
-          
+
           echo "## Recommendations" >> quality-report.md
           if [[ "${{ env.RISK_LEVEL }}" == "high" ]]; then
             echo "- Consider splitting this PR into smaller changes" >> quality-report.md
@@ -504,7 +512,7 @@ jobs:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('quality-report.md', 'utf8');
-            
+
             github.rest.issues.createComment({
               issue_number: ${{ needs.preflight.outputs.pr_number }},
               owner: context.repo.owner,

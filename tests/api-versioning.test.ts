@@ -6,12 +6,12 @@ import { createClient } from '../src/client/api-client';
 
 describe('API Versioning', () => {
   let app: express.Application;
-  let server: any;
+  let server: unknown;
 
   beforeAll(() => {
     app = express();
     app.use(express.json());
-    
+
     // Apply versioning middleware
     app.use(apiVersioning.versionDetection());
     app.use(apiVersioning.contentNegotiation());
@@ -20,18 +20,18 @@ describe('API Versioning', () => {
 
     // Test endpoints
     app.get('/api/test', (req, res) => {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Test endpoint',
-        version: (req as any).apiVersion
+        version: (req as any).apiVersion,
       });
     });
 
     app.get('/api/v1/test', (req, res) => {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'V1 test endpoint',
-        version: 'v1'
+        version: 'v1',
       });
     });
 
@@ -46,18 +46,14 @@ describe('API Versioning', () => {
 
   describe('Version Detection', () => {
     it('should detect version from URL path', async () => {
-      const res = await request(app)
-        .get('/api/v1/test')
-        .expect(200);
+      const res = await request(app).get('/api/v1/test').expect(200);
 
       expect(res.body.version).toBe('v1');
       expect(res.headers['x-api-version']).toBe('v1');
     });
 
     it('should use default version when none specified', async () => {
-      const res = await request(app)
-        .get('/api/test')
-        .expect(200);
+      const res = await request(app).get('/api/test').expect(200);
 
       expect(res.body.metadata.apiVersion).toBe('v1');
       expect(res.headers['x-api-version']).toBe('v1');
@@ -73,18 +69,13 @@ describe('API Versioning', () => {
     });
 
     it('should detect version from custom header', async () => {
-      const res = await request(app)
-        .get('/api/test')
-        .set('X-API-Version', 'v1')
-        .expect(200);
+      const res = await request(app).get('/api/test').set('X-API-Version', 'v1').expect(200);
 
       expect(res.headers['x-api-version']).toBe('v1');
     });
 
     it('should reject invalid version', async () => {
-      const res = await request(app)
-        .get('/api/v99/test')
-        .expect(400);
+      const res = await request(app).get('/api/v99/test').expect(400);
 
       expect(res.body.error.code).toBe('INVALID_API_VERSION');
       expect(res.body.error.supportedVersions).toContain('v1');
@@ -93,25 +84,19 @@ describe('API Versioning', () => {
 
   describe('URL Rewriting', () => {
     it('should rewrite unversioned paths to versioned', async () => {
-      const res = await request(app)
-        .get('/api/test')
-        .expect(200);
+      const res = await request(app).get('/api/test').expect(200);
 
       expect(res.body.metadata.apiVersion).toBe('v1');
     });
 
     it('should not rewrite already versioned paths', async () => {
-      const res = await request(app)
-        .get('/api/v1/test')
-        .expect(200);
+      const res = await request(app).get('/api/v1/test').expect(200);
 
       expect(res.body.version).toBe('v1');
     });
 
     it('should not version special endpoints', async () => {
-      const res = await request(app)
-        .get('/api/versions')
-        .expect(200);
+      const res = await request(app).get('/api/versions').expect(200);
 
       expect(res.body.currentVersion).toBeDefined();
     });
@@ -124,24 +109,19 @@ describe('API Versioning', () => {
         .set('Accept', 'application/vnd.universal-ai-tools.v1+json')
         .expect(200);
 
-      expect(res.headers['content-type']).toMatch(/application\/vnd\.universal-ai-tools\.v1\+json/);
+      expect(res.headers['content-type']).toMatch(/application/vnd.universal-ai-tools.v1+json/);
     });
 
     it('should use standard JSON for regular accept', async () => {
-      const res = await request(app)
-        .get('/api/test')
-        .set('Accept', 'application/json')
-        .expect(200);
+      const res = await request(app).get('/api/test').set('Accept', 'application/json').expect(200);
 
-      expect(res.headers['content-type']).toMatch(/application\/json/);
+      expect(res.headers['content-type']).toMatch(/application/json/);
     });
   });
 
   describe('Version Information', () => {
     it('should return version information', async () => {
-      const res = await request(app)
-        .get('/api/versions')
-        .expect(200);
+      const res = await request(app).get('/api/versions').expect(200);
 
       expect(res.body).toMatchObject({
         success: true,
@@ -152,22 +132,20 @@ describe('API Versioning', () => {
           expect.objectContaining({
             version: 'v1',
             active: true,
-            deprecated: false
-          })
-        ])
+            deprecated: false,
+          }),
+        ]),
       });
     });
   });
 
   describe('Response Transformation', () => {
     it('should add metadata to responses', async () => {
-      const res = await request(app)
-        .get('/api/test')
-        .expect(200);
+      const res = await request(app).get('/api/test').expect(200);
 
       expect(res.body.metadata).toMatchObject({
         apiVersion: 'v1',
-        timestamp: expect.any(String)
+        timestamp: expect.any(String),
       });
     });
   });
@@ -180,14 +158,11 @@ describe('API Versioning', () => {
         active: true,
         deprecated: true,
         deprecationDate: new Date().toISOString(),
-        sunsetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        changes: ['Test deprecated version']
+        sunsetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * MILLISECONDS_IN_SECOND).toISOString(),
+        changes: ['Test deprecated version'],
       });
 
-      const res = await request(app)
-        .get('/api/test')
-        .set('X-API-Version', 'v0')
-        .expect(200);
+      const res = await request(app).get('/api/test').set('X-API-Version', 'v0').expect(200);
 
       expect(res.headers['x-api-deprecation-warning']).toBeDefined();
       expect(res.headers['x-api-sunset-date']).toBeDefined();
@@ -198,13 +173,13 @@ describe('API Versioning', () => {
 
 describe('API Client', () => {
   const mockServer = express();
-  let server: any;
-  let client: any;
+  let server: unknown;
+  let client: unknown;
   let serverPort: number;
 
   beforeAll((done) => {
     mockServer.use(express.json());
-    
+
     // Mock endpoints
     mockServer.get('/api/versions', (req, res) => {
       res.json({
@@ -216,9 +191,9 @@ describe('API Client', () => {
           {
             version: 'v1',
             active: true,
-            deprecated: false
-          }
-        ]
+            deprecated: false,
+          },
+        ],
       });
     });
 
@@ -227,7 +202,7 @@ describe('API Client', () => {
       res.json({
         success: true,
         data: { id: '123', content: req.body.content },
-        metadata: { apiVersion: 'v1', timestamp: new Date().toISOString() }
+        metadata: { apiVersion: 'v1', timestamp: new Date().toISOString() },
       });
     });
 
@@ -236,7 +211,7 @@ describe('API Client', () => {
       client = createClient({
         baseUrl: `http://localhost:${serverPort}`,
         apiKey: 'test-key',
-        aiService: 'test-service'
+        aiService: 'test-service',
       });
       done();
     });
@@ -261,7 +236,7 @@ describe('API Client', () => {
   describe('Version Management', () => {
     it('should fetch available versions', async () => {
       const response = await client.getVersions();
-      
+
       expect(response.success).toBe(true);
       expect(response.data.versions).toHaveLength(1);
       expect(response.data.currentVersion).toBe('v1');
@@ -271,7 +246,7 @@ describe('API Client', () => {
   describe('API Requests', () => {
     it('should make versioned requests', async () => {
       const response = await client.storeMemory('Test memory');
-      
+
       expect(response.success).toBe(true);
       expect(response.data.content).toBe('Test memory');
       expect(response.metadata.apiVersion).toBe('v1');
@@ -289,8 +264,8 @@ describe('API Client', () => {
               code: 'INVALID_API_VERSION',
               message: 'API version v2 is not supported',
               supportedVersions: ['v1'],
-              latestVersion: 'v1'
-            }
+              latestVersion: 'v1',
+            },
           });
         } else {
           res.json({ success: true });
@@ -298,12 +273,12 @@ describe('API Client', () => {
       });
 
       // This should auto-downgrade to v1
-      const testClient = createClient({
+      const _testClient = createClient({
         baseUrl: `http://localhost:${serverPort}`,
         apiKey: 'test-key',
         aiService: 'test-service',
         version: 'v2',
-        autoUpgrade: true
+        autoUpgrade: true,
       });
 
       // The request should succeed after auto-downgrade
@@ -314,15 +289,15 @@ describe('API Client', () => {
   describe('Deprecation Warnings', () => {
     it('should handle deprecation warnings', async () => {
       let warningReceived = false;
-      
-      const warnClient = createClient({
+
+      const _warnClient = createClient({
         baseUrl: `http://localhost:${serverPort}`,
         apiKey: 'test-key',
         aiService: 'test-service',
         onDeprecationWarning: (warning) => {
           warningReceived = true;
           expect(warning).toContain('deprecated');
-        }
+        },
       });
 
       // Mock deprecated response
@@ -332,7 +307,7 @@ describe('API Client', () => {
       });
 
       await request(mockServer).get('/api/v1/deprecated');
-      
+
       // In a real test, we'd verify the warning was received
     });
   });

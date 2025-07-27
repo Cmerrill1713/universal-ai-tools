@@ -10,35 +10,39 @@ RUN apk add --no-cache \
     git \
     curl \
     libc6-compat \
-    dumb-init
+    dumb-init \
+    tini
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY tsconfig.json ./
-COPY jest.config.js ./
+COPY tsconfig*.json ./
 
+# ========================================
 # Development stage
+# ========================================
 FROM base AS development
 
-# Install all dependencies
+# Install all dependencies including devDependencies
 RUN npm ci
 
 # Copy source code
 COPY . .
 
 # Expose port
-EXPOSE 9999
+EXPOSE 8080
 
-# Development command
+# Development command with hot reload
 CMD ["npm", "run", "dev"]
 
+# ========================================
 # Build stage
+# ========================================
 FROM base AS build
 
-# Install all dependencies (including dev)
+# Install all dependencies
 RUN npm ci
 
 # Copy source code
@@ -47,23 +51,25 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Remove dev dependencies
+# Remove development dependencies
 RUN npm prune --production
 
+# ========================================
 # Production stage
+# ========================================
 FROM node:20-alpine AS production
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S universalai -u 1001
-
-# Install runtime dependencies
+# Install runtime dependencies only
 RUN apk add --no-cache \
     python3 \
     py3-pip \
     curl \
     dumb-init \
-    libc6-compat
+    tini \
+    libc6-compat && \
+    # Create non-root user
+    addgroup -g 1001 -S nodejs && \
+    adduser -S universalai -u 1001
 
 # Set working directory
 WORKDIR /app
@@ -71,39 +77,56 @@ WORKDIR /app
 # Copy built application from build stage
 COPY --from=build --chown=universalai:nodejs /app/dist ./dist
 COPY --from=build --chown=universalai:nodejs /app/node_modules ./node_modules
-COPY --from=build --chown=universalai:nodejs /app/package.json ./package.json
+COPY --from=build --chown=universalai:nodejs /app/package*.json ./
 
-# Copy public assets
-COPY --from=build --chown=universalai:nodejs /app/public ./public
+# Copy necessary files
+COPY --chown=universalai:nodejs public ./public 2>/dev/null || :
+COPY --chown=universalai:nodejs views ./views 2>/dev/null || :
 
 # Create required directories
-RUN mkdir -p /app/logs /app/tmp /app/cache /app/models /app/data && \
-    chown -R universalai:nodejs /app/logs /app/tmp /app/cache /app/models /app/data
+RUN mkdir -p logs tmp cache models data && \
+    chown -R universalai:nodejs logs tmp cache models data
 
 # Switch to non-root user
 USER universalai
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=9999
+ENV PORT=8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9999/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Expose port
-EXPOSE 9999
+EXPOSE 8080
 
-# Use dumb-init for proper signal handling
-ENTRYPOINT ["dumb-init", "--"]
+# Use tini for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
 
 # Start the application
 CMD ["node", "dist/server.js"]
 
+# ========================================
+# Testing stage
+# ========================================
+FROM base AS testing
+
+# Install all dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Run tests
+CMD ["npm", "test"]
+
+# ========================================
 # Metadata
+# ========================================
 LABEL maintainer="Universal AI Tools Team"
 LABEL version="1.0.0"
-LABEL description="Universal AI Tools Service - Supabase-powered tools for any LLM"
+LABEL description="Universal AI Tools - Multi-model LLM platform with agent orchestration"
 LABEL org.opencontainers.image.source="https://github.com/your-org/universal-ai-tools"
 LABEL org.opencontainers.image.description="Universal AI Tools Service"
 LABEL org.opencontainers.image.licenses="MIT"

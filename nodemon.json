@@ -1,0 +1,31 @@
+{
+  "watch": [
+    "src/",
+    "ui/src/"
+  ],
+  "ext": "ts,tsx,js,jsx,json",
+  "ignore": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    "logs/",
+    "*.log",
+    "*.test.ts",
+    "*.test.tsx",
+    "*.spec.ts",
+    "*.spec.tsx"
+  ],
+  "exec": "tsx src/server.ts",
+  "env": {
+    "NODE_ENV": "development",
+    "ENABLE_MLX": "false",
+    "ENABLE_VISION": "false",
+    "DISABLE_AUTH": "true"
+  },
+  "events": {
+    "restart": "echo '🔄 Restarting server due to file changes...'"
+  },
+  "delay": 1000,
+  "legacyWatch": false,
+  "verbose": true
+}
