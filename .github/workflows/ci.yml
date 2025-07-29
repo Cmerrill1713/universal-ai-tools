@@ -15,7 +15,7 @@ env:
 
 jobs:
   # Security Scanning with Gitleaks
-  security-scan:
+  gitleaks-scan:
     name: Security Scan - Gitleaks
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -44,7 +44,7 @@ jobs:
     name: Code Quality & Linting
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: security-scan
+    needs: gitleaks-scan
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -261,7 +261,7 @@ jobs:
     name: Build Validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [lint-and-format, security-scan]
+    needs: [lint-and-format, security-scan, gitleaks-scan]
     strategy:
       matrix:
         build-type: [development, production]

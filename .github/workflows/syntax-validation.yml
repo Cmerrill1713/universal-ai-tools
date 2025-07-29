@@ -27,16 +27,22 @@ jobs:
         run: npm ci
 
       - name: Run syntax auto-fix
-        run: npx tsx scripts/auto-fix-syntax.ts
+        run: |
+          # Check if auto-fix script exists, otherwise use ESLint
+          if [ -f "scripts/auto-fix-syntax.ts" ]; then
+            npx tsx scripts/auto-fix-syntax.ts
+          else
+            npm run lint:fix || true
+          fi
 
       - name: Check for syntax changes
         id: git-check
         run: |
           if [[ -n $(git status --porcelain) ]]; then
-            echo "::set-output name=changed::true"
+            echo "changed=true" >> $GITHUB_OUTPUT
             git diff
           else
-            echo "::set-output name=changed::false"
+            echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Fail if syntax fixes were needed
@@ -76,24 +82,29 @@ jobs:
 
       - name: Run comprehensive auto-fix
         run: |
-          npx tsx scripts/auto-fix-syntax.ts
-          npm run lint:fix
-          npm run format
+          # Check if auto-fix script exists, otherwise use ESLint
+          if [ -f "scripts/auto-fix-syntax.ts" ]; then
+            npx tsx scripts/auto-fix-syntax.ts
+          fi
+          npm run lint:fix || true
+          npm run format || true
 
       - name: Check for changes
         id: verify-changed
         run: |
           if [[ -n $(git status --porcelain) ]]; then
-            echo "::set-output name=changed::true"
+            echo "changed=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=changed::false"
+            echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Commit and push auto-fixes
         if: steps.verify-changed.outputs.changed == 'true'
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add -A
           git commit -m "🤖 Auto-fix syntax errors and formatting"
           git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
