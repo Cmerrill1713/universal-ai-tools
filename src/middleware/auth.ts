@@ -72,13 +72,14 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         return next();
       }
 
-      // Development mode fallback
-      if (process.env.NODE_ENV === 'development' && process.env.SKIP_AUTH === 'true') {'
+      // Development mode fallback - ONLY in development
+      if (process.env.NODE_ENV === 'development' && process.env.SKIP_AUTH === 'true') {
+        log.warn('Using development authentication bypass - NEVER use in production', LogContext.API);
         req.user = {
-          id: 'dev-user','
-          email: 'dev@localhost','
+          id: 'dev-user',
+          email: 'dev@localhost',
           isAdmin: true,
-          permissions: ['*'],'
+          permissions: ['*'],
         };
         return next();
       }
@@ -89,11 +90,15 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     // Get JWT secret from vault with fallback
     let jwtSecret = await secretsManager.getSecret('jwt_secret');';
     if (!jwtSecret) {
-      // Fallback to environment variable for development
-      jwtSecret = process.env.JWT_SECRET || 'device-auth-secret';'
-      if (process.env.NODE_ENV === 'production') {'
-        log.error('JWT secret not found in vault', LogContext.API);'
-        return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);';
+      // No fallback in production - JWT secret MUST be in vault
+      if (process.env.NODE_ENV === 'production') {
+        log.error('JWT secret not found in vault', LogContext.API);
+        return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);
+      }
+      // Only use environment variable in development
+      jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        return sendError(res, 'AUTHENTICATION_ERROR', 'JWT secret not configured', 500);
       }
     }
 
@@ -139,14 +144,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
  * Check if endpoint is public (doesn't require authentication)'
  */
 function isPublicEndpoint(path: string): boolean {
-  const publicPaths = [;
-    '/api/health','
-    '/api/status','
-    '/api/v1/chat','
-    '/api/v1/memory','
-    '/api/v1/device-auth/challenge','
-    '/docs','
-    '/api-docs','
+  const publicPaths = [
+    '/api/health',
+    '/api/status',
+    '/api/v1/device-auth/challenge', // Only challenge endpoint is public
+    '/docs',
+    '/api-docs',
   ];
 
   return publicPaths.some((publicPath) => path.startsWith(publicPath));
@@ -165,7 +168,9 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
     const validKeys = await secretsManager.getAvailableServices();
     // TODO: Implement proper API key validation against database
 
-    return true; // Temporary - accept any valid-looking key;
+    // TODO: Implement proper API key validation against database
+    // For now, reject all keys until proper validation is implemented
+    return false;
   } catch (error) {
     log.error('API key validation failed', LogContext.API, { error });'
     return false;
