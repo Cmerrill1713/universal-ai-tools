@@ -3,7 +3,7 @@
  * Centralized security settings for the application
  */
 
-import { log, LogContext } from '../utils/logger';
+import { LogContext, log } from '../utils/logger';
 
 export const securityConfig = {
   // JWT Configuration
