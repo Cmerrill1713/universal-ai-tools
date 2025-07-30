@@ -1,0 +1,81 @@
+name: Test Puppeteer Installation
+
+on:
+  push:
+    paths:
+      - '.puppeteerrc.cjs'
+      - 'puppeteer.config.js'
+      - 'package.json'
+      - '.github/workflows/test-puppeteer.yml'
+  pull_request:
+    paths:
+      - '.puppeteerrc.cjs'
+      - 'puppeteer.config.js'
+      - 'package.json'
+      - '.github/workflows/test-puppeteer.yml'
+  workflow_dispatch:
+
+jobs:
+  test-puppeteer-installation:
+    name: Test Puppeteer Installation
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [18.x, 20.x, 22.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          
+      - name: Display Node/npm versions
+        run: |
+          echo "Node version: $(node --version)"
+          echo "npm version: $(npm --version)"
+          
+      - name: Test npm install with Puppeteer
+        run: |
+          echo "Testing npm ci..."
+          npm ci
+          echo "npm ci completed successfully!"
+          
+      - name: Verify Puppeteer configuration
+        run: npm run test:puppeteer-config
+        
+      - name: Check if Chromium was downloaded
+        shell: bash
+        run: |
+          if [ -d ".cache/puppeteer" ]; then
+            echo "❌ Puppeteer cache directory exists - Chromium was downloaded!"
+            ls -la .cache/puppeteer/
+            exit 1
+          else
+            echo "✅ Puppeteer cache directory does not exist - skipDownload worked!"
+          fi
+          
+      - name: Test basic Puppeteer import
+        run: |
+          node -e "
+          try {
+            const puppeteer = require('puppeteer');
+            console.log('✅ Puppeteer imported successfully');
+            console.log('Puppeteer version:', require('puppeteer/package.json').version);
+          } catch (error) {
+            console.error('❌ Failed to import Puppeteer:', error.message);
+            process.exit(1);
+          }
+          "
+          
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Puppeteer Installation Test Summary"
+          echo "- OS: ${{ matrix.os }}"
+          echo "- Node.js: ${{ matrix.node-version }}"
+          echo "- Test completed at: $(date)"
