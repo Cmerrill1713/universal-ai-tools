@@ -230,7 +230,7 @@ Be genuinely helpful, efficient, and memorable. Focus on making the user's life 
     let confidence = super.calculateConfidence(llmResponse, context);
 
     try {
-      const parsed = JSON.parse(llmResponse.content);
+      const parsed = JSON.parse((llmResponse as any).content);
 
       // Check for structured response
       if (parsed.response && parsed.response.message) {

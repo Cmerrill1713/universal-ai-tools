@@ -265,7 +265,7 @@ export class AgentRegistry extends EventEmitter {
     this.agentUsage.set(agentName, new Date());
 
     // Process the request
-    const result = await agent.execute(context);
+    const result = await agent.execute(context as any);
     return result;
   }
 
@@ -304,11 +304,11 @@ export class AgentRegistry extends EventEmitter {
     context: unknown
   ): Promise<void> {
     try {
-      const { error } = await this.supabase.from('tasks').insert({
+      const { error } = await (this as any).supabase.from('tasks').insert({
         id: taskId,
         agent_name: primaryAgent,
         supporting_agents: supportingAgents,
-        user_request: context.userRequest || 'No request specified',
+        user_request: (context as any).userRequest || 'No request specified',
         context,
         status: 'running',
         priority: 'medium',
@@ -335,7 +335,7 @@ export class AgentRegistry extends EventEmitter {
     status: 'completed' | 'failed'
   ): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await (this as any).supabase
         .from('tasks')
         .update({
           status,
@@ -553,12 +553,12 @@ class MockAgent extends BaseAgent {
       {
         processed: true,
         agentName: this.config.name,
-        userRequest: context.userRequest,
+        userRequest: (context as any).userRequest,
         capabilities: this.getCapabilities(),
       },
       `Mock processing completed by ${this.config.name}`,
       0.7,
-      `This is a mock response from ${this.config.name}. The agent processed the request: "${context.userRequest}"`
+      `This is a mock response from ${(this as any).config.name}. The agent processed the request: "${(context as any).userRequest}"`
     );
   }
 }

@@ -173,7 +173,7 @@ export function createMockAgents(): MockEnhancedAgent[] {
           },
         ],
         maxLatencyMs: 5000,
-        retryAttempts: THREE,
+        retryAttempts: 3,
         dependencies: [],
       },
       { successRate: 0.85, baseExecutionTime: 800 }
@@ -205,7 +205,7 @@ export function createMockAgents(): MockEnhancedAgent[] {
           { name: 'analysis', description: 'Analyze data', inputSchema: {}, outputSchema: {} },
         ],
         maxLatencyMs: 8000,
-        retryAttempts: THREE,
+        retryAttempts: 3,
         dependencies: [],
       },
       { successRate: 0.8, baseExecutionTime: 1200 }

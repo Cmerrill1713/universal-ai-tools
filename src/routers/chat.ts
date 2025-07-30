@@ -250,7 +250,7 @@ router.post(
       const {
         message,
         conversationId,
-        agentName = 'enhanced-personal-assistant-agent',
+        agentName = 'personal_assistant',
         context = {},
       } = req.body;
 

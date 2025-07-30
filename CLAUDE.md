@@ -446,6 +446,58 @@ This companion app will provide a seamless, secure authentication experience tha
 
 Focus on leveraging the sophisticated systems that are already built rather than adding individual agent files. The architecture supports rapid feature development through service composition and intelligent automation.
 
+## VS Code / Cursor Development Setup
+
+### IDE Configuration
+The project includes comprehensive VS Code/Cursor configuration in the `.vscode` directory:
+
+**Extensions** (`.vscode/extensions.json`):
+- **TypeScript/JavaScript**: ESLint, Prettier, Jest, TypeScript Next
+- **Python**: Python, Pylance, Black Formatter, Ruff (for DSPy)
+- **API Development**: REST Client, Thunder Client, OpenAPI tools
+- **Database**: Redis client (Supabase via MCP - no PostgreSQL needed)
+- **AI Assistants**: Cursor built-in AI, Continue, ChatGPT
+- **Git**: GitLens, Git Graph, Git History
+- **Productivity**: TODO Tree, Error Lens, Better Comments
+
+**Settings** (`.vscode/settings.json`):
+- Format on save enabled with ESLint auto-fix
+- TypeScript strict mode with auto-imports
+- Python linting with Ruff for DSPy orchestrator
+- Custom TODO highlighting for BUG, SECURITY, PERFORMANCE
+- File nesting for cleaner explorer view
+- Spell checker with project-specific technical terms
+
+**Debugging** (`.vscode/launch.json`):
+- Debug configurations for dev/production server
+- Jest test debugging with coverage
+- Python DSPy orchestrator debugging
+- CLI command debugging
+- Full stack debugging (Node + Python)
+
+**Tasks** (`.vscode/tasks.json`):
+- Build tasks (dev/production)
+- Test runners with watch mode
+- Service launchers (Redis, Supabase, DSPy)
+- Database migrations and health checks
+- Security audits and production readiness checks
+
+### Quick Setup
+```bash
+# Install all VS Code/Cursor extensions
+./install-vscode-extensions.sh
+
+# For Cursor users with GitHub Copilot subscription:
+# Go to Cursor Settings → Features → Enable "Use Copilot"
+```
+
+### Development Commands Reference
+All npm scripts are configured as VS Code tasks (Cmd+Shift+B):
+- `Start All Services` - Launches Redis, Supabase, DSPy, and dev server
+- `Run Tests` - Execute test suite with coverage
+- `Build Project` - TypeScript compilation with type checking
+- `Fix Lint Issues` - Auto-fix ESLint and format code
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

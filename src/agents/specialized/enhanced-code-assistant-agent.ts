@@ -242,7 +242,7 @@ Always provide production-ready code with proper error handling, validation, and
     let confidence = super.calculateConfidence(llmResponse, context);
 
     try {
-      const parsed = JSON.parse(llmResponse.content);
+      const parsed = JSON.parse((llmResponse as any).content);
 
       // Check for structured code response
       if (parsed.code_response) {
@@ -281,7 +281,7 @@ Always provide production-ready code with proper error handling, validation, and
     } catch {
       // Not valid JSON, but could still be valid code
       // Check if response contains code-like patterns
-      if (/```|function|class|def |import |from /.test(llmResponse.content)) {
+      if (/```|function|class|def |import |from /.test((llmResponse as any).content)) {
         confidence -= 0.05; // Small penalty for unstructured but might still be useful
       } else {
         confidence -= 0.2; // Larger penalty for no code content

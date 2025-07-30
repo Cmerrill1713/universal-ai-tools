@@ -252,7 +252,7 @@ Be thorough, objective, and balanced. Focus on creating unified understanding fr
     let confidence = super.calculateConfidence(llmResponse, context);
 
     try {
-      const parsed = JSON.parse(llmResponse.content);
+      const parsed = JSON.parse((llmResponse as any).content);
 
       // Check for comprehensive synthesis structure
       if (parsed.synthesis) {

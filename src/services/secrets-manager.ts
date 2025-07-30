@@ -132,13 +132,13 @@ export class SecretsManager {
 
     try {
       // Check if secret already exists
-      const { data: existing } = await this.supabase
+      const { data: existing } = await (this as any).supabase
         .rpc('read_secret', { secret_name: config.name })
         .single();
 
       if (existing) {
         // Update existing secret
-        const { error } = await this.supabase.rpc('update_secret', {
+        const { error } = await (this as any).supabase.rpc('update_secret', {
           secret_name: config.name,
           new_secret: config.value,
           new_description: config.description,
@@ -149,7 +149,7 @@ export class SecretsManager {
         log.info(`🔄 Updated secret: ${config.name}`, LogContext.SYSTEM);
       } else {
         // Create new secret
-        const { error } = await this.supabase.rpc('insert_secret', {
+        const { error } = await (this as any).supabase.rpc('insert_secret', {
           name: config.name,
           secret: config.value,
           description: config.description,
@@ -162,7 +162,7 @@ export class SecretsManager {
 
       // If this is a service API key, also store in our api_secrets table
       if (config.service) {
-        const { error } = await this.supabase.from('api_secrets').upsert(
+        const { error } = await (this as any).supabase.from('api_secrets').upsert(
           {
             service_name: config.service,
             api_key: config.value,
@@ -200,7 +200,7 @@ export class SecretsManager {
     if (!this.initialized) return null;
 
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await (this as any).supabase
         .rpc('read_secret', { secret_name: name })
         .single();
 
@@ -247,7 +247,7 @@ export class SecretsManager {
     if (!this.initialized) return null;
 
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await (this as any).supabase
         .rpc('get_service_credentials', { p_service_name: service })
         .single();
 
@@ -275,7 +275,7 @@ export class SecretsManager {
     if (!this.initialized) return;
 
     try {
-      const { data, error } = await this.supabase.rpc('get_all_service_credentials').single();
+      const { data, error } = await (this as any).supabase.rpc('get_all_service_credentials').single();
 
       if (error) throw error;
 
@@ -319,7 +319,7 @@ export class SecretsManager {
     if (!this.initialized) return [];
 
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await (this as any).supabase
         .from('service_configurations')
         .select('service_name')
         .eq('is_active', true);
@@ -342,7 +342,7 @@ export class SecretsManager {
     if (!this.initialized) return [];
 
     try {
-      const { data, error } = await this.supabase.rpc('get_missing_credentials').single();
+      const { data, error } = await (this as any).supabase.rpc('get_missing_credentials').single();
 
       if (error) throw error;
 
@@ -362,7 +362,7 @@ export class SecretsManager {
     if (!this.initialized) return false;
 
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await (this as any).supabase
         .rpc('has_valid_credentials', { p_service_name: service })
         .single();
 

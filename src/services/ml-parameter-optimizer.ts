@@ -347,7 +347,7 @@ export class MLParameterOptimizer {
     try {
       const experimentId = this.generateExperimentId();
 
-      const { error } = await this.supabase.from('parameter_experiments').insert({
+      const { error } = await (this as any).supabase.from('parameter_experiments').insert({
         id: experimentId,
         name: `AB_Test_${taskType}_${Date.now()}`,
         description: `A/B test for ${taskType} parameter optimization`,
@@ -388,7 +388,7 @@ export class MLParameterOptimizer {
     recommendation: string;
   }> {
     try {
-      const { data: experiment, error } = await this.supabase
+      const { data: experiment, error } = await (this as any).supabase
         .from('parameter_experiments')
         .select('*')
         .eq('id', experimentId)
@@ -553,7 +553,7 @@ export class MLParameterOptimizer {
 
   private async storeExperiment(experiment: OptimizationExperiment): Promise<void> {
     try {
-      const { error } = await this.supabase.from('parameter_insights').upsert({
+      const { error } = await (this as any).supabase.from('parameter_insights').upsert({
         id: experiment.id,
         task_type: experiment.taskType,
         insight: `ML optimization experiment with ${experiment.trials.length} trials`,
@@ -590,7 +590,7 @@ export class MLParameterOptimizer {
       const insight = `ML optimization found ${improvement.toFixed(1)}% performance improvement for ${experiment.taskType}`;
       const recommendation = `Use temperature: ${bestTrial.parameters.temperature}, maxTokens: ${bestTrial.parameters.maxTokens}`;
 
-      await this.supabase.from('parameter_insights').insert({
+      await (this as any).supabase.from('parameter_insights').insert({
         task_type: experiment.taskType,
         insight,
         recommendation,

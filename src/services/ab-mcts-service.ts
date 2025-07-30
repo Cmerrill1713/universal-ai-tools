@@ -833,7 +833,7 @@ class ABMCTSOrchestrator {
 
   async orchestrate(context: AgentContext, options?: unknown): Promise<any> {
     const availableAgents = ['planner', 'retriever', 'synthesizer', 'orchestrator'];
-    const result = await this.service.search(context, availableAgents, options);
+    const result = await this.service.search(context as any, availableAgents, options);
 
     return {
       response: { success: true, data: 'Mock AB-MCTS response' },

@@ -520,7 +520,7 @@ router.post('/auto-pilot/submit', async (req: Request, res: Response, next: Next
       {
         taskId,
         status: 'queued',
-        queuePosition: abMCTSAutoPilot.getQueueStatus().queued,
+        queuePosition: (abMCTSAutoPilot as any).getQueueStatus().queued,
         timestamp: Date.now(),
       },
       200,

@@ -130,9 +130,9 @@ export abstract class BaseAgent extends EventEmitter {
       await this.onInitialize();
 
       this.isInitialized = true;
-      this.logger.info(`✅ Agent ${this.config.name} initialized successfully`);
+      (this as any).logger.info(`✅ Agent ${(this as any).config.name} initialized successfully`);
     } catch (error) {
-      this.logger.error(`❌ Failed to initialize agent ${this.config.name}:`, error);
+      (this as any).logger.error(`❌ Failed to initialize agent ${(this as any).config.name}:`, error);
       throw error;
     }
   }
@@ -180,7 +180,7 @@ export abstract class BaseAgent extends EventEmitter {
 
       // Check latency target
       if (latencyMs > this.config.maxLatencyMs) {
-        this.logger.warn(
+        (this as any).logger.warn(
           `⚠️ Agent ${this.config.name} exceeded latency target: ${latencyMs}ms > ${this.config.maxLatencyMs}ms`
         );
       }
@@ -257,9 +257,9 @@ export abstract class BaseAgent extends EventEmitter {
       await this.onShutdown();
       this.removeAllListeners();
       this.isInitialized = false;
-      this.logger.info(`✅ Agent ${this.config.name} shutdown complete`);
+      (this as any).logger.info(`✅ Agent ${(this as any).config.name} shutdown complete`);
     } catch (error) {
-      this.logger.error(`❌ Error during agent shutdown:`, error);
+      (this as any).logger.error(`❌ Error during agent shutdown:`, error);
     }
   }
 
@@ -284,9 +284,9 @@ export abstract class BaseAgent extends EventEmitter {
       ) {
         await this.memoryCoordinator.retrieveAgentMemory(this.config.name);
       }
-      this.logger.debug(`📚 Loaded memory for agent ${this.config.name}`);
+      (this as any).logger.debug(`📚 Loaded memory for agent ${(this as any).config.name}`);
     } catch (error) {
-      this.logger.warn(`⚠️ Failed to load memory for agent ${this.config.name}:`, error);
+      (this as any).logger.warn(`⚠️ Failed to load memory for agent ${(this as any).config.name}:`, error);
     }
   }
 
@@ -307,7 +307,7 @@ export abstract class BaseAgent extends EventEmitter {
       }
       return null;
     } catch (error) {
-      this.logger.warn(`⚠️ Failed to retrieve memory:`, error);
+      (this as any).logger.warn(`⚠️ Failed to retrieve memory:`, error);
       return null;
     }
   }
@@ -325,26 +325,26 @@ export abstract class BaseAgent extends EventEmitter {
         await this.memoryCoordinator.storeAgentMemory(this.config.name, context, result);
       }
     } catch (error) {
-      this.logger.warn(`⚠️ Failed to store memory:`, error);
+      (this as any).logger.warn(`⚠️ Failed to store memory:`, error);
     }
   }
 
   // Event handlers
   protected onRequestStarted(event: unknown): void {
     if (event && typeof event === 'object' && 'requestId' in event) {
-      this.logger.debug(`🚀 Agent ${this.config.name} processing request ${event.requestId}`);
+      (this as any).logger.debug(`🚀 Agent ${(this as any).config.name} processing request ${event.requestId}`);
     }
   }
 
   protected onRequestCompleted(event: unknown): void {
     if (event && typeof event === 'object' && 'requestId' in event) {
-      this.logger.debug(`✅ Agent ${this.config.name} completed request ${event.requestId}`);
+      (this as any).logger.debug(`✅ Agent ${(this as any).config.name} completed request ${event.requestId}`);
     }
   }
 
   protected onRequestFailed(event: unknown): void {
     if (event && typeof event === 'object' && 'requestId' in event && 'error' in event) {
-      this.logger.error(
+      (this as any).logger.error(
         `❌ Agent ${this.config.name} failed request ${event.requestId}:`,
         event.error
       );

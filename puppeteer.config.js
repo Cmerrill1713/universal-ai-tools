@@ -1,6 +1,9 @@
 export default {
+  // Skip Chromium download - configured in .puppeteerrc.cjs
+  skipDownload: true,
+  
   launch: {
-    headless: false,
+    headless: process.env.CI ? 'new' : false,
     devtools: true,
     defaultViewport: null,
     args: [

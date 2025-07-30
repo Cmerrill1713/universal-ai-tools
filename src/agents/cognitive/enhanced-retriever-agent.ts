@@ -317,7 +317,7 @@ Be thorough, accurate, and objective. Focus on providing comprehensive context t
     let confidence = super.calculateConfidence(llmResponse, context);
 
     try {
-      const parsed = JSON.parse(llmResponse.content);
+      const parsed = JSON.parse((llmResponse as any).content);
 
       // Check for structured research summary
       if (parsed.research_summary) {

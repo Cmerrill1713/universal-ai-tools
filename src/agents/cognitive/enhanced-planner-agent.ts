@@ -154,7 +154,7 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
 
     try {
       // Check if response is valid JSON with required planning structure
-      const parsed = JSON.parse(llmResponse.content);
+      const parsed = JSON.parse((llmResponse as any).content);
 
       if (parsed.plan && parsed.plan.phases && Array.isArray(parsed.plan.phases)) {
         confidence += 0.1;

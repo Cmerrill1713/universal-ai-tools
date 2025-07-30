@@ -221,14 +221,14 @@ export abstract class EnhancedBaseAgent {
   ): Promise<AgentResponse> {
     try {
       // Try to extract structured data if the response is JSON
-      let data: unknown = llmResponse.content;
-      let reasoning = llmResponse.content;
+      let data: unknown = (llmResponse as any).content;
+      let reasoning = (llmResponse as any).content;
 
       try {
-        const parsed = JSON.parse(llmResponse.content);
+        const parsed = JSON.parse((llmResponse as any).content);
         if (parsed && typeof parsed === 'object') {
           data = parsed;
-          reasoning = parsed.reasoning || parsed.explanation || llmResponse.content;
+          reasoning = parsed.reasoning || parsed.explanation || (llmResponse as any).content;
         }
       } catch {
         // Not JSON, use as plain text
@@ -255,7 +255,7 @@ export abstract class EnhancedBaseAgent {
     let confidence = 0.7; // Base confidence
 
     // Adjust based on provider reliability
-    switch (llmResponse.provider) {
+    switch (llmResponse as any.provider) {
       case 'anthropic':
         confidence += 0.1;
         break;
@@ -268,13 +268,13 @@ export abstract class EnhancedBaseAgent {
     }
 
     // Adjust based on response length and quality indicators
-    const responseLength = llmResponse.content.length;
+    const responseLength = (llmResponse as any).content.length;
     if (responseLength > 500) confidence += 0.05;
     if (responseLength < 50) confidence -= 0.1;
 
     // Adjust based on token usage efficiency
-    if (llmResponse.usage) {
-      const efficiency = llmResponse.usage.completion_tokens / llmResponse.usage.prompt_tokens;
+    if (llmResponse as any.usage) {
+      const efficiency = (llmResponse as any).usage.completion_tokens / (llmResponse as any).usage.prompt_tokens;
       if (efficiency > 0.5 && efficiency < 2.0) confidence += 0.05;
     }
 

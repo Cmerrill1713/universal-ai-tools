@@ -525,8 +525,8 @@ export class ABMCTSAutoPilot extends EventEmitter {
     );
 
     // Calculate trend over time
-    const recentAvg = sorted.slice(-10).reduce((a, b) => a + (b.score || 0), 0) / 10;
-    const olderAvg = sorted.slice(0, 10).reduce((a, b) => a + (b.score || 0), 0) / 10;
+    const recentAvg = (sorted as any).slice(-10).reduce((a, b) => a + (b.score || 0), 0) / 10;
+    const olderAvg = (sorted as any).slice(0, 10).reduce((a, b) => a + (b.score || 0), 0) / 10;
 
     return {
       improving: recentAvg > olderAvg,

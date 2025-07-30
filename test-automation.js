@@ -2,15 +2,15 @@
 // This file has intentional formatting issues that should be auto-fixed
 
 const test = {
-  name: "GitHub Automation Test",
+  name: "GitHub Automation Test","
   badFormatting: true,
-  inconsistentSpacing: "everywhere"
+  inconsistentSpacing: "everywhere""
 };
 
-console.log("This will be auto-formatted by Prettier");
+console.log("This will be auto-formatted by Prettier");"
 
 if (test.badFormatting) {
-  console.log("ESLint will fix this spacing");
+  console.log("ESLint will fix this spacing");"
 }
 
 export default test;

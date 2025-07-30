@@ -91,17 +91,17 @@ export function sendError(
 // Middleware to add API response helpers to Express response
 export function apiResponseMiddleware(req: unknown, res: unknown, next: unknown): void {
   res.sendSuccess = (data?: unknown, statusCode?: number, metadata?: Record<string, unknown>) =>
-    sendSuccess(res, data, statusCode, metadata);
+    sendSuccess(res as any, data, statusCode, metadata);
 
   res.sendPaginatedSuccess = (data: unknown[], pagination: PaginationMeta, statusCode?: number) =>
-    sendPaginatedSuccess(res, data, pagination, statusCode);
+    sendPaginatedSuccess(res as any, data, pagination, statusCode);
 
   res.sendError = (
     code: keyof ErrorCode,
     message: string,
     statusCode?: number,
     details?: unknown
-  ) => sendError(res, code, message, statusCode, details);
+  ) => sendError(res as any, code, message, statusCode, details);
 
   next();
 }
