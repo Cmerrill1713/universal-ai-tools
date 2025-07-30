@@ -218,10 +218,10 @@ export class UniversalValidator<T> {
         success: false,
         errors: [
           {
-            field: 'transformation','
-            message: 'Data transformation failed','
+            field: 'transformation',
+            message: 'Data transformation failed',
             value: result.data,
-            code: 'TRANSFORMATION_ERROR','
+            code: 'TRANSFORMATION_ERROR',
           }],
         schema: this.schema as any,
       };
@@ -240,9 +240,9 @@ export class UniversalValidator<T> {
    */
   generateJsonSchema(): unknown {
     // Convert Zod schema to JSON Schema
-    // This is a simplified version - in production you'd use zodToJsonSchema'
+    // This is a simplified version - in production you'd use zodToJsonSchema
     return {
-      type: 'object','
+      type: 'object',
       properties: {},
       description: `Schema for ${this.schema.constructor.name}`,
     };
@@ -261,7 +261,7 @@ export interface ValidationOptions {
  */
 export const validators = {
   agentResponse: <T = unknown>(dataSchema?: z.ZodSchema<T>) => {
-    const schema = dataSchema;
+    const schema = dataSchema
       ? AgentResponseSchema.extend({ data: dataSchema })
       : AgentResponseSchema;
     return new UniversalValidator(schema);
@@ -283,17 +283,17 @@ export const validators = {
 /**
  * Validation middleware for Express routes
  */
-export function validateRequest<T>(;
+export function validateRequest<T>(
   validator: UniversalValidator<T>,
-  property: 'body' | 'query' | 'params' = 'body''
+  property: 'body' | 'query' | 'params' = 'body'
 ) {
   return (req: unknown, res: unknown, next: unknown) => {
     const result = validator.validate(req[property]);
 
     if (!result.success) {
-      return res.status(400).json({);
+      return res.status(400).json({
         success: false,
-        error: 'Validation failed','
+        error: 'Validation failed',
         details: result.errors,
         validationTime: new Date().toISOString(),
       });
@@ -308,7 +308,7 @@ export function validateRequest<T>(;
 /**
  * Async validation for complex scenarios
  */
-export async function validateAsync<T>(;
+export async function validateAsync<T>(
   data: unknown,
   validator: UniversalValidator<T>,
   asyncValidators: Array<(data: T) => Promise<ValidationResult>> = []
@@ -328,11 +328,11 @@ export async function validateAsync<T>(;
         return {
           success: false,
           errors: [...(syncResult.errors || []), ...(asyncResult.errors || [])],
-          schema: validator['schema'],'
+          schema: validator['schema'],
         };
       }
     } catch (error) {
-      log.error(`❌ Async validation error`, LogContext.SYSTEM, {)
+      log.error(`❌ Async validation error`, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
 
@@ -340,12 +340,12 @@ export async function validateAsync<T>(;
         success: false,
         errors: [
           {
-            field: 'async_validation','
-            message: 'Async validation failed','
+            field: 'async_validation',
+            message: 'Async validation failed',
             value: data,
-            code: 'ASYNC_VALIDATION_ERROR','
+            code: 'ASYNC_VALIDATION_ERROR',
           }],
-        schema: validator['schema'],'
+        schema: validator['schema'],
       };
     }
   }
@@ -356,7 +356,7 @@ export async function validateAsync<T>(;
 /**
  * Helper to create validated agent responses
  */
-export function createValidatedResponse<T>(;
+export function createValidatedResponse<T>(
   data: T,
   message: string,
   confidence = 0.8,
@@ -379,7 +379,7 @@ export function createValidatedResponse<T>(;
   const result = validator.validate(response);
 
   if (!result.success) {
-    log.warn(`⚠️ Response validation failed`, LogContext.SYSTEM, {)
+    log.warn(`⚠️ Response validation failed`, LogContext.SYSTEM, {
       errors: result.errors,
     });
 

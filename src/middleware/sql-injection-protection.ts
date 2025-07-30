@@ -1,6 +1,6 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import sqlstring from 'sqlstring';
-import { log, LogContext } from '../utils/logger';
+import { LogContext, log } from '../utils/logger';
 import { sendError } from '../utils/api-response';
 
 /**
@@ -55,7 +55,7 @@ function sanitizeSQLValue(value: any): string {
 /**
  * Recursively check object for SQL injection patterns
  */
-function checkObjectForSQLInjection(obj: any, path: string = ''): string[] {
+function checkObjectForSQLInjection(obj: any, path = ''): string[] {
   const violations: string[] = [];
   
   if (typeof obj === 'string') {
@@ -122,7 +122,7 @@ export const sqlInjectionProtection = (req: Request, res: Response, next: NextFu
  * Use this to safely build SQL queries
  */
 export class SafeSQLBuilder {
-  private query: string = '';
+  private query = '';
   private values: any[] = [];
   
   select(columns: string | string[]): this {
