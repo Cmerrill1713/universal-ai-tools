@@ -1,12 +1,11 @@
 /**
  * AB-MCTS (Adaptive Bandit Monte Carlo Tree Search) Type Definitions
- * Revolutionary AI orchestration system that combines:
- * - Monte Carlo Tree Search for exploration
+ * Revolutionary AI orchestration system that combines: * - Monte Carlo Tree Search for exploration
  * - Thompson Sampling for probabilistic selection
  * - Bayesian inference for continuous learning
  */
 
-import type { AgentContext, AgentResponse } from '@/types';
+import type { AgentContext, AgentResponse } from '@/types';';
 
 // Re-export for external use
 export type { AgentContext, AgentResponse };
@@ -15,20 +14,20 @@ export type { AgentContext, AgentResponse };
  * Core tree node structure for AB-MCTS
  */
 export interface ABMCTSNode {
-  id: string;
+  id: string;,
   state: AgentContext;
-  visits: number;
+  visits: number;,
   totalReward: number;
-  averageReward: number;
+  averageReward: number;,
   ucbScore: number;
-  thompsonSample: number;
+  thompsonSample: number;,
   priorAlpha: number;
-  priorBeta: number;
+  priorBeta: number;,
   children: Map<string, ABMCTSNode>;
   parent?: ABMCTSNode;
-  depth: number;
+  depth: number;,
   isTerminal: boolean;
-  isExpanded: boolean;
+  isExpanded: boolean;,
   metadata: {
     agent?: string;
     action?: string;
@@ -45,27 +44,27 @@ export interface ABMCTSNode {
  */
 export interface ABMCTSConfig {
   // Tree search parameters
-  maxIterations: number;
+  maxIterations: number;,
   maxDepth: number;
-  explorationConstant: number; // C in UCB formula
+  explorationConstant: number; // C in UCB formula,
   discountFactor: number; // Gamma for future rewards
 
   // Thompson sampling parameters
-  priorAlpha: number; // Beta distribution alpha
+  priorAlpha: number; // Beta distribution alpha,
   priorBeta: number; // Beta distribution beta
 
   // Resource constraints
-  maxBudget: number; // Max computational budget
+  maxBudget: number; // Max computational budget,
   timeLimit: number; // Max time in milliseconds
   parallelism: number; // Number of parallel explorations
 
   // Learning parameters
-  learningRate: number;
+  learningRate: number;,
   updateFrequency: number;
   minSamplesForUpdate: number;
 
   // Pruning and optimization
-  pruneThreshold: number; // Remove nodes below this score
+  pruneThreshold: number; // Remove nodes below this score,
   cacheSize: number; // Max cached nodes
   checkpointInterval: number; // Save state every N iterations
 }
@@ -74,9 +73,9 @@ export interface ABMCTSConfig {
  * Action space for agent selection
  */
 export interface ABMCTSAction {
-  agentName: string;
-  agentType: 'cognitive' | 'personal' | 'evolved' | 'generated';
-  estimatedCost: number;
+  agentName: string;,
+  agentType: 'cognitive' | 'personal' | 'evolved' | 'generated';'
+  estimatedCost: number;,
   estimatedTime: number;
   requiredCapabilities: string[];
   modelRequirement?: string; // Specific LLM model needed
@@ -86,16 +85,16 @@ export interface ABMCTSAction {
  * Reward signal for updating the tree
  */
 export interface ABMCTSReward {
-  value: number; // 0-1 normalized reward
+  value: number; // 0-1 normalized reward,
   components: {
-    quality: number; // Solution quality
+    quality: number; // Solution quality,
     speed: number; // Execution speed
     cost: number; // Resource efficiency
     user_satisfaction?: number; // User feedback
   };
-  metadata: {
+  metadata: {,
     executionTime: number;
-    tokensUsed: number;
+    tokensUsed: number;,
     memoryUsed: number;
     errors: number;
   };
@@ -105,15 +104,15 @@ export interface ABMCTSReward {
  * Search result from AB-MCTS
  */
 export interface ABMCTSSearchResult {
-  bestPath: ABMCTSNode[];
+  bestPath: ABMCTSNode[];,
   bestAction: ABMCTSAction;
-  confidence: number;
+  confidence: number;,
   alternativePaths: ABMCTSNode[][];
-  searchMetrics: {
+  searchMetrics: {,
     nodesExplored: number;
-    iterations: number;
+    iterations: number;,
     timeElapsed: number;
-    averageDepth: number;
+    averageDepth: number;,
     branchingFactor: number;
   };
   recommendations: string[];
@@ -123,21 +122,21 @@ export interface ABMCTSSearchResult {
  * Bayesian model for performance tracking
  */
 export interface BayesianPerformanceModel {
-  agentName: string;
+  agentName: string;,
   taskType: string;
 
   // Performance distributions
-  successRate: BetaDistribution;
+  successRate: BetaDistribution;,
   executionTime: NormalDistribution;
   resourceUsage: GammaDistribution;
 
   // Historical data
-  observations: PerformanceObservation[];
+  observations: PerformanceObservation[];,
   lastUpdated: number;
   totalSamples: number;
 
   // Predictive metrics
-  expectedPerformance: number;
+  expectedPerformance: number;,
   confidenceInterval: [number, number];
   reliability: number;
 }
@@ -146,9 +145,9 @@ export interface BayesianPerformanceModel {
  * Beta distribution for modeling success rates
  */
 export interface BetaDistribution {
-  alpha: number;
+  alpha: number;,
   beta: number;
-  mean: number;
+  mean: number;,
   variance: number;
   mode?: number;
 }
@@ -157,9 +156,9 @@ export interface BetaDistribution {
  * Normal distribution for continuous metrics
  */
 export interface NormalDistribution {
-  mean: number;
+  mean: number;,
   variance: number;
-  precision: number; // 1/variance
+  precision: number; // 1/variance,
   standardDeviation: number;
 }
 
@@ -167,9 +166,9 @@ export interface NormalDistribution {
  * Gamma distribution for positive continuous values
  */
 export interface GammaDistribution {
-  shape: number; // alpha
+  shape: number; // alpha,
   rate: number; // beta
-  mean: number;
+  mean: number;,
   variance: number;
 }
 
@@ -177,11 +176,11 @@ export interface GammaDistribution {
  * Performance observation for model updates
  */
 export interface PerformanceObservation {
-  timestamp: number;
+  timestamp: number;,
   success: boolean;
-  executionTime: number;
+  executionTime: number;,
   resourceUsage: number;
-  reward: number;
+  reward: number;,
   context: Record<string, any>;
 }
 
@@ -190,19 +189,19 @@ export interface PerformanceObservation {
  */
 export interface ThompsonSamplingParams {
   // For binary outcomes (Beta distribution)
-  useBeta: boolean;
+  useBeta: boolean;,
   alphas: number[];
   betas: number[];
 
   // For continuous outcomes (Normal-Gamma)
-  useNormalGamma: boolean;
+  useNormalGamma: boolean;,
   means: number[];
-  precisions: number[];
+  precisions: number[];,
   shapes: number[];
   rates: number[];
 
   // Exploration parameters
-  temperature: number; // Controls randomness
+  temperature: number; // Controls randomness,
   epsilon: number; // Epsilon-greedy fallback
 }
 
@@ -210,13 +209,13 @@ export interface ThompsonSamplingParams {
  * Tree storage format for Redis
  */
 export interface ABMCTSTreeStorage {
-  rootId: string;
+  rootId: string;,
   nodes: Record<string, SerializedNode>;
-  metadata: {
+  metadata: {,
     created: number;
-    lastModified: number;
+    lastModified: number;,
     iterations: number;
-    bestScore: number;
+    bestScore: number;,
     checkpointVersion: number;
   };
 }
@@ -227,11 +226,11 @@ export interface ABMCTSTreeStorage {
 export interface SerializedNode {
   id: string;
   parentId?: string;
-  childrenIds: string[];
+  childrenIds: string[];,
   state: string; // JSON stringified AgentContext
-  stats: {
+  stats: {,
     visits: number;
-    totalReward: number;
+    totalReward: number;,
     ucbScore: number;
     thompsonSample: number;
   };
@@ -242,12 +241,12 @@ export interface SerializedNode {
  * Feedback signal for continuous learning
  */
 export interface ABMCTSFeedback {
-  nodeId: string;
+  nodeId: string;,
   reward: ABMCTSReward;
   userRating?: number; // 1-5 scale
   errorOccurred: boolean;
   errorMessage?: string;
-  timestamp: number;
+  timestamp: number;,
   context: {
     taskType: string;
     userId?: string;
@@ -259,24 +258,24 @@ export interface ABMCTSFeedback {
  * Tree visualization data
  */
 export interface ABMCTSVisualization {
-  nodes: Array<{
+  nodes: Array<{,
     id: string;
-    label: string;
+    label: string;,
     score: number;
-    visits: number;
+    visits: number;,
     depth: number;
-    isLeaf: boolean;
+    isLeaf: boolean;,
     isBest: boolean;
   }>;
-  edges: Array<{
+  edges: Array<{,
     source: string;
-    target: string;
+    target: string;,
     weight: number;
     label?: string;
   }>;
-  metrics: {
+  metrics: {,
     totalNodes: number;
-    maxDepth: number;
+    maxDepth: number;,
     avgBranchingFactor: number;
     explorationRate: number;
   };
@@ -286,26 +285,26 @@ export interface ABMCTSVisualization {
  * AB-MCTS execution options
  */
 export interface ABMCTSExecutionOptions {
-  useCache: boolean;
+  useCache: boolean;,
   enableParallelism: boolean;
-  collectFeedback: boolean;
+  collectFeedback: boolean;,
   saveCheckpoints: boolean;
-  visualize: boolean;
+  visualize: boolean;,
   verboseLogging: boolean;
-  fallbackStrategy: 'greedy' | 'random' | 'fixed';
+  fallbackStrategy: 'greedy' | 'random' | 'fixed';'
 }
 
 /**
  * Mixed model for cross-task learning (AB-MCTS-M)
  */
 export interface ABMCTSMixedModel {
-  globalPriors: {
+  globalPriors: {,
     successRate: BetaDistribution;
-    executionTime: NormalDistribution;
+    executionTime: NormalDistribution;,
     resourceUsage: GammaDistribution;
   };
   taskSpecificModels: Map<string, BayesianPerformanceModel>;
-  sharedFeatures: string[];
+  sharedFeatures: string[];,
   transferLearningWeight: number;
 }
 
@@ -313,10 +312,10 @@ export interface ABMCTSMixedModel {
  * Resource allocation for parallel exploration
  */
 export interface ABMCTSResourceAllocation {
-  cpuLimit: number; // Percentage
+  cpuLimit: number; // Percentage,
   memoryLimit: number; // MB
-  timeSlice: number; // MS per iteration
-  priority: 'low' | 'medium' | 'high';
+  timeSlice: number; // MS per iteration,
+  priority: 'low' | 'medium' | 'high';'
   preemptible: boolean;
 }
 
@@ -324,31 +323,31 @@ export interface ABMCTSResourceAllocation {
  * A/B testing configuration
  */
 export interface ABMCTSExperiment {
-  id: string;
+  id: string;,
   name: string;
-  variants: Array<{
+  variants: Array<{,;
     name: string;
-    config: Partial<ABMCTSConfig>;
+    config: Partial<ABMCTSConfig>;,
     weight: number; // Traffic percentage
   }>;
-  metrics: string[];
+  metrics: string[];,
   startTime: number;
   endTime?: number;
-  status: 'active' | 'paused' | 'completed';
+  status: 'active' | 'paused' | 'completed';'
 }
 
 // Export type guards
 export function isABMCTSNode(obj: unknown): obj is ABMCTSNode {
-  return (
+  return (;
     obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.visits === 'number' &&
+    typeof obj.id === 'string' &&'
+    typeof obj.visits === 'number' &&'
     obj.children instanceof Map
   );
 }
 
 export function isTerminalNode(node: ABMCTSNode): boolean {
-  return node.isTerminal || node.depth >= 10; // Max depth safeguard
+  return node.isTerminal || node.depth >= 10; // Max depth safeguard;
 }
 
 // Export utility types

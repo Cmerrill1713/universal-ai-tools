@@ -3,26 +3,26 @@
  * AI-powered self-repair and optimization system
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
-import { fileURLToPath } from 'url';
+import * as fs from 'fs';';
+import * as path from 'path';';
+import { execSync  } from 'child_process';';
+import { fileURLToPath  } from 'url';';
 
 interface HealingTask {
-  id: string;
-  type: 'syntax' | 'performance' | 'security' | 'architecture' | 'dependencies' | 'network';
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  id: string;,
+  type: 'syntax' | 'performance' | 'security' | 'architecture' | 'dependencies' | 'network';'
+  severity: 'critical' | 'high' | 'medium' | 'low';,'
   description: string;
-  autoFixable: boolean;
+  autoFixable: boolean;,
   estimatedTime: number;
 }
 
 interface HealingResult {
-  taskId: string;
+  taskId: string;,
   success: boolean;
-  changes: string[];
+  changes: string[];,
   metrics: {
-    filesFixed: number;
+    filesFixed: number;,
     errorsResolved: number;
     performanceImprovement?: number;
   };
@@ -37,29 +37,29 @@ class AdvancedHealingSystem {
   private networkHealingService: any;
 
   constructor() {
-    console.log('🧬 Advanced Healing System initialized');
+    console.log('🧬 Advanced Healing System initialized');'
     this.initializeNetworkHealing();
   }
 
   private async initializeNetworkHealing(): Promise<void> {
     try {
-      const { NetworkHealingService } = await import('./network-healing-service');
+      const { NetworkHealingService } = await import('./network-healing-service');';
       this.networkHealingService = new NetworkHealingService();
-      console.log('🌐 Network Healing Service integrated');
+      console.log('🌐 Network Healing Service integrated');'
     } catch (error) {
-      console.log('⚠️ Failed to initialize Network Healing Service:', error);
+      console.log('⚠️ Failed to initialize Network Healing Service: ', error);'
     }
   }
 
   async start() {
     if (this.isRunning) {
-      console.log('⚠️ Advanced Healing System is already running');
+      console.log('⚠️ Advanced Healing System is already running');'
       return;
     }
     // TODO: Add error handling with try-catch
 
     this.isRunning = true;
-    console.log('🚀 Starting Advanced Healing System...');
+    console.log('🚀 Starting Advanced Healing System...');'
 
     // Start network healing service
     if (this.networkHealingService) {
@@ -83,45 +83,44 @@ class AdvancedHealingSystem {
       }
     }, this.diagnosticInterval);
 
-    console.log('✅ Advanced Healing System active - AI diagnostics running');
+    console.log('✅ Advanced Healing System active - AI diagnostics running');'
   }
 
   async runComprehensiveDiagnostic(): Promise<void> {
-    console.log('🔍 Running comprehensive system diagnostic...');
+    console.log('🔍 Running comprehensive system diagnostic...');'
 
-    const diagnostics = [
+    const diagnostics = [;
       this.diagnoseSyntaxIssues(),
       this.diagnosePerformanceIssues(),
       this.diagnoseSecurityIssues(),
       this.diagnoseArchitecturalIssues(),
       this.diagnoseDependencyIssues(),
-      this.diagnoseNetworkIssues(),
-    ];
+      this.diagnoseNetworkIssues()];
 
     try {
       await Promise.all(diagnostics);
       console.log(`📊 Diagnostic complete. Found ${this.healingQueue.length} healing tasks`);
     } catch (error) {
-      console.log('⚠️ Some diagnostic checks failed, continuing...');
+      console.log('⚠️ Some diagnostic checks failed, continuing...');'
     }
   }
 
   async diagnoseSyntaxIssues(): Promise<void> {
     try {
       // Advanced syntax analysis
-      const result = execSync('npx tsc --noEmit --skipLibCheck 2>&1', {
-        encoding: 'utf8',
+      const result = execSync('npx tsc --noEmit --skipLibCheck 2>&1', {');
+        encoding: 'utf8','
         timeout: 30000,
       });
     } catch (error: unknown) {
-      const output = error.stdout || error.stderr || '';
+      const output = error.stdout || error.stderr || '';';
       const errorCount = (output.match(/error TS/g) || []).length;
 
       if (errorCount > 0) {
-        this.addHealingTask({
+        this.addHealingTask({)
           id: `syntax-${Date.now()}`,
-          type: 'syntax',
-          severity: errorCount > 10 ? 'critical' : errorCount > 5 ? 'high' : 'medium',
+          type: 'syntax','
+          severity: errorCount > 10 ? 'critical' : errorCount > 5 ? 'high' : 'medium','
           description: `${errorCount} TypeScript syntax errors detected`,
           autoFixable: true,
           estimatedTime: errorCount * 30, // 30s per error
@@ -132,12 +131,12 @@ class AdvancedHealingSystem {
 
   async diagnosePerformanceIssues(): Promise<void> {
     // Check for performance anti-patterns
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       issues = [this.checkForMemoryLeaks(), this.checkForSlowQueries(), this.checkForLargeFiles()];
 
     const results = await Promise.allSettled(issues);
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && result.value) {
+      if (result.status === 'fulfilled' && result.value) {'
         this.addHealingTask(result.value);
       }
     });
@@ -150,12 +149,12 @@ class AdvancedHealingSystem {
       let leakPatterns = 0;
 
       for (const file of sourceFiles) {
-        const content = fs.readFileSync(file, 'utf8');
+        const content = fs.readFileSync(file, 'utf8');';
         // Check for common leak patterns
-        if (content.includes('setInterval') && !content.includes('clearInterval')) {
+        if (content.includes('setInterval') && !content.includes('clearInterval')) {'
           leakPatterns++;
         }
-        if (content.includes('addEventListener') && !content.includes('removeEventListener')) {
+        if (content.includes('addEventListener') && !content.includes('removeEventListener')) {'
           leakPatterns++;
         }
       }
@@ -163,15 +162,15 @@ class AdvancedHealingSystem {
       if (leakPatterns > 0) {
         return {
           id: `memory-${Date.now()}`,
-          type: 'performance',
-          severity: leakPatterns > 5 ? 'high' : 'medium',
+          type: 'performance','
+          severity: leakPatterns > 5 ? 'high' : 'medium','
           description: `${leakPatterns} potential memory leak patterns detected`,
           autoFixable: false,
           estimatedTime: leakPatterns * 600, // 10 min per pattern
         };
       }
     } catch (error) {
-      console.log('Memory leak check failed');
+      console.log('Memory leak check failed');'
     }
     return null;
   }
@@ -179,16 +178,16 @@ class AdvancedHealingSystem {
   async checkForSlowQueries(): Promise<HealingTask | null> {
     // Check for inefficient database queries
     try {
-      const queryFiles = await this.findFiles(
-        ['**/*.ts', '**/*.js'],
-        ['**/test/**', '**/tests/**']
+      const queryFiles = await this.findFiles();
+        ['**/*.ts', '**/*.js'],'
+        ['**/test/**', '**/tests/**']'
       );
       let slowQueries = 0;
 
       for (const file of queryFiles) {
-        const content = fs.readFileSync(file, 'utf8');
+        const content = fs.readFileSync(file, 'utf8');';
         // Look for potential slow query patterns
-        if (content.includes('SELECT *') || content.includes('N+1')) {
+        if (content.includes('SELECT *') || content.includes('N+1')) {'
           slowQueries++;
         }
       }
@@ -196,15 +195,15 @@ class AdvancedHealingSystem {
       if (slowQueries > 0) {
         return {
           id: `queries-${Date.now()}`,
-          type: 'performance',
-          severity: 'medium',
+          type: 'performance','
+          severity: 'medium','
           description: `${slowQueries} potentially slow database queries found`,
           autoFixable: false,
           estimatedTime: slowQueries * 300,
         };
       }
     } catch (error) {
-      console.log('Query analysis failed');
+      console.log('Query analysis failed');'
     }
     return null;
   }
@@ -214,21 +213,21 @@ class AdvancedHealingSystem {
       const sourceFiles = await this.findSourceFiles();
       const largeFiles = sourceFiles.filter((file) => {
         const stats = fs.statSync(file);
-        return stats.size > 100000; // > 100KB
+        return stats.size > 100000; // > 100KB;
       });
 
       if (largeFiles.length > 0) {
         return {
           id: `large-files-${Date.now()}`,
-          type: 'performance',
-          severity: 'low',
+          type: 'performance','
+          severity: 'low','
           description: `${largeFiles.length} large source files detected`,
           autoFixable: true,
           estimatedTime: largeFiles.length * 120,
         };
       }
     } catch (error) {
-      console.log('Large file check failed');
+      console.log('Large file check failed');'
     }
     return null;
   }
@@ -236,50 +235,48 @@ class AdvancedHealingSystem {
   async diagnoseSecurityIssues(): Promise<void> {
     try {
       // Check for security vulnerabilities
-      const result = execSync('npm audit --json 2>/dev/null || echo "{}"', {
-        encoding: 'utf8',
+      const result = execSync('npm audit --json 2>/dev/null || echo "{}"', {'");
+        encoding: 'utf8','
         timeout: 30000,
       });
 
       const audit = JSON.parse(result);
       const vulnerabilities = audit.metadata?.vulnerabilities || {};
-      const total = Object.values(vulnerabilities).reduce(
+      const total = Object.values(vulnerabilities).reduce();
         (sum: number, count: unknown) => sum + count,
         0
       ) as number;
 
       if (total > 0) {
-        this.addHealingTask({
+        this.addHealingTask({)
           id: `security-${Date.now()}`,
-          type: 'security',
-          severity:
-            vulnerabilities.critical > 0
-              ? 'critical'
+          type: 'security','
+          severity: vulnerabilities.critical > 0
+              ? 'critical''
               : vulnerabilities.high > 0
-                ? 'high'
-                : 'medium',
+                ? 'high''
+                : 'medium','
           description: `${total} security vulnerabilities in dependencies`,
           autoFixable: true,
           estimatedTime: total * 60, // 60 seconds per vulnerability
         });
       }
     } catch (error) {
-      console.log('Security audit failed, continuing...');
+      console.log('Security audit failed, continuing...');'
     }
   }
 
   async diagnoseArchitecturalIssues(): Promise<void> {
     // Check for architectural problems
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       issues = [
         this.checkCircularDependencies(),
         this.checkCodeDuplication(),
-        this.checkComplexity(),
-      ];
+        this.checkComplexity()];
 
     const results = await Promise.allSettled(issues);
     results.forEach((result) => {
-      if (result.status === 'fulfilled' && result.value) {
+      if (result.status === 'fulfilled' && result.value) {'
         this.addHealingTask(result.value);
       }
     });
@@ -291,11 +288,11 @@ class AdvancedHealingSystem {
       const sourceFiles = await this.findSourceFiles();
       let circularCount = 0;
 
-      // This is a simplified check - in production you'd use proper dependency analysis
+      // This is a simplified check - in production you'd use proper dependency analysis'
       for (const file of sourceFiles.slice(0, 10)) {
         // Limit for performance
-        const content = fs.readFileSync(file, 'utf8');
-        const imports = content.match(/import.*from ['"]..*['"];?/g) || [];
+        const content = fs.readFileSync(file, 'utf8');';
+        const imports = content.match(/import.*from ['"]..*['"];?/g) || [];'";
         if (imports.length > 10) {
           // Arbitrary threshold
           circularCount++;
@@ -305,15 +302,15 @@ class AdvancedHealingSystem {
       if (circularCount > 0) {
         return {
           id: `circular-${Date.now()}`,
-          type: 'architecture',
-          severity: 'medium',
+          type: 'architecture','
+          severity: 'medium','
           description: `${circularCount} files with high import complexity`,
           autoFixable: false,
           estimatedTime: circularCount * 900,
         };
       }
     } catch (error) {
-      console.log('Circular dependency check failed');
+      console.log('Circular dependency check failed');'
     }
     return null;
   }
@@ -322,9 +319,9 @@ class AdvancedHealingSystem {
     // Simplified duplication detection
     return {
       id: `duplication-${Date.now()}`,
-      type: 'architecture',
-      severity: 'low',
-      description: 'Code duplication analysis pending',
+      type: 'architecture','
+      severity: 'low','
+      description: 'Code duplication analysis pending','
       autoFixable: false,
       estimatedTime: 1800,
     };
@@ -337,8 +334,8 @@ class AdvancedHealingSystem {
 
       for (const file of sourceFiles.slice(0, 20)) {
         // Limit for performance
-        const content = fs.readFileSync(file, 'utf8');
-        const lines = content.split('\n').length;
+        const content = fs.readFileSync(file, 'utf8');';
+        const lines = content.split('n').length;';
         if (lines > 500) {
           // Files over 500 lines
           complexFiles++;
@@ -348,15 +345,15 @@ class AdvancedHealingSystem {
       if (complexFiles > 0) {
         return {
           id: `complexity-${Date.now()}`,
-          type: 'architecture',
-          severity: 'medium',
+          type: 'architecture','
+          severity: 'medium','
           description: `${complexFiles} overly complex files detected`,
           autoFixable: false,
           estimatedTime: complexFiles * 1200,
         };
       }
     } catch (error) {
-      console.log('Complexity check failed');
+      console.log('Complexity check failed');'
     }
     return null;
   }
@@ -364,8 +361,8 @@ class AdvancedHealingSystem {
   async diagnoseDependencyIssues(): Promise<void> {
     try {
       // Check for outdated dependencies
-      const result = execSync('npm outdated --json 2>/dev/null || echo "{}"', {
-        encoding: 'utf8',
+      const result = execSync('npm outdated --json 2>/dev/null || echo "{}"', {'");
+        encoding: 'utf8','
         timeout: 30000,
       });
 
@@ -373,24 +370,24 @@ class AdvancedHealingSystem {
       const count = Object.keys(outdated).length;
 
       if (count > 0) {
-        this.addHealingTask({
+        this.addHealingTask({)
           id: `deps-${Date.now()}`,
-          type: 'dependencies',
-          severity: 'low',
+          type: 'dependencies','
+          severity: 'low','
           description: `${count} outdated dependencies`,
           autoFixable: true,
           estimatedTime: count * 30,
         });
       }
     } catch (error) {
-      console.log('Dependency check failed');
+      console.log('Dependency check failed');'
     }
   }
 
   async diagnoseNetworkIssues(): Promise<void> {
     try {
       if (!this.networkHealingService) {
-        console.log('Network healing service not available');
+        console.log('Network healing service not available');'
         return;
       }
 
@@ -400,11 +397,11 @@ class AdvancedHealingSystem {
       if (networkStatus.activeIssues > 0) {
         // Convert network issues to healing tasks
         for (const issue of networkStatus.issues || []) {
-          this.addHealingTask({
+          this.addHealingTask({)
             id: `network-${issue.id}`,
-            type: 'network',
+            type: 'network','
             severity: issue.severity,
-            description: `Network issue: ${issue.description}`,
+            description: `Network, issue: ${issue.description}`,
             autoFixable: true,
             estimatedTime: 60000, // 1 minute per network issue
           });
@@ -412,18 +409,18 @@ class AdvancedHealingSystem {
       }
 
       // Check for connection refused errors in logs specifically
-      const logFiles = ['logs/adaptive-fixer.log', 'logs/server.log'];
+      const logFiles = ['logs/adaptive-fixer.log', 'logs/server.log'];';
       for (const logFile of logFiles) {
-        if (require('fs').existsSync(logFile)) {
-          const content = require('fs').readFileSync(logFile, 'utf8');
-          const connectionRefusedCount = (content.match(/ECONNREFUSED|connection refused/gi) || [])
+        if (require('fs').existsSync(logFile)) {'
+          const content = require('fs').readFileSync(logFile, 'utf8');';
+          const connectionRefusedCount = (content.match(/ECONNREFUSED|connection refused/gi) || []);
             .length;
 
           if (connectionRefusedCount > 0) {
-            this.addHealingTask({
+            this.addHealingTask({)
               id: `connection-refused-${Date.now()}`,
-              type: 'network',
-              severity: 'high',
+              type: 'network','
+              severity: 'high','
               description: `${connectionRefusedCount} connection refused errors detected in ${logFile}`,
               autoFixable: true,
               estimatedTime: 120000, // 2 minutes
@@ -432,13 +429,13 @@ class AdvancedHealingSystem {
         }
       }
     } catch (error) {
-      console.log('Network diagnostic failed:', error);
+      console.log('Network diagnostic failed: ', error);'
     }
   }
 
   async runHealingCycle(): Promise<void> {
     if (this.healingQueue.length === 0) {
-      console.log('💚 No healing tasks in queue');
+      console.log('💚 No healing tasks in queue');'
       return;
     }
 
@@ -469,20 +466,19 @@ class AdvancedHealingSystem {
       let result: HealingResult;
 
       switch (task.type) {
-        case 'syntax':
+        case 'syntax':'
           result = await this.healSyntaxIssues(task);
           break;
-        case 'security':
+        case 'security':'
           result = await this.healSecurityIssues(task);
           break;
-        case 'dependencies':
+        case 'dependencies':'
           result = await this.healDependencyIssues(task);
           break;
-        case 'network':
+        case 'network':'
           result = await this.healNetworkIssues(task);
           break;
-        default:
-          result = await this.healGenericIssue(task);
+        default: result = await this.healGenericIssue(task);
       }
 
       this.completedTasks.push(result);
@@ -498,10 +494,10 @@ class AdvancedHealingSystem {
   async healSyntaxIssues(task: HealingTask): Promise<HealingResult> {
     try {
       // Use enhanced TypeScript healer for better results
-      const { EnhancedTypeScriptHealer } = await import('./enhanced-typescript-healer');
+      const { EnhancedTypeScriptHealer } = await import('./enhanced-typescript-healer');';
       const healer = new EnhancedTypeScriptHealer();
 
-      console.log('🔧 Running enhanced TypeScript healing...');
+      console.log('🔧 Running enhanced TypeScript healing...');'
 
       // Run targeted fixes first
       await healer.runTargetedFixes();
@@ -518,30 +514,30 @@ class AdvancedHealingSystem {
           `Fixed ${stats.errorsFixed} errors across ${stats.filesProcessed} files`,
           `Pattern fixes: ${Object.entries(stats.patterns)
             .map(([k, v]) => `${k}: ${v}`)
-            .join(', ')}`,
-          ...(stats.errors.length > 0 ? [`Errors: ${stats.errors.slice(0, 3).join(', ')}`] : []),
+            .join(', ')}`,'
+          ...(stats.errors.length > 0 ? [`Errors: ${stats.errors.slice(0, 3).join(', ')}`] : []),'
         ],
-        metrics: {
+        metrics: {,
           filesFixed: stats.filesProcessed,
           errorsResolved: stats.errorsFixed,
         },
       };
     } catch (error) {
-      console.error('Enhanced TypeScript healing failed, falling back to basic lint:fix');
+      console.error('Enhanced TypeScript healing failed, falling back to basic lint: fix');'
 
       // Fallback to basic lint fix
       try {
-        execSync('npm run lint:fix', {
+        execSync('npm run lint: fix', {')
           cwd: process.cwd(),
-          stdio: 'pipe',
+          stdio: 'pipe','
           timeout: 60000,
         });
 
         return {
           taskId: task.id,
           success: true,
-          changes: ['Applied basic ESLint auto-fixes (fallback)'],
-          metrics: {
+          changes: ['Applied basic ESLint auto-fixes (fallback)'],'
+          metrics: {,
             filesFixed: 1,
             errorsResolved: 1,
           },
@@ -550,8 +546,8 @@ class AdvancedHealingSystem {
         return {
           taskId: task.id,
           success: false,
-          changes: [`Enhanced healing failed: ${error}`, `Fallback failed: ${fallbackError}`],
-          metrics: {
+          changes: [`Enhanced healing, failed: ${error}`, `Fallback failed: ${fallbackError}`],
+          metrics: {,
             filesFixed: 0,
             errorsResolved: 0,
           },
@@ -562,23 +558,23 @@ class AdvancedHealingSystem {
 
   async healSecurityIssues(task: HealingTask): Promise<HealingResult> {
     try {
-      execSync('npm audit fix', {
+      execSync('npm audit fix', {')
         cwd: process.cwd(),
-        stdio: 'pipe',
+        stdio: 'pipe','
         timeout: 120000,
       });
 
       return {
         taskId: task.id,
         success: true,
-        changes: ['Applied security patches'],
-        metrics: {
+        changes: ['Applied security patches'],'
+        metrics: {,
           filesFixed: 1,
           errorsResolved: 1,
         },
       };
     } catch (error) {
-      throw new Error('Security healing failed');
+      throw new Error('Security healing failed');';
     }
   }
 
@@ -587,8 +583,8 @@ class AdvancedHealingSystem {
     return {
       taskId: task.id,
       success: true,
-      changes: ['Dependency analysis completed'],
-      metrics: {
+      changes: ['Dependency analysis completed'],'
+      metrics: {,
         filesFixed: 0,
         errorsResolved: 0,
       },
@@ -601,15 +597,15 @@ class AdvancedHealingSystem {
         return {
           taskId: task.id,
           success: false,
-          changes: ['Network healing service not available'],
-          metrics: {
+          changes: ['Network healing service not available'],'
+          metrics: {,
             filesFixed: 0,
             errorsResolved: 0,
           },
         };
       }
 
-      console.log('🌐 Running network healing...');
+      console.log('🌐 Running network healing...');'
 
       // Let the network healing service handle its own issues
       await this.networkHealingService.runHealingCycle();
@@ -625,9 +621,8 @@ class AdvancedHealingSystem {
           `Network healing completed`,
           `Active issues: ${networkStatus.activeIssues}`,
           `Recent healings: ${healingsCompleted}`,
-          `Services monitored: ${networkStatus.monitoredServices}`,
-        ],
-        metrics: {
+          `Services monitored: ${networkStatus.monitoredServices}`],
+        metrics: {,
           filesFixed: 0,
           errorsResolved: healingsCompleted,
         },
@@ -636,8 +631,8 @@ class AdvancedHealingSystem {
       return {
         taskId: task.id,
         success: false,
-        changes: [`Network healing failed: ${error}`],
-        metrics: {
+        changes: [`Network healing, failed: ${error}`],
+        metrics: {,
           filesFixed: 0,
           errorsResolved: 0,
         },
@@ -649,8 +644,8 @@ class AdvancedHealingSystem {
     return {
       taskId: task.id,
       success: true,
-      changes: ['Generic healing applied'],
-      metrics: {
+      changes: ['Generic healing applied'],'
+      metrics: {,
         filesFixed: 0,
         errorsResolved: 0,
       },
@@ -671,9 +666,9 @@ class AdvancedHealingSystem {
   }
 
   private async findSourceFiles(): Promise<string[]> {
-    return this.findFiles(
-      ['src/**/*.ts', 'src/**/*.tsx'],
-      ['src/**/*.test.ts', 'src/**/*.spec.ts']
+    return this.findFiles();
+      ['src/**/*.ts', 'src/**/*.tsx'],'
+      ['src/**/*.test.ts', 'src/**/*.spec.ts']'
     );
   }
 
@@ -681,14 +676,14 @@ class AdvancedHealingSystem {
     // Simplified file finding - in production would use proper glob
     const files: string[] = [];
     try {
-      const result = execSync('find src -name "*.ts" -o -name "*.tsx" | head -50', {
-        encoding: 'utf8',
+      const result = execSync('find src -name "*.ts" -o -name "*.tsx" | head -50', {'");
+        encoding: 'utf8','
         timeout: 10000,
       });
-      files.push(
+      files.push()
         ...result
           .trim()
-          .split('\n')
+          .split('n')'
           .filter((f) => f)
       );
     } catch (error) {
@@ -703,8 +698,8 @@ class AdvancedHealingSystem {
       queueLength: this.healingQueue.length,
       completedTasks: this.completedTasks.length,
       lastDiagnostic: new Date().toISOString(),
-      criticalTasks: this.healingQueue.filter((t) => t.severity === 'critical').length,
-      highPriorityTasks: this.healingQueue.filter((t) => t.severity === 'high').length,
+      criticalTasks: this.healingQueue.filter((t) => t.severity === 'critical').length,'
+      highPriorityTasks: this.healingQueue.filter((t) => t.severity === 'high').length,'
     };
   }
 
@@ -716,7 +711,7 @@ class AdvancedHealingSystem {
       this.networkHealingService.stop();
     }
 
-    console.log('🛑 Advanced Healing System stopped');
+    console.log('🛑 Advanced Healing System stopped');'
   }
 }
 
@@ -725,12 +720,12 @@ export { AdvancedHealingSystem };
 
 // Start if run directly
 const ___filename = fileURLToPath(import.meta.url);
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file: //${process.argv[1]}`) {
   const healingSystem = new AdvancedHealingSystem();
   healingSystem.start().catch(console.error);
 
   // Graceful shutdown
-  process.on('SIGINT', () => {
+  process.on('SIGINT', () => {'
     healingSystem.stop();
     process.exit(0);
   });

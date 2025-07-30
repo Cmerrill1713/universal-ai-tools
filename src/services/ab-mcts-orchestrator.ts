@@ -12,35 +12,35 @@ import type {
   ABMCTSVisualization,
   AgentContext,
   AgentResponse,
-} from '@/types/ab-mcts';
-import { abMCTSService } from './ab-mcts-service';
-import { EnhancedBaseAgent } from '@/agents/enhanced-base-agent';
-import AgentRegistry from '@/agents/agent-registry';
-import { multiTierLLM } from './multi-tier-llm-service';
-import type { CircuitBreaker } from '@/utils/circuit-breaker';
-import { createCircuitBreaker } from '@/utils/circuit-breaker';
-import { LogContext, log } from '@/utils/logger';
-import { v4 as uuidv4 } from 'uuid';
+} from '@/types/ab-mcts';'
+import { abMCTSService  } from './ab-mcts-service';';
+import { EnhancedBaseAgent  } from '@/agents/enhanced-base-agent';';
+import AgentRegistry from '@/agents/agent-registry';';
+import { multiTierLLM  } from './multi-tier-llm-service';';
+import type { CircuitBreaker } from '@/utils/circuit-breaker';';
+import { createCircuitBreaker  } from '@/utils/circuit-breaker';';
+import { LogContext, log  } from '@/utils/logger';';
+import { v4 as uuidv4  } from 'uuid';';
 
 export interface OrchestratorConfig extends Partial<ABMCTSConfig> {
-  enableLearning: boolean;
+  enableLearning: boolean;,
   enableVisualization: boolean;
-  fallbackToTraditional: boolean;
+  fallbackToTraditional: boolean;,
   parallelExecutions: number;
-  budgetAllocation: {
+  budgetAllocation: {,
     exploration: number; // Percentage for exploration
     exploitation: number; // Percentage for exploitation
   };
 }
 
 export interface OrchestratorResult {
-  response: AgentResponse;
+  response: AgentResponse;,
   searchResult: ABMCTSSearchResult;
-  executionPath: string[];
+  executionPath: string[];,
   totalTime: number;
-  resourcesUsed: {
+  resourcesUsed: {,
     agents: number;
-    llmCalls: number;
+    llmCalls: number;,
     tokensUsed: number;
   };
   feedback?: ABMCTSFeedback;
@@ -62,7 +62,7 @@ export class ABMCTSOrchestrator {
       enableVisualization: true,
       fallbackToTraditional: true,
       parallelExecutions: 4,
-      budgetAllocation: {
+      budgetAllocation: {,
         exploration: 30,
         exploitation: 70,
       },
@@ -76,7 +76,7 @@ export class ABMCTSOrchestrator {
       ...config,
     };
 
-    this.circuitBreaker = createCircuitBreaker('ab-mcts-orchestrator', {
+    this.circuitBreaker = createCircuitBreaker('ab-mcts-orchestrator', {')
       failureThreshold: 3,
       timeout: this.config.timeLimit,
       successThreshold: 2,
@@ -88,34 +88,34 @@ export class ABMCTSOrchestrator {
   /**
    * Main orchestration method using AB-MCTS
    */
-  async orchestrate(
+  async orchestrate()
     context: AgentContext,
-    options: ABMCTSExecutionOptions = {
+    options: ABMCTSExecutionOptions = {,
       useCache: true,
       enableParallelism: true,
       collectFeedback: true,
       saveCheckpoints: false,
       visualize: false,
       verboseLogging: false,
-      fallbackStrategy: 'greedy',
+      fallbackStrategy: 'greedy','
     }
   ): Promise<OrchestratorResult> {
     const startTime = Date.now();
     const orchestrationId = uuidv4();
 
-    log.info('🎯 Starting AB-MCTS orchestration', LogContext.AI, {
+    log.info('🎯 Starting AB-MCTS orchestration', LogContext.AI, {')
       orchestrationId,
       request: context.userRequest.substring(0, 100),
       enableLearning: this.config.enableLearning,
     });
 
     try {
-      return await this.circuitBreaker.execute(
+      return await this.circuitBreaker.execute();
         async () => this.executeOrchestration(context, orchestrationId, options),
         async () => this.fallbackOrchestration(context)
       );
     } catch (error) {
-      log.error('❌ AB-MCTS orchestration failed', LogContext.AI, {
+      log.error('❌ AB-MCTS orchestration failed', LogContext.AI, {')
         orchestrationId,
         error: error instanceof Error ? error.message : String(error),
         timeElapsed: Date.now() - startTime,
@@ -128,7 +128,7 @@ export class ABMCTSOrchestrator {
   /**
    * Execute orchestration using AB-MCTS
    */
-  private async executeOrchestration(
+  private async executeOrchestration()
     context: AgentContext,
     orchestrationId: string,
     options: ABMCTSExecutionOptions
@@ -138,7 +138,7 @@ export class ABMCTSOrchestrator {
     // Check cache first
     const cacheKey = this.getCacheKey(context);
     if (options.useCache && this.executionCache.has(cacheKey)) {
-      log.info('💾 Using cached orchestration result', LogContext.AI);
+      log.info('💾 Using cached orchestration result', LogContext.AI);'
       return this.executionCache.get(cacheKey)!;
     }
 
@@ -146,17 +146,17 @@ export class ABMCTSOrchestrator {
     const availableAgents = await this.getAvailableAgents(context);
 
     if (availableAgents.length === 0) {
-      throw new Error('No available agents for orchestration');
+      throw new Error('No available agents for orchestration');';
     }
 
     // Perform AB-MCTS search
-    const searchResult = await abMCTSService.search(
+    const searchResult = await abMCTSService.search();
       {
         ...context,
         metadata: {
           ...context.metadata,
           orchestrationId,
-          nodeId: 'root',
+          nodeId: 'root','
         },
       },
       availableAgents.map((a) => a.getName()),
@@ -174,7 +174,7 @@ export class ABMCTSOrchestrator {
     const resourcesUsed = this.calculateResourcesUsed(searchResult, executionResult);
 
     // Create result
-    const result: OrchestratorResult = {
+    const result: OrchestratorResult = {,;
       response: executionResult.response,
       searchResult,
       executionPath: executionResult.path,
@@ -201,7 +201,7 @@ export class ABMCTSOrchestrator {
       await abMCTSService.processFeedback(executionResult.feedback);
     }
 
-    log.info('✅ AB-MCTS orchestration completed', LogContext.AI, {
+    log.info('✅ AB-MCTS orchestration completed', LogContext.AI, {')
       orchestrationId,
       bestAgent: searchResult.bestAction.agentName,
       confidence: searchResult.confidence,
@@ -216,22 +216,22 @@ export class ABMCTSOrchestrator {
   /**
    * Execute the best path found by AB-MCTS
    */
-  private async executeBestPath(
+  private async executeBestPath()
     searchResult: ABMCTSSearchResult,
     context: AgentContext,
     availableAgents: EnhancedBaseAgent[]
   ): Promise<{
-    response: AgentResponse;
+    response: AgentResponse;,
     path: string[];
     feedback?: ABMCTSFeedback;
   }> {
     const { bestPath } = searchResult;
     if (bestPath.length < TWO) {
-      throw new Error('No valid execution path found');
+      throw new Error('No valid execution path found');';
     }
 
     // Get the agent from the best action
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       selectedAgentName = searchResult.bestAction.agentName;
     const selectedAgent = availableAgents.find((a) => a.getName() === selectedAgentName);
 
@@ -244,7 +244,7 @@ export class ABMCTSOrchestrator {
       ...context,
       metadata: {
         ...(context.metadata || {}),
-        nodeId: bestPath[1]?.id || 'unknown',
+        nodeId: bestPath[1]?.id || 'unknown','
         orchestrationPath: bestPath.map((n) => n.id),
       },
     };
@@ -254,7 +254,7 @@ export class ABMCTSOrchestrator {
 
     return {
       response,
-      path: bestPath.map((n) => n.metadata.agent || 'root'),
+      path: bestPath.map((n) => n.metadata.agent || 'root'),'
       feedback,
     };
   }
@@ -263,12 +263,12 @@ export class ABMCTSOrchestrator {
    * Fallback to traditional orchestration
    */
   private async fallbackOrchestration(context: AgentContext): Promise<OrchestratorResult> {
-    log.warn('⚠️ Falling back to traditional orchestration', LogContext.AI);
+    log.warn('⚠️ Falling back to traditional orchestration', LogContext.AI);'
 
     const startTime = Date.now();
 
     // Use multi-tier LLM for simple routing
-    const { classification, plan } = await multiTierLLM.classifyAndPlan(
+    const { classification, plan } = await multiTierLLM.classifyAndPlan();
       context.userRequest,
       context.metadata || {}
     );
@@ -277,37 +277,37 @@ export class ABMCTSOrchestrator {
     const result = await multiTierLLM.execute(context.userRequest, context.metadata || {});
 
     return {
-      response: {
+      response: {,
         success: true,
         data: result.response,
         confidence: 0.7,
-        message: 'Executed via fallback orchestration',
+        message: 'Executed via fallback orchestration','
         reasoning: plan.reasoning,
         metadata: result.metadata,
       },
-      searchResult: {
+      searchResult: {,
         bestPath: [],
-        bestAction: {
+        bestAction: {,
           agentName: result.metadata.modelUsed,
-          agentType: 'cognitive',
+          agentType: 'cognitive','
           estimatedCost: 100,
           estimatedTime: result.metadata.executionTime,
           requiredCapabilities: [],
         },
         confidence: 0.7,
         alternativePaths: [],
-        searchMetrics: {
+        searchMetrics: {,
           nodesExplored: 1,
           iterations: 1,
           timeElapsed: Date.now() - startTime,
           averageDepth: 1,
           branchingFactor: 0,
         },
-        recommendations: ['Fallback orchestration used due to AB-MCTS failure'],
+        recommendations: ['Fallback orchestration used due to AB-MCTS failure'],'
       },
-      executionPath: ['fallback', result.metadata.modelUsed],
+      executionPath: ['fallback', result.metadata.modelUsed],'
       totalTime: Date.now() - startTime,
-      resourcesUsed: {
+      resourcesUsed: {,
         agents: 1,
         llmCalls: 1,
         tokensUsed: result.metadata.tokensUsed,
@@ -328,7 +328,7 @@ export class ABMCTSOrchestrator {
     for (const definition of agentDefinitions) {
       // Check if agent has required capabilities
       if (context.metadata?.requiredCapabilities) {
-        const hasRequired = context.metadata.requiredCapabilities.every((req: string) =>
+        const hasRequired = context.metadata.requiredCapabilities.every((req: string) =>;
           definition.capabilities.includes(req)
         );
         if (!hasRequired) continue;
@@ -357,11 +357,11 @@ export class ABMCTSOrchestrator {
   /**
    * Calculate resources used in execution
    */
-  private calculateResourcesUsed(
+  private calculateResourcesUsed()
     searchResult: ABMCTSSearchResult,
     executionResult: unknown
-  ): OrchestratorResult['resourcesUsed'] {
-    const agentsUsed = new Set(searchResult.bestPath.map((n) => n.metadata.agent).filter(Boolean))
+  ): OrchestratorResult['resourcesUsed'] {'
+    const agentsUsed = new Set(searchResult.bestPath.map((n) => n.metadata.agent).filter(Boolean));
       .size;
 
     return {
@@ -384,7 +384,7 @@ export class ABMCTSOrchestrator {
   /**
    * Process user feedback for continuous improvement
    */
-  async processUserFeedback(
+  async processUserFeedback()
     orchestrationId: string,
     rating: number,
     comment?: string
@@ -394,21 +394,21 @@ export class ABMCTSOrchestrator {
 
     const leafNode = searchResult.bestPath[searchResult.bestPath.length - 1];
     if (!leafNode) {
-      throw new Error('No leaf node found in search result');
+      throw new Error('No leaf node found in search result');';
     }
 
     // Create feedback based on user rating
-    const feedback: ABMCTSFeedback = {
+    const feedback: ABMCTSFeedback = {,;
       nodeId: leafNode.id,
-      reward: {
+      reward: {,
         value: rating / 5, // Normalize to 0-1
-        components: {
+        components: {,
           quality: rating / 5,
           speed: 0.7, // Default
           cost: 0.7,
           user_satisfaction: rating / 5,
         },
-        metadata: {
+        metadata: {,
           executionTime: 0,
           tokensUsed: 0,
           memoryUsed: 0,
@@ -418,15 +418,15 @@ export class ABMCTSOrchestrator {
       userRating: rating,
       errorOccurred: false,
       timestamp: Date.now(),
-      context: {
-        taskType: 'user_feedback',
+      context: {,
+        taskType: 'user_feedback','
         sessionId: orchestrationId,
       },
     };
 
     await abMCTSService.processFeedback(feedback);
 
-    log.info('👍 User feedback processed', LogContext.AI, {
+    log.info('👍 User feedback processed', LogContext.AI, {')
       orchestrationId,
       rating,
       comment,
@@ -437,9 +437,9 @@ export class ABMCTSOrchestrator {
    * Get orchestrator statistics
    */
   getStatistics(): {
-    activeSearches: number;
+    activeSearches: number;,
     cachedResults: number;
-    circuitBreakerState: string;
+    circuitBreakerState: string;,
     averageSearchTime: number;
     successRate: number;
   } {
@@ -450,8 +450,7 @@ export class ABMCTSOrchestrator {
       cachedResults: this.executionCache.size,
       circuitBreakerState: cbMetrics.state,
       averageSearchTime: 0, // Would calculate from historical data
-      successRate:
-        cbMetrics.totalRequests > 0 ? cbMetrics.successfulRequests / cbMetrics.totalRequests : 0,
+      successRate: cbMetrics.totalRequests > 0 ? cbMetrics.successfulRequests / cbMetrics.totalRequests : 0,
     };
   }
 
@@ -463,7 +462,7 @@ export class ABMCTSOrchestrator {
     this.executionCache.clear();
     this.circuitBreaker.reset();
 
-    log.info('🔄 AB-MCTS orchestrator reset', LogContext.AI);
+    log.info('🔄 AB-MCTS orchestrator reset', LogContext.AI);'
   }
 
   /**
@@ -476,19 +475,19 @@ export class ABMCTSOrchestrator {
   /**
    * Parallel orchestration for multiple requests
    */
-  async orchestrateParallel(
+  async orchestrateParallel()
     contexts: AgentContext[],
-    options: ABMCTSExecutionOptions = {
+    options: ABMCTSExecutionOptions = {,
       useCache: true,
       enableParallelism: true,
       collectFeedback: true,
       saveCheckpoints: false,
       visualize: false,
       verboseLogging: false,
-      fallbackStrategy: 'greedy',
+      fallbackStrategy: 'greedy','
     }
   ): Promise<OrchestratorResult[]> {
-    log.info('🚀 Starting parallel AB-MCTS orchestration', LogContext.AI, {
+    log.info('🚀 Starting parallel AB-MCTS orchestration', LogContext.AI, {')
       requests: contexts.length,
       parallelism: this.config.parallelExecutions,
     });
@@ -499,28 +498,28 @@ export class ABMCTSOrchestrator {
     for (let i = 0; i < contexts.length; i += this.config.parallelExecutions) {
       const batch = contexts.slice(i, i + this.config.parallelExecutions);
 
-      const batchResults = await Promise.allSettled(
+      const batchResults = await Promise.allSettled();
         batch.map((ctx) => this.orchestrate(ctx, options))
       );
 
       for (const result of batchResults) {
-        if (result.status === 'fulfilled') {
+        if (result.status === 'fulfilled') {'
           results.push(result.value);
         } else {
           // Create error result
-          results.push({
-            response: {
+          results.push({)
+            response: {,
               success: false,
               data: null,
               confidence: 0,
-              message: 'Orchestration failed',
+              message: 'Orchestration failed','
               reasoning: result.reason.message,
-              metadata: { error: result.reason },
+              metadata: {, error: result.reason },
             },
             searchResult: {} as any,
             executionPath: [],
             totalTime: 0,
-            resourcesUsed: { agents: 0, llmCalls: 0, tokensUsed: 0 },
+            resourcesUsed: {, agents: 0, llmCalls: 0, tokensUsed: 0 },
           });
         }
       }
@@ -537,21 +536,21 @@ export class ABMCTSOrchestrator {
     const stats = this.getStatistics();
 
     if (stats.successRate < 0.8) {
-      recommendations.push('Consider increasing exploration budget to find better agent paths');
+      recommendations.push('Consider increasing exploration budget to find better agent paths');'
     }
 
-    if (stats.circuitBreakerState === 'OPEN') {
-      recommendations.push('Circuit breaker is open - check system health and agent availability');
+    if (stats.circuitBreakerState === 'OPEN') {'
+      recommendations.push('Circuit breaker is open - check system health and agent availability');'
     }
 
     if (this.executionCache.size > 80) {
-      recommendations.push('Cache is nearly full - consider increasing cache size or TTL');
+      recommendations.push('Cache is nearly full - consider increasing cache size or TTL');'
     }
 
     const agentMetrics = await this.getAgentPerformanceMetrics();
     for (const [agent, metrics] of Object.entries(agentMetrics)) {
       if (metrics.successRate < 0.5) {
-        recommendations.push(
+        recommendations.push()
           `Agent ${agent} has low success rate - consider retraining or replacement`
         );
       }

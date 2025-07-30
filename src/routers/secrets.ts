@@ -3,14 +3,14 @@
  * Provides endpoints for managing API keys through Supabase Vault
  */
 
-import type { NextFunction, Request, Response } from 'express';
-import { Router } from 'express';
-import { sendError, sendSuccess } from '../utils/api-response';
-import { LogContext, log } from '../utils/logger';
-import { secretsManager } from '../services/secrets-manager';
-import { supabaseClient } from '../services/supabase-client';
+import type { NextFunction, Request, Response } from 'express';';
+import { Router  } from 'express';';
+import { sendError, sendSuccess  } from '../utils/api-response';';
+import { LogContext, log  } from '../utils/logger';';
+import { secretsManager  } from '../services/secrets-manager';';
+import { supabaseClient  } from '../services/supabase-client';';
 
-const // TODO: Refactor nested ternary
+const // TODO: Refactor nested ternary;
   router = Router();
 
 /**
@@ -18,27 +18,27 @@ const // TODO: Refactor nested ternary
  * @desc Get all services and their credential status
  * @access Private (service role only)
  */
-router.get('/services', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/services', async (req: Request, res: Response, next: NextFunction) => {'
   try {
     // Get all service configurations
-    const { data: services, error: servicesError } = await supabaseClient
-      .from('service_configurations')
-      .select('*')
-      .eq('is_active', true)
-      .order('service_name');
+    const { data: services, error: servicesError } = await supabaseClient;
+      .from('service_configurations')'
+      .select('*')'
+      .eq('is_active', true)'
+      .order('service_name');'
 
     if (servicesError) throw servicesError;
 
     // Get all secrets (without actual keys)
-    const { data: secrets, error: secretsError } = await supabaseClient
-      .from('api_secrets')
-      .select('service_name, description, is_active, expires_at, rate_limit, metadata')
-      .eq('is_active', true);
+    const { data: secrets, error: secretsError } = await supabaseClient;
+      .from('api_secrets')'
+      .select('service_name, description, is_active, expires_at, rate_limit, metadata')'
+      .eq('is_active', true);'
 
     if (secretsError) throw secretsError;
 
     // Check which services have keys
-    const servicesWithStatus = await Promise.all(
+    const servicesWithStatus = await Promise.all();
       (services || []).map(async (service: unknown) => {
         const hasKey = await secretsManager.hasValidCredentials(service.service_name);
         const secret = secrets?.find((s: unknown) => s.service_name === service.service_name);
@@ -54,7 +54,7 @@ router.get('/services', async (req: Request, res: Response, next: NextFunction) 
     // Get missing credentials
     const missing = await secretsManager.getMissingCredentials();
 
-    sendSuccess(
+    sendSuccess()
       res,
       {
         services: servicesWithStatus,
@@ -62,10 +62,10 @@ router.get('/services', async (req: Request, res: Response, next: NextFunction) 
         missing_services: missing,
       },
       200,
-      { message: 'Services and credentials retrieved' }
+      { message: 'Services and credentials retrieved' }'
     );
   } catch (error) {
-    log.error('❌ Failed to get services', LogContext.API, {
+    log.error('❌ Failed to get services', LogContext.API, {')
       error: error instanceof Error ? error.message : String(error),
     });
     next(error);
@@ -77,17 +77,17 @@ router.get('/services', async (req: Request, res: Response, next: NextFunction) 
  * @desc Store an API key in Vault
  * @access Private (service role only)
  */
-router.post('/store', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/store', async (req: Request, res: Response, next: NextFunction) => {'
   try {
     const { service_name, api_key, description, expires_at } = req.body;
 
     if (!service_name || !api_key) {
-      return sendError(res, 'INVALID_REQUEST', 'Service name and API key are required');
+      return sendError(res, 'INVALID_REQUEST', 'Service name and API key are required');';
     }
 
     // Store in Vault
-    const // TODO: Refactor nested ternary
-      success = await secretsManager.storeSecret({
+    const // TODO: Refactor nested ternary;
+      success = await secretsManager.storeSecret({)
         name: `${service_name}_key`,
         value: api_key,
         description: description || `API key for ${service_name}`,
@@ -96,12 +96,12 @@ router.post('/store', async (req: Request, res: Response, next: NextFunction) =>
       });
 
     if (!success) {
-      return sendError(res, 'INTERNAL_ERROR', 'Failed to store API key');
+      return sendError(res, 'INTERNAL_ERROR', 'Failed to store API key');';
     }
 
-    sendSuccess(res, { stored: true }, 201, { message: 'API key stored successfully' });
+    sendSuccess(res, { stored: true }, 201, { message: 'API key stored successfully' });'
   } catch (error) {
-    log.error('❌ Failed to store secret', LogContext.API, {
+    log.error('❌ Failed to store secret', LogContext.API, {')
       error: error instanceof Error ? error.message : String(error),
     });
     next(error);
@@ -113,39 +113,39 @@ router.post('/store', async (req: Request, res: Response, next: NextFunction) =>
  * @desc Delete an API key from Vault
  * @access Private (service role only)
  */
-router.delete('/delete/:service', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/delete/:service', async (req: Request, res: Response, next: NextFunction) => {'
   try {
     const { service } = req.params;
 
     if (!service) {
-      return sendError(res, 'INVALID_REQUEST', 'Service name is required');
+      return sendError(res, 'INVALID_REQUEST', 'Service name is required');';
     }
 
     // Delete from api_secrets table
-    const { error: deleteError } = await supabaseClient
-      .from('api_secrets')
+    const { error: deleteError } = await supabaseClient;
+      .from('api_secrets')'
       .delete()
-      .eq('service_name', service);
+      .eq('service_name', service);'
 
     if (deleteError) throw deleteError;
 
     // Also try to delete from Vault
     try {
-      const { error: vaultError } = await supabaseClient.rpc('delete_secret', {
+      const { error: vaultError } = await supabaseClient.rpc('delete_secret', {');
         secret_name: `${service}_key`,
       });
 
       if (vaultError) {
-        log.warn('⚠️ Could not delete from Vault', LogContext.API, { error: vaultError });
+        log.warn('⚠️ Could not delete from Vault', LogContext.API, { error: vaultError });'
       }
     } catch (vaultErr) {
       // Non-critical if Vault deletion fails
-      log.warn('⚠️ Vault deletion skipped', LogContext.API);
+      log.warn('⚠️ Vault deletion skipped', LogContext.API);'
     }
 
-    sendSuccess(res, { deleted: true }, 200, { message: 'API key deleted successfully' });
+    sendSuccess(res, { deleted: true }, 200, { message: 'API key deleted successfully' });'
   } catch (error) {
-    log.error('❌ Failed to delete secret', LogContext.API, {
+    log.error('❌ Failed to delete secret', LogContext.API, {')
       error: error instanceof Error ? error.message : String(error),
     });
     next(error);
@@ -157,11 +157,11 @@ router.delete('/delete/:service', async (req: Request, res: Response, next: Next
  * @desc Migrate secrets from environment variables to Vault
  * @access Private (service role only)
  */
-router.post('/migrate', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/migrate', async (req: Request, res: Response, next: NextFunction) => {'
   try {
     await secretsManager.initializeFromEnv();
 
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       missing = await secretsManager.getMissingCredentials();
     const services = await secretsManager.getAvailableServices();
 
@@ -173,7 +173,7 @@ router.post('/migrate', async (req: Request, res: Response, next: NextFunction) 
       }
     }
 
-    sendSuccess(
+    sendSuccess()
       res,
       {
         migrated,
@@ -183,10 +183,10 @@ router.post('/migrate', async (req: Request, res: Response, next: NextFunction) 
         missing_count: missing.length,
       },
       200,
-      { message: 'Environment variables migrated to Vault' }
+      { message: 'Environment variables migrated to Vault' }'
     );
   } catch (error) {
-    log.error('❌ Failed to migrate secrets', LogContext.API, {
+    log.error('❌ Failed to migrate secrets', LogContext.API, {')
       error: error instanceof Error ? error.message : String(error),
     });
     next(error);
@@ -198,34 +198,34 @@ router.post('/migrate', async (req: Request, res: Response, next: NextFunction) 
  * @desc Check Vault health and connectivity
  * @access Public
  */
-router.get('/health', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/health', async (req: Request, res: Response, next: NextFunction) => {'
   try {
     // Try to list secret names (without values)
-    const { data, error } = await supabaseClient.rpc('list_secret_names');
+    const { data, error } = await supabaseClient.rpc('list_secret_names');';
 
     const isHealthy = !error;
     const secretCount = data?.length || 0;
 
-    sendSuccess(
+    sendSuccess()
       res,
       {
-        vault_status: isHealthy ? 'healthy' : 'error',
+        vault_status: isHealthy ? 'healthy' : 'error','
         secret_count: secretCount,
         error: error?.message,
       },
       200,
-      { message: 'Vault health check completed' }
+      { message: 'Vault health check completed' }'
     );
   } catch (error) {
-    sendSuccess(
+    sendSuccess()
       res,
       {
-        vault_status: 'error',
+        vault_status: 'error','
         secret_count: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Unknown error','
       },
       200,
-      { message: 'Vault health check completed with errors' }
+      { message: 'Vault health check completed with errors' }'
     );
   }
 });

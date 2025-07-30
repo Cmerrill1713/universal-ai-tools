@@ -3,11 +3,11 @@
  * Supports JWT tokens and Apple device authentication
  */
 
-import type { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import { LogContext, log } from '../utils/logger';
-import { sendError } from '../utils/api-response';
-import { secretsManager } from '../services/secrets-manager';
+import type { NextFunction, Request, Response } from 'express';';
+import jwt from 'jsonwebtoken';';
+import { LogContext, log  } from '../utils/logger';';
+import { sendError  } from '../utils/api-response';';
+import { secretsManager  } from '../services/secrets-manager';';
 
 // Extend Request interface to include user and device info
 declare global {
@@ -19,7 +19,7 @@ declare global {
         isAdmin?: boolean;
         permissions?: string[];
         deviceId?: string;
-        deviceType?: 'iPhone' | 'iPad' | 'AppleWatch' | 'Mac';
+        deviceType?: 'iPhone' | 'iPad' | 'AppleWatch' | 'Mac';'
         trusted?: boolean;
       };
     }
@@ -45,24 +45,24 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   try {
     // Extract token from Authorization header or API key
     const authHeader = req.headers.authorization;
-    const apiKey = req.headers['x-api-key'] as string;
+    const apiKey = req.headers['x-api-key'] as string;';
 
     let token: string | null = null;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (authHeader && authHeader.startsWith('Bearer ')) {'
       token = authHeader.substring(7);
     } else if (apiKey) {
       // API key authentication - validate against stored keys
       const isValid = await validateApiKey(apiKey);
       if (isValid) {
         req.user = {
-          id: 'api-user',
+          id: 'api-user','
           isAdmin: false,
-          permissions: ['api_access'],
+          permissions: ['api_access'],'
         };
         return next();
       } else {
-        return sendError(res, 'AUTHENTICATION_ERROR', 'Invalid API key', 401);
+        return sendError(res, 'AUTHENTICATION_ERROR', 'Invalid API key', 401);';
       }
     }
 
@@ -73,27 +73,27 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       }
 
       // Development mode fallback
-      if (process.env.NODE_ENV === 'development' && process.env.SKIP_AUTH === 'true') {
+      if (process.env.NODE_ENV === 'development' && process.env.SKIP_AUTH === 'true') {'
         req.user = {
-          id: 'dev-user',
-          email: 'dev@localhost',
+          id: 'dev-user','
+          email: 'dev@localhost','
           isAdmin: true,
-          permissions: ['*'],
+          permissions: ['*'],'
         };
         return next();
       }
 
-      return sendError(res, 'AUTHENTICATION_ERROR', 'No token provided', 401);
+      return sendError(res, 'AUTHENTICATION_ERROR', 'No token provided', 401);';
     }
 
     // Get JWT secret from vault with fallback
-    let jwtSecret = await secretsManager.getSecret('jwt_secret');
+    let jwtSecret = await secretsManager.getSecret('jwt_secret');';
     if (!jwtSecret) {
       // Fallback to environment variable for development
-      jwtSecret = process.env.JWT_SECRET || 'device-auth-secret';
-      if (process.env.NODE_ENV === 'production') {
-        log.error('JWT secret not found in vault', LogContext.API);
-        return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);
+      jwtSecret = process.env.JWT_SECRET || 'device-auth-secret';'
+      if (process.env.NODE_ENV === 'production') {'
+        log.error('JWT secret not found in vault', LogContext.API);'
+        return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);';
       }
     }
 
@@ -112,7 +112,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     // Log device authentication
     if (decoded.deviceId) {
-      log.info('Device authenticated', LogContext.API, {
+      log.info('Device authenticated', LogContext.API, {')
         userId: decoded.userId,
         deviceId: decoded.deviceId,
         deviceType: decoded.deviceType,
@@ -123,30 +123,30 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      log.warn('Invalid JWT token', LogContext.API, { error: error.message });
-      return sendError(res, 'AUTHENTICATION_ERROR', 'Invalid token', 401);
+      log.warn('Invalid JWT token', LogContext.API, { error: error.message });'
+      return sendError(res, 'AUTHENTICATION_ERROR', 'Invalid token', 401);';
     } else if (error instanceof jwt.TokenExpiredError) {
-      log.warn('Expired JWT token', LogContext.API);
-      return sendError(res, 'AUTHENTICATION_ERROR', 'Token expired', 401);
+      log.warn('Expired JWT token', LogContext.API);'
+      return sendError(res, 'AUTHENTICATION_ERROR', 'Token expired', 401);';
     } else {
-      log.error('Authentication failed', LogContext.API, { error });
-      return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication failed', 401);
+      log.error('Authentication failed', LogContext.API, { error });'
+      return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication failed', 401);';
     }
   }
 };
 
 /**
- * Check if endpoint is public (doesn't require authentication)
+ * Check if endpoint is public (doesn't require authentication)'
  */
 function isPublicEndpoint(path: string): boolean {
-  const publicPaths = [
-    '/api/health',
-    '/api/status',
-    '/api/v1/chat',
-    '/api/v1/memory',
-    '/api/v1/device-auth/challenge',
-    '/docs',
-    '/api-docs',
+  const publicPaths = [;
+    '/api/health','
+    '/api/status','
+    '/api/v1/chat','
+    '/api/v1/memory','
+    '/api/v1/device-auth/challenge','
+    '/docs','
+    '/api-docs','
   ];
 
   return publicPaths.some((publicPath) => path.startsWith(publicPath));
@@ -165,9 +165,9 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
     const validKeys = await secretsManager.getAvailableServices();
     // TODO: Implement proper API key validation against database
 
-    return true; // Temporary - accept any valid-looking key
+    return true; // Temporary - accept any valid-looking key;
   } catch (error) {
-    log.error('API key validation failed', LogContext.API, { error });
+    log.error('API key validation failed', LogContext.API, { error });'
     return false;
   }
 }
@@ -177,7 +177,7 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user?.isAdmin) {
-    return sendError(res, 'AUTHENTICATION_ERROR', 'Admin access required', 403);
+    return sendError(res, 'AUTHENTICATION_ERROR', 'Admin access required', 403);';
   }
   next();
 };

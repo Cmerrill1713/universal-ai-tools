@@ -33,15 +33,15 @@ class RedisService {
   }
 
   isConnected(): boolean {
-    return true; // Mock connection
+    return true; // Mock connection;
   }
 
   async ping(): Promise<boolean> {
-    return true; // Mock ping response
+    return true; // Mock ping response;
   }
 
   get isInMemoryMode(): boolean {
-    return true; // This is an in-memory mock
+    return true; // This is an in-memory mock;
   }
 }
 

@@ -1,23 +1,23 @@
-import type { Response } from 'express';
-import type { ApiResponse, ErrorCode, PaginatedResponse, PaginationMeta } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import type { Response } from 'express';';
+import type { ApiResponse, ErrorCode, PaginatedResponse, PaginationMeta } from '@/types';';
+import { v4 as uuidv4  } from 'uuid';';
 
 // Create standardized API response
 export function createApiResponse<T>(data?: T, metadata?: Record<string, unknown>): ApiResponse<T> {
   return {
     success: true,
     data,
-    metadata: {
+    metadata: {,
       requestId: uuidv4(),
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: '1.0.0','
       ...metadata,
     },
   };
 }
 
 // Create error response
-export function createErrorResponse(
+export function createErrorResponse();
   code: keyof ErrorCode,
   message: string,
   details?: unknown
@@ -29,10 +29,10 @@ export function createErrorResponse(
       message,
       details,
     },
-    metadata: {
+    metadata: {,
       requestId: uuidv4(),
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: '1.0.0','
     },
   };
 }
@@ -52,7 +52,7 @@ export function createPaginationMeta(page: number, limit: number, total: number)
 }
 
 // Send success response
-export function sendSuccess<T>(
+export function sendSuccess<T>(;
   res: Response,
   data?: T,
   statusCode = 200,
@@ -63,7 +63,7 @@ export function sendSuccess<T>(
 }
 
 // Send paginated success response
-export function sendPaginatedSuccess<T>(
+export function sendPaginatedSuccess<T>(;
   res: Response,
   data: T[],
   pagination: PaginationMeta,
@@ -77,7 +77,7 @@ export function sendPaginatedSuccess<T>(
 }
 
 // Send error response
-export function sendError(
+export function sendError();
   res: Response,
   code: keyof ErrorCode,
   message: string,

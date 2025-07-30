@@ -3,9 +3,9 @@
  * Provides access to HuggingFace models for text generation, embeddings, and more
  */
 
-import { HfInference } from '@huggingface/inference';
-import { LogContext, log } from '../utils/logger';
-import { CircuitBreaker, CircuitBreakerRegistry } from '../utils/circuit-breaker';
+import { HfInference  } from '@huggingface/inference';';
+import { LogContext, log  } from '../utils/logger';';
+import { CircuitBreaker, CircuitBreakerRegistry  } from '../utils/circuit-breaker';';
 
 export interface HuggingFaceConfig {
   apiKey: string;
@@ -33,7 +33,7 @@ export interface EmbeddingRequest {
 }
 
 export interface QuestionAnsweringRequest {
-  question: string;
+  question: string;,
   context: string;
   model?: string;
 }
@@ -50,11 +50,11 @@ export interface SummarizationRequest {
 }
 
 export interface HuggingFaceMetrics {
-  totalRequests: number;
+  totalRequests: number;,
   successfulRequests: number;
-  failedRequests: number;
+  failedRequests: number;,
   averageResponseTime: number;
-  modelsUsed: Set<string>;
+  modelsUsed: Set<string>;,
   lastRequestTime: number;
 }
 
@@ -67,11 +67,11 @@ export class HuggingFaceService {
 
   // Default models for different tasks
   private defaultModels = {
-    textGeneration: 'microsoft/DialoGPT-medium',
-    embedding: 'sentence-transformers/all-MiniLM-L6-v2',
-    questionAnswering: 'deepset/roberta-base-squad2',
-    summarization: 'facebook/bart-large-cnn',
-    sentimentAnalysis: 'cardiffnlp/twitter-roberta-base-sentiment-latest',
+    textGeneration: 'microsoft/DialoGPT-medium','
+    embedding: 'sentence-transformers/all-MiniLM-L6-v2','
+    questionAnswering: 'deepset/roberta-base-squad2','
+    summarization: 'facebook/bart-large-cnn','
+    sentimentAnalysis: 'cardiffnlp/twitter-roberta-base-sentiment-latest','
   };
 
   constructor(config: HuggingFaceConfig) {
@@ -86,28 +86,28 @@ export class HuggingFaceService {
     };
 
     // Initialize circuit breaker for HuggingFace service
-    this.circuitBreaker = new CircuitBreaker('huggingface', {
+    this.circuitBreaker = new CircuitBreaker('huggingface', {')
       failureThreshold: 5,
       successThreshold: 2,
       timeout: 30000,
       errorThresholdPercentage: 50,
     });
-    CircuitBreakerRegistry.register('huggingface', this.circuitBreaker);
+    CircuitBreakerRegistry.register('huggingface', this.circuitBreaker);'
 
     this.initialize();
   }
 
   private async initialize(): Promise<void> {
     try {
-      log.info('🤗 Initializing HuggingFace service', LogContext.AI);
+      log.info('🤗 Initializing HuggingFace service', LogContext.AI);'
 
       // Test connection with a simple request
       await this.testConnection();
 
       this.isInitialized = true;
-      log.info('✅ HuggingFace service initialized successfully', LogContext.AI);
+      log.info('✅ HuggingFace service initialized successfully', LogContext.AI);'
     } catch (error) {
-      log.error('❌ Failed to initialize HuggingFace service', LogContext.AI, {
+      log.error('❌ Failed to initialize HuggingFace service', LogContext.AI, {')
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -116,17 +116,17 @@ export class HuggingFaceService {
   private async testConnection(): Promise<void> {
     try {
       // Simple test with text generation
-      await this.hf.textGeneration({
+      await this.hf.textGeneration({)
         model: this.defaultModels.textGeneration,
-        inputs: 'Hello',
-        parameters: {
+        inputs: 'Hello','
+        parameters: {,
           max_new_tokens: 1,
           temperature: 0.1,
         },
       });
-      log.info('✅ HuggingFace connection test successful', LogContext.AI);
+      log.info('✅ HuggingFace connection test successful', LogContext.AI);'
     } catch (error) {
-      log.warn('⚠️ HuggingFace connection test failed', LogContext.AI, {
+      log.warn('⚠️ HuggingFace connection test failed', LogContext.AI, {')
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -138,22 +138,22 @@ export class HuggingFaceService {
    */
   public async generateText(request: TextGenerationRequest): Promise<any> {
     return this.circuitBreaker.execute(async () => {
-      const // TODO: Refactor nested ternary
+      const // TODO: Refactor nested ternary;
         startTime = Date.now();
 
       try {
         const model = request.model || this.defaultModels.textGeneration;
         this.metrics.modelsUsed.add(model);
 
-        log.info('📝 Generating text with HuggingFace', LogContext.AI, {
+        log.info('📝 Generating text with HuggingFace', LogContext.AI, {')
           model,
           inputLength: request.inputs.length,
         });
 
-        const result = await this.hf.textGeneration({
+        const result = await this.hf.textGeneration({);
           model,
           inputs: request.inputs,
-          parameters: request.parameters || {
+          parameters: request.parameters || {,
             max_new_tokens: 100,
             temperature: 0.7,
             do_sample: true,
@@ -170,7 +170,7 @@ export class HuggingFaceService {
         };
       } catch (error) {
         this.updateMetrics(startTime, false);
-        log.error('❌ HuggingFace text generation failed', LogContext.AI, { error });
+        log.error('❌ HuggingFace text generation failed', LogContext.AI, { error });'
 
         return {
           success: false,
@@ -192,13 +192,13 @@ export class HuggingFaceService {
         const model = request.model || this.defaultModels.embedding;
         this.metrics.modelsUsed.add(model);
 
-        log.info('🔢 Generating embeddings with HuggingFace', LogContext.AI, {
+        log.info('🔢 Generating embeddings with HuggingFace', LogContext.AI, {')
           model,
-          inputType: Array.isArray(request.inputs) ? 'batch' : 'single',
+          inputType: Array.isArray(request.inputs) ? 'batch' : 'single','
         });
 
-        const // TODO: Refactor nested ternary
-          result = await this.hf.featureExtraction({
+        const // TODO: Refactor nested ternary;
+          result = await this.hf.featureExtraction({)
             model,
             inputs: request.inputs,
           });
@@ -207,7 +207,7 @@ export class HuggingFaceService {
 
         return {
           success: true,
-          data: {
+          data: {,
             embeddings: result,
             model,
             dimension: Array.isArray(result[0]) ? result[0].length : result.length,
@@ -216,7 +216,7 @@ export class HuggingFaceService {
         };
       } catch (error) {
         this.updateMetrics(startTime, false);
-        log.error('❌ HuggingFace embedding generation failed', LogContext.AI, { error });
+        log.error('❌ HuggingFace embedding generation failed', LogContext.AI, { error });'
 
         return {
           success: false,
@@ -232,22 +232,22 @@ export class HuggingFaceService {
    */
   public async answerQuestion(request: QuestionAnsweringRequest): Promise<any> {
     return this.circuitBreaker.execute(async () => {
-      const // TODO: Refactor nested ternary
+      const // TODO: Refactor nested ternary;
         startTime = Date.now();
 
       try {
         const model = request.model || this.defaultModels.questionAnswering;
         this.metrics.modelsUsed.add(model);
 
-        log.info('❓ Answering question with HuggingFace', LogContext.AI, {
+        log.info('❓ Answering question with HuggingFace', LogContext.AI, {')
           model,
           questionLength: request.question.length,
           contextLength: request.context.length,
         });
 
-        const result = await this.hf.questionAnswering({
+        const result = await this.hf.questionAnswering({);
           model,
-          inputs: {
+          inputs: {,
             question: request.question,
             context: request.context,
           },
@@ -263,7 +263,7 @@ export class HuggingFaceService {
         };
       } catch (error) {
         this.updateMetrics(startTime, false);
-        log.error('❌ HuggingFace question answering failed', LogContext.AI, { error });
+        log.error('❌ HuggingFace question answering failed', LogContext.AI, { error });'
 
         return {
           success: false,
@@ -285,15 +285,15 @@ export class HuggingFaceService {
         const model = request.model || this.defaultModels.summarization;
         this.metrics.modelsUsed.add(model);
 
-        log.info('📄 Summarizing text with HuggingFace', LogContext.AI, {
+        log.info('📄 Summarizing text with HuggingFace', LogContext.AI, {')
           model,
           inputLength: request.inputs.length,
         });
 
-        const result = await this.hf.summarization({
+        const result = await this.hf.summarization({);
           model,
           inputs: request.inputs,
-          parameters: request.parameters || {
+          parameters: request.parameters || {,
             max_length: 150,
             min_length: 30,
             do_sample: false,
@@ -310,7 +310,7 @@ export class HuggingFaceService {
         };
       } catch (error) {
         this.updateMetrics(startTime, false);
-        log.error('❌ HuggingFace summarization failed', LogContext.AI, { error });
+        log.error('❌ HuggingFace summarization failed', LogContext.AI, { error });'
 
         return {
           success: false,
@@ -332,12 +332,12 @@ export class HuggingFaceService {
         const selectedModel = model || this.defaultModels.sentimentAnalysis;
         this.metrics.modelsUsed.add(selectedModel);
 
-        log.info('😊 Analyzing sentiment with HuggingFace', LogContext.AI, {
+        log.info('😊 Analyzing sentiment with HuggingFace', LogContext.AI, {')
           model: selectedModel,
           textLength: text.length,
         });
 
-        const result = await this.hf.textClassification({
+        const result = await this.hf.textClassification({);
           model: selectedModel,
           inputs: text,
         });
@@ -352,7 +352,7 @@ export class HuggingFaceService {
         };
       } catch (error) {
         this.updateMetrics(startTime, false);
-        log.error('❌ HuggingFace sentiment analysis failed', LogContext.AI, { error });
+        log.error('❌ HuggingFace sentiment analysis failed', LogContext.AI, { error });'
 
         return {
           success: false,
@@ -368,10 +368,10 @@ export class HuggingFaceService {
    */
   public async listModels(task?: string): Promise<any> {
     try {
-      log.info('📋 Listing HuggingFace models', LogContext.AI, { task });
+      log.info('📋 Listing HuggingFace models', LogContext.AI, { task });'
 
       // Return default models for now - could be extended to use HF Hub API
-      const // TODO: Refactor nested ternary
+      const // TODO: Refactor nested ternary;
         models = task
           ? { [task]: this.defaultModels[task as keyof typeof this.defaultModels] }
           : this.defaultModels;
@@ -385,7 +385,7 @@ export class HuggingFaceService {
         },
       };
     } catch (error) {
-      log.error('❌ Failed to list HuggingFace models', LogContext.AI, { error });
+      log.error('❌ Failed to list HuggingFace models', LogContext.AI, { error });'
 
       return {
         success: false,
@@ -409,7 +409,7 @@ export class HuggingFaceService {
    * Update internal metrics
    */
   private updateMetrics(startTime: number, success: boolean): void {
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       duration = Date.now() - startTime;
 
     this.metrics.totalRequests++;
@@ -434,27 +434,27 @@ export class HuggingFaceService {
     try {
       if (!this.isInitialized) {
         return {
-          status: 'initializing',
+          status: 'initializing','
           healthy: false,
-          error: 'Service not yet initialized',
+          error: 'Service not yet initialized','
         };
       }
 
       // Simple health check
-      const testResult = await this.generateText({
-        inputs: 'Health check',
-        parameters: { max_new_tokens: 1 },
+      const testResult = await this.generateText({);
+        inputs: 'Health check','
+        parameters: {, max_new_tokens: 1 },
       });
 
       return {
-        status: 'healthy',
+        status: 'healthy','
         healthy: testResult.success,
         metrics: this.getMetrics(),
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
+        status: 'unhealthy','
         healthy: false,
         error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
@@ -466,18 +466,18 @@ export class HuggingFaceService {
    * Shutdown the service
    */
   public async shutdown(): Promise<void> {
-    log.info('🛑 Shutting down HuggingFace service', LogContext.AI);
+    log.info('🛑 Shutting down HuggingFace service', LogContext.AI);'
     this.isInitialized = false;
   }
 }
 
 // Create singleton instance
-const huggingFaceConfig: HuggingFaceConfig = {
-  apiKey: process.env.HUGGINGFACE_API_KEY || '',
+const huggingFaceConfig: HuggingFaceConfig = {,;
+  apiKey: process.env.HUGGINGFACE_API_KEY || '','
   timeout: 30000,
 };
 
-export const huggingFaceService = process.env.HUGGINGFACE_API_KEY
+export const huggingFaceService = process.env.HUGGINGFACE_API_KEY;
   ? new HuggingFaceService(huggingFaceConfig)
   : null;
 

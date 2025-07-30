@@ -1,10 +1,10 @@
 // Core Types for Universal AI Tools
 export interface AgentConfig {
-  name: string;
+  name: string;,
   description: string;
-  priority: number;
+  priority: number;,
   capabilities: AgentCapability[];
-  maxLatencyMs: number;
+  maxLatencyMs: number;,
   retryAttempts: number;
   dependencies: string[];
   memoryEnabled?: boolean;
@@ -13,7 +13,7 @@ export interface AgentConfig {
 }
 
 export interface AgentCapability {
-  name: string;
+  name: string;,
   description: string;
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown>;
@@ -21,7 +21,7 @@ export interface AgentCapability {
 }
 
 export interface AgentContext {
-  userRequest: string;
+  userRequest: string;,
   requestId: string;
   workingDirectory?: string;
   memoryContext?: unknown;
@@ -31,38 +31,38 @@ export interface AgentContext {
 }
 
 export interface AgentResponse {
-  success: boolean;
+  success: boolean;,
   data: unknown;
-  confidence: number;
+  confidence: number;,
   message: string;
   reasoning: string;
   metadata?: Record<string, unknown>;
 }
 
 export interface Memory {
-  id: string;
+  id: string;,
   type: string;
-  content: string;
+  content: string;,
   metadata: Record<string, unknown>;
-  tags: string[];
+  tags: string[];,
   importance: number;
   timestamp: string;
   embedding?: number[];
 }
 
 export interface OrchestrationRequest {
-  requestId: string;
+  requestId: string;,
   userRequest: string;
   userId: string;
-  orchestrationMode?: 'simple' | 'standard' | 'cognitive' | 'adaptive';
+  orchestrationMode?: 'simple' | 'standard' | 'cognitive' | 'adaptive';'
   context: Record<string, unknown>;
   timestamp: Date;
 }
 
 export interface OrchestrationResponse {
-  requestId: string;
+  requestId: string;,
   success: boolean;
-  mode: string;
+  mode: string;,
   result: unknown;
   complexity?: string;
   confidence?: number;
@@ -73,44 +73,44 @@ export interface OrchestrationResponse {
 }
 
 export enum AgentCategory {
-  CORE = 'core',
-  COGNITIVE = 'cognitive',
-  PERSONAL = 'personal',
-  UTILITY = 'utility',
-  SPECIALIZED = 'specialized',
+  CORE = 'core','
+  COGNITIVE = 'cognitive','
+  PERSONAL = 'personal','
+  UTILITY = 'utility','
+  SPECIALIZED = 'specialized','
 }
 
 export interface AgentDefinition {
-  name: string;
+  name: string;,
   category: AgentCategory;
-  description: string;
+  description: string;,
   priority: number;
-  className: string;
+  className: string;,
   modulePath: string;
-  dependencies: string[];
+  dependencies: string[];,
   capabilities: string[];
-  memoryEnabled: boolean;
+  memoryEnabled: boolean;,
   maxLatencyMs: number;
   retryAttempts: number;
 }
 
 export interface ServiceConfig {
-  port: number;
+  port: number;,
   environment: string;
-  database: {
+  database: {,
     url: string;
     poolSize: number;
   };
   redis?: {
-    url: string;
+    url: string;,
     retryAttempts: number;
   };
-  supabase: {
+  supabase: {,
     url: string;
-    anonKey: string;
+    anonKey: string;,
     serviceKey: string;
   };
-  jwt: {
+  jwt: {,
     secret: string;
     expiresIn: string;
   };
@@ -119,45 +119,45 @@ export interface ServiceConfig {
     anthropicApiKey?: string;
     ollamaUrl?: string;
   };
-  vision: {
+  vision: {,
     enableSdxlRefiner: boolean;
-    sdxlRefinerPath: string;
-    preferredBackend: 'mlx' | 'gguf' | 'auto';
-    maxVram: number;
+    sdxlRefinerPath: string;,
+    preferredBackend: 'mlx' | 'gguf' | 'auto';'
+    maxVram: number;,
     enableCaching: boolean;
   };
 }
 
 export interface ErrorCode {
-  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD';
-  INVALID_FORMAT: 'INVALID_FORMAT';
-  REQUEST_TOO_LARGE: 'REQUEST_TOO_LARGE';
-  MEMORY_STORAGE_ERROR: 'MEMORY_STORAGE_ERROR';
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR';
-  AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR';
-  AGENT_NOT_FOUND: 'AGENT_NOT_FOUND';
-  ORCHESTRATION_ERROR: 'ORCHESTRATION_ERROR';
-  VALIDATION_ERROR: 'VALIDATION_ERROR';
-  NOT_FOUND: 'NOT_FOUND';
-  UNAUTHORIZED: 'UNAUTHORIZED';
-  INTERNAL_ERROR: 'INTERNAL_ERROR';
-  ANALYSIS_ERROR: 'ANALYSIS_ERROR';
-  GENERATION_ERROR: 'GENERATION_ERROR';
-  EMBEDDING_ERROR: 'EMBEDDING_ERROR';
-  SERVICE_ERROR: 'SERVICE_ERROR';
-  REFINEMENT_ERROR: 'REFINEMENT_ERROR';
+  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD';,'
+  INVALID_FORMAT: 'INVALID_FORMAT';'
+  REQUEST_TOO_LARGE: 'REQUEST_TOO_LARGE';,'
+  MEMORY_STORAGE_ERROR: 'MEMORY_STORAGE_ERROR';'
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR';,'
+  AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR';'
+  AGENT_NOT_FOUND: 'AGENT_NOT_FOUND';,'
+  ORCHESTRATION_ERROR: 'ORCHESTRATION_ERROR';'
+  VALIDATION_ERROR: 'VALIDATION_ERROR';,'
+  NOT_FOUND: 'NOT_FOUND';'
+  UNAUTHORIZED: 'UNAUTHORIZED';,'
+  INTERNAL_ERROR: 'INTERNAL_ERROR';'
+  ANALYSIS_ERROR: 'ANALYSIS_ERROR';,'
+  GENERATION_ERROR: 'GENERATION_ERROR';'
+  EMBEDDING_ERROR: 'EMBEDDING_ERROR';,'
+  SERVICE_ERROR: 'SERVICE_ERROR';'
+  REFINEMENT_ERROR: 'REFINEMENT_ERROR';'
 }
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
-    code: keyof ErrorCode;
+    code: keyof ErrorCode;,
     message: string;
     details?: unknown;
   };
   metadata?: {
-    requestId: string;
+    requestId: string;,
     timestamp: string;
     version: string;
     processingTime?: number;
@@ -165,11 +165,11 @@ export interface ApiResponse<T = unknown> {
 }
 
 export interface PaginationMeta {
-  page: number;
+  page: number;,
   limit: number;
-  total: number;
+  total: number;,
   totalPages: number;
-  hasNext: boolean;
+  hasNext: boolean;,
   hasPrev: boolean;
 }
 

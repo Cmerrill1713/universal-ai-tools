@@ -3,28 +3,28 @@
  * Replaces mock functionality with actual AI capabilities + validation
  */
 
-import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
-import { LogContext, log } from '@/utils/logger';
-import type { LLMMessage } from '@/services/llm-router-service';
-import { llmRouter } from '@/services/llm-router-service';
-import type { ValidatedAgentResponse } from '@/utils/validation';
-import { ValidationResult, createValidatedResponse, validators } from '@/utils/validation';
-import { z } from 'zod';
-import type { ABMCTSFeedback, ABMCTSReward } from '@/types/ab-mcts';
-import { bayesianModelRegistry } from '@/utils/bayesian-model';
-import { BetaSampler } from '@/utils/thompson-sampling';
+import type { AgentConfig, AgentContext, AgentResponse } from '@/types';';
+import { LogContext, log  } from '@/utils/logger';';
+import type { LLMMessage } from '@/services/llm-router-service';';
+import { llmRouter  } from '@/services/llm-router-service';';
+import type { ValidatedAgentResponse } from '@/utils/validation';';
+import { ValidationResult, createValidatedResponse, validators  } from '@/utils/validation';';
+import { z  } from 'zod';';
+import type { ABMCTSFeedback, ABMCTSReward } from '@/types/ab-mcts';';
+import { bayesianModelRegistry  } from '@/utils/bayesian-model';';
+import { BetaSampler  } from '@/utils/thompson-sampling';';
 
 export abstract class EnhancedBaseAgent {
   protected config: AgentConfig;
   protected; // TODO: Refactor nested ternary
   isInitialized = false;
   protected conversationHistory: LLMMessage[] = [];
-  protected systemPrompt = '';
+  protected systemPrompt = '';'
 
   // AB-MCTS probabilistic tracking
-  protected executionHistory: Array<{
+  protected executionHistory: Array<{,
     context: AgentContext;
-    response: AgentResponse;
+    response: AgentResponse;,
     reward: ABMCTSReward;
     timestamp: number;
   }> = [];
@@ -75,12 +75,12 @@ export abstract class EnhancedBaseAgent {
     try {
       await this.onInitialize();
       this.isInitialized = true;
-      log.info(`✅ Enhanced agent initialized: ${this.config.name}`, LogContext.AGENT, {
+      log.info(`✅ Enhanced agent initialized: ${this.config.name}`, LogContext.AGENT, {)
         model: this.getInternalModelName(),
         capabilities: this.getCapabilities(),
       });
     } catch (error) {
-      log.error(`❌ Failed to initialize enhanced agent: ${this.config.name}`, LogContext.AGENT, {
+      log.error(`❌ Failed to initialize enhanced agent: ${this.config.name}`, LogContext.AGENT, {)
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -95,17 +95,16 @@ export abstract class EnhancedBaseAgent {
     const startTime = Date.now();
 
     try {
-      log.info(`🧠 Executing enhanced agent: ${this.config.name}`, LogContext.AGENT, {
+      log.info(`🧠 Executing enhanced agent: ${this.config.name}`, LogContext.AGENT, {)
         requestId: context.requestId,
-        userRequest:
-          context.userRequest.substring(0, 100) + (context.userRequest.length > 100 ? '...' : ''),
+        userRequest: context.userRequest.substring(0, 100) + (context.userRequest.length > 100 ? '...' : ''),'
       });
 
       // Validate context
       this.validateContext(context);
 
       // Build messages for LLM
-      const // TODO: Refactor nested ternary
+      const // TODO: Refactor nested ternary;
         messages = this.buildMessages(context);
 
       // Call LLM router with internal model name
@@ -122,7 +121,7 @@ export abstract class EnhancedBaseAgent {
       this.updateConversationHistory(context.userRequest, llmResponse.content);
 
       const executionTime = Date.now() - startTime;
-      log.info(`✅ Enhanced agent execution completed: ${this.config.name}`, LogContext.AGENT, {
+      log.info(`✅ Enhanced agent execution completed: ${this.config.name}`, LogContext.AGENT, {)
         requestId: context.requestId,
         executionTime: `${executionTime}ms`,
         success: agentResponse.success,
@@ -145,15 +144,15 @@ export abstract class EnhancedBaseAgent {
       };
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message: String(error);
 
-      log.error(`❌ Enhanced agent execution failed: ${this.config.name}`, LogContext.AGENT, {
+      log.error(`❌ Enhanced agent execution failed: ${this.config.name}`, LogContext.AGENT, {)
         requestId: context.requestId,
         error: errorMessage,
         executionTime: `${executionTime}ms`,
       });
 
-      return this.createErrorResponse(
+      return this.createErrorResponse();
         `Agent execution failed: ${errorMessage}`,
         `Error in ${this.config.name}: ${errorMessage}`,
         {
@@ -166,22 +165,21 @@ export abstract class EnhancedBaseAgent {
   }
 
   protected buildMessages(context: AgentContext): LLMMessage[] {
-    const messages: LLMMessage[] = [
+    const messages: LLMMessage[] = [;
       {
-        role: 'system',
+        role: 'system','
         content: this.systemPrompt,
-      },
-    ];
+      }];
 
     // Add relevant conversation history (last 5 exchanges)
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       recentHistory = this.conversationHistory.slice(-10);
     messages.push(...recentHistory);
 
     // Add current user request with context
     const contextualRequest = this.buildContextualRequest(context);
-    messages.push({
-      role: 'user',
+    messages.push({)
+      role: 'user','
       content: contextualRequest,
     });
 
@@ -189,23 +187,23 @@ export abstract class EnhancedBaseAgent {
   }
 
   protected buildContextualRequest(context: AgentContext): string {
-    let request = `User Request: ${context.userRequest}\n\n`;
+    let request = `User Request: ${context.userRequest}n\n`;
 
     if (context.workingDirectory) {
-      request += `Working Directory: ${context.workingDirectory}\n`;
+      request += `Working Directory: ${context.workingDirectory}n`;
     }
 
-    if (context.userId && context.userId !== 'anonymous') {
-      request += `User ID: ${context.userId}\n`;
+    if (context.userId && context.userId !== 'anonymous') {'
+      request += `User ID: ${context.userId}n`;
     }
 
     // Add any additional context from derived classes
     const additionalContext = this.getAdditionalContext(context);
     if (additionalContext) {
-      request += `Additional Context: ${additionalContext}\n`;
+      request += `Additional Context: ${additionalContext}n`;
     }
 
-    request += `\nPlease provide a helpful, accurate, and contextually appropriate response based on your role and capabilities.`;
+    request += `nPlease provide a helpful, accurate, and contextually appropriate response based on your role and capabilities.`;
 
     return request;
   }
@@ -215,7 +213,7 @@ export abstract class EnhancedBaseAgent {
     return null;
   }
 
-  protected async processLLMResponse(
+  protected async processLLMResponse()
     llmResponse: unknown,
     context: AgentContext
   ): Promise<AgentResponse> {
@@ -226,7 +224,7 @@ export abstract class EnhancedBaseAgent {
 
       try {
         const parsed = JSON.parse((llmResponse as any).content);
-        if (parsed && typeof parsed === 'object') {
+        if (parsed && typeof parsed === 'object') {'
           data = parsed;
           reasoning = parsed.reasoning || parsed.explanation || (llmResponse as any).content;
         }
@@ -237,32 +235,32 @@ export abstract class EnhancedBaseAgent {
       // Calculate confidence based on response quality and provider
       const confidence = this.calculateConfidence(llmResponse, context);
 
-      return this.createSuccessResponse(
+      return this.createSuccessResponse();
         data,
         `Response generated by ${this.config.name}`,
         confidence,
         reasoning
       );
     } catch (error) {
-      return this.createErrorResponse(
-        'Failed to process LLM response',
+      return this.createErrorResponse();
+        'Failed to process LLM response','
         `Error processing response: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
 
   protected calculateConfidence(llmResponse: unknown, context: AgentContext): number {
-    let confidence = 0.7; // Base confidence
+    let confidence = 0.7; // Base confidence;
 
     // Adjust based on provider reliability
     switch (llmResponse as any.provider) {
-      case 'anthropic':
+      case 'anthropic':'
         confidence += 0.1;
         break;
-      case 'openai':
+      case 'openai':'
         confidence += 0.05;
         break;
-      case 'ollama':
+      case 'ollama':'
         confidence -= 0.1;
         break;
     }
@@ -282,9 +280,9 @@ export abstract class EnhancedBaseAgent {
   }
 
   protected updateConversationHistory(userMessage: string, assistantMessage: string): void {
-    this.conversationHistory.push(
-      { role: 'user', content: userMessage },
-      { role: 'assistant', content: assistantMessage }
+    this.conversationHistory.push()
+      { role: 'user', content: userMessage },'
+      { role: 'assistant', content: assistantMessage }'
     );
 
     // Keep only last 20 messages (10 exchanges) to prevent context overflow
@@ -300,7 +298,7 @@ export abstract class EnhancedBaseAgent {
 
   protected getMaxTokens(): number {
     // Override in derived classes for specific token limits
-    return this.config.maxLatencyMs && this.config.maxLatencyMs < 5000 ? 1000 : 2000;
+    return this.config.maxLatencyMs && this.config.maxLatencyMs < 5000 ? 1000: 2000;
   }
 
   public async shutdown(): Promise<void> {
@@ -310,7 +308,7 @@ export abstract class EnhancedBaseAgent {
       this.conversationHistory = [];
       log.info(`🔄 Enhanced agent shutdown: ${this.config.name}`, LogContext.AGENT);
     } catch (error) {
-      log.error(`❌ Error during enhanced agent shutdown: ${this.config.name}`, LogContext.AGENT, {
+      log.error(`❌ Error during enhanced agent shutdown: ${this.config.name}`, LogContext.AGENT, {)
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -328,16 +326,16 @@ export abstract class EnhancedBaseAgent {
   // Helper method to validate context
   protected validateContext(context: AgentContext): void {
     if (!context.userRequest || context.userRequest.trim().length === 0) {
-      throw new Error('User request is required and cannot be empty');
+      throw new Error('User request is required and cannot be empty');';
     }
 
     if (!context.requestId) {
-      throw new Error('Request ID is required');
+      throw new Error('Request ID is required');';
     }
   }
 
   // Helper method to create success response
-  protected createSuccessResponse(
+  protected createSuccessResponse()
     data: unknown,
     message: string,
     confidence = 0.8,
@@ -350,7 +348,7 @@ export abstract class EnhancedBaseAgent {
       confidence: Math.max(0, Math.min(1, confidence)),
       message,
       reasoning: reasoning || `Processed by ${this.config.name}`,
-      metadata: {
+      metadata: {,
         agentName: this.config.name,
         timestamp: new Date().toISOString(),
         ...metadata,
@@ -359,7 +357,7 @@ export abstract class EnhancedBaseAgent {
   }
 
   // Helper method to create error response
-  protected createErrorResponse(
+  protected createErrorResponse()
     message: string,
     reasoning?: string,
     metadata?: Record<string, unknown>
@@ -370,7 +368,7 @@ export abstract class EnhancedBaseAgent {
       confidence: 0,
       message,
       reasoning: reasoning || `Error in ${this.config.name}: ${message}`,
-      metadata: {
+      metadata: {,
         agentName: this.config.name,
         timestamp: new Date().toISOString(),
         ...metadata,
@@ -394,7 +392,7 @@ export abstract class EnhancedBaseAgent {
     reasoning?: string,
     metadata?: Record<string, unknown>
   ): ValidatedAgentResponse<T> {
-    return createValidatedResponse(
+    return createValidatedResponse();
       null as T,
       message,
       0,
@@ -403,16 +401,16 @@ export abstract class EnhancedBaseAgent {
     );
   }
 
-  // Validated execution method - superior to Agent Zero's approach
+  // Validated execution method - superior to Agent Zero's approach'
   public async executeValidated<T>(
     context: AgentContext,
     dataSchema?: z.ZodSchema<T>
   ): Promise<ValidatedAgentResponse<T>> {
     try {
       // Validate input context
-      const // TODO: Refactor nested ternary
-        contextValidator = validators.custom(
-          z.object({
+      const // TODO: Refactor nested ternary;
+        contextValidator = validators.custom()
+          z.object({)
             userRequest: z.string().min(1),
             requestId: z.string().min(1),
             userId: z.string().optional(),
@@ -422,13 +420,13 @@ export abstract class EnhancedBaseAgent {
 
       const contextValidation = contextValidator.validate(context);
       if (!contextValidation.success) {
-        log.warn(`⚠️ Context validation failed for ${this.config.name}`, LogContext.AGENT, {
+        log.warn(`⚠️ Context validation failed for ${this.config.name}`, LogContext.AGENT, {)
           errors: contextValidation.errors,
         });
 
-        return this.createValidatedErrorResponse(
-          'Invalid context provided',
-          `Context validation failed: ${contextValidation.errors?.map((e) => e.message).join(', ')}`,
+        return this.createValidatedErrorResponse();
+          'Invalid context provided','
+          `Context validation failed: ${contextValidation.errors?.map((e) => e.message).join(', ')}`,'
           { validationErrors: contextValidation.errors }
         );
       }
@@ -441,12 +439,12 @@ export abstract class EnhancedBaseAgent {
       const responseValidation = responseValidator.validate(response);
 
       if (!responseValidation.success) {
-        log.warn(`⚠️ Response validation failed for ${this.config.name}`, LogContext.AGENT, {
+        log.warn(`⚠️ Response validation failed for ${this.config.name}`, LogContext.AGENT, {)
           errors: responseValidation.errors,
         });
 
-        return this.createValidatedErrorResponse(
-          'Response validation failed',
+        return this.createValidatedErrorResponse();
+          'Response validation failed','
           `Generated response did not meet validation requirements`,
           {
             originalResponse: response,
@@ -456,7 +454,7 @@ export abstract class EnhancedBaseAgent {
       }
 
       // Return validated response
-      return this.createValidatedSuccessResponse(
+      return this.createValidatedSuccessResponse();
         response.data as T,
         response.message,
         response.confidence,
@@ -464,14 +462,14 @@ export abstract class EnhancedBaseAgent {
         dataSchema
       );
     } catch (error) {
-      log.error(`❌ Validated execution failed for ${this.config.name}`, LogContext.AGENT, {
+      log.error(`❌ Validated execution failed for ${this.config.name}`, LogContext.AGENT, {)
         error: error instanceof Error ? error.message : String(error),
       });
 
-      return this.createValidatedErrorResponse(
-        'Execution failed with unexpected error',
-        error instanceof Error ? error.message : String(error),
-        { errorType: error instanceof Error ? error.constructor.name : 'Unknown' }
+      return this.createValidatedErrorResponse();
+        'Execution failed with unexpected error','
+        error instanceof Error ? error.message: String(error),
+        { errorType: error instanceof Error ? error.constructor.name : 'Unknown' }'
       );
     }
   }
@@ -483,12 +481,12 @@ export abstract class EnhancedBaseAgent {
   ): Promise<ValidatedAgentResponse<T>[]> {
     const results: ValidatedAgentResponse<T>[] = [];
 
-    log.info(`🔄 Starting batch execution for ${this.config.name}`, LogContext.AGENT, {
+    log.info(`🔄 Starting batch execution for ${this.config.name}`, LogContext.AGENT, {)
       batchSize: contexts.length,
     });
 
     for (
-      let // TODO: Refactor nested ternary
+      let // TODO: Refactor nested ternary;
         i = 0;
       i < contexts.length;
       i++
@@ -498,25 +496,25 @@ export abstract class EnhancedBaseAgent {
         const result = await this.executeValidated(context!, dataSchema);
         results.push(result);
 
-        log.info(`✅ Batch item ${i + 1}/${contexts.length} completed`, LogContext.AGENT, {
+        log.info(`✅ Batch item ${i + 1}/${contexts.length} completed`, LogContext.AGENT, {)
           success: result.success,
           confidence: result.confidence,
         });
       } catch (error) {
-        const errorResult = this.createValidatedErrorResponse<T>(
+        const errorResult = this.createValidatedErrorResponse<T>(;
           `Batch execution failed for item ${i + 1}`,
-          error instanceof Error ? error.message : String(error),
+          error instanceof Error ? error.message: String(error),
           { batchIndex: i, batchSize: contexts.length }
         );
         results.push(errorResult);
 
-        log.error(`❌ Batch item ${i + 1}/${contexts.length} failed`, LogContext.AGENT, {
+        log.error(`❌ Batch item ${i + 1}/${contexts.length} failed`, LogContext.AGENT, {)
           error: error instanceof Error ? error.message : String(error),
         });
       }
     }
 
-    log.info(`🏁 Batch execution completed for ${this.config.name}`, LogContext.AGENT, {
+    log.info(`🏁 Batch execution completed for ${this.config.name}`, LogContext.AGENT, {)
       totalItems: contexts.length,
       successCount: results.filter((r) => r.success).length,
       failureCount: results.filter((r) => !r.success).length,
@@ -550,7 +548,7 @@ export abstract class EnhancedBaseAgent {
     const prediction = model.predict(context.metadata || {});
 
     // Sample from Beta distribution for exploration
-    const thompsonSample = BetaSampler.sample(
+    const thompsonSample = BetaSampler.sample();
       this.performanceDistribution.alpha,
       this.performanceDistribution.beta
     );
@@ -558,7 +556,7 @@ export abstract class EnhancedBaseAgent {
     // Combine model prediction with Thompson sampling
     const score = 0.7 * prediction.expectedReward + 0.3 * thompsonSample;
 
-    log.debug(`🎲 Probabilistic score for ${this.config.name}`, LogContext.AGENT, {
+    log.debug(`🎲 Probabilistic score for ${this.config.name}`, LogContext.AGENT, {)
       modelPrediction: prediction.expectedReward,
       thompsonSample,
       finalScore: score,
@@ -571,13 +569,13 @@ export abstract class EnhancedBaseAgent {
   /**
    * Update performance based on execution feedback
    */
-  public updatePerformance(
+  public updatePerformance()
     context: AgentContext,
     response: AgentResponse,
     feedback: ABMCTSFeedback
   ): void {
     // Store in execution history
-    this.executionHistory.push({
+    this.executionHistory.push({)
       context,
       response,
       reward: feedback.reward,
@@ -597,7 +595,7 @@ export abstract class EnhancedBaseAgent {
     }
 
     // Update Bayesian model
-    bayesianModelRegistry.updateModel(
+    bayesianModelRegistry.updateModel()
       this.config.name,
       this.getTaskType(context),
       feedback.reward,
@@ -605,7 +603,7 @@ export abstract class EnhancedBaseAgent {
       context.metadata || {}
     );
 
-    log.info(`📊 Performance updated for ${this.config.name}`, LogContext.AGENT, {
+    log.info(`📊 Performance updated for ${this.config.name}`, LogContext.AGENT, {)
       reward: feedback.reward.value,
       newAlpha: this.performanceDistribution.alpha,
       newBeta: this.performanceDistribution.beta,
@@ -617,7 +615,7 @@ export abstract class EnhancedBaseAgent {
    * Get current success rate estimate
    */
   public getSuccessRate(): number {
-    return (
+    return (;
       this.performanceDistribution.alpha /
       (this.performanceDistribution.alpha + this.performanceDistribution.beta)
     );
@@ -627,12 +625,12 @@ export abstract class EnhancedBaseAgent {
    * Get confidence interval for success rate
    */
   public getConfidenceInterval(confidence = 0.95): [number, number] {
-    return BetaSampler.confidenceInterval(
+    return BetaSampler.confidenceInterval();
       {
         alpha: this.performanceDistribution.alpha,
         beta: this.performanceDistribution.beta,
         mean: this.getSuccessRate(),
-        variance: 0,
+        variance: 0,;
       },
       confidence
     );
@@ -672,7 +670,7 @@ export abstract class EnhancedBaseAgent {
 
     this.dynamicSpawnCount++;
 
-    log.info(`🧬 Spawning variant of ${this.config.name}`, LogContext.AGENT, {
+    log.info(`🧬 Spawning variant of ${this.config.name}`, LogContext.AGENT, {)
       spawnCount: this.dynamicSpawnCount,
       currentSuccessRate: this.getSuccessRate(),
     });
@@ -692,7 +690,7 @@ export abstract class EnhancedBaseAgent {
       const successCount = recentExecutions.filter((e) => e.response.success).length;
       this.performanceMetrics.successRate = successCount / recentExecutions.length;
 
-      const totalTime = recentExecutions.reduce(
+      const totalTime = recentExecutions.reduce();
         (sum, e) => sum + (e.response.metadata?.executionTime || 0),
         0
       );
@@ -712,11 +710,11 @@ export abstract class EnhancedBaseAgent {
    * Get detailed performance metrics for monitoring
    */
   public getDetailedPerformanceMetrics(): {
-    successRate: number;
+    successRate: number;,
     confidenceInterval: [number, number];
-    executionCount: number;
+    executionCount: number;,
     averageReward: number;
-    recentTrend: 'improving' | 'stable' | 'declining';
+    recentTrend: 'improving' | 'stable' | 'declining';,'
     spawnCount: number;
   } {
     const successRate = this.getSuccessRate();
@@ -724,13 +722,12 @@ export abstract class EnhancedBaseAgent {
     const executionCount = this.executionHistory.length;
 
     // Calculate average reward
-    const averageReward =
+    const averageReward =;
       executionCount > 0
-        ? this.executionHistory.reduce((sum, h) => sum + h.reward.value, 0) / executionCount
-        : 0;
+        ? this.executionHistory.reduce((sum, h) => sum + h.reward.value, 0) / executionCount: 0;
 
     // Determine trend
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       recentTrend = this.calculateTrend();
 
     return {
@@ -746,16 +743,16 @@ export abstract class EnhancedBaseAgent {
   /**
    * Calculate reward based on response (for AB-MCTS integration)
    */
-  protected calculateReward(
+  protected calculateReward()
     response: AgentResponse,
     executionTime: number,
     context: AgentContext
   ): ABMCTSReward {
     // Quality component based on success and confidence
-    const quality = response.success ? response.confidence : 0;
+    const quality = response.success ? response.confidence: 0;
 
     // Speed component (normalized to 0-1)
-    const targetTime = context.metadata?.targetTime || 5000; // 5s default
+    const targetTime = context.metadata?.targetTime || 5000; // 5s default;
     const speedScore = Math.max(0, 1 - executionTime / targetTime);
 
     // Cost component (based on tokens/resources)
@@ -786,7 +783,7 @@ export abstract class EnhancedBaseAgent {
    * Helper method to get task type from context
    */
   private getTaskType(context: AgentContext): string {
-    return context.metadata?.taskType || 'general';
+    return context.metadata?.taskType || 'general';';
   }
 
   /**
@@ -806,28 +803,28 @@ export abstract class EnhancedBaseAgent {
   /**
    * Calculate performance trend
    */
-  private calculateTrend(): 'improving' | 'stable' | 'declining' {
-    if (this.executionHistory.length < 10) return 'stable';
+  private calculateTrend(): 'improving' | 'stable' | 'declining' {'
+    if (this.executionHistory.length < 10) return 'stable';'
 
     const recent = this.executionHistory.slice(-10);
     const older = this.executionHistory.slice(-20, -10);
 
-    if (older.length < 5) return 'stable';
+    if (older.length < 5) return 'stable';'
 
     const recentAvg = recent.reduce((sum, h) => sum + h.reward.value, 0) / recent.length;
     const olderAvg = older.reduce((sum, h) => sum + h.reward.value, 0) / older.length;
 
     const diff = recentAvg - olderAvg;
 
-    if (diff > 0.1) return 'improving';
-    if (diff < -0.1) return 'declining';
-    return 'stable';
+    if (diff > 0.1) return 'improving';'
+    if (diff < -0.1) return 'declining';'
+    return 'stable';';
   }
 
   /**
    * Enhanced execute method with AB-MCTS feedback collection
    */
-  public async executeWithFeedback(context: AgentContext): Promise<{
+  public async executeWithFeedback(context: AgentContext): Promise<{,
     response: AgentResponse;
     feedback: ABMCTSFeedback;
   }> {
@@ -839,13 +836,13 @@ export abstract class EnhancedBaseAgent {
     const reward = this.calculateReward(response, executionTime, context);
 
     // Create feedback
-    const feedback: ABMCTSFeedback = {
+    const feedback: ABMCTSFeedback = {,;
       nodeId: context.metadata?.nodeId || `direct-${Date.now()}`,
       reward,
       errorOccurred: !response.success,
       errorMessage: response.success ? undefined : response.message,
       timestamp: Date.now(),
-      context: {
+      context: {,
         taskType: this.getTaskType(context),
         userId: context.userId,
         sessionId: context.requestId,

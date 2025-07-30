@@ -3,10 +3,10 @@
  * API endpoints for vision-powered browser debugging with real integration
  */
 
-import express from 'express';
-import { VisionBrowserDebugger } from '../services/vision-browser-debugger';
+import express from 'express';';
+import { VisionBrowserDebugger  } from '../services/vision-browser-debugger';';
 
-const // TODO: Refactor nested ternary
+const // TODO: Refactor nested ternary;
   router = express.Router();
 
 // Initialize the vision debugger service
@@ -16,7 +16,7 @@ try {
   visionDebugger = new VisionBrowserDebugger();
   visionDebugger.start().catch(console.error);
 } catch (error) {
-  console.error('Failed to initialize VisionBrowserDebugger:', error);
+  console.error('Failed to initialize VisionBrowserDebugger: ', error);'
 }
 
 /**
@@ -24,14 +24,14 @@ try {
  * @desc Health check for vision debugging service
  * @access Public
  */
-router.get('/health', (req, res) => {
+router.get('/health', (req, res) => {'
   try {
     const status = visionDebugger ? visionDebugger.getStatus() : null;
 
-    res.json({
+    res.json({)
       success: true,
-      status: 'healthy',
-      service: 'vision-debug',
+      status: 'healthy','
+      service: 'vision-debug','
       timestamp: new Date().toISOString(),
       debugger: status
         ? {
@@ -42,14 +42,14 @@ router.get('/health', (req, res) => {
           }
         : {
             isRunning: false,
-            error: 'VisionBrowserDebugger not initialized',
+            error: 'VisionBrowserDebugger not initialized','
           },
     });
   } catch (error) {
-    res.status(503).json({
+    res.status(503).json({)
       success: false,
-      status: 'unhealthy',
-      error: 'Vision debugger health check failed',
+      status: 'unhealthy','
+      error: 'Vision debugger health check failed','
       details: error instanceof Error ? error.message : String(error),
     });
   }
@@ -60,27 +60,27 @@ router.get('/health', (req, res) => {
  * @desc Get detailed vision debugger status
  * @access Public
  */
-router.get('/status', (req, res) => {
+router.get('/status', (req, res) => {'
   try {
     if (!visionDebugger) {
-      return res.status(503).json({
+      return res.status(503).json({);
         success: false,
-        error: 'VisionBrowserDebugger not available',
+        error: 'VisionBrowserDebugger not available','
       });
     }
 
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       status = visionDebugger.getStatus();
 
-    res.json({
+    res.json({)
       success: true,
       data: status,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({)
       success: false,
-      error: 'Failed to get vision debugger status',
+      error: 'Failed to get vision debugger status','
       details: error instanceof Error ? error.message : String(error),
     });
   }
@@ -91,19 +91,19 @@ router.get('/status', (req, res) => {
  * @desc Get recent analysis results
  * @access Public
  */
-router.get('/analyses', (req, res) => {
+router.get('/analyses', (req, res) => {'
   try {
     if (!visionDebugger) {
-      return res.status(503).json({
+      return res.status(503).json({);
         success: false,
-        error: 'VisionBrowserDebugger not available',
+        error: 'VisionBrowserDebugger not available','
       });
     }
 
     const count = parseInt(req.query.count as string, 10) || 10;
     const analyses = visionDebugger.getRecentAnalyses(count);
 
-    res.json({
+    res.json({)
       success: true,
       data: {
         analyses,
@@ -113,9 +113,9 @@ router.get('/analyses', (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({)
       success: false,
-      error: 'Failed to get analysis results',
+      error: 'Failed to get analysis results','
       details: error instanceof Error ? error.message : String(error),
     });
   }
@@ -126,27 +126,27 @@ router.get('/analyses', (req, res) => {
  * @desc Trigger immediate screenshot capture and analysis
  * @access Public
  */
-router.post('/capture-now', async (req, res) => {
+router.post('/capture-now', async (req, res) => {'
   try {
     if (!visionDebugger) {
-      return res.status(503).json({
+      return res.status(503).json({);
         success: false,
-        error: 'VisionBrowserDebugger not available',
+        error: 'VisionBrowserDebugger not available','
       });
     }
 
     // Trigger immediate analysis
     await visionDebugger.captureAndAnalyzeBrowser();
 
-    res.json({
+    res.json({)
       success: true,
-      message: 'Screenshot capture and analysis triggered',
+      message: 'Screenshot capture and analysis triggered','
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({)
       success: false,
-      error: 'Failed to capture and analyze screenshot',
+      error: 'Failed to capture and analyze screenshot','
       details: error instanceof Error ? error.message : String(error),
     });
   }
@@ -157,7 +157,7 @@ router.post('/capture-now', async (req, res) => {
  * @desc Start the vision debugger service
  * @access Public
  */
-router.post('/start', async (req, res) => {
+router.post('/start', async (req, res) => {'
   try {
     if (!visionDebugger) {
       // TODO: Refactor nested ternary
@@ -166,15 +166,15 @@ router.post('/start', async (req, res) => {
 
     await visionDebugger.start();
 
-    res.json({
+    res.json({)
       success: true,
-      message: 'Vision debugger started',
+      message: 'Vision debugger started','
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({)
       success: false,
-      error: 'Failed to start vision debugger',
+      error: 'Failed to start vision debugger','
       details: error instanceof Error ? error.message : String(error),
     });
   }
@@ -185,21 +185,21 @@ router.post('/start', async (req, res) => {
  * @desc Stop the vision debugger service
  * @access Public
  */
-router.post('/stop', (req, res) => {
+router.post('/stop', (req, res) => {'
   try {
     if (visionDebugger) {
       visionDebugger.stop();
     }
 
-    res.json({
+    res.json({)
       success: true,
-      message: 'Vision debugger stopped',
+      message: 'Vision debugger stopped','
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({)
       success: false,
-      error: 'Failed to stop vision debugger',
+      error: 'Failed to stop vision debugger','
       details: error instanceof Error ? error.message : String(error),
     });
   }

@@ -4,19 +4,19 @@
  * Replaces mock agents with actual AI capabilities
  */
 
-import { config } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
-import { ModelConfig } from '@/config/models';
+import { config  } from '@/config/environment';';
+import { LogContext, log  } from '@/utils/logger';';
+import { ModelConfig  } from '@/config/models';';
 
 export interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant';,'
   content: string;
 }
 
 export interface OllamaResponse {
-  model: string;
+  model: string;,
   created_at: string;
-  message: {
+  message: {,
     role: string;
     content: string;
   };
@@ -30,9 +30,9 @@ export interface OllamaResponse {
 }
 
 export interface OllamaStreamResponse {
-  model: string;
+  model: string;,
   created_at: string;
-  message: {
+  message: {,
     role: string;
     content: string;
   };
@@ -41,33 +41,33 @@ export interface OllamaStreamResponse {
 
 export class OllamaService {
   private baseUrl: string;
-  private defaultModel: // TODO: Refactor nested ternary
+  private defaultModel: //, TODO: Refactor nested ternary
   string = ModelConfig.text.small;
   private isAvailable = false;
 
   constructor() {
-    this.baseUrl = config.llm.ollamaUrl || 'http://localhost:11434';
+    this.baseUrl = config.llm.ollamaUrl || 'http: //localhost:11434';'
     this.checkAvailability();
   }
 
   private async checkAvailability(): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/tags`, {);
+        method: 'GET','
+        headers: { "content-type": 'application/json' },'
       });
 
       if (response.ok) {
         const data = await response.json();
         this.isAvailable = true;
-        log.info('✅ Ollama service is available', LogContext.AI, {
+        log.info('✅ Ollama service is available', LogContext.AI, {')
           models: data.models?.length || 0,
           baseUrl: this.baseUrl,
         });
 
         // Check if default model is available
         const models = data.models || [];
-        const hasDefaultModel = models.some((m: unknown) => m.name.includes('llama3.2'));
+        const hasDefaultModel = models.some((m: unknown) => m.name.includes('llama3.2'));';
         if (!hasDefaultModel && models.length > 0) {
           this.defaultModel = models[0].name;
           log.info(`Using available model: ${this.defaultModel}`, LogContext.AI);
@@ -77,14 +77,14 @@ export class OllamaService {
       }
     } catch (error) {
       this.isAvailable = false;
-      log.error('❌ Ollama service unavailable', LogContext.AI, {
+      log.error('❌ Ollama service unavailable', LogContext.AI, {')
         error: error instanceof Error ? error.message : String(error),
         baseUrl: this.baseUrl,
       });
     }
   }
 
-  public async generateResponse(
+  public async generateResponse()
     messages: OllamaMessage[],
     model?: string,
     options?: {
@@ -94,26 +94,26 @@ export class OllamaService {
     }
   ): Promise<OllamaResponse> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      throw new Error('Ollama service is not available');';
     }
 
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       requestBody = {
         model: model || this.defaultModel,
         messages,
         stream: options?.stream || false,
-        options: {
+        options: {,
           temperature: options?.temperature || 0.7,
           num_predict: options?.max_tokens || 500,
         },
       };
 
     try {
-      const // TODO: Refactor nested ternary
+      const // TODO: Refactor nested ternary;
         startTime = Date.now();
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/chat`, {);
+        method: 'POST','
+        headers: { "content-type": 'application/json' },'
         body: JSON.stringify(requestBody),
       });
 
@@ -124,7 +124,7 @@ export class OllamaService {
       const data: OllamaResponse = await response.json();
       const duration = Date.now() - startTime;
 
-      log.info('✅ Ollama response generated', LogContext.AI, {
+      log.info('✅ Ollama response generated', LogContext.AI, {')
         model: data.model,
         duration: `${duration}ms`,
         inputTokens: data.prompt_eval_count || 0,
@@ -136,7 +136,7 @@ export class OllamaService {
 
       return data;
     } catch (error) {
-      log.error('❌ Ollama generation failed', LogContext.AI, {
+      log.error('❌ Ollama generation failed', LogContext.AI, {')
         error: error instanceof Error ? error.message : String(error),
         model: model || this.defaultModel,
       });
@@ -144,16 +144,16 @@ export class OllamaService {
     }
   }
 
-  public async generateStreamResponse(
+  public async generateStreamResponse()
     messages: OllamaMessage[],
     model?: string,
     onChunk?: (chunk: OllamaStreamResponse) => void
   ): Promise<string> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      throw new Error('Ollama service is not available');';
     }
 
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       requestBody = {
         model: model || this.defaultModel,
         messages,
@@ -161,9 +161,9 @@ export class OllamaService {
       };
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/chat`, {);
+        method: 'POST','
+        headers: { "content-type": 'application/json' },'
         body: JSON.stringify(requestBody),
       });
 
@@ -173,10 +173,10 @@ export class OllamaService {
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error('No response body reader available');
+        throw new Error('No response body reader available');';
       }
 
-      let fullResponse = '';
+      let fullResponse = '';';
       const decoder = new TextDecoder();
 
       while (true) {
@@ -184,7 +184,7 @@ export class OllamaService {
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter((line) => line.trim());
+        const lines = chunk.split('n').filter((line) => line.trim());';
 
         for (const line of lines) {
           try {
@@ -204,7 +204,7 @@ export class OllamaService {
 
       return fullResponse;
     } catch (error) {
-      log.error('❌ Ollama streaming failed', LogContext.AI, {
+      log.error('❌ Ollama streaming failed', LogContext.AI, {')
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -213,7 +213,7 @@ export class OllamaService {
 
   public async getAvailableModels(): Promise<string[]> {
     try {
-      const // TODO: Refactor nested ternary
+      const // TODO: Refactor nested ternary;
         response = await fetch(`${this.baseUrl}/api/tags`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -222,7 +222,7 @@ export class OllamaService {
       const data = await response.json();
       return data.models?.map((model: unknown) => model.name) || [];
     } catch (error) {
-      log.error('❌ Failed to fetch Ollama models', LogContext.AI, {
+      log.error('❌ Failed to fetch Ollama models', LogContext.AI, {')
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -241,10 +241,10 @@ export class OllamaService {
     try {
       log.info(`🔄 Pulling Ollama model: ${modelName}`, LogContext.AI);
 
-      const response = await fetch(`${this.baseUrl}/api/pull`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: modelName }),
+      const response = await fetch(`${this.baseUrl}/api/pull`, {);
+        method: 'POST','
+        headers: { "content-type": 'application/json' },'
+        body: JSON.stringify({, name: modelName }),
       });
 
       if (!response.ok) {
@@ -253,7 +253,7 @@ export class OllamaService {
 
       log.info(`✅ Model pulled successfully: ${modelName}`, LogContext.AI);
     } catch (error) {
-      log.error(`❌ Failed to pull model: ${modelName}`, LogContext.AI, {
+      log.error(`❌ Failed to pull model: ${modelName}`, LogContext.AI, {)
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;

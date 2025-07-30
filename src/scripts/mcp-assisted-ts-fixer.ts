@@ -4,27 +4,27 @@
  * Uses pattern learning from MCP to apply conservative, proven fixes
  */
 
-import { mcpIntegrationService } from '../services/mcp-integration-service.js';
-import { LogContext, log } from '../utils/logger.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs/promises';
+import { mcpIntegrationService  } from '../services/mcp-integration-service.js';';
+import { LogContext, log  } from '../utils/logger.js';';
+import { exec  } from 'child_process';';
+import { promisify  } from 'util';';
+import fs from 'fs/promises';';
 
 const execAsync = promisify(exec);
 
 interface TSError {
-  file: string;
+  file: string;,
   line: number;
-  column: number;
+  column: number;,
   code: string;
-  message: string;
+  message: string;,
   fullText: string;
 }
 
 interface FixPattern {
-  pattern_type: string;
+  pattern_type: string;,
   before_code: string;
-  after_code: string;
+  after_code: string;,
   description: string;
   error_types: string[];
   success_rate?: number;
@@ -37,7 +37,7 @@ class MCPAssistedTSFixer {
   private appliedPatterns: string[] = [];
 
   async run(): Promise<void> {
-    log.info('🔧 Starting MCP-assisted TypeScript error fixing', LogContext.MCP);
+    log.info('🔧 Starting MCP-assisted TypeScript error fixing', LogContext.MCP);'
 
     try {
       // Parse current TypeScript errors
@@ -45,7 +45,7 @@ class MCPAssistedTSFixer {
       log.info(`📊 Found ${errors.length} TypeScript errors to analyze`, LogContext.MCP);
 
       if (errors.length === 0) {
-        log.info('🎉 No TypeScript errors found!', LogContext.MCP);
+        log.info('🎉 No TypeScript errors found!', LogContext.MCP);'
         return;
       }
 
@@ -64,7 +64,7 @@ class MCPAssistedTSFixer {
       log.info(`📈 TypeScript errors after fixes: ${newErrorCount}`, LogContext.MCP);
 
     } catch (error) {
-      log.error('❌ MCP-assisted fixing failed', LogContext.MCP, {
+      log.error('❌ MCP-assisted fixing failed', LogContext.MCP, {')
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -73,21 +73,21 @@ class MCPAssistedTSFixer {
 
   private async parseTypeScriptErrors(): Promise<TSError[]> {
     try {
-      const { stdout } = await execAsync('npx tsc --noEmit 2>&1 || true');
-      const lines = stdout.split('\n');
+      const { stdout } = await execAsync('npx tsc --noEmit 2>&1 || true');';
+      const lines = stdout.split('n');';
       const errors: TSError[] = [];
 
       for (const line of lines) {
-        if (line.includes('error TS')) {
+        if (line.includes('error TS')) {'
           const match = line.match(/^(.+?)\((\d+),(\d+)\): error (TS\d+): (.+)$/);
           if (match) {
             const [, file, lineStr, columnStr, code, message] = match;
-            errors.push({
-              file: file || '',
-              line: parseInt(lineStr || '0', 10),
-              column: parseInt(columnStr || '0', 10),
-              code: code || '',
-              message: message || '',
+            errors.push({)
+              file: file || '','
+              line: parseInt(lineStr || '0', 10),'
+              column: parseInt(columnStr || '0', 10),'
+              code: code || '','
+              message: message || '','
               fullText: line,
             });
           }
@@ -96,7 +96,7 @@ class MCPAssistedTSFixer {
 
       return errors;
     } catch (error) {
-      log.error('❌ Failed to parse TypeScript errors', LogContext.MCP, { error });
+      log.error('❌ Failed to parse TypeScript errors', LogContext.MCP, { error });'
       return [];
     }
   }
@@ -110,12 +110,12 @@ class MCPAssistedTSFixer {
       
       for (const errorType of errorTypes) {
         try {
-          const result = await mcpIntegrationService.sendMessage('get_code_patterns', {
+          const result = await mcpIntegrationService.sendMessage('get_code_patterns', {');
             error_type: errorType,
             limit: 5,
           });
 
-          if (result && typeof result === 'object' && 'patterns' in result) {
+          if (result && typeof result === 'object' && 'patterns' in result) {'
             const patterns = (result as any).patterns || [];
             allPatterns.push(...patterns);
           }
@@ -127,38 +127,37 @@ class MCPAssistedTSFixer {
       // Sort by success rate
       return allPatterns.sort((a, b) => (b.success_rate || 0) - (a.success_rate || 0));
     } catch (error) {
-      log.warn('⚠️ Failed to get patterns from MCP, using built-in patterns', LogContext.MCP);
+      log.warn('⚠️ Failed to get patterns from MCP, using built-in patterns', LogContext.MCP);'
       return this.getBuiltInPatterns();
     }
   }
 
   private getBuiltInPatterns(): FixPattern[] {
-    return [
+    return [;
       {
-        pattern_type: 'unknown_type_fix',
-        before_code: "is of type 'unknown'",
-        after_code: 'as Request', // or appropriate type assertion
-        description: 'Fix unknown type assertions for common Express types',
-        error_types: ['TS18046'],
+        pattern_type: 'unknown_type_fix','
+        before_code: "is of type 'unknown'",'"
+        after_code: 'as Request', // or appropriate type assertion'
+        description: 'Fix unknown type assertions for common Express types','
+        error_types: ['TS18046'],'
         success_rate: 0.90,
       },
       {
-        pattern_type: 'nested_ternary_comment',
-        before_code: 'TODO: Refactor nested ternary',
-        after_code: 'FIXME: Nested ternary needs refactoring',
-        description: 'Convert TODO comments to FIXME for better visibility',
-        error_types: ['complexity'],
+        pattern_type: 'nested_ternary_comment','
+        before_code: 'TODO: Refactor nested ternary','
+        after_code: 'FIXME: Nested ternary needs refactoring','
+        description: 'Convert TODO comments to FIXME for better visibility','
+        error_types: ['complexity'],'
         success_rate: 0.95,
       },
       {
-        pattern_type: 'import_extension_fix',
-        before_code: "from './",
-        after_code: "from './",
-        description: 'Add .js extensions to imports in ES modules',
-        error_types: ['TS2307'],
+        pattern_type: 'import_extension_fix','
+        before_code: "from './",'"
+        after_code: "from './",'"
+        description: 'Add .js extensions to imports in ES modules','
+        error_types: ['TS2307'],'
         success_rate: 0.88,
-      },
-    ];
+      }];
   }
 
   private async applyConservativeFixes(errors: TSError[], patterns: FixPattern[]): Promise<void> {
@@ -187,13 +186,13 @@ class MCPAssistedTSFixer {
   private async fixErrorsInFile(filePath: string, errors: TSError[], patterns: FixPattern[]): Promise<void> {
     try {
       // Read file content
-      const content = await fs.readFile(filePath, 'utf8');
+      const content = await fs.readFile(filePath, 'utf8');';
       let modifiedContent = content;
       let hasChanges = false;
 
       // Apply specific fixes based on error patterns
       for (const error of errors) {
-        const applicablePatterns = patterns.filter(p => 
+        const applicablePatterns = patterns.filter(p =>);
           p.error_types.includes(error.code) || 
           error.message.includes(p.before_code)
         );
@@ -209,7 +208,7 @@ class MCPAssistedTSFixer {
               
               // Save successful pattern to MCP
               await this.saveSuccessfulPattern(pattern, error);
-              break; // Only apply one pattern per error
+              break; // Only apply one pattern per error;
             }
           }
         }
@@ -217,7 +216,7 @@ class MCPAssistedTSFixer {
 
       // Write back if changed
       if (hasChanges) {
-        await fs.writeFile(filePath, modifiedContent, 'utf8');
+        await fs.writeFile(filePath, modifiedContent, 'utf8');'
         log.debug(`✅ Applied fixes to ${filePath}`, LogContext.MCP);
       }
 
@@ -243,12 +242,12 @@ class MCPAssistedTSFixer {
     }
 
     // Apply based on specific error types
-    if (error.code === 'TS18046' && pattern.pattern_type === 'unknown_type_fix') {
+    if (error.code === 'TS18046' && pattern.pattern_type === 'unknown_type_fix') {'
       return true;
     }
 
-    if (error.message.includes('TODO: Refactor nested ternary')) {
-      return pattern.pattern_type === 'nested_ternary_comment';
+    if (error.message.includes('TODO: Refactor nested ternary')) {'
+      return pattern.pattern_type === 'nested_ternary_comment';';
     }
 
     return false;
@@ -257,72 +256,71 @@ class MCPAssistedTSFixer {
   private async applyPattern(content: string, pattern: FixPattern, error: TSError): Promise<string> {
     // Apply specific fixes based on pattern type
     switch (pattern.pattern_type) {
-      case 'unknown_type_fix':
+      case 'unknown_type_fix':'
         return this.fixUnknownType(content, error);
       
-      case 'nested_ternary_comment':
-        return content.replace(/TODO: Refactor nested ternary/g, 'FIXME: Refactor nested ternary');
+      case 'nested_ternary_comment':'
+        return content.replace(/TODO: Refactor nested ternary/g, 'FIXME: Refactor nested ternary');';
       
-      case 'import_extension_fix':
+      case 'import_extension_fix':'
         return this.fixImportExtensions(content);
       
-      default:
-        return content;
+      default: return content;
     }
   }
 
   private fixUnknownType(content: string, error: TSError): string {
     // Conservative fix for common unknown type issues
-    const lines = content.split('\n');
+    const lines = content.split('n');';
     const lineIndex = error.line - 1;
     
     if (lineIndex >= 0 && lineIndex < lines.length) {
       const line = lines[lineIndex];
       
       // Fix common Express middleware types
-      if (line.includes("'req' is of type 'unknown'")) {
-        lines[lineIndex] = line.replace(/(\w+)\s*:\s*unknown/g, '$1: Request');
-      } else if (line.includes("'res' is of type 'unknown'")) {
-        lines[lineIndex] = line.replace(/(\w+)\s*:\s*unknown/g, '$1: Response');
-      } else if (line.includes("'next' is of type 'unknown'")) {
-        lines[lineIndex] = line.replace(/(\w+)\s*:\s*unknown/g, '$1: NextFunction');
+      if (line.includes("'req' is of type 'unknown'")) {'"
+        lines[lineIndex] = line.replace(/(\w+)\s*:\s*unknown/g, '$1: Request');'
+      } else if (line.includes("'res' is of type 'unknown'")) {'"
+        lines[lineIndex] = line.replace(/(\w+)\s*:\s*unknown/g, '$1: Response');'
+      } else if (line.includes("'next' is of type 'unknown'")) {'"
+        lines[lineIndex] = line.replace(/(\w+)\s*:\s*unknown/g, '$1: NextFunction');'
       }
     }
     
-    return lines.join('\n');
+    return lines.join('\n');';
   }
 
   private fixImportExtensions(content: string): string {
     // Add .js extensions to relative imports (conservative)
-    return content.replace(
-      /from\s+['"](\.[^'"]*?)['"](?!\.(js|ts|json))/g,
-      "from '$1.js'"
+    return content.replace();
+      /from\s+['"](\.[^'"]*?)['"](?!\.(js|ts|json))/g,'"
+      "from '$1.js'"'"
     );
   }
 
   private async saveSuccessfulPattern(pattern: FixPattern, error: TSError): Promise<void> {
     try {
-      await mcpIntegrationService.sendMessage('save_code_pattern', {
+      await mcpIntegrationService.sendMessage('save_code_pattern', {')
         pattern_type: pattern.pattern_type,
         before_code: pattern.before_code,
         after_code: pattern.after_code,
         description: `Successfully applied to ${error.code}: ${pattern.description}`,
         error_types: [error.code],
         success_rate: (pattern.success_rate || 0.8) + 0.01, // Slight boost for successful application
-        metadata: {
+        metadata: {,
           applied_to_file: error.file,
           error_code: error.code,
           timestamp: new Date().toISOString(),
         },
       });
     } catch (error) {
-      log.debug('Could not save pattern to MCP', LogContext.MCP);
+      log.debug('Could not save pattern to MCP', LogContext.MCP);'
     }
   }
 
   private async getErrorCount(): Promise<number> {
     try {
-      const { stdout } = await execAsync('npx tsc --noEmit 2>&1 | grep -c "error TS" || true');
+      const { stdout } = await execAsync('npx tsc --noEmit 2>&1 | grep -c "error TS" || true');'";
       return parseInt(stdout.trim(), 10) || 0;
     } catch {
       return 0;
@@ -330,8 +328,8 @@ class MCPAssistedTSFixer {
   }
 
   private reportResults(): void {
-    console.log('\n📊 MCP-Assisted TypeScript Fixing Results:');
-    console.log('='.repeat(50));
+    console.log('n📊 MCP-Assisted TypeScript Fixing Results: ');'
+    console.log('='.repeat(50));'
     console.log(`✅ Fixes Applied: ${this.fixedCount}`);
     console.log(`⏭️  Errors Skipped: ${this.skipCount}`);
     console.log(`❌ Fix Failures: ${this.errorCount}`);
@@ -342,33 +340,33 @@ class MCPAssistedTSFixer {
         return acc;
       }, {} as Record<string, number>);
       
-      console.log('\n🔧 Patterns Applied:');
+      console.log('n🔧 Patterns Applied: ');'
       for (const [pattern, count] of Object.entries(patternCounts)) {
         console.log(`  - ${pattern}: ${count} times`);
       }
     }
     
-    console.log('='.repeat(50));
+    console.log('='.repeat(50));'
     
     if (this.fixedCount > 0) {
-      console.log('🎉 Successfully applied MCP-guided fixes! Run type-check to see results.');
+      console.log('🎉 Successfully applied MCP-guided fixes! Run type-check to see results.');'
     } else {
-      console.log('ℹ️  No fixes were applied. Errors may require manual intervention.');
+      console.log('ℹ️  No fixes were applied. Errors may require manual intervention.');'
     }
   }
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file: //${process.argv[1]}`) {
   const fixer = new MCPAssistedTSFixer();
   
   fixer.run()
     .then(() => {
-      console.log('✅ MCP-assisted TypeScript fixing completed');
+      console.log('✅ MCP-assisted TypeScript fixing completed');'
       process.exit(0);
     })
-    .catch(error => {
-      console.error('❌ MCP-assisted fixing failed:', error);
+    .catch(error => {)
+      console.error('❌ MCP-assisted fixing failed: ', error);'
       process.exit(1);
     });
 }

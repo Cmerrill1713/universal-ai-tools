@@ -3,17 +3,16 @@
  * Uses code-specialized models for programming assistance
  */
 
-import { EnhancedBaseAgent } from '../enhanced-base-agent';
-import type { AgentContext } from '@/types';
+import { EnhancedBaseAgent  } from '../enhanced-base-agent';';
+import type { AgentContext } from '@/types';';
 
 export class EnhancedCodeAssistantAgent extends EnhancedBaseAgent {
   protected buildSystemPrompt(): string {
-    return `You are an expert software development assistant with advanced programming and code analysis capabilities.
+    return `You are an expert software development assistant with advanced programming and code analysis capabilities.;
 
 ROLE: Code Generation, Analysis & Development Support Specialist
 
-EXPERTISE:
-- Full-stack web development (JavaScript, TypeScript, Python, etc.)
+EXPERTISE: - Full-stack web development (JavaScript, TypeScript, Python, etc.)
 - Software architecture and design patterns
 - Code review and optimization
 - Debugging and troubleshooting
@@ -22,8 +21,7 @@ EXPERTISE:
 - DevOps and deployment practices
 - Testing strategies and implementation
 
-CAPABILITIES:
-- Generate clean, efficient, well-documented code
+CAPABILITIES: - Generate clean, efficient, well-documented code
 - Analyze existing code for issues and improvements
 - Provide architectural recommendations
 - Debug complex problems with step-by-step solutions
@@ -31,51 +29,48 @@ CAPABILITIES:
 - Create comprehensive tests and documentation
 - Suggest best practices and industry standards
 
-RESPONSE FORMAT:
-Always respond with a structured JSON format:
-{
-  "code_response": {
-    "solution_type": "generation|analysis|debugging|refactoring|review",
-    "language": "Primary programming language",
-    "code_blocks": [
+RESPONSE FORMAT: Always respond with a structured JSON, format: {
+  "code_response": {"
+    "solution_type": "generation|analysis|debugging|refactoring|review","
+    "language": "Primary programming language","
+    "code_blocks": ["
       {
-        "filename": "filename.ext",
-        "language": "programming_language",
-        "code": "actual code content",
-        "explanation": "What this code does and why"
+        "filename": "filename.ext","
+        "language": "programming_language","
+        "code": "actual code content","
+        "explanation": "What this code does and why""
       }
     ],
-    "analysis": {
-      "complexity": "low|medium|high",
-      "performance_rating": "poor|fair|good|excellent",
-      "maintainability": "poor|fair|good|excellent",
-      "security_considerations": ["Security issues or recommendations"],
-      "potential_improvements": ["Suggested enhancements"]
+    "analysis": {"
+      "complexity": "low|medium|high","
+      "performance_rating": "poor|fair|good|excellent","
+      "maintainability": "poor|fair|good|excellent","
+      "security_considerations": ["Security issues or recommendations"],"
+      "potential_improvements": ["Suggested enhancements"]"
     }
   },
-  "implementation_guide": {
-    "setup_steps": ["Steps to set up or integrate the code"],
-    "dependencies": ["Required packages, libraries, or tools"],
-    "configuration": ["Configuration requirements or suggestions"],
-    "testing_approach": "How to test the implementation"
+  "implementation_guide": {"
+    "setup_steps": ["Steps to set up or integrate the code"],"
+    "dependencies": ["Required packages, libraries, or tools"],"
+    "configuration": ["Configuration requirements or suggestions"],"
+    "testing_approach": "How to test the implementation""
   },
-  "best_practices": [
+  "best_practices": ["
     {
-      "category": "performance|security|maintainability|scalability",
-      "recommendation": "Specific best practice recommendation",
-      "reasoning": "Why this practice is important"
+      "category": "performance|security|maintainability|scalability","
+      "recommendation": "Specific best practice recommendation","
+      "reasoning": "Why this practice is important""
     }
   ],
-  "follow_up_questions": [
-    "Questions to help refine or improve the solution"
+  "follow_up_questions": ["
+    "Questions to help refine or improve the solution""
   ],
-  "reasoning": "Detailed explanation of approach and technical decisions",
-  "confidence": number_between_0_and_1,
-  "documentation": "Comments on documentation needs or suggestions"
+  "reasoning": "Detailed explanation of approach and technical decisions","
+  "confidence": number_between_0_and_1,"
+  "documentation": "Comments on documentation needs or suggestions""
 }
 
-CODING PRINCIPLES:
-1. Write clean, readable, and maintainable code
+CODING PRINCIPLES: 1. Write clean, readable, and maintainable code
 2. Follow established coding standards and conventions
 3. Include appropriate error handling and validation
 4. Consider performance implications and optimization opportunities
@@ -88,70 +83,70 @@ Always provide production-ready code with proper error handling, validation, and
   }
 
   protected getInternalModelName(): string {
-    return 'code-expert';
+    return 'code-expert';';
   }
 
   protected getTemperature(): number {
-    return 0.2; // Lower temperature for more consistent, reliable code generation
+    return 0.2; // Lower temperature for more consistent, reliable code generation;
   }
 
   protected getMaxTokens(): number {
-    return 6000; // Allow for larger code responses
+    return 6000; // Allow for larger code responses;
   }
 
   protected getAdditionalContext(context: AgentContext): string | null {
-    let // TODO: Refactor nested ternary
-      additionalContext = '';
+    let // TODO: Refactor nested ternary;
+      additionalContext = '';'
 
     // Detect programming language
     const language = this.detectProgrammingLanguage(context.userRequest);
     if (language) {
-      additionalContext += `Programming language: ${language}\n`;
+      additionalContext += `Programming language: ${language}n`;
     }
 
     // Identify request type
     const requestType = this.identifyCodeRequestType(context.userRequest);
     if (requestType) {
-      additionalContext += `Request type: ${requestType}\n`;
+      additionalContext += `Request type: ${requestType}n`;
     }
 
     // Extract framework/technology mentions
     const technologies = this.extractTechnologies(context.userRequest);
     if (technologies.length > 0) {
-      additionalContext += `Technologies mentioned: ${technologies.join(', ')}\n`;
+      additionalContext += `Technologies mentioned: ${technologies.join(', ')}n`;'
     }
 
     // Check for specific patterns or requirements
     const patterns = this.extractDesignPatterns(context.userRequest);
     if (patterns.length > 0) {
-      additionalContext += `Design patterns/requirements: ${patterns.join(', ')}\n`;
+      additionalContext += `Design patterns/requirements: ${patterns.join(', ')}n`;'
     }
 
     // Working directory context for code projects
     if (context.workingDirectory) {
-      additionalContext += `Project directory: ${context.workingDirectory}\n`;
+      additionalContext += `Project directory: ${context.workingDirectory}n`;
     }
 
     return additionalContext || null;
   }
 
   private detectProgrammingLanguage(request: string): string | null {
-    const languagePatterns = [
-      { pattern: /javascript|js|node.?js/gi, language: 'JavaScript' },
-      { pattern: /typescript|ts/gi, language: 'TypeScript' },
-      { pattern: /python|py/gi, language: 'Python' },
-      { pattern: /java(?!script)/gi, language: 'Java' },
-      { pattern: /c\+\+|cpp/gi, language: 'C++' },
-      { pattern: /c#|csharp/gi, language: 'C#' },
-      { pattern: /php/gi, language: 'PHP' },
-      { pattern: /ruby|rb/gi, language: 'Ruby' },
-      { pattern: /go\b|golang/gi, language: 'Go' },
-      { pattern: /rust/gi, language: 'Rust' },
-      { pattern: /swift/gi, language: 'Swift' },
-      { pattern: /kotlin/gi, language: 'Kotlin' },
-      { pattern: /scala/gi, language: 'Scala' },
-      { pattern: /html|css/gi, language: 'Web' },
-      { pattern: /sql|database/gi, language: 'SQL' },
+    const languagePatterns = [;
+      { pattern: /javascript|js|node.?js/gi, language: 'JavaScript' },'
+      { pattern: /typescript|ts/gi, language: 'TypeScript' },'
+      { pattern: /python|py/gi, language: 'Python' },'
+      { pattern: /java(?!script)/gi, language: 'Java' },'
+      { pattern: /c\+\+|cpp/gi, language: 'C++' },'
+      { pattern: /c#|csharp/gi, language: 'C#' },'
+      { pattern: /php/gi, language: 'PHP' },'
+      { pattern: /ruby|rb/gi, language: 'Ruby' },'
+      { pattern: /go\b|golang/gi, language: 'Go' },'
+      { pattern: /rust/gi, language: 'Rust' },'
+      { pattern: /swift/gi, language: 'Swift' },'
+      { pattern: /kotlin/gi, language: 'Kotlin' },'
+      { pattern: /scala/gi, language: 'Scala' },'
+      { pattern: /html|css/gi, language: 'Web' },'
+      { pattern: /sql|database/gi, language: 'SQL' },'
     ];
 
     for (const { pattern, language } of languagePatterns) {
@@ -164,15 +159,15 @@ Always provide production-ready code with proper error handling, validation, and
   }
 
   private identifyCodeRequestType(request: string): string | null {
-    const requestTypes = [
-      { pattern: /create|generate|write|build/gi, type: 'code_generation' },
-      { pattern: /fix|debug|error|bug|issue/gi, type: 'debugging' },
-      { pattern: /review|analyze|check|evaluate/gi, type: 'code_review' },
-      { pattern: /refactor|improve|optimize|clean/gi, type: 'refactoring' },
-      { pattern: /explain|understand|how does/gi, type: 'code_explanation' },
-      { pattern: /test|testing|unit test/gi, type: 'testing' },
-      { pattern: /documentation|document|comment/gi, type: 'documentation' },
-      { pattern: /performance|speed|optimize/gi, type: 'optimization' },
+    const requestTypes = [;
+      { pattern: /create|generate|write|build/gi, type: 'code_generation' },'
+      { pattern: /fix|debug|error|bug|issue/gi, type: 'debugging' },'
+      { pattern: /review|analyze|check|evaluate/gi, type: 'code_review' },'
+      { pattern: /refactor|improve|optimize|clean/gi, type: 'refactoring' },'
+      { pattern: /explain|understand|how does/gi, type: 'code_explanation' },'
+      { pattern: /test|testing|unit test/gi, type: 'testing' },'
+      { pattern: /documentation|document|comment/gi, type: 'documentation' },'
+      { pattern: /performance|speed|optimize/gi, type: 'optimization' },'
     ];
 
     for (const { pattern, type } of requestTypes) {
@@ -186,7 +181,7 @@ Always provide production-ready code with proper error handling, validation, and
 
   private extractTechnologies(request: string): string[] {
     const technologies: string[] = [];
-    const techPatterns = [
+    const techPatterns = [;
       // Frontend frameworks
       /react|vue|angular|svelte/gi,
       // Backend frameworks
@@ -198,8 +193,7 @@ Always provide production-ready code with proper error handling, validation, and
       // Testing frameworks
       /jest|mocha|pytest|junit/gi,
       // Build tools
-      /webpack|vite|rollup|babel/gi,
-    ];
+      /webpack|vite|rollup|babel/gi];
 
     const requestLower = request.toLowerCase();
     for (const pattern of techPatterns) {
@@ -216,14 +210,13 @@ Always provide production-ready code with proper error handling, validation, and
 
   private extractDesignPatterns(request: string): string[] {
     const patterns: string[] = [];
-    const patternKeywords = [
+    const patternKeywords = [;
       /singleton|factory|observer|strategy|decorator/gi,
       /mvc|mvp|mvvm/gi,
       /microservices|monolith/gi,
       /rest|graphql|websocket/gi,
       /async|await|promise|callback/gi,
-      /crud|api|endpoint/gi,
-    ];
+      /crud|api|endpoint/gi];
 
     const requestLower = request.toLowerCase();
     for (const pattern of patternKeywords) {
@@ -250,7 +243,7 @@ Always provide production-ready code with proper error handling, validation, and
 
         // Check for actual code blocks
         if (parsed.code_response.code_blocks && Array.isArray(parsed.code_response.code_blocks)) {
-          const hasValidCode = parsed.code_response.code_blocks.some(
+          const hasValidCode = parsed.code_response.code_blocks.some();
             (block: unknown) => block.code && block.code.length > 10
           );
           if (hasValidCode) {

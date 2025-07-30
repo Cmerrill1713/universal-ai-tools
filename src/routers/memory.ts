@@ -3,19 +3,19 @@
  * Provides CRUD operations for memories with vector search capabilities
  */
 
-import type { Request, Response } from 'express';
-import { NextFunction, Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import { LogContext, log } from '@/utils/logger';
-import { authenticate } from '@/middleware/auth';
-import { validateRequest } from '@/middleware/express-validator';
-import { body, param, query } from 'express-validator';
+import type { Request, Response } from 'express';';
+import { NextFunction, Router  } from 'express';';
+import { v4 as uuidv4  } from 'uuid';';
+import { LogContext, log  } from '@/utils/logger';';
+import { authenticate  } from '@/middleware/auth';';
+import { validateRequest  } from '@/middleware/express-validator';';
+import { body, param, query  } from 'express-validator';';
 
 interface Memory {
-  id: string;
+  id: string;,
   userId: string;
-  content: string;
-  type: 'conversation' | 'knowledge' | 'context' | 'preference';
+  content: string;,
+  type: 'conversation' | 'knowledge' | 'context' | 'preference';'
   metadata: {
     source?: string;
     agentName?: string;
@@ -29,7 +29,7 @@ interface Memory {
 }
 
 interface SearchResult {
-  memory: Memory;
+  memory: Memory;,
   score: number;
   distance?: number;
 }
@@ -43,21 +43,21 @@ const router = Router();
  * GET /api/v1/memory
  * List all memories for a user
  */
-router.get(
-  '/',
+router.get()
+  '/','
   authenticate,
   [
-    query('type').optional().isIn(['conversation', 'knowledge', 'context', 'preference']),
-    query('limit')
+    query('type').optional().isIn(['conversation', 'knowledge', 'context', 'preference']),'
+    query('limit')'
       .optional()
       .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100'),
-    query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be non-negative'),
+      .withMessage('Limit must be between 1 and 100'),'
+    query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be non-negative'),'
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';
       const { type, limit = 50, offset = 0 } = req.query;
 
       let userMemories = Array.from(memories.values()).filter((memory) => memory.userId === userId);
@@ -68,7 +68,7 @@ router.get(
       }
 
       // Sort by timestamp (newest first)
-      userMemories.sort(
+      userMemories.sort()
         (a, b) =>
           new Date(b.metadata.timestamp).getTime() - new Date(a.metadata.timestamp).getTime()
       );
@@ -76,37 +76,37 @@ router.get(
       // Apply pagination
       const paginatedMemories = userMemories.slice(Number(offset), Number(offset) + Number(limit));
 
-      res.json({
+      res.json({)
         success: true,
-        data: {
+        data: {,
           memories: paginatedMemories.map((memory) => ({
             id: memory.id,
             content: memory.content,
             type: memory.type,
             metadata: memory.metadata,
           })),
-          pagination: {
+          pagination: {,
             total: userMemories.length,
             limit: Number(limit),
             offset: Number(offset),
             hasMore: Number(offset) + Number(limit) < userMemories.length,
           },
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'
         },
       });
     } catch (error) {
-      log.error('Failed to list memories', LogContext.API, {
+      log.error('Failed to list memories', LogContext.API, {')
         error: error instanceof Error ? error.message : String(error),
       });
 
-      res.status(500).json({
+      res.status(500).json({)
         success: false,
-        error: {
-          code: 'MEMORY_LIST_ERROR',
-          message: 'Failed to retrieve memories',
+        error: {,
+          code: 'MEMORY_LIST_ERROR','
+          message: 'Failed to retrieve memories','
         },
       });
     }
@@ -117,34 +117,34 @@ router.get(
  * GET /api/v1/memory/:id
  * Get a specific memory
  */
-router.get(
-  '/:id',
+router.get()
+  '/:id','
   authenticate,
-  [param('id').isUUID().withMessage('Invalid memory ID')],
+  [param('id').isUUID().withMessage('Invalid memory ID')],'
   validateRequest,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';
 
       const memory = memories.get(id);
       if (!memory) {
-        return res.status(404).json({
+        return res.status(404).json({);
           success: false,
-          error: {
-            code: 'MEMORY_NOT_FOUND',
-            message: 'Memory not found',
+          error: {,
+            code: 'MEMORY_NOT_FOUND','
+            message: 'Memory not found','
           },
         });
       }
 
       // Check authorization
       if (memory.userId !== userId) {
-        return res.status(403).json({
+        return res.status(403).json({);
           success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this memory',
+          error: {,
+            code: 'UNAUTHORIZED','
+            message: 'You do not have access to this memory','
           },
         });
       }
@@ -153,30 +153,30 @@ router.get(
       memory.metadata.accessCount++;
       memory.metadata.lastAccessed = new Date().toISOString();
 
-      res.json({
+      res.json({)
         success: true,
-        data: {
+        data: {,
           id: memory.id,
           content: memory.content,
           type: memory.type,
           metadata: memory.metadata,
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'
         },
       });
     } catch (error) {
-      log.error('Failed to get memory', LogContext.API, {
+      log.error('Failed to get memory', LogContext.API, {')
         error: error instanceof Error ? error.message : String(error),
         memoryId: req.params.id,
       });
 
-      res.status(500).json({
+      res.status(500).json({)
         success: false,
-        error: {
-          code: 'MEMORY_GET_ERROR',
-          message: 'Failed to retrieve memory',
+        error: {,
+          code: 'MEMORY_GET_ERROR','
+          message: 'Failed to retrieve memory','
         },
       });
     }
@@ -187,28 +187,28 @@ router.get(
  * POST /api/v1/memory
  * Create a new memory
  */
-router.post(
-  '/',
+router.post()
+  '/','
   authenticate,
   [
-    body('content').isString().withMessage('Content is required'),
-    body('type')
-      .isIn(['conversation', 'knowledge', 'context', 'preference'])
-      .withMessage('Invalid memory type'),
-    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    body('importance')
+    body('content').isString().withMessage('Content is required'),'
+    body('type')'
+      .isIn(['conversation', 'knowledge', 'context', 'preference'])'
+      .withMessage('Invalid memory type'),'
+    body('metadata').optional().isObject().withMessage('Metadata must be an object'),'
+    body('tags').optional().isArray().withMessage('Tags must be an array'),'
+    body('importance')'
       .optional()
       .isFloat({ min: 0, max: 1 })
-      .withMessage('Importance must be between 0 and 1'),
+      .withMessage('Importance must be between 0 and 1'),'
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';
       const { content, type, metadata = {}, tags = [], importance = 0.5 } = req.body;
 
-      const memory: Memory = {
+      const memory: Memory = {,;
         id: uuidv4(),
         userId,
         content,
@@ -217,7 +217,7 @@ router.post(
           ...metadata,
           timestamp: new Date().toISOString(),
           tags,
-          importance,
+          importance,;
           accessCount: 0,
         },
       };
@@ -227,33 +227,33 @@ router.post(
 
       memories.set(memory.id, memory);
 
-      log.info('Memory created', LogContext.API, {
+      log.info('Memory created', LogContext.API, {')
         memoryId: memory.id,
         type: memory.type,
         userId,
       });
 
-      res.json({
+      res.json({)
         success: true,
-        data: {
+        data: {,
           id: memory.id,
-          message: 'Memory created successfully',
+          message: 'Memory created successfully','
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'
         },
       });
     } catch (error) {
-      log.error('Failed to create memory', LogContext.API, {
+      log.error('Failed to create memory', LogContext.API, {')
         error: error instanceof Error ? error.message : String(error),
       });
 
-      res.status(500).json({
+      res.status(500).json({)
         success: false,
-        error: {
-          code: 'MEMORY_CREATE_ERROR',
-          message: 'Failed to create memory',
+        error: {,
+          code: 'MEMORY_CREATE_ERROR','
+          message: 'Failed to create memory','
         },
       });
     }
@@ -264,44 +264,44 @@ router.post(
  * PUT /api/v1/memory/:id
  * Update a memory
  */
-router.put(
-  '/:id',
+router.put()
+  '/:id','
   authenticate,
   [
-    param('id').isUUID().withMessage('Invalid memory ID'),
-    body('content').optional().isString().withMessage('Content must be a string'),
-    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    body('importance')
+    param('id').isUUID().withMessage('Invalid memory ID'),'
+    body('content').optional().isString().withMessage('Content must be a string'),'
+    body('metadata').optional().isObject().withMessage('Metadata must be an object'),'
+    body('tags').optional().isArray().withMessage('Tags must be an array'),'
+    body('importance')'
       .optional()
       .isFloat({ min: 0, max: 1 })
-      .withMessage('Importance must be between 0 and 1'),
+      .withMessage('Importance must be between 0 and 1'),'
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';
       const updates = req.body;
 
       const memory = memories.get(id);
       if (!memory) {
-        return res.status(404).json({
+        return res.status(404).json({);
           success: false,
-          error: {
-            code: 'MEMORY_NOT_FOUND',
-            message: 'Memory not found',
+          error: {,
+            code: 'MEMORY_NOT_FOUND','
+            message: 'Memory not found','
           },
         });
       }
 
       // Check authorization
       if (memory.userId !== userId) {
-        return res.status(403).json({
+        return res.status(403).json({);
           success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this memory',
+          error: {,
+            code: 'UNAUTHORIZED','
+            message: 'You do not have access to this memory','
           },
         });
       }
@@ -325,33 +325,33 @@ router.put(
         memory.metadata.importance = updates.importance;
       }
 
-      log.info('Memory updated', LogContext.API, {
+      log.info('Memory updated', LogContext.API, {')
         memoryId: id,
         userId,
       });
 
-      res.json({
+      res.json({)
         success: true,
-        data: {
+        data: {,
           id: memory.id,
-          message: 'Memory updated successfully',
+          message: 'Memory updated successfully','
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'
         },
       });
     } catch (error) {
-      log.error('Failed to update memory', LogContext.API, {
+      log.error('Failed to update memory', LogContext.API, {')
         error: error instanceof Error ? error.message : String(error),
         memoryId: req.params.id,
       });
 
-      res.status(500).json({
+      res.status(500).json({)
         success: false,
-        error: {
-          code: 'MEMORY_UPDATE_ERROR',
-          message: 'Failed to update memory',
+        error: {,
+          code: 'MEMORY_UPDATE_ERROR','
+          message: 'Failed to update memory','
         },
       });
     }
@@ -362,66 +362,66 @@ router.put(
  * DELETE /api/v1/memory/:id
  * Delete a memory
  */
-router.delete(
-  '/:id',
+router.delete()
+  '/:id','
   authenticate,
-  [param('id').isUUID().withMessage('Invalid memory ID')],
+  [param('id').isUUID().withMessage('Invalid memory ID')],'
   validateRequest,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';
 
       const memory = memories.get(id);
       if (!memory) {
-        return res.status(404).json({
+        return res.status(404).json({);
           success: false,
-          error: {
-            code: 'MEMORY_NOT_FOUND',
-            message: 'Memory not found',
+          error: {,
+            code: 'MEMORY_NOT_FOUND','
+            message: 'Memory not found','
           },
         });
       }
 
       // Check authorization
       if (memory.userId !== userId) {
-        return res.status(403).json({
+        return res.status(403).json({);
           success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this memory',
+          error: {,
+            code: 'UNAUTHORIZED','
+            message: 'You do not have access to this memory','
           },
         });
       }
 
       memories.delete(id);
 
-      log.info('Memory deleted', LogContext.API, {
+      log.info('Memory deleted', LogContext.API, {')
         memoryId: id,
         userId,
       });
 
-      res.json({
+      res.json({)
         success: true,
-        data: {
-          message: 'Memory deleted successfully',
+        data: {,
+          message: 'Memory deleted successfully','
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'
         },
       });
     } catch (error) {
-      log.error('Failed to delete memory', LogContext.API, {
+      log.error('Failed to delete memory', LogContext.API, {')
         error: error instanceof Error ? error.message : String(error),
         memoryId: req.params.id,
       });
 
-      res.status(500).json({
+      res.status(500).json({)
         success: false,
-        error: {
-          code: 'MEMORY_DELETE_ERROR',
-          message: 'Failed to delete memory',
+        error: {,
+          code: 'MEMORY_DELETE_ERROR','
+          message: 'Failed to delete memory','
         },
       });
     }
@@ -432,25 +432,25 @@ router.delete(
  * POST /api/v1/memory/search
  * Search memories by content similarity
  */
-router.post(
-  '/search',
+router.post()
+  '/search','
   authenticate,
   [
-    body('query').isString().withMessage('Query is required'),
-    body('limit')
+    body('query').isString().withMessage('Query is required'),'
+    body('limit')'
       .optional()
       .isInt({ min: 1, max: 50 })
-      .withMessage('Limit must be between 1 and 50'),
-    body('threshold')
+      .withMessage('Limit must be between 1 and 50'),'
+    body('threshold')'
       .optional()
       .isFloat({ min: 0, max: 1 })
-      .withMessage('Threshold must be between 0 and 1'),
-    body('types').optional().isArray().withMessage('Types must be an array'),
+      .withMessage('Threshold must be between 0 and 1'),'
+    body('types').optional().isArray().withMessage('Types must be an array'),'
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';
       const { query, limit = 10, threshold = 0.7, types = [] } = req.body;
 
       // Get user memories
@@ -463,11 +463,11 @@ router.post(
 
       // TODO: Implement actual vector similarity search
       // For now, do simple text matching
-      const searchResults: SearchResult[] = userMemories
+      const searchResults: SearchResult[] = userMemories;
         .map((memory) => {
           const content = memory.content.toLowerCase();
           const searchQuery = query.toLowerCase();
-          const words = searchQuery.split(' ');
+          const words = searchQuery.split(' ');';
 
           // Calculate simple relevance score
           let score = 0;
@@ -487,11 +487,11 @@ router.post(
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
 
-      res.json({
+      res.json({)
         success: true,
-        data: {
+        data: {,
           results: searchResults.map((result) => ({
-            memory: {
+            memory: {,
               id: result.memory.id,
               content: result.memory.content,
               type: result.memory.type,
@@ -503,21 +503,21 @@ router.post(
           query,
           resultsFound: searchResults.length,
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'
         },
       });
     } catch (error) {
-      log.error('Memory search failed', LogContext.API, {
+      log.error('Memory search failed', LogContext.API, {')
         error: error instanceof Error ? error.message : String(error),
       });
 
-      res.status(500).json({
+      res.status(500).json({)
         success: false,
-        error: {
-          code: 'MEMORY_SEARCH_ERROR',
-          message: 'Failed to search memories',
+        error: {,
+          code: 'MEMORY_SEARCH_ERROR','
+          message: 'Failed to search memories','
         },
       });
     }
@@ -528,28 +528,28 @@ router.post(
  * POST /api/v1/memory/bulk
  * Create multiple memories at once
  */
-router.post(
-  '/bulk',
+router.post()
+  '/bulk','
   authenticate,
   [
-    body('memories')
+    body('memories')'
       .isArray({ min: 1, max: 100 })
-      .withMessage('Memories array is required (1-100 items)'),
-    body('memories.*.content').isString().withMessage('Each memory must have content'),
-    body('memories.*.type')
-      .isIn(['conversation', 'knowledge', 'context', 'preference'])
-      .withMessage('Each memory must have a valid type'),
+      .withMessage('Memories array is required (1-100 items)'),'
+    body('memories.*.content').isString().withMessage('Each memory must have content'),'
+    body('memories.*.type')'
+      .isIn(['conversation', 'knowledge', 'context', 'preference'])'
+      .withMessage('Each memory must have a valid type'),'
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';
       const { memories: memoryData } = req.body;
 
       const createdMemories: Memory[] = [];
 
       for (const data of memoryData) {
-        const memory: Memory = {
+        const memory: Memory = {,;
           id: uuidv4(),
           userId,
           content: data.content,
@@ -558,7 +558,7 @@ router.post(
             ...data.metadata,
             timestamp: new Date().toISOString(),
             tags: data.tags || [],
-            importance: data.importance || 0.5,
+            importance: data.importance || 0.5,;
             accessCount: 0,
           },
         };
@@ -567,32 +567,32 @@ router.post(
         createdMemories.push(memory);
       }
 
-      log.info('Bulk memories created', LogContext.API, {
+      log.info('Bulk memories created', LogContext.API, {')
         count: createdMemories.length,
         userId,
       });
 
-      res.json({
+      res.json({)
         success: true,
-        data: {
+        data: {,
           created: createdMemories.length,
-          memories: createdMemories.map((m) => ({ id: m.id, type: m.type })),
+          memories: createdMemories.map((m) => ({, id: m.id, type: m.type })),
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'
         },
       });
     } catch (error) {
-      log.error('Failed to create bulk memories', LogContext.API, {
+      log.error('Failed to create bulk memories', LogContext.API, {')
         error: error instanceof Error ? error.message : String(error),
       });
 
-      res.status(500).json({
+      res.status(500).json({)
         success: false,
-        error: {
-          code: 'MEMORY_BULK_ERROR',
-          message: 'Failed to create memories',
+        error: {,
+          code: 'MEMORY_BULK_ERROR','
+          message: 'Failed to create memories','
         },
       });
     }

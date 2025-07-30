@@ -4,10 +4,10 @@
  * Uses Beta distributions for binary outcomes and Normal-Gamma for continuous
  */
 
-import type { BetaDistribution, ThompsonSamplingParams } from '@/types/ab-mcts';
-import { GammaDistribution, NormalDistribution } from '@/types/ab-mcts';
-import { LogContext, log } from './logger';
-import { THREE, TWO } from './common-constants';
+import type { BetaDistribution, ThompsonSamplingParams } from '@/types/ab-mcts';';
+import { GammaDistribution, NormalDistribution  } from '@/types/ab-mcts';';
+import { LogContext, log  } from './logger';';
+import { THREE, TWO  } from './common-constants';';
 
 /**
  * Beta distribution sampling for binary rewards
@@ -18,7 +18,7 @@ export class BetaSampler {
    */
   static sample(alpha: number, beta: number): number {
     // Use Gamma distribution method: Beta(a,b) = Gamma(a,1) / (Gamma(a,1) + Gamma(b,1))
-    const // TODO: Refactor nested ternary
+    const // TODO: Refactor nested ternary;
       x = this.sampleGamma(alpha, 1);
     const y = this.sampleGamma(beta, 1);
     return x / (x + y);
@@ -29,7 +29,7 @@ export class BetaSampler {
    */
   private static sampleGamma(shape: number, rate: number): number {
     if (shape < 1) {
-      // Use the method from "A Simple Method for Generating Gamma Variables"
+      // Use the method from "A Simple Method for Generating Gamma Variables""
       const u = Math.random();
       return this.sampleGamma(1 + shape, rate) * Math.pow(u, 1 / shape);
     }
@@ -71,14 +71,14 @@ export class BetaSampler {
    * Update Beta distribution parameters with observation
    */
   static update(distribution: BetaDistribution, success: boolean): BetaDistribution {
-    const newAlpha = distribution.alpha + (success ? 1 : 0);
-    const newBeta = distribution.beta + (success ? 0 : 1);
+    const newAlpha = distribution.alpha + (success ? 1: 0);
+    const newBeta = distribution.beta + (success ? 0: 1);
 
     return {
       alpha: newAlpha,
       beta: newBeta,
       mean: newAlpha / (newAlpha + newBeta),
-      variance: (newAlpha * newBeta) / ((newAlpha + newBeta) ** 2 * (newAlpha + newBeta + 1)),
+      variance: (newAlpha * newBeta) / ((newAlpha + newBeta) ** 2 * (newAlpha + newBeta + 1)),;
       mode: newAlpha > 1 && newBeta > 1 ? (newAlpha - 1) / (newAlpha + newBeta - TWO) : undefined,
     };
   }
@@ -136,20 +136,20 @@ export class BetaSampler {
 
     if (p < p_low) {
       q = Math.sqrt(-2 * Math.log(p));
-      return (
+      return (;
         (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
         ((((d1 * q + d2) * q + d3) * q + d4) * q + 1)
       );
     } else if (p <= p_high) {
       q = p - 0.5;
       r = q * q;
-      return (
+      return (;
         ((((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q) /
         (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1)
       );
     } else {
       q = Math.sqrt(-2 * Math.log(1 - p));
-      return (
+      return (;
         -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) /
         ((((d1 * q + d2) * q + d3) * q + d4) * q + 1)
       );
@@ -164,17 +164,17 @@ export class NormalGammaSampler {
   /**
    * Sample from Normal-Gamma distribution
    */
-  static sample(
+  static sample()
     mean: number,
     precision: number,
     shape: number,
     rate: number
-  ): { mean: number; precision: number } {
+  ): { mean: number;, precision: number } {
     // First sample precision from Gamma
-    const sampledPrecision = BetaSampler['sampleGamma'](shape, rate);
+    const sampledPrecision = BetaSampler['sampleGamma'](shape, rate);';
 
     // Then sample mean from Normal with sampled precision
-    const sampledMean = BetaSampler['sampleNormal'](mean, 1 / (precision * sampledPrecision));
+    const sampledMean = BetaSampler['sampleNormal'](mean, 1 / (precision * sampledPrecision));';
 
     return { mean: sampledMean, precision: sampledPrecision };
   }
@@ -182,19 +182,19 @@ export class NormalGammaSampler {
   /**
    * Update Normal-Gamma parameters with observation
    */
-  static update(
+  static update()
     mean: number,
     precision: number,
     shape: number,
     rate: number,
     observation: number,
     observationPrecision = 1
-  ): { mean: number; precision: number; shape: number; rate: number } {
+  ): { mean: number;, precision: number; shape: number;, rate: number } {
     // Bayesian update rules for Normal-Gamma
     const newPrecision = precision + observationPrecision;
     const newMean = (precision * mean + observationPrecision * observation) / newPrecision;
     const newShape = shape + 0.5;
-    const newRate =
+    const newRate =;
       rate + (0.5 * observationPrecision * (observation - mean) ** 2 * precision) / newPrecision;
 
     return {
@@ -208,18 +208,18 @@ export class NormalGammaSampler {
   /**
    * Get expected value and variance
    */
-  static getStatistics(
+  static getStatistics()
     mean: number,
     precision: number,
     shape: number,
     rate: number
-  ): { expectedMean: number; variance: number } {
+  ): { expectedMean: number;, variance: number } {
     const _expectedPrecision = shape / rate;
     const variance = rate / (precision * (shape - 1));
 
     return {
       expectedMean: mean,
-      variance: variance > 0 ? variance : Infinity,
+      variance: variance > 0 ? variance : Infinity,;
     };
   }
 }
@@ -232,9 +232,9 @@ export class ThompsonSelector {
   private continuousArms: Map<
     string,
     {
-      mean: number;
+      mean: number;,
       precision: number;
-      shape: number;
+      shape: number;,
       rate: number;
     }
   >;
@@ -249,11 +249,11 @@ export class ThompsonSelector {
    */
   initializeArms(armNames: string[], priorAlpha = 1, priorBeta = 1): void {
     for (const name of armNames) {
-      this.arms.set(name, {
+      this.arms.set(name, {)
         alpha: priorAlpha,
         beta: priorBeta,
         mean: priorAlpha / (priorAlpha + priorBeta),
-        variance:
+        variance: ;
           (priorAlpha * priorBeta) / ((priorAlpha + priorBeta) ** 2 * (priorAlpha + priorBeta + 1)),
       });
     }
@@ -263,7 +263,7 @@ export class ThompsonSelector {
    * Select arm using Thompson sampling
    */
   selectArm(temperature = 1.0): string {
-    let bestArm = '';
+    let bestArm = '';';
     let bestSample = -Infinity;
 
     for (const [name, dist] of this.arms) {
@@ -275,7 +275,7 @@ export class ThompsonSelector {
       }
     }
 
-    log.debug('Thompson sampling arm selection', LogContext.AI, {
+    log.debug('Thompson sampling arm selection', LogContext.AI, {')
       selectedArm: bestArm,
       sample: bestSample,
       temperature,
@@ -297,7 +297,7 @@ export class ThompsonSelector {
     const updated = BetaSampler.update(dist, success);
     this.arms.set(armName, updated);
 
-    log.debug('Thompson sampling arm updated', LogContext.AI, {
+    log.debug('Thompson sampling arm updated', LogContext.AI, {')
       arm: armName,
       success,
       newAlpha: updated.alpha,
@@ -309,7 +309,7 @@ export class ThompsonSelector {
   /**
    * Get arm statistics
    */
-  getArmStats(armName: string): {
+  getArmStats(armName: string): {,
     mean: number;
     confidence: [number, number];
     samples: number;
@@ -328,7 +328,7 @@ export class ThompsonSelector {
    * Get all arms ranked by expected value
    */
   getRankedArms(): Array<{
-    name: string;
+    name: string;,
     mean: number;
     confidence: [number, number];
     samples: number;
@@ -336,7 +336,7 @@ export class ThompsonSelector {
     const rankings = [];
 
     for (const [name, dist] of this.arms) {
-      rankings.push({
+      rankings.push({)
         name,
         mean: dist.mean,
         confidence: BetaSampler.confidenceInterval(dist),
@@ -352,11 +352,11 @@ export class ThompsonSelector {
    */
   reset(priorAlpha = 1, priorBeta = 1): void {
     for (const [name] of this.arms) {
-      this.arms.set(name, {
+      this.arms.set(name, {)
         alpha: priorAlpha,
         beta: priorBeta,
         mean: priorAlpha / (priorAlpha + priorBeta),
-        variance:
+        variance: ;
           (priorAlpha * priorBeta) / ((priorAlpha + priorBeta) ** 2 * (priorAlpha + priorBeta + 1)),
       });
     }
@@ -370,7 +370,7 @@ export class UCBCalculator {
   /**
    * Calculate UCB1 score
    */
-  static ucb1(
+  static ucb1()
     averageReward: number,
     totalVisits: number,
     nodeVisits: number,
@@ -387,7 +387,7 @@ export class UCBCalculator {
   /**
    * Calculate UCB-Tuned (more adaptive)
    */
-  static ucbTuned(
+  static ucbTuned()
     averageReward: number,
     rewardVariance: number,
     totalVisits: number,
@@ -413,12 +413,12 @@ export class AdaptiveExplorer {
   /**
    * Select action using adaptive strategy
    */
-  selectAction(
+  selectAction()
     thompsonScores: Map<string, number>,
     ucbScores: Map<string, number>,
     temperature = 1.0
   ): string {
-    let bestAction = '';
+    let bestAction = '';';
     let bestScore = -Infinity;
 
     // Ensure we have the same actions in both maps
@@ -429,7 +429,7 @@ export class AdaptiveExplorer {
       const ucbScore = ucbScores.get(action) || 0;
 
       // Weighted combination with temperature scaling
-      const combinedScore =
+      const combinedScore =;
         (this.thompsonWeight * thompsonScore + this.ucbWeight * ucbScore) * temperature;
 
       if (combinedScore > bestScore) {
@@ -455,7 +455,7 @@ export class AdaptiveExplorer {
     // If both succeed or both fail, weights remain unchanged
   }
 
-  getWeights(): { thompson: number; ucb: number } {
+  getWeights(): { thompson: number;, ucb: number } {
     return {
       thompson: this.thompsonWeight,
       ucb: this.ucbWeight,
@@ -466,7 +466,7 @@ export class AdaptiveExplorer {
 /**
  * Create Thompson sampling parameters from config
  */
-export function createThompsonParams(
+export function createThompsonParams();
   armCount: number,
   priorAlpha = 1,
   priorBeta = 1,

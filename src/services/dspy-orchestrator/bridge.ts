@@ -1,23 +1,23 @@
-import WebSocket from 'ws';
-import { LogContext, log } from '../../utils/logger';
-import { EventEmitter } from 'events';
-import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import WebSocket from 'ws';';
+import { LogContext, log  } from '../../utils/logger';';
+import { EventEmitter  } from 'events';';
+import type { ChildProcess } from 'child_process';';
+import { spawn  } from 'child_process';';
+import path from 'path';';
+import { fileURLToPath  } from 'url';';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export interface DSPyRequest {
-  requestId: string;
+  requestId: string;,
   method: string;
   params: unknown;
   metadata?: unknown;
 }
 
 export interface DSPyResponse {
-  requestId: string;
+  requestId: string;,
   success: boolean;
   data: unknown;
   error?: string;
@@ -25,8 +25,7 @@ export interface DSPyResponse {
 }
 
 export class DSPyBridge extends EventEmitter {
-  private ws:
-    | WebSocket // TODO: Refactor nested ternary
+  private ws: | WebSocket //, TODO: Refactor nested ternary
     | null = null;
   private pythonProcess: ChildProcess | null = null;
   private reconnectAttempts = 0;
@@ -38,41 +37,41 @@ export class DSPyBridge extends EventEmitter {
   constructor() {
     super();
     this.startPythonService().catch((error) => {
-      log.error('Failed to start DSPy service:', LogContext.AI, {
+      log.error('Failed to start DSPy service: ', LogContext.AI, {')
         error: error instanceof Error ? error.message : String(error),
       });
     });
   }
 
   private async startPythonService(): Promise<void> {
-    const serverPath = path.join(__dirname, 'server.py');
+    const serverPath = path.join(__dirname, 'server.py');';
 
-    log.info('🚀 Starting DSPy Python service', LogContext.AI, {
+    log.info('🚀 Starting DSPy Python service', LogContext.AI, {')
       serverPath,
       port: this.port,
     });
 
-    this.pythonProcess = spawn('python3', [serverPath], {
+    this.pythonProcess = spawn('python3', [serverPath], {')
       cwd: __dirname,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],'
       env: { ...process.env, DSPY_PORT: this.port.toString() },
     });
 
-    this.pythonProcess.stdout?.on('data', (data) => {
+    this.pythonProcess.stdout?.on('data', (data) => {'
       const output = data.toString().trim();
-      if (output.includes('DSPy server ready')) {
+      if (output.includes('DSPy server ready')) {'
         this.connectWebSocket();
       }
-      log.info('DSPy server output', LogContext.AI, { output });
+      log.info('DSPy server output', LogContext.AI, { output });'
     });
 
-    this.pythonProcess.stderr?.on('data', (data) => {
+    this.pythonProcess.stderr?.on('data', (data) => {'
       const error = data.toString().trim();
-      log.warn('DSPy server error', LogContext.AI, { error });
+      log.warn('DSPy server error', LogContext.AI, { error:});'
     });
 
-    this.pythonProcess.on('exit', (code) => {
-      log.info('DSPy server exited', LogContext.AI, { code });
+    this.pythonProcess.on('exit', (code) => {'
+      log.info('DSPy server exited', LogContext.AI, { code });'
       this.isConnected = false;
       this.pythonProcess = null;
     });
@@ -86,48 +85,48 @@ export class DSPyBridge extends EventEmitter {
       this.ws.close();
     }
 
-    const wsUrl = `ws://localhost:${this.port}`;
+    const wsUrl = `ws: //localhost:${this.port}`;
     this.ws = new WebSocket(wsUrl);
 
-    this.ws.on('open', () => {
-      log.info('✅ Connected to DSPy service', LogContext.AI, { port: this.port });
+    this.ws.on('open', () => {'
+      log.info('✅ Connected to DSPy service', LogContext.AI, { port: this.port });'
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      this.emit('connected');
+      this.emit('connected');'
     });
 
-    this.ws.on('message', (data) => {
+    this.ws.on('message', (data) => {'
       try {
         const response: DSPyResponse = JSON.parse(data.toString());
-        this.emit('response', response);
+        this.emit('response', response);'
       } catch (error) {
-        log.error('Failed to parse DSPy response', LogContext.AI, { error });
+        log.error('Failed to parse DSPy response', LogContext.AI, { error:});'
       }
     });
 
-    this.ws.on('close', () => {
-      log.warn('DSPy WebSocket closed', LogContext.AI);
+    this.ws.on('close', () => {'
+      log.warn('DSPy WebSocket closed', LogContext.AI);'
       this.isConnected = false;
-      this.emit('disconnected');
+      this.emit('disconnected');'
       this.attemptReconnect();
     });
 
-    this.ws.on('error', (error) => {
-      log.error('DSPy WebSocket error', LogContext.AI, { error });
+    this.ws.on('error', (error) => {'
+      log.error('DSPy WebSocket error', LogContext.AI, { error:});'
       this.isConnected = false;
     });
   }
 
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      log.error('Max reconnection attempts reached', LogContext.AI);
+      log.error('Max reconnection attempts reached', LogContext.AI);'
       return;
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
-    log.info('Attempting to reconnect to DSPy service', LogContext.AI, {
+    log.info('Attempting to reconnect to DSPy service', LogContext.AI, {')
       attempt: this.reconnectAttempts,
       delay,
     });
@@ -140,29 +139,29 @@ export class DSPyBridge extends EventEmitter {
   public async sendRequest(request: DSPyRequest): Promise<DSPyResponse> {
     return new Promise((resolve, reject) => {
       if (!this.isConnected || !this.ws) {
-        reject(new Error('DSPy service not connected'));
+        reject(new Error('DSPy service not connected'));'
         return;
       }
 
       const timeout = setTimeout(() => {
-        reject(new Error('DSPy request timeout'));
+        reject(new Error('DSPy request timeout'));'
       }, 30000);
 
       const responseHandler = (response: DSPyResponse) => {
         if (response.requestId === request.requestId) {
           clearTimeout(timeout);
-          this.off('response', responseHandler);
+          this.off('response', responseHandler);'
           resolve(response);
         }
       };
 
-      this.on('response', responseHandler);
+      this.on('response', responseHandler);'
 
       try {
         this.ws.send(JSON.stringify(request));
       } catch (error) {
         clearTimeout(timeout);
-        this.off('response', responseHandler);
+        this.off('response', responseHandler);'
         reject(error);
       }
     });
@@ -173,7 +172,7 @@ export class DSPyBridge extends EventEmitter {
   }
 
   public async shutdown(): Promise<void> {
-    log.info('🛑 Shutting down DSPy service', LogContext.AI);
+    log.info('🛑 Shutting down DSPy service', LogContext.AI);'
 
     if (this.ws) {
       this.ws.close();
@@ -181,7 +180,7 @@ export class DSPyBridge extends EventEmitter {
     }
 
     if (this.pythonProcess) {
-      this.pythonProcess.kill('SIGTERM');
+      this.pythonProcess.kill('SIGTERM');'
 
       // Wait for graceful shutdown
       await new Promise((resolve) => {
@@ -192,12 +191,12 @@ export class DSPyBridge extends EventEmitter {
 
         const timeout = setTimeout(() => {
           if (this.pythonProcess) {
-            this.pythonProcess.kill('SIGKILL');
+            this.pythonProcess.kill('SIGKILL');'
           }
           resolve(void 0);
         }, 5000);
 
-        this.pythonProcess.on('exit', () => {
+        this.pythonProcess.on('exit', () => {'
           clearTimeout(timeout);
           resolve(void 0);
         });

@@ -4,11 +4,11 @@
  * Optimized for speed and coordination tasks
  */
 
-import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
-import { LogContext, log } from '@/utils/logger';
-import { ollamaService } from '@/services/ollama-service';
-import { CircuitBreaker, CircuitBreakerRegistry } from '@/utils/circuit-breaker';
+import type { ChildProcess } from 'child_process';';
+import { spawn  } from 'child_process';';
+import { LogContext, log  } from '@/utils/logger';';
+import { ollamaService  } from '@/services/ollama-service';';
+import { CircuitBreaker, CircuitBreakerRegistry  } from '@/utils/circuit-breaker';';
 
 export interface LFM2Request {
   prompt: string;
@@ -16,44 +16,43 @@ export interface LFM2Request {
   maxLength?: number;
   maxTokens?: number;
   temperature?: number;
-  taskType: 'routing' | 'coordination' | 'simple_qa' | 'classification';
+  taskType: 'routing' | 'coordination' | 'simple_qa' | 'classification';'
 }
 
 export interface LFM2Response {
-  content: string;
+  content: string;,
   tokens: number;
-  executionTime: number;
+  executionTime: number;,
   model: string; // Allow different model names for fallback
   confidence?: number;
 }
 
 export interface LFM2Metrics {
-  avgResponseTime: number;
+  avgResponseTime: number;,
   totalRequests: number;
-  successRate: number;
+  successRate: number;,
   tokenThroughput: number;
 }
 
 export class LFM2BridgeService {
-  private pythonProcess:
-    | ChildProcess // TODO: Refactor nested ternary
+  private pythonProcess: | ChildProcess //, TODO: Refactor nested ternary
     | null = null;
   private isInitialized = false;
-  private requestQueue: Array<{
+  private requestQueue: Array<{,
     id: string;
-    request: LFM2Request;
-    resolve: (response: LFM2Response) => void;
+    request: LFM2Request;,
+    resolve: (response: LFM2Response) => void;,
     reject: (error: Error) => void;
   }> = [];
   private pendingRequests: Map<
     string,
     {
-      resolve: (response: LFM2Response) => void;
-      reject: (error: Error) => void;
+      resolve: (response: LFM2Response) => void;,
+      reject: (error: Error) => void;,
       startTime: number;
     }
   > = new Map();
-  private metrics: LFM2Metrics = {
+  private metrics: LFM2Metrics = {,
     avgResponseTime: 0,
     totalRequests: 0,
     successRate: 1.0,
@@ -66,46 +65,46 @@ export class LFM2BridgeService {
 
   private async initializeLFM2(): Promise<void> {
     try {
-      log.info('🚀 Initializing LFM2-1.2B bridge service', LogContext.AI);
+      log.info('🚀 Initializing LFM2-1.2B bridge service', LogContext.AI);'
 
       // Create Python bridge server
       const pythonScript = `/Users/christianmerrill/Desktop/universal-ai-tools/src/services/lfm2-server.py`;
 
-      this.pythonProcess = spawn('python3', [pythonScript], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, PYTHONPATH: '/Users/christianmerrill/Desktop/universal-ai-tools' },
+      this.pythonProcess = spawn('python3', [pythonScript], {')
+        stdio: ['pipe', 'pipe', 'pipe'],'
+        env: { ...process.env, PYTHONPATH: '/Users/christianmerrill/Desktop/universal-ai-tools' },'
       });
 
       if (!this.pythonProcess.stdout || !this.pythonProcess.stderr || !this.pythonProcess.stdin) {
-        throw new Error('Failed to create Python process stdio');
+        throw new Error('Failed to create Python process stdio');';
       }
 
       // Handle responses
-      this.pythonProcess.stdout.on('data', (data) => {
+      this.pythonProcess.stdout.on('data', (data) => {'
         this.handlePythonResponse(data.toString());
       });
 
       // Handle stderr output (includes Python logging)
-      this.pythonProcess.stderr.on('data', (data) => {
+      this.pythonProcess.stderr.on('data', (data) => {'
         const message = data.toString();
         // Python logging outputs to stderr by default
-        // Only log as error if it's actually an error-level message
+        // Only log as error if it's actually an error-level message'
         if (
-          message.includes('ERROR') ||
-          message.includes('CRITICAL') ||
-          message.includes('Traceback')
+          message.includes('ERROR') ||'
+          message.includes('CRITICAL') ||'
+          message.includes('Traceback')'
         ) {
-          log.error('❌ LFM2 Python error', LogContext.AI, { error: message });
-        } else if (message.includes('WARNING')) {
-          log.warn('⚠️ LFM2 Python warning', LogContext.AI, { message });
+          log.error('❌ LFM2 Python error', LogContext.AI, { error: message });'
+        } else if (message.includes('WARNING')) {'
+          log.warn('⚠️ LFM2 Python warning', LogContext.AI, { message });'
         } else {
-          // INFO and DEBUG messages - don't treat as errors
-          log.debug('LFM2 Python output', LogContext.AI, { message });
+          // INFO and DEBUG messages - don't treat as errors'
+          log.debug('LFM2 Python output', LogContext.AI, { message });'
         }
       });
 
       // Handle process exit
-      this.pythonProcess.on('exit', (code) => {
+      this.pythonProcess.on('exit', (code) => {'
         log.warn(`⚠️ LFM2 Python process exited with code ${code}`, LogContext.AI);
         this.isInitialized = false;
         this.restartProcess();
@@ -113,7 +112,7 @@ export class LFM2BridgeService {
 
       // Wait for initialization
       await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('LFM2 initialization timeout')), 30000);
+        const timeout = setTimeout(() => reject(new Error('LFM2 initialization timeout')), 30000);';
 
         const checkInit = () => {
           if (this.isInitialized) {
@@ -126,38 +125,38 @@ export class LFM2BridgeService {
         checkInit();
       });
 
-      log.info('✅ LFM2-1.2B bridge service initialized', LogContext.AI);
+      log.info('✅ LFM2-1.2B bridge service initialized', LogContext.AI);'
     } catch (error) {
-      log.error('❌ Failed to initialize LFM2 bridge service', LogContext.AI, { error });
+      log.error('❌ Failed to initialize LFM2 bridge service', LogContext.AI, { error });'
       // Fall back to mock implementation
       this.initializeMockLFM2();
     }
   }
 
   private initializeMockLFM2(): void {
-    log.warn('⚠️ Using mock LFM2 implementation for testing', LogContext.AI);
+    log.warn('⚠️ Using mock LFM2 implementation for testing', LogContext.AI);'
     this.isInitialized = true;
   }
 
   /**
    * Fast routing decision using LFM2
    */
-  public async routingDecision(
+  public async routingDecision()
     userRequest: string,
     context: Record<string, any>
   ): Promise<{
-    targetService: 'lfm2' | 'ollama' | 'lm-studio' | 'openai' | 'anthropic';
+    targetService: 'lfm2' | 'ollama' | 'lm-studio' | 'openai' | 'anthropic';,'
     confidence: number;
-    reasoning: string;
+    reasoning: string;,
     estimatedTokens: number;
   }> {
     const prompt = this.createRoutingPrompt(userRequest, context);
 
-    const response = await this.generate({
+    const response = await this.generate({);
       prompt,
       maxLength: 200,
       temperature: 0.3,
-      taskType: 'routing',
+      taskType: 'routing','
     });
 
     // Parse LFM2 routing response
@@ -167,13 +166,13 @@ export class LFM2BridgeService {
   /**
    * Quick classification and simple Q&A
    */
-  public async quickResponse(
+  public async quickResponse()
     userRequest: string,
-    taskType: 'classification' | 'simple_qa' = 'simple_qa'
+    taskType: 'classification' | 'simple_qa' = 'simple_qa''
   ): Promise<LFM2Response> {
     const prompt = this.createQuickResponsePrompt(userRequest, taskType);
 
-    return this.generate({
+    return this.generate({);
       prompt,
       maxLength: 150,
       temperature: 0.6,
@@ -184,28 +183,28 @@ export class LFM2BridgeService {
   /**
    * Coordinate multiple agent tasks
    */
-  public async coordinateAgents(
+  public async coordinateAgents()
     primaryTask: string,
     supportingTasks: string[]
   ): Promise<{
-    execution_plan: {
+    execution_plan: {,
       primary_priority: number;
-      supporting_priorities: number[];
+      supporting_priorities: number[];,
       parallel_execution: boolean;
       estimated_total_time: number;
     };
-    resource_allocation: {
+    resource_allocation: {,
       primary_service: string;
       supporting_services: string[];
     };
   }> {
     const prompt = this.createCoordinationPrompt(primaryTask, supportingTasks);
 
-    const response = await this.generate({
+    const response = await this.generate({);
       prompt,
       maxLength: 300,
       temperature: 0.4,
-      taskType: 'coordination',
+      taskType: 'coordination','
     });
 
     return this.parseCoordinationResponse(response.content);
@@ -227,10 +226,8 @@ export class LFM2BridgeService {
 
       // Send request to Python process with correct format
       const pythonRequest = {
-        type:
-          request.taskType === 'routing' || request.taskType === 'coordination'
-            ? request.taskType
-            : 'completion',
+        type: request.taskType === 'routing' || request.taskType === 'coordination''
+            ? request.taskType: 'completion','
         requestId,
         prompt: request.prompt,
         maxTokens: request.maxTokens || request.maxLength || 512,
@@ -238,16 +235,16 @@ export class LFM2BridgeService {
       };
 
       if (this.pythonProcess && this.pythonProcess.stdin) {
-        this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}\n`);
+        this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}n`);
       } else {
-        reject(new Error('Python process not available'));
+        reject(new Error('Python process not available'));'
       }
 
       // Timeout after 10 seconds
       setTimeout(() => {
         if (this.pendingRequests.has(requestId)) {
           this.pendingRequests.delete(requestId);
-          reject(new Error('LFM2 request timeout'));
+          reject(new Error('LFM2 request timeout'));'
         }
       }, 10000);
     });
@@ -257,7 +254,7 @@ export class LFM2BridgeService {
    * Batch processing for efficiency
    */
   public async generateBatch(requests: LFM2Request[]): Promise<LFM2Response[]> {
-    log.info('📦 Processing LFM2 batch request', LogContext.AI, { count: requests.length });
+    log.info('📦 Processing LFM2 batch request', LogContext.AI, { count: requests.length });'
 
     // Process requests in parallel but limit concurrency
     const batchSize = THREE;
@@ -273,10 +270,10 @@ export class LFM2BridgeService {
   }
 
   private handlePythonResponse(data: string): void {
-    const lines = data.trim().split('\n');
+    const lines = data.trim().split('\n');';
 
     for (const line of lines) {
-      if (line === 'INITIALIZED') {
+      if (line === 'INITIALIZED') {'
         this.isInitialized = true;
         continue;
       }
@@ -292,77 +289,74 @@ export class LFM2BridgeService {
           const executionTime = response.processingTime || Date.now() - startTime;
 
           if (response.success) {
-            const content = response.text || response.strategy || response.category || '';
+            const content = response.text || response.strategy || response.category || '';';
 
             // Update metrics
             this.updateMetrics(executionTime, content.length);
 
-            resolve({
+            resolve({)
               content,
               tokens: Math.ceil(content.length / 4),
               executionTime,
-              model: response.model || 'lfm2-1.2b',
+              model: response.model || 'lfm2-1.2b','
               confidence: response.confidence,
             });
           } else {
-            reject(new Error(response.error || 'LFM2 processing failed'));
+            reject(new Error(response.error(|| 'LFM2 processing failed'));'
           }
         }
       } catch (error) {
-        log.error('❌ Failed to parse LFM2 response', LogContext.AI, { error, data: line });
+        log.error('❌ Failed to parse LFM2 response', LogContext.AI, { error, data: line });'
       }
     }
   }
 
   private createRoutingPrompt(userRequest: string, context: Record<string, any>): string {
-    return `FAST ROUTING DECISION:
+    return `FAST ROUTING DECISION: ;
 
-USER REQUEST: "${userRequest}"
+USER, REQUEST: "${userRequest}""
 CONTEXT: ${JSON.stringify(context)}
 
-ROUTING OPTIONS:
-- lfm2: Simple questions, quick responses (<100 tokens)
+ROUTING OPTIONS: -, lfm2: Simple questions, quick responses (<100 tokens)
 - ollama: Medium complexity, general purpose (<1000 tokens)
 - lm-studio: Code generation, technical tasks (<2000 tokens)
 - openai: Complex reasoning, creative tasks (>1000 tokens)
 - anthropic: Analysis, research, long-form content
 
-Respond with JSON:
-{"service": "...", "confidence": 0.0-1.0, "reasoning": "...", "tokens": number}`;
+Respond with JSON: {"service": "...", "confidence": 0.0-1.0, "reasoning": "...", "tokens": number}`;"
   }
 
   private createQuickResponsePrompt(userRequest: string, taskType: string): string {
     const taskInstructions = {
-      classification: 'Classify this request into categories and respond briefly.',
-      simple_qa: 'Answer this question quickly and concisely.',
+      classification: 'Classify this request into categories and respond briefly.','
+      simple_qa: 'Answer this question quickly and concisely.','
     };
 
     return `${taskInstructions[taskType as keyof typeof taskInstructions]}
 
-REQUEST: "${userRequest}"
+REQUEST: "${userRequest}""
 
-Response:`;
+Response: `;
   }
 
   private createCoordinationPrompt(primaryTask: string, supportingTasks: string[]): string {
-    return `AGENT COORDINATION PLAN:
+    return `AGENT COORDINATION PLAN: ;
 
-PRIMARY TASK: "${primaryTask}"
-SUPPORTING TASKS: ${supportingTasks.map((task, i) => `${i + 1}. "${task}"`).join(', ')}
+PRIMARY, TASK: "${primaryTask}""
+SUPPORTING TASKS: ${supportingTasks.map((task, i) => `${i + 1}. "${task}"`).join(', ')}'"
 
 Create execution plan with priorities, resource allocation, and timing.
 
-Respond with JSON:
-{
-  "execution_plan": {
-    "primary_priority": 1-5,
-    "supporting_priorities": [1-5, ...],
-    "parallel_execution": boolean,
-    "estimated_total_time": seconds
+Respond with JSON: {
+  "execution_plan": {"
+    "primary_priority": 1-5,"
+    "supporting_priorities": [1-5, ...],"
+    "parallel_execution": boolean,"
+    "estimated_total_time": seconds"
   },
-  "resource_allocation": {
-    "primary_service": "service_name",
-    "supporting_services": ["service1", "service2", ...]
+  "resource_allocation": {"
+    "primary_service": "service_name","
+    "supporting_services": ["service1", "service2", ...]"
   }
 }`;
   }
@@ -373,21 +367,21 @@ Respond with JSON:
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         return {
-          targetService: parsed.service || 'ollama',
+          targetService: parsed.service || 'ollama','
           confidence: parsed.confidence || 0.7,
-          reasoning: parsed.reasoning || 'Automatic routing decision',
+          reasoning: parsed.reasoning || 'Automatic routing decision','
           estimatedTokens: parsed.tokens || 100,
         };
       }
     } catch (error) {
-      log.warn('⚠️ Failed to parse LFM2 routing response', LogContext.AI);
+      log.warn('⚠️ Failed to parse LFM2 routing response', LogContext.AI);'
     }
 
     // Fallback parsing
     return {
-      targetService: 'ollama' as const,
+      targetService: 'ollama' as const,'
       confidence: 0.5,
-      reasoning: 'Fallback routing due to parsing error',
+      reasoning: 'Fallback routing due to parsing error','
       estimatedTokens: 100,
     };
   }
@@ -399,20 +393,20 @@ Respond with JSON:
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      log.warn('⚠️ Failed to parse LFM2 coordination response', LogContext.AI);
+      log.warn('⚠️ Failed to parse LFM2 coordination response', LogContext.AI);'
     }
 
     // Fallback coordination plan
     return {
-      execution_plan: {
+      execution_plan: {,
         primary_priority: 1,
         supporting_priorities: [2, 3],
         parallel_execution: true,
         estimated_total_time: 30,
       },
-      resource_allocation: {
-        primary_service: 'ollama',
-        supporting_services: ['lfm2', 'ollama'],
+      resource_allocation: {,
+        primary_service: 'ollama','
+        supporting_services: ['lfm2', 'ollama'],'
       },
     };
   }
@@ -425,7 +419,7 @@ Respond with JSON:
       content: mockContent,
       tokens: Math.ceil(mockContent.length / 4),
       executionTime: 50 + Math.random() * 100, // 50-150ms
-      model: 'LFM2-1.2B',
+      model: 'LFM2-1.2B','
       confidence: 0.8,
     };
   }
@@ -449,7 +443,7 @@ Respond with JSON:
   }
 
   private async restartProcess(): Promise<void> {
-    log.info('🔄 Restarting LFM2 bridge service', LogContext.AI);
+    log.info('🔄 Restarting LFM2 bridge service', LogContext.AI);'
 
     if (this.pythonProcess) {
       this.pythonProcess.kill();
@@ -474,7 +468,7 @@ Respond with JSON:
   }
 
   public async shutdown(): Promise<void> {
-    log.info('🛑 Shutting down LFM2 bridge service', LogContext.AI);
+    log.info('🛑 Shutting down LFM2 bridge service', LogContext.AI);'
 
     if (this.pythonProcess) {
       this.pythonProcess.kill();
@@ -493,7 +487,7 @@ class SafeLFM2Bridge {
 
   constructor() {
     // Create circuit breaker with optimized settings
-    this.circuitBreaker = new CircuitBreaker<LFM2Response>('lfm2-bridge', {
+    this.circuitBreaker = new CircuitBreaker<LFM2Response>('lfm2-bridge', {'
       failureThreshold: 3,
       successThreshold: 2,
       timeout: 30000, // 30 seconds
@@ -502,21 +496,21 @@ class SafeLFM2Bridge {
     });
 
     // Register for monitoring
-    CircuitBreakerRegistry.register('lfm2-bridge', this.circuitBreaker);
+    CircuitBreakerRegistry.register('lfm2-bridge', this.circuitBreaker);'
   }
 
-  async quickResponse(
+  async quickResponse()
     userRequest: string,
-    taskType: 'classification' | 'simple_qa' = 'simple_qa'
+    taskType: 'classification' | 'simple_qa' = 'simple_qa''
   ): Promise<LFM2Response> {
     return this.circuitBreaker.execute(async () => {
       if (!this.initAttempted && !this.instance) {
         this.initAttempted = true;
         try {
           this.instance = new LFM2BridgeService();
-          log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);
+          log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);'
         } catch (error) {
-          log.warn('⚠️ LFM2 bridge initialization failed, using fallback', LogContext.AI, {
+          log.warn('⚠️ LFM2 bridge initialization failed, using fallback', LogContext.AI, {')
             error,
           });
           return this.createFallbackResponse(userRequest);
@@ -533,16 +527,16 @@ class SafeLFM2Bridge {
 
   async execute(request: LFM2Request): Promise<LFM2Response> {
     // Use circuit breaker for resilient execution
-    return this.circuitBreaker.execute(
+    return this.circuitBreaker.execute();
       async () => {
         // Try to initialize LFM2 if not attempted
         if (!this.initAttempted && !this.instance) {
           this.initAttempted = true;
           try {
             this.instance = new LFM2BridgeService();
-            log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);
+            log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);'
           } catch (error) {
-            log.warn('⚠️ LFM2 bridge initialization failed, using fallback', LogContext.AI, {
+            log.warn('⚠️ LFM2 bridge initialization failed, using fallback', LogContext.AI, {')
               error: error instanceof Error ? error.message : String(error),
             });
           }
@@ -554,17 +548,17 @@ class SafeLFM2Bridge {
         }
 
         // Use Ollama as primary fallback
-        const // TODO: Refactor nested ternary
+        const // TODO: Refactor nested ternary;
           messages = [
             ...(request.systemPrompt
-              ? [{ role: 'system' as const, content: request.systemPrompt }]
+              ? [{ role: 'system' as const, content: request.systemPrompt }]'
               : []),
-            { role: 'user' as const, content: request.prompt },
+            { role: 'user' as const, content: request.prompt },'
           ];
 
-        const response = await ollamaService.generateResponse(
-          [{ role: 'user', content: request.prompt }],
-          'llama3.2:3b',
+        const response = await ollamaService.generateResponse();
+          [{ role: 'user', content: request.prompt }],'
+          'llama3.2: 3b','
           {
             temperature: request.temperature || 0.1,
             max_tokens: request.maxTokens || 100,
@@ -575,18 +569,18 @@ class SafeLFM2Bridge {
           content: response.message.content,
           tokens: response.eval_count || 50,
           executionTime: (response.total_duration || 100000000) / 1000000,
-          model: 'llama3.2:3b (LFM2 fallback)',
+          model: 'llama3.2:3b (LFM2 fallback)','
           confidence: 0.85,
         };
       },
       // Fallback function when circuit is open
       async () => {
-        log.warn('⚡ Circuit breaker active, using emergency fallback', LogContext.AI);
+        log.warn('⚡ Circuit breaker active, using emergency fallback', LogContext.AI);'
         return {
-          content: "I'm currently experiencing high load. Please try again in a moment.",
+          content: "I'm currently experiencing high load. Please try again in a moment.",'"
           tokens: 10,
           executionTime: 1,
-          model: 'circuit-breaker-fallback',
+          model: 'circuit-breaker-fallback','
           confidence: 0.3,
         };
       }
@@ -595,16 +589,16 @@ class SafeLFM2Bridge {
 
   private createFallbackResponse(userRequest: string): LFM2Response {
     return {
-      content: `I understand you're asking about: ${userRequest.substring(0, 50)}... I'm currently experiencing connectivity issues but will help as soon as possible.`,
+      content: `I understand you're asking, about: ${userRequest.substring(0, 50)}... I'm currently experiencing connectivity issues but will help as soon as possible.`,'
       tokens: 25,
       executionTime: 1,
-      model: 'fallback-response',
+      model: 'fallback-response','
       confidence: 0.4,
     };
   }
 
   isAvailable(): boolean {
-    return this.instance?.isAvailable() || true; // Always available with fallback
+    return this.instance?.isAvailable() || true; // Always available with fallback;
   }
 
   getMetrics() {
@@ -622,13 +616,13 @@ class SafeLFM2Bridge {
   /**
    * Fast routing decision using LFM2 with fallback
    */
-  public async routingDecision(
+  public async routingDecision()
     userRequest: string,
     context: Record<string, any>
   ): Promise<{
-    targetService: 'lfm2' | 'ollama' | 'lm-studio' | 'openai' | 'anthropic';
+    targetService: 'lfm2' | 'ollama' | 'lm-studio' | 'openai' | 'anthropic';,'
     confidence: number;
-    reasoning: string;
+    reasoning: string;,
     estimatedTokens: number;
   }> {
     try {
@@ -638,17 +632,17 @@ class SafeLFM2Bridge {
 
       // Fallback to simple heuristic
       return {
-        targetService: 'ollama',
+        targetService: 'ollama','
         confidence: 0.5,
-        reasoning: 'LFM2 unavailable, falling back to Ollama',
+        reasoning: 'LFM2 unavailable, falling back to Ollama','
         estimatedTokens: userRequest.length / 4,
       };
     } catch (error) {
-      log.error('❌ LFM2 routing decision failed', LogContext.AI, { error });
+      log.error('❌ LFM2 routing decision failed', LogContext.AI, { error });'
       return {
-        targetService: 'ollama',
+        targetService: 'ollama','
         confidence: 0.3,
-        reasoning: 'Error in routing, defaulting to Ollama',
+        reasoning: 'Error in routing, defaulting to Ollama','
         estimatedTokens: userRequest.length / 4,
       };
     }
@@ -666,6 +660,6 @@ class SafeLFM2Bridge {
   }
 }
 
-// Export safe singleton that won't crash on startup
+// Export safe singleton that won't crash on startup'
 export const lfm2Bridge = new SafeLFM2Bridge();
 export default lfm2Bridge;
