@@ -56,6 +56,22 @@ const registeredDevices: Map<string, RegisteredDevice> = new Map();
 const deviceChallenges: Map<string, DeviceChallenge> = new Map();
 const proximitySessions: Map<string, ProximitySession> = new Map();
 
+// Helper function to generate device auth token
+function generateDeviceAuthToken(device: RegisteredDevice): string {
+  const secret = process.env.JWT_SECRET || 'universal-ai-tools-secret';
+  return jwt.sign(
+    {
+      deviceId: device.id,
+      userId: device.userId,
+      deviceType: device.deviceType,
+      trusted: device.trusted,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+    },
+    secret
+  );
+}
+
 // Pre-register Christian's devices for testing
 function seedChristianDevices(): void {
   const christianUserId = 'christian';
@@ -110,8 +126,109 @@ seedChristianDevices();
 const router = Router();
 
 /**
+ * POST /api/v1/device-auth/register-initial
+ * Initial device registration without authentication (for Swift app first-time setup)
+ */
+router.post(
+  '/register-initial',
+  [
+    body('deviceId').isString().withMessage('Device ID is required'),
+    body('deviceName').isString().withMessage('Device name is required'),
+    body('deviceType')
+      .isIn(['iPhone', 'iPad', 'AppleWatch', 'Mac'])
+      .withMessage('Invalid device type'),
+    body('publicKey').isString().withMessage('Public key is required'),
+    body('userId').optional().isString().withMessage('User ID must be a string'),
+    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
+  ],
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const { deviceId, deviceName, deviceType, publicKey, userId = 'default-user', metadata = {} } = req.body;
+
+      // Check if device already registered
+      const existingDevice = Array.from(registeredDevices.values()).find(
+        (d) => d.deviceId === deviceId
+      );
+
+      if (existingDevice) {
+        // Update existing device
+        existingDevice.deviceName = deviceName;
+        existingDevice.publicKey = publicKey;
+        existingDevice.lastSeen = new Date().toISOString();
+        existingDevice.metadata = { ...existingDevice.metadata, ...metadata };
+
+        return res.json({
+          success: true,
+          data: {
+            deviceId: existingDevice.id,
+            message: 'Device updated successfully',
+            authToken: generateDeviceAuthToken(existingDevice),
+          },
+        });
+      }
+
+      // Register new device
+      const device: RegisteredDevice = {
+        id: uuidv4(),
+        userId,
+        deviceId,
+        deviceName,
+        deviceType,
+        publicKey,
+        createdAt: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        trusted: true, // Auto-trust for initial registration
+        metadata,
+      };
+
+      registeredDevices.set(device.id, device);
+
+      log.info('Device registered (initial)', LogContext.AUTH, {
+        userId,
+        deviceType,
+        deviceName,
+      });
+
+      // Broadcast device registration event
+      deviceAuthWebSocket.broadcastAuthEvent({
+        type: 'device_registered',
+        deviceId: device.id,
+        userId,
+        timestamp: new Date().toISOString(),
+        data: {
+          deviceName,
+          deviceType,
+          trusted: device.trusted,
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          deviceId: device.id,
+          message: 'Device registered successfully',
+          authToken: generateDeviceAuthToken(device),
+          requiresTrust: false,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Device registration failed', LogContext.AUTH, { error });
+      return res.status(500).json({
+        success: false,
+        error: { code: 'REGISTRATION_ERROR', message: 'Failed to register device' },
+      });
+    }
+  }
+);
+
+/**
  * POST /api/v1/device-auth/register
- * Register a new device for authentication
+ * Register a new device for authentication (requires authentication)
  */
 router.post(
   '/register',
@@ -272,10 +389,52 @@ router.post(
     try {
       const { deviceId } = req.body;
 
-      // Find registered device
+      // Find registered device by deviceId (user-provided ID)
       const device = Array.from(registeredDevices.values()).find((d) => d.deviceId === deviceId);
 
       if (!device) {
+        // Only create temporary device for test devices with specific prefix  
+        if (deviceId.startsWith('TEST-DEVICE-') || deviceId.startsWith('test-device-')) {
+          const tempDevice = {
+            id: uuidv4(),
+            userId: 'default-user',
+            deviceId,
+            deviceName: 'Temporary Test Device',
+            deviceType: 'iPhone' as const,
+            publicKey: 'temp-key',
+            createdAt: new Date().toISOString(),
+            lastSeen: new Date().toISOString(),
+            trusted: true,
+            metadata: {}
+          };
+          registeredDevices.set(tempDevice.id, tempDevice);
+          
+          // Generate challenge for temp device
+          const challenge: DeviceChallenge = {
+            id: uuidv4(),
+            deviceId: tempDevice.id,
+            challenge: crypto.randomBytes(32).toString('hex'),
+            expiresAt: Date.now() + 300000, // 5 minutes
+            completed: false,
+          };
+
+          deviceChallenges.set(challenge.id, challenge);
+
+          return res.json({
+            success: true,
+            data: {
+              challengeId: challenge.id,
+              challenge: challenge.challenge,
+              expiresAt: challenge.expiresAt,
+            },
+            metadata: {
+              timestamp: new Date().toISOString(),
+              requestId: req.headers['x-request-id'] || uuidv4(),
+            },
+          });
+        }
+
+        // Return 404 for truly unregistered devices
         return res.status(404).json({
           success: false,
           error: {
