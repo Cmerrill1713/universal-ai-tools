@@ -3,64 +3,64 @@
  * Manages all service ports to avoid conflicts
  */
 
-import { LogContext, log  } from '../utils/logger';';
-import net from 'net';';
+import { LogContext, log } from '../utils/logger';
+import net from 'net';
 
 export interface PortConfig {
   // Main services
   mainServer: number;
 
   // ML/AI services
-  lfm2Server: number;,
+  lfm2Server: number;
   lmStudio: number;
   ollama: number;
 
   // Python bridges
-  dspyOrchestrator: number;,
+  dspyOrchestrator: number;
   mlxBridge: number;
   pyVisionBridge: number;
 
   // Infrastructure
-  redis: number;,
+  redis: number;
   prometheus: number;
   grafana: number;
 
   // Development tools
-  frontend: number;,
+  frontend: number;
   storybook: number;
 
   // Database
-  postgres: number;,
+  postgres: number;
   supabaseStudio: number;
 }
 
 // Default port configuration
 const DEFAULT_PORTS: PortConfig = {
   // Main services
-  mainServer: parseInt(process.env.PORT || '9999', 10),'
+  mainServer: parseInt(process.env.PORT || '9999', 10),
 
   // ML/AI services
-  lfm2Server: parseInt(process.env.LFM2_PORT || '3031', 10),'
-  lmStudio: parseInt(process.env.LM_STUDIO_PORT || '1234', 10),'
-  ollama: parseInt(process.env.OLLAMA_PORT || '11434', 10),'
+  lfm2Server: parseInt(process.env.LFM2_PORT || '3031', 10),
+  lmStudio: parseInt(process.env.LM_STUDIO_PORT || '1234', 10),
+  ollama: parseInt(process.env.OLLAMA_PORT || '11434', 10),
 
   // Python bridges
-  dspyOrchestrator: parseInt(process.env.DSPY_PORT || '8001', 10),'
-  mlxBridge: parseInt(process.env.MLX_BRIDGE_PORT || '8002', 10),'
-  pyVisionBridge: parseInt(process.env.PYVISION_PORT || '8003', 10),'
+  dspyOrchestrator: parseInt(process.env.DSPY_PORT || '8001', 10),
+  mlxBridge: parseInt(process.env.MLX_BRIDGE_PORT || '8002', 10),
+  pyVisionBridge: parseInt(process.env.PYVISION_PORT || '8003', 10),
 
   // Infrastructure
-  redis: parseInt(process.env.REDIS_PORT || '6379', 10),'
-  prometheus: parseInt(process.env.PROMETHEUS_PORT || '9090', 10),'
-  grafana: parseInt(process.env.GRAFANA_PORT || '3001', 10),'
+  redis: parseInt(process.env.REDIS_PORT || '6379', 10),
+  prometheus: parseInt(process.env.PROMETHEUS_PORT || '9090', 10),
+  grafana: parseInt(process.env.GRAFANA_PORT || '3001', 10),
 
   // Development tools
-  frontend: parseInt(process.env.FRONTEND_PORT || '3000', 10),'
-  storybook: parseInt(process.env.STORYBOOK_PORT || '6006', 10),'
+  frontend: parseInt(process.env.FRONTEND_PORT || '3000', 10),
+  storybook: parseInt(process.env.STORYBOOK_PORT || '6006', 10),
 
   // Database
-  postgres: parseInt(process.env.POSTGRES_PORT || '5432', 10),'
-  supabaseStudio: parseInt(process.env.SUPABASE_STUDIO_PORT || '54323', 10),'
+  postgres: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+  supabaseStudio: parseInt(process.env.SUPABASE_STUDIO_PORT || '54323', 10),
 };
 
 /**
@@ -75,7 +75,7 @@ async function isPortAvailable(port: number): Promise<boolean> {
       resolve(true);
     });
 
-    server.on('error', () => {'
+    server.on('error', () => {
       resolve(false);
     });
   });
@@ -106,7 +106,7 @@ export async function autoConfigurePorts(): Promise<PortConfig> {
     if (usedPorts.has(port)) {
       // Port conflict detected
       const newPort = await findAvailablePort(port + 1);
-      log.warn()
+      log.warn(
         `Port conflict detected for ${service} on ${port}, using ${newPort}`,
         LogContext.CONFIG
       );
@@ -130,7 +130,7 @@ export async function autoConfigurePorts(): Promise<PortConfig> {
  * Get service URLs based on port configuration
  */
 export function getServiceUrls(ports: PortConfig) {
-  const host = process.env.HOST || 'localhost';';
+  const host = process.env.HOST || 'localhost';
 
   return {
     // Main services
@@ -165,28 +165,28 @@ export function getServiceUrls(ports: PortConfig) {
  * Log port configuration
  */
 export function logPortConfiguration(ports: PortConfig): void {
-  log.info('🌐 Port Configuration: ', LogContext.CONFIG, {')
+  log.info('🌐 Port Configuration:', LogContext.CONFIG, {
     mainServer: ports.mainServer,
-    mlServices: {,
+    mlServices: {
       lfm2: ports.lfm2Server,
       lmStudio: ports.lmStudio,
       ollama: ports.ollama,
     },
-    pythonBridges: {,
+    pythonBridges: {
       dspy: ports.dspyOrchestrator,
       mlx: ports.mlxBridge,
       pyVision: ports.pyVisionBridge,
     },
-    infrastructure: {,
+    infrastructure: {
       redis: ports.redis,
       prometheus: ports.prometheus,
       grafana: ports.grafana,
     },
-    development: {,
+    development: {
       frontend: ports.frontend,
       storybook: ports.storybook,
     },
-    database: {,
+    database: {
       postgres: ports.postgres,
       supabaseStudio: ports.supabaseStudio,
     },

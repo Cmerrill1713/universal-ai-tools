@@ -4,13 +4,13 @@
  * Based on the LFM2 bridge pattern for consistency
  */
 
-import type { ChildProcess } from 'child_process';';
-import { spawn  } from 'child_process';';
-import { LogContext, log  } from '../utils/logger';';
-import { CircuitBreaker  } from '../utils/circuit-breaker';';
-import { visionResourceManager  } from './vision-resource-manager';';
-import { ollamaService  } from './ollama-service';';
-import { ModelConfig, getModelForTask  } from '../config/models';';
+import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
+import { LogContext, log } from '../utils/logger';
+import { CircuitBreaker } from '../utils/circuit-breaker';
+import { visionResourceManager } from './vision-resource-manager';
+import { ollamaService } from './ollama-service';
+import { ModelConfig, getModelForTask } from '../config/models';
 import type {
   GeneratedImage,
   GenerationParameters,
@@ -21,31 +21,32 @@ import type {
   VisionOptions,
   VisionRequest,
   VisionResponse,
-} from '../types/vision';'
-import { DetectedObject  } from '../types/vision';';
+} from '../types/vision';
+import { DetectedObject } from '../types/vision';
+import { THREE } from '../utils/constants';
 
 export interface PyVisionMetrics {
-  avgResponseTime: number;,
+  avgResponseTime: number;
   totalRequests: number;
-  successRate: number;,
+  successRate: number;
   cacheHitRate: number;
   modelsLoaded: string[];
 }
 
 interface PendingRequest {
-  resolve: (response: unknown) => void;,
-  reject: (error: Error) => void;,
+  resolve: (response: unknown) => void;
+  reject: (error: Error) => void;
   startTime: number;
   type: string;
 }
 
 export class PyVisionBridge {
-  private pythonProcess: | ChildProcess //, TODO: Refactor nested ternary
-    | null = null;
+  private pythonProcess:
+    | ChildProcess     | null = null;
   private isInitialized = false;
   private pendingRequests: Map<string, PendingRequest> = new Map();
   private requestQueue: VisionRequest[] = [];
-  private metrics: PyVisionMetrics = {,
+  private metrics: PyVisionMetrics = {
     avgResponseTime: 0,
     totalRequests: 0,
     successRate: 1.0,
@@ -61,53 +62,53 @@ export class PyVisionBridge {
 
   private async initializePyVision(): Promise<void> {
     try {
-      log.info('🚀 Initializing PyVision bridge service', LogContext.AI);'
+      log.info('🚀 Initializing PyVision bridge service', LogContext.AI);
 
       // Create Python bridge server
       const pythonScript = `/Users/christianmerrill/Desktop/universal-ai-tools/src/services/pyvision-server.py`;
 
-      this.pythonProcess = spawn('python3', [pythonScript], {')
-        stdio: ['pipe', 'pipe', 'pipe'],'
+      this.pythonProcess = spawn('python3', [pythonScript], {
+        stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
-          PYTHONPATH: '/Users/christianmerrill/Desktop/universal-ai-tools','
-          PYTORCH_ENABLE_MPS_FALLBACK: '1', // Enable Metal Performance Shaders'
+          PYTHONPATH: '/Users/christianmerrill/Desktop/universal-ai-tools',
+          PYTORCH_ENABLE_MPS_FALLBACK: '1', // Enable Metal Performance Shaders
         },
       });
 
       if (!this.pythonProcess.stdout || !this.pythonProcess.stderr || !this.pythonProcess.stdin) {
-        throw new Error('Failed to create Python process stdio');';
+        throw new Error('Failed to create Python process stdio');
       }
 
       // Handle responses
-      this.pythonProcess.stdout.on('data', (data) => {'
+      this.pythonProcess.stdout.on('data', (data) => {
         const output = data.toString();
-        log.info('📥 PyVision stdout data received', LogContext.AI, { output: output.trim() });'
+        log.info('📥 PyVision stdout data received', LogContext.AI, { output: output.trim() });
         this.handlePythonResponse(output);
       });
 
       // Handle stderr output (includes Python logging)
-      this.pythonProcess.stderr.on('data', (data) => {'
+      this.pythonProcess.stderr.on('data', (data) => {
         const message = data.toString();
-        log.info('📥 PyVision stderr data received', LogContext.AI, { message: message.trim() });'
+        log.info('📥 PyVision stderr data received', LogContext.AI, { message: message.trim() });
         // Python logging outputs to stderr by default
-        // Only log as error if it's actually an error-level message'
+        // Only log as error if it's actually an error-level message
         if (
-          message.includes('ERROR') ||'
-          message.includes('CRITICAL') ||'
-          message.includes('Traceback')'
+          message.includes('ERROR') ||
+          message.includes('CRITICAL') ||
+          message.includes('Traceback')
         ) {
-          log.error('❌ PyVision Python error', LogContext.AI, { error: message });'
-        } else if (message.includes('WARNING')) {'
-          log.warn('⚠️ PyVision Python warning', LogContext.AI, { message });'
+          log.error('❌ PyVision Python error', LogContext.AI, { error: message });
+        } else if (message.includes('WARNING')) {
+          log.warn('⚠️ PyVision Python warning', LogContext.AI, { message });
         } else {
-          // INFO and DEBUG messages - don't treat as errors'
-          log.debug('PyVision Python output', LogContext.AI, { message });'
+          // INFO and DEBUG messages - don't treat as errors
+          log.debug('PyVision Python output', LogContext.AI, { message });
         }
       });
 
       // Handle process exit
-      this.pythonProcess.on('exit', (code) => {'
+      this.pythonProcess.on('exit', (code) => {
         log.warn(`⚠️ PyVision Python process exited with code ${code}`, LogContext.AI);
         this.isInitialized = false;
         this.restartProcess();
@@ -116,18 +117,18 @@ export class PyVisionBridge {
       // Wait for initialization with improved logging
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          log.error('❌ PyVision initialization timeout after 30s', LogContext.AI, {')
+          log.error('❌ PyVision initialization timeout after 30s', LogContext.AI, {
             isInitialized: this.isInitialized,
             processExists: !!this.pythonProcess,
             processKilled: this.pythonProcess?.killed,
           });
-          reject(new Error('PyVision initialization timeout'));'
+          reject(new Error('PyVision initialization timeout'));
         }, 30000);
 
         const checkInit = () => {
           if (this.isInitialized) {
             clearTimeout(timeout);
-            log.info('✅ PyVision initialization completed', LogContext.AI);'
+            log.info('✅ PyVision initialization completed', LogContext.AI);
             resolve(true);
           } else {
             setTimeout(checkInit, 100);
@@ -136,27 +137,27 @@ export class PyVisionBridge {
         checkInit();
       });
 
-      log.info('✅ PyVision bridge service initialized', LogContext.AI);'
+      log.info('✅ PyVision bridge service initialized', LogContext.AI);
     } catch (error) {
-      log.error('❌ Failed to initialize PyVision bridge', LogContext.AI, { error });'
+      log.error('❌ Failed to initialize PyVision bridge', LogContext.AI, { error });
       // Initialize with mock implementation
       this.initializeMockVision();
     }
   }
 
   private initializeMockVision(): void {
-    log.warn('⚠️ Using mock PyVision implementation', LogContext.AI);'
+    log.warn('⚠️ Using mock PyVision implementation', LogContext.AI);
     this.isInitialized = true;
   }
 
   /**
    * Analyze an image using YOLO and CLIP
    */
-  public async analyzeImage()
+  public async analyzeImage(
     imagePath: string | Buffer,
     options: VisionOptions = {}
   ): Promise<VisionResponse<VisionAnalysis>> {
-    const cacheKey = this.getCacheKey('analyze', imagePath, options);';
+    const cacheKey = this.getCacheKey('analyze', imagePath, options);
     const cached = this.cache.get(cacheKey);
     if (cached) {
       this.metrics.cacheHitRate =
@@ -165,9 +166,9 @@ export class PyVisionBridge {
       return { ...cached, cached: true };
     }
 
-    return visionResourceManager.executeWithModel('yolo-v8n', async () => {';
-      const response = await this.sendRequest({);
-        type: 'analyze','
+    return visionResourceManager.executeWithModel('yolo-v8n', async () => {
+      const response = await this.sendRequest({
+        type: 'analyze',
         data: imagePath,
         options,
       });
@@ -180,18 +181,18 @@ export class PyVisionBridge {
   /**
    * Generate image embeddings using CLIP
    */
-  public async generateEmbedding()
+  public async generateEmbedding(
     imagePath: string | Buffer
   ): Promise<VisionResponse<VisionEmbedding>> {
-    const cacheKey = this.getCacheKey('embed', imagePath, {});';
+    const cacheKey = this.getCacheKey('embed', imagePath, {});
     const cached = this.cache.get(cacheKey);
     if (cached) {
       return { ...cached, cached: true };
     }
 
-    return visionResourceManager.executeWithModel('clip-vit-b32', async () => {';
-      const response = await this.sendRequest({);
-        type: 'embed','
+    return visionResourceManager.executeWithModel('clip-vit-b32', async () => {
+      const response = await this.sendRequest({
+        type: 'embed',
         data: imagePath,
       });
 
@@ -203,20 +204,20 @@ export class PyVisionBridge {
   /**
    * Generate an image using Stable Diffusion 3B
    */
-  public async generateImage()
+  public async generateImage(
     prompt: string,
     parameters: Partial<GenerationParameters> = {}
   ): Promise<VisionResponse<GeneratedImage>> {
-    return visionResourceManager.executeWithModel();
-      'sd3b','
+    return visionResourceManager.executeWithModel(
+      'sd3b',
       async () => {
-        const response = await this.sendRequest({);
-          type: 'generate','
+        const response = await this.sendRequest({
+          type: 'generate',
           data: prompt,
           options: parameters as VisionOptions,
         });
 
-        // Don't cache generated images'
+        // Don't cache generated images
         return response;
       },
       10
@@ -226,11 +227,11 @@ export class PyVisionBridge {
   /**
    * Refine an image using SDXL Refiner with MLX optimization
    */
-  public async refineImage()
+  public async refineImage(
     imagePath: string | Buffer,
     parameters: Partial<RefinementParameters> = {}
   ): Promise<VisionResponse<RefinedImage>> {
-    const cacheKey = this.getCacheKey('refine', imagePath, parameters);';
+    const cacheKey = this.getCacheKey('refine', imagePath, parameters);
     const cached = this.cache.get(cacheKey);
     if (cached) {
       this.metrics.cacheHitRate =
@@ -239,17 +240,17 @@ export class PyVisionBridge {
       return { ...cached, cached: true };
     }
 
-    return visionResourceManager.executeWithModel();
-      'sdxl-refiner','
+    return visionResourceManager.executeWithModel(
+      'sdxl-refiner',
       async () => {
-        const response = await this.sendRequest({);
-          type: 'refine','
+        const response = await this.sendRequest({
+          type: 'refine',
           data: imagePath,
-          options: {,
+          options: {
             strength: parameters.strength || 0.3,
             steps: parameters.steps || 20,
             guidance: parameters.guidance || 7.5,
-            backend: parameters.backend || 'auto','
+            backend: parameters.backend || 'auto',
             ...parameters,
           } as VisionOptions,
         });
@@ -265,11 +266,11 @@ export class PyVisionBridge {
   /**
    * Batch analyze multiple images
    */
-  public async analyzeBatch()
+  public async analyzeBatch(
     imagePaths: string[],
     options: VisionOptions = {}
   ): Promise<VisionResponse<VisionAnalysis>[]> {
-    log.info('📦 Processing vision batch request', LogContext.AI, { count: imagePaths.length });'
+    log.info('📦 Processing vision batch request', LogContext.AI, { count: imagePaths.length });
 
     // Process in parallel with resource management
     const batchSize = THREE;
@@ -287,19 +288,19 @@ export class PyVisionBridge {
   /**
    * Visual reasoning - analyze and generate hypotheses
    */
-  public async reason()
+  public async reason(
     imagePath: string | Buffer,
     question: string
-  ): Promise<VisionResponse<{ answer: string;, confidence: number; reasoning: string }>> {
+  ): Promise<VisionResponse<{ answer: string; confidence: number; reasoning: string }>> {
     // First analyze the image
     const analysis = await this.analyzeImage(imagePath);
 
     if (!analysis.success || !analysis.data) {
       return {
         success: false,
-        error: 'Failed to analyze image','
+        error: 'Failed to analyze image',
         processingTime: 0,
-        model: 'none','
+        model: 'none',
       };
     }
 
@@ -308,20 +309,20 @@ export class PyVisionBridge {
 
     // Try LLaVA through Ollama for visual reasoning
     try {
-      const response = await ollamaService.generateResponse();
-        [{ role: 'user', content: prompt } as any],'
-        getModelForTask('multimodal_reasoning')'
+      const response = await ollamaService.generateResponse(
+        [{ role: 'user', content: prompt } as any],
+        getModelForTask('multimodal_reasoning')
       );
 
       return {
         success: true,
-        data: {,
+        data: {
           answer: response.message.content,
           confidence: 0.85,
-          reasoning: 'Visual analysis combined with language model reasoning','
+          reasoning: 'Visual analysis combined with language model reasoning',
         },
         processingTime: response.total_duration ? response.total_duration / 1000000 : 1000,
-        model: 'llava:13b','
+        model: 'llava:13b',
       };
     } catch (error) {
       // Fallback to text-based reasoning
@@ -334,12 +335,11 @@ export class PyVisionBridge {
       return this.generateMockResponse(request);
     }
 
-    const // TODO: Refactor nested ternary;
-      requestId = this.generateRequestId();
+    const       requestId = this.generateRequestId();
     const startTime = Date.now();
 
     return new Promise((resolve, reject) => {
-      this.pendingRequests.set(requestId, {)
+      this.pendingRequests.set(requestId, {
         resolve,
         reject,
         startTime,
@@ -350,14 +350,14 @@ export class PyVisionBridge {
       const pythonRequest = {
         id: requestId,
         type: request.type,
-        data: request.data instanceof Buffer ? request.data.toString('base64') : request.data,'
+        data: request.data instanceof Buffer ? request.data.toString('base64') : request.data,
         options: request.options || {},
       };
 
       if (this.pythonProcess && this.pythonProcess.stdin) {
-        this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}n`);
+        this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}\n`);
       } else {
-        reject(new Error('Python process not available'));'
+        reject(new Error('Python process not available'));
       }
 
       // Timeout handling
@@ -372,17 +372,16 @@ export class PyVisionBridge {
   }
 
   private handlePythonResponse(data: string): void {
-    const lines = data.trim().split('n');';
+    const lines = data.trim().split('\n');
 
     for (const line of lines) {
-      if (line.trim() === 'INITIALIZED') {'
-        log.info('🚀 PyVision server initialized successfully', LogContext.AI);'
-        this.isInitialized = true; // TODO: Refactor nested ternary
-        continue;
+      if (line.trim() === 'INITIALIZED') {
+        log.info('🚀 PyVision server initialized successfully', LogContext.AI);
+        this.isInitialized = true;         continue;
       }
 
-      if (line.trim() === '') {'
-        continue; // Skip empty lines;
+      if (line.trim() === '') {
+        continue; // Skip empty lines
       }
 
       try {
@@ -397,107 +396,108 @@ export class PyVisionBridge {
           // Update metrics
           this.updateMetrics(executionTime, response.success);
 
-          const visionResponse: VisionResponse = {,;
+          const visionResponse: VisionResponse = {
             success: response.success,
             data: response.data,
             error: response.error,
             processingTime: executionTime,
-            model: response.model || 'unknown','
+            model: response.model || 'unknown',
           };
 
           resolve(visionResponse);
         }
 
         // Handle model status updates
-        if (response.type === 'model_loaded') {'
+        if (response.type === 'model_loaded') {
           this.metrics.modelsLoaded = response.models || [];
-          log.info('📊 PyVision models updated', LogContext.AI, { models: response.models });'
+          log.info('📊 PyVision models updated', LogContext.AI, { models: response.models });
         }
       } catch (error) {
-        log.error('❌ Failed to parse PyVision response', LogContext.AI, { error, data: line });'
+        log.error('❌ Failed to parse PyVision response', LogContext.AI, { error, data: line });
       }
     }
   }
 
   private createReasoningPrompt(analysis: VisionAnalysis, question: string): string {
-    return `Image Analysis: ;
-- Objects, detected: ${analysis.objects.map((o) => `${o.class} (${(o.confidence * 100).toFixed(1)}%)`).join(', ')}'
+    return `Image Analysis:
+- Objects detected: ${analysis.objects.map((o) => `${o.class} (${(o.confidence * 100).toFixed(1)}%)`).join(', ')}
 - Scene: ${analysis.scene.description}
-- Tags: ${analysis.scene.tags.join(', ')}'
-${analysis.text.length > 0 ? `- Text found: ${analysis.text.map((t) => t.text).join(', ')}` : ''}'
+- Tags: ${analysis.scene.tags.join(', ')}
+${analysis.text.length > 0 ? `- Text found: ${analysis.text.map((t) => t.text).join(', ')}` : ''}
 
 Question: ${question}
 
 Please provide a detailed answer based on the visual analysis above.`;
   }
 
-  private async textBasedReasoning()
+  private async textBasedReasoning(
     analysis: VisionAnalysis,
     question: string
-  ): Promise<VisionResponse<{ answer: string;, confidence: number; reasoning: string }>> {
+  ): Promise<VisionResponse<{ answer: string; confidence: number; reasoning: string }>> {
     const prompt = this.createReasoningPrompt(analysis, question);
 
     try {
-      const response = await ollamaService.generateResponse();
-        [{ role: 'user', content: prompt }],'
-        getModelForTask('quick_response')'
+      const response = await ollamaService.generateResponse(
+        [{ role: 'user', content: prompt }],
+        getModelForTask('quick_response')
       );
 
       return {
         success: true,
-        data: {,
+        data: {
           answer: response.message.content,
           confidence: 0.7,
-          reasoning: 'Text-based reasoning from visual analysis','
+          reasoning: 'Text-based reasoning from visual analysis',
         },
         processingTime: response.total_duration ? response.total_duration / 1000000 : 500,
-        model: 'llama3.2:3b','
+        model: 'llama3.2:3b',
       };
     } catch (error) {
       return {
         success: false,
-        error: 'Reasoning failed','
+        error: 'Reasoning failed',
         processingTime: 0,
-        model: 'none','
+        model: 'none',
       };
     }
   }
 
   private generateMockResponse(request: VisionRequest): VisionResponse {
     const mockResponses: Record<string, any> = {
-      analyze: {,
+      analyze: {
         objects: [
           {
-            class: 'mock_object','
+            class: 'mock_object',
             confidence: 0.95,
-            bbox: {, x: 10, y: 10, width: 100, height: 100 },
-          }],
-        scene: {,
-          description: 'Mock scene analysis','
-          tags: ['mock', 'test'],'
-          mood: 'neutral','
+            bbox: { x: 10, y: 10, width: 100, height: 100 },
+          },
+        ],
+        scene: {
+          description: 'Mock scene analysis',
+          tags: ['mock', 'test'],
+          mood: 'neutral',
         },
         text: [],
         confidence: 0.9,
         processingTimeMs: 100,
       },
-      embed: {,
+      embed: {
         vector: new Float32Array(512).fill(0.1),
-        model: 'clip-vit-b32','
+        model: 'clip-vit-b32',
         dimension: 512,
       },
-      generate: {,
+      generate: {
         id: `mock_gen_${Date.now()}`,
-        base64: 'mock_base64_image_data','
+        base64: 'mock_base64_image_data',
         prompt: request.data as string,
-        model: 'sd3b','
-        parameters: {,
+        model: 'sd3b',
+        parameters: {
           width: 512,
           height: 512,
           steps: 20,
           guidance: 7.5,
         },
-        quality: {,
+        quality: {
           clipScore: 0.85,
           aestheticScore: 0.8,
           safetyScore: 0.95,
@@ -511,14 +511,13 @@ Please provide a detailed answer based on the visual analysis above.`;
       success: true,
       data: mockResponses[request.type] || {},
       processingTime: 50 + Math.random() * 150,
-      model: 'mock','
+      model: 'mock',
       cached: false,
     };
   }
 
   private getCacheKey(type: string, data: string | Buffer, options: unknown): string {
-    const // TODO: Refactor nested ternary;
-      dataKey = data instanceof Buffer ? data.toString('base64').substring(0, 50) : data;'
+    const       dataKey = data instanceof Buffer ? data.toString('base64').substring(0, 50) : data;
     return `${type}_${dataKey}_${JSON.stringify(options)}`;
   }
 
@@ -543,7 +542,7 @@ Please provide a detailed answer based on the visual analysis above.`;
 
     // Update success rate
     this.metrics.successRate =
-      (this.metrics.successRate * (this.metrics.totalRequests - 1) + (success ? 1: 0)) /
+      (this.metrics.successRate * (this.metrics.totalRequests - 1) + (success ? 1 : 0)) /
       this.metrics.totalRequests;
   }
 
@@ -552,17 +551,16 @@ Please provide a detailed answer based on the visual analysis above.`;
   }
 
   private async restartProcess(): Promise<void> {
-    log.info('🔄 Restarting PyVision bridge service', LogContext.AI);'
+    log.info('🔄 Restarting PyVision bridge service', LogContext.AI);
 
     if (this.pythonProcess) {
       this.pythonProcess.kill();
-      this.pythonProcess = // TODO: Refactor nested ternary
-        null;
+      this.pythonProcess =         null;
     }
 
     // Clear pending requests
     this.pendingRequests.forEach(({ reject }) => {
-      reject(new Error('PyVision process restarting'));'
+      reject(new Error('PyVision process restarting'));
     });
     this.pendingRequests.clear();
 
@@ -580,7 +578,7 @@ Please provide a detailed answer based on the visual analysis above.`;
   }
 
   public async shutdown(): Promise<void> {
-    log.info('🛑 Shutting down PyVision bridge service', LogContext.AI);'
+    log.info('🛑 Shutting down PyVision bridge service', LogContext.AI);
 
     if (this.pythonProcess) {
       this.pythonProcess.kill();
@@ -608,7 +606,7 @@ class SafePyVisionBridge {
 
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     if (this.isCircuitBreakerOpen) {
-      throw new Error('PyVision service temporarily unavailable');';
+      throw new Error('PyVision service temporarily unavailable');
     }
 
     try {
@@ -619,14 +617,14 @@ class SafePyVisionBridge {
           // Wait for the initialization to complete
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
-              log.warn('⚠️ PyVision bridge initialization timeout', LogContext.AI);'
+              log.warn('⚠️ PyVision bridge initialization timeout', LogContext.AI);
               resolve(); // Continue with initialization, but isAvailable() will be false
             }, 10000); // 10 second timeout
 
             const checkInit = () => {
               if (this.instance?.isAvailable()) {
                 clearTimeout(timeout);
-                log.info('✅ PyVision bridge initialized successfully', LogContext.AI);'
+                log.info('✅ PyVision bridge initialized successfully', LogContext.AI);
                 resolve();
               } else {
                 setTimeout(checkInit, 100);
@@ -635,7 +633,7 @@ class SafePyVisionBridge {
             checkInit();
           });
         } catch (error) {
-          log.warn('⚠️ PyVision bridge initialization failed, using fallback', LogContext.AI, {')
+          log.warn('⚠️ PyVision bridge initialization failed, using fallback', LogContext.AI, {
             error: error instanceof Error ? error.message : String(error),
           });
         }
@@ -646,11 +644,11 @@ class SafePyVisionBridge {
       }
 
       // Fallback behavior
-      log.warn('PyVision bridge not available, using mock', LogContext.AI, {')
+      log.warn('PyVision bridge not available, using mock', LogContext.AI, {
         hasInstance: !!this.instance,
         isAvailable: this.instance?.isAvailable(),
       });
-      throw new Error('PyVision not available');';
+      throw new Error('PyVision not available');
     } catch (error) {
       // Simple circuit breaker logic
       this.isCircuitBreakerOpen = true;
@@ -661,33 +659,57 @@ class SafePyVisionBridge {
     }
   }
 
-  async analyzeImage(imagePath: string | Buffer, options?: VisionOptions) {
-    return this.execute(() => this.instance?.analyzeImage(imagePath, options));
+  async analyzeImage(imagePath: string | Buffer, options?: VisionOptions): Promise<VisionResponse<VisionAnalysis>> {
+    return this.execute(async () => {
+      const result = await this.instance?.analyzeImage(imagePath, options);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
   }
   // TODO: Add error handling with try-catch
 
-  async generateEmbedding(imagePath: string | Buffer) {
-    return this.execute(() => this.instance?.generateEmbedding(imagePath));
+  async generateEmbedding(imagePath: string | Buffer): Promise<VisionResponse<VisionEmbedding>> {
+    return this.execute(async () => {
+      const result = await this.instance?.generateEmbedding(imagePath);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
   }
   // TODO: Add error handling with try-catch
 
-  async generateImage(prompt: string, parameters?: Partial<GenerationParameters>) {
-    return this.execute(() => this.instance?.generateImage(prompt, parameters));
+  async generateImage(prompt: string, parameters?: Partial<GenerationParameters>): Promise<VisionResponse<GeneratedImage>> {
+    return this.execute(async () => {
+      const result = await this.instance?.generateImage(prompt, parameters);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
   }
   // TODO: Add error handling with try-catch
 
-  async reason(imagePath: string | Buffer, question: string) {
-    return this.execute(() => this.instance?.reason(imagePath, question));
+  async reason(imagePath: string | Buffer, question: string): Promise<VisionResponse<{ answer: string; confidence: number; reasoning: string; }>> {
+    return this.execute(async () => {
+      const result = await this.instance?.reason(imagePath, question);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
   }
   // TODO: Add error handling with try-catch
 
-  async refineImage(imagePath: string | Buffer, parameters?: Partial<RefinementParameters>) {
-    return this.execute(() => this.instance?.refineImage(imagePath, parameters));
+  async refineImage(imagePath: string | Buffer, parameters?: Partial<RefinementParameters>): Promise<VisionResponse<RefinedImage>> {
+    return this.execute(async () => {
+      const result = await this.instance?.refineImage(imagePath, parameters);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
   }
   // TODO: Add error handling with try-catch
 
-  async analyzeBatch(imagePaths: string[], options?: VisionOptions) {
-    return this.execute(() => this.instance?.analyzeBatch(imagePaths, options));
+  async analyzeBatch(imagePaths: string[], options?: VisionOptions): Promise<VisionResponse<VisionAnalysis>[]> {
+    return this.execute(async () => {
+      const result = await this.instance?.analyzeBatch(imagePaths, options);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
   }
   // TODO: Add error handling with try-catch
 

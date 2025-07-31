@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<true/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	
+	<!-- Privacy Permissions for Universal AI Tools Authentication -->
+	
+	<!-- Bluetooth Permission -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Universal AI Tools uses Bluetooth to detect proximity to your devices for secure authentication. This enables automatic lock/unlock when you move away from or return to your device.</string>
+	
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Universal AI Tools uses Bluetooth to communicate with nearby devices for proximity-based authentication and security features.</string>
+	
+	<!-- Location Permission for Beacon Detection -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Universal AI Tools uses location services to detect Bluetooth beacons for proximity-based authentication. This allows automatic unlocking when you're near your authenticated devices.</string>
+	
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Universal AI Tools uses location services to monitor proximity to your devices for continuous authentication. This enables automatic lock/unlock based on your distance from authenticated devices.</string>
+	
+	<!-- Face ID / Touch ID Permission -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Universal AI Tools uses Face ID to provide secure biometric authentication for accessing your AI tools and services.</string>
+	
+	<!-- Local Network Permission for API Communication -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Universal AI Tools needs to access your local network to communicate with the AI tools server running on your local machine.</string>
+	
+	<!-- Camera Permission (if needed for future features) -->
+	<key>NSCameraUsageDescription</key>
+	<string>Universal AI Tools may use the camera for advanced authentication features and visual AI interactions.</string>
+	
+	<!-- Microphone Permission (if needed for voice features) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Universal AI Tools may use the microphone for voice commands and audio-based AI interactions.</string>
+	
+	<!-- App Transport Security Configuration -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<key>127.0.0.1</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+			</dict>
+		</dict>
+	</dict>
+	
+	<!-- Background Modes for Proximity Detection -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+		<string>location</string>
+		<string>background-processing</string>
+	</array>
+	
+	<!-- Required Device Capabilities -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>bluetooth-le</string>
+		<string>location-services</string>
+	</array>
+	
+	<!-- Watch Connectivity -->
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.universalaitools.companion.watchkitapp</string>
+	
+	<!-- URL Schemes for Deep Linking -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.universalaitools.companion</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>universalaitools</string>
+				<string>uat</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- Exported Type Identifiers -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.universalaitools.companion.auth</string>
+			<key>UTTypeDescription</key>
+			<string>Universal AI Tools Authentication Data</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>uatauth</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

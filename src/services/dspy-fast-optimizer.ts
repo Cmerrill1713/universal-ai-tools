@@ -3,31 +3,32 @@
  * Uses DSPy to improve LFM2-1.2B routing decisions and response quality
  */
 
-import { LogContext, log  } from '@/utils/logger';';
-import type { CoordinationContext, FastRoutingDecision } from './fast-llm-coordinator';';
-import { fastCoordinator  } from './fast-llm-coordinator';';
+import { LogContext, log } from '@/utils/logger';
+import type { CoordinationContext, FastRoutingDecision } from './fast-llm-coordinator';
+import { fastCoordinator } from './fast-llm-coordinator';
+import { THREE, TWO } from '@/utils/constants';
 
 export interface DSPyOptimization {
-  task: string;,
+  task: string;
   originalPrompt: string;
-  optimizedPrompt: string;,
+  optimizedPrompt: string;
   performanceGain: number;
-  confidence: number;,
+  confidence: number;
   iterations: number;
   examples: OptimizationExample[];
 }
 
 export interface OptimizationExample {
-  input: string;,
+  input: string;
   expectedOutput: string;
   actualOutput?: string;
   score?: number;
 }
 
 export interface FastModelMetrics {
-  avgResponseTime: number;,
+  avgResponseTime: number;
   accuracy: number;
-  tokenEfficiency: number;,
+  tokenEfficiency: number;
   routingAccuracy: number;
 }
 
@@ -41,7 +42,7 @@ export class DSPyFastOptimizer {
   }
 
   private async initializeOptimizer(): Promise<void> {
-    log.info('🚀 Initializing DSPy Fast Optimizer for LFM2', LogContext.AI);'
+    log.info('🚀 Initializing DSPy Fast Optimizer for LFM2', LogContext.AI);
 
     // Load existing optimizations
     await this.loadOptimizations();
@@ -53,23 +54,23 @@ export class DSPyFastOptimizer {
   /**
    * Optimize routing decisions using DSPy
    */
-  public async optimizeRouting()
-    examples: Array<{,
+  public async optimizeRouting(
+    examples: Array<{
       userRequest: string;
-      context: CoordinationContext;,
+      context: CoordinationContext;
       expectedService: string;
       actualPerformance: number;
     }>
   ): Promise<DSPyOptimization> {
-    const taskId = 'routing_optimization';';
-    log.info('🔧 Optimizing routing with DSPy', LogContext.AI, {')
+    const taskId = 'routing_optimization';
+    log.info('🔧 Optimizing routing with DSPy', LogContext.AI, {
       examples: examples.length,
       taskId,
     });
 
     // Convert examples to DSPy format
-    const dspyExamples: OptimizationExample[] = examples.map((ex) => ({,;
-      input: `Request: "${ex.userRequest}" Context: ${JSON.stringify(ex.context)}`,"
+    const dspyExamples: OptimizationExample[] = examples.map((ex) => ({
+      input: `Request: "${ex.userRequest}" Context: ${JSON.stringify(ex.context)}`,
       expectedOutput: ex.expectedService,
       score: ex.actualPerformance,
     }));
@@ -87,11 +88,11 @@ export class DSPyFastOptimizer {
   /**
    * Optimize LFM2 response quality for specific tasks
    */
-  public async optimizeLFM2Responses()
+  public async optimizeLFM2Responses(
     taskType: string,
     examples: OptimizationExample[]
   ): Promise<DSPyOptimization> {
-    log.info('⚡ Optimizing LFM2 responses with DSPy', LogContext.AI, {')
+    log.info('⚡ Optimizing LFM2 responses with DSPy', LogContext.AI, {
       taskType,
       examples: examples.length,
     });
@@ -107,13 +108,13 @@ export class DSPyFastOptimizer {
   /**
    * Real-time optimization based on feedback
    */
-  public async adaptiveOptimization()
+  public async adaptiveOptimization(
     userRequest: string,
     context: CoordinationContext,
     actualDecision: FastRoutingDecision,
-    userFeedback: {,
+    userFeedback: {
       satisfied: boolean;
-      responseTime: number;,
+      responseTime: number;
       accuracy: number;
       suggestions?: string;
     }
@@ -121,7 +122,7 @@ export class DSPyFastOptimizer {
     const { taskType } = context;
 
     // Update metrics
-    this.updateMetrics(taskType, {)
+    this.updateMetrics(taskType, {
       avgResponseTime: userFeedback.responseTime,
       accuracy: userFeedback.accuracy,
       tokenEfficiency: actualDecision.estimatedTokens / userFeedback.responseTime,
@@ -130,11 +131,10 @@ export class DSPyFastOptimizer {
 
     // Add to training examples if feedback is poor
     if (!userFeedback.satisfied || userFeedback.accuracy < 0.7) {
-      const // TODO: Refactor nested ternary;
-        examples = this.trainingExamples.get(taskType) || [];
-      examples.push({)
+      const         examples = this.trainingExamples.get(taskType) || [];
+      examples.push({
         input: userRequest,
-        expectedOutput: userFeedback.suggestions || 'Better response needed','
+        expectedOutput: userFeedback.suggestions || 'Better response needed',
         actualOutput: JSON.stringify(actualDecision),
         score: userFeedback.accuracy,
       });
@@ -151,30 +151,30 @@ export class DSPyFastOptimizer {
   /**
    * Performance comparison between services
    */
-  public async benchmarkServices(testRequests: string[]): Promise<{,
+  public async benchmarkServices(testRequests: string[]): Promise<{
     lfm2: FastModelMetrics;
-    ollama: FastModelMetrics;,
+    ollama: FastModelMetrics;
     lmStudio: FastModelMetrics;
     recommendations: string[];
   }> {
-    log.info('📊 Benchmarking services with DSPy optimization', LogContext.AI, {')
+    log.info('📊 Benchmarking services with DSPy optimization', LogContext.AI, {
       testRequests: testRequests.length,
     });
 
     const results = {
-      lfm2: {, avgResponseTime: 0, accuracy: 0, tokenEfficiency: 0, routingAccuracy: 0 },
-      ollama: {, avgResponseTime: 0, accuracy: 0, tokenEfficiency: 0, routingAccuracy: 0 },
-      lmStudio: {, avgResponseTime: 0, accuracy: 0, tokenEfficiency: 0, routingAccuracy: 0 },
+      lfm2: { avgResponseTime: 0, accuracy: 0, tokenEfficiency: 0, routingAccuracy: 0 },
+      ollama: { avgResponseTime: 0, accuracy: 0, tokenEfficiency: 0, routingAccuracy: 0 },
+      lmStudio: { avgResponseTime: 0, accuracy: 0, tokenEfficiency: 0, routingAccuracy: 0 },
       recommendations: [] as string[],
     };
 
     // Run benchmarks for each service
     for (const request of testRequests) {
-      const context: CoordinationContext = {,;
-        taskType: 'benchmark','
-        complexity: 'medium','
-        urgency: 'medium','
-        expectedResponseLength: 'medium','
+      const context: CoordinationContext = {
+        taskType: 'benchmark',
+        complexity: 'medium',
+        urgency: 'medium',
+        expectedResponseLength: 'medium',
         requiresCreativity: false,
         requiresAccuracy: true,
       };
@@ -188,7 +188,7 @@ export class DSPyFastOptimizer {
       const responseTime = endTime - startTime;
 
       // Update metrics based on service used
-      if (service === 'lfm2') {'
+      if (service === 'lfm2') {
         results.lfm2.avgResponseTime += responseTime;
         results.lfm2.tokenEfficiency += coordinated.metadata.tokensUsed / responseTime;
       }
@@ -198,7 +198,7 @@ export class DSPyFastOptimizer {
     // Average the results
     const numTests = testRequests.length;
     Object.keys(results).forEach((service) => {
-      if (service !== 'recommendations') {'
+      if (service !== 'recommendations') {
         const metrics = results[service as keyof typeof results] as FastModelMetrics;
         metrics.avgResponseTime /= numTests;
         metrics.tokenEfficiency /= numTests;
@@ -215,11 +215,11 @@ export class DSPyFastOptimizer {
    * Auto-tune system based on usage patterns
    */
   public async autoTuneSystem(): Promise<{
-    optimizationsApplied: number;,
+    optimizationsApplied: number;
     performanceImprovement: number;
     recommendations: string[];
   }> {
-    log.info('🎛️ Auto-tuning system with DSPy insights', LogContext.AI);'
+    log.info('🎛️ Auto-tuning system with DSPy insights', LogContext.AI);
 
     let optimizationsApplied = 0;
     let totalImprovement = 0;
@@ -233,40 +233,42 @@ export class DSPyFastOptimizer {
       }
     }
 
-    const avgImprovement = optimizationsApplied > 0 ? totalImprovement / optimizationsApplied: 0;
+    const avgImprovement = optimizationsApplied > 0 ? totalImprovement / optimizationsApplied : 0;
 
     return {
       optimizationsApplied,
       performanceImprovement: avgImprovement,
       recommendations: [
-        'Use LFM2 for simple questions (<50 tokens)','
-        'Route complex analysis to Ollama or external APIs','
-        'Cache frequent routing decisions','
-        'Batch similar requests for efficiency','
+        'Use LFM2 for simple questions (<50 tokens)',
+        'Route complex analysis to Ollama or external APIs',
+        'Cache frequent routing decisions',
+        'Batch similar requests for efficiency',
       ],
     };
   }
 
   private createRoutingOptimizationPrompt(examples: OptimizationExample[]): string {
-    return `You are a routing optimization expert. Based on these examples, create an optimized prompt for fast LLM routing decisions: ;
+    return `You are a routing optimization expert. Based on these examples, create an optimized prompt for fast LLM routing decisions:
 
-EXAMPLES: ${examples.map((ex) => `Input: ${ex.input}nExpected: ${ex.expectedOutput}\nScore: ${ex.score}`).join('\n\n')}'
+EXAMPLES:
+${examples.map((ex) => `Input: ${ex.input}\nExpected: ${ex.expectedOutput}\nScore: ${ex.score}`).join('\n\n')}
 
 Create an optimized routing prompt that maximizes accuracy while minimizing decision time.`;
   }
 
-  private createResponseOptimizationPrompt()
+  private createResponseOptimizationPrompt(
     taskType: string,
     examples: OptimizationExample[]
   ): string {
     return `Optimize responses for task type: ${taskType}
 
-TRAINING EXAMPLES: ${examples.map((ex) => `Q: ${ex.input}nA: ${ex.expectedOutput}`).join('\n\n')}'
+TRAINING EXAMPLES:
+${examples.map((ex) => `Q: ${ex.input}\nA: ${ex.expectedOutput}`).join('\n\n')}
 
 Create an optimized prompt that generates higher quality responses for this task type.`;
   }
 
-  private async runDSPyOptimization()
+  private async runDSPyOptimization(
     taskId: string,
     prompt: string,
     examples: OptimizationExample[]
@@ -287,25 +289,27 @@ Create an optimized prompt that generates higher quality responses for this task
 
   private initializeTrainingExamples(): void {
     // Initialize common task examples
-    this.trainingExamples.set('simple_questions', [')
+    this.trainingExamples.set('simple_questions', [
       {
-        input: 'What time is it?','
-        expectedOutput: 'Use LFM2 for immediate response','
+        input: 'What time is it?',
+        expectedOutput: 'Use LFM2 for immediate response',
       },
       {
-        input: 'Hello','
-        expectedOutput: 'Use LFM2 for greeting','
-      }]);
+        input: 'Hello',
+        expectedOutput: 'Use LFM2 for greeting',
+      },
+    ]);
 
-    this.trainingExamples.set('code_generation', [')
+    this.trainingExamples.set('code_generation', [
       {
-        input: 'Write a React component','
-        expectedOutput: 'Use LM Studio or external API','
+        input: 'Write a React component',
+        expectedOutput: 'Use LM Studio or external API',
       },
       {
-        input: 'Debug this Python function','
-        expectedOutput: 'Use Ollama or external API','
-      }]);
+        input: 'Debug this Python function',
+        expectedOutput: 'Use Ollama or external API',
+      },
+    ]);
   }
 
   private updateMetrics(taskType: string, newMetrics: Partial<FastModelMetrics>): void {
@@ -328,19 +332,19 @@ Create an optimized prompt that generates higher quality responses for this task
     this.metrics.set(taskType, existing);
   }
 
-  private generatePerformanceRecommendations(results: unknown): string[] {
+  private generatePerformanceRecommendations(results: any): string[] {
     const recommendations: string[] = [];
 
-    if (results.lfm2.avgResponseTime < results.ollama.avgResponseTime) {
-      recommendations.push('Use LFM2 for more simple tasks to improve speed');'
+    if ((results as any).lfm2.avgResponseTime < (results as any).ollama.avgResponseTime) {
+      recommendations.push('Use LFM2 for more simple tasks to improve speed');
     }
 
-    if (results.ollama.accuracy > results.lfm2.accuracy) {
-      recommendations.push('Route accuracy-critical tasks to Ollama');'
+    if ((results as any).ollama.accuracy > (results as any).lfm2.accuracy) {
+      recommendations.push('Route accuracy-critical tasks to Ollama');
     }
 
-    recommendations.push('Consider caching frequent routing decisions');'
-    recommendations.push('Batch similar requests for better throughput');'
+    recommendations.push('Consider caching frequent routing decisions');
+    recommendations.push('Batch similar requests for better throughput');
 
     return recommendations;
   }
@@ -348,19 +352,18 @@ Create an optimized prompt that generates higher quality responses for this task
   private async loadOptimizations(): Promise<void> {
     // Load existing optimizations from storage
     // This would typically load from a database or file system
-    log.info('📁 Loading existing DSPy optimizations', LogContext.AI);'
+    log.info('📁 Loading existing DSPy optimizations', LogContext.AI);
   }
 
   public getOptimizationStatus(): {
-    totalOptimizations: number;,
+    totalOptimizations: number;
     avgPerformanceGain: number;
     topPerformingTasks: string[];
   } {
     const optimizations = Array.from(this.optimizations.values());
-    const avgGain =;
-      optimizations.reduce((sum, opt) => sum + opt.performanceGain, 0) / optimizations.length || 0;
+    const avgGain =       optimizations.reduce((sum, opt) => sum + opt.performanceGain, 0) / optimizations.length || 0;
 
-    const topTasks = optimizations;
+    const topTasks = optimizations
       .sort((a, b) => b.performanceGain - a.performanceGain)
       .slice(0, THREE)
       .map((opt) => opt.task);

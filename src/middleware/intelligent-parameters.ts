@@ -3,10 +3,12 @@
  * Automatically applies optimal parameters to LLM requests
  */
 
-import type { NextFunction, Request, Response } from 'express';';
-import type { TaskContext } from '../services/intelligent-parameter-service';';
-import { TaskType, intelligentParameterService  } from '../services/intelligent-parameter-service';';
-import { LogContext, log  } from '../utils/logger';';
+import type { NextFunction, Request, Response } from 'express';
+import type { TaskContext } from '../services/intelligent-parameter-service';
+import { TaskType, intelligentParameterService } from '../services/intelligent-parameter-service';
+import type { OptimizedParameters } from '@/types';
+import type { UserPreferences } from '../services/intelligent-parameter-service';
+import { LogContext, log } from '../utils/logger';
 
 export interface IntelligentRequest extends Request {
   taskContext?: TaskContext;
@@ -26,15 +28,14 @@ export interface ParameterOverrides {
 /**
  * Middleware to automatically detect task type and optimize parameters
  */
-export function intelligentParametersMiddleware();
-  overrides: //, TODO: Refactor nested ternary
-  ParameterOverrides = {}
+export function intelligentParametersMiddleware(
+  overrides:   ParameterOverrides = {}
 ) {
   return (req: IntelligentRequest, res: Response, next: NextFunction) => {
     try {
       // Skip if parameters are forced to be manual
       if (req.body?.manualParameters === true) {
-        log.info('Skipping intelligent parameters (manual mode)', LogContext.AI);'
+        log.info('Skipping intelligent parameters (manual mode)', LogContext.AI);
         return next();
       }
 
@@ -42,24 +43,23 @@ export function intelligentParametersMiddleware();
       req.originalBody = { ...req.body };
 
       // Extract user input from various possible fields
-      const userInput =;
-        req.body.prompt ||
+      const userInput =         req.body.prompt ||
         req.body.message ||
         req.body.userRequest ||
         req.body.query ||
         req.body.text ||
         req.body.content ||
-        '';'
+        '';
 
       if (!userInput) {
-        log.warn('No user input found for intelligent parameters', LogContext.AI);'
+        log.warn('No user input found for intelligent parameters', LogContext.AI);
         return next();
       }
 
       // Create additional context
       const additionalContext: Record<string, any> = {
         hasImage: !!(req.file || req.body.imagePath || req.body.imageBase64),
-        language: req.body.language || 'javascript','
+        language: req.body.language || 'javascript',
         framework: req.body.framework,
         domain: req.body.domain,
         endpoint: req.path,
@@ -77,7 +77,7 @@ export function intelligentParametersMiddleware();
       };
 
       // Create task context
-      const taskContext = intelligentParameterService.createTaskContext();
+      const taskContext = intelligentParameterService.createTaskContext(
         userInput,
         overrides.taskType || req.body.taskType,
         additionalContext,
@@ -89,7 +89,7 @@ export function intelligentParametersMiddleware();
 
       // Apply model-specific optimizations if model is specified
       if (req.body.model) {
-        optimizedParams = intelligentParameterService.getModelOptimizedParameters()
+        optimizedParams = intelligentParameterService.getModelOptimizedParameters(
           optimizedParams,
           req.body.model
         );
@@ -130,7 +130,7 @@ export function intelligentParametersMiddleware();
       };
 
       // Enhance the prompt with the optimized template
-      if (optimizedParams.userPromptTemplate !== '{user_input}') {'
+      if (optimizedParams.userPromptTemplate !== '{user_input}') {
         req.body.prompt = optimizedParams.userPromptTemplate;
         req.body.enhancedPrompt = true;
       }
@@ -139,7 +139,7 @@ export function intelligentParametersMiddleware();
       req.taskContext = taskContext;
       req.optimizedParameters = optimizedParams;
 
-      log.info('Applied intelligent parameters', LogContext.AI, {')
+      log.info('Applied intelligent parameters', LogContext.AI, {
         taskType: taskContext.type,
         complexity: taskContext.complexity,
         temperature: optimizedParams.temperature,
@@ -150,7 +150,7 @@ export function intelligentParametersMiddleware();
 
       next();
     } catch (error) {
-      log.error('Error in intelligent parameters middleware', LogContext.AI, { error });'
+      log.error('Error in intelligent parameters middleware', LogContext.AI, { error });
       // Continue without optimization rather than failing
       next();
     }
@@ -161,7 +161,7 @@ export function intelligentParametersMiddleware();
  * Middleware specifically for chat endpoints
  */
 export function chatParametersMiddleware() {
-  return intelligentParametersMiddleware({);
+  return intelligentParametersMiddleware({
     taskType: TaskType.CASUAL_CHAT,
     temperature: 0.7,
   });
@@ -171,7 +171,7 @@ export function chatParametersMiddleware() {
  * Middleware specifically for code endpoints
  */
 export function codeParametersMiddleware() {
-  return intelligentParametersMiddleware({);
+  return intelligentParametersMiddleware({
     taskType: TaskType.CODE_GENERATION,
     temperature: 0.2,
   });
@@ -181,7 +181,7 @@ export function codeParametersMiddleware() {
  * Middleware specifically for analysis endpoints
  */
 export function analysisParametersMiddleware() {
-  return intelligentParametersMiddleware({);
+  return intelligentParametersMiddleware({
     taskType: TaskType.DATA_ANALYSIS,
     temperature: 0.3,
   });
@@ -191,7 +191,7 @@ export function analysisParametersMiddleware() {
  * Middleware specifically for creative endpoints
  */
 export function creativeParametersMiddleware() {
-  return intelligentParametersMiddleware({);
+  return intelligentParametersMiddleware({
     taskType: TaskType.CREATIVE_WRITING,
     temperature: 0.8,
   });
@@ -201,7 +201,7 @@ export function creativeParametersMiddleware() {
  * Middleware for vision tasks
  */
 export function visionParametersMiddleware() {
-  return intelligentParametersMiddleware({);
+  return intelligentParametersMiddleware({
     taskType: TaskType.IMAGE_ANALYSIS,
     temperature: 0.4,
   });
@@ -217,13 +217,13 @@ export function parameterEffectivenessLogger() {
     res.send = function (data: unknown) {
       try {
         if (req.taskContext && req.optimizedParameters) {
-          const responseData = typeof data === 'string' ? JSON.parse(data) : data;';
+          const responseData = typeof data === 'string' ? JSON.parse(data) : data;
 
           // Log parameter effectiveness metrics
-          log.info('Parameter effectiveness metrics', LogContext.AI, {')
+          log.info('Parameter effectiveness metrics', LogContext.AI, {
             taskType: req.taskContext.type,
-            temperature: req.optimizedParameters.temperature,
-            maxTokens: req.optimizedParameters.maxTokens,
+            temperature: (req.optimizedParameters as OptimizedParameters)?.temperature,
+            maxTokens: (req.optimizedParameters as OptimizedParameters)?.maxTokens,
             responseSuccess: responseData.success !== false,
             responseLength: responseData.data?.length || 0,
             processingTime: responseData.processingTime,
@@ -244,22 +244,22 @@ export function parameterEffectivenessLogger() {
 /**
  * Utility function to manually optimize parameters for any LLM service
  */
-export function optimizeParameters();
+export function optimizeParameters(
   userInput: string,
   options: {
     taskType?: TaskType;
     model?: string;
     domain?: string;
-    complexity?: 'simple' | 'medium' | 'complex';'
-    userPreferences?: unknown;
+    complexity?: 'simple' | 'medium' | 'complex';
+    userPreferences?: UserPreferences;
     overrides?: ParameterOverrides;
   } = {}
-): unknown {
-  const taskContext = intelligentParameterService.createTaskContext();
+): OptimizedParameters {
+  const taskContext = intelligentParameterService.createTaskContext(
     userInput,
     options.taskType,
     { domain: options.domain },
-    options.userPreferences
+    options.userPreferences || {}
   );
 
   if (options.complexity) {
@@ -269,7 +269,7 @@ export function optimizeParameters();
   let optimizedParams = intelligentParameterService.getTaskParameters(taskContext);
 
   if (options.model) {
-    optimizedParams = intelligentParameterService.getModelOptimizedParameters()
+    optimizedParams = intelligentParameterService.getModelOptimizedParameters(
       optimizedParams,
       options.model
     );
@@ -287,25 +287,31 @@ export function optimizeParameters();
       optimizedParams.systemPrompt = options.overrides.systemPrompt;
   }
 
-  return {
+  const result: OptimizedParameters & { 
+    stop?: string[];
+    system?: string;
+    userPromptTemplate?: string;
+    taskType?: string;
+    complexity?: string;
+  } = {
     temperature: optimizedParams.temperature,
     maxTokens: optimizedParams.maxTokens,
-    max_tokens: optimizedParams.maxTokens,
     contextLength: optimizedParams.contextLength,
     topP: optimizedParams.topP,
-    top_p: optimizedParams.topP,
     presencePenalty: optimizedParams.presencePenalty,
-    presence_penalty: optimizedParams.presencePenalty,
     frequencyPenalty: optimizedParams.frequencyPenalty,
-    frequency_penalty: optimizedParams.frequencyPenalty,
     stopSequences: optimizedParams.stopSequences,
-    stop: optimizedParams.stopSequences,
     systemPrompt: optimizedParams.systemPrompt,
-    system: optimizedParams.systemPrompt,
-    userPromptTemplate: optimizedParams.userPromptTemplate,
-    taskType: taskContext.type,
-    complexity: taskContext.complexity,
   };
+
+  // Add extended properties for compatibility
+  (result as any).stop = optimizedParams.stopSequences;
+  (result as any).system = optimizedParams.systemPrompt;
+  (result as any).userPromptTemplate = optimizedParams.userPromptTemplate;
+  (result as any).taskType = taskContext.type;
+  (result as any).complexity = taskContext.complexity;
+
+  return result as any;
 }
 
 export default intelligentParametersMiddleware;

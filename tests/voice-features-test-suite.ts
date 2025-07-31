@@ -4,6 +4,7 @@ import { SpeechService } from '../src/services/speech-service';
 import { VoiceProfileService } from '../src/services/voice-profile-service';
 import { audioHandler } from '../src/services/audio-handler';
 import { logger } from '../src/utils/logger';
+import { TWO, THREE, HOURS_IN_DAY } from '../src/utils/constants';
 import fs from 'fs/promises';
 import path from 'path';
 

@@ -3,19 +3,18 @@
  * Provides real-time system performance and health metrics
  */
 
-import type { NextFunction, Request, Response } from 'express';';
-import { Router  } from 'express';';
-import { sendError, sendSuccess  } from '../utils/api-response';';
-import { LogContext, log  } from '../utils/logger';';
-import { abMCTSOrchestrator  } from '../services/ab-mcts-orchestrator';';
-import { feedbackCollector  } from '../services/feedback-collector';';
-import { multiTierLLM  } from '../services/multi-tier-llm-service';';
-import { parameterAnalyticsService  } from '../services/parameter-analytics-service';';
-import AgentRegistry from '../agents/agent-registry';';
-import os from 'os';';
+import type { NextFunction, Request, Response } from 'express';
+import { Router } from 'express';
+import { sendError, sendSuccess } from '../utils/api-response';
+import { LogContext, log } from '../utils/logger';
+import { abMCTSOrchestrator } from '../services/ab-mcts-orchestrator';
+import { feedbackCollector } from '../services/feedback-collector';
+import { multiTierLLM } from '../services/multi-tier-llm-service';
+import { parameterAnalyticsService } from '../services/parameter-analytics-service';
+import AgentRegistry from '../agents/agent-registry';
+import os from 'os';
 
-const // TODO: Refactor nested ternary;
-  router = Router();
+const   router = Router();
 
 /**
  * Get system resource metrics
@@ -27,8 +26,7 @@ const getSystemResources = () => {
   const cpus = os.cpus();
 
   // Calculate CPU usage
-  const cpuUsage =;
-    cpus.reduce((acc, cpu) => {
+  const cpuUsage =     cpus.reduce((acc, cpu) => {
       const total = Object.values(cpu.times).reduce((a, b) => a + b, 0);
       const { idle } = cpu.times;
       return acc + ((total - idle) / total) * 100;
@@ -49,7 +47,7 @@ const getSystemResources = () => {
  * @route GET /api/v1/system/metrics
  * @desc Get comprehensive system metrics
  */
-router.get('/metrics', async (req: Request, res: Response, next: NextFunction) => {'
+router.get('/metrics', async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get system resources
     const resources = getSystemResources();
@@ -69,12 +67,11 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
     const queuedTasks = feedbackMetrics.queueSize;
 
     // Get performance analytics
-    const performanceData = await parameterAnalyticsService.getRecentPerformance(60); // Last 60 minutes;
+    const performanceData = await parameterAnalyticsService.getRecentPerformance(60); // Last 60 minutes
 
     // Calculate average response time from recent data
-    const avgResponseTime =;
-      performanceData.length > 0
-        ? Math.round()
+    const avgResponseTime =       performanceData.length > 0
+        ? Math.round(
             performanceData.reduce((sum, p) => sum + (p.executionTime || 0), 0) /
               performanceData.length
           )
@@ -82,20 +79,19 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
 
     // Calculate success rate
     const successCount = performanceData.filter((p) => p.success).length;
-    const successRate =;
-      performanceData.length > 0
-        ? Math.round((successCount / performanceData.length) * 100 * 10) / 10: 100;
+    const successRate =       performanceData.length > 0
+        ? Math.round((successCount / performanceData.length) * 100 * 10) / 10
+        : 100;
 
-    const // TODO: Refactor nested ternary;
-      metrics = {
+    const       metrics = {
         system: resources,
-        orchestrator: {,
+        orchestrator: {
           activeSearches: orchestratorStats.activeSearches,
           cachedResults: orchestratorStats.cachedResults,
           circuitBreakerState: orchestratorStats.circuitBreakerState,
           successRate: Math.round(orchestratorStats.successRate * 100 * 10) / 10,
         },
-        agents: {,
+        agents: {
           loaded: loadedAgents.length,
           available: availableAgents.length,
           active: orchestratorStats.activeSearches,
@@ -106,7 +102,7 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
           successRate,
           totalRequests: performanceData.length,
           queuedTasks,
-          recentRequests: performanceData.slice(-10).map((p) => ({,
+          recentRequests: performanceData.slice(-10).map((p) => ({
             timestamp: p.timestamp,
             executionTime: p.executionTime,
             success: p.success,
@@ -114,16 +110,16 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
             confidence: p.confidence,
           })),
         },
-        feedback: {,
+        feedback: {
           totalProcessed: feedbackMetrics.totalProcessed,
           queueSize: feedbackMetrics.queueSize,
           aggregations: feedbackMetrics.aggregations.length,
         },
       };
 
-    sendSuccess(res, metrics, 200, { message: 'System metrics retrieved successfully' });'
+    sendSuccess(res, metrics, 200, { message: 'System metrics retrieved successfully' });
   } catch (error) {
-    log.error('❌ Failed to get system metrics', LogContext.API, {')
+    log.error('❌ Failed to get system metrics', LogContext.API, {
       error: error instanceof Error ? error.message : String(error),
     });
     next(error);
@@ -134,47 +130,43 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
  * @route GET /api/v1/system/performance
  * @desc Get performance time series data
  */
-router.get('/performance', async (req: Request, res: Response, next: NextFunction) => {'
+router.get('/performance', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { timeRange = '1h' } = req.query;';
+    const { timeRange = '1h' } = req.query;
 
     // Convert time range to minutes
-    const minutes =;
-      {
-        '1h': 60,'
-        '6h': 360,'
-        '24h': 1440,'
-        '7d': 10080,'
+    const minutes =       {
+        '1h': 60,
+        '6h': 360,
+        '24h': 1440,
+        '7d': 10080,
       }[timeRange as string] || 60;
 
     // Get performance data
     const performanceData = await parameterAnalyticsService.getRecentPerformance(minutes);
 
     // Group data by time intervals
-    const interval = minutes > 1440 ? 60: minutes > 360 ? 15 : 5; // 1h, 15m, or 5m intervals;
+    const interval = minutes > 1440 ? 60 : minutes > 360 ? 15 : 5; // 1h, 15m, or 5m intervals
     const grouped: unknown[] = [];
 
-    const // TODO: Refactor nested ternary;
-      now = Date.now();
+    const       now = Date.now();
     for (let i = 0; i < minutes / interval; i++) {
       const startTime = now - (i + 1) * interval * 60000;
       const endTime = now - i * interval * 60000;
 
-      const intervalData = performanceData.filter();
+      const intervalData = performanceData.filter(
         (p) => p.timestamp >= startTime && p.timestamp < endTime
       );
 
       if (intervalData.length > 0) {
         const successCount = intervalData.filter((p) => p.success).length;
-        const avgTime =;
-          intervalData.reduce((sum, p) => sum + (p.executionTime || 0), 0) / intervalData.length;
-        const avgConfidence =;
-          intervalData.reduce((sum, p) => sum + (p.confidence || 0), 0) / intervalData.length;
+        const avgTime =           intervalData.reduce((sum, p) => sum + (p.executionTime || 0), 0) / intervalData.length;
+        const avgConfidence =           intervalData.reduce((sum, p) => sum + (p.confidence || 0), 0) / intervalData.length;
 
-        grouped.push({)
-          time: new Date(endTime).toLocaleTimeString('en-US', {')
-            hour: '2-digit','
-            minute: '2-digit','
+        grouped.push({
+          time: new Date(endTime).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
           }),
           timestamp: endTime,
           requests: intervalData.length,
@@ -188,7 +180,7 @@ router.get('/performance', async (req: Request, res: Response, next: NextFunctio
     // Reverse to show oldest first
     grouped.reverse();
 
-    sendSuccess()
+    sendSuccess(
       res,
       {
         timeRange,
@@ -196,10 +188,10 @@ router.get('/performance', async (req: Request, res: Response, next: NextFunctio
         data: grouped,
       },
       200,
-      { message: 'Performance data retrieved successfully' }'
+      { message: 'Performance data retrieved successfully' }
     );
   } catch (error) {
-    log.error('❌ Failed to get performance data', LogContext.API, {')
+    log.error('❌ Failed to get performance data', LogContext.API, {
       error: error instanceof Error ? error.message : String(error),
     });
     next(error);
@@ -210,21 +202,29 @@ router.get('/performance', async (req: Request, res: Response, next: NextFunctio
  * @route GET /api/v1/system/agents/performance
  * @desc Get individual agent performance metrics
  */
-router.get('/agents/performance', async (req: Request, res: Response, next: NextFunction) => {'
+router.get('/agents/performance', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agentRegistry = new AgentRegistry();
     const loadedAgents = agentRegistry.getLoadedAgents();
 
     // Get performance data for each agent
-    const agentPerformance = await Promise.all();
+    const agentPerformance = await Promise.all(
       loadedAgents.map(async (agentName) => {
         const agent = await agentRegistry.getAgent(agentName);
         if (!agent) {
           return null;
         }
 
-        // Get agent's performance metrics'
-        const metrics = agent.getPerformanceMetrics();
+        // Get agent's performance metrics
+        const metrics = 'getPerformanceMetrics' in agent && typeof agent.getPerformanceMetrics === 'function'
+          ? agent.getPerformanceMetrics()
+          : {
+              totalCalls: 0,
+              successRate: 1,
+              averageExecutionTime: 0,
+              averageConfidence: 0.8,
+              lastUsed: null
+            };
 
         return {
           name: agentName,
@@ -239,9 +239,9 @@ router.get('/agents/performance', async (req: Request, res: Response, next: Next
 
     const validAgents = agentPerformance.filter((a) => a !== null);
 
-    sendSuccess(res, validAgents, 200, { message: 'Agent performance data retrieved' });'
+    sendSuccess(res, validAgents, 200, { message: 'Agent performance data retrieved' });
   } catch (error) {
-    log.error('❌ Failed to get agent performance', LogContext.API, {')
+    log.error('❌ Failed to get agent performance', LogContext.API, {
       error: error instanceof Error ? error.message : String(error),
     });
     next(error);
@@ -252,29 +252,27 @@ router.get('/agents/performance', async (req: Request, res: Response, next: Next
  * @route GET /api/v1/system/health
  * @desc Get system health status
  */
-router.get('/health', async (req: Request, res: Response) => {'
+router.get('/health', async (req: Request, res: Response) => {
   try {
-    const // TODO: Refactor nested ternary;
-      resources = getSystemResources();
+    const       resources = getSystemResources();
     const orchestratorStats = abMCTSOrchestrator.getStatistics();
 
     // Determine health status
-    const isHealthy =;
-      resources.cpu < 90 &&
+    const isHealthy =       resources.cpu < 90 &&
       resources.memory < 90 &&
-      orchestratorStats.circuitBreakerState !== 'OPEN';'
+      orchestratorStats.circuitBreakerState !== 'OPEN';
 
-    sendSuccess()
+    sendSuccess(
       res,
       {
-        status: isHealthy ? 'healthy' : 'degraded','
+        status: isHealthy ? 'healthy' : 'degraded',
         timestamp: Date.now(),
-        checks: {,
-          cpu: resources.cpu < 90 ? 'pass' : 'fail','
-          memory: resources.memory < 90 ? 'pass' : 'fail','
-          orchestrator: orchestratorStats.circuitBreakerState !== 'OPEN' ? 'pass' : 'fail','
+        checks: {
+          cpu: resources.cpu < 90 ? 'pass' : 'fail',
+          memory: resources.memory < 90 ? 'pass' : 'fail',
+          orchestrator: orchestratorStats.circuitBreakerState !== 'OPEN' ? 'pass' : 'fail',
         },
-        details: {,
+        details: {
           cpu: `${resources.cpu}%`,
           memory: `${resources.memory}%`,
           uptime: `${Math.floor(resources.uptime / 60)} minutes`,
@@ -282,10 +280,10 @@ router.get('/health', async (req: Request, res: Response) => {'
         },
       },
       200,
-      { message: 'Health check completed' }'
+      { message: 'Health check completed' }
     );
   } catch (error) {
-    sendError(res, 'INTERNAL_ERROR', 'Health check failed');'
+    sendError(res, 'INTERNAL_ERROR', 'Health check failed');
   }
 });
 

@@ -21,7 +21,16 @@ class ChatViewModel: ObservableObject {
     @Published var connectionState: ConnectionState = .disconnected
     @Published var messageText = ""
     
+    private var authToken: String?
+    
     init() {
+        Task {
+            await checkConnection()
+        }
+    }
+    
+    func setAuthToken(_ token: String) {
+        self.authToken = token
         Task {
             await checkConnection()
         }
@@ -82,9 +91,14 @@ class ChatViewModel: ObservableObject {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             
+            // Add authentication header if available
+            if let token = authToken {
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            
             let requestBody = [
                 "message": message,
-                "user_id": "ios_simulator_user"
+                "user_id": "ios_authenticated_user"
             ]
             
             let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
@@ -119,7 +133,40 @@ class ChatViewModel: ObservableObject {
 }
 
 struct ContentView: View {
-    @StateObject private var viewModel = ChatViewModel()
+    @StateObject private var authManager = DeviceAuthenticationManager()
+    @StateObject private var chatViewModel = ChatViewModel()
+    
+    var body: some View {
+        TabView {
+            // Authentication Tab
+            AuthenticationView()
+                .tabItem {
+                    Image(systemName: "lock.shield")
+                    Text("Authentication")
+                }
+                .environmentObject(authManager)
+            
+            // Chat Tab - Only available when authenticated
+            if authManager.authenticationState == .authenticated {
+                ChatView(viewModel: chatViewModel, authManager: authManager)
+                    .tabItem {
+                        Image(systemName: "message")
+                        Text("Chat")
+                    }
+            }
+        }
+        .onReceive(authManager.$authenticationState) { state in
+            // Pass auth token to chat when authenticated
+            if state == .authenticated, let token = authManager.authToken {
+                chatViewModel.setAuthToken(token)
+            }
+        }
+    }
+}
+
+struct ChatView: View {
+    @ObservedObject var viewModel: ChatViewModel
+    @ObservedObject var authManager: DeviceAuthenticationManager
     
     var body: some View {
         NavigationView {

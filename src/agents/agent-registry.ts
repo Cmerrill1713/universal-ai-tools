@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
-import type { AgentConfig, AgentDefinition } from '@/types';
-import { AgentCategory } from '@/types';
-import { BaseAgent } from './base-agent';
+import { AgentCategory, type AgentConfig, type AgentDefinition } from '@/types';
+import type { BaseAgent } from './base-agent';
 import type { EnhancedBaseAgent } from './enhanced-base-agent';
 import { LogContext, log } from '@/utils/logger';
 import { a2aMesh } from '@/services/a2a-communication-mesh';
@@ -29,10 +28,10 @@ export class AgentRegistry extends EventEmitter {
   constructor() {
     super();
     // Initialize Supabase client
-    this.supabase = // TODO: Refactor nested ternary
-      createClient(
+    this.supabase = createClient(
         config.database.url.includes('supabase')
-          ? config.database.url : process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
+          ? config.database.url
+          : process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
         process.env.SUPABASE_ANON_KEY ||
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
       );
@@ -141,7 +140,8 @@ export class AgentRegistry extends EventEmitter {
       case 'code_assistant':
         return new EnhancedCodeAssistantAgent(config);
 
-      default: return null;
+      default:
+        return null;
     }
   }
 
@@ -219,11 +219,9 @@ export class AgentRegistry extends EventEmitter {
         return agent;
       }
 
-      // Fallback to mock agent if enhanced agent not available
-      log.warn(`No enhanced agent available for ${agentName}, using mock agent`, LogContext.AGENT);
-      const mockAgent = new MockAgent(config);
-      await mockAgent.initialize();
-      return mockAgent;
+      // No enhanced agent available
+      log.error(`No enhanced agent available for ${agentName}`, LogContext.AGENT);
+      return null;
     } catch (error) {
       log.error(`Failed to load agent: ${agentName}`, LogContext.AGENT, {
         error: error instanceof Error ? error.message : String(error),
@@ -366,7 +364,7 @@ export class AgentRegistry extends EventEmitter {
     synthesis?: unknown;
   }> {
     log.info(
-      `Orchestrating agents: primary=${primaryAgent}, supporting=[${supportingAgents.join(', ')}]`, // TODO: Refactor nested ternary
+      `Orchestrating agents: primary=${primaryAgent}, supporting=[${supportingAgents.join(', ')}]`,
       LogContext.AGENT
     );
 
@@ -377,7 +375,7 @@ export class AgentRegistry extends EventEmitter {
     // Execute primary and supporting agents in parallel
     const [primaryResult, supportingResults] = await Promise.all([
       this.processRequest(primaryAgent, context).catch((error) => ({ error: error.message })),
-      this.processParallelRequests(supportingAgents.map((name) => ({ agentName: name, context })))
+      this.processParallelRequests(supportingAgents.map((name) => ({ agentName: name, context }))),
     ]);
 
     // Optionally synthesize results if we have a synthesizer agent
@@ -385,7 +383,7 @@ export class AgentRegistry extends EventEmitter {
     if (this.agentDefinitions.has('synthesizer')) {
       try {
         const synthesisContext = {
-          ...context,
+          ...(context as Record<string, unknown>),
           userRequest: `Synthesize results from ${primaryAgent} and supporting agents`,
           primaryResult,
           supportingResults: supportingResults.filter((r) => !r.error).map((r) => r.result),
@@ -444,11 +442,11 @@ export class AgentRegistry extends EventEmitter {
       task,
       context: { requiredCapabilities },
       expectedDuration: 30000, // 30 seconds
-      priority: 'high'
+      priority: 'high',
     });
 
     log.info(`✅ Collaboration session started: ${sessionId}`, LogContext.AGENT, {
-      team: team.join(', ')
+      team: team.join(', '),
     });
 
     return sessionId;
@@ -540,24 +538,5 @@ export class AgentRegistry extends EventEmitter {
   }
 }
 
-// Temporary mock agent for testing
-class MockAgent extends BaseAgent {
-  protected async process(context: unknown): Promise<any> {
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    return this.createSuccessResponse(
-      {
-        processed: true,
-        agentName: this.config.name,
-        userRequest: (context as any).userRequest,
-        capabilities: this.getCapabilities(),
-      },
-      `Mock processing completed by ${this.config.name}`,
-      0.7,
-      `This is a mock response from ${(this as any).config.name}. The agent processed the request: "${(context as any).userRequest}"`
-    );
-  }
-}
 
 export default AgentRegistry;

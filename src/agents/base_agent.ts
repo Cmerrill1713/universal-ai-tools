@@ -3,20 +3,20 @@
  * Adapted from the sophisticated trading platform agent architecture
  */
 
-import { EventEmitter  } from 'events';';
+import { EventEmitter } from 'events';
 
 const GOOD_CONFIDENCE = 0.7;
 const MODERATE_CONFIDENCE = 0.6;
 
 export interface AgentCapability {
-  name: string;,
+  name: string;
   description: string;
-  inputSchema: object;,
+  inputSchema: object;
   outputSchema: object;
 }
 
 export interface AgentMetrics {
-  totalRequests: number;,
+  totalRequests: number;
   successfulRequests: number;
   averageLatencyMs: number;
   lastExecuted?: Date;
@@ -24,12 +24,12 @@ export interface AgentMetrics {
 }
 
 export interface AgentConfig {
-  name: string;,
+  name: string;
   description: string;
   priority: number; // 1-10, higher is more important
-  capabilities: AgentCapability[];,
+  capabilities: AgentCapability[];
   maxLatencyMs: number;
-  retryAttempts: number;,
+  retryAttempts: number;
   dependencies: string[];
   memoryEnabled: boolean;
   category?: string;
@@ -49,11 +49,11 @@ export interface AgentContext {
 }
 
 export interface AgentResponse<T = unknown> {
-  success: boolean;,
+  success: boolean;
   data: T;
-  reasoning: string;,
+  reasoning: string;
   confidence: number; // 0.0 - 1.0
-  latencyMs: number;,
+  latencyMs: number;
   agentId: string;
   error?: string;
   nextActions?: string[];
@@ -63,9 +63,9 @@ export interface AgentResponse<T = unknown> {
 }
 
 export interface PartialAgentResponse<T = unknown> {
-  success: boolean;,
+  success: boolean;
   data: T;
-  reasoning: string;,
+  reasoning: string;
   confidence: number; // 0.0 - 1.0
   error?: string;
   nextActions?: string[];
@@ -92,9 +92,9 @@ export abstract class BaseAgent extends EventEmitter {
 
   private async setupLogger(): Promise<void> {
     try {
-      const { logger } = await import('../utils/logger.js');';
+      const { logger } = await import('../utils/logger.js');
       this.logger = logger;
-    } catch (error) {
+    } catch {
       this.logger = console; // Fallback to console
     }
   }
@@ -109,9 +109,9 @@ export abstract class BaseAgent extends EventEmitter {
   }
 
   private setupEventListeners(): void {
-    this.on('request_started', this.onRequestStarted.bind(this));'
-    this.on('request_completed', this.onRequestCompleted.bind(this));'
-    this.on('request_failed', this.onRequestFailed.bind(this));'
+    this.on('request_started', this.onRequestStarted.bind(this));
+    this.on('request_completed', this.onRequestCompleted.bind(this));
+    this.on('request_failed', this.onRequestFailed.bind(this));
   }
 
   /**
@@ -132,7 +132,10 @@ export abstract class BaseAgent extends EventEmitter {
       this.isInitialized = true;
       (this as any).logger.info(`✅ Agent ${(this as any).config.name} initialized successfully`);
     } catch (error) {
-      (this as any).logger.error(`❌ Failed to initialize agent ${(this as any).config.name}:`, error);
+      (this as any).logger.error(
+        `❌ Failed to initialize agent ${(this as any).config.name}:`,
+        error
+      );
       throw error;
     }
   }
@@ -144,7 +147,7 @@ export abstract class BaseAgent extends EventEmitter {
     const startTime = Date.now();
     const { requestId } = context;
 
-    this.emit('request_started', { agentId: this.config.name, requestId, context });'
+    this.emit('request_started', { agentId: this.config.name, requestId, context });
 
     try {
       // Validate agent is initialized
@@ -162,7 +165,7 @@ export abstract class BaseAgent extends EventEmitter {
       }
 
       // Execute agent-specific logic with timeout protection
-      const result = await this.processWithTimeout({);
+      const result = await this.processWithTimeout({
         ...context,
         memoryContext,
       });
@@ -180,7 +183,7 @@ export abstract class BaseAgent extends EventEmitter {
 
       // Check latency target
       if (latencyMs > this.config.maxLatencyMs) {
-        (this as any).logger.warn()
+        (this as any).logger.warn(
           `⚠️ Agent ${this.config.name} exceeded latency target: ${latencyMs}ms > ${this.config.maxLatencyMs}ms`
         );
       }
@@ -191,28 +194,28 @@ export abstract class BaseAgent extends EventEmitter {
         agentId: this.config.name,
       };
 
-      this.emit('request_completed', { agentId: this.config.name, requestId, response });'
+      this.emit('request_completed', { agentId: this.config.name, requestId, response });
       return response;
     } catch (error) {
       const latencyMs = Date.now() - startTime;
       this.updateMetrics(latencyMs, false);
 
-      const errorResponse: AgentResponse = {,;
+      const errorResponse: AgentResponse = {
         success: false,
         data: null,
-        reasoning: `Agent execution, failed: ${error instanceof Error ? error.message : String(error)}`,
+        reasoning: `Agent execution failed: ${error instanceof Error ? error.message : String(error)}`,
         confidence: 0,
         latencyMs,
         agentId: this.config.name,
         error: error instanceof Error ? error.message : String(error),
       };
 
-      this.emit('request_failed', { agentId: this.config.name, requestId, error: errorResponse });'
+      this.emit('request_failed', { agentId: this.config.name, requestId, error: errorResponse });
       return errorResponse;
     }
   }
 
-  private async processWithTimeout()
+  private async processWithTimeout(
     context: AgentContext & { memoryContext?: unknown }
   ): Promise<PartialAgentResponse> {
     return new Promise((resolve, reject) => {
@@ -240,7 +243,7 @@ export abstract class BaseAgent extends EventEmitter {
       name: this.config.name,
       isInitialized: this.isInitialized,
       metrics: { ...this.metrics },
-      config: {,
+      config: {
         priority: this.config.priority,
         capabilities: this.config.capabilities.map((c) => c.name),
         dependencies: this.config.dependencies,
@@ -259,13 +262,13 @@ export abstract class BaseAgent extends EventEmitter {
       this.isInitialized = false;
       (this as any).logger.info(`✅ Agent ${(this as any).config.name} shutdown complete`);
     } catch (error) {
-      (this as any).logger.error(`❌ Error during agent shutdown: `, error);
+      (this as any).logger.error(`❌ Error during agent shutdown:`, error);
     }
   }
 
   // Abstract methods to be implemented by specific agents
   protected abstract onInitialize(): Promise<void>;
-  protected abstract process()
+  protected abstract process(
     context: AgentContext & { memoryContext?: unknown }
   ): Promise<PartialAgentResponse>;
   protected abstract onShutdown(): Promise<void>;
@@ -278,15 +281,18 @@ export abstract class BaseAgent extends EventEmitter {
       // Load agent-specific memory patterns
       if (
         this.memoryCoordinator &&
-        typeof this.memoryCoordinator === 'object' &&'
-        'retrieveAgentMemory' in this.memoryCoordinator &&'
-        typeof this.memoryCoordinator.retrieveAgentMemory === 'function''
+        typeof this.memoryCoordinator === 'object' &&
+        'retrieveAgentMemory' in this.memoryCoordinator &&
+        typeof this.memoryCoordinator.retrieveAgentMemory === 'function'
       ) {
         await this.memoryCoordinator.retrieveAgentMemory(this.config.name);
       }
       (this as any).logger.debug(`📚 Loaded memory for agent ${(this as any).config.name}`);
     } catch (error) {
-      (this as any).logger.warn(`⚠️ Failed to load memory for agent ${(this as any).config.name}:`, error);
+      (this as any).logger.warn(
+        `⚠️ Failed to load memory for agent ${(this as any).config.name}:`,
+        error
+      );
     }
   }
 
@@ -296,18 +302,18 @@ export abstract class BaseAgent extends EventEmitter {
     try {
       if (
         this.memoryCoordinator &&
-        typeof this.memoryCoordinator === 'object' &&'
-        'retrieveRelevantMemory' in this.memoryCoordinator &&'
-        typeof this.memoryCoordinator.retrieveRelevantMemory === 'function''
+        typeof this.memoryCoordinator === 'object' &&
+        'retrieveRelevantMemory' in this.memoryCoordinator &&
+        typeof this.memoryCoordinator.retrieveRelevantMemory === 'function'
       ) {
-        return await this.memoryCoordinator.retrieveRelevantMemory();
+        return await this.memoryCoordinator.retrieveRelevantMemory(
           this.config.name,
           context.userRequest
         );
       }
       return null;
     } catch (error) {
-      (this as any).logger.warn(`⚠️ Failed to retrieve memory: `, error);
+      (this as any).logger.warn(`⚠️ Failed to retrieve memory:`, error);
       return null;
     }
   }
@@ -318,35 +324,40 @@ export abstract class BaseAgent extends EventEmitter {
     try {
       if (
         this.memoryCoordinator &&
-        typeof this.memoryCoordinator === 'object' &&'
-        'storeAgentMemory' in this.memoryCoordinator &&'
-        typeof this.memoryCoordinator.storeAgentMemory === 'function''
+        typeof this.memoryCoordinator === 'object' &&
+        'storeAgentMemory' in this.memoryCoordinator &&
+        typeof this.memoryCoordinator.storeAgentMemory === 'function'
       ) {
         await this.memoryCoordinator.storeAgentMemory(this.config.name, context, result);
       }
     } catch (error) {
-      (this as any).logger.warn(`⚠️ Failed to store memory: `, error);
+      (this as any).logger.warn(`⚠️ Failed to store memory:`, error);
     }
   }
 
   // Event handlers
   protected onRequestStarted(event: unknown): void {
-    if (event && typeof event === 'object' && 'requestId' in event) {'
-      (this as any).logger.debug(`🚀 Agent ${(this as any).config.name} processing request ${event.requestId}`);
+    if (event && typeof event === 'object' && 'requestId' in event) {
+      (this as any).logger.debug(
+        `🚀 Agent ${(this as any).config.name} processing request ${event.requestId}`
+      );
     }
   }
 
   protected onRequestCompleted(event: unknown): void {
-    if (event && typeof event === 'object' && 'requestId' in event) {'
-      (this as any).logger.debug(`✅ Agent ${(this as any).config.name} completed request ${event.requestId}`);
+    if (event && typeof event === 'object' && 'requestId' in event) {
+      (this as any).logger.debug(
+        `✅ Agent ${(this as any).config.name} completed request ${event.requestId}`
+      );
     }
   }
 
   protected onRequestFailed(event: unknown): void {
-    if (event && typeof event === 'object' && 'requestId' in event && 'error' in event) {'
-      (this as any).logger.error()
+    if (event && typeof event === 'object' && 'requestId' in event && 'error' in event) {
+      (this as any).logger.error(
         `❌ Agent ${this.config.name} failed request ${event.requestId}:`,
-        event.error();
+        event.error
+      );
     }
   }
 
@@ -386,12 +397,13 @@ export abstract class BaseAgent extends EventEmitter {
     const uptimeWeight = 0.2;
     const errorRateWeight = 0.2;
 
-    const errorRate =;
+    const errorRate =
       this.metrics.totalRequests > 0
         ? (this.metrics.totalRequests - this.metrics.successfulRequests) /
-          this.metrics.totalRequests: 0;
+          this.metrics.totalRequests
+        : 0;
 
-    const healthScore =;
+    const healthScore =
       this.metrics.performanceScore * performanceWeight +
       1.0 * uptimeWeight + // Uptime is 100% if initialized
       (1 - errorRate) * errorRateWeight;

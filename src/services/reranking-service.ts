@@ -3,31 +3,31 @@
  * Implements two-stage retrieval with cross-encoder reranking for improved search relevance
  */
 
-import axios from 'axios';';
-import { LogContext, log  } from '../utils/logger';';
-import { createClient  } from '@supabase/supabase-js';';
-import { THOUSAND  } from '../utils/common-constants';';
+import axios from 'axios';
+import { LogContext, log } from '../utils/logger';
+import { createClient } from '@supabase/supabase-js';
+import { THOUSAND } from '../utils/common-constants';
 
 interface RerankingModel {
-  name: string;,
-  type: 'huggingface' | 'openai' | 'local';'
+  name: string;
+  type: 'huggingface' | 'openai' | 'local';
   endpoint?: string;
   apiKey?: string;
   maxBatchSize: number;
 }
 
 interface RerankCandidate {
-  id: string;,
+  id: string;
   content: string;
   metadata?: Record<string, any>;
   biEncoderScore: number;
 }
 
 interface RerankResult {
-  id: string;,
+  id: string;
   content: string;
   metadata?: Record<string, any>;
-  biEncoderScore: number;,
+  biEncoderScore: number;
   crossEncoderScore: number;
   finalScore: number;
 }
@@ -37,28 +37,29 @@ export class RerankingService {
 
   private models: RerankingModel[] = [
     {
-      name: 'cross-encoder/ms-marco-MiniLM-L-12-v2','
-      type: 'huggingface','
-      endpoint: 'https://api-inference.huggingface.co/models/cross-encoder/ms-marco-MiniLM-L-12-v2','
+      name: 'cross-encoder/ms-marco-MiniLM-L-12-v2',
+      type: 'huggingface',
+      endpoint: 'https://api-inference.huggingface.co/models/cross-encoder/ms-marco-MiniLM-L-12-v2',
       maxBatchSize: 32,
     },
     {
-      name: 'text-embedding-3-small','
-      type: 'openai','
+      name: 'text-embedding-3-small',
+      type: 'openai',
       maxBatchSize: 100,
-    }];
+    },
+  ];
 
   private activeModel: RerankingModel;
 
   constructor() {
     // Default to HuggingFace cross-encoder
-    this.activeModel = this.models[0];
+    this.activeModel = this.models[0]!;
   }
 
   /**
    * Rerank candidates using cross-encoder model
    */
-  async rerank()
+  async rerank(
     query: string,
     candidates: RerankCandidate[],
     options: {
@@ -76,7 +77,7 @@ export class RerankingService {
       }
     }
 
-    log.info('🔄 Starting reranking process', LogContext.AI, {')
+    log.info('🔄 Starting reranking process', LogContext.AI, {
       query: query.substring(0, 100),
       candidateCount: candidates.length,
       model: this.activeModel.name,
@@ -98,7 +99,7 @@ export class RerankingService {
       // Filter by threshold and limit to topK
       const filtered = results.filter((r) => r.finalScore >= threshold).slice(0, topK);
 
-      log.info('✅ Reranking completed', LogContext.AI, {')
+      log.info('✅ Reranking completed', LogContext.AI, {
         inputCount: candidates.length,
         outputCount: filtered.length,
         topScore: filtered[0]?.finalScore || 0,
@@ -109,9 +110,9 @@ export class RerankingService {
 
       return filtered;
     } catch (error) {
-      log.error('❌ Reranking failed', LogContext.AI, { error });'
+      log.error('❌ Reranking failed', LogContext.AI, { error });
       // Fallback to original bi-encoder scores
-      return candidates;
+      return candidates
         .sort((a, b) => b.biEncoderScore - a.biEncoderScore)
         .slice(0, topK)
         .map((c) => ({
@@ -127,47 +128,48 @@ export class RerankingService {
    */
   private async rerankBatch(query: string, candidates: RerankCandidate[]): Promise<RerankResult[]> {
     switch (this.activeModel.type) {
-      case 'huggingface':'
+      case 'huggingface':
         return this.rerankWithHuggingFace(query, candidates);
-      case 'openai':'
+      case 'openai':
         return this.rerankWithOpenAI(query, candidates);
-      case 'local':'
+      case 'local':
         return this.rerankWithLocal(query, candidates);
-      default: throw new Error(`Unsupported model, type: ${this.activeModel.type}`);
+      default:
+        throw new Error(`Unsupported model type: ${this.activeModel.type}`);
     }
   }
 
   /**
    * Rerank using HuggingFace cross-encoder
    */
-  private async rerankWithHuggingFace()
+  private async rerankWithHuggingFace(
     query: string,
     candidates: RerankCandidate[]
   ): Promise<RerankResult[]> {
     try {
       // Get API key from Supabase vault
-      const { data: secret } = await this.supabase.rpc('vault.read_secret', {');
-        secret_name: 'huggingface_api_key','
+      const { data: secret } = await this.supabase.rpc('vault.read_secret', {
+        secret_name: 'huggingface_api_key',
       });
 
       if (!secret?.decrypted_secret && !process.env.HUGGINGFACE_API_KEY) {
-        throw new Error('HuggingFace API key not found');';
+        throw new Error('HuggingFace API key not found');
       }
 
       const apiKey = secret?.decrypted_secret || process.env.HUGGINGFACE_API_KEY;
 
       // Prepare input pairs for cross-encoder
       const inputs = candidates.map((c) => ({
-        inputs: {,
+        inputs: {
           source_sentence: query,
           sentences: [c.content],
         },
       }));
 
-      const response = await axios.post(this.activeModel.endpoint!, inputs, {);
-        headers: {,
+      const response = await axios.post(this.activeModel.endpoint!, inputs, {
+        headers: {
           Authorization: `Bearer ${apiKey}`,
-          "content-type": 'application/json','
+          'Content-Type': 'application/json',
         },
       });
 
@@ -183,7 +185,7 @@ export class RerankingService {
         };
       });
     } catch (error) {
-      log.error('HuggingFace reranking failed', LogContext.AI, { error });'
+      log.error('HuggingFace reranking failed', LogContext.AI, { error });
       throw error;
     }
   }
@@ -191,35 +193,35 @@ export class RerankingService {
   /**
    * Rerank using OpenAI (simplified similarity approach)
    */
-  private async rerankWithOpenAI()
+  private async rerankWithOpenAI(
     query: string,
     candidates: RerankCandidate[]
   ): Promise<RerankResult[]> {
     try {
-      // For OpenAI, we'll use embeddings similarity as a proxy for reranking'
+      // For OpenAI, we'll use embeddings similarity as a proxy for reranking
       // This is not as good as true cross-encoder but works as fallback
 
-      const { data: secret } = await this.supabase.rpc('vault.read_secret', {');
-        secret_name: 'openai_api_key','
+      const { data: secret } = await this.supabase.rpc('vault.read_secret', {
+        secret_name: 'openai_api_key',
       });
 
       if (!secret?.decrypted_secret && !process.env.OPENAI_API_KEY) {
-        throw new Error('OpenAI API key not found');';
+        throw new Error('OpenAI API key not found');
       }
 
       const apiKey = secret?.decrypted_secret || process.env.OPENAI_API_KEY;
 
       // Get query embedding
-      const queryResponse = await axios.post();
-        'https: //api.openai.com/v1/embeddings','
+      const queryResponse = await axios.post(
+        'https://api.openai.com/v1/embeddings',
         {
           input: query,
-          model: 'text-embedding-3-small','
+          model: 'text-embedding-3-small',
         },
         {
-          headers: {,
+          headers: {
             Authorization: `Bearer ${apiKey}`,
-            "content-type": 'application/json','
+            'Content-Type': 'application/json',
           },
         }
       );
@@ -227,16 +229,16 @@ export class RerankingService {
       const queryEmbedding = queryResponse.data.data[0].embedding;
 
       // Get candidate embeddings in batch
-      const candidateResponse = await axios.post();
-        'https: //api.openai.com/v1/embeddings','
+      const candidateResponse = await axios.post(
+        'https://api.openai.com/v1/embeddings',
         {
           input: candidates.map((c) => c.content),
-          model: 'text-embedding-3-small','
+          model: 'text-embedding-3-small',
         },
         {
-          headers: {,
+          headers: {
             Authorization: `Bearer ${apiKey}`,
-            "content-type": 'application/json','
+            'Content-Type': 'application/json',
           },
         }
       );
@@ -245,7 +247,7 @@ export class RerankingService {
       return candidates.map((candidate, idx) => {
         const candidateEmbedding = candidateResponse.data.data[idx].embedding;
         const similarity = this.cosineSimilarity(queryEmbedding, candidateEmbedding);
-        const finalScore = this.combineBiAndCrossEncoderScores();
+        const finalScore = this.combineBiAndCrossEncoderScores(
           candidate.biEncoderScore,
           similarity
         );
@@ -257,7 +259,7 @@ export class RerankingService {
         };
       });
     } catch (error) {
-      log.error('OpenAI reranking failed', LogContext.AI, { error });'
+      log.error('OpenAI reranking failed', LogContext.AI, { error });
       throw error;
     }
   }
@@ -265,7 +267,7 @@ export class RerankingService {
   /**
    * Rerank using local model (mock implementation)
    */
-  private async rerankWithLocal()
+  private async rerankWithLocal(
     query: string,
     candidates: RerankCandidate[]
   ): Promise<RerankResult[]> {
@@ -274,11 +276,11 @@ export class RerankingService {
       // Simple heuristic: boost scores for exact matches
       const lowerQuery = query.toLowerCase();
       const lowerContent = candidate.content.toLowerCase();
-      const exactMatch = lowerContent.includes(lowerQuery) ? 0.3: 0;
+      const exactMatch = lowerContent.includes(lowerQuery) ? 0.3 : 0;
       const wordOverlap = this.calculateWordOverlap(lowerQuery, lowerContent);
 
       const crossEncoderScore = Math.min(1.0, wordOverlap + exactMatch);
-      const finalScore = this.combineBiAndCrossEncoderScores();
+      const finalScore = this.combineBiAndCrossEncoderScores(
         candidate.biEncoderScore,
         crossEncoderScore
       );
@@ -294,7 +296,7 @@ export class RerankingService {
   /**
    * Combine bi-encoder and cross-encoder scores
    */
-  private combineBiAndCrossEncoderScores()
+  private combineBiAndCrossEncoderScores(
     biEncoderScore: number,
     crossEncoderScore: number
   ): number {
@@ -312,9 +314,9 @@ export class RerankingService {
     let norm2 = 0;
 
     for (let i = 0; i < vec1.length; i++) {
-      dotProduct += vec1[i] * vec2[i];
-      norm1 += vec1[i] * vec1[i];
-      norm2 += vec2[i] * vec2[i];
+      dotProduct += (vec1[i] ?? 0) * (vec2[i] ?? 0);
+      norm1 += (vec1[i] ?? 0) * (vec1[i] ?? 0);
+      norm2 += (vec2[i] ?? 0) * (vec2[i] ?? 0);
     }
 
     return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
@@ -340,13 +342,13 @@ export class RerankingService {
   /**
    * Store reranking metrics for analysis
    */
-  private async storeRerankingMetrics()
+  private async storeRerankingMetrics(
     query: string,
     inputCount: number,
     outputCount: number
   ): Promise<void> {
     try {
-      await this.supabase.from('reranking_metrics').insert({')
+      await this.supabase.from('reranking_metrics').insert({
         query: query.substring(0, 200),
         model_name: this.activeModel.name,
         input_count: inputCount,
@@ -354,8 +356,8 @@ export class RerankingService {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      // Don't fail the reranking if metrics storage fails'
-      log.warn('Failed to store reranking metrics', LogContext.DATABASE, { error });'
+      // Don't fail the reranking if metrics storage fails
+      log.warn('Failed to store reranking metrics', LogContext.DATABASE, { error });
     }
   }
 
@@ -363,22 +365,23 @@ export class RerankingService {
    * Get reranking performance statistics
    */
   async getRerankingStats(): Promise<{
-    totalQueries: number;,
+    totalQueries: number;
     averageReductionRate: number;
     modelUsage: Record<string, number>;
   }> {
     try {
-      const { data, error } = await this.supabase;
-        .from('reranking_metrics')'
-        .select('*')'
-        .order('timestamp', { ascending: false })'
+      const { data, error } = await this.supabase
+        .from('reranking_metrics')
+        .select('*')
+        .order('timestamp', { ascending: false })
         .limit(THOUSAND);
 
       if (error) throw error;
 
       const totalQueries = data?.length || 0;
-      const averageReductionRate = data;
-        ? data.reduce((sum, m) => sum + (1 - m.output_count / m.input_count), 0) / data.length: 0;
+      const averageReductionRate = data
+        ? data.reduce((sum, m) => sum + (1 - m.output_count / m.input_count), 0) / data.length
+        : 0;
 
       const modelUsage: Record<string, number> = {};
       data?.forEach((m) => {
@@ -391,7 +394,7 @@ export class RerankingService {
         modelUsage,
       };
     } catch (error) {
-      log.error('Failed to get reranking stats', LogContext.DATABASE, { error });'
+      log.error('Failed to get reranking stats', LogContext.DATABASE, { error });
       return {
         totalQueries: 0,
         averageReductionRate: 0,

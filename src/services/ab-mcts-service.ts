@@ -13,25 +13,27 @@ import type {
   ABMCTSSearchResult,
   AgentContext,
   AgentResponse,
-} from '../types/ab-mcts';'
-import { isTerminalNode  } from '../types/ab-mcts';';
-import { AdaptiveExplorer,
+} from '../types/ab-mcts';
+import { isTerminalNode } from '../types/ab-mcts';
+import {
+  AdaptiveExplorer,
   BetaSampler,
   ThompsonSelector,
   UCBCalculator,
- } from '../utils/thompson-sampling';'
-import { bayesianModelRegistry  } from '../utils/bayesian-model';';
-import { LogContext, log  } from '../utils/logger';';
-import { v4 as uuidv4  } from 'uuid';';
-import { treeStorage  } from './ab-mcts-tree-storage';';
+} from '../utils/thompson-sampling';
+import { bayesianModelRegistry } from '../utils/bayesian-model';
+import { LogContext, log } from '../utils/logger';
+import { v4 as uuidv4 } from 'uuid';
+import { treeStorage } from './ab-mcts-tree-storage';
+import { THREE } from '../utils/constants';
 
 /**
  * Core AB-MCTS implementation
  */
 export class ABMCTSService {
   private config: ABMCTSConfig;
-  private root: | ABMCTSNode //, TODO: Refactor nested ternary
-    | null = null;
+  private root:
+    | ABMCTSNode     | null = null;
   private nodeCache: Map<string, ABMCTSNode> = new Map();
   private thompsonSelector: ThompsonSelector;
   private adaptiveExplorer: AdaptiveExplorer;
@@ -65,25 +67,25 @@ export class ABMCTSService {
   /**
    * Main search entry point
    */
-  async search()
+  async search(
     initialContext: AgentContext,
     availableAgents: string[],
     options: Partial<ABMCTSExecutionOptions> = {}
   ): Promise<ABMCTSSearchResult> {
     // Apply default options
-    const fullOptions: ABMCTSExecutionOptions = {,;
+    const fullOptions: ABMCTSExecutionOptions = {
       useCache: true,
       enableParallelism: true,
       collectFeedback: true,
       saveCheckpoints: false,
       visualize: false,
       verboseLogging: false,
-      fallbackStrategy: 'greedy','
+      fallbackStrategy: 'greedy',
       ...options,
     };
     const startTime = Date.now();
 
-    log.info('🌳 Starting AB-MCTS search', LogContext.AI, {')
+    log.info('🌳 Starting AB-MCTS search', LogContext.AI, {
       maxIterations: this.config.maxIterations,
       availableAgents: availableAgents.length,
       options: fullOptions,
@@ -97,14 +99,14 @@ export class ABMCTSService {
           const savedResult = await treeStorage.loadSearchResult(initialContext.requestId);
           if (savedResult && savedResult.bestPath && savedResult.bestPath.length > 0) {
             this.root = savedResult.bestPath[0] || null;
-            log.info('📂 Loaded AB-MCTS tree from storage', LogContext.AI, {')
+            log.info('📂 Loaded AB-MCTS tree from storage', LogContext.AI, {
               requestId: initialContext.requestId,
             });
           } else {
             this.root = this.createNode(initialContext, null);
           }
         } catch (error) {
-          log.debug('No saved tree found, creating new root', LogContext.AI);'
+          log.debug('No saved tree found, creating new root', LogContext.AI);
           this.root = this.createNode(initialContext, null);
         }
       } else {
@@ -113,7 +115,7 @@ export class ABMCTSService {
     }
 
     // Initialize Thompson sampling arms
-    this.thompsonSelector.initializeArms()
+    this.thompsonSelector.initializeArms(
       availableAgents,
       this.config.priorAlpha,
       this.config.priorBeta
@@ -131,7 +133,7 @@ export class ABMCTSService {
       remainingBudget > 0
     ) {
       if (!this.root) {
-        throw new Error('Root node is null during search');';
+        throw new Error('Root node is null during search');
       }
 
       // Selection phase
@@ -166,7 +168,7 @@ export class ABMCTSService {
     // Get best path and alternatives
     const result = this.getBestResult(nodesExplored, iterations, Date.now() - startTime);
 
-    log.info('✅ AB-MCTS search completed', LogContext.AI, {')
+    log.info('✅ AB-MCTS search completed', LogContext.AI, {
       iterations,
       nodesExplored,
       timeElapsed: Date.now() - startTime,
@@ -178,17 +180,17 @@ export class ABMCTSService {
     if (fullOptions.saveCheckpoints && treeStorage.isAvailable() && this.root) {
       const searchId = initialContext.requestId || uuidv4();
       try {
-        await treeStorage.saveNode(this.root, {)
+        await treeStorage.saveNode(this.root, {
           ttl: 3600, // 1 hour
           compress: true,
         });
-        await treeStorage.saveSearchResult(searchId, result, {)
+        await treeStorage.saveSearchResult(searchId, result, {
           ttl: 3600,
           compress: true,
         });
-        log.info('💾 Saved AB-MCTS tree to Redis storage', LogContext.AI, { searchId });'
+        log.info('💾 Saved AB-MCTS tree to Redis storage', LogContext.AI, { searchId });
       } catch (error) {
-        log.warn('Failed to save tree to storage', LogContext.AI, {')
+        log.warn('Failed to save tree to storage', LogContext.AI, {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -213,7 +215,7 @@ export class ABMCTSService {
 
       for (const child of children) {
         // UCB score
-        const ucb = UCBCalculator.ucb1();
+        const ucb = UCBCalculator.ucb1(
           child.averageReward,
           current.visits,
           child.visits,
@@ -222,7 +224,7 @@ export class ABMCTSService {
         ucbScores.set(child.id, ucb);
 
         // Thompson sampling score
-        const thompson = BetaSampler.sample();
+        const thompson = BetaSampler.sample(
           child.priorAlpha + child.totalReward,
           child.priorBeta + (child.visits - child.totalReward)
         );
@@ -230,7 +232,7 @@ export class ABMCTSService {
       }
 
       // Select using adaptive strategy
-      const selectedId = this.adaptiveExplorer.selectAction();
+      const selectedId = this.adaptiveExplorer.selectAction(
         thompsonScores,
         ucbScores,
         1.0 // Temperature
@@ -247,21 +249,21 @@ export class ABMCTSService {
    */
   private async expand(node: ABMCTSNode, availableAgents: string[]): Promise<ABMCTSNode | null> {
     // Check if all agents have been tried
-    const triedAgents = Array.from(node.children.values());
+    const triedAgents = Array.from(node.children.values())
       .map((child) => child.metadata.agent)
       .filter(Boolean);
 
     const untriedAgents = availableAgents.filter((agent) => !triedAgents.includes(agent));
 
     if (untriedAgents.length === 0) {
-      return null; // All agents explored;
+      return null; // All agents explored
     }
 
     // Select agent using Thompson sampling
     const selectedAgent = this.thompsonSelector.selectArm();
 
     // Create action
-    const action: ABMCTSAction = {,;
+    const action: ABMCTSAction = {
       agentName: selectedAgent,
       agentType: this.getAgentType(selectedAgent),
       estimatedCost: 100, // Base cost
@@ -304,7 +306,7 @@ export class ABMCTSService {
       const reward = this.calculateReward(simulatedResponse, executionTime);
 
       // Update Bayesian model
-      bayesianModelRegistry.updateModel()
+      bayesianModelRegistry.updateModel(
         agentName,
         this.getTaskType(node.state),
         reward,
@@ -314,7 +316,7 @@ export class ABMCTSService {
 
       return reward;
     } catch (error) {
-      log.error('❌ Simulation failed', LogContext.AI, {')
+      log.error('❌ Simulation failed', LogContext.AI, {
         nodeId: node.id,
         agent: agentName,
         error: error instanceof Error ? error.message : String(error),
@@ -323,12 +325,12 @@ export class ABMCTSService {
       // Return failure reward
       return {
         value: 0,
-        components: {,
+        components: {
           quality: 0,
           speed: 0,
           cost: 1,
         },
-        metadata: {,
+        metadata: {
           executionTime: Date.now() - startTime,
           tokensUsed: 0,
           memoryUsed: 0,
@@ -342,9 +344,8 @@ export class ABMCTSService {
    * Backpropagation phase - update statistics up the tree
    */
   private backpropagate(node: ABMCTSNode, reward: ABMCTSReward): void {
-    let current: ;
-      | ABMCTSNode //, TODO: Refactor nested ternary
-      | undefined = node;
+    let current:
+      | ABMCTSNode       | undefined = node;
     let depth = 0;
 
     while (current) {
@@ -358,7 +359,7 @@ export class ABMCTSService {
 
       // Update UCB score
       if (current.parent) {
-        current.ucbScore = UCBCalculator.ucb1()
+        current.ucbScore = UCBCalculator.ucb1(
           current.averageReward,
           current.parent.visits,
           current.visits,
@@ -381,11 +382,11 @@ export class ABMCTSService {
       if (!current.metadata.confidenceInterval) {
         current.metadata.confidenceInterval = [0, 1];
       }
-      current.metadata.confidenceInterval = BetaSampler.confidenceInterval({)
+      current.metadata.confidenceInterval = BetaSampler.confidenceInterval({
         alpha: current.priorAlpha,
         beta: current.priorBeta,
         mean: current.averageReward,
-        variance: 0,;
+        variance: 0,
       });
 
       // Move up the tree
@@ -402,7 +403,7 @@ export class ABMCTSService {
   /**
    * Get best result from search
    */
-  private getBestResult()
+  private getBestResult(
     nodesExplored: number,
     iterations: number,
     timeElapsed: number
@@ -411,18 +412,17 @@ export class ABMCTSService {
     const bestPath = this.getBestPath(this.root!);
 
     // Find best action (first step in best path)
-    const bestAction =;
-      bestPath.length > 1
+    const bestAction =       bestPath.length > 1
         ? {
-            agentName: bestPath[1]?.metadata?.agent || 'unknown','
-            agentType: 'cognitive' as const,'
+            agentName: bestPath[1]?.metadata?.agent || 'unknown',
+            agentType: 'cognitive' as const,
             estimatedCost: 100,
             estimatedTime: 1000,
             requiredCapabilities: [],
           }
         : {
-            agentName: 'fallback','
-            agentType: 'cognitive' as const,'
+            agentName: 'fallback',
+            agentType: 'cognitive' as const,
             estimatedCost: 100,
             estimatedTime: 1000,
             requiredCapabilities: [],
@@ -495,7 +495,7 @@ export class ABMCTSService {
       }
 
       // Sort children by reward
-      const sortedChildren = Array.from(current.children.values()).sort();
+      const sortedChildren = Array.from(current.children.values()).sort(
         (a, b) => b.averageReward - a.averageReward
       );
 
@@ -525,11 +525,11 @@ export class ABMCTSService {
         if (leafNode.averageReward > 0.8) {
           recommendations.push(`High confidence path found with ${leafNode.metadata.agent} agent`);
         } else if (leafNode.averageReward < 0.5) {
-          recommendations.push('Consider expanding search with more iterations');'
+          recommendations.push('Consider expanding search with more iterations');
         }
 
         if (leafNode.visits < 10) {
-          recommendations.push('Path has low sample size - results may be uncertain');'
+          recommendations.push('Path has low sample size - results may be uncertain');
         }
       }
     }
@@ -546,13 +546,12 @@ export class ABMCTSService {
   /**
    * Create new tree node
    */
-  private createNode()
+  private createNode(
     state: AgentContext,
     parent: ABMCTSNode | null,
     action?: ABMCTSAction
   ): ABMCTSNode {
-    const node: //, TODO: Refactor nested ternary;
-    ABMCTSNode = {
+    const node:     ABMCTSNode = {
       id: uuidv4(),
       state,
       visits: 0,
@@ -567,7 +566,7 @@ export class ABMCTSService {
       depth: parent ? parent.depth + 1 : 0,
       isTerminal: false,
       isExpanded: false,
-      metadata: {,
+      metadata: {
         agent: action?.agentName,
         action: action?.agentName,
         timestamp: Date.now(),
@@ -588,14 +587,13 @@ export class ABMCTSService {
   /**
    * Simulate agent execution
    */
-  private async simulateAgentExecution()
+  private async simulateAgentExecution(
     agentName: string,
     context: AgentContext
   ): Promise<AgentResponse> {
     // In real implementation, this would call the actual agent
     // For now, simulate based on historical performance
-    const // TODO: Refactor nested ternary;
-      model = bayesianModelRegistry.getModel(agentName, this.getTaskType(context));
+    const       model = bayesianModelRegistry.getModel(agentName, this.getTaskType(context));
 
     const prediction = model.predict(context.metadata || {});
 
@@ -604,10 +602,10 @@ export class ABMCTSService {
 
     return {
       success: Math.random() < prediction.expectedReward,
-      data: {, simulated: true },
+      data: { simulated: true },
       confidence: prediction.confidence,
       message: `Simulated response from ${agentName}`,
-      reasoning: 'AB-MCTS simulation','
+      reasoning: 'AB-MCTS simulation',
       metadata: {
         agentName,
         executionTime: prediction.expectedTime,
@@ -621,14 +619,14 @@ export class ABMCTSService {
    */
   private calculateReward(response: AgentResponse, executionTime: number): ABMCTSReward {
     // Quality component
-    const quality = response.success ? response.confidence: 0;
+    const quality = response.success ? response.confidence : 0;
 
     // Speed component (normalized)
-    const speedScore = Math.max(0, 1 - executionTime / 10000); // 10s baseline;
+    const speedScore = Math.max(0, 1 - executionTime / 10000); // 10s baseline
 
     // Cost component (inverse of resource usage)
     const tokens = (response.metadata?.tokens as number) || 100;
-    const costScore = Math.max(0, 1 - tokens / 1000); // 1000 tokens baseline;
+    const costScore = Math.max(0, 1 - tokens / 1000); // 1000 tokens baseline
 
     // Combined reward
     const value = 0.5 * quality + 0.3 * speedScore + 0.2 * costScore;
@@ -654,10 +652,9 @@ export class ABMCTSService {
    */
   async processFeedback(feedback: ABMCTSFeedback): Promise<void> {
     // Find node
-    const // TODO: Refactor nested ternary;
-      node = this.nodeCache.get(feedback.nodeId);
+    const       node = this.nodeCache.get(feedback.nodeId);
     if (!node) {
-      log.warn('Node not found for feedback', LogContext.AI, { nodeId: feedback.nodeId });'
+      log.warn('Node not found for feedback', LogContext.AI, { nodeId: feedback.nodeId });
       return;
     }
 
@@ -672,7 +669,7 @@ export class ABMCTSService {
 
     // Update Bayesian model
     if (node.metadata.agent) {
-      bayesianModelRegistry.updateModel()
+      bayesianModelRegistry.updateModel(
         node.metadata.agent,
         feedback.context.taskType,
         feedback.reward,
@@ -681,7 +678,7 @@ export class ABMCTSService {
       );
     }
 
-    log.info('📊 Feedback processed', LogContext.AI, {')
+    log.info('📊 Feedback processed', LogContext.AI, {
       nodeId: feedback.nodeId,
       reward: feedback.reward.value,
       userRating: feedback.userRating,
@@ -695,22 +692,22 @@ export class ABMCTSService {
     return a.userRequest === b.userRequest && a.requestId === b.requestId;
   }
 
-  private getAgentType(agentName: string): ABMCTSAction['agentType'] {'
-    if (agentName.includes('evolved')) return 'evolved';'
-    if (agentName.includes('personal')) return 'personal';'
-    if (agentName.includes('generated')) return 'generated';'
-    return 'cognitive';';
+  private getAgentType(agentName: string): ABMCTSAction['agentType'] {
+    if (agentName.includes('evolved')) return 'evolved';
+    if (agentName.includes('personal')) return 'personal';
+    if (agentName.includes('generated')) return 'generated';
+    return 'cognitive';
   }
 
   private getTaskType(context: AgentContext): string {
-    return context.metadata?.taskType || 'general';';
+    return context.metadata?.taskType || 'general';
   }
 
   private selectRandomAgent(agents: string[]): string {
     if (agents.length === 0) {
-      return 'fallback';';
+      return 'fallback';
     }
-    return agents[Math.floor(Math.random() * agents.length)] || 'fallback';';
+    return agents[Math.floor(Math.random() * agents.length)] || 'fallback';
   }
 
   private calculateAverageDepth(): number {
@@ -728,7 +725,7 @@ export class ABMCTSService {
 
     if (this.root) traverse(this.root);
 
-    return nodeCount > 0 ? totalDepth / nodeCount: 0;
+    return nodeCount > 0 ? totalDepth / nodeCount : 0;
   }
 
   private calculateBranchingFactor(): number {
@@ -748,12 +745,12 @@ export class ABMCTSService {
 
     if (this.root) traverse(this.root);
 
-    return nodesWithChildren > 0 ? totalChildren / nodesWithChildren: 0;
+    return nodesWithChildren > 0 ? totalChildren / nodesWithChildren : 0;
   }
 
   private pruneCache(): void {
     // Remove least recently used nodes
-    const sortedNodes = Array.from(this.nodeCache.values()).sort();
+    const sortedNodes = Array.from(this.nodeCache.values()).sort(
       (a, b) => a.metadata.timestamp - b.metadata.timestamp
     );
 
@@ -767,7 +764,7 @@ export class ABMCTSService {
   private async saveCheckpoint(): Promise<void> {
     this.checkpointVersion++;
     // In real implementation, would save to Redis
-    log.debug('Checkpoint saved', LogContext.AI, { version: this.checkpointVersion });'
+    log.debug('Checkpoint saved', LogContext.AI, { version: this.checkpointVersion });
   }
 
   /**
@@ -780,9 +777,9 @@ export class ABMCTSService {
     const edges: unknown[] = [];
 
     const traverse = (node: ABMCTSNode, isBestPath = false) => {
-      nodes.push({)
+      nodes.push({
         id: node.id,
-        label: node.metadata.agent || 'root','
+        label: node.metadata.agent || 'root',
         score: node.averageReward,
         visits: node.visits,
         depth: node.depth,
@@ -791,7 +788,7 @@ export class ABMCTSService {
       });
 
       for (const child of node.children.values()) {
-        edges.push({)
+        edges.push({
           source: node.id,
           target: child.id,
           weight: child.visits / node.visits,
@@ -809,11 +806,11 @@ export class ABMCTSService {
     return {
       nodes,
       edges,
-      metrics: {,
+      metrics: {
         totalNodes: nodes.length,
-        maxDepth: Math.max(...nodes.map((n) => n.depth)),
+        maxDepth: Math.max(...nodes.map((n: any) => n.depth)),
         avgBranchingFactor: this.calculateBranchingFactor(),
-        explorationRate: nodes.filter((n) => n.visits === 0).length / nodes.length,
+        explorationRate: nodes.filter((n: any) => n.visits === 0).length / nodes.length,
       },
     };
   }
@@ -830,20 +827,20 @@ class ABMCTSOrchestrator {
   }
 
   async orchestrate(context: AgentContext, options?: unknown): Promise<any> {
-    const availableAgents = ['planner', 'retriever', 'synthesizer', 'orchestrator'];';
-    const result = await this.service.search(context as any, availableAgents, options);
+    const availableAgents = ['planner', 'retriever', 'synthesizer', 'orchestrator'];
+    const result = await this.service.search(context as any, availableAgents, options as any);
 
     return {
-      response: {, success: true, data: 'Mock AB-MCTS response' },'
-      searchResult: {,
+      response: { success: true, data: 'Mock AB-MCTS response' },
+      searchResult: {
         searchMetrics: result.searchMetrics,
         bestAction: result.bestAction.agentName,
         confidence: result.confidence,
         recommendations: result.recommendations,
       },
-      executionPath: result.bestPath.map((n) => n.metadata.agent || 'unknown'),'
+      executionPath: result.bestPath.map((n) => n.metadata.agent || 'unknown'),
       totalTime: result.searchMetrics.timeElapsed,
-      resourcesUsed: ['cpu', 'memory'],'
+      resourcesUsed: ['cpu', 'memory'],
     };
   }
 
@@ -862,18 +859,18 @@ class ABMCTSOrchestrator {
 
   getStatistics(): unknown {
     return {
-      circuitBreakerState: 'CLOSED','
+      circuitBreakerState: 'CLOSED',
       successRate: 0.95,
       activeSearches: 0,
     };
   }
 
   async getRecommendations(): Promise<string[]> {
-    return ['Mock recommendation 1', 'Mock recommendation 2'];';
+    return ['Mock recommendation 1', 'Mock recommendation 2'];
   }
 
   reset(): void {
-    console.log('AB-MCTS orchestrator reset');'
+    console.log('AB-MCTS orchestrator reset');
   }
 }
 

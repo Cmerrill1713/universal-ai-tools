@@ -4,7 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: './tests/browser',
+  testDir: './tests',
+  testMatch: ['**/*.test.ts'],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -14,7 +15,11 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: [
+    ['html', { outputFolder: 'playwright-report' }],
+    ['json', { outputFile: 'test-results/playwright-results.json' }],
+    ['list']
+  ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -32,6 +37,16 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    {
+      name: 'api-tests',
+      testMatch: '**/*api*.test.ts',
+      use: {
+        baseURL: 'http://localhost:9999',
+        extraHTTPHeaders: {
+          'Accept': 'application/json',
+        },
+      },
+    },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },

@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { TWO } from '../src/utils/constants';
 
 /**
  * WebSocket Connection Tests
