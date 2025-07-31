@@ -3,27 +3,27 @@
  * Scrapes various databases and knowledge sources to enhance agent capabilities
  */
 
-import { createClient  } from '@supabase/supabase-js';';
-import axios from 'axios';';
-import * as cheerio from 'cheerio';';
-import { LogContext, log  } from '../utils/logger';';
-import { RateLimiter  } from 'limiter';';
-import { THOUSAND, TWO  } from '../utils/common-constants';';
-import { rerankingService  } from './reranking-service';';
+import { createClient } from '@supabase/supabase-js';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import { LogContext, log } from '../utils/logger';
+import { RateLimiter } from 'limiter';
+import { THOUSAND, TWO } from '../utils/common-constants';
+import { rerankingService } from './reranking-service';
 
 interface ScrapingSource {
-  name: string;,
-  type: 'api' | 'web' | 'dump';'
-  url: string;,
+  name: string;
+  type: 'api' | 'web' | 'dump';
+  url: string;
   rateLimit: number; // requests per minute
-  parser: (data: any) => KnowledgeEntry[];,
+  parser: (data: any) => KnowledgeEntry[];
   enabled: boolean;
 }
 
 interface KnowledgeEntry {
-  source: string;,
+  source: string;
   category: string;
-  title: string;,
+  title: string;
   content: string;
   metadata: Record<string, any>;
   embedding?: number[];
@@ -35,54 +35,55 @@ export class KnowledgeScraperService {
 
   private sources: ScrapingSource[] = [
     {
-      name: 'MDN Web Docs','
-      type: 'web','
-      url: 'https://developer.mozilla.org/en-US/docs/Web','
+      name: 'MDN Web Docs',
+      type: 'web',
+      url: 'https://developer.mozilla.org/en-US/docs/Web',
       rateLimit: 30,
       enabled: true,
       parser: this.parseMDN.bind(this),
     },
     {
-      name: 'Stack Overflow','
-      type: 'api','
-      url: 'https://api.stackexchange.com/2.3/questions','
+      name: 'Stack Overflow',
+      type: 'api',
+      url: 'https://api.stackexchange.com/2.3/questions',
       rateLimit: 300, // With key: 10,000/day
       enabled: true,
       parser: this.parseStackOverflow.bind(this),
     },
     {
-      name: 'Papers with Code','
-      type: 'api','
-      url: 'https://paperswithcode.com/api/v1/papers','
+      name: 'Papers with Code',
+      type: 'api',
+      url: 'https://paperswithcode.com/api/v1/papers',
       rateLimit: 60,
       enabled: true,
       parser: this.parsePapersWithCode.bind(this),
     },
     {
-      name: 'Hugging Face','
-      type: 'api','
-      url: 'https://huggingface.co/api/models','
+      name: 'Hugging Face',
+      type: 'api',
+      url: 'https://huggingface.co/api/models',
       rateLimit: 100,
       enabled: true,
       parser: this.parseHuggingFace.bind(this),
     },
     {
-      name: 'DevDocs','
-      type: 'api','
-      url: 'https://devdocs.io/docs.json','
+      name: 'DevDocs',
+      type: 'api',
+      url: 'https://devdocs.io/docs.json',
       rateLimit: 60,
       enabled: true,
       parser: this.parseDevDocs.bind(this),
-    }];
+    },
+  ];
 
   private limiters: Map<string, RateLimiter> = new Map();
 
   constructor() {
     // Initialize rate limiters
     this.sources.forEach((source) => {
-      this.limiters.set()
+      this.limiters.set(
         source.name,
-        new RateLimiter({ tokensPerInterval: source.rateLimit, interval: 'minute' })'
+        new RateLimiter({ tokensPerInterval: source.rateLimit, interval: 'minute' })
       );
     });
   }
@@ -90,14 +91,14 @@ export class KnowledgeScraperService {
   /**
    * Scrape all enabled sources and store in Supabase
    */
-  async scrapeAllSources()
+  async scrapeAllSources(
     options: {
       categories?: string[];
       limit?: number;
       updateExisting?: boolean;
     } = {}
   ): Promise<void> {
-    log.info('🔍 Starting knowledge scraping', LogContext.SERVICE);'
+    log.info('🔍 Starting knowledge scraping', LogContext.SERVICE);
 
     for (const source of this.sources) {
       if (!source.enabled) continue;
@@ -109,13 +110,13 @@ export class KnowledgeScraperService {
       }
     }
 
-    log.info('✅ Knowledge scraping completed', LogContext.SERVICE);'
+    log.info('✅ Knowledge scraping completed', LogContext.SERVICE);
   }
 
   /**
    * Scrape a specific source
    */
-  async scrapeSource()
+  async scrapeSource(
     source: ScrapingSource,
     options: {
       categories?: string[];
@@ -132,20 +133,20 @@ export class KnowledgeScraperService {
       await limiter.removeTokens(1);
 
       let data;
-      if (source.type === 'api') {'
-        const response = await axios.get(source.url, {);
-          params: {,
+      if (source.type === 'api') {
+        const response = await axios.get(source.url, {
+          params: {
             pagesize: options.limit || 100,
-            order: 'desc','
-            sort: 'votes','
-            tagged: options.categories?.join(';'),'
+            order: 'desc',
+            sort: 'votes',
+            tagged: options.categories?.join(';'),
           },
           headers: {
-            'User-Agent': 'Universal-AI-Tools/1.0','
+            'User-Agent': 'Universal-AI-Tools/1.0',
           },
         });
         data = response.data;
-      } else if (source.type === 'web') {'
+      } else if (source.type === 'web') {
         const response = await axios.get(source.url);
         data = response.data;
       }
@@ -179,9 +180,9 @@ export class KnowledgeScraperService {
       }
 
       if (updateExisting) {
-        await this.supabase.from('knowledge_base').upsert(batch, { onConflict: 'source,title' });'
+        await this.supabase.from('knowledge_base').upsert(batch, { onConflict: 'source,title' });
       } else {
-        await this.supabase.from('knowledge_base').insert(batch);'
+        await this.supabase.from('knowledge_base').insert(batch);
       }
     }
   }
@@ -192,7 +193,7 @@ export class KnowledgeScraperService {
   async generateEmbedding(content: string): Promise<number[]> {
     // This would call your embedding service
     // For now, return a mock embedding
-    const mockEmbedding = Array(1536);
+    const mockEmbedding = Array(1536)
       .fill(0)
       .map(() => Math.random());
     return mockEmbedding;
@@ -204,19 +205,19 @@ export class KnowledgeScraperService {
     const $ = cheerio.load(html);
     const entries: KnowledgeEntry[] = [];
 
-    $('article').each((_, element) => {'
-      const title = $(element).find('h1').text().trim();';
-      const content = $(element).find('.section-content').text().trim();';
-      const category = 'web-development';';
+    $('article').each((_, element) => {
+      const title = $(element).find('h1').text().trim();
+      const content = $(element).find('.section-content').text().trim();
+      const category = 'web-development';
 
       if (title && content) {
-        entries.push({)
-          source: 'MDN','
+        entries.push({
+          source: 'MDN',
           category,
           title,
           content,
-          metadata: {,
-            url: $(element).find('link[rel="canonical"]').attr('href'),'"
+          metadata: {
+            url: $(element).find('link[rel="canonical"]').attr('href'),
             lastModified: new Date().toISOString(),
           },
           timestamp: new Date(),
@@ -228,12 +229,12 @@ export class KnowledgeScraperService {
   }
 
   private parseStackOverflow(data: any): KnowledgeEntry[] {
-    return (data.items || []).map((item: any) => ({,;
-      source: 'StackOverflow','
-      category: item.tags?.[0] || 'general','
+    return (data.items || []).map((item: any) => ({
+      source: 'StackOverflow',
+      category: item.tags?.[0] || 'general',
       title: item.title,
-      content: `Q: ${item.title}n\nA: ${item.accepted_answer?.body || 'No accepted answer'}`,'
-      metadata: {,
+      content: `Q: ${item.title}\n\nA: ${item.accepted_answer?.body || 'No accepted answer'}`,
+      metadata: {
         questionId: item.question_id,
         score: item.score,
         viewCount: item.view_count,
@@ -245,12 +246,12 @@ export class KnowledgeScraperService {
   }
 
   private parsePapersWithCode(data: any): KnowledgeEntry[] {
-    return (data.results || []).map((paper: any) => ({,;
-      source: 'PapersWithCode','
-      category: 'ai-ml','
+    return (data.results || []).map((paper: any) => ({
+      source: 'PapersWithCode',
+      category: 'ai-ml',
       title: paper.title,
-      content: paper.abstract || '','
-      metadata: {,
+      content: paper.abstract || '',
+      metadata: {
         paperId: paper.id,
         arxivId: paper.arxiv_id,
         urlPdf: paper.url_pdf,
@@ -262,12 +263,12 @@ export class KnowledgeScraperService {
   }
 
   private parseHuggingFace(data: any): KnowledgeEntry[] {
-    return (data || []).slice(0, 100).map((model: any) => ({,;
-      source: 'HuggingFace','
-      category: 'ai-models','
+    return (data || []).slice(0, 100).map((model: any) => ({
+      source: 'HuggingFace',
+      category: 'ai-models',
       title: model.modelId,
-      content: `Model: ${model.modelId}nTask: ${model.pipeline_tag || 'unknown'}\n\n${model.description || 'No description'}`,'
-      metadata: {,
+      content: `Model: ${model.modelId}\nTask: ${model.pipeline_tag || 'unknown'}\n\n${model.description || 'No description'}`,
+      metadata: {
         modelId: model.modelId,
         task: model.pipeline_tag,
         downloads: model.downloads,
@@ -279,12 +280,12 @@ export class KnowledgeScraperService {
   }
 
   private parseDevDocs(data: any): KnowledgeEntry[] {
-    return (data || []).map((doc: any) => ({,;
-      source: 'DevDocs','
-      category: 'api-reference','
-      title: `${doc.name} ${doc.version || ''}`.trim(),'
+    return (data || []).map((doc: any) => ({
+      source: 'DevDocs',
+      category: 'api-reference',
+      title: `${doc.name} ${doc.version || ''}`.trim(),
       content: `${doc.name} documentation - ${doc.slug}`,
-      metadata: {,
+      metadata: {
         slug: doc.slug,
         type: doc.type,
         version: doc.version,
@@ -297,7 +298,7 @@ export class KnowledgeScraperService {
   /**
    * Search knowledge base with optional reranking
    */
-  async searchKnowledge()
+  async searchKnowledge(
     query: string,
     options: {
       sources?: string[];
@@ -308,19 +309,19 @@ export class KnowledgeScraperService {
     } = {}
   ): Promise<KnowledgeEntry[]> {
     const embedding = await this.generateEmbedding(query);
-    const searchLimit = options.useReranking ? (options.limit || 10) * 10: options.limit || 10;
+    const searchLimit = options.useReranking ? (options.limit || 10) * 10 : options.limit || 10;
 
-    let queryBuilder = this.supabase.rpc('search_knowledge', {');
+    let queryBuilder = this.supabase.rpc('search_knowledge', {
       query_embedding: embedding,
       match_count: searchLimit,
     });
 
     if (options.sources?.length) {
-      queryBuilder = queryBuilder.in('source', options.sources);'
+      queryBuilder = queryBuilder.in('source', options.sources);
     }
 
     if (options.categories?.length) {
-      queryBuilder = queryBuilder.in('category', options.categories);'
+      queryBuilder = queryBuilder.in('category', options.categories);
     }
 
     const { data, error } = await queryBuilder;
@@ -333,29 +334,29 @@ export class KnowledgeScraperService {
 
     // Apply reranking if enabled
     if (options.useReranking && results.length > 0) {
-      log.info('🔄 Applying reranking to search results', LogContext.SERVICE, {')
+      log.info('🔄 Applying reranking to search results', LogContext.SERVICE, {
         initialCount: results.length,
         targetCount: options.limit || 10,
       });
 
       try {
         // Convert to reranking candidates
-        const candidates = results.map((result) => ({
+        const candidates = results.map((result: any) => ({
           id: result.id,
-          content: `${result.title}n\n${result.content}`,
+          content: `${result.title}\n\n${result.content}`,
           metadata: result.metadata,
           biEncoderScore: result.similarity || 0,
         }));
 
         // Rerank the candidates
-        const rerankedResults = await rerankingService.rerank(query, candidates, {);
+        const rerankedResults = await rerankingService.rerank(query, candidates, {
           topK: options.limit || 10,
           model: options.rerankingModel,
         });
 
         // Convert back to KnowledgeEntry format
         return rerankedResults.map((reranked) => {
-          const original = results.find((r) => r.id === reranked.id)!;
+          const original = results.find((r: any) => r.id === reranked.id)!;
           return {
             ...original,
             similarity: reranked.finalScore,
@@ -363,7 +364,7 @@ export class KnowledgeScraperService {
           };
         });
       } catch (rerankError) {
-        log.warn('⚠️ Reranking failed, returning original results', LogContext.SERVICE, {')
+        log.warn('⚠️ Reranking failed, returning original results', LogContext.SERVICE, {
           error: rerankError,
         });
         return results.slice(0, options.limit || 10);
@@ -377,7 +378,7 @@ export class KnowledgeScraperService {
    * Get scraping status
    */
   async getScrapingStatus(): Promise<{
-    sources: Array<{,
+    sources: Array<{
       name: string;
       enabled: boolean;
       lastScraped?: Date;
@@ -387,13 +388,13 @@ export class KnowledgeScraperService {
   }> {
     try {
       // Get counts by source
-      const { data: entries, error: entriesError } = await this.supabase;
-        .from('knowledge_base')'
-        .select('source')'
-        .not('source', 'is', null);'
+      const { data: entries, error: entriesError } = await this.supabase
+        .from('knowledge_base')
+        .select('source')
+        .not('source', 'is', null);
 
       if (entriesError) {
-        log.warn('Failed to get knowledge base entries', LogContext.DATABASE, {')
+        log.warn('Failed to get knowledge base entries', LogContext.DATABASE, {
           error: entriesError,
         });
       }
@@ -402,18 +403,18 @@ export class KnowledgeScraperService {
       const sourceCounts = new Map<string, number>();
       if (entries) {
         entries.forEach((entry) => {
-          const source = entry.source || 'unknown';';
+          const source = entry.source || 'unknown';
           sourceCounts.set(source, (sourceCounts.get(source) || 0) + 1);
         });
       }
 
       // Get total count
-      const { count: totalEntries } = await this.supabase;
-        .from('knowledge_base')'
-        .select('*', { count: 'exact', head: true });'
+      const { count: totalEntries } = await this.supabase
+        .from('knowledge_base')
+        .select('*', { count: 'exact', head: true });
 
       return {
-        sources: this.sources.map((source) => ({,
+        sources: this.sources.map((source) => ({
           name: source.name,
           enabled: source.enabled,
           entryCount: sourceCounts.get(source.name) || 0,
@@ -421,10 +422,10 @@ export class KnowledgeScraperService {
         totalEntries: totalEntries || 0,
       };
     } catch (error) {
-      log.error('Failed to get scraping status', LogContext.SERVICE, { error });'
+      log.error('Failed to get scraping status', LogContext.SERVICE, { error });
       // Return safe defaults
       return {
-        sources: this.sources.map((source) => ({,
+        sources: this.sources.map((source) => ({
           name: source.name,
           enabled: source.enabled,
           entryCount: 0,

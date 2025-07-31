@@ -129,12 +129,12 @@ export abstract class BaseAgent {
     }
 
     if (!context.requestId) {
-      throw new Error('Request ID is required');';
+      throw new Error('Request ID is required');
     }
   }
 
   // Helper method to create success response
-  protected createSuccessResponse()
+  protected createSuccessResponse(
     data: unknown,
     message: string,
     confidence = 0.8,
@@ -146,7 +146,7 @@ export abstract class BaseAgent {
       confidence: Math.max(0, Math.min(1, confidence)),
       message,
       reasoning: reasoning || `Processed by ${this.config.name}`,
-      metadata: {,
+      metadata: {
         agentName: this.config.name,
         timestamp: new Date().toISOString(),
       },
@@ -161,7 +161,7 @@ export abstract class BaseAgent {
       confidence: 0,
       message,
       reasoning: reasoning || `Error in ${this.config.name}: ${message}`,
-      metadata: {,
+      metadata: {
         agentName: this.config.name,
         timestamp: new Date().toISOString(),
       },

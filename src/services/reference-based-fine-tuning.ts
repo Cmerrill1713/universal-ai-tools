@@ -1,17 +1,16 @@
 /**
  * Reference-Based Fine-Tuning Service
  * Allows agents to fine-tune models based on external research papers, techniques, and methodologies
- * Inspired by Sakana AI's evolutionary approach and other cutting-edge research'
+ * Inspired by Sakana AI's evolutionary approach and other cutting-edge research
  */
 
-import { mlxFineTuningService  } from './mlx-fine-tuning-service';';
-import { WebFetch  } from '@/utils/web-fetch';';
-import type { Hyperparameters } from './mlx-fine-tuning-service';';
-import { LogContext, log  } from '@/utils/logger';';
+import { mlxFineTuningService } from './mlx-fine-tuning-service';
+import type { Hyperparameters } from './mlx-fine-tuning-service';
+import { LogContext, log } from '@/utils/logger';
 
 // Types for different fine-tuning methodologies
 export interface ResearchReference {
-  type: 'paper' | 'blog' | 'github' | 'arxiv' | 'website';,'
+  type: 'paper' | 'blog' | 'github' | 'arxiv' | 'website';
   url: string;
   title: string;
   authors?: string[];
@@ -20,34 +19,34 @@ export interface ResearchReference {
   extractedParams?: ExtractedParameters;
 }
 
-export type FineTuningTechnique =;
-  | 'evolutionary' // Sakana AI approach'
-  | 'lora' // Low-Rank Adaptation'
-  | 'qlora' // Quantized LoRA'
-  | 'prefix-tuning''
-  | 'adapter-tuning''
-  | 'prompt-tuning''
-  | 'instruction-tuning''
-  | 'rlhf' // Reinforcement Learning from Human Feedback'
-  | 'dpo' // Direct Preference Optimization'
-  | 'constitutional-ai''
-  | 'chain-of-thought''
-  | 'tree-of-thoughts''
-  | 'self-consistency''
-  | 'few-shot-learning''
-  | 'meta-learning''
-  | 'continual-learning''
-  | 'federated-learning''
-  | 'neural-architecture-search''
-  | 'knowledge-distillation''
-  | 'mixture-of-experts''
-  | 'sparse-mixture-of-experts''
-  | 'custom';'
+export type FineTuningTechnique =
+  | 'evolutionary' // Sakana AI approach
+  | 'lora' // Low-Rank Adaptation
+  | 'qlora' // Quantized LoRA
+  | 'prefix-tuning'
+  | 'adapter-tuning'
+  | 'prompt-tuning'
+  | 'instruction-tuning'
+  | 'rlhf' // Reinforcement Learning from Human Feedback
+  | 'dpo' // Direct Preference Optimization
+  | 'constitutional-ai'
+  | 'chain-of-thought'
+  | 'tree-of-thoughts'
+  | 'self-consistency'
+  | 'few-shot-learning'
+  | 'meta-learning'
+  | 'continual-learning'
+  | 'federated-learning'
+  | 'neural-architecture-search'
+  | 'knowledge-distillation'
+  | 'mixture-of-experts'
+  | 'sparse-mixture-of-experts'
+  | 'custom';
 
 export interface ExtractedParameters {
-  learningRate?: { min: number;, max: number; optimal?: number };
+  learningRate?: { min: number; max: number; optimal?: number };
   batchSize?: number[];
-  epochs?: { min: number;, max: number };
+  epochs?: { min: number; max: number };
   warmupRatio?: number;
   weightDecay?: number;
   dropoutRate?: number;
@@ -59,43 +58,41 @@ export interface ExtractedParameters {
 }
 
 export interface EvolutionaryParameters {
-  populationSize: number;,
+  populationSize: number;
   mutationRate: number;
-  crossoverRate: number;,
+  crossoverRate: number;
   selectionPressure: number;
-  eliteRatio: number;,
+  eliteRatio: number;
   generations: number;
-  fitnessMetric: 'accuracy' | 'perplexity' | 'combined' | 'custom';'
+  fitnessMetric: 'accuracy' | 'perplexity' | 'combined' | 'custom';
 }
 
 export interface ReferenceFineTuningRequest {
-  agentName: string;,
+  agentName: string;
   references: ResearchReference[];
-  targetCapabilities: string[];,
+  targetCapabilities: string[];
   datasetPath: string;
-  baseModel: string;,
+  baseModel: string;
   experimentName: string;
   combineStrategies?: boolean; // Combine multiple techniques
   autoExtractParams?: boolean; // Auto-extract parameters from papers
 }
 
 export class ReferenceBasedFineTuning {
-  private webFetch: WebFetch;
   private techniqueImplementations: Map<FineTuningTechnique, TechniqueImplementation>;
 
   constructor() {
-    this.webFetch = new WebFetch();
     this.techniqueImplementations = new Map();
     this.initializeTechniques();
   }
 
   private initializeTechniques(): void {
     // Sakana AI Evolutionary Approach
-    this.techniqueImplementations.set('evolutionary', {')
-      name: 'Sakana AI Evolutionary Fine-Tuning','
-      description: 'Uses evolutionary algorithms to discover optimal architectures','
+    this.techniqueImplementations.set('evolutionary', {
+      name: 'Sakana AI Evolutionary Fine-Tuning',
+      description: 'Uses evolutionary algorithms to discover optimal architectures',
       implementation: this.implementEvolutionaryFineTuning.bind(this),
-      defaultParams: {,
+      defaultParams: {
         evolutionaryParams: {
           populationSize: 20,
           mutationRate: 0.1,
@@ -103,32 +100,32 @@ export class ReferenceBasedFineTuning {
           selectionPressure: 2.0,
           eliteRatio: 0.1,
           generations: 50,
-          fitnessMetric: 'combined','
+          fitnessMetric: 'combined',
         },
       },
     });
 
     // LoRA Implementation
-    this.techniqueImplementations.set('lora', {')
-      name: 'Low-Rank Adaptation (LoRA)','
-      description: 'Efficient fine-tuning with low-rank matrices','
+    this.techniqueImplementations.set('lora', {
+      name: 'Low-Rank Adaptation (LoRA)',
+      description: 'Efficient fine-tuning with low-rank matrices',
       implementation: this.implementLoRAFineTuning.bind(this),
-      defaultParams: {,
+      defaultParams: {
         rankSize: 8,
         alphaScaling: 16,
         dropoutRate: 0.1,
-        learningRate: {, min: 0.0001, max: 0.001, optimal: 0.0003 },
+        learningRate: { min: 0.0001, max: 0.001, optimal: 0.0003 },
       },
     });
 
     // DPO Implementation
-    this.techniqueImplementations.set('dpo', {')
-      name: 'Direct Preference Optimization','
-      description: 'Fine-tune based on preference data without RL','
+    this.techniqueImplementations.set('dpo', {
+      name: 'Direct Preference Optimization',
+      description: 'Fine-tune based on preference data without RL',
       implementation: this.implementDPOFineTuning.bind(this),
-      defaultParams: {,
+      defaultParams: {
         betaCoefficient: 0.1,
-        learningRate: {, min: 0.00001, max: 0.0001, optimal: 0.00005 },
+        learningRate: { min: 0.00001, max: 0.0001, optimal: 0.00005 },
       },
     });
 
@@ -138,20 +135,21 @@ export class ReferenceBasedFineTuning {
   /**
    * Extract parameters from research references automatically
    */
-  async extractParametersFromReferences()
+  async extractParametersFromReferences(
     references: ResearchReference[]
   ): Promise<ExtractedParameters> {
     const allParams: ExtractedParameters = {};
 
     for (const ref of references) {
       try {
-        log.info('📚 Extracting parameters from reference', LogContext.AI, {')
+        log.info('📚 Extracting parameters from reference', LogContext.AI, {
           title: ref.title,
           url: ref.url,
         });
 
         // Fetch and analyze the content
-        const content = await this.webFetch.fetch(ref.url);
+        const response = await fetch(ref.url);
+        const content = await response.text();
         const extractedParams = await this.analyzeResearchContent(content, ref.technique);
 
         // Merge parameters intelligently
@@ -160,7 +158,7 @@ export class ReferenceBasedFineTuning {
         // Store extracted params in reference
         ref.extractedParams = extractedParams;
       } catch (error) {
-        log.warn('⚠️ Failed to extract from reference', LogContext.AI, {')
+        log.warn('⚠️ Failed to extract from reference', LogContext.AI, {
           url: ref.url,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -173,7 +171,7 @@ export class ReferenceBasedFineTuning {
   /**
    * Analyze research content to extract fine-tuning parameters
    */
-  private async analyzeResearchContent()
+  private async analyzeResearchContent(
     content: string,
     technique: FineTuningTechnique
   ): Promise<ExtractedParameters> {
@@ -181,15 +179,16 @@ export class ReferenceBasedFineTuning {
     const params: ExtractedParameters = {};
 
     // Learning rate patterns
-    const lrPatterns = [;
+    const lrPatterns = [
       /learning\s*rate[:=]\s*([\d.e-]+)/gi,
       /lr[:=]\s*([\d.e-]+)/gi,
-      /α\s*=\s*([\d.e-]+)/gi];
+      /α\s*=\s*([\d.e-]+)/gi,
+    ];
 
     for (const pattern of lrPatterns) {
       const matches = content.matchAll(pattern);
       for (const match of matches) {
-        const lr = parseFloat(match[1]);
+        const lr = parseFloat(match[1]!);
         if (!isNaN(lr)) {
           params.learningRate = params.learningRate || { min: lr, max: lr };
           params.learningRate.optimal = lr;
@@ -204,7 +203,7 @@ export class ReferenceBasedFineTuning {
     for (const pattern of batchPatterns) {
       const matches = content.matchAll(pattern);
       for (const match of matches) {
-        const size = parseInt(match[1]);
+        const size = parseInt(match[1]!);
         if (!isNaN(size)) {
           batchSizes.push(size);
         }
@@ -215,9 +214,9 @@ export class ReferenceBasedFineTuning {
     }
 
     // Technique-specific extraction
-    if (technique === 'evolutionary') {'
+    if (technique === 'evolutionary') {
       params.evolutionaryParams = this.extractEvolutionaryParams(content);
-    } else if (technique === 'lora') {'
+    } else if (technique === 'lora') {
       params.rankSize = this.extractNumber(content, /rank[:=]\s*(\d+)/i) || 8;
       params.alphaScaling = this.extractNumber(content, /alpha[:=]\s*(\d+)/i) || 16;
     }
@@ -228,10 +227,10 @@ export class ReferenceBasedFineTuning {
   /**
    * Start fine-tuning based on research references
    */
-  async startReferenceBasedFineTuning()
+  async startReferenceBasedFineTuning(
     request: ReferenceFineTuningRequest
-  ): Promise<{ jobId: string;, technique: string; estimatedTime: number }> {
-    log.info('🔬 Starting reference-based fine-tuning', LogContext.AI, {')
+  ): Promise<{ jobId: string; technique: string; estimatedTime: number }> {
+    log.info('🔬 Starting reference-based fine-tuning', LogContext.AI, {
       agent: request.agentName,
       references: request.references.length,
       techniques: request.references.map((r) => r.technique),
@@ -252,14 +251,14 @@ export class ReferenceBasedFineTuning {
     }
 
     // Combine parameters from references and defaults
-    const combinedParams = this.combineParameters();
+    const combinedParams = this.combineParameters(
       extractedParams,
       implementation.defaultParams,
       request.references
     );
 
     // Execute the fine-tuning with the selected technique
-    const result = await implementation.implementation({);
+    const result = await implementation.implementation({
       agentName: request.agentName,
       baseModel: request.baseModel,
       datasetPath: request.datasetPath,
@@ -281,35 +280,37 @@ export class ReferenceBasedFineTuning {
   private async implementEvolutionaryFineTuning(config: any): Promise<any> {
     const evolutionParams = config.parameters.evolutionaryParams;
 
-    log.info('🧬 Starting evolutionary fine-tuning', LogContext.AI, {')
+    log.info('🧬 Starting evolutionary fine-tuning', LogContext.AI, {
       populationSize: evolutionParams.populationSize,
       generations: evolutionParams.generations,
     });
 
     // Create initial population of model configurations
-    const population = await this.createInitialPopulation();
+    const population = await this.createInitialPopulation(
       config.baseModel,
       evolutionParams.populationSize
     );
 
+    let fitnessScores: number[] = [];
+
     // Evolution loop
     for (let gen = 0; gen < evolutionParams.generations; gen++) {
       // Evaluate fitness of each individual
-      const fitnessScores = await this.evaluatePopulationFitness();
+      fitnessScores = await this.evaluatePopulationFitness(
         population,
         config.datasetPath,
         evolutionParams.fitnessMetric
       );
 
       // Select parents based on fitness
-      const parents = this.selectParents();
+      const parents = this.selectParents(
         population,
         fitnessScores,
         evolutionParams.selectionPressure
       );
 
       // Create offspring through crossover and mutation
-      const offspring = await this.createOffspring();
+      const offspring = await this.createOffspring(
         parents,
         evolutionParams.crossoverRate,
         evolutionParams.mutationRate
@@ -320,7 +321,7 @@ export class ReferenceBasedFineTuning {
       population.push(...this.selectElite(population, fitnessScores, evolutionParams.eliteRatio));
       population.push(...offspring);
 
-      log.info(`🧬 Generation ${gen + 1}/${evolutionParams.generations}`, LogContext.AI, {)
+      log.info(`🧬 Generation ${gen + 1}/${evolutionParams.generations}`, LogContext.AI, {
         bestFitness: Math.max(...fitnessScores),
         avgFitness: fitnessScores.reduce((a, b) => a + b) / fitnessScores.length,
       });
@@ -329,28 +330,33 @@ export class ReferenceBasedFineTuning {
     // Fine-tune the best individual
     const bestIndividual = this.getBestIndividual(population, fitnessScores);
 
-    return mlxFineTuningService.createFineTuningJob({);
-      baseModel: config.baseModel,
-      datasetPath: config.datasetPath,
-      hyperparameters: bestIndividual.hyperparameters,
-      metadata: {,
-        technique: 'evolutionary','
-        evolutionaryParams: evolutionParams,
-        finalFitness: bestIndividual.fitness,
-      },
-    });
+    return mlxFineTuningService.createFineTuningJob(
+      'evolutionary-tuning',
+      config.userId || 'system',
+      config.baseModel,
+      config.baseModelPath || config.baseModel,
+      config.datasetPath,
+      bestIndividual.hyperparameters,
+      {
+        // Store technique info in job name for tracking
+        splitRatio: 0.2,
+        validationMetrics: ['loss', 'accuracy'],
+        earlyStopping: true,
+        patience: 3
+      }
+    );
   }
 
   /**
    * Implement LoRA fine-tuning
    */
   private async implementLoRAFineTuning(config: any): Promise<any> {
-    log.info('🔗 Starting LoRA fine-tuning', LogContext.AI, {')
+    log.info('🔗 Starting LoRA fine-tuning', LogContext.AI, {
       rank: config.parameters.rankSize,
       alpha: config.parameters.alphaScaling,
     });
 
-    const hyperparameters: Hyperparameters = {,;
+    const hyperparameters: Hyperparameters = {
       learningRate: config.parameters.learningRate.optimal || 0.0003,
       batchSize: 4,
       epochs: 3,
@@ -362,57 +368,67 @@ export class ReferenceBasedFineTuning {
       // LoRA-specific params would be in metadata
     };
 
-    return mlxFineTuningService.createFineTuningJob({);
-      baseModel: config.baseModel,
-      datasetPath: config.datasetPath,
+    return mlxFineTuningService.createFineTuningJob(
+      'lora-tuning',
+      config.userId || 'system',
+      config.baseModel,
+      config.baseModelPath || config.baseModel,
+      config.datasetPath,
       hyperparameters,
-      metadata: {,
-        technique: 'lora','
-        loraRank: config.parameters.rankSize,
-        loraAlpha: config.parameters.alphaScaling,
-        targetModules: ['q_proj', 'v_proj'], // Standard LoRA targets'
-      },
-    });
+      {
+        splitRatio: 0.2,
+        validationMetrics: ['loss', 'perplexity'],
+        earlyStopping: true,
+        patience: 5
+      }
+    );
   }
 
   /**
    * Implement DPO fine-tuning
    */
   private async implementDPOFineTuning(config: any): Promise<any> {
-    log.info('🎯 Starting DPO fine-tuning', LogContext.AI, {')
+    log.info('🎯 Starting DPO fine-tuning', LogContext.AI, {
       beta: config.parameters.betaCoefficient,
     });
 
     // DPO requires preference data format
     const preferenceDataset = await this.convertToPreferenceFormat(config.datasetPath);
 
-    return mlxFineTuningService.createFineTuningJob({);
-      baseModel: config.baseModel,
-      datasetPath: preferenceDataset,
-      hyperparameters: {,
-        learningRate: config.parameters.learningRate.optimal || 0.00005,
+    return mlxFineTuningService.createFineTuningJob(
+      'dpo-tuning',
+      config.userId || 'system',
+      config.baseModel,
+      config.baseModelPath || config.baseModel,
+      preferenceDataset,
+      {
+        learningRate: config.parameters.learningRate?.optimal || 0.00005,
         batchSize: 2,
         epochs: 1,
         maxSeqLength: 2048,
         gradientAccumulation: 4,
+        warmupSteps: 100,
+        weightDecay: 0.01,
+        dropout: 0.1,
       },
-      metadata: {,
-        technique: 'dpo','
-        betaCoefficient: config.parameters.betaCoefficient,
-        lossType: 'dpo_loss','
-      },
-    });
+      {
+        splitRatio: 0.1,
+        validationMetrics: ['loss', 'preference_accuracy'],
+        earlyStopping: true,
+        patience: 2
+      }
+    );
   }
 
   /**
    * Allow agents to propose custom fine-tuning based on references
    */
-  async proposeCustomFineTuning()
+  async proposeCustomFineTuning(
     agentName: string,
     proposal: string,
     references: string[]
   ): Promise<ReferenceFineTuningRequest> {
-    log.info('💡 Agent proposing custom fine-tuning', LogContext.AI, {')
+    log.info('💡 Agent proposing custom fine-tuning', LogContext.AI, {
       agent: agentName,
       proposal: proposal.substring(0, 100),
     });
@@ -424,11 +440,12 @@ export class ReferenceBasedFineTuning {
     const researchRefs: ResearchReference[] = [];
     for (const url of references) {
       try {
-        const content = await this.webFetch.fetch(url);
+        const response = await fetch(url);
+        const content = await response.text();
         const ref = await this.createResearchReference(url, content);
         researchRefs.push(ref);
       } catch (error) {
-        log.warn('Failed to fetch reference', LogContext.AI, { url, error });'
+        log.warn('Failed to fetch reference', LogContext.AI, { url, error });
       }
     }
 
@@ -437,8 +454,8 @@ export class ReferenceBasedFineTuning {
       agentName,
       references: researchRefs,
       targetCapabilities: intent.capabilities,
-      datasetPath: intent.suggestedDataset || 'auto-generated','
-      baseModel: intent.suggestedModel || 'qwen2.5:7b','
+      datasetPath: intent.suggestedDataset || 'auto-generated',
+      baseModel: intent.suggestedModel || 'qwen2.5:7b',
       experimentName: `${agentName}_custom_${Date.now()}`,
       combineStrategies: intent.combineStrategies,
       autoExtractParams: true,
@@ -455,7 +472,7 @@ export class ReferenceBasedFineTuning {
 
     // Return most common technique
     let maxCount = 0;
-    let primaryTechnique: FineTuningTechnique = 'lora'; // default';
+    let primaryTechnique: FineTuningTechnique = 'lora'; // default
 
     for (const [technique, count] of techniqueCounts) {
       if (count > maxCount) {
@@ -486,24 +503,24 @@ export class ReferenceBasedFineTuning {
 
   private extractNumber(content: string, pattern: RegExp): number | null {
     const match = content.match(pattern);
-    return match ? parseInt(match[1]) : null;
+    return match ? parseInt(match[1]!) : null;
   }
 
   private extractEvolutionaryParams(content: string): EvolutionaryParameters {
     return {
-      populationSize: this.extractNumber(content, /populations*size[:=]\s*(\d+)/i) || 20,
-      mutationRate: parseFloat(content.match(/mutation\s*rate[:=]\s*([\d.]+)/i)?.[1] || '0.1'),'
-      crossoverRate: parseFloat(content.match(/crossover\s*rate[:=]\s*([\d.]+)/i)?.[1] || '0.7'),'
-      selectionPressure: parseFloat()
-        content.match(/selection\s*pressure[:=]\s*([\d.]+)/i)?.[1] || '2.0''
+      populationSize: this.extractNumber(content, /population\s*size[:=]\s*(\d+)/i) || 20,
+      mutationRate: parseFloat(content.match(/mutation\s*rate[:=]\s*([\d.]+)/i)?.[1] || '0.1'),
+      crossoverRate: parseFloat(content.match(/crossover\s*rate[:=]\s*([\d.]+)/i)?.[1] || '0.7'),
+      selectionPressure: parseFloat(
+        content.match(/selection\s*pressure[:=]\s*([\d.]+)/i)?.[1] || '2.0'
       ),
-      eliteRatio: parseFloat(content.match(/elite\s*ratio[:=]\s*([\d.]+)/i)?.[1] || '0.1'),'
+      eliteRatio: parseFloat(content.match(/elite\s*ratio[:=]\s*([\d.]+)/i)?.[1] || '0.1'),
       generations: this.extractNumber(content, /generations[:=]\s*(\d+)/i) || 50,
-      fitnessMetric: 'combined','
+      fitnessMetric: 'combined',
     };
   }
 
-  private combineParameters()
+  private combineParameters(
     extracted: ExtractedParameters,
     defaults: any,
     references: ResearchReference[]
@@ -521,7 +538,7 @@ export class ReferenceBasedFineTuning {
     const population = [];
 
     for (let i = 0; i < size; i++) {
-      population.push({)
+      population.push({
         id: `individual_${i}`,
         hyperparameters: this.randomizeHyperparameters(),
         architecture: this.randomizeArchitecture(),
@@ -535,10 +552,10 @@ export class ReferenceBasedFineTuning {
   private randomizeHyperparameters(): Hyperparameters {
     return {
       learningRate: Math.random() * 0.001 + 0.00001,
-      batchSize: [2, 4, 8, 16][Math.floor(Math.random() * 4)],
+      batchSize: [2, 4, 8, 16][Math.floor(Math.random() * 4)]!,
       epochs: Math.floor(Math.random() * 5) + 1,
       maxSeqLength: 2048,
-      gradientAccumulation: [1, 2, 4][Math.floor(Math.random() * 3)],
+      gradientAccumulation: [1, 2, 4][Math.floor(Math.random() * 3)]!,
       warmupSteps: Math.floor(Math.random() * 200) + 50,
       weightDecay: Math.random() * 0.1,
       dropout: Math.random() * 0.3,
@@ -550,11 +567,11 @@ export class ReferenceBasedFineTuning {
     return {
       attentionHeads: [8, 12, 16][Math.floor(Math.random() * 3)],
       hiddenLayers: Math.floor(Math.random() * 4) + 10,
-      activationFunction: ['gelu', 'relu', 'swish'][Math.floor(Math.random() * 3)],'
+      activationFunction: ['gelu', 'relu', 'swish'][Math.floor(Math.random() * 3)],
     };
   }
 
-  private async evaluatePopulationFitness()
+  private async evaluatePopulationFitness(
     population: any[],
     datasetPath: string,
     metric: string
@@ -576,14 +593,14 @@ export class ReferenceBasedFineTuning {
         tournament.push({ individual: population[idx], fitness: fitness[idx] });
       }
 
-      tournament.sort((a, b) => b.fitness - a.fitness);
-      parents.push(tournament[0].individual);
+      tournament.sort((a, b) => (b.fitness ?? 0) - (a.fitness ?? 0));
+      parents.push(tournament[0]!.individual);
     }
 
     return parents;
   }
 
-  private async createOffspring()
+  private async createOffspring(
     parents: any[],
     crossoverRate: number,
     mutationRate: number
@@ -614,12 +631,17 @@ export class ReferenceBasedFineTuning {
   private crossover(parent1: any, parent2: any): any {
     return {
       id: `offspring_${Date.now()}_${Math.random()}`,
-      hyperparameters: {,
-        learningRate: Math.random() > 0.5
-            ? parent1.hyperparameters.learningRate: parent2.hyperparameters.learningRate,
-        batchSize: Math.random() > 0.5
-            ? parent1.hyperparameters.batchSize: parent2.hyperparameters.batchSize,
-        epochs: Math.random() > 0.5 ? parent1.hyperparameters.epochs : parent2.hyperparameters.epochs,
+      hyperparameters: {
+        learningRate:
+          Math.random() > 0.5
+            ? parent1.hyperparameters.learningRate
+            : parent2.hyperparameters.learningRate,
+        batchSize:
+          Math.random() > 0.5
+            ? parent1.hyperparameters.batchSize
+            : parent2.hyperparameters.batchSize,
+        epochs:
+          Math.random() > 0.5 ? parent1.hyperparameters.epochs : parent2.hyperparameters.epochs,
         // ... mix other params
       },
       architecture: {
@@ -641,9 +663,10 @@ export class ReferenceBasedFineTuning {
   }
 
   private selectElite(population: any[], fitness: number[], ratio: number): any[] {
-    const sorted = population;
+    const sorted = population
       .map((ind, idx) => ({ individual: ind, fitness: fitness[idx] }))
-      .sort((a, b) => b.fitness - a.fitness);
+      .filter(item => item.fitness !== undefined)
+      .sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
 
     const eliteCount = Math.ceil(population.length * ratio);
     return sorted.slice(0, eliteCount).map((item) => item.individual);
@@ -654,14 +677,14 @@ export class ReferenceBasedFineTuning {
     let bestFitness = fitness[0];
 
     for (let i = 1; i < fitness.length; i++) {
-      if (fitness[i] > bestFitness) {
-        bestFitness = fitness[i];
+      if ((fitness[i] ?? 0) > (bestFitness ?? 0)) {
+        bestFitness = fitness[i] ?? 0;
         bestIdx = i;
       }
     }
 
     return {
-      ...population[bestIdx],
+      ...population[bestIdx]!,
       fitness: bestFitness,
     };
   }
@@ -673,10 +696,10 @@ export class ReferenceBasedFineTuning {
   }
 
   private async analyzeFineTuningProposal(proposal: string): Promise<any> {
-    // Use NLP to understand the agent's fine-tuning intent'
+    // Use NLP to understand the agent's fine-tuning intent
     return {
-      capabilities: ['reasoning', 'code_generation'],'
-      suggestedModel: 'qwen2.5:7b','
+      capabilities: ['reasoning', 'code_generation'],
+      suggestedModel: 'qwen2.5:7b',
       suggestedDataset: null,
       combineStrategies: false,
     };
@@ -684,11 +707,11 @@ export class ReferenceBasedFineTuning {
 
   private async createResearchReference(url: string, content: string): Promise<ResearchReference> {
     // Extract metadata from content
-    const title = content.match(/<title>(.*?)<\/title>/i)?.[1] || 'Unknown Title';';
+    const title = content.match(/<title>(.*?)<\/title>/i)?.[1] || 'Unknown Title';
     const technique = this.detectTechnique(content);
 
     return {
-      type: url.includes('arxiv') ? 'arxiv' : 'website','
+      type: url.includes('arxiv') ? 'arxiv' : 'website',
       url,
       title,
       technique,
@@ -698,10 +721,10 @@ export class ReferenceBasedFineTuning {
 
   private detectTechnique(content: string): FineTuningTechnique {
     const techniqueKeywords = {
-      evolutionary: ['evolution', 'genetic', 'population', 'mutation'],'
-      lora: ['low-rank', 'lora', 'adaptation'],'
-      dpo: ['preference', 'dpo', 'direct preference'],'
-      rlhf: ['reinforcement', 'human feedback', 'rlhf'],'
+      evolutionary: ['evolution', 'genetic', 'population', 'mutation'],
+      lora: ['low-rank', 'lora', 'adaptation'],
+      dpo: ['preference', 'dpo', 'direct preference'],
+      rlhf: ['reinforcement', 'human feedback', 'rlhf'],
       // ... more patterns
     };
 
@@ -711,7 +734,7 @@ export class ReferenceBasedFineTuning {
       }
     }
 
-    return 'custom';';
+    return 'custom';
   }
 }
 
@@ -720,8 +743,8 @@ export const referenceBasedFineTuning = new ReferenceBasedFineTuning();
 
 // Types for technique implementations
 interface TechniqueImplementation {
-  name: string;,
+  name: string;
   description: string;
-  implementation: (config: any) => Promise<any>;,
+  implementation: (config: any) => Promise<any>;
   defaultParams: any;
 }

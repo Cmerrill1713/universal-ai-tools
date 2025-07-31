@@ -1,20 +1,19 @@
 /**
  * Enhanced Monitoring Router
  * Provides comprehensive system health and performance metrics
- * Superior to Agent Zero's basic status checks'
+ * Superior to Agent Zero's basic status checks
  */
 
-import { Router  } from 'express';';
-import { LogContext, log  } from '@/utils/logger';';
-import { CircuitBreakerRegistry, getCircuitBreakerStatus  } from '@/utils/circuit-breaker';';
-import { lfm2Bridge  } from '@/services/lfm2-bridge';';
-import { ollamaService  } from '@/services/ollama-service';';
-import { multiTierLLM  } from '@/services/multi-tier-llm-service';';
-import { healthMonitor  } from '@/services/health-monitor';';
-import os from 'os';';
+import { Router } from 'express';
+import { LogContext, log } from '@/utils/logger';
+import { CircuitBreakerRegistry, getCircuitBreakerStatus } from '@/utils/circuit-breaker';
+import { lfm2Bridge } from '@/services/lfm2-bridge';
+import { ollamaService } from '@/services/ollama-service';
+import { multiTierLLM } from '@/services/multi-tier-llm-service';
+import { healthMonitor } from '@/services/health-monitor';
+import os from 'os';
 
-const // TODO: Refactor nested ternary;
-  router = Router();
+const   router = Router();
 
 // System resource metrics
 function getSystemMetrics() {
@@ -23,19 +22,19 @@ function getSystemMetrics() {
   const usedMem = totalMem - freeMem;
 
   return {
-    cpu: {,
+    cpu: {
       cores: os.cpus().length,
-      model: os.cpus()[0]?.model || 'Unknown','
+      model: os.cpus()[0]?.model || 'Unknown',
       usage: os.loadavg(),
       uptime: os.uptime(),
     },
-    memory: {,
+    memory: {
       total: totalMem,
       used: usedMem,
       free: freeMem,
       percentUsed: `${((usedMem / totalMem) * 100).toFixed(2)}%`,
     },
-    platform: {,
+    platform: {
       type: os.platform(),
       release: os.release(),
       arch: os.arch(),
@@ -45,16 +44,16 @@ function getSystemMetrics() {
 }
 
 // Enhanced health check with detailed metrics
-router.get('/health/detailed', async (req, res) => {'
+router.get('/health/detailed', async (req, res) => {
   try {
     const startTime = Date.now();
 
     // Collect all system metrics
     const metrics = {
       timestamp: new Date().toISOString(),
-      status: 'healthy','
+      status: 'healthy',
       uptime: process.uptime(),
-      version: process.env.npm_package_version || '1.0.0','
+      version: process.env.npm_package_version || '1.0.0',
 
       // System resources
       system: getSystemMetrics(),
@@ -63,26 +62,26 @@ router.get('/health/detailed', async (req, res) => {'
       circuitBreakers: getCircuitBreakerStatus(),
 
       // Model availability
-      models: {,
+      models: {
         ollama: {
           available: true,
           models: [] as string[],
-          status: 'checking...','
+          status: 'checking...',
         },
-        lfm2: {,
+        lfm2: {
           available: lfm2Bridge.isAvailable(),
           metrics: lfm2Bridge.getMetrics(),
           circuitBreaker: lfm2Bridge.getCircuitBreakerMetrics(),
         },
-        multiTier: {,
+        multiTier: {
           tiers: 4, // Fixed value - 4 tiers configured
           modelCount: 7, // Approximate model count
-          status: 'active','
+          status: 'active',
         },
       },
 
       // Request metrics
-      requests: {,
+      requests: {
         total: 0, // Would be tracked by middleware
         successful: 0,
         failed: 0,
@@ -99,79 +98,76 @@ router.get('/health/detailed', async (req, res) => {'
       metrics.models.ollama = {
         available: true,
         models: ollamaModels,
-        status: 'connected','
+        status: 'connected',
       };
     } catch (error) {
       metrics.models.ollama = {
         available: false,
         models: [],
-        status: error instanceof Error ? error.message : 'Failed to connect','
+        status: error instanceof Error ? error.message : 'Failed to connect',
       };
     }
 
     // Calculate health check duration
-    metrics.healthCheckDuration = Date.now() - startTime; // TODO: Refactor nested ternary
-
-    res.json(metrics);
+    metrics.healthCheckDuration = Date.now() - startTime;     res.json(metrics);
   } catch (error) {
-    log.error('❌ Health check failed', LogContext.SERVER, {')
+    log.error('❌ Health check failed', LogContext.SERVER, {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(503).json({)
-      status: 'unhealthy','
-      error: error instanceof Error ? error.message : 'Unknown error','
+    res.status(503).json({
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString(),
     });
   }
 });
 
 // Circuit breaker management endpoints
-router.get('/circuit-breakers', (req, res) => {'
-  const // TODO: Refactor nested ternary;
-    status = getCircuitBreakerStatus();
-  res.json({)
+router.get('/circuit-breakers', (req, res) => {
+  const     status = getCircuitBreakerStatus();
+  res.json({
     circuitBreakers: status,
-    summary: {,
+    summary: {
       total: Object.keys(status).length,
-      open: Object.values(status).filter((cb) => cb.state === 'OPEN').length,'
-      closed: Object.values(status).filter((cb) => cb.state === 'CLOSED').length,'
-      halfOpen: Object.values(status).filter((cb) => cb.state === 'HALF_OPEN').length,'
+      open: Object.values(status).filter((cb) => cb.state === 'OPEN').length,
+      closed: Object.values(status).filter((cb) => cb.state === 'CLOSED').length,
+      halfOpen: Object.values(status).filter((cb) => cb.state === 'HALF_OPEN').length,
     },
   });
 });
 
 // Reset specific circuit breaker
-router.post('/circuit-breakers/:name/reset', (req, res) => {'
+router.post('/circuit-breakers/:name/reset', (req, res) => {
   const { name } = req.params;
   const breaker = CircuitBreakerRegistry.get(name);
 
   if (!breaker) {
-    return res.status(404).json({);
-      error: `Circuit breaker '${name}' not found`,'
+    return res.status(404).json({
+      error: `Circuit breaker '${name}' not found`,
     });
   }
 
   breaker.reset();
   log.info(`🔄 Circuit breaker reset: ${name}`, LogContext.SYSTEM);
 
-  return res.json({);
-    message: `Circuit breaker '${name}' has been reset`,'
+  return res.json({
+    message: `Circuit breaker '${name}' has been reset`,
     status: breaker.getMetrics(),
   });
 });
 
 // Model performance metrics
-router.get('/models/performance', async (req, res) => {'
+router.get('/models/performance', async (req, res) => {
   try {
     const performance = {
       timestamp: new Date().toISOString(),
-      models: {,
+      models: {
         lfm2: lfm2Bridge.getMetrics(),
-        multiTier: {, avgResponseTime: 150, throughput: 25 }, // Mock metrics
-        ollama: {,
+        multiTier: { avgResponseTime: 150, throughput: 25 }, // Mock metrics
+        ollama: {
           available: true,
-          responseTime: 'N/A','
+          responseTime: 'N/A',
         },
       },
     };
@@ -187,20 +183,20 @@ router.get('/models/performance', async (req, res) => {'
 
     res.json(performance);
   } catch (error) {
-    res.status(500).json({)
-      error: 'Failed to collect performance metrics','
+    res.status(500).json({
+      error: 'Failed to collect performance metrics',
       details: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
 // Real-time metrics stream (Server-Sent Events)
-router.get('/metrics/stream', (req, res) => {'
-  res.writeHead(200, {)
-    "content-type": 'text/event-stream','
-    'Cache-Control': 'no-cache','
-    Connection: 'keep-alive','
-    'Access-Control-Allow-Origin': '*','
+router.get('/metrics/stream', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
   });
 
   // Send metrics every 5 seconds
@@ -209,7 +205,7 @@ router.get('/metrics/stream', (req, res) => {'
       timestamp: new Date().toISOString(),
       system: getSystemMetrics(),
       circuitBreakers: getCircuitBreakerStatus(),
-      models: {,
+      models: {
         lfm2: {
           metrics: lfm2Bridge.getMetrics(),
           circuitBreaker: lfm2Bridge.getCircuitBreakerMetrics(),
@@ -217,109 +213,109 @@ router.get('/metrics/stream', (req, res) => {'
       },
     };
 
-    res.write(`data: ${JSON.stringify(metrics)}n\n`);
+    res.write(`data: ${JSON.stringify(metrics)}\n\n`);
   }, 5000);
 
   // Initial data
-  res.write()
-    `data: ${JSON.stringify({,)
-      message: 'Connected to metrics stream','
+  res.write(
+    `data: ${JSON.stringify({
+      message: 'Connected to metrics stream',
       timestamp: new Date().toISOString(),
-    })}n\n`
+    })}\n\n`
   );
 
   // Clean up on disconnect
-  req.on('close', () => {'
+  req.on('close', () => {
     clearInterval(interval);
     res.end();
   });
 });
 
 // Automated health check status
-router.get('/health/automated', async (req, res) => {'
+router.get('/health/automated', async (req, res) => {
   try {
     const systemHealth = healthMonitor.getSystemHealth();
-    res.json({)
+    res.json({
       success: true,
       data: systemHealth,
-      metadata: {,
+      metadata: {
         timestamp: new Date().toISOString(),
       },
     });
   } catch (error) {
-    log.error('Failed to get automated health status', LogContext.API, { error });'
-    res.status(500).json({)
+    log.error('Failed to get automated health status', LogContext.API, { error });
+    res.status(500).json({
       success: false,
-      error: 'Failed to retrieve health status','
+      error: 'Failed to retrieve health status',
     });
   }
 });
 
 // Force health check for all services
-router.post('/health/check-all', async (req, res) => {'
+router.post('/health/check-all', async (req, res) => {
   try {
     const systemHealth = await healthMonitor.checkAllServices();
-    res.json({)
+    res.json({
       success: true,
       data: systemHealth,
-      metadata: {,
+      metadata: {
         timestamp: new Date().toISOString(),
-        message: 'Health check completed for all services','
+        message: 'Health check completed for all services',
       },
     });
   } catch (error) {
-    log.error('Failed to perform health check', LogContext.API, { error });'
-    res.status(500).json({)
+    log.error('Failed to perform health check', LogContext.API, { error });
+    res.status(500).json({
       success: false,
-      error: 'Failed to perform health check','
+      error: 'Failed to perform health check',
     });
   }
 });
 
 // Get specific service health
-router.get('/health/service/:serviceName', async (req, res) => {'
+router.get('/health/service/:serviceName', async (req, res) => {
   try {
     const { serviceName } = req.params;
     const serviceHealth = await healthMonitor.checkService(serviceName);
 
     if (!serviceHealth) {
-      return res.status(404).json({);
+      return res.status(404).json({
         success: false,
-        error: `Service '${serviceName}' not found`,'
+        error: `Service '${serviceName}' not found`,
       });
     }
 
-    return res.json({);
+    return res.json({
       success: true,
       data: serviceHealth,
-      metadata: {,
+      metadata: {
         timestamp: new Date().toISOString(),
       },
     });
   } catch (error) {
-    log.error('Failed to get service health', LogContext.API, { error });'
-    return res.status(500).json({);
+    log.error('Failed to get service health', LogContext.API, { error });
+    return res.status(500).json({
       success: false,
-      error: 'Failed to retrieve service health','
+      error: 'Failed to retrieve service health',
     });
   }
 });
 
 // System diagnostics
-router.get('/diagnostics', async (req, res) => {'
+router.get('/diagnostics', async (req, res) => {
   const diagnostics = {
     timestamp: new Date().toISOString(),
-    checks: {,
+    checks: {
       memory: {
-        status: 'checking...','
+        status: 'checking...',
         details: {},
       },
-      models: {,
-        status: 'checking...','
+      models: {
+        status: 'checking...',
         details: {},
       },
-      circuitBreakers: {,
-        status: 'checking...','
+      circuitBreakers: {
+        status: 'checking...',
         details: {},
       },
     },
@@ -329,8 +325,8 @@ router.get('/diagnostics', async (req, res) => {'
   const memoryUsage = process.memoryUsage();
   const heapUsedPercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
   diagnostics.checks.memory = {
-    status: heapUsedPercent < 90 ? 'healthy' : 'warning','
-    details: {,
+    status: heapUsedPercent < 90 ? 'healthy' : 'warning',
+    details: {
       heapUsed: `${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
       heapTotal: `${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
       rss: `${(memoryUsage.rss / 1024 / 1024).toFixed(2)} MB`,
@@ -339,8 +335,7 @@ router.get('/diagnostics', async (req, res) => {'
   };
 
   // Model checks
-  const // TODO: Refactor nested ternary;
-    modelChecks = {
+  const     modelChecks = {
       ollama: false,
       lfm2: false,
     };
@@ -355,19 +350,19 @@ router.get('/diagnostics', async (req, res) => {'
   modelChecks.lfm2 = lfm2Bridge.isAvailable();
 
   diagnostics.checks.models = {
-    status: modelChecks.ollama || modelChecks.lfm2 ? 'healthy' : 'critical','
+    status: modelChecks.ollama || modelChecks.lfm2 ? 'healthy' : 'critical',
     details: modelChecks,
   };
 
   // Circuit breaker checks
   const cbStatus = getCircuitBreakerStatus();
-  const openBreakers = Object.entries(cbStatus);
-    .filter(([_, metrics]) => metrics.state === 'OPEN')'
+  const openBreakers = Object.entries(cbStatus)
+    .filter(([_, metrics]) => metrics.state === 'OPEN')
     .map(([name]) => name);
 
   diagnostics.checks.circuitBreakers = {
-    status: openBreakers.length === 0 ? 'healthy' : 'warning','
-    details: {,
+    status: openBreakers.length === 0 ? 'healthy' : 'warning',
+    details: {
       total: Object.keys(cbStatus).length,
       open: openBreakers,
       metrics: cbStatus,
@@ -375,12 +370,11 @@ router.get('/diagnostics', async (req, res) => {'
   };
 
   // Overall status
-  const // TODO: Refactor nested ternary;
-    allHealthy = Object.values(diagnostics.checks).every((check) => check.status === 'healthy');'
+  const     allHealthy = Object.values(diagnostics.checks).every((check) => check.status === 'healthy');
 
-  res.status(allHealthy ? 200: 503).json({)
+  res.status(allHealthy ? 200 : 503).json({
     ...diagnostics,
-    overallStatus: allHealthy ? 'healthy' : 'degraded','
+    overallStatus: allHealthy ? 'healthy' : 'degraded',
   });
 });
 

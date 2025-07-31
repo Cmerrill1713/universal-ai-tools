@@ -3,12 +3,12 @@
  * Automatically fetches and manages API keys from Supabase Vault
  */
 
-import { createClient  } from '@supabase/supabase-js';';
-import { config  } from '../config/environment';';
-import { LogContext, log  } from '../utils/logger';';
+import { createClient } from '@supabase/supabase-js';
+import { config } from '../config/environment';
+import { LogContext, log } from '../utils/logger';
 
 interface SecretConfig {
-  name: string;,
+  name: string;
   value: string;
   description?: string;
   service?: string;
@@ -30,8 +30,7 @@ interface ServiceCredentials {
 export class SecretsManager {
   private static instance: SecretsManager;
   private supabase: unknown;
-  private cachedCredentials: //, TODO: Refactor nested ternary
-  ServiceCredentials = {};
+  private cachedCredentials:   ServiceCredentials = {};
   private cacheExpiry: number = 5 * 60 * 1000; // 5 minutes
   private lastCacheUpdate = 0;
   private initializing = false;
@@ -51,21 +50,21 @@ export class SecretsManager {
   private initializeSupabase(): void {
     try {
       if (!config.supabase.url || !config.supabase.serviceKey) {
-        log.warn('⚠️ Supabase configuration missing for secrets manager', LogContext.SYSTEM);'
+        log.warn('⚠️ Supabase configuration missing for secrets manager', LogContext.SYSTEM);
         return;
       }
 
-      this.supabase = createClient(config.supabase.url, config.supabase.serviceKey, {)
-        auth: {,
+      this.supabase = createClient(config.supabase.url, config.supabase.serviceKey, {
+        auth: {
           persistSession: false,
           autoRefreshToken: false,
         },
       });
 
-      log.info('✅ Secrets Manager initialized with Supabase', LogContext.SYSTEM);'
+      log.info('✅ Secrets Manager initialized with Supabase', LogContext.SYSTEM);
       this.initialized = true;
     } catch (error) {
-      log.error('❌ Failed to initialize Secrets Manager', LogContext.SYSTEM, {')
+      log.error('❌ Failed to initialize Secrets Manager', LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -80,29 +79,29 @@ export class SecretsManager {
     this.initializing = true;
 
     try {
-      log.info('🔐 Initializing secrets from environment variables', LogContext.SYSTEM);'
+      log.info('🔐 Initializing secrets from environment variables', LogContext.SYSTEM);
 
       // Define the secrets to migrate
-      const secretsToMigrate = [;
-        { env: 'OPENAI_API_KEY', name: 'openai_key', service: 'openai' },'
-        { env: 'ANTHROPIC_API_KEY', name: 'anthropic_key', service: 'anthropic' },'
-        { env: 'GOOGLE_AI_API_KEY', name: 'google_ai_key', service: 'google_ai' },'
-        { env: 'HUGGINGFACE_API_KEY', name: 'huggingface_key', service: 'huggingface' },'
-        { env: 'SERPER_API_KEY', name: 'serper_key', service: 'serper' },'
-        { env: 'SERPAPI_API_KEY', name: 'serpapi_key', service: 'serpapi' },'
-        { env: 'BROWSERLESS_API_KEY', name: 'browserless_key', service: 'browserless' },'
-        { env: 'ELEVENLABS_API_KEY', name: 'elevenlabs_key', service: 'elevenlabs' },'
-        { env: 'REPLICATE_API_TOKEN', name: 'replicate_key', service: 'replicate' },'
-        { env: 'PINECONE_API_KEY', name: 'pinecone_key', service: 'pinecone' },'
-        { env: 'REDIS_PASSWORD', name: 'redis_password', service: 'redis' },'
-        { env: 'JWT_SECRET', name: 'jwt_secret', service: 'auth' },'
-        { env: 'ENCRYPTION_KEY', name: 'encryption_key', service: 'auth' },'
+      const secretsToMigrate = [
+        { env: 'OPENAI_API_KEY', name: 'openai_key', service: 'openai' },
+        { env: 'ANTHROPIC_API_KEY', name: 'anthropic_key', service: 'anthropic' },
+        { env: 'GOOGLE_AI_API_KEY', name: 'google_ai_key', service: 'google_ai' },
+        { env: 'HUGGINGFACE_API_KEY', name: 'huggingface_key', service: 'huggingface' },
+        { env: 'SERPER_API_KEY', name: 'serper_key', service: 'serper' },
+        { env: 'SERPAPI_API_KEY', name: 'serpapi_key', service: 'serpapi' },
+        { env: 'BROWSERLESS_API_KEY', name: 'browserless_key', service: 'browserless' },
+        { env: 'ELEVENLABS_API_KEY', name: 'elevenlabs_key', service: 'elevenlabs' },
+        { env: 'REPLICATE_API_TOKEN', name: 'replicate_key', service: 'replicate' },
+        { env: 'PINECONE_API_KEY', name: 'pinecone_key', service: 'pinecone' },
+        { env: 'REDIS_PASSWORD', name: 'redis_password', service: 'redis' },
+        { env: 'JWT_SECRET', name: 'jwt_secret', service: 'auth' },
+        { env: 'ENCRYPTION_KEY', name: 'encryption_key', service: 'auth' },
       ];
 
       for (const secret of secretsToMigrate) {
         const value = process.env[secret.env];
         if (value && value !== `your-${secret.service}-key-here`) {
-          await this.storeSecret({)
+          await this.storeSecret({
             name: secret.name,
             value,
             description: `API key for ${secret.service}`,
@@ -116,12 +115,11 @@ export class SecretsManager {
       // Load all credentials to cache
       await this.loadAllCredentials();
     } catch (error) {
-      log.error('❌ Failed to initialize secrets from environment', LogContext.SYSTEM, {')
+      log.error('❌ Failed to initialize secrets from environment', LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      this.initializing = false; // TODO: Refactor nested ternary
-    }
+      this.initializing = false;     }
   }
 
   /**
@@ -132,13 +130,13 @@ export class SecretsManager {
 
     try {
       // Check if secret already exists
-      const { data: existing } = await (this as any).supabase;
-        .rpc('read_secret', { secret_name: config.name })'
+      const { data: existing } = await (this as any).supabase
+        .rpc('read_secret', { secret_name: config.name })
         .single();
 
       if (existing) {
         // Update existing secret
-        const { error } = await (this as any).supabase.rpc('update_secret', {');
+        const { error } = await (this as any).supabase.rpc('update_secret', {
           secret_name: config.name,
           new_secret: config.value,
           new_description: config.description,
@@ -149,7 +147,7 @@ export class SecretsManager {
         log.info(`🔄 Updated secret: ${config.name}`, LogContext.SYSTEM);
       } else {
         // Create new secret
-        const { error } = await (this as any).supabase.rpc('insert_secret', {');
+        const { error } = await (this as any).supabase.rpc('insert_secret', {
           name: config.name,
           secret: config.value,
           description: config.description,
@@ -162,7 +160,7 @@ export class SecretsManager {
 
       // If this is a service API key, also store in our api_secrets table
       if (config.service) {
-        const { error } = await (this as any).supabase.from('api_secrets').upsert(');
+        const { error } = await (this as any).supabase.from('api_secrets').upsert(
           {
             service_name: config.service,
             api_key: config.value,
@@ -172,7 +170,7 @@ export class SecretsManager {
             updated_at: new Date().toISOString(),
           },
           {
-            onConflict: 'service_name','
+            onConflict: 'service_name',
           }
         );
 
@@ -186,7 +184,7 @@ export class SecretsManager {
 
       return true;
     } catch (error) {
-      log.error(`❌ Failed to store secret: ${config.name}`, LogContext.SYSTEM, {)
+      log.error(`❌ Failed to store secret: ${config.name}`, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return false;
@@ -200,15 +198,15 @@ export class SecretsManager {
     if (!this.initialized) return null;
 
     try {
-      const { data, error } = await (this as any).supabase;
-        .rpc('read_secret', { secret_name: name })'
+      const { data, error } = await (this as any).supabase
+        .rpc('read_secret', { secret_name: name })
         .single();
 
       if (error) throw error;
 
       return data || null;
     } catch (error) {
-      log.error(`❌ Failed to get secret: ${name}`, LogContext.SYSTEM, {)
+      log.error(`❌ Failed to get secret: ${name}`, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return null;
@@ -220,8 +218,7 @@ export class SecretsManager {
    */
   public async getApiKey(service: string): Promise<string | null> {
     // Check cache first
-    const // TODO: Refactor nested ternary;
-      cached = this.getCachedCredentials(service);
+    const cached = this.getCachedCredentials(service) as { api_key?: string } | null;
     if (cached?.api_key) {
       return cached.api_key;
     }
@@ -229,7 +226,7 @@ export class SecretsManager {
     // If not in cache, load from database
     await this.loadAllCredentials();
 
-    const credentials = this.getCachedCredentials(service);
+    const credentials = this.getCachedCredentials(service) as { api_key?: string } | null;
     return credentials?.api_key || null;
   }
 
@@ -247,8 +244,8 @@ export class SecretsManager {
     if (!this.initialized) return null;
 
     try {
-      const { data, error } = await (this as any).supabase;
-        .rpc('get_service_credentials', { p_service_name: service })'
+      const { data, error } = await (this as any).supabase
+        .rpc('get_service_credentials', { p_service_name: service })
         .single();
 
       if (error) throw error;
@@ -261,7 +258,7 @@ export class SecretsManager {
 
       return data;
     } catch (error) {
-      log.error(`❌ Failed to get service config: ${service}`, LogContext.SYSTEM, {)
+      log.error(`❌ Failed to get service config: ${service}`, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return null;
@@ -275,21 +272,22 @@ export class SecretsManager {
     if (!this.initialized) return;
 
     try {
-      const { data, error } = await (this as any).supabase.rpc('get_all_service_credentials').single();';
+      const { data, error } = await (this as any).supabase
+        .rpc('get_all_service_credentials')
+        .single();
 
       if (error) throw error;
 
       if (data) {
-        this.cachedCredentials = // TODO: Refactor nested ternary
-          data;
+        this.cachedCredentials =           data;
         this.lastCacheUpdate = Date.now();
 
-        log.info('✅ Loaded all service credentials to cache', LogContext.SYSTEM, {')
+        log.info('✅ Loaded all service credentials to cache', LogContext.SYSTEM, {
           services: Object.keys(data).length,
         });
       }
     } catch (error) {
-      log.error('❌ Failed to load all credentials', LogContext.SYSTEM, {')
+      log.error('❌ Failed to load all credentials', LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -319,16 +317,16 @@ export class SecretsManager {
     if (!this.initialized) return [];
 
     try {
-      const { data, error } = await (this as any).supabase;
-        .from('service_configurations')'
-        .select('service_name')'
-        .eq('is_active', true);'
+      const { data, error } = await (this as any).supabase
+        .from('service_configurations')
+        .select('service_name')
+        .eq('is_active', true);
 
       if (error) throw error;
 
-      return data?.map((s: unknown) => s.service_name) || [];
+      return data?.map((s: any) => s.service_name) || [];
     } catch (error) {
-      log.error('❌ Failed to get available services', LogContext.SYSTEM, {')
+      log.error('❌ Failed to get available services', LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -342,13 +340,13 @@ export class SecretsManager {
     if (!this.initialized) return [];
 
     try {
-      const { data, error } = await (this as any).supabase.rpc('get_missing_credentials').single();';
+      const { data, error } = await (this as any).supabase.rpc('get_missing_credentials').single();
 
       if (error) throw error;
 
       return data || [];
     } catch (error) {
-      log.error('❌ Failed to get missing credentials', LogContext.SYSTEM, {')
+      log.error('❌ Failed to get missing credentials', LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -362,15 +360,15 @@ export class SecretsManager {
     if (!this.initialized) return false;
 
     try {
-      const { data, error } = await (this as any).supabase;
-        .rpc('has_valid_credentials', { p_service_name: service })'
+      const { data, error } = await (this as any).supabase
+        .rpc('has_valid_credentials', { p_service_name: service })
         .single();
 
       if (error) throw error;
 
       return data || false;
     } catch (error) {
-      log.error(`❌ Failed to check credentials: ${service}`, LogContext.SYSTEM, {)
+      log.error(`❌ Failed to check credentials: ${service}`, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return false;
@@ -393,7 +391,7 @@ export class SecretsManager {
       log.warn(`⚠️ Using environment variable for ${service} (not in Vault)`, LogContext.SYSTEM);
 
       // Try to store it in Vault for next time
-      await this.storeSecret({)
+      await this.storeSecret({
         name: `${service}_key`,
         value: envKey,
         description: `API key for ${service} (migrated from env)`,

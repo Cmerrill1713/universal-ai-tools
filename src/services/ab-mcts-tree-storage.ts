@@ -3,10 +3,11 @@
  * Provides Redis-based persistence for MCTS trees
  */
 
-import Redis from 'ioredis';';
-import type { ABMCTSNode, ABMCTSSearchResult } from '@/types/ab-mcts';';
-import { LogContext, log  } from '@/utils/logger';';
-import { config  } from '@/config/environment';';
+import Redis from 'ioredis';
+import type { ABMCTSNode, ABMCTSSearchResult } from '@/types/ab-mcts';
+import { LogContext, log } from '@/utils/logger';
+import { config } from '@/config/environment';
+import { HOURS_IN_DAY } from '@/utils/constants';
 
 export interface TreeStorageOptions {
   ttl?: number; // Time to live in seconds (default: 1 hour)
@@ -14,10 +15,10 @@ export interface TreeStorageOptions {
 }
 
 export class ABMCTSTreeStorage {
-  private redis: | Redis //, TODO: Refactor nested ternary
-    | null = null;
-  private readonly prefix = 'ab-mcts: tree:';'
-  private readonly resultPrefix = 'ab-mcts: result:';'
+  private redis:
+    | Redis     | null = null;
+  private readonly prefix = 'ab-mcts:tree:';
+  private readonly resultPrefix = 'ab-mcts:result:';
   private readonly defaultTTL = 3600; // 1 hour
 
   constructor() {
@@ -27,22 +28,22 @@ export class ABMCTSTreeStorage {
   private initializeRedis(): void {
     try {
       if (config.redis?.url) {
-        this.redis = new Redis(config.redis.url, {)
+        this.redis = new Redis(config.redis.url, {
           maxRetriesPerRequest: 3,
           enableReadyCheck: true,
           lazyConnect: true,
         });
 
-        this.redis.on('connect', () => {'
-          log.info('✅ Redis connected for AB-MCTS tree storage', LogContext.CACHE);'
+        this.redis.on('connect', () => {
+          log.info('✅ Redis connected for AB-MCTS tree storage', LogContext.CACHE);
         });
 
-        this.redis.on('error', (error) => {'
-          log.error('❌ Redis error in tree storage', LogContext.CACHE, { error });'
+        this.redis.on('error', (error) => {
+          log.error('❌ Redis error in tree storage', LogContext.CACHE, { error });
         });
       }
     } catch (error) {
-      log.warn('⚠️ Redis not available for tree storage', LogContext.CACHE, {')
+      log.warn('⚠️ Redis not available for tree storage', LogContext.CACHE, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -51,13 +52,12 @@ export class ABMCTSTreeStorage {
   /**
    * Save a tree node and its children recursively
    */
-  async saveNode()
+  async saveNode(
     node: ABMCTSNode,
-    options: //, TODO: Refactor nested ternary
-    TreeStorageOptions = {}
+    options:     TreeStorageOptions = {}
   ): Promise<void> {
     if (!this.redis) {
-      log.debug('Redis not available, skipping tree save', LogContext.CACHE);'
+      log.debug('Redis not available, skipping tree save', LogContext.CACHE);
       return;
     }
 
@@ -85,7 +85,7 @@ export class ABMCTSTreeStorage {
       };
 
       // Store node data
-      const data = options.compress;
+      const data = options.compress
         ? this.compress(JSON.stringify(nodeData))
         : JSON.stringify(nodeData);
 
@@ -96,13 +96,13 @@ export class ABMCTSTreeStorage {
         await this.saveNode(child, options);
       }
 
-      log.debug('Saved MCTS node to Redis', LogContext.CACHE, {')
+      log.debug('Saved MCTS node to Redis', LogContext.CACHE, {
         nodeId: node.id,
         depth: node.depth,
         children: node.children.size,
       });
     } catch (error) {
-      log.error('Failed to save MCTS node', LogContext.CACHE, {')
+      log.error('Failed to save MCTS node', LogContext.CACHE, {
         nodeId: node.id,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -112,10 +112,9 @@ export class ABMCTSTreeStorage {
   /**
    * Load a tree node and reconstruct its structure
    */
-  async loadNode()
+  async loadNode(
     nodeId: string,
-    options: //, TODO: Refactor nested ternary
-    TreeStorageOptions = {}
+    options:     TreeStorageOptions = {}
   ): Promise<ABMCTSNode | null> {
     if (!this.redis) {
       return null;
@@ -132,7 +131,7 @@ export class ABMCTSTreeStorage {
       const nodeData = JSON.parse(options.compress ? this.decompress(data) : data);
 
       // Reconstruct node
-      const node: ABMCTSNode = {,;
+      const node: ABMCTSNode = {
         id: nodeData.id,
         state: nodeData.state,
         visits: nodeData.visits,
@@ -161,7 +160,7 @@ export class ABMCTSTreeStorage {
 
       return node;
     } catch (error) {
-      log.error('Failed to load MCTS node', LogContext.CACHE, {')
+      log.error('Failed to load MCTS node', LogContext.CACHE, {
         nodeId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -172,11 +171,10 @@ export class ABMCTSTreeStorage {
   /**
    * Save search results for later retrieval
    */
-  async saveSearchResult()
+  async saveSearchResult(
     searchId: string,
     result: ABMCTSSearchResult,
-    options: //, TODO: Refactor nested ternary
-    TreeStorageOptions = {}
+    options:     TreeStorageOptions = {}
   ): Promise<void> {
     if (!this.redis) {
       return;
@@ -204,13 +202,13 @@ export class ABMCTSTreeStorage {
 
       await this.redis.setex(key, ttl, JSON.stringify(resultData));
 
-      log.info('Saved AB-MCTS search result', LogContext.CACHE, {')
+      log.info('Saved AB-MCTS search result', LogContext.CACHE, {
         searchId,
         pathLength: result.bestPath.length,
         confidence: result.confidence,
       });
     } catch (error) {
-      log.error('Failed to save search result', LogContext.CACHE, {')
+      log.error('Failed to save search result', LogContext.CACHE, {
         searchId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -226,8 +224,7 @@ export class ABMCTSTreeStorage {
     }
 
     try {
-      const // TODO: Refactor nested ternary;
-        key = `${this.resultPrefix}${searchId}`;
+      const         key = `${this.resultPrefix}${searchId}`;
       const data = await this.redis.get(key);
 
       if (!data) {
@@ -254,7 +251,7 @@ export class ABMCTSTreeStorage {
         recommendations: resultData.recommendations,
       };
     } catch (error) {
-      log.error('Failed to load search result', LogContext.CACHE, {')
+      log.error('Failed to load search result', LogContext.CACHE, {
         searchId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -286,9 +283,9 @@ export class ABMCTSTreeStorage {
       const key = `${this.prefix}${nodeId}`;
       await this.redis.del(key);
 
-      log.debug('Deleted MCTS tree node', LogContext.CACHE, { nodeId });'
+      log.debug('Deleted MCTS tree node', LogContext.CACHE, { nodeId });
     } catch (error) {
-      log.error('Failed to delete tree', LogContext.CACHE, {')
+      log.error('Failed to delete tree', LogContext.CACHE, {
         nodeId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -298,9 +295,9 @@ export class ABMCTSTreeStorage {
   /**
    * Get tree statistics
    */
-  async getTreeStats(nodeId: string): Promise<{,
+  async getTreeStats(nodeId: string): Promise<{
     totalNodes: number;
-    maxDepth: number;,
+    maxDepth: number;
     avgBranchingFactor: number;
   } | null> {
     if (!this.redis) {
@@ -308,8 +305,7 @@ export class ABMCTSTreeStorage {
     }
 
     try {
-      const // TODO: Refactor nested ternary;
-        node = await this.loadNode(nodeId);
+      const         node = await this.loadNode(nodeId);
       if (!node) {
         return null;
       }
@@ -342,7 +338,7 @@ export class ABMCTSTreeStorage {
         avgBranchingFactor: nodesWithChildren > 0 ? totalBranches / nodesWithChildren : 0,
       };
     } catch (error) {
-      log.error('Failed to get tree stats', LogContext.CACHE, {')
+      log.error('Failed to get tree stats', LogContext.CACHE, {
         nodeId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -391,14 +387,14 @@ export class ABMCTSTreeStorage {
         }
       }
 
-      log.info('Cleaned up old MCTS trees', LogContext.CACHE, {')
+      log.info('Cleaned up old MCTS trees', LogContext.CACHE, {
         totalKeys: keys.length,
         deleted,
       });
 
       return deleted;
     } catch (error) {
-      log.error('Failed to cleanup trees', LogContext.CACHE, {')
+      log.error('Failed to cleanup trees', LogContext.CACHE, {
         error: error instanceof Error ? error.message : String(error),
       });
       return 0;
@@ -409,7 +405,7 @@ export class ABMCTSTreeStorage {
    * Check if Redis is available
    */
   isAvailable(): boolean {
-    return this.redis !== null && this.redis.status === 'ready';';
+    return this.redis !== null && this.redis.status === 'ready';
   }
 }
 

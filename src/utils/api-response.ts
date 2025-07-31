@@ -1,23 +1,23 @@
-import type { Response } from 'express';';
-import type { ApiResponse, ErrorCode, PaginatedResponse, PaginationMeta } from '@/types';';
-import { v4 as uuidv4  } from 'uuid';';
+import type { Response } from 'express';
+import type { ApiResponse, ErrorCode, PaginatedResponse, PaginationMeta } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
 
 // Create standardized API response
 export function createApiResponse<T>(data?: T, metadata?: Record<string, unknown>): ApiResponse<T> {
   return {
     success: true,
     data,
-    metadata: {,
+    metadata: {
       requestId: uuidv4(),
       timestamp: new Date().toISOString(),
-      version: '1.0.0','
+      version: '1.0.0',
       ...metadata,
     },
   };
 }
 
 // Create error response
-export function createErrorResponse();
+export function createErrorResponse(
   code: keyof ErrorCode,
   message: string,
   details?: unknown
@@ -29,10 +29,10 @@ export function createErrorResponse();
       message,
       details,
     },
-    metadata: {,
+    metadata: {
       requestId: uuidv4(),
       timestamp: new Date().toISOString(),
-      version: '1.0.0','
+      version: '1.0.0',
     },
   };
 }
@@ -52,7 +52,7 @@ export function createPaginationMeta(page: number, limit: number, total: number)
 }
 
 // Send success response
-export function sendSuccess<T>(;
+export function sendSuccess<T>(
   res: Response,
   data?: T,
   statusCode = 200,
@@ -63,7 +63,7 @@ export function sendSuccess<T>(;
 }
 
 // Send paginated success response
-export function sendPaginatedSuccess<T>(;
+export function sendPaginatedSuccess<T>(
   res: Response,
   data: T[],
   pagination: PaginationMeta,
@@ -77,7 +77,7 @@ export function sendPaginatedSuccess<T>(;
 }
 
 // Send error response
-export function sendError();
+export function sendError(
   res: Response,
   code: keyof ErrorCode,
   message: string,
@@ -90,18 +90,19 @@ export function sendError();
 
 // Middleware to add API response helpers to Express response
 export function apiResponseMiddleware(req: unknown, res: unknown, next: unknown): void {
-  res.sendSuccess = (data?: unknown, statusCode?: number, metadata?: Record<string, unknown>) =>
-    sendSuccess(res as any, data, statusCode, metadata);
+  const expressRes = res as any;
+  expressRes.sendSuccess = (data?: unknown, statusCode?: number, metadata?: Record<string, unknown>) =>
+    sendSuccess(expressRes, data, statusCode, metadata);
 
-  res.sendPaginatedSuccess = (data: unknown[], pagination: PaginationMeta, statusCode?: number) =>
-    sendPaginatedSuccess(res as any, data, pagination, statusCode);
+  expressRes.sendPaginatedSuccess = (data: unknown[], pagination: PaginationMeta, statusCode?: number) =>
+    sendPaginatedSuccess(expressRes, data, pagination, statusCode);
 
-  res.sendError = (
+  expressRes.sendError = (
     code: keyof ErrorCode,
     message: string,
     statusCode?: number,
     details?: unknown
-  ) => sendError(res as any, code, message, statusCode, details);
+  ) => sendError(expressRes, code, message, statusCode, details);
 
-  next();
+  (next as any)();
 }

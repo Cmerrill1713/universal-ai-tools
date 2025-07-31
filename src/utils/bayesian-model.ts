@@ -11,35 +11,35 @@ import type {
   GammaDistribution,
   NormalDistribution,
   PerformanceObservation,
-} from '@/types/ab-mcts';'
-import { BetaSampler, NormalGammaSampler  } from './thompson-sampling';';
-import { LogContext, log  } from './logger';';
+} from '@/types/ab-mcts';
+import { BetaSampler, NormalGammaSampler } from './thompson-sampling';
+import { LogContext, log } from './logger';
 
 /**
  * Bayesian model for tracking agent performance
  */
 export class BayesianModel implements BayesianPerformanceModel {
-  agentName: string;,
+  agentName: string;
   taskType: string;
-  successRate: BetaDistribution;,
+  successRate: BetaDistribution;
   executionTime: NormalDistribution;
-  resourceUsage: GammaDistribution;,
+  resourceUsage: GammaDistribution;
   observations: PerformanceObservation[];
-  lastUpdated: number;,
+  lastUpdated: number;
   totalSamples: number;
-  expectedPerformance: number;,
+  expectedPerformance: number;
   confidenceInterval: [number, number];
   reliability: number;
 
   // Additional tracking for Normal-Gamma conjugate prior
-  private timeParams: {,
+  private timeParams: {
     mean: number;
-    precision: number;,
+    precision: number;
     shape: number;
     rate: number;
   };
 
-  private resourceParams: {,
+  private resourceParams: {
     shape: number;
     rate: number;
   };
@@ -53,12 +53,12 @@ export class BayesianModel implements BayesianPerformanceModel {
       alpha: 1,
       beta: 1,
       mean: 0.5,
-      variance: 1 / 12, // Beta(1,1) variance;
+      variance: 1 / 12, // Beta(1,1) variance
     };
 
     this.executionTime = {
       mean: 1000, // 1 second prior
-      variance: 250000, // High uncertainty;
+      variance: 250000, // High uncertainty
       precision: 1 / 250000,
       standardDeviation: 500,
     };
@@ -67,7 +67,7 @@ export class BayesianModel implements BayesianPerformanceModel {
       shape: 2,
       rate: 0.002, // Mean = 1000 (shape/rate)
       mean: 1000,
-      variance: 500000,;
+      variance: 500000,
     };
 
     // Normal-Gamma parameters for execution time
@@ -103,7 +103,7 @@ export class BayesianModel implements BayesianPerformanceModel {
     this.successRate = BetaSampler.update(this.successRate, observation.success);
 
     // Update execution time (Normal-Gamma)
-    const timeUpdate = NormalGammaSampler.update();
+    const timeUpdate = NormalGammaSampler.update(
       this.timeParams.mean,
       this.timeParams.precision,
       this.timeParams.shape,
@@ -113,7 +113,7 @@ export class BayesianModel implements BayesianPerformanceModel {
     this.timeParams = timeUpdate;
 
     // Update Normal distribution parameters
-    const timeStats = NormalGammaSampler.getStatistics();
+    const timeStats = NormalGammaSampler.getStatistics(
       timeUpdate.mean,
       timeUpdate.precision,
       timeUpdate.shape,
@@ -122,7 +122,7 @@ export class BayesianModel implements BayesianPerformanceModel {
 
     this.executionTime = {
       mean: timeStats.expectedMean,
-      variance: timeStats.variance,;
+      variance: timeStats.variance,
       precision: 1 / timeStats.variance,
       standardDeviation: Math.sqrt(timeStats.variance),
     };
@@ -133,7 +133,7 @@ export class BayesianModel implements BayesianPerformanceModel {
     // Calculate overall performance metrics
     this.updatePerformanceMetrics();
 
-    log.debug('Bayesian model updated', LogContext.AI, {')
+    log.debug('Bayesian model updated', LogContext.AI, {
       agent: this.agentName,
       taskType: this.taskType,
       successRate: this.successRate.mean,
@@ -151,7 +151,7 @@ export class BayesianModel implements BayesianPerformanceModel {
     const oldMean = this.resourceUsage.mean;
     const newMean = (oldMean * (n - 1) + usage) / n;
 
-    // Update variance using Welford's algorithm'
+    // Update variance using Welford's algorithm
     const oldVar = this.resourceUsage.variance;
     const newVar = ((n - 1) * oldVar + (usage - oldMean) * (usage - newMean)) / n;
 
@@ -160,7 +160,7 @@ export class BayesianModel implements BayesianPerformanceModel {
       shape: (newMean * newMean) / newVar,
       rate: newMean / newVar,
       mean: newMean,
-      variance: newVar,;
+      variance: newVar,
     };
 
     this.resourceParams = {
@@ -175,8 +175,8 @@ export class BayesianModel implements BayesianPerformanceModel {
   private updatePerformanceMetrics(): void {
     // Expected performance combines success rate and efficiency
     const successScore = this.successRate.mean;
-    const timeScore = 1 / (1 + this.executionTime.mean / 1000); // Normalize to 0-1;
-    const resourceScore = 1 / (1 + this.resourceUsage.mean / 1000); // Normalize to 0-1;
+    const timeScore = 1 / (1 + this.executionTime.mean / 1000); // Normalize to 0-1
+    const resourceScore = 1 / (1 + this.resourceUsage.mean / 1000); // Normalize to 0-1
 
     // Weighted combination
     this.expectedPerformance = 0.5 * successScore + 0.3 * timeScore + 0.2 * resourceScore;
@@ -185,7 +185,7 @@ export class BayesianModel implements BayesianPerformanceModel {
     this.confidenceInterval = BetaSampler.confidenceInterval(this.successRate);
 
     // Reliability based on sample size and consistency
-    const sampleReliability = Math.min(1, this.totalSamples / 30); // 30 samples for full reliability;
+    const sampleReliability = Math.min(1, this.totalSamples / 30); // 30 samples for full reliability
     const consistencyScore = this.calculateConsistency();
     this.reliability = 0.7 * sampleReliability + 0.3 * consistencyScore;
   }
@@ -197,26 +197,26 @@ export class BayesianModel implements BayesianPerformanceModel {
     if (this.observations.length < 5) return 0;
 
     const recent = this.observations.slice(-10);
-    const successRates = recent.map((o) => (o.success ? 1: 0));
+    const successRates = recent.map((o) => (o.success ? 1 : 0));
 
     // Calculate variance in success rates
-    const mean =;
+    const mean =
       successRates.reduce((a: number, b: number) => a + b, 0 as number) / successRates.length;
-    const variance =;
+    const variance =
       successRates.reduce((sum, rate) => sum + Math.pow(rate - mean, 2), 0 as number) /
       successRates.length;
 
     // Lower variance = higher consistency
-    return Math.exp(-2 * variance); // Maps variance to 0-1;
+    return Math.exp(-2 * variance); // Maps variance to 0-1
   }
 
   /**
    * Predict performance for a given context
    */
   predict(context: Record<string, any>): {
-    expectedReward: number;,
+    expectedReward: number;
     expectedTime: number;
-    expectedResources: number;,
+    expectedResources: number;
     confidence: number;
   } {
     // Sample from posterior distributions
@@ -239,7 +239,7 @@ export class BayesianModel implements BayesianPerformanceModel {
    * Sample execution time from posterior
    */
   private sampleExecutionTime(): number {
-    const sample = NormalGammaSampler.sample();
+    const sample = NormalGammaSampler.sample(
       this.timeParams.mean,
       this.timeParams.precision,
       this.timeParams.shape,
@@ -255,7 +255,7 @@ export class BayesianModel implements BayesianPerformanceModel {
    */
   private sampleResourceUsage(): number {
     // Use the private sampleGamma method from BetaSampler
-    const sample = (BetaSampler as any).sampleGamma();
+    const sample = (BetaSampler as any).sampleGamma(
       this.resourceParams.shape,
       this.resourceParams.rate
     );
@@ -270,12 +270,12 @@ export class BayesianModel implements BayesianPerformanceModel {
     let multiplier = 1.0;
 
     // Adjust based on task complexity
-    if (context.complexity === 'simple') multiplier *= 0.8;'
-    else if (context.complexity === 'complex') multiplier *= 1.2;'
+    if (context.complexity === 'simple') multiplier *= 0.8;
+    else if (context.complexity === 'complex') multiplier *= 1.2;
 
     // Adjust based on urgency
-    if (context.urgency === 'high') multiplier *= 1.1;'
-    else if (context.urgency === 'low') multiplier *= 0.9;'
+    if (context.urgency === 'high') multiplier *= 1.1;
+    else if (context.urgency === 'low') multiplier *= 0.9;
 
     return multiplier;
   }
@@ -284,24 +284,24 @@ export class BayesianModel implements BayesianPerformanceModel {
    * Get model statistics
    */
   getStatistics(): {
-    successRate: {, mean: number; confidence: [number, number] };
-    executionTime: {, mean: number; stdDev: number };
-    resourceUsage: {, mean: number; variance: number };
-    reliability: number;,
+    successRate: { mean: number; confidence: [number, number] };
+    executionTime: { mean: number; stdDev: number };
+    resourceUsage: { mean: number; variance: number };
+    reliability: number;
     samples: number;
   } {
     return {
-      successRate: {,
+      successRate: {
         mean: this.successRate.mean,
         confidence: this.confidenceInterval,
       },
-      executionTime: {,
+      executionTime: {
         mean: this.executionTime.mean,
         stdDev: this.executionTime.standardDeviation,
       },
-      resourceUsage: {,
+      resourceUsage: {
         mean: this.resourceUsage.mean,
-        variance: this.resourceUsage.variance,;
+        variance: this.resourceUsage.variance,
       },
       reliability: this.reliability,
       samples: this.totalSamples,
@@ -311,9 +311,9 @@ export class BayesianModel implements BayesianPerformanceModel {
   /**
    * Compare with another model
    */
-  compareTo(other: BayesianModel): {,
+  compareTo(other: BayesianModel): {
     betterSuccess: number; // Probability this model has better success rate
-    fasterExecution: number; // Probability this model is faster,
+    fasterExecution: number; // Probability this model is faster
     moreEfficient: number; // Probability this model uses fewer resources
     overallBetter: number; // Overall probability this model is better
   } {
@@ -358,7 +358,7 @@ export class BayesianModel implements BayesianPerformanceModel {
    * Serialize model for storage
    */
   toJSON(): string {
-    return JSON.stringify({);
+    return JSON.stringify({
       agentName: this.agentName,
       taskType: this.taskType,
       successRate: this.successRate,
@@ -410,7 +410,7 @@ export class BayesianModelRegistry {
   /**
    * Update model with reward observation
    */
-  updateModel()
+  updateModel(
     agentName: string,
     taskType: string,
     reward: ABMCTSReward,
@@ -419,7 +419,7 @@ export class BayesianModelRegistry {
   ): void {
     const model = this.getModel(agentName, taskType);
 
-    const observation: PerformanceObservation = {,;
+    const observation: PerformanceObservation = {
       timestamp: Date.now(),
       success: reward.value > 0.5,
       executionTime,
@@ -434,15 +434,15 @@ export class BayesianModelRegistry {
   /**
    * Get best agent for task type
    */
-  getBestAgent()
+  getBestAgent(
     taskType: string,
     availableAgents: string[]
   ): {
-    agent: string;,
+    agent: string;
     confidence: number;
     expectedPerformance: number;
   } {
-    let bestAgent = '';';
+    let bestAgent = '';
     let bestPerformance = -Infinity;
     let bestConfidence = 0;
 
@@ -466,9 +466,9 @@ export class BayesianModelRegistry {
   /**
    * Get performance rankings for task type
    */
-  getRankings(taskType: string): Array<{,
+  getRankings(taskType: string): Array<{
     agent: string;
-    performance: number;,
+    performance: number;
     reliability: number;
     samples: number;
   }> {
@@ -476,7 +476,7 @@ export class BayesianModelRegistry {
 
     for (const [key, model] of this.models) {
       if (key.endsWith(`:${taskType}`)) {
-        rankings.push({)
+        rankings.push({
           agent: model.agentName,
           performance: model.expectedPerformance,
           reliability: model.reliability,
