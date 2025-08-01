@@ -508,32 +508,4 @@ declare module 'tree-sitter' {
   }
 }
 
-declare module 'tree-sitter-typescript' {
-  import type { Language } from 'tree-sitter';
-  export const typescript: Language;
-  export const tsx: Language;
-}
-
-declare module 'tree-sitter-javascript' {
-  import type { Language } from 'tree-sitter';
-  const language: Language;
-  export default language;
-}
-
-declare module 'tree-sitter-python' {
-  import type { Language } from 'tree-sitter';
-  const language: Language;
-  export default language;
-}
-
-declare module 'tree-sitter-go' {
-  import type { Language } from 'tree-sitter';
-  const language: Language;
-  export default language;
-}
-
-declare module 'tree-sitter-rust' {
-  import type { Language } from 'tree-sitter';
-  const language: Language;
-  export default language;
-}
+// Tree-sitter language declarations moved to src/types/tree-sitter.d.ts

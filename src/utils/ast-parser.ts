@@ -4,7 +4,7 @@
  * PERFORMANCE OPTIMIZED: 36x speedup with error recovery and multi-language support
  */
 
-import Parser from 'tree-sitter';
+import Parser, { SyntaxNode, Tree, Language } from 'tree-sitter';
 import TypeScript from 'tree-sitter-typescript';
 import JavaScript from 'tree-sitter-javascript';
 import Python from 'tree-sitter-python';
@@ -202,10 +202,10 @@ export class ASTParser {
   /**
    * Extract code patterns (functions, classes, interfaces, etc.)
    */
-  private extractPatterns(node: Parser.SyntaxNode, code: string, language: string): CodePattern[] {
+  private extractPatterns(node: SyntaxNode, code: string, language: string): CodePattern[] {
     const patterns: CodePattern[] = [];
 
-    const traverse = (current: Parser.SyntaxNode) => {
+    const traverse = (current: SyntaxNode) => {
       const pattern = this.nodeToPattern(current, code, language);
       if (pattern) {
         patterns.push(pattern);
@@ -223,7 +223,7 @@ export class ASTParser {
   /**
    * Convert AST node to code pattern
    */
-  private nodeToPattern(node: Parser.SyntaxNode, code: string, language: string): CodePattern | null {
+  private nodeToPattern(node: SyntaxNode, code: string, language: string): CodePattern | null {
     const nodeType = node.type;
     const nodeText = node.text;
 
@@ -305,7 +305,7 @@ export class ASTParser {
   /**
    * Extract function pattern details
    */
-  private extractFunctionPattern(node: Parser.SyntaxNode, code: string, language: string): CodePattern {
+  private extractFunctionPattern(node: SyntaxNode, code: string, language: string): CodePattern {
     const name = this.extractFunctionName(node, language);
     const signature = this.extractFunctionSignature(node, code);
     const parameters = this.extractFunctionParameters(node, language);
@@ -331,7 +331,7 @@ export class ASTParser {
   /**
    * Extract class pattern details
    */
-  private extractClassPattern(node: Parser.SyntaxNode, code: string, language: string): CodePattern {
+  private extractClassPattern(node: SyntaxNode, code: string, language: string): CodePattern {
     const name = this.extractClassName(node, language);
     const signature = node.text.split('\n')[0]; // First line as signature
     const methods = this.extractClassMethods(node, language);
@@ -355,7 +355,7 @@ export class ASTParser {
   /**
    * Extract interface pattern details
    */
-  private extractInterfacePattern(node: Parser.SyntaxNode, code: string, language: string): CodePattern {
+  private extractInterfacePattern(node: SyntaxNode, code: string, language: string): CodePattern {
     const name = this.extractInterfaceName(node);
     const signature = node.text.split('\n')[0];
     const properties = this.extractInterfaceProperties(node);
@@ -378,7 +378,7 @@ export class ASTParser {
   /**
    * Extract component pattern details
    */
-  private extractComponentPattern(node: Parser.SyntaxNode, code: string, language: string): CodePattern {
+  private extractComponentPattern(node: SyntaxNode, code: string, language: string): CodePattern {
     const name = this.extractFunctionName(node, language);
     const signature = this.extractFunctionSignature(node, code);
     const props = this.extractComponentProps(node, code);
@@ -402,7 +402,7 @@ export class ASTParser {
   /**
    * Calculate code complexity metrics
    */
-  private calculateComplexity(node: Parser.SyntaxNode, code: string): {
+  private calculateComplexity(node: SyntaxNode, code: string): {
     cyclomatic: number;
     cognitive: number;
     maintainability: number;
@@ -417,10 +417,10 @@ export class ASTParser {
   /**
    * Calculate cyclomatic complexity
    */
-  private calculateCyclomaticComplexity(node: Parser.SyntaxNode): number {
+  private calculateCyclomaticComplexity(node: SyntaxNode): number {
     let complexity = 1; // Base complexity
 
-    const traverse = (current: Parser.SyntaxNode) => {
+    const traverse = (current: SyntaxNode) => {
       const nodeType = current.type;
       
       // Decision points that increase complexity
@@ -441,11 +441,11 @@ export class ASTParser {
   /**
    * Calculate cognitive complexity
    */
-  private calculateCognitiveComplexity(node: Parser.SyntaxNode): number {
+  private calculateCognitiveComplexity(node: SyntaxNode): number {
     let complexity = 0;
     const nestingLevel = 0;
 
-    const traverse = (current: Parser.SyntaxNode, nesting: number) => {
+    const traverse = (current: SyntaxNode, nesting: number) => {
       const nodeType = current.type;
       
       // Nesting increases cognitive load
@@ -466,7 +466,7 @@ export class ASTParser {
   /**
    * Calculate maintainability index
    */
-  private calculateMaintainabilityIndex(node: Parser.SyntaxNode, code: string): number {
+  private calculateMaintainabilityIndex(node: SyntaxNode, code: string): number {
     const linesOfCode = code.split('\n').length;
     const cyclomaticComplexity = this.calculateCyclomaticComplexity(node);
     const halsteadVolume = this.calculateHalsteadVolume(node);
@@ -482,11 +482,11 @@ export class ASTParser {
   /**
    * Calculate Halstead volume (simplified)
    */
-  private calculateHalsteadVolume(node: Parser.SyntaxNode): number {
+  private calculateHalsteadVolume(node: SyntaxNode): number {
     const operators = new Set<string>();
     const operands = new Set<string>();
 
-    const traverse = (current: Parser.SyntaxNode) => {
+    const traverse = (current: SyntaxNode) => {
       if (this.isOperator(current.type)) {
         operators.add(current.type);
       } else if (this.isOperand(current.type)) {
@@ -510,10 +510,10 @@ export class ASTParser {
   /**
    * Extract dependencies from AST node
    */
-  private extractDependencies(node: Parser.SyntaxNode, code: string, language: string): string[] {
+  private extractDependencies(node: SyntaxNode, code: string, language: string): string[] {
     const dependencies = new Set<string>();
 
-    const traverse = (current: Parser.SyntaxNode) => {
+    const traverse = (current: SyntaxNode) => {
       // Import statements
       if (current.type === 'import_statement' || current.type === 'import_declaration') {
         const importText = current.text;
@@ -543,17 +543,17 @@ export class ASTParser {
   /**
    * Extract imports
    */
-  private extractImports(node: Parser.SyntaxNode, code: string, language: string): string[] {
+  private extractImports(node: SyntaxNode, code: string, language: string): string[] {
     return this.extractDependencies(node, code, language);
   }
 
   /**
    * Extract exports
    */
-  private extractExports(node: Parser.SyntaxNode, code: string, language: string): string[] {
+  private extractExports(node: SyntaxNode, code: string, language: string): string[] {
     const exports = new Set<string>();
 
-    const traverse = (current: Parser.SyntaxNode) => {
+    const traverse = (current: SyntaxNode) => {
       if (current.type === 'export_statement' || current.type.includes('export')) {
         const exportText = current.text;
         // Extract exported names
@@ -578,7 +578,7 @@ export class ASTParser {
   /**
    * Analyze security issues in code
    */
-  private analyzeSecurityIssues(node: Parser.SyntaxNode, code: string, language: string): SecurityIssue[] {
+  private analyzeSecurityIssues(node: SyntaxNode, code: string, language: string): SecurityIssue[] {
     const issues: SecurityIssue[] = [];
 
     // SQL injection patterns
@@ -628,7 +628,7 @@ export class ASTParser {
   /**
    * Calculate quality metrics
    */
-  private calculateQualityMetrics(node: Parser.SyntaxNode, code: string, patterns: CodePattern[]) {
+  private calculateQualityMetrics(node: SyntaxNode, code: string, patterns: CodePattern[]) {
     const lines = code.split('\n');
     const linesOfCode = lines.filter(line => line.trim() && !line.trim().startsWith('//')).length;
     const functionsCount = patterns.filter(p => p.type === 'function').length;
@@ -705,53 +705,53 @@ export class ASTParser {
   }
 
   // Helper methods for pattern extraction
-  private extractFunctionName(node: Parser.SyntaxNode, language: string): string {
+  private extractFunctionName(node: SyntaxNode, language: string): string {
     // Implementation depends on language-specific AST structure
     return node.children.find(child => child.type === 'identifier')?.text || 'anonymous';
   }
 
-  private extractFunctionSignature(node: Parser.SyntaxNode, code: string): string {
+  private extractFunctionSignature(node: SyntaxNode, code: string): string {
     return node.text.split('\n')[0] || node.text.substring(0, 100);
   }
 
-  private extractFunctionParameters(node: Parser.SyntaxNode, language: string): string[] {
+  private extractFunctionParameters(node: SyntaxNode, language: string): string[] {
     // Simplified parameter extraction
     return [];
   }
 
-  private extractReturnType(node: Parser.SyntaxNode, language: string): string | undefined {
+  private extractReturnType(node: SyntaxNode, language: string): string | undefined {
     return undefined;
   }
 
-  private calculateNodeComplexity(node: Parser.SyntaxNode): number {
+  private calculateNodeComplexity(node: SyntaxNode): number {
     return this.calculateCyclomaticComplexity(node);
   }
 
-  private extractNodeDependencies(node: Parser.SyntaxNode, code: string): string[] {
+  private extractNodeDependencies(node: SyntaxNode, code: string): string[] {
     return [];
   }
 
-  private extractDocumentation(node: Parser.SyntaxNode, code: string): string | undefined {
+  private extractDocumentation(node: SyntaxNode, code: string): string | undefined {
     return undefined;
   }
 
-  private extractClassName(node: Parser.SyntaxNode, language: string): string {
+  private extractClassName(node: SyntaxNode, language: string): string {
     return node.children.find(child => child.type === 'identifier')?.text || 'AnonymousClass';
   }
 
-  private extractClassMethods(node: Parser.SyntaxNode, language: string): string[] {
+  private extractClassMethods(node: SyntaxNode, language: string): string[] {
     return [];
   }
 
-  private extractInterfaceName(node: Parser.SyntaxNode): string {
+  private extractInterfaceName(node: SyntaxNode): string {
     return node.children.find(child => child.type === 'identifier')?.text || 'AnonymousInterface';
   }
 
-  private extractInterfaceProperties(node: Parser.SyntaxNode): string[] {
+  private extractInterfaceProperties(node: SyntaxNode): string[] {
     return [];
   }
 
-  private extractComponentProps(node: Parser.SyntaxNode, code: string): string[] {
+  private extractComponentProps(node: SyntaxNode, code: string): string[] {
     return [];
   }
 
