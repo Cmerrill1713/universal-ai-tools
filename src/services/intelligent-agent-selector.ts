@@ -194,12 +194,20 @@ export class IntelligentAgentSelector extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      // Step 1: Use LFM2 for routing decision
-      const routingDecision = await lfm2Bridge.routingDecision(userRequest, {
+      // Step 1: Use LFM2 for routing decision with timeout
+      const routingDecisionPromise = lfm2Bridge.routingDecision(userRequest, {
         conversationHistory: context.conversationHistory,
         deviceContext,
         userId: context.userId
       });
+      
+      // Add 5-second timeout for LFM2 routing
+      const routingDecision = await Promise.race([
+        routingDecisionPromise,
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('LFM2 routing timeout')), 5000);
+        })
+      ]);
 
       log.info('🎯 LFM2 routing decision made', LogContext.AI, {
         targetService: routingDecision.targetService,
@@ -314,7 +322,7 @@ export class IntelligentAgentSelector extends EventEmitter {
       confidence: response.confidence || 0.8,
       message: response.content,
       reasoning: 'LFM2 fast response',
-      data: { response: response.content },
+      data: { response: { message: response.content } },
       metadata: {
         agentName: 'LFM2-1.2B',
         duration_ms: response.executionTime,
@@ -358,7 +366,7 @@ export class IntelligentAgentSelector extends EventEmitter {
       confidence: 0.85,
       message: response.message.content,
       reasoning: 'Ollama Llama 3.2 response',
-      data: { response: response.message.content },
+      data: { response: { message: response.message.content } },
       metadata: {
         agentName: 'Llama-3.2-3B',
         duration_ms: (response.total_duration || 1000000000) / 1000000,
@@ -391,7 +399,7 @@ export class IntelligentAgentSelector extends EventEmitter {
       confidence: 0.85,
       message: response.content,
       reasoning: 'LM Studio response',
-      data: { response: response.content },
+      data: { response: { message: response.content } },
       metadata: {
         agentName: 'LM-Studio',
         duration_ms: 2000, // Estimate
@@ -417,7 +425,7 @@ export class IntelligentAgentSelector extends EventEmitter {
       confidence: 0.9,
       message: response.content,
       reasoning: `${service} API response`,
-      data: { response: response.content },
+      data: { response: { message: response.content } },
       metadata: {
         agentName: service,
         duration_ms: 3000, // Estimate

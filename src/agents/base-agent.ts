@@ -46,6 +46,8 @@ export abstract class BaseAgent {
     if (!this.isInitialized) {
       await this.initialize();
     }
+    return undefined;
+    return undefined;
 
     const startTime = Date.now();
 
@@ -73,9 +75,9 @@ export abstract class BaseAgent {
           agentName: this.config.name,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? (error as Error).message : String(error);
 
       log.error(`Agent execution failed: ${this.config.name}`, LogContext.AGENT, {
         requestId: context.requestId,

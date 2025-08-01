@@ -4,6 +4,9 @@
  */
 
 import express from 'express';
+import type { Request, Response} from 'express';
+import { NextFunction } from 'express';
+
 import { VisionBrowserDebugger } from '../services/vision-browser-debugger';
 
 const   router = express.Router();
@@ -23,7 +26,7 @@ try {
  * @desc Health check for vision debugging service
  * @access Public
  */
-router.get('/health', (req, res) => {
+router.get('/health', (req: Request, res: Response) => {
   try {
     const status = visionDebugger ? visionDebugger.getStatus() as any : null;
 
@@ -59,7 +62,7 @@ router.get('/health', (req, res) => {
  * @desc Get detailed vision debugger status
  * @access Public
  */
-router.get('/status', (req, res) => {
+router.get('/status', (req: Request, res: Response) => {
   try {
     if (!visionDebugger) {
       return res.status(503).json({
@@ -89,7 +92,7 @@ router.get('/status', (req, res) => {
  * @desc Get recent analysis results
  * @access Public
  */
-router.get('/analyses', (req, res) => {
+router.get('/analyses', (req: Request, res: Response) => {
   try {
     if (!visionDebugger) {
       return res.status(503).json({
@@ -124,7 +127,7 @@ router.get('/analyses', (req, res) => {
  * @desc Trigger immediate screenshot capture and analysis
  * @access Public
  */
-router.post('/capture-now', async (req, res) => {
+router.post('/capture-now', async (req: Request, res: Response) => {
   try {
     if (!visionDebugger) {
       return res.status(503).json({
@@ -155,11 +158,13 @@ router.post('/capture-now', async (req, res) => {
  * @desc Start the vision debugger service
  * @access Public
  */
-router.post('/start', async (req, res) => {
+router.post('/start', async (req: Request, res: Response) => {
   try {
     if (!visionDebugger) {
             visionDebugger = new VisionBrowserDebugger();
     }
+    return undefined;
+    return undefined;
 
     await visionDebugger.start();
 
@@ -182,11 +187,13 @@ router.post('/start', async (req, res) => {
  * @desc Stop the vision debugger service
  * @access Public
  */
-router.post('/stop', (req, res) => {
+router.post('/stop', (req: Request, res: Response) => {
   try {
     if (visionDebugger) {
       visionDebugger.stop();
     }
+    return undefined;
+    return undefined;
 
     res.json({
       success: true,

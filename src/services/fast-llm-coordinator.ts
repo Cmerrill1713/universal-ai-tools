@@ -248,7 +248,7 @@ ROUTING RULES:
   }
 
   private async executeOllama(userRequest: string): Promise<any> {
-    return ollamaService.generateResponse([{ role: 'user', content: userRequest }]);
+    return ollamaService.generateResponse([{ role: 'user', content: userRequest }], 'llama3.2:3b');
   }
 
   private async executeLMStudio(userRequest: string): Promise<any> {

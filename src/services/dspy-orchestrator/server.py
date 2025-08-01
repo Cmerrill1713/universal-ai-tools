@@ -571,6 +571,8 @@ class DSPyServer:
         """Start the WebSocket server."""
         logger.info(f"Starting DSPy server on {host}:{port}")
         async with websockets.serve(self.handle_request, host, port):
+            print(f"DSPy server ready on {host}:{port}", flush=True)
+            logger.info(f"DSPy server ready on {host}:{port}")
             await asyncio.Future()  # Run forever
 
 

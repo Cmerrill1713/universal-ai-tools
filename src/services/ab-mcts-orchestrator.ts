@@ -15,13 +15,12 @@ import type {
 } from '@/types/ab-mcts';
 import { abMCTSService } from './ab-mcts-service';
 import { EnhancedBaseAgent } from '@/agents/enhanced-base-agent';
-import AgentRegistry from '@/agents/agent-registry';
+import { AgentRegistry } from '@/agents/agent-registry';
 import { multiTierLLM } from './multi-tier-llm-service';
 import type { CircuitBreaker } from '@/utils/circuit-breaker';
 import { createCircuitBreaker } from '@/utils/circuit-breaker';
 import { LogContext, log } from '@/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
-import { TWO } from '@/utils/constants';
 
 export interface OrchestratorConfig extends Partial<ABMCTSConfig> {
   enableLearning: boolean;
@@ -55,7 +54,7 @@ export class ABMCTSOrchestrator {
   private circuitBreaker: CircuitBreaker<OrchestratorResult>;
   private activeSearches: Map<string, ABMCTSSearchResult> = new Map();
   private executionCache: Map<string, OrchestratorResult> = new Map();
-  private agentRegistry: AgentRegistry;
+  private agentRegistry: AgentRegistry | null = null;
 
   constructor(config: Partial<OrchestratorConfig> = {}) {
     this.config = {
@@ -83,7 +82,17 @@ export class ABMCTSOrchestrator {
       successThreshold: 2,
     });
 
-    this.agentRegistry = new AgentRegistry();
+    // Initialize agent registry lazily to avoid circular dependency
+    this.initializeAgentRegistry();
+  }
+
+  private initializeAgentRegistry(): void {
+    try {
+      this.agentRegistry = new AgentRegistry();
+    } catch (error) {
+      log.warn('⚠️ AgentRegistry initialization deferred due to circular dependency', LogContext.AI);
+      // Will be initialized later when first needed
+    }
   }
 
   /**
@@ -227,12 +236,12 @@ export class ABMCTSOrchestrator {
     feedback?: ABMCTSFeedback;
   }> {
     const { bestPath } = searchResult;
-    if (bestPath.length < TWO) {
+    if (bestPath.length < 2) {
       throw new Error('No valid execution path found');
     }
 
     // Get the agent from the best action
-    const       selectedAgentName = searchResult.bestAction.agentName;
+    const selectedAgentName = searchResult.bestAction.agentName;
     const selectedAgent = availableAgents.find((a) => a.getName() === selectedAgentName);
 
     if (!selectedAgent) {
@@ -319,6 +328,16 @@ export class ABMCTSOrchestrator {
    * Get available agents for the context
    */
   private async getAvailableAgents(context: AgentContext): Promise<EnhancedBaseAgent[]> {
+    // Ensure agent registry is initialized
+    if (!this.agentRegistry) {
+      try {
+        this.agentRegistry = new AgentRegistry();
+      } catch (error) {
+        log.error('❌ Failed to initialize AgentRegistry', LogContext.AI, { error });
+        return [];
+      }
+    }
+
     // Get available agent definitions
     const agentDefinitions = this.agentRegistry.getAvailableAgents();
 
@@ -390,7 +409,7 @@ export class ABMCTSOrchestrator {
     comment?: string
   ): Promise<void> {
     const searchResult = this.activeSearches.get(orchestrationId);
-    if (!searchResult || searchResult.bestPath.length < TWO) return;
+    if (!searchResult || searchResult.bestPath.length < 2) return;
 
     const leafNode = searchResult.bestPath[searchResult.bestPath.length - 1];
     if (!leafNode) {
@@ -565,6 +584,11 @@ export class ABMCTSOrchestrator {
    */
   private async getAgentPerformanceMetrics(): Promise<Record<string, any>> {
     const metrics: Record<string, any> = {};
+    
+    if (!this.agentRegistry) {
+      return metrics;
+    }
+    
     const loadedAgents = this.agentRegistry.getLoadedAgents();
 
     for (const agentName of loadedAgents) {

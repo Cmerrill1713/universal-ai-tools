@@ -8,6 +8,10 @@ import { CircuitBreakerRegistry } from '@/utils/circuit-breaker';
 import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '@/config/environment';
+import { updateCircuitBreakerStatus, updateServiceHealth } from '@/utils/metrics';
+import { RetryStrategies, withRetry } from '@/utils/retry';
+import { traceAsync } from '@/utils/tracing';
+import { getCorrelationId } from '@/utils/correlation-id';
 
 export interface ServiceHealth {
   name: string;
@@ -97,22 +101,43 @@ export class HealthMonitor {
       clearInterval(this.checkInterval as NodeJS.Timeout);
       this.checkInterval = null;
     }
+    return undefined;
+    return undefined;
     log.info('🛑 Health monitor service stopped', LogContext.SYSTEM);
   }
 
   async checkAllServices(): Promise<SystemHealth> {
-    const checks = [
-      this.checkDatabase(),
-      this.checkRedis(),
-      this.checkOllama(),
-      this.checkLFM2(),
-      this.checkCircuitBreakers(),
-      this.checkMemory(),
-    ];
+    return traceAsync('health.checkAllServices', async (span) => {
+      const correlationId = getCorrelationId();
+      if (correlationId) span.setAttribute('correlation_id', correlationId);
+      
+      const checks = [
+        this.checkDatabase(),
+        this.checkRedis(),
+        this.checkOllama(),
+        this.checkLFM2(),
+        this.checkCircuitBreakers(),
+        this.checkMemory(),
+      ];
 
-    await Promise.allSettled(checks);
+      await Promise.allSettled(checks);
 
-    return this.getSystemHealth();
+      const health = this.getSystemHealth();
+      
+      // Update Prometheus metrics for each service
+      health.services.forEach(service => {
+        updateServiceHealth(service.name, service.status);
+      });
+      
+      span.setAttributes({
+        'health.status': health.status,
+        'health.services.healthy': health.summary.healthy,
+        'health.services.degraded': health.summary.degraded,
+        'health.services.unhealthy': health.summary.unhealthy,
+      });
+
+      return health;
+    });
   }
 
   private async checkDatabase(): Promise<void> {
@@ -138,6 +163,7 @@ export class HealthMonitor {
         url: config.supabase.url,
         connected: true,
       };
+      updateServiceHealth('database', 'healthy');
     } catch (error) {
       service.status = 'unhealthy';
       service.responseTime = Date.now() - start;
@@ -146,6 +172,7 @@ export class HealthMonitor {
         url: config.supabase.url || 'not configured',
         connected: false,
       };
+      updateServiceHealth('database', 'unhealthy');
     }
 
     service.lastCheck = new Date();
@@ -245,6 +272,9 @@ export class HealthMonitor {
         } else {
           service.status = 'unhealthy';
         }
+        
+        // Update circuit breaker metrics
+        updateCircuitBreakerStatus('lfm2-bridge', metrics.state);
 
         service.details = {
           circuitBreakerState: metrics.state,

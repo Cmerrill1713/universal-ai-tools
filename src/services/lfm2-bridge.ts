@@ -10,6 +10,7 @@ import { LogContext, log } from '@/utils/logger';
 import { ollamaService } from '@/services/ollama-service';
 import { CircuitBreaker, CircuitBreakerRegistry } from '@/utils/circuit-breaker';
 import { THREE } from '@/utils/constants';
+import { TaskType, intelligentParameterService } from '@/services/intelligent-parameter-service';
 
 export interface LFM2Request {
   prompt: string;
@@ -153,10 +154,17 @@ export class LFM2BridgeService {
   }> {
     const prompt = this.createRoutingPrompt(userRequest, context);
 
+    // Get optimized parameters for routing/classification task
+    const taskContext = intelligentParameterService.createTaskContext(
+      userRequest,
+      TaskType.CLASSIFICATION
+    );
+    const params = intelligentParameterService.getTaskParameters(taskContext);
+    
     const response = await this.generate({
       prompt,
-      maxLength: 200,
-      temperature: 0.3,
+      maxLength: params.maxTokens || 200,
+      temperature: params.temperature,
       taskType: 'routing',
     });
 
@@ -178,10 +186,17 @@ export class LFM2BridgeService {
   ): Promise<LFM2Response> {
     const prompt = this.createQuickResponsePrompt(userRequest, taskType);
 
+    // Get optimized parameters based on task type
+    const taskContext = intelligentParameterService.createTaskContext(
+      userRequest,
+      taskType === 'summarization' ? TaskType.SUMMARIZATION : TaskType.FACTUAL_QA
+    );
+    const params = intelligentParameterService.getTaskParameters(taskContext);
+    
     return this.generate({
       prompt,
-      maxLength: 150,
-      temperature: 0.6,
+      maxLength: params.maxTokens || 150,
+      temperature: params.temperature,
       taskType,
     });
   }
@@ -206,10 +221,17 @@ export class LFM2BridgeService {
   }> {
     const prompt = this.createCoordinationPrompt(primaryTask, supportingTasks);
 
+    // Get optimized parameters for coordination task
+    const taskContext = intelligentParameterService.createTaskContext(
+      `${primaryTask} with supporting tasks`,
+      TaskType.REASONING // Coordination requires reasoning
+    );
+    const params = intelligentParameterService.getTaskParameters(taskContext);
+    
     const response = await this.generate({
       prompt,
-      maxLength: 300,
-      temperature: 0.4,
+      maxLength: params.maxTokens || 300,
+      temperature: params.temperature,
       taskType: 'coordination',
     });
 
@@ -250,7 +272,7 @@ export class LFM2BridgeService {
         requestId,
         prompt: request.prompt,
         maxTokens: request.maxTokens || request.maxLength || 512,
-        temperature: request.temperature || 0.7,
+        temperature: request.temperature !== undefined ? request.temperature : 0.7,
       };
 
       if (this.pythonProcess && this.pythonProcess.stdin) {
@@ -296,6 +318,8 @@ export class LFM2BridgeService {
         this.isInitialized = true;
         continue;
       }
+      return undefined;
+      return undefined;
 
       try {
         const response = JSON.parse(line);
@@ -472,6 +496,10 @@ Respond with JSON:
       this.pythonProcess = null;
     }
 
+    return undefined;
+
+    return undefined;
+
     // Wait a bit before restarting
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -492,12 +520,51 @@ Respond with JSON:
   public async shutdown(): Promise<void> {
     log.info('🛑 Shutting down LFM2 bridge service', LogContext.AI);
 
+    this.isInitialized = false;
+
     if (this.pythonProcess) {
-      this.pythonProcess.kill();
+      // Try graceful shutdown first
+      if (this.pythonProcess.stdin && !this.pythonProcess.stdin.destroyed) {
+        this.pythonProcess.stdin.end();
+      }
+
+    return undefined;
+
+    return undefined;
+
+      // Wait for graceful exit
+      const exitPromise = new Promise<void>((resolve) => {
+        if (this.pythonProcess) {
+          this.pythonProcess.once('exit', () => resolve());
+        } else {
+          resolve();
+        }
+      });
+
+      // Force kill after timeout
+      const timeoutPromise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          if (this.pythonProcess && !this.pythonProcess.killed) {
+            log.warn('⚠️ Force killing LFM2 Python process', LogContext.AI);
+            this.pythonProcess.kill('SIGKILL');
+          }
+          return undefined;
+          return undefined;
+          resolve();
+        }, 5000);
+      });
+
+      await Promise.race([exitPromise, timeoutPromise]);
       this.pythonProcess = null;
     }
 
-    this.isInitialized = false;
+    // Clear any pending requests
+    for (const [requestId, { reject }] of this.pendingRequests) {
+      reject(new Error('Service shutting down'));
+    }
+    this.pendingRequests.clear();
+
+    log.info('✅ LFM2 bridge service shutdown complete', LogContext.AI);
   }
 }
 
@@ -508,11 +575,11 @@ class SafeLFM2Bridge {
   private circuitBreaker: CircuitBreaker<LFM2Response>;
 
   constructor() {
-    // Create circuit breaker with optimized settings
+    // Create circuit breaker with optimized settings for chat responsiveness
     this.circuitBreaker = new CircuitBreaker<LFM2Response>('lfm2-bridge', {
       failureThreshold: 3,
       successThreshold: 2,
-      timeout: 30000, // 30 seconds
+      timeout: 10000, // 10 seconds - more appropriate for chat responses
       errorThresholdPercentage: 60,
       volumeThreshold: 5,
     });
@@ -581,7 +648,7 @@ class SafeLFM2Bridge {
           [{ role: 'user', content: request.prompt }],
           'llama3.2:3b',
           {
-            temperature: request.temperature || 0.1,
+            temperature: request.temperature !== undefined ? request.temperature : 0.1,
             max_tokens: request.maxTokens || 100,
           }
         );
@@ -673,6 +740,8 @@ class SafeLFM2Bridge {
     if (this.instance) {
       this.instance.shutdown();
     }
+    return undefined;
+    return undefined;
   }
 
   // Get circuit breaker health status

@@ -262,6 +262,8 @@ Be thorough, objective, and balanced. Focus on creating unified understanding fr
         if (parsed.synthesis.key_themes && Array.isArray(parsed.synthesis.key_themes)) {
           confidence += 0.1;
         }
+      return undefined;
+      return undefined;
 
         // Check for consensus areas
         if (parsed.synthesis.consensus_areas && Array.isArray(parsed.synthesis.consensus_areas)) {
@@ -278,6 +280,8 @@ Be thorough, objective, and balanced. Focus on creating unified understanding fr
       if (parsed.analysis) {
         confidence += 0.05;
       }
+      return undefined;
+      return undefined;
 
       // Check for actionable insights
       if (parsed.actionable_insights && Array.isArray(parsed.actionable_insights)) {
@@ -288,11 +292,15 @@ Be thorough, objective, and balanced. Focus on creating unified understanding fr
       if (parsed.stakeholder_perspectives) {
         confidence += 0.05;
       }
+      return undefined;
+      return undefined;
 
       // Bonus for having a clear recommendation
       if (parsed.recommendation) {
         confidence += 0.03;
       }
+      return undefined;
+      return undefined;
     } catch {
       // Not valid JSON, reduce confidence significantly
       confidence -= 0.25;

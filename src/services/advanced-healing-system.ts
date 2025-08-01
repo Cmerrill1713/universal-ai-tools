@@ -7,6 +7,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { recordHealingTask } from '../utils/metrics.js';
+import { RetryStrategies, withRetry } from '../utils/retry.js';
+import { getCorrelationId } from '../utils/correlation-id.js';
 
 interface HealingTask {
   id: string;
@@ -65,6 +68,8 @@ class AdvancedHealingSystem {
     if (this.networkHealingService) {
       await this.networkHealingService.start();
     }
+    return undefined;
+    return undefined;
 
     // Run initial comprehensive diagnostic
     await this.runComprehensiveDiagnostic();
@@ -74,6 +79,8 @@ class AdvancedHealingSystem {
       if (this.isRunning) {
         await this.runHealingCycle();
       }
+      return undefined;
+      return undefined;
     }, this.healingInterval);
 
     // Start periodic diagnostics
@@ -81,6 +88,8 @@ class AdvancedHealingSystem {
       if (this.isRunning) {
         await this.runComprehensiveDiagnostic();
       }
+      return undefined;
+      return undefined;
     }, this.diagnosticInterval);
 
     console.log('✅ Advanced Healing System active - AI diagnostics running');
@@ -139,6 +148,8 @@ class AdvancedHealingSystem {
       if (result.status === 'fulfilled' && result.value) {
         this.addHealingTask(result.value);
       }
+      return undefined;
+      return undefined;
     });
   }
 
@@ -280,6 +291,8 @@ class AdvancedHealingSystem {
       if (result.status === 'fulfilled' && result.value) {
         this.addHealingTask(result.value);
       }
+      return undefined;
+      return undefined;
     });
   }
 
@@ -298,6 +311,8 @@ class AdvancedHealingSystem {
           // Arbitrary threshold
           circularCount++;
         }
+        return undefined;
+        return undefined;
       }
 
       if (circularCount > 0) {
@@ -341,6 +356,8 @@ class AdvancedHealingSystem {
           // Files over 500 lines
           complexFiles++;
         }
+        return undefined;
+        return undefined;
       }
 
       if (complexFiles > 0) {
@@ -456,6 +473,7 @@ class AdvancedHealingSystem {
 
   async executeHealingTask(task: HealingTask): Promise<void> {
     console.log(`🩺 Healing: ${task.description}`);
+    const startTime = Date.now();
 
     if (!task.autoFixable) {
       console.log(`⚠️ Task ${task.id} requires manual intervention`);
@@ -487,9 +505,17 @@ class AdvancedHealingSystem {
       this.removeTask(task.id);
 
       console.log(`✅ Healed: ${task.description} - ${result.metrics.filesFixed} files fixed`);
+      
+      // Record healing metrics
+      const executionTime = Date.now() - startTime;
+      recordHealingTask(task.type, task.severity, true, executionTime);
     } catch (error) {
       console.log(`❌ Failed to heal: ${task.description}`);
       this.removeTask(task.id);
+      
+      // Record healing failure metrics
+      const executionTime = Date.now() - startTime;
+      recordHealingTask(task.type, task.severity, false, executionTime);
     }
   }
 
@@ -713,6 +739,8 @@ class AdvancedHealingSystem {
     if (this.networkHealingService) {
       this.networkHealingService.stop();
     }
+    return undefined;
+    return undefined;
 
     console.log('🛑 Advanced Healing System stopped');
   }

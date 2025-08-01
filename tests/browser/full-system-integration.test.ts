@@ -776,7 +776,7 @@ browserTasks = [
       testContext.testMetrics.phaseTimes[phaseName] = duration;
       logger.error(`❌ Phase failed: ${phaseName} (${duration}ms)`, error);
       
-      throw error);
+      throw error;
     }
   }
 });

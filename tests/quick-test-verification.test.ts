@@ -216,7 +216,7 @@ describe('Test Infrastructure Verification', () => {
           try {
             return await fn();
           } catch (error) {
-            lastError = error);
+            lastError = error;
             if (i < maxRetries - 1) {
               await new Promise(resolve => setTimeout(resolve, 10));
             }
@@ -245,8 +245,7 @@ describe('Test Infrastructure Verification', () => {
           if (this.state === 'open') {
             if (Date.now() - this.lastFailureTime > this.timeout) {
               this.state = 'half-open';
-            }
-// TODO: Add error handling with try-catch else {
+            } else {
               throw new Error('Circuit breaker is open');
             }
           }
@@ -257,7 +256,7 @@ describe('Test Infrastructure Verification', () => {
             return result;
           } catch (error) {
             this.onFailure();
-            throw error);
+            throw error;
           }
         }
 

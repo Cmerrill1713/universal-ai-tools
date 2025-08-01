@@ -57,8 +57,8 @@ describe('Knowledge Router - Simplified Tests', () => {
       }
 
       // Sanitize input (basic XSS prevention)
-      const sanitizedTitle = title.replace(/<script.*?>.*?</script>/gi, '');
-      const sanitizedContent = content.replace(/<script.*?>.*?</script>/gi, '');
+      const sanitizedTitle = title.replace(/<script.*?>.*?<\/script>/gi, '');
+      const sanitizedContent = content.replace(/<script.*?>.*?<\/script>/gi, '');
 
       const newKnowledge = {
         id: `knowledge-${Date.now()}`,

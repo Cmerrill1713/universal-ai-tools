@@ -50,6 +50,8 @@ class QuickSyntaxFixer {
         if (filePath) {
           await this.fixFilePattern(filePath, /as any\.content/g, 'as (any).content');
         }
+        return undefined;
+        return undefined;
       }
     }
   }

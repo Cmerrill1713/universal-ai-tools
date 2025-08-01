@@ -109,13 +109,13 @@ describe('API Versioning', () => {
         .set('Accept', 'application/vnd.universal-ai-tools.v1+json')
         .expect(200);
 
-      expect(res.headers['content-type']).toMatch(/application/vnd.universal-ai-tools.v1+json/);
+      expect(res.headers['content-type']).toMatch(/application\/vnd\.universal-ai-tools\.v1\+json/);
     });
 
     it('should use standard JSON for regular accept', async () => {
       const res = await request(app).get('/api/test').set('Accept', 'application/json').expect(200);
 
-      expect(res.headers['content-type']).toMatch(/application/json/);
+      expect(res.headers['content-type']).toMatch(/application\/json/);
     });
   });
 

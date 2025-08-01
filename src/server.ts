@@ -22,6 +22,11 @@ import { apiResponseMiddleware } from '@/utils/api-response';
 import { getPorts, logPortConfiguration } from '@/config/ports';
 import type { EmbeddingResult } from './types';
 
+// New observability imports
+import { initializeTracing, shutdownTracing } from '@/utils/tracing';
+import { correlationIdMiddleware } from '@/utils/correlation-id';
+import { getMetrics, httpMetricsMiddleware } from '@/utils/metrics';
+
 // Middleware
 import { createRateLimiter } from '@/middleware/rate-limiter-enhanced';
 import {
@@ -66,9 +71,8 @@ class UniversalAIToolsServer {
   }
 
   private createSecureServer(): Server {
-    // Import SSL configuration
-    const { getSSLConfig } = require('@/config/ssl-config');
-    const sslConfig = getSSLConfig();
+    // SSL configuration disabled for now to fix ES module issue
+    const sslConfig = { enabled: false };
 
     if (sslConfig.enabled && sslConfig.key && sslConfig.cert) {
       log.info('Creating HTTPS server with SSL/TLS', LogContext.SERVER);
@@ -87,7 +91,6 @@ class UniversalAIToolsServer {
       if (process.env.NODE_ENV === 'production') {
         log.warn('Running HTTP server in production - SSL/TLS is recommended', LogContext.SERVER);
       }
-      return undefined;
       return createServer(this.app);
     }
   }
@@ -226,6 +229,12 @@ class UniversalAIToolsServer {
   }
 
   private setupMiddleware(): void {
+    // Correlation ID middleware (must be first)
+    this.app.use(correlationIdMiddleware());
+    
+    // Metrics middleware (early in chain)
+    this.app.use(httpMetricsMiddleware());
+    
     // Security middleware
     this.app.use(
       helmet({
@@ -430,7 +439,7 @@ class UniversalAIToolsServer {
     });
 
     // Simple monitoring endpoints for client compatibility
-    this.app.get('/metrics', (req: Request, res: Response) => {
+    this.app.get('/monitoring', (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -529,6 +538,17 @@ class UniversalAIToolsServer {
           '/api/v1/mlx',
         ],
       });
+    });
+    
+    // Prometheus metrics endpoint
+    this.app.get('/metrics', async (req: Request, res: Response) => {
+      try {
+        const metrics = await getMetrics();
+        res.set('Content-Type', 'text/plain');
+        res.send(metrics);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to collect metrics' });
+      }
     });
 
     // Agent API endpoints
@@ -899,10 +919,6 @@ class UniversalAIToolsServer {
             queryEmbedding = result.data.vector;
             log.info('✅ Query embedding generated for search', LogContext.AI);
           }
-
-          return undefined;
-
-          return undefined;
         } catch (error) {
           log.warn('PyVision not available for search', LogContext.AI, { error });
         }
@@ -1400,16 +1416,12 @@ class UniversalAIToolsServer {
               if (mockWs.emit) {
                 mockWs.emit('message', Buffer.from(JSON.stringify(data)));
               }
-              return undefined;
-              return undefined;
             });
 
             socket.on('disconnect', () => {
               if (mockWs.emit) {
                 mockWs.emit('close');
               }
-              return undefined;
-              return undefined;
             });
           });
 
@@ -1508,8 +1520,6 @@ class UniversalAIToolsServer {
       if (this.agentRegistry) {
         await this.agentRegistry.shutdown();
       }
-      return undefined;
-      return undefined;
 
       // Shutdown project orchestrator
       if (this.projectOrchestrator) {
@@ -1543,6 +1553,9 @@ class UniversalAIToolsServer {
       // Close database connections would go here
       // await this.supabase?.close?.();
 
+      // Shutdown OpenTelemetry tracing
+      await shutdownTracing();
+
       log.info('Graceful shutdown completed', LogContext.SYSTEM);
       process.exit(0);
     } catch (error) {
@@ -1557,6 +1570,9 @@ class UniversalAIToolsServer {
     try {
       // Validate configuration
       validateConfig();
+
+      // Initialize OpenTelemetry tracing
+      await initializeTracing();
 
       // Initialize services first
       await this.initializeServices();
@@ -1968,8 +1984,6 @@ class UniversalAIToolsServer {
       if (this.projectOrchestrator) {
         this.app.locals.projectOrchestrator = this.projectOrchestrator;
       }
-      return undefined;
-      return undefined;
 
       this.app.use('/api/v1/projects', projectModule.default);
       log.info('✅ Project orchestration routes loaded', LogContext.SERVER);
@@ -1988,8 +2002,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const server = new UniversalAIToolsServer();
   server.start();
 }
-return undefined;
-return undefined;
 
 export default UniversalAIToolsServer;
 export { UniversalAIToolsServer };

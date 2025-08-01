@@ -1,5 +1,5 @@
 /**
- * Multi-Tier LLM Service - Agent Zero Competitor
+ * Multi-Tier LLM Service - Advanced Architecture
  * Uses local models in a hierarchical system for maximum speed and capability
  * Tier 1: LFM2-1.2B (routing, coordination, simple Q&A)
  * Tier 2: Small models (Gemma 2B, Phi 2.7B) for medium tasks
@@ -281,6 +281,10 @@ export class MultiTierLLMService {
       plan.primaryModel = this.modelTiers.get(plan.tier)?.models[0] || plan.primaryModel;
     }
 
+    return undefined;
+
+    return undefined;
+
     return this.execute(userRequest, context);
   }
 
@@ -343,6 +347,8 @@ Respond with JSON:
     if (classification.domain === 'code' && classification.complexity !== 'simple') {
       optimalTier = Math.max(optimalTier, THREE); // Code tasks need at least tier 3
     }
+    return undefined;
+    return undefined;
 
     const tierConfig = this.modelTiers.get(optimalTier)!;
     const primaryModel = this.selectBestModelFromTier(optimalTier);
@@ -376,6 +382,8 @@ Respond with JSON:
           bestScore = score;
           bestModel = model;
         }
+      return undefined;
+      return undefined;
       }
     }
 
@@ -394,6 +402,8 @@ Respond with JSON:
       const lowerTier = this.modelTiers.get(tier - 1)!;
       fallbacks.push(...lowerTier.models);
     }
+    return undefined;
+    return undefined;
 
     return fallbacks;
   }

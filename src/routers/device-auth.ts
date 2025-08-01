@@ -15,11 +15,11 @@ import { body, param, query } from 'express-validator';
 import crypto from 'crypto';
 import { deviceAuthWebSocket } from '@/services/device-auth-websocket';
 import {
-  deviceRegistrationLimiter,
   challengeRequestLimiter,
-  verificationLimiter,
-  proximityUpdateLimiter,
+  deviceRegistrationLimiter,
   globalDeviceAuthLimiter,
+  proximityUpdateLimiter,
+  verificationLimiter,
 } from '@/middleware/device-auth-rate-limiter';
 import { deviceAuthAudit } from '@/services/device-auth-audit';
 

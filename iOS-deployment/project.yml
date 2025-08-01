@@ -1,0 +1,33 @@
+name: UniversalAICompanion
+options:
+  bundleIdPrefix: com.universalai
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+settings:
+  DEVELOPMENT_TEAM: YOUR_TEAM_ID
+  PRODUCT_BUNDLE_IDENTIFIER: com.universalai.companion
+targets:
+  UniversalAICompanion:
+    type: application
+    platform: iOS
+    sources: 
+      - UniversalAICompanion
+    info:
+      path: UniversalAICompanion/Info.plist
+      properties:
+        CFBundleDisplayName: AI Companion
+        UILaunchStoryboardName: LaunchScreen
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSBluetoothAlwaysUsageDescription: "Used for proximity-based authentication"
+        NSBluetoothPeripheralUsageDescription: "Used to detect nearby devices"
+        NSFaceIDUsageDescription: "Authenticate to unlock AI features"
+        NSLocalNetworkUsageDescription: "Connect to local AI server"
+    settings:
+      INFOPLIST_FILE: UniversalAICompanion/Info.plist
+      PRODUCT_BUNDLE_IDENTIFIER: com.universalai.companion
+      SWIFT_VERSION: 5.9
+    dependencies:
+      - sdk: CoreBluetooth.framework
+      - sdk: LocalAuthentication.framework
+      - sdk: WatchConnectivity.framework

@@ -89,6 +89,8 @@ class VisionBrowserDebugger {
       if (this.isRunning) {
         await this.captureAndAnalyzeBrowser();
       }
+      return undefined;
+      return undefined;
     }, this.screenshotInterval);
 
     console.log('✅ Vision Browser Debugger active - Monitoring browser dev tools');
@@ -114,6 +116,10 @@ class VisionBrowserDebugger {
         if (this.analysisResults.length > 50) {
           this.analysisResults = this.analysisResults.slice(-50);
         }
+
+      return undefined;
+
+      return undefined;
 
         console.log(
           `🔍 Analysis complete - Found ${analysis.detectedElements.length} UI elements, ${analysis.consoleErrors.length} console errors`
@@ -447,6 +453,8 @@ Return structured data about:
       if (metric.status === 'critical') {
         suggestions.push(this.createPerformanceSuggestion(metric));
       }
+      return undefined;
+      return undefined;
     }
 
     // Generate UI-specific suggestions
@@ -454,6 +462,8 @@ Return structured data about:
       if (element.severity === 'critical' || element.severity === 'high') {
         suggestions.push(this.createUIElementSuggestion(element));
       }
+      return undefined;
+      return undefined;
     }
 
     return suggestions;

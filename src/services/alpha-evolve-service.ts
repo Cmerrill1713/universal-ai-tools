@@ -343,6 +343,8 @@ Extract patterns and improvement opportunities:
       if (this.evolutionEnabled) {
         await this.runEvolutionCycle();
       }
+      return undefined;
+      return undefined;
     }, evolutionInterval);
 
     log.info('🔄 Evolution cycle started', LogContext.AI, {
@@ -523,6 +525,8 @@ Extract patterns and improvement opportunities:
       metrics.successRate = Math.min(1.0, metrics.successRate + plan.expectedImprovement);
       this.agentMetrics.set(agentName, metrics);
     }
+    return undefined;
+    return undefined;
   }
 
   private async getSystemMetrics(): Promise<any> {

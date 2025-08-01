@@ -180,6 +180,8 @@ class TargetedTSFixer {
             // Save successful pattern to MCP
             await this.saveSuccessfulPattern(error, line || '', newLine);
           }
+        return undefined;
+        return undefined;
         }
       }
 

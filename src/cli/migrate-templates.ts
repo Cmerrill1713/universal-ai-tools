@@ -170,6 +170,10 @@ program
           console.log('🗑️  Local files were removed after archival');
         }
         
+        return undefined;
+        
+        return undefined;
+        
         if (result.errors.length > 0) {
           console.log('\n⚠️  Warnings:');
           result.errors.forEach(error => console.log(`  • ${error}`));

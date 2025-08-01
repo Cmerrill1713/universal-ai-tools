@@ -69,8 +69,10 @@ class DeviceAuthenticationManager: ObservableObject, ProximityDetectionDelegate,
     }
     
     deinit {
-        disconnectWebSocket()
-        proximityService?.stopProximityDetection()
+        Task { @MainActor in
+            disconnectWebSocket()
+            proximityService?.stopProximityDetection()
+        }
         cancellables.removeAll()
     }
     
@@ -97,7 +99,7 @@ class DeviceAuthenticationManager: ObservableObject, ProximityDetectionDelegate,
         ]
         
         do {
-            guard let request = createRequest(endpoint: "register") else {
+            guard let request = createRequest(endpoint: "register-initial") else {
                 await setError(.networkError(URLError(.badURL)))
                 return
             }
@@ -113,10 +115,22 @@ class DeviceAuthenticationManager: ObservableObject, ProximityDetectionDelegate,
                 if httpResponse.statusCode == 200 {
                     if let responseData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let success = responseData["success"] as? Bool,
-                       success {
+                       success,
+                       let dataDict = responseData["data"] as? [String: Any] {
+                        
+                        // Extract auth token from registration response
+                        if let authToken = dataDict["authToken"] as? String {
+                            _authToken = authToken
+                            authenticationState = .authenticated
+                            print("✅ Device registered and authenticated successfully")
+                        }
+                        
                         registrationState = .registered
                         await saveRegistrationInfo()
-                        print("✅ Device registered successfully")
+                        
+                        // Connect to WebSocket for real-time events
+                        await connectWebSocket()
+                        
                     } else {
                         await setError(.registrationFailed)
                     }
@@ -127,6 +141,16 @@ class DeviceAuthenticationManager: ObservableObject, ProximityDetectionDelegate,
         } catch {
             await setError(.networkError(error))
         }
+    }
+    
+    // MARK: - Public Authentication Methods
+    
+    func signOut() async {
+        authenticationState = .unauthenticated
+        _authToken = nil
+        disconnectWebSocket()
+        stopProximityDetection()
+        print("👋 User signed out")
     }
     
     // MARK: - Authentication Challenge Flow
@@ -877,7 +901,7 @@ enum DeviceType: String {
     case mac = "Mac"
 }
 
-enum AuthError: Error, LocalizedError {
+enum AuthError: Error, LocalizedError, Equatable {
     case notRegistered
     case registrationFailed
     case keyGenerationFailed
@@ -888,6 +912,25 @@ enum AuthError: Error, LocalizedError {
     case verificationFailed
     case authenticationFailed
     case networkError(Error)
+    
+    static func == (lhs: AuthError, rhs: AuthError) -> Bool {
+        switch (lhs, rhs) {
+        case (.notRegistered, .notRegistered),
+             (.registrationFailed, .registrationFailed),
+             (.keyGenerationFailed, .keyGenerationFailed),
+             (.biometricNotAvailable, .biometricNotAvailable),
+             (.biometricFailed, .biometricFailed),
+             (.challengeRequestFailed, .challengeRequestFailed),
+             (.signatureFailed, .signatureFailed),
+             (.verificationFailed, .verificationFailed),
+             (.authenticationFailed, .authenticationFailed):
+            return true
+        case (.networkError(let lhsError), .networkError(let rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        default:
+            return false
+        }
+    }
     
     var errorDescription: String? {
         switch self {

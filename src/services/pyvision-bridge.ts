@@ -24,6 +24,8 @@ import type {
 } from '../types/vision';
 import { DetectedObject } from '../types/vision';
 import { THREE } from '../utils/constants';
+import { mlxService } from './mlx-service';
+import { contextInjectionService } from './context-injection-service';
 
 export interface PyVisionMetrics {
   avgResponseTime: number;
@@ -31,6 +33,9 @@ export interface PyVisionMetrics {
   successRate: number;
   cacheHitRate: number;
   modelsLoaded: string[];
+  mlxOptimized: boolean;
+  iOSOptimizations: number;
+  deviceContextUsed: number;
 }
 
 interface PendingRequest {
@@ -52,12 +57,28 @@ export class PyVisionBridge {
     successRate: 1.0,
     cacheHitRate: 0,
     modelsLoaded: [],
+    mlxOptimized: false,
+    iOSOptimizations: 0,
+    deviceContextUsed: 0,
   };
   private cache: Map<string, any> = new Map();
   private readonly maxCacheSize = 1000;
 
   constructor() {
     this.initializePyVision();
+    this.checkMLXAvailability();
+  }
+
+  private async checkMLXAvailability(): Promise<void> {
+    try {
+      const mlxHealth = await mlxService.healthCheck();
+      if (mlxHealth.healthy) {
+        this.metrics.mlxOptimized = true;
+        log.info('🍎 MLX optimization enabled for PyVision', LogContext.AI);
+      }
+    } catch (error) {
+      log.warn('⚠️ MLX not available for PyVision optimization', LogContext.AI);
+    }
   }
 
   private async initializePyVision(): Promise<void> {
@@ -179,6 +200,112 @@ export class PyVisionBridge {
   }
 
   /**
+   * iOS-optimized image analysis with device context integration
+   */
+  public async analyzeImageForIOS(
+    imagePath: string | Buffer,
+    deviceContext?: {
+      deviceId?: string;
+      batteryLevel?: number;
+      connectionType?: 'wifi' | 'cellular' | 'offline';
+      isLowPowerMode?: boolean;
+      userId?: string;
+    },
+    options: VisionOptions = {}
+  ): Promise<VisionResponse<VisionAnalysis & { deviceOptimizations: any }>> {
+    this.metrics.iOSOptimizations++;
+    
+    // Apply iOS-specific optimizations based on device context
+    const optimizedOptions = await this.optimizeForIOSDevice(options, deviceContext);
+    
+    // Use context injection for better results
+    if (deviceContext?.userId) {
+      this.metrics.deviceContextUsed++;
+      const contextResult = await contextInjectionService.enrichWithContext(
+        'Analyzing image from iOS device',
+        {
+          userId: deviceContext.userId,
+          deviceContext: {
+            deviceId: deviceContext.deviceId,
+            batteryLevel: deviceContext.batteryLevel,
+            connectionType: deviceContext.connectionType,
+            isLowPowerMode: deviceContext.isLowPowerMode,
+          }
+        }
+      );
+      
+      log.info('📱 iOS device context applied to vision analysis', LogContext.AI, {
+        deviceId: deviceContext.deviceId,
+        batteryLevel: deviceContext.batteryLevel,
+        optimizations: Object.keys(optimizedOptions).length
+      });
+    }
+
+    // Perform standard analysis with optimizations
+    const response = await this.analyzeImage(imagePath, optimizedOptions);
+    
+    if (response.success && response.data) {
+      // Add iOS-specific metadata
+      const enhancedData = {
+        ...response.data,
+        deviceOptimizations: {
+          batteryOptimized: !!deviceContext?.isLowPowerMode,
+          connectionOptimized: deviceContext?.connectionType === 'cellular',
+          mlxAccelerated: this.metrics.mlxOptimized,
+          processingMode: deviceContext?.isLowPowerMode ? 'power_save' : 'performance'
+        }
+      };
+
+      return {
+        ...response,
+        data: enhancedData
+      };
+    }
+
+    return response;
+  }
+
+  /**
+   * Optimize processing parameters for iOS devices
+   */
+  private async optimizeForIOSDevice(
+    options: VisionOptions,
+    deviceContext?: {
+      batteryLevel?: number;
+      connectionType?: 'wifi' | 'cellular' | 'offline';
+      isLowPowerMode?: boolean;
+    }
+  ): Promise<VisionOptions> {
+    const optimized = { ...options };
+
+    if (deviceContext) {
+      // Battery level optimizations
+      if (deviceContext.batteryLevel !== undefined && deviceContext.batteryLevel < 20) {
+        optimized.quality = 'fast'; // Lower quality for battery saving
+        optimized.timeout = Math.min(optimized.timeout || 15000, 10000); // Shorter timeout
+      }
+      // Low power mode optimizations
+      if (deviceContext.isLowPowerMode) {
+        optimized.quality = 'fast';
+        optimized.maxResolution = 512; // Reduce resolution
+        optimized.useCache = true; // Prefer cached results
+      }
+      // Connection type optimizations
+      if (deviceContext.connectionType === 'cellular') {
+        optimized.compression = 'high'; // Higher compression for cellular
+        optimized.maxSize = 1024 * 1024; // 1MB limit for cellular
+      }
+      // MLX acceleration when available
+      if (this.metrics.mlxOptimized) {
+        optimized.backend = 'mlx';
+        optimized.useAppleSilicon = true;
+      }
+    }
+
+    return optimized;
+  }
+
+  /**
    * Generate image embeddings using CLIP
    */
   public async generateEmbedding(
@@ -250,7 +377,7 @@ export class PyVisionBridge {
             strength: parameters.strength || 0.3,
             steps: parameters.steps || 20,
             guidance: parameters.guidance || 7.5,
-            backend: parameters.backend || 'auto',
+            backend: parameters.backend || (this.metrics.mlxOptimized ? 'mlx' : 'auto'),
             ...parameters,
           } as VisionOptions,
         });
@@ -261,6 +388,91 @@ export class PyVisionBridge {
       },
       8
     ); // High priority for refinement
+  }
+
+  /**
+   * iOS-optimized image refinement with MLX backend
+   */
+  public async refineImageForIOS(
+    imagePath: string | Buffer,
+    deviceContext?: {
+      deviceId?: string;
+      batteryLevel?: number;
+      connectionType?: 'wifi' | 'cellular' | 'offline';
+      isLowPowerMode?: boolean;
+      userId?: string;
+    },
+    parameters: Partial<RefinementParameters> = {}
+  ): Promise<VisionResponse<RefinedImage & { mlxOptimized: boolean; deviceOptimizations: any }>> {
+    this.metrics.iOSOptimizations++;
+
+    // Apply iOS-specific optimizations
+    const optimizedParams = await this.optimizeRefinementForIOS(parameters, deviceContext);
+    
+    // Use MLX backend if available for Apple Silicon optimization
+    if (this.metrics.mlxOptimized) {
+      optimizedParams.backend = 'mlx';
+      log.info('🍎 Using MLX backend for iOS image refinement', LogContext.AI, {
+        deviceId: deviceContext?.deviceId,
+        batteryLevel: deviceContext?.batteryLevel
+      });
+    }
+
+    const response = await this.refineImage(imagePath, optimizedParams);
+    
+    if (response.success && response.data) {
+      const enhancedData = {
+        ...response.data,
+        mlxOptimized: this.metrics.mlxOptimized,
+        deviceOptimizations: {
+          batteryOptimized: !!deviceContext?.isLowPowerMode,
+          stepsReduced: optimizedParams.steps !== parameters.steps,
+          qualityAdjusted: deviceContext?.connectionType === 'cellular',
+          processingMode: deviceContext?.isLowPowerMode ? 'power_save' : 'performance'
+        }
+      };
+
+      return {
+        ...response,
+        data: enhancedData
+      };
+    }
+
+    return response;
+  }
+
+  /**
+   * Optimize refinement parameters for iOS devices
+   */
+  private async optimizeRefinementForIOS(
+    parameters: Partial<RefinementParameters>,
+    deviceContext?: {
+      batteryLevel?: number;
+      connectionType?: 'wifi' | 'cellular' | 'offline';
+      isLowPowerMode?: boolean;
+    }
+  ): Promise<Partial<RefinementParameters>> {
+    const optimized = { ...parameters };
+
+    if (deviceContext) {
+      // Battery level optimizations
+      if (deviceContext.batteryLevel !== undefined && deviceContext.batteryLevel < 20) {
+        optimized.steps = Math.min(optimized.steps || 20, 10); // Reduce steps for battery
+        optimized.strength = Math.min(optimized.strength || 0.3, 0.2); // Lower strength
+      }
+      // Low power mode optimizations
+      if (deviceContext.isLowPowerMode) {
+        optimized.steps = Math.min(optimized.steps || 20, 8); // Minimal steps
+        optimized.guidance = Math.min(optimized.guidance || 7.5, 5.0); // Lower guidance
+      }
+      // Connection type optimizations
+      if (deviceContext.connectionType === 'cellular') {
+        optimized.outputFormat = 'jpeg'; // More compressed format
+        optimized.quality = 85; // Reduced quality for cellular
+      }
+    }
+
+    return optimized;
   }
 
   /**
@@ -377,7 +589,8 @@ export class PyVisionBridge {
     for (const line of lines) {
       if (line.trim() === 'INITIALIZED') {
         log.info('🚀 PyVision server initialized successfully', LogContext.AI);
-        this.isInitialized = true;         continue;
+        this.isInitialized = true;
+        continue;
       }
 
       if (line.trim() === '') {
@@ -555,9 +768,8 @@ Please provide a detailed answer based on the visual analysis above.`;
 
     if (this.pythonProcess) {
       this.pythonProcess.kill();
-      this.pythonProcess =         null;
+      this.pythonProcess = null;
     }
-
     // Clear pending requests
     this.pendingRequests.forEach(({ reject }) => {
       reject(new Error('PyVision process restarting'));
@@ -584,7 +796,6 @@ Please provide a detailed answer based on the visual analysis above.`;
       this.pythonProcess.kill();
       this.pythonProcess = null;
     }
-
     this.isInitialized = false;
     this.cache.clear();
   }
@@ -666,7 +877,24 @@ class SafePyVisionBridge {
       return result;
     });
   }
-  // TODO: Add error handling with try-catch
+
+  async analyzeImageForIOS(
+    imagePath: string | Buffer,
+    deviceContext?: {
+      deviceId?: string;
+      batteryLevel?: number;
+      connectionType?: 'wifi' | 'cellular' | 'offline';
+      isLowPowerMode?: boolean;
+      userId?: string;
+    },
+    options?: VisionOptions
+  ): Promise<VisionResponse<VisionAnalysis & { deviceOptimizations: any }>> {
+    return this.execute(async () => {
+      const result = await this.instance?.analyzeImageForIOS(imagePath, deviceContext, options);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
+  }
 
   async generateEmbedding(imagePath: string | Buffer): Promise<VisionResponse<VisionEmbedding>> {
     return this.execute(async () => {
@@ -702,7 +930,24 @@ class SafePyVisionBridge {
       return result;
     });
   }
-  // TODO: Add error handling with try-catch
+
+  async refineImageForIOS(
+    imagePath: string | Buffer,
+    deviceContext?: {
+      deviceId?: string;
+      batteryLevel?: number;
+      connectionType?: 'wifi' | 'cellular' | 'offline';
+      isLowPowerMode?: boolean;
+      userId?: string;
+    },
+    parameters?: Partial<RefinementParameters>
+  ): Promise<VisionResponse<RefinedImage & { mlxOptimized: boolean; deviceOptimizations: any }>> {
+    return this.execute(async () => {
+      const result = await this.instance?.refineImageForIOS(imagePath, deviceContext, parameters);
+      if (!result) throw new Error('PyVision not available');
+      return result;
+    });
+  }
 
   async analyzeBatch(imagePaths: string[], options?: VisionOptions): Promise<VisionResponse<VisionAnalysis>[]> {
     return this.execute(async () => {
@@ -724,6 +969,9 @@ class SafePyVisionBridge {
       cacheHitRate: 0,
       modelsLoaded: [],
       isInitialized: false,
+      mlxOptimized: false,
+      iOSOptimizations: 0,
+      deviceContextUsed: 0,
     };
   }
 

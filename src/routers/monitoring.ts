@@ -5,6 +5,9 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response} from 'express';
+import { NextFunction } from 'express';
+
 import { LogContext, log } from '@/utils/logger';
 import { CircuitBreakerRegistry, getCircuitBreakerStatus } from '@/utils/circuit-breaker';
 import { lfm2Bridge } from '@/services/lfm2-bridge';
@@ -44,7 +47,7 @@ function getSystemMetrics() {
 }
 
 // Enhanced health check with detailed metrics
-router.get('/health/detailed', async (req, res) => {
+router.get('/health/detailed', async (req: Request, res: Response) => {
   try {
     const startTime = Date.now();
 
@@ -124,7 +127,7 @@ router.get('/health/detailed', async (req, res) => {
 });
 
 // Circuit breaker management endpoints
-router.get('/circuit-breakers', (req, res) => {
+router.get('/circuit-breakers', (req: Request, res: Response) => {
   const     status = getCircuitBreakerStatus();
   res.json({
     circuitBreakers: status,
@@ -138,7 +141,7 @@ router.get('/circuit-breakers', (req, res) => {
 });
 
 // Reset specific circuit breaker
-router.post('/circuit-breakers/:name/reset', (req, res) => {
+router.post('/circuit-breakers/:name/reset', (req: Request, res: Response) => {
   const { name } = req.params;
   const breaker = CircuitBreakerRegistry.get(name);
 
@@ -158,7 +161,7 @@ router.post('/circuit-breakers/:name/reset', (req, res) => {
 });
 
 // Model performance metrics
-router.get('/models/performance', async (req, res) => {
+router.get('/models/performance', async (req: Request, res: Response) => {
   try {
     const performance = {
       timestamp: new Date().toISOString(),
@@ -191,7 +194,7 @@ router.get('/models/performance', async (req, res) => {
 });
 
 // Real-time metrics stream (Server-Sent Events)
-router.get('/metrics/stream', (req, res) => {
+router.get('/metrics/stream', (req: Request, res: Response) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -232,7 +235,7 @@ router.get('/metrics/stream', (req, res) => {
 });
 
 // Automated health check status
-router.get('/health/automated', async (req, res) => {
+router.get('/health/automated', async (req: Request, res: Response) => {
   try {
     const systemHealth = healthMonitor.getSystemHealth();
     res.json({
@@ -252,7 +255,7 @@ router.get('/health/automated', async (req, res) => {
 });
 
 // Force health check for all services
-router.post('/health/check-all', async (req, res) => {
+router.post('/health/check-all', async (req: Request, res: Response) => {
   try {
     const systemHealth = await healthMonitor.checkAllServices();
     res.json({
@@ -273,7 +276,7 @@ router.post('/health/check-all', async (req, res) => {
 });
 
 // Get specific service health
-router.get('/health/service/:serviceName', async (req, res) => {
+router.get('/health/service/:serviceName', async (req: Request, res: Response) => {
   try {
     const { serviceName } = req.params;
     const serviceHealth = await healthMonitor.checkService(serviceName);
@@ -302,7 +305,7 @@ router.get('/health/service/:serviceName', async (req, res) => {
 });
 
 // System diagnostics
-router.get('/diagnostics', async (req, res) => {
+router.get('/diagnostics', async (req: Request, res: Response) => {
   const diagnostics = {
     timestamp: new Date().toISOString(),
     checks: {

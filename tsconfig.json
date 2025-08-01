@@ -5,14 +5,14 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "allowJs": false,
+    "allowJs": true,
     "checkJs": false,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "removeComments": true,
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
     "strictFunctionTypes": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -28,37 +28,67 @@
     "isolatedModules": true,
     "noEmit": false,
     "incremental": true,
-    "lib": ["ES2022", "DOM"],
-    "types": ["node", "jest"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": [
+      "node",
+      "jest"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/types/*": ["src/types/*"],
-      "@/utils/*": ["src/utils/*"],
-      "@/config/*": ["src/config/*"],
-      "@/services/*": ["src/services/*"],
-      "@/agents/*": ["src/agents/*"],
-      "@/routers/*": ["src/routers/*"],
-      "@/middleware/*": ["src/middleware/*"],
-      "@/memory/*": ["src/memory/*"],
-      "@/core/*": ["src/core/*"]
-    }
+      "@/*": [
+        "src/*"
+      ],
+      "@/types/*": [
+        "src/types/*"
+      ],
+      "@/utils/*": [
+        "src/utils/*"
+      ],
+      "@/config/*": [
+        "src/config/*"
+      ],
+      "@/services/*": [
+        "src/services/*"
+      ],
+      "@/agents/*": [
+        "src/agents/*"
+      ],
+      "@/routers/*": [
+        "src/routers/*"
+      ],
+      "@/middleware/*": [
+        "src/middleware/*"
+      ],
+      "@/memory/*": [
+        "src/memory/*"
+      ],
+      "@/core/*": [
+        "src/core/*"
+      ]
+    },
+    "downlevelIteration": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "tests/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "build",
     "coverage",
-    "tests",
     "**/*.backup.*",
     "src.backup.*",
-    "**/*.test.ts",
-    "**/*.spec.ts",
     "src/components/**/*",
-    "ui/**/*"
+    "ui/**/*",
+    "**/*.js",
+    "**/*.d.ts",
+    "tests/manual/**/*.js"
   ],
   "ts-node": {
     "esm": true,

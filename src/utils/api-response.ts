@@ -1,4 +1,5 @@
-import type { Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+
 import type { ApiResponse, ErrorCode, PaginatedResponse, PaginationMeta } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -106,3 +107,20 @@ export function apiResponseMiddleware(req: unknown, res: unknown, next: unknown)
 
   (next as any)();
 }
+
+// API Response Handler for route handlers
+export function apiResponseHandler(handler: (req: any, res: any, next?: any) => Promise<any> | any) {
+  return async (req: any, res: any, next: any) => {
+    try {
+      await handler(req, res, next);
+    } catch (error) {
+      sendError(res, 'INTERNAL_ERROR', 'Internal server error', 500, error);
+    }
+  };
+}
+
+// Compatibility export that matches the expected interface
+export const apiResponse = {
+  success: createApiResponse,
+  error: (message: string, code: keyof ErrorCode, details?: unknown) => createErrorResponse(code, message, details)
+};

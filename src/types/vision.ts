@@ -194,6 +194,9 @@ export interface VisionOptions {
   steps?: number;
   guidance?: number;
   backend?: 'mlx' | 'gguf' | 'auto';
+  // Image processing limits
+  maxResolution?: number;
+  maxSize?: number;
 }
 
 export interface VisionResponse<T = any> {

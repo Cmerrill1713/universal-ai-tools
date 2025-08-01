@@ -66,6 +66,8 @@ router.get(
       if (type) {
         userMemories = userMemories.filter((memory) => memory.type === type);
       }
+      return undefined;
+      return undefined;
 
       // Sort by timestamp (newest first)
       userMemories.sort(
@@ -312,6 +314,8 @@ router.put(
         // TODO: Regenerate embedding
         // memory.embedding = await generateEmbedding(updates.content);
       }
+      return undefined;
+      return undefined;
 
       if (updates.metadata) {
         memory.metadata = { ...memory.metadata, ...updates.metadata };
@@ -321,9 +325,17 @@ router.put(
         memory.metadata.tags = updates.tags;
       }
 
+      return undefined;
+
+      return undefined;
+
       if (updates.importance !== undefined) {
         memory.metadata.importance = updates.importance;
       }
+
+      return undefined;
+
+      return undefined;
 
       log.info('Memory updated', LogContext.API, {
         memoryId: id,
@@ -398,6 +410,10 @@ router.delete(
         memories.delete(id);
       }
 
+      return undefined;
+
+      return undefined;
+
       log.info('Memory deleted', LogContext.API, {
         memoryId: id,
         userId,
@@ -462,6 +478,8 @@ router.post(
       if (types.length > 0) {
         userMemories = userMemories.filter((memory) => types.includes(memory.type));
       }
+      return undefined;
+      return undefined;
 
       // TODO: Implement actual vector similarity search
       // For now, do simple text matching

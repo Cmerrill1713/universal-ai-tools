@@ -34,6 +34,18 @@ class ProximityDetectionService: NSObject, ObservableObject {
     // Timer for periodic proximity updates
     private var proximityTimer: Timer?
     
+    // RSSI tracking for smoothing
+    private var lastRSSIValues: [String: [Int]] = [:]
+    private var lastProximityChange: Date = Date()
+    private var consecutiveUnchangedScans: Int = 0
+    private var scanTimer: Timer?
+    
+    // Constants for scanning behavior
+    private struct Constants {
+        static let scanInterval: TimeInterval = 2.0
+        static let maxRSSIHistory: Int = 5
+    }
+    
     // MARK: - Initialization
     override init() {
         super.init()
@@ -42,7 +54,9 @@ class ProximityDetectionService: NSObject, ObservableObject {
     }
     
     deinit {
-        stopProximityDetection()
+        Task { @MainActor in
+            stopProximityDetection()
+        }
     }
     
     // MARK: - Public Methods
@@ -215,7 +229,12 @@ class ProximityDetectionService: NSObject, ObservableObject {
         }
         
         // Calculate average RSSI from history
-        let avgRSSI = lastRSSIValues[deviceId]?.reduce(0, +).map { $0 / lastRSSIValues[deviceId]!.count } ?? rssiValue
+        let avgRSSI: Int
+        if let values = lastRSSIValues[deviceId], !values.isEmpty {
+            avgRSSI = values.reduce(0, +) / values.count
+        } else {
+            avgRSSI = rssiValue
+        }
         
         let proximity = calculateProximity(from: avgRSSI)
         
@@ -241,7 +260,7 @@ class ProximityDetectionService: NSObject, ObservableObject {
         
         let newInterval = increase ? Constants.scanInterval * 2 : Constants.scanInterval
         scanTimer = Timer.scheduledTimer(withTimeInterval: newInterval, repeats: true) { [weak self] _ in
-            self?.performBLEScan()
+            self?.startBLEScanning()
         }
         
         print("⚡ Adjusted scan frequency to \(newInterval)s for battery optimization")
@@ -250,7 +269,7 @@ class ProximityDetectionService: NSObject, ObservableObject {
 
 // MARK: - CBCentralManagerDelegate
 
-extension ProximityDetectionService: CBCentralManagerDelegate {
+extension ProximityDetectionService: @preconcurrency CBCentralManagerDelegate {
     
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         DispatchQueue.main.async {
@@ -311,7 +330,7 @@ extension ProximityDetectionService: CBCentralManagerDelegate {
 
 // MARK: - CBPeripheralDelegate
 
-extension ProximityDetectionService: CBPeripheralDelegate {
+extension ProximityDetectionService: @preconcurrency CBPeripheralDelegate {
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard error == nil else {
@@ -362,7 +381,7 @@ extension ProximityDetectionService: CBPeripheralDelegate {
 
 // MARK: - CLLocationManagerDelegate
 
-extension ProximityDetectionService: CLLocationManagerDelegate {
+extension ProximityDetectionService: @preconcurrency CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         switch status {

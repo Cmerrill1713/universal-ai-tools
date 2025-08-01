@@ -3,29 +3,111 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		10A56A3BE9A0DACB9E5DA205 /* ImageCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00162581A7F3CCE541192320 /* ImageCacheManager.swift */; };
+		17CC77C2BC88C007399B5945 /* Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB5655381F62B017F788A1EF /* Agent.swift */; };
+		5EBE1FEB478F38D587AD9376 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DE69A02FD5A75B2BC8B94C /* ChatMessage.swift */; };
+		63CCAEEEB5B19605DEEA6869 /* FinalConnectionStatusValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4F4C793D6D4417DF86B4D8 /* FinalConnectionStatusValidationTests.swift */; };
+		63D84CDAC3B77F5EA4A23940 /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193AADC833C358E593E46A0D /* WatchConnectivityService.swift */; };
+		6DF3DBE5271AC0D2D28DB988 /* VisionProcessingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E30BC1C86BA833E8615631D /* VisionProcessingView.swift */; };
+		70B36D28E378D3A7B67A3665 /* ConnectionStatusUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E334323E8184E453F5E298 /* ConnectionStatusUITests.swift */; };
 		7D94191AF45E6D86A0E0DBDD /* UniversalAICompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041553DDB84B1F3AB78E1914 /* UniversalAICompanionApp.swift */; };
 		87BA61A121B412DFD776BC0A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B05293CD504CAF323DACA73 /* Preview Assets.xcassets */; };
 		9160D59AEC15BC2D9AA8F7AF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F62C218DF40BEAA4007E4AC6 /* ContentView.swift */; };
+		99DD7DA55C817D5C975DB022 /* EnhancedChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD02A94C3754F1989A263837 /* EnhancedChatView.swift */; };
+		9AB0C91B042C8B7EBE411539 /* VisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B38DB8ED9F0968D241039C9 /* VisionService.swift */; };
+		9D977D6AB938648F96280C35 /* ProximityDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A4018942CA7B4974BF61B7 /* ProximityDetectionService.swift */; };
+		9F05733B905C25E797CC5460 /* AnimatedAuthenticationStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6825F6D298C98BF2B4F20 /* AnimatedAuthenticationStatusView.swift */; };
+		D53B62E8DDDAF257268548CE /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A7EC0EACFEEB4B41EF6339 /* AuthenticationView.swift */; };
+		E7B5FAAD85647E13B839071F /* DeviceAuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20AEBBAAA643EB91E6BB8F /* DeviceAuthenticationManager.swift */; };
 		EC658078C5DF709FABD29319 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F055F7195B2C50F9B551A11B /* Assets.xcassets */; };
+		F13C89D6E27624DC97A70F1D /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419B707C226A07CC676B34B /* ChatService.swift */; };
+		F1C2BA5D720A8D551AB27C25 /* OptimizedListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4274F4B39994417508FA9786 /* OptimizedListView.swift */; };
+		F21CD59FC12E5589BDCB73A6 /* AuthenticationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B5E9E27C074FB98807879A /* AuthenticationTests.swift */; };
+		FE12F5083EE6D3974A10BA28 /* AuthenticationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8739C9068D46C0F72D6EBF /* AuthenticationUITests.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		6CA808BD452EF938C7E3CE12 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E729221C92FCBA19E631170F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 36AC50F8510EC636A3F975FA;
+			remoteInfo = UniversalAICompanion;
+		};
+		FD99535C0F768D201AECC337 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E729221C92FCBA19E631170F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 36AC50F8510EC636A3F975FA;
+			remoteInfo = UniversalAICompanion;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		00162581A7F3CCE541192320 /* ImageCacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCacheManager.swift; sourceTree = "<group>"; };
 		041553DDB84B1F3AB78E1914 /* UniversalAICompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalAICompanionApp.swift; sourceTree = "<group>"; };
+		09F8601302334CB411E09E1A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		193AADC833C358E593E46A0D /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
+		4274F4B39994417508FA9786 /* OptimizedListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizedListView.swift; sourceTree = "<group>"; };
+		42B5E9E27C074FB98807879A /* AuthenticationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationTests.swift; sourceTree = "<group>"; };
+		50F7119F58AD2571774FCF0D /* UniversalAICompanionTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = UniversalAICompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B38DB8ED9F0968D241039C9 /* VisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionService.swift; sourceTree = "<group>"; };
+		81A4018942CA7B4974BF61B7 /* ProximityDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityDetectionService.swift; sourceTree = "<group>"; };
+		83DE69A02FD5A75B2BC8B94C /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		86A7EC0EACFEEB4B41EF6339 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		8B05293CD504CAF323DACA73 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		BC9F97E1B65BE3F683A49F4D /* UniversalAICompanion.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = UniversalAICompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E30BC1C86BA833E8615631D /* VisionProcessingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionProcessingView.swift; sourceTree = "<group>"; };
+		9A8739C9068D46C0F72D6EBF /* AuthenticationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationUITests.swift; sourceTree = "<group>"; };
+		ABC6825F6D298C98BF2B4F20 /* AnimatedAuthenticationStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedAuthenticationStatusView.swift; sourceTree = "<group>"; };
+		ABCC60B1040BE6F25D7DD500 /* UniversalAICompanionUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = UniversalAICompanionUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC9F97E1B65BE3F683A49F4D /* UniversalAICompanion.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UniversalAICompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C419B707C226A07CC676B34B /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
+		CB5655381F62B017F788A1EF /* Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Agent.swift; sourceTree = "<group>"; };
+		CD02A94C3754F1989A263837 /* EnhancedChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedChatView.swift; sourceTree = "<group>"; };
+		CD20AEBBAAA643EB91E6BB8F /* DeviceAuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAuthenticationManager.swift; sourceTree = "<group>"; };
+		D2E334323E8184E453F5E298 /* ConnectionStatusUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStatusUITests.swift; sourceTree = "<group>"; };
 		F055F7195B2C50F9B551A11B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F62C218DF40BEAA4007E4AC6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FF4F4C793D6D4417DF86B4D8 /* FinalConnectionStatusValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalConnectionStatusValidationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		0B595A154C11B18BA18F0CD3 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CB5655381F62B017F788A1EF /* Agent.swift */,
+				83DE69A02FD5A75B2BC8B94C /* ChatMessage.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		14934919A75784670D5F304D /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				C419B707C226A07CC676B34B /* ChatService.swift */,
+				5B38DB8ED9F0968D241039C9 /* VisionService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		1F4D1C40D99F64FAF1291D27 /* Vision */ = {
+			isa = PBXGroup;
+			children = (
+				8E30BC1C86BA833E8615631D /* VisionProcessingView.swift */,
+			);
+			path = Vision;
+			sourceTree = "<group>";
+		};
 		2E488DF59D32B64B36151A3F = {
 			isa = PBXGroup;
 			children = (
 				B5319A33B4816612BF874D0D /* UniversalAICompanion */,
+				81799D024CDE865AA7EB2CCC /* UniversalAICompanionTests */,
+				F5550A3FA5506579C0DB8FA4 /* UniversalAICompanionUITests */,
 				6325026CB070888522FD08B3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -34,17 +116,55 @@
 			isa = PBXGroup;
 			children = (
 				BC9F97E1B65BE3F683A49F4D /* UniversalAICompanion.app */,
+				50F7119F58AD2571774FCF0D /* UniversalAICompanionTests.xctest */,
+				ABCC60B1040BE6F25D7DD500 /* UniversalAICompanionUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		81799D024CDE865AA7EB2CCC /* UniversalAICompanionTests */ = {
+			isa = PBXGroup;
+			children = (
+				42B5E9E27C074FB98807879A /* AuthenticationTests.swift */,
+			);
+			path = UniversalAICompanionTests;
+			sourceTree = "<group>";
+		};
+		8C195C646B61203CFD257381 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A4835E2F8C14FDCCD044B2E6 /* Chat */,
+				1F4D1C40D99F64FAF1291D27 /* Vision */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A4835E2F8C14FDCCD044B2E6 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				CD02A94C3754F1989A263837 /* EnhancedChatView.swift */,
+			);
+			path = Chat;
 			sourceTree = "<group>";
 		};
 		B5319A33B4816612BF874D0D /* UniversalAICompanion */ = {
 			isa = PBXGroup;
 			children = (
+				ABC6825F6D298C98BF2B4F20 /* AnimatedAuthenticationStatusView.swift */,
 				F055F7195B2C50F9B551A11B /* Assets.xcassets */,
+				86A7EC0EACFEEB4B41EF6339 /* AuthenticationView.swift */,
 				F62C218DF40BEAA4007E4AC6 /* ContentView.swift */,
+				CD20AEBBAAA643EB91E6BB8F /* DeviceAuthenticationManager.swift */,
+				00162581A7F3CCE541192320 /* ImageCacheManager.swift */,
+				09F8601302334CB411E09E1A /* Info.plist */,
+				4274F4B39994417508FA9786 /* OptimizedListView.swift */,
+				81A4018942CA7B4974BF61B7 /* ProximityDetectionService.swift */,
 				041553DDB84B1F3AB78E1914 /* UniversalAICompanionApp.swift */,
+				193AADC833C358E593E46A0D /* WatchConnectivityService.swift */,
+				0B595A154C11B18BA18F0CD3 /* Models */,
 				DFC632F6BBAEFD1B5354432D /* Preview Content */,
+				14934919A75784670D5F304D /* Services */,
+				8C195C646B61203CFD257381 /* Views */,
 			);
 			path = UniversalAICompanion;
 			sourceTree = "<group>";
@@ -55,6 +175,16 @@
 				8B05293CD504CAF323DACA73 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		F5550A3FA5506579C0DB8FA4 /* UniversalAICompanionUITests */ = {
+			isa = PBXGroup;
+			children = (
+				9A8739C9068D46C0F72D6EBF /* AuthenticationUITests.swift */,
+				D2E334323E8184E453F5E298 /* ConnectionStatusUITests.swift */,
+				FF4F4C793D6D4417DF86B4D8 /* FinalConnectionStatusValidationTests.swift */,
+			);
+			path = UniversalAICompanionUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -78,6 +208,42 @@
 			productReference = BC9F97E1B65BE3F683A49F4D /* UniversalAICompanion.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C88D0EE6FF52B96515B5096E /* UniversalAICompanionTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 434D6D9F96F4090D367F993D /* Build configuration list for PBXNativeTarget "UniversalAICompanionTests" */;
+			buildPhases = (
+				000EF3A76E2A50E8C856A4FC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				93AB6740760E8223FEE5DE14 /* PBXTargetDependency */,
+			);
+			name = UniversalAICompanionTests;
+			packageProductDependencies = (
+			);
+			productName = UniversalAICompanionTests;
+			productReference = 50F7119F58AD2571774FCF0D /* UniversalAICompanionTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		F4FB0FD48BAA712E56DA01A8 /* UniversalAICompanionUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 08F91C97657BA4842008F1DB /* Build configuration list for PBXNativeTarget "UniversalAICompanionUITests" */;
+			buildPhases = (
+				4FA8F8FE864E051D065285E3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F588BA7E4CCFC59E3EF67BCB /* PBXTargetDependency */,
+			);
+			name = UniversalAICompanionUITests;
+			packageProductDependencies = (
+			);
+			productName = UniversalAICompanionUITests;
+			productReference = ABCC60B1040BE6F25D7DD500 /* UniversalAICompanionUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -89,6 +255,9 @@
 				TargetAttributes = {
 					36AC50F8510EC636A3F975FA = {
 						ProvisioningStyle = Automatic;
+					};
+					F4FB0FD48BAA712E56DA01A8 = {
+						TestTargetID = 36AC50F8510EC636A3F975FA;
 					};
 				};
 			};
@@ -102,11 +271,12 @@
 			);
 			mainGroup = 2E488DF59D32B64B36151A3F;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				36AC50F8510EC636A3F975FA /* UniversalAICompanion */,
+				C88D0EE6FF52B96515B5096E /* UniversalAICompanionTests */,
+				F4FB0FD48BAA712E56DA01A8 /* UniversalAICompanionUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -124,18 +294,78 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		000EF3A76E2A50E8C856A4FC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F21CD59FC12E5589BDCB73A6 /* AuthenticationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4FA8F8FE864E051D065285E3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE12F5083EE6D3974A10BA28 /* AuthenticationUITests.swift in Sources */,
+				70B36D28E378D3A7B67A3665 /* ConnectionStatusUITests.swift in Sources */,
+				63CCAEEEB5B19605DEEA6869 /* FinalConnectionStatusValidationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A41D02F778A955CA7CB0A425 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				17CC77C2BC88C007399B5945 /* Agent.swift in Sources */,
+				9F05733B905C25E797CC5460 /* AnimatedAuthenticationStatusView.swift in Sources */,
+				D53B62E8DDDAF257268548CE /* AuthenticationView.swift in Sources */,
+				5EBE1FEB478F38D587AD9376 /* ChatMessage.swift in Sources */,
+				F13C89D6E27624DC97A70F1D /* ChatService.swift in Sources */,
 				9160D59AEC15BC2D9AA8F7AF /* ContentView.swift in Sources */,
+				E7B5FAAD85647E13B839071F /* DeviceAuthenticationManager.swift in Sources */,
+				99DD7DA55C817D5C975DB022 /* EnhancedChatView.swift in Sources */,
+				10A56A3BE9A0DACB9E5DA205 /* ImageCacheManager.swift in Sources */,
+				F1C2BA5D720A8D551AB27C25 /* OptimizedListView.swift in Sources */,
+				9D977D6AB938648F96280C35 /* ProximityDetectionService.swift in Sources */,
 				7D94191AF45E6D86A0E0DBDD /* UniversalAICompanionApp.swift in Sources */,
+				6DF3DBE5271AC0D2D28DB988 /* VisionProcessingView.swift in Sources */,
+				9AB0C91B042C8B7EBE411539 /* VisionService.swift in Sources */,
+				63D84CDAC3B77F5EA4A23940 /* WatchConnectivityService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		93AB6740760E8223FEE5DE14 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 36AC50F8510EC636A3F975FA /* UniversalAICompanion */;
+			targetProxy = FD99535C0F768D201AECC337 /* PBXContainerItemProxy */;
+		};
+		F588BA7E4CCFC59E3EF67BCB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 36AC50F8510EC636A3F975FA /* UniversalAICompanion */;
+			targetProxy = 6CA808BD452EF938C7E3CE12 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		0332E99334E9030A835011B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.companion.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/UniversalAICompanion.app/UniversalAICompanion";
+			};
+			name = Debug;
+		};
 		38611A946237ECB9487DEB02 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -199,63 +429,125 @@
 			};
 			name = Debug;
 		};
+		39D9014E84AA950B6A6CD1B3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.companion.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = UniversalAICompanion;
+			};
+			name = Debug;
+		};
+		4710CC1D647C397B7074AC9D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.companion.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = UniversalAICompanion;
+			};
+			name = Release;
+		};
 		6AB34E692FC47C903C2722B4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"UniversalAICompanion/Preview Content\"";
+				DEVELOPMENT_TEAM = 7WANJTSDA6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = UniversalAICompanion/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Universal AI Tools uses Bluetooth to detect proximity to your devices for secure authentication. This enables automatic lock/unlock when you move away from or return to your device.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Universal AI Tools uses Bluetooth to communicate with nearby devices for proximity-based authentication and security features.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Universal AI Tools may use the camera for advanced authentication features and visual AI interactions.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Universal AI Tools uses Face ID to provide secure biometric authentication for accessing your AI tools and services.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Universal AI Tools needs to access your local network to communicate with the AI tools server running on your local machine.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Universal AI Tools uses location services to monitor proximity to your devices for continuous authentication. This enables automatic lock/unlock based on your distance from authenticated devices.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Universal AI Tools uses location services to detect Bluetooth beacons for proximity-based authentication. This allows automatic unlocking when you're near your authenticated devices.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Universal AI Tools may use the microphone for voice commands and audio-based AI interactions.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = "bluetooth-le location-services";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.universalaitools.companion.watchkitapp;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.companion;
-				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
+		79B86F398EEFE238611FBC71 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.companion.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/UniversalAICompanion.app/UniversalAICompanion";
+			};
+			name = Release;
+		};
 		7C6D1BEC6D913CDC4EA063D8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"UniversalAICompanion/Preview Content\"";
+				DEVELOPMENT_TEAM = 7WANJTSDA6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = UniversalAICompanion/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Universal AI Tools uses Bluetooth to detect proximity to your devices for secure authentication. This enables automatic lock/unlock when you move away from or return to your device.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Universal AI Tools uses Bluetooth to communicate with nearby devices for proximity-based authentication and security features.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Universal AI Tools may use the camera for advanced authentication features and visual AI interactions.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Universal AI Tools uses Face ID to provide secure biometric authentication for accessing your AI tools and services.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Universal AI Tools needs to access your local network to communicate with the AI tools server running on your local machine.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Universal AI Tools uses location services to monitor proximity to your devices for continuous authentication. This enables automatic lock/unlock based on your distance from authenticated devices.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Universal AI Tools uses location services to detect Bluetooth beacons for proximity-based authentication. This allows automatic unlocking when you're near your authenticated devices.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Universal AI Tools may use the microphone for voice commands and audio-based AI interactions.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = "bluetooth-le location-services";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.universalaitools.companion.watchkitapp;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.companion;
-				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -320,6 +612,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		08F91C97657BA4842008F1DB /* Build configuration list for PBXNativeTarget "UniversalAICompanionUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				39D9014E84AA950B6A6CD1B3 /* Debug */,
+				4710CC1D647C397B7074AC9D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		434D6D9F96F4090D367F993D /* Build configuration list for PBXNativeTarget "UniversalAICompanionTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0332E99334E9030A835011B1 /* Debug */,
+				79B86F398EEFE238611FBC71 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		585D8EAE5B9EB0DD09853213 /* Build configuration list for PBXNativeTarget "UniversalAICompanion" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

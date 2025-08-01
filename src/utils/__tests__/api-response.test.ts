@@ -2,13 +2,13 @@
  * API Response Utility Tests
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { 
-  sendSuccess, 
-  sendError, 
+  apiResponseMiddleware, 
+  createPaginationMeta, 
+  sendError,
   sendPaginatedSuccess,
-  apiResponseMiddleware,
-  createPaginationMeta
+  sendSuccess
 } from '../api-response';
 
 // Mock Express response

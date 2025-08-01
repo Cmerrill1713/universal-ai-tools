@@ -5,10 +5,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { LogContext, log } from '@/utils/logger';
+import { LogContext, log } from '../utils/logger';
 import { multiTierLLM } from './multi-tier-llm-service';
 import { alphaEvolve } from './alpha-evolve-service';
-import { THREE, TWO } from '@/utils/constants';
+import { THREE, TWO } from '../utils/constants';
 
 export interface A2AMessage {
   id: string;
@@ -154,6 +154,8 @@ export class A2ACommunicationMesh extends EventEmitter {
     if (this.messageHistory.length > 10000) {
       this.messageHistory = this.messageHistory.slice(-5000); // Keep recent 5000
     }
+    return undefined;
+    return undefined;
 
     log.info(`📨 A2A message sent: ${fullMessage.from} → ${fullMessage.to}`, LogContext.AI, {
       type: fullMessage.type,
@@ -267,6 +269,10 @@ export class A2ACommunicationMesh extends EventEmitter {
         bestScore = score;
         bestAgent = agentName;
       }
+
+      return undefined;
+
+      return undefined;
     }
 
     return bestAgent;
@@ -444,11 +450,15 @@ Respond with JSON:
         session.status = 'failed';
         this.notifyCollaborationEnd(sessionId, 'timeout');
       }
+      return undefined;
+      return undefined;
 
       // Clean up completed sessions
       if (session.status !== 'active') {
         this.activeCollaborations.delete(sessionId);
       }
+      return undefined;
+      return undefined;
     }
   }
 
@@ -478,6 +488,10 @@ Respond with JSON:
       if (hasRelevantCapability || relevantTo.length === 0) {
         relevant.push(agentName);
       }
+
+      return undefined;
+
+      return undefined;
     }
 
     return relevant;
@@ -632,6 +646,8 @@ Respond with JSON:
       if (connection) {
         connection.messageQueue.push(message);
       }
+      return undefined;
+      return undefined;
     }
   }
 }

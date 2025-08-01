@@ -4,8 +4,8 @@
  * Features battery-aware processing, network optimization, and context injection
  */
 
-import type { DSPyRequest} from './dspy-orchestrator/bridge';
-import { DSPyBridge, DSPyResponse } from './dspy-orchestrator/bridge';
+import type { DSPyRequest, DSPyResponse } from './dspy-orchestrator/bridge';
+import { dspyBridge as DSPyBridgeSingleton } from './dspy-orchestrator/bridge';
 import { contextInjectionService } from './context-injection-service';
 import { intelligentParameterService } from './intelligent-parameter-service';
 import { LogContext, log } from '../utils/logger';
@@ -69,7 +69,7 @@ export interface MobileOrchestrationResult {
 }
 
 export class MobileDSPyOrchestrator extends EventEmitter {
-  private dspyBridge: DSPyBridge;
+  private dspyBridge: typeof DSPyBridgeSingleton;
   private resultCache: Map<string, { result: any; expiry: number; deviceOptimized: boolean }> = new Map();
   private readonly cacheExpiryMs = 10 * 60 * 1000; // 10 minutes
   private metrics = {
@@ -134,9 +134,10 @@ export class MobileDSPyOrchestrator extends EventEmitter {
     },
   };
 
-  constructor(dspyBridge?: DSPyBridge) {
+  constructor() {
     super();
-    this.dspyBridge = dspyBridge || new DSPyBridge();
+    // Use the singleton instance
+    this.dspyBridge = DSPyBridgeSingleton;
   }
 
   /**

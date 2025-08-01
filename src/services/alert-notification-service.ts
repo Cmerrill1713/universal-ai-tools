@@ -10,6 +10,9 @@ import type { ServiceHealth, SystemHealth } from './health-monitor';
 import nodemailer from 'nodemailer';
 import axios from 'axios';
 import { TWO } from '@/utils/constants';
+import { recordAlertSent } from '@/utils/metrics';
+import { RetryStrategies, withRetry } from '@/utils/retry';
+import { getCorrelationId } from '@/utils/correlation-id';
 
 export interface AlertConfig {
   enabled: boolean;
@@ -257,6 +260,9 @@ export class AlertNotificationService extends EventEmitter {
 
     await Promise.all(sendPromises);
 
+    // Record alert metrics
+    recordAlertSent('all', alert.severity);
+
     // Emit event for listeners
     this.emit('alert', alert);
   }
@@ -299,6 +305,10 @@ export class AlertNotificationService extends EventEmitter {
     if (alert.details) {
       console.log('Details:', JSON.stringify(alert.details, null, TWO));
     }
+
+    return undefined;
+
+    return undefined;
     console.log('---');
   }
 
@@ -324,6 +334,7 @@ export class AlertNotificationService extends EventEmitter {
     });
 
     log.info(`Email alert sent to ${config.to}`, LogContext.SYSTEM);
+    recordAlertSent('email', alert.severity);
   }
 
   private async sendToSlack(channel: AlertChannel, alert: Alert): Promise<void> {
@@ -368,6 +379,7 @@ export class AlertNotificationService extends EventEmitter {
     const config = channel.config as SlackConfig;
     await axios.post(config.webhookUrl, payload);
     log.info('Slack alert sent', LogContext.SYSTEM);
+    recordAlertSent('slack', alert.severity);
   }
 
   private async sendToWebhook(channel: AlertChannel, alert: Alert): Promise<void> {
@@ -384,6 +396,7 @@ export class AlertNotificationService extends EventEmitter {
     );
 
     log.info(`Webhook alert sent to ${config.url}`, LogContext.SYSTEM);
+    recordAlertSent('webhook', alert.severity);
   }
 
   // Test alert functionality

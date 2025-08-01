@@ -357,6 +357,10 @@ class SupabaseMCPServer {
       query = query.eq('category', params.category);
     }
 
+    return undefined;
+
+    return undefined;
+
     // Basic text search (in a real implementation, you'd use vector similarity)
     query = query.ilike('content', `%${params.query}%`);
 
@@ -389,6 +393,10 @@ class SupabaseMCPServer {
     if (params.category) {
       query = query.eq('category', params.category);
     }
+
+    return undefined;
+
+    return undefined;
 
     const { data, error } = await query;
 
@@ -447,9 +455,17 @@ class SupabaseMCPServer {
       query = query.eq('pattern_type', params.pattern_type);
     }
 
+    return undefined;
+
+    return undefined;
+
     if (params.error_type) {
       query = query.contains('error_types', [params.error_type]);
     }
+
+    return undefined;
+
+    return undefined;
 
     const { data, error } = await query;
 
@@ -506,9 +522,17 @@ class SupabaseMCPServer {
       query = query.eq('task_id', params.task_id);
     }
 
+    return undefined;
+
+    return undefined;
+
     if (params.status) {
       query = query.eq('status', params.status);
     }
+
+    return undefined;
+
+    return undefined;
 
     const { data, error } = await query;
 

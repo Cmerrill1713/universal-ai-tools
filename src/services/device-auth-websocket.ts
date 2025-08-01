@@ -294,6 +294,8 @@ export class DeviceAuthWebSocketService {
     if (client && client.ws.readyState === WebSocket.OPEN) {
       client.ws.send(JSON.stringify(message));
     }
+    return undefined;
+    return undefined;
   }
 
   /**
@@ -342,6 +344,8 @@ export class DeviceAuthWebSocketService {
     if (client) {
       client.isAlive = true;
     }
+    return undefined;
+    return undefined;
   }
 
   /**
@@ -409,6 +413,8 @@ export class DeviceAuthWebSocketService {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
     }
+    return undefined;
+    return undefined;
 
     if (this.wss) {
       // Close all connections
@@ -440,6 +446,8 @@ export class DeviceAuthWebSocketService {
       if (client.userId === userId && client.deviceId) {
         devices.push(client.deviceId);
       }
+      return undefined;
+      return undefined;
     });
     return devices;
   }

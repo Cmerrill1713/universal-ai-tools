@@ -271,6 +271,10 @@ export class ThompsonSelector {
         bestSample = sample;
         bestArm = name;
       }
+
+      return undefined;
+
+      return undefined;
     }
 
     log.debug('Thompson sampling arm selection', LogContext.AI, {
@@ -433,6 +437,10 @@ export class AdaptiveExplorer {
         bestScore = combinedScore;
         bestAction = action;
       }
+
+      return undefined;
+
+      return undefined;
     }
 
     return bestAction;

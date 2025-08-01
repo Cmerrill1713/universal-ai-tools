@@ -491,7 +491,7 @@ describe('Error Handling Tests', () => {
           try {
             return await fn();
           } catch (error) {
-            if (attempt === maxRetries) throw error);
+            if (attempt === maxRetries) throw error;
             const delay = Math.pow(2, attempt) * 100; // Exponential backoff
             await new Promise(resolve => setTimeout(resolve, delay));
           }

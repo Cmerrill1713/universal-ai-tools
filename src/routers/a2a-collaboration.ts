@@ -5,6 +5,9 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response} from 'express';
+import { NextFunction } from 'express';
+
 import { AgentRegistry } from '@/agents/agent-registry';
 
 // Create singleton instance
@@ -18,7 +21,7 @@ const router = Router();
  * @route POST /api/v1/a2a/collaboration/request
  * @desc Request collaboration between multiple agents
  */
-router.post('/collaboration/request', async (req, res) => {
+router.post('/collaboration/request', async (req: Request, res: Response) => {
   try {
     const { task, requiredCapabilities, teamSize = 3, initiator = 'api' } = req.body;
 
@@ -71,7 +74,7 @@ router.post('/collaboration/request', async (req, res) => {
  * @route POST /api/v1/a2a/knowledge/share
  * @desc Share knowledge between agents
  */
-router.post('/knowledge/share', async (req, res) => {
+router.post('/knowledge/share', async (req: Request, res: Response) => {
   try {
     const { fromAgent, knowledgeType, data, relevantCapabilities, confidence = 0.8 } = req.body;
 
@@ -130,7 +133,7 @@ router.post('/knowledge/share', async (req, res) => {
  * @route GET /api/v1/a2a/agents/optimal
  * @desc Find optimal agent for specific capabilities
  */
-router.get('/agents/optimal', async (req, res) => {
+router.get('/agents/optimal', async (req: Request, res: Response) => {
   try {
     const { capabilities } = req.query;
 
@@ -192,7 +195,7 @@ router.get('/agents/optimal', async (req, res) => {
  * @route GET /api/v1/a2a/agents/team
  * @desc Find optimal team of agents for collaboration
  */
-router.get('/agents/team', async (req, res) => {
+router.get('/agents/team', async (req: Request, res: Response) => {
   try {
     const {
       capabilities,       size = 3,
@@ -250,7 +253,7 @@ router.get('/agents/team', async (req, res) => {
  * @route GET /api/v1/a2a/mesh/status
  * @desc Get current mesh status and statistics
  */
-router.get('/mesh/status', async (req, res) => {
+router.get('/mesh/status', async (req: Request, res: Response) => {
   try {
     const       meshStatus = agentRegistry.getMeshStatus();
     const agentConnections = a2aMesh.getAgentConnections();
@@ -307,7 +310,7 @@ router.get('/mesh/status', async (req, res) => {
  * @route POST /api/v1/a2a/message/send
  * @desc Send direct message between agents
  */
-router.post('/message/send', async (req, res) => {
+router.post('/message/send', async (req: Request, res: Response) => {
   try {
     const {
       from,
@@ -360,7 +363,7 @@ router.post('/message/send', async (req, res) => {
  * @route POST /api/v1/a2a/demo/collaborative-task
  * @desc Demonstrate collaborative agent execution
  */
-router.post('/demo/collaborative-task', async (req, res) => {
+router.post('/demo/collaborative-task', async (req: Request, res: Response) => {
   try {
     const { task = 'Plan and execute a complex software development project' } = req.body;
 
@@ -392,6 +395,8 @@ router.post('/demo/collaborative-task', async (req, res) => {
       if (!agent) {
         continue; // Skip undefined agents
       }
+      return undefined;
+      return undefined;
       await agentRegistry.shareKnowledge(
         agent,
         'project_context',

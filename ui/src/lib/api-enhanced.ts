@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9999';
 const API_KEY = import.meta.env.VITE_API_KEY || 'test-api-key-123';
 
@@ -52,6 +54,11 @@ class EnhancedAPI {
   private generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
+
+  private isValidUUID(str: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  }
   
   private async request<T>(
     endpoint: string, 
@@ -86,17 +93,31 @@ class EnhancedAPI {
   }
   
   // Chat endpoints
+  async chat(
+    message: string, 
+    conversationId?: string
+  ): Promise<ChatResponse> {
+    return this.sendMessage(message, conversationId);
+  }
+
   async sendMessage(
     message: string, 
     conversationId?: string
   ): Promise<ChatResponse> {
+    // Prepare the request body
+    const requestBody: any = {
+      message
+    };
+
+    // Only include conversationId if it's a valid UUID
+    const targetConversationId = conversationId || this.conversationId;
+    if (targetConversationId && this.isValidUUID(targetConversationId)) {
+      requestBody.conversationId = targetConversationId;
+    }
+
     const response = await this.request<any>('/api/v1/chat', {
       method: 'POST',
-      body: JSON.stringify({
-        message,
-        conversationId: conversationId || this.conversationId,
-        sessionId: this.sessionId
-      })
+      body: JSON.stringify(requestBody)
     });
 
     // Handle the actual API response structure
@@ -395,7 +416,7 @@ class EnhancedAPI {
   
   // Utility methods
   startNewConversation() {
-    this.conversationId = this.generateId();
+    this.conversationId = uuidv4();
     localStorage.setItem('conversationId', this.conversationId);
     return this.conversationId;
   }

@@ -428,6 +428,10 @@ export {};
           tsconfig.compilerOptions.types = [];
         }
 
+        return undefined;
+
+        return undefined;
+
         // Add node types if not present
         if (!tsconfig.compilerOptions.types.includes('node')) {
           tsconfig.compilerOptions.types.push('node');

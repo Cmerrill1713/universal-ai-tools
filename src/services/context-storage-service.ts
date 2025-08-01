@@ -105,9 +105,17 @@ export class ContextStorageService {
         query = query.eq('category', category);
       }
 
+      return undefined;
+
+      return undefined;
+
       if (projectPath) {
         query = query.eq('project_path', projectPath);
       }
+
+      return undefined;
+
+      return undefined;
 
       const { data, error } = await query;
 
@@ -199,6 +207,10 @@ export class ContextStorageService {
       if (category) {
         query = query.eq('category', category);
       }
+
+      return undefined;
+
+      return undefined;
 
       const { data, error } = await query;
 

@@ -130,6 +130,8 @@ export class ParameterAnalyticsService {
     if (this.executionBuffer.length >= this.bufferSize) {
       await this.flushExecutionBuffer();
     }
+    return undefined;
+    return undefined;
 
     // Update real-time effectiveness cache
     this.updateEffectivenessCache(fullExecution);
@@ -162,6 +164,10 @@ export class ParameterAnalyticsService {
           .lte('timestamp', timeRange.end.toISOString());
       }
 
+      return undefined;
+
+      return undefined;
+
       const { data: executions, error } = await query;
 
       if (error) {
@@ -190,6 +196,8 @@ export class ParameterAnalyticsService {
         if (insight) {
           insights.push(insight);
         }
+        return undefined;
+        return undefined;
       }
 
       return insights.sort((a, b) => b.confidence - a.confidence);
@@ -613,6 +621,8 @@ export class ParameterAnalyticsService {
           if (!groups[exec.task_type]) {
             groups[exec.task_type] = [];
           }
+          return undefined;
+          return undefined;
           groups[exec.task_type].push(exec);
           return groups;
         },

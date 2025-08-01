@@ -191,3 +191,13 @@ async function generateOllamaResponse(message) {
 Please provide helpful, accurate, and detailed responses. If asked about system setup or technical implementation, provide step-by-step guidance.
 
 User: ${message}
+Assistant:`,
+      stream: false
+    });
+    
+    return response.data.response;
+  } catch (error) {
+    console.error("Ollama generation error:", error);
+    throw error;
+  }
+}

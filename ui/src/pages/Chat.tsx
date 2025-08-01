@@ -173,10 +173,21 @@ export default function Chat() {
             // Normal chat with MCP context
             const response = await api.chat(`[Using MCP Agent: ${selectedMCPAgent}] ${userMessage.content}`)
             
+            // Extract message content from different possible response formats
+            let messageContent = 'Sorry, I could not process your request.';
+            
+            if (response.data?.message?.content) {
+              messageContent = response.data.message.content;
+            } else if (response.response) {
+              messageContent = response.response;
+            } else if (response.message) {
+              messageContent = response.message;
+            }
+            
             const assistantMessage: Message = {
               id: (Date.now() + 1).toString(),
               role: 'assistant',
-              content: response.message || 'Sorry, I could not process your request.',
+              content: messageContent,
               timestamp: new Date()
             }
             
@@ -186,18 +197,33 @@ export default function Chat() {
           // Normal chat response
           const response = await api.chat(userMessage.content)
           
+          // Extract message content from different possible response formats
+          let messageContent = 'Sorry, I could not process your request.';
+          
+          if (response.data?.message?.content) {
+            // Chat router format: {success: true, data: {message: {content: "..."}}}
+            messageContent = response.data.message.content;
+          } else if (response.response) {
+            // Assistant router format: {response: "...", confidence: 0.7}
+            messageContent = response.response;
+          } else if (response.message) {
+            // Legacy format: {message: "..."}
+            messageContent = response.message;
+          }
+          
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: response.message || 'Sorry, I could not process your request.',
+            content: messageContent,
             timestamp: new Date()
           }
           
           setMessages(prev => [...prev, assistantMessage])
           
           // Update conversation ID if new
-          if (response.conversationId && response.conversationId !== conversationId) {
-            setConversationId(response.conversationId)
+          const newConversationId = response.conversationId || response.data?.conversationId;
+          if (newConversationId && newConversationId !== conversationId) {
+            setConversationId(newConversationId)
           }
         }
       }
@@ -259,10 +285,22 @@ export default function Chat() {
       
       try {
         const response = await api.chat(message)
+        
+        // Extract message content from different possible response formats
+        let messageContent = 'I received your files. I can help analyze or process them.';
+        
+        if (response.data?.message?.content) {
+          messageContent = response.data.message.content;
+        } else if (response.response) {
+          messageContent = response.response;
+        } else if (response.message) {
+          messageContent = response.message;
+        }
+        
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: response.message || 'I received your files. I can help analyze or process them.',
+          content: messageContent,
           timestamp: new Date()
         }
         setMessages(prev => [...prev, assistantMessage])
@@ -296,10 +334,22 @@ export default function Chat() {
       
       try {
         const response = await api.chat(message)
+        
+        // Extract message content from different possible response formats
+        let messageContent = 'I received your files. I can help analyze or process them.';
+        
+        if (response.data?.message?.content) {
+          messageContent = response.data.message.content;
+        } else if (response.response) {
+          messageContent = response.response;
+        } else if (response.message) {
+          messageContent = response.message;
+        }
+        
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: response.message || 'I received your files. I can help analyze or process them.',
+          content: messageContent,
           timestamp: new Date()
         }
         setMessages(prev => [...prev, assistantMessage])

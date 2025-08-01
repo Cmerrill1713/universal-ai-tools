@@ -38,7 +38,7 @@ struct OptimizedListView<Item: Identifiable, Content: View>: UIViewControllerRep
 
 // MARK: - Optimized List View Controller
 
-class OptimizedListViewController<Item: Identifiable, Content: View>: UIViewController {
+class OptimizedListViewController<Item: Identifiable, Content: View>: UIViewController, UITableViewDataSource, UITableViewDelegate, UITableViewDataSourcePrefetching {
     var items: [Item] = []
     var content: ((Item) -> Content)?
     var onRefresh: (() async -> Void)?
@@ -105,11 +105,9 @@ class OptimizedListViewController<Item: Identifiable, Content: View>: UIViewCont
             }
         }
     }
-}
-
-// MARK: - UITableViewDataSource
-
-extension OptimizedListViewController: UITableViewDataSource {
+    
+    // MARK: - UITableViewDataSource
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return items.count
     }
@@ -124,19 +122,15 @@ extension OptimizedListViewController: UITableViewDataSource {
         
         return cell
     }
-}
-
-// MARK: - UITableViewDelegate
-
-extension OptimizedListViewController: UITableViewDelegate {
+    
+    // MARK: - UITableViewDelegate
+    
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         loadMoreIfNeeded(for: indexPath)
     }
-}
-
-// MARK: - UITableViewDataSourcePrefetching
-
-extension OptimizedListViewController: UITableViewDataSourcePrefetching {
+    
+    // MARK: - UITableViewDataSourcePrefetching
+    
     func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
         // Prefetch logic for images or data
         // This helps with smooth scrolling

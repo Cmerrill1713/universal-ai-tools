@@ -86,13 +86,24 @@ export default function ChatEnhanced() {
     setError(null);
 
     try {
-      // Send message to backend chat API
-      const response = await api.sendMessage(userMessage.content);
+      // Send message to backend chat API  
+      const response = await api.chat(userMessage.content);
+      
+      // Extract message content from different possible response formats
+      let messageContent = 'I received your message and processed it successfully!';
+      
+      if (response.data?.message?.content) {
+        messageContent = response.data.message.content;
+      } else if (response.response) {
+        messageContent = response.response;
+      } else if (response.message) {
+        messageContent = response.message;
+      }
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.message || 'I received your message and processed it successfully!',
+        content: messageContent,
         timestamp: new Date(),
         code: response.code,
         codeLanguage: response.codeLanguage,

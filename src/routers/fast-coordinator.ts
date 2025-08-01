@@ -5,6 +5,9 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response} from 'express';
+import { NextFunction } from 'express';
+
 import { LogContext, log } from '../utils/logger';
 import { fastCoordinator } from '../services/fast-llm-coordinator';
 import { dspyFastOptimizer } from '../services/dspy-fast-optimizer';
@@ -16,7 +19,7 @@ const   router = Router();
  * Fast routing decision endpoint
  * Uses LFM2-1.2B for lightning-fast service selection
  */
-router.post('/routing-decision', async (req, res): Promise<any> => {
+router.post('/routing-decision', async (req: Request, res: Response): Promise<any> => {
   try {
     const { userRequest, context = {} } = req.body;
 
@@ -71,7 +74,7 @@ router.post('/routing-decision', async (req, res): Promise<any> => {
  * Execute with coordination
  * Uses multi-tier architecture for optimal performance
  */
-router.post('/execute', async (req, res): Promise<any> => {
+router.post('/execute', async (req: Request, res: Response): Promise<any> => {
   try {
     const { userRequest, context = {} } = req.body;
 
@@ -124,7 +127,7 @@ router.post('/execute', async (req, res): Promise<any> => {
  * Multi-agent coordination
  * Coordinates multiple agents with fast routing
  */
-router.post('/coordinate-agents', async (req, res): Promise<any> => {
+router.post('/coordinate-agents', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       primaryTask,       supportingTasks = [],
@@ -179,7 +182,7 @@ router.post('/coordinate-agents', async (req, res): Promise<any> => {
  * LFM2 direct access
  * Direct communication with LFM2-1.2B model
  */
-router.post('/lfm2/quick', async (req, res): Promise<any> => {
+router.post('/lfm2/quick', async (req: Request, res: Response): Promise<any> => {
   try {
     const { userRequest, taskType = 'simple_qa' } = req.body;
 
@@ -225,7 +228,7 @@ router.post('/lfm2/quick', async (req, res): Promise<any> => {
  * DSPy optimization
  * Optimize performance using DSPy
  */
-router.post('/optimize', async (req, res): Promise<any> => {
+router.post('/optimize', async (req: Request, res: Response): Promise<any> => {
   try {
     const {
       taskType,       examples = [],
@@ -270,7 +273,7 @@ router.post('/optimize', async (req, res): Promise<any> => {
  * Benchmark services
  * Compare performance across different LLM services
  */
-router.post('/benchmark', async (req, res): Promise<any> => {
+router.post('/benchmark', async (req: Request, res: Response): Promise<any> => {
   try {
     const { testRequests = [] } = req.body;
 
@@ -312,7 +315,7 @@ router.post('/benchmark', async (req, res): Promise<any> => {
  * System status
  * Get status of all fast coordination components
  */
-router.get('/status', async (req, res): Promise<any> => {
+router.get('/status', async (req: Request, res: Response): Promise<any> => {
   try {
     const       coordinatorStatus = fastCoordinator.getSystemStatus();
     const lfm2Metrics = lfm2Bridge.getMetrics();
@@ -349,7 +352,7 @@ router.get('/status', async (req, res): Promise<any> => {
  * Auto-tune system
  * Automatically optimize system performance
  */
-router.post('/auto-tune', async (req, res): Promise<any> => {
+router.post('/auto-tune', async (req: Request, res: Response): Promise<any> => {
   try {
     log.info('🎛️ Starting auto-tune process', LogContext.AI);
 

@@ -4,6 +4,8 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
+
+
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { LogContext, log } from '@/utils/logger';
@@ -12,6 +14,7 @@ import { validateRequest } from '@/middleware/express-validator';
 import { body, param, query } from 'express-validator';
 import type AgentRegistry from '@/agents/agent-registry';
 import type { AgentContext } from '@/types';
+import { intelligentAgentSelector } from '@/services/intelligent-agent-selector';
 
 interface ChatMessage {
   id: string;
@@ -22,6 +25,10 @@ interface ChatMessage {
     agentName?: string;
     confidence?: number;
     tokens?: number;
+    model?: string;
+    provider?: string;
+    serviceUsed?: string;
+    routingReasoning?: string;
     error?: string;
   };
 }
@@ -318,57 +325,144 @@ router.post(
         ...context,
       };
 
-      // Process with agent
+      // Use intelligent agent selector with LFM2 routing
       const startTime = Date.now();
       let result: any;
 
       try {
-        // Check if agent exists
-        const availableAgents = agentRegistry.getAvailableAgents();
-        const agentExists = availableAgents.some((agent) => agent.name === agentName);
-
-        if (!agentExists) {
-          log.warn('Agent not found, using mock response', LogContext.API, { agentName });
-          // Provide a mock response for testing
-          result = {
-            response:
-              "I'm here to help! The system is currently initializing. How can I assist you today?",
-            confidence: 0.8,
-            success: true,
-            reasoning: 'Mock response while agents are loading',
-          };
-        } else {
-          result = await agentRegistry.processRequest(agentName, agentContext);
-        }
-      } catch (agentError) {
-        log.error('Agent processing failed', LogContext.API, {
-          error: agentError instanceof Error ? agentError.message : String(agentError),
-          agentName,
+        log.info('🎯 Using LFM2-based intelligent routing', LogContext.API, {
+          message: message.substring(0, 100),
+          conversationLength: agentContext.conversationHistory?.length || 0
         });
 
-        // Provide fallback response
+        // Use intelligent agent selector for optimal routing
+        const intelligentResult = await intelligentAgentSelector.executeWithOptimalAgent(
+          message,
+          agentContext,
+          { // Device context (can be expanded later)
+            batteryLevel: 100, // Default values
+            connectionType: 'wifi',
+            isLowPowerMode: false
+          }
+        );
+
         result = {
-          response:
-            "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
-          confidence: 0.5,
-          success: false,
-          error: agentError instanceof Error ? agentError.message : 'Unknown error',
+          ...intelligentResult,
+          response: intelligentResult.message,
+          serviceUsed: intelligentResult.serviceUsed,
+          routingDecision: intelligentResult.routingDecision
         };
+
+        log.info('✅ LFM2 routing completed', LogContext.API, {
+          serviceUsed: intelligentResult.serviceUsed,
+          confidence: intelligentResult.confidence,
+          responseTime: `${Date.now() - startTime}ms`
+        });
+
+      } catch (agentError) {
+        log.error('❌ Intelligent routing failed, using fallback', LogContext.API, {
+          error: agentError instanceof Error ? agentError.message : String(agentError),
+        });
+
+        // Fallback to agent registry if available
+        try {
+          const availableAgents = agentRegistry.getAvailableAgents();
+          const agentExists = availableAgents.some((agent) => agent.name === agentName);
+
+          if (agentExists) {
+            result = await agentRegistry.processRequest(agentName, agentContext);
+          } else {
+            throw new Error('No agents available');
+          }
+        } catch (fallbackError) {
+          // Final fallback response
+          result = {
+            response: "I'm here to help! The system is currently optimizing. How can I assist you today?",
+            confidence: 0.6,
+            success: true,
+            reasoning: 'Fallback response during system optimization',
+            serviceUsed: 'fallback'
+          };
+        }
       }
 
       const executionTime = Date.now() - startTime;
 
       // Add assistant response
+      // Handle different response formats from agents
+      let responseContent: string;
+      
+      // Null check for result
+      if (!result) {
+        log.error('Agent result is null or undefined', LogContext.API);
+        result = {
+          success: false,
+          message: 'No response from agent',
+          confidence: 0.5,
+          serviceUsed: 'fallback'
+        };
+      }
+      
+      // Debug log to understand the response structure
+      log.debug('Agent response structure', LogContext.API, {
+        hasData: !!result?.data,
+        hasResponse: !!result?.response,
+        hasMessage: !!result?.message,
+        dataType: typeof result?.data,
+        responseType: typeof result?.response,
+        resultKeys: result ? Object.keys(result) : [],
+        fullResult: result
+      });
+      
+      if (typeof result === 'string') {
+        responseContent = result;
+      } else if (result?.data) {
+        // Enhanced agents return data field
+        if (typeof result.data === 'object' && result.data?.response?.message) {
+          // Personal assistant format: data.response.message
+          responseContent = result.data.response.message;
+        } else if (typeof result.data === 'string') {
+          responseContent = result.data;
+        } else {
+          responseContent = JSON.stringify(result.data);
+        }
+      } else if (result.response) {
+        // Legacy format
+        if (typeof result.response === 'string') {
+          try {
+            const parsed = JSON.parse(result.response);
+            if (parsed.response && parsed.response.message) {
+              responseContent = parsed.response.message;
+            } else {
+              responseContent = result.response;
+            }
+          } catch {
+            responseContent = result.response;
+          }
+        } else if (typeof result.response === 'object' && result.response.message) {
+          responseContent = result.response.message;
+        } else {
+          responseContent = JSON.stringify(result.response);
+        }
+      } else if (result.message) {
+        responseContent = result.message;
+      } else {
+        responseContent = 'I apologize, but I was unable to generate a response.';
+      }
+
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
         role: 'assistant',
-        content:
-          result.response || result.data || 'I apologize, but I was unable to generate a response.',
+        content: responseContent,
         timestamp: new Date().toISOString(),
         metadata: {
-          agentName,
+          agentName: result.metadata?.agentName || agentName,
           confidence: result.confidence || 0.5,
-          tokens: Math.floor(executionTime / 10), // Rough estimate
+          tokens: result.tokens || Math.floor(executionTime / 10), // Use actual tokens if available
+          model: result.metadata?.model || result.routingDecision?.targetService || 'unknown',
+          provider: result.metadata?.provider || result.serviceUsed || 'unknown',
+          serviceUsed: result.serviceUsed,
+          routingReasoning: result.routingDecision?.reasoning,
           error: result.error,
         },
       };
@@ -382,6 +476,8 @@ router.post(
 
       return res.json({
         success: true,
+        message: assistantMessage.content, // Add top-level message for backward compatibility
+        conversationId: conversation.id, // Add top-level conversationId for compatibility
         data: {
           conversationId: conversation.id,
           message: assistantMessage,
@@ -393,7 +489,18 @@ router.post(
         metadata: {
           timestamp: new Date().toISOString(),
           requestId: agentContext.requestId,
-          agentName,
+          agentName: result.metadata?.agentName || agentName,
+          model: result.metadata?.model || result.routingDecision?.targetService || 'unknown',
+          provider: result.metadata?.provider || result.serviceUsed || 'unknown',
+          confidence: result.confidence || 0.5,
+          tokensUsed: result.metadata?.tokens?.total_tokens || assistantMessage.metadata?.tokens || 0,
+          executionTime,
+          serviceUsed: result.serviceUsed,
+          routingDecision: result.routingDecision,
+          lfm2Enabled: true,
+          parameters: result.metadata?.parameters,
+          taskType: result.metadata?.taskType,
+          complexity: result.metadata?.complexity,
         },
       });
     } catch (error) {

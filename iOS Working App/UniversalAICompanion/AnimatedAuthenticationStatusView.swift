@@ -86,8 +86,7 @@ struct AnimatedAuthenticationStatusView: View {
             // Status Text with Typewriter Effect
             VStack(spacing: 8) {
                 TypewriterText(text: statusTitle, speed: 0.05)
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(statusColor)
                 
                 Text(statusDescription)

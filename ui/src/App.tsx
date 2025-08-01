@@ -2,7 +2,7 @@ import React from 'react'
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import { Provider, defaultTheme } from '@adobe/react-spectrum'
 import Navigation from './components/Navigation/Navigation'
-import Dashboard from './pages/Dashboard'
+import DashboardModern from './pages/DashboardModern'
 import ChatEnhanced from './pages/ChatEnhanced'
 import ChatModern from './pages/ChatModern'
 import VisionStudio from './pages/VisionStudio'
@@ -16,6 +16,7 @@ import AgentPerformanceDemo from './pages/AgentPerformanceDemo'
 import AgentActivityMonitorDemo from './pages/AgentActivityMonitorDemo'
 import TaskExecutionDemo from './pages/TaskExecutionDemo'
 import ApiKeysManager from './pages/ApiKeysManager'
+import Athena from './pages/Athena'
 
 // Layout component with navigation - Dashboard has its own header
 function DashboardLayout() {
@@ -40,13 +41,14 @@ const router = createBrowserRouter([
     path: '/',
     element: <DashboardLayout />,
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <DashboardModern /> },
     ],
   },
   {
     path: '/',
     element: <AppLayout />,
     children: [
+      { path: 'athena', element: <Athena /> },
       { path: 'chat', element: <ChatModern /> },
       { path: 'chat-classic', element: <ChatEnhanced /> },
       { path: 'vision', element: <VisionStudio /> },

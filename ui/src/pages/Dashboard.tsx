@@ -307,10 +307,22 @@ const Dashboard: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.sendMessage(userMessage.content);
+      const response = await api.chat(userMessage.content);
+      
+      // Extract message content from different possible response formats
+      let messageContent = 'Message processed successfully.';
+      
+      if (response.data?.message?.content) {
+        messageContent = response.data.message.content;
+      } else if (response.response) {
+        messageContent = response.response;
+      } else if (response.message) {
+        messageContent = response.message;
+      }
+      
       setChatMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: response.message || 'Message processed successfully.',
+        content: messageContent,
         metadata: response.metadata
       }]);
     } catch (error) {

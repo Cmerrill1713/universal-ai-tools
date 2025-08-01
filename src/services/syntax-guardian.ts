@@ -42,6 +42,8 @@ class SyntaxGuardian {
       if (this.isRunning) {
         await this.checkSyntax();
       }
+      return undefined;
+      return undefined;
     }, this.checkInterval);
   }
 

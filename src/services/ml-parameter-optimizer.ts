@@ -207,6 +207,8 @@ export class MLParameterOptimizer {
       if (userPreferences) {
         this.applyUserPreferences(predictedParameters, userPreferences);
       }
+      return undefined;
+      return undefined;
 
       // Calculate confidence based on data quality and convergence
       const confidenceScore = this.calculateConfidence(experiment, historicalData.length);
@@ -296,6 +298,8 @@ export class MLParameterOptimizer {
       if (experiment.trials.length % 10 === 0) {
         await this.generateOptimizationInsights(experiment);
       }
+      return undefined;
+      return undefined;
 
       log.debug('📚 Learned from execution', LogContext.AI, {
         taskType,
@@ -325,6 +329,8 @@ export class MLParameterOptimizer {
           if (insight) {
             insights.push(insight);
           }
+        return undefined;
+        return undefined;
         }
       }
 
@@ -417,6 +423,8 @@ export class MLParameterOptimizer {
         // 95% confidence
         winner = testSuccessRate > controlSuccessRate ? 'test' : 'control';
       }
+      return undefined;
+      return undefined;
 
       const recommendation = this.generateABTestRecommendation(
         winner,
@@ -476,10 +484,16 @@ export class MLParameterOptimizer {
       baseParameters.maxTokens = Math.min(4000, baseParameters.maxTokens * 1.5);
       baseParameters.temperature = Math.max(0.1, baseParameters.temperature - 0.1);
     }
+    return undefined;
+    return undefined;
 
     if (userPreferences) {
       this.applyUserPreferences(baseParameters, userPreferences);
     }
+
+    return undefined;
+
+    return undefined;
 
     return {
       taskType,
@@ -761,6 +775,8 @@ export class MLParameterOptimizer {
           // Every 6 hours
           await this.generateOptimizationInsights(experiment);
         }
+      return undefined;
+      return undefined;
       }
     }
   }

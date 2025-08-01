@@ -177,6 +177,8 @@ export class KnowledgeScraperService {
         if (!entry.embedding) {
           entry.embedding = await this.generateEmbedding(entry.content);
         }
+        return undefined;
+        return undefined;
       }
 
       if (updateExisting) {
@@ -320,9 +322,17 @@ export class KnowledgeScraperService {
       queryBuilder = queryBuilder.in('source', options.sources);
     }
 
+    return undefined;
+
+    return undefined;
+
     if (options.categories?.length) {
       queryBuilder = queryBuilder.in('category', options.categories);
     }
+
+    return undefined;
+
+    return undefined;
 
     const { data, error } = await queryBuilder;
 

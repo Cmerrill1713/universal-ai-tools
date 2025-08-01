@@ -26,6 +26,9 @@ export interface TaskContext {
   complexity?: 'simple' | 'medium' | 'complex';
   domain?: string;
   expectedOutputLength?: 'short' | 'medium' | 'long';
+  // Enhanced iOS-specific context
+  deviceContext?: iOSDeviceContext;
+  biometricContext?: BiometricContext;
 }
 
 export interface UserPreferences {
@@ -33,6 +36,27 @@ export interface UserPreferences {
   preferredLength?: 'concise' | 'detailed' | 'comprehensive';
   writingStyle?: 'formal' | 'casual' | 'technical';
   creativity?: 'conservative' | 'balanced' | 'creative';
+}
+
+// iOS-specific interfaces for mobile optimization
+export interface iOSDeviceContext {
+  deviceType: 'iPhone' | 'iPad' | 'AppleWatch' | 'Mac';
+  connectionType: 'wifi' | 'cellular' | 'offline';
+  batteryLevel: number;
+  isLowPowerMode: boolean;
+  availableMemory: number; // MB
+  processingCapability: 'low' | 'medium' | 'high';
+  coreMLAvailable: boolean;
+  neuralEngineAvailable: boolean;
+  screenSize: 'small' | 'medium' | 'large';
+}
+
+export interface BiometricContext {
+  authenticationState: 'authenticated' | 'unauthenticated' | 'locked' | 'authenticating';
+  confidenceLevel: number; // 0.0 to 1.0
+  timeSinceLastAuth: number; // minutes
+  securityLevel: 'high' | 'medium' | 'low';
+  biometricCapabilities: string[];
 }
 
 export enum TaskType {
@@ -80,6 +104,16 @@ export enum TaskType {
   // Fine-tuning
   MODEL_TRAINING = 'model_training',
   DATASET_PREPARATION = 'dataset_preparation',
+
+  // iOS-specific tasks
+  IOS_DEVELOPMENT = 'ios_development',
+  SWIFT_CODING = 'swift_coding',
+  SWIFTUI_DESIGN = 'swiftui_design',
+  APPLE_ECOSYSTEM = 'apple_ecosystem',
+  DEVICE_OPTIMIZATION = 'device_optimization',
+  BIOMETRIC_GUIDANCE = 'biometric_guidance',
+  POWER_OPTIMIZATION = 'power_optimization',
+  MOBILE_UX = 'mobile_ux',
 }
 
 export class IntelligentParameterService {
@@ -310,6 +344,86 @@ export class IntelligentParameterService {
       presencePenalty: 0.0,
       frequencyPenalty: 0.0,
     });
+
+    // iOS-specific tasks
+    this.taskProfiles.set(TaskType.IOS_DEVELOPMENT, {
+      contextLength: 8192,
+      temperature: 0.2,
+      topP: 0.9,
+      maxTokens: 1536,
+      systemPrompt:
+        'You are an expert iOS developer with deep knowledge of Swift, SwiftUI, UIKit, and Apple ecosystem integration. Provide production-ready solutions following Apple Human Interface Guidelines.',
+      userPromptTemplate:
+        'iOS Development Request: {request}\n\nDevice Context: {deviceType} - {processingCapability} capability\nAuthentication: {authState} (confidence: {confidenceLevel})\nPower Mode: {powerMode}\n\nProvide optimized iOS solution with:\n- Swift/SwiftUI code\n- Performance considerations\n- Apple ecosystem integration\n- Security best practices\n\nSolution:',
+      presencePenalty: 0.1,
+      frequencyPenalty: 0.1,
+    });
+
+    this.taskProfiles.set(TaskType.SWIFT_CODING, {
+      contextLength: 6144,
+      temperature: 0.15,
+      topP: 0.85,
+      maxTokens: 1024,
+      systemPrompt:
+        'You are a Swift expert who writes clean, efficient, and modern Swift code following Apple conventions.',
+      userPromptTemplate:
+        'Swift Coding Task: {request}\n\nTarget: {deviceType}\nSwift Version: Latest\nFrameworks: {frameworks}\n\nWrite Swift code that:\n- Follows Swift best practices\n- Uses modern language features\n- Handles errors appropriately\n- Is performant on mobile devices\n\nCode:',
+      stopSequences: ['```\n\n', '---'],
+      presencePenalty: 0.05,
+      frequencyPenalty: 0.05,
+    });
+
+    this.taskProfiles.set(TaskType.SWIFTUI_DESIGN, {
+      contextLength: 8192,
+      temperature: 0.3,
+      topP: 0.9,
+      maxTokens: 1536,
+      systemPrompt:
+        'You are a SwiftUI expert specializing in modern iOS UI design, animations, and user experience. Create beautiful, accessible interfaces following Apple HIG.',
+      userPromptTemplate:
+        'SwiftUI Design Request: {request}\n\nDevice: {deviceType} ({screenSize} screen)\nUser Context: {authState}\nPower Constraints: {isLowPowerMode}\n\nCreate SwiftUI interface with:\n- Adaptive design for device\n- Smooth animations\n- Accessibility support\n- Power-efficient rendering\n- Apple HIG compliance\n\nSwiftUI Code:',
+      presencePenalty: 0.2,
+      frequencyPenalty: 0.1,
+    });
+
+    this.taskProfiles.set(TaskType.DEVICE_OPTIMIZATION, {
+      contextLength: 4096,
+      temperature: 0.1,
+      topP: 0.8,
+      maxTokens: 1024,
+      systemPrompt:
+        'You are a mobile performance expert specializing in iOS optimization, memory management, and power efficiency.',
+      userPromptTemplate:
+        'Optimization Request: {request}\n\nDevice Specs:\n- Type: {deviceType}\n- Memory: {availableMemory}MB\n- Battery: {batteryLevel}%\n- Power Mode: {powerMode}\n- Processing: {processingCapability}\n\nProvide optimization strategy focusing on:\n- Memory efficiency\n- Battery life\n- Performance\n- User experience\n\nOptimization Plan:',
+      presencePenalty: 0.0,
+      frequencyPenalty: 0.0,
+    });
+
+    this.taskProfiles.set(TaskType.BIOMETRIC_GUIDANCE, {
+      contextLength: 6144,
+      temperature: 0.2,
+      topP: 0.9,
+      maxTokens: 1024,
+      systemPrompt:
+        'You are a security expert specializing in iOS biometric authentication, privacy, and secure user experience design.',
+      userPromptTemplate:
+        'Biometric Security Request: {request}\n\nAuthentication Context:\n- State: {authState}\n- Confidence: {confidenceLevel}\n- Time Since Auth: {timeSinceAuth} minutes\n- Security Level: {securityLevel}\n- Available: {biometricCapabilities}\n\nProvide secure implementation with:\n- Privacy-first approach\n- Appropriate security measures\n- User-friendly experience\n- Fallback mechanisms\n\nSecurity Implementation:',
+      presencePenalty: 0.1,
+      frequencyPenalty: 0.1,
+    });
+
+    this.taskProfiles.set(TaskType.MOBILE_UX, {
+      contextLength: 6144,
+      temperature: 0.4,
+      topP: 0.9,
+      maxTokens: 1536,
+      systemPrompt:
+        'You are a mobile UX expert specializing in iOS user experience, accessibility, and context-aware design.',
+      userPromptTemplate:
+        'Mobile UX Request: {request}\n\nUser Context:\n- Device: {deviceType} ({screenSize})\n- Connection: {connectionType}\n- Authentication: {authState}\n- Usage Pattern: {usageContext}\n\nDesign mobile experience considering:\n- Touch interactions\n- One-handed usage\n- Accessibility\n- Context awareness\n- Apple HIG principles\n\nUX Design:',
+      presencePenalty: 0.3,
+      frequencyPenalty: 0.2,
+    });
   }
 
   private initializeContextTemplates(): void {
@@ -396,6 +510,16 @@ export class IntelligentParameterService {
     // Apply output length adjustments
     if (context.expectedOutputLength) {
       params = this.adjustForOutputLength(params, context.expectedOutputLength);
+    }
+
+    // Apply iOS-specific optimizations
+    if (context.deviceContext) {
+      params = this.adjustForIOSDevice(params, context.deviceContext);
+    }
+
+    // Apply biometric context adjustments
+    if (context.biometricContext) {
+      params = this.adjustForBiometricContext(params, context.biometricContext);
     }
 
     // Apply dynamic template
@@ -501,6 +625,142 @@ export class IntelligentParameterService {
     };
   }
 
+  /**
+   * Adjust parameters based on iOS device capabilities and constraints
+   */
+  private adjustForIOSDevice(params: TaskParameters, deviceContext: iOSDeviceContext): TaskParameters {
+    const adjusted = { ...params };
+
+    // Device-specific optimizations
+    switch (deviceContext.deviceType) {
+      case 'AppleWatch':
+        // Ultra-compact responses for watch
+        adjusted.maxTokens = Math.min(adjusted.maxTokens, 200);
+        adjusted.contextLength = Math.min(adjusted.contextLength, 1024);
+        adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.1); // More deterministic
+        break;
+      case 'iPhone':
+        // Mobile-optimized parameters
+        if (deviceContext.screenSize === 'small') {
+          adjusted.maxTokens = Math.round(adjusted.maxTokens * 0.8);
+        }
+        return undefined;
+        return undefined;
+        break;
+      case 'iPad':
+        // Can handle longer content
+        adjusted.maxTokens = Math.round(adjusted.maxTokens * 1.2);
+        adjusted.contextLength = Math.round(adjusted.contextLength * 1.1);
+        break;
+      case 'Mac':
+        // Full capabilities
+        break;
+    }
+
+    // Processing capability adjustments
+    switch (deviceContext.processingCapability) {
+      case 'low':
+        adjusted.maxTokens = Math.round(adjusted.maxTokens * 0.7);
+        adjusted.contextLength = Math.round(adjusted.contextLength * 0.8);
+        break;
+      case 'medium':
+        adjusted.maxTokens = Math.round(adjusted.maxTokens * 0.9);
+        break;
+      case 'high':
+        // No reduction needed
+        break;
+    }
+
+    // Power mode adjustments
+    if (deviceContext.isLowPowerMode) {
+      adjusted.maxTokens = Math.round(adjusted.maxTokens * 0.6);
+      adjusted.contextLength = Math.round(adjusted.contextLength * 0.7);
+      adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.1); // More efficient
+    }
+    return undefined;
+    return undefined;
+
+    // Connection type adjustments
+    if (deviceContext.connectionType === 'cellular') {
+      // Optimize for data usage
+      adjusted.maxTokens = Math.round(adjusted.maxTokens * 0.8);
+    } else if (deviceContext.connectionType === 'offline') {
+      // Minimal responses only
+      adjusted.maxTokens = Math.min(adjusted.maxTokens, 300);
+      adjusted.contextLength = Math.min(adjusted.contextLength, 1024);
+    }
+
+    // Memory constraints
+    if (deviceContext.availableMemory < 1024) { // Less than 1GB
+      adjusted.contextLength = Math.min(adjusted.contextLength, 2048);
+      adjusted.maxTokens = Math.min(adjusted.maxTokens, 512);
+    }
+    return undefined;
+    return undefined;
+
+    return adjusted;
+  }
+
+  /**
+   * Adjust parameters based on biometric authentication context
+   */
+  private adjustForBiometricContext(params: TaskParameters, biometricContext: BiometricContext): TaskParameters {
+    const adjusted = { ...params };
+
+    // Security level adjustments
+    switch (biometricContext.securityLevel) {
+      case 'high':
+        // More conservative parameters for sensitive operations
+        adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.1);
+        adjusted.topP = Math.max(0.8, (adjusted.topP || 0.9) - 0.1);
+        break;
+      case 'medium':
+        // Standard parameters
+        break;
+      case 'low':
+        // Could be more creative, but be careful
+        adjusted.temperature = Math.min(0.8, adjusted.temperature + 0.05);
+        break;
+    }
+
+    // Authentication state adjustments
+    switch (biometricContext.authenticationState) {
+      case 'authenticated':
+        // Full capabilities based on confidence
+        if (biometricContext.confidenceLevel < 0.7) {
+          // Lower confidence = more conservative
+          adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.05);
+        }
+        return undefined;
+        return undefined;
+        break;
+      case 'unauthenticated':
+        // Limited capabilities
+        adjusted.maxTokens = Math.round(adjusted.maxTokens * 0.7);
+        adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.1);
+        break;
+      case 'locked':
+        // Minimal responses only
+        adjusted.maxTokens = Math.min(adjusted.maxTokens, 200);
+        adjusted.temperature = 0.1;
+        break;
+      case 'authenticating':
+        // Brief, helpful responses
+        adjusted.maxTokens = Math.min(adjusted.maxTokens, 300);
+        break;
+    }
+
+    // Time-based adjustments
+    if (biometricContext.timeSinceLastAuth > 60) { // More than 1 hour
+      // Slightly more conservative
+      adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.05);
+    }
+    return undefined;
+    return undefined;
+
+    return adjusted;
+  }
+
   private buildDynamicPrompt(template: string, context: TaskContext): string {
     let prompt = template;
 
@@ -517,6 +777,30 @@ export class IntelligentParameterService {
       ...context.additionalContext,
     };
 
+    // Add iOS-specific context replacements
+    if (context.deviceContext) {
+      replacements['{deviceType}'] = context.deviceContext.deviceType;
+      replacements['{screenSize}'] = context.deviceContext.screenSize;
+      replacements['{processingCapability}'] = context.deviceContext.processingCapability;
+      replacements['{connectionType}'] = context.deviceContext.connectionType;
+      replacements['{batteryLevel}'] = context.deviceContext.batteryLevel.toString();
+      replacements['{availableMemory}'] = context.deviceContext.availableMemory.toString();
+      replacements['{powerMode}'] = context.deviceContext.isLowPowerMode ? 'Low Power Mode' : 'Normal';
+      replacements['{isLowPowerMode}'] = context.deviceContext.isLowPowerMode.toString();
+      replacements['{coreMLAvailable}'] = context.deviceContext.coreMLAvailable.toString();
+      replacements['{neuralEngineAvailable}'] = context.deviceContext.neuralEngineAvailable.toString();
+    }
+
+    // Add biometric context replacements
+    if (context.biometricContext) {
+      replacements['{authState}'] = context.biometricContext.authenticationState;
+      replacements['{confidenceLevel}'] = `${(context.biometricContext.confidenceLevel * 100).toFixed(0)  }%`;
+      replacements['{timeSinceAuth}'] = context.biometricContext.timeSinceLastAuth.toString();
+      replacements['{securityLevel}'] = context.biometricContext.securityLevel;
+      replacements['{biometricCapabilities}'] = context.biometricContext.biometricCapabilities.join(', ');
+    }
+
+    // Apply replacements
     for (const [placeholder, value] of Object.entries(replacements)) {
       if (value !== undefined) {
         prompt = prompt.replace(
@@ -535,7 +819,84 @@ export class IntelligentParameterService {
   public detectTaskType(userInput: string, context?: Record<string, any>): TaskType {
     const input = userInput.toLowerCase();
 
-    // Code-related keywords
+    // iOS-specific task detection first (more specific)
+    if (
+      this.containsKeywords(input, [
+        'swiftui',
+        'swift ui',
+        'ui design',
+        'ios interface',
+        'app interface',
+        'mobile ui',
+        'apple hig',
+      ])
+    ) {
+      return TaskType.SWIFTUI_DESIGN;
+    }
+    if (
+      this.containsKeywords(input, [
+        'swift code',
+        'swift function',
+        'swift class',
+        'swift struct',
+        'ios code',
+        'macos code',
+      ])
+    ) {
+      return TaskType.SWIFT_CODING;
+    }
+    if (
+      this.containsKeywords(input, [
+        'ios development',
+        'ios app',
+        'apple development',
+        'xcode',
+        'cocoa',
+        'cocoa touch',
+        'apple ecosystem',
+      ])
+    ) {
+      return TaskType.IOS_DEVELOPMENT;
+    }
+    if (
+      this.containsKeywords(input, [
+        'biometric',
+        'face id',
+        'touch id',
+        'authentication',
+        'secure',
+        'keychain',
+        'privacy',
+      ])
+    ) {
+      return TaskType.BIOMETRIC_GUIDANCE;
+    }
+    if (
+      this.containsKeywords(input, [
+        'optimize performance',
+        'memory usage',
+        'battery life',
+        'power optimization',
+        'mobile performance',
+        'device constraints',
+      ])
+    ) {
+      return TaskType.DEVICE_OPTIMIZATION;
+    }
+    if (
+      this.containsKeywords(input, [
+        'mobile ux',
+        'user experience',
+        'accessibility',
+        'one handed',
+        'touch interface',
+        'mobile design patterns',
+      ])
+    ) {
+      return TaskType.MOBILE_UX;
+    }
+
+    // Code-related keywords (general)
     if (
       this.containsKeywords(input, [
         'write code',
@@ -547,6 +908,10 @@ export class IntelligentParameterService {
         'script',
       ])
     ) {
+      // Check if it's Swift/iOS specific
+      if (this.containsKeywords(input, ['swift', 'ios', 'macos', 'apple'])) {
+        return TaskType.SWIFT_CODING;
+      }
       return TaskType.CODE_GENERATION;
     }
     if (
@@ -773,6 +1138,84 @@ export class IntelligentParameterService {
       complexity,
       expectedOutputLength,
     };
+  }
+
+  /**
+   * Create iOS-optimized task context with device and biometric information
+   */
+  public createIOSTaskContext(
+    userInput: string,
+    deviceContext: iOSDeviceContext,
+    biometricContext?: BiometricContext,
+    taskType?: TaskType,
+    additionalContext?: Record<string, any>,
+    userPreferences?: UserPreferences
+  ): TaskContext {
+    const baseContext = this.createTaskContext(
+      userInput,
+      taskType,
+      additionalContext,
+      userPreferences
+    );
+
+    // Override task type if iOS-specific context suggests it
+    let finalTaskType = baseContext.type;
+    if (!taskType) {
+      // Auto-detect iOS-specific tasks based on device context
+      if (deviceContext.deviceType === 'AppleWatch' && baseContext.type === TaskType.CASUAL_CHAT) {
+        finalTaskType = TaskType.MOBILE_UX; // Watch interactions need special UX considerations
+      }
+    return undefined;
+    return undefined;
+      if (biometricContext?.authenticationState === 'unauthenticated' && 
+          this.containsKeywords(userInput.toLowerCase(), ['secure', 'login', 'authenticate'])) {
+        finalTaskType = TaskType.BIOMETRIC_GUIDANCE;
+      }
+      if (deviceContext.isLowPowerMode && 
+          this.containsKeywords(userInput.toLowerCase(), ['optimize', 'performance', 'battery'])) {
+        finalTaskType = TaskType.DEVICE_OPTIMIZATION;
+      }
+    }
+
+    return {
+      ...baseContext,
+      type: finalTaskType,
+      deviceContext,
+      biometricContext,
+    };
+  }
+
+  /**
+   * Get iOS-optimized parameters with device and biometric context
+   */
+  public getIOSOptimizedParameters(
+    userInput: string,
+    deviceContext: iOSDeviceContext,
+    biometricContext?: BiometricContext,
+    taskType?: TaskType,
+    userPreferences?: UserPreferences
+  ): TaskParameters {
+    const context = this.createIOSTaskContext(
+      userInput,
+      deviceContext,
+      biometricContext,
+      taskType,
+      undefined,
+      userPreferences
+    );
+
+    const parameters = this.getTaskParameters(context);
+
+    log.info('Generated iOS-optimized parameters', LogContext.AI, {
+      taskType: context.type,
+      deviceType: deviceContext.deviceType,
+      authState: biometricContext?.authenticationState,
+      powerMode: deviceContext.isLowPowerMode ? 'low' : 'normal',
+      finalMaxTokens: parameters.maxTokens,
+      finalTemperature: parameters.temperature,
+    });
+
+    return parameters;
   }
 }
 

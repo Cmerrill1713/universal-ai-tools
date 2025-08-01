@@ -11,12 +11,13 @@ import { LogContext, log } from './logger';
 export interface ValidationResult<T = unknown> {
   success: boolean;
   data?: T;
-  errors?: ValidationError[];
+  errors?: ValidationErrorDetail[];
   schema?: z.ZodSchema<T>;
 }
 
-export interface ValidationError {
-  field: string;
+export interface ValidationErrorDetail {
+  name: string;
+  field?: string;
   message: string;
   value: unknown;
   code: string;
@@ -146,7 +147,8 @@ export class UniversalValidator<T> {
             schema: this.schema,
           };
         } else {
-          const validationErrors: ValidationError[] = result.error.errors.map((err) => ({
+          const validationErrors: ValidationErrorDetail[] = result.error.errors.map((err) => ({
+            name: 'ValidationError',
             field: err.path.join('.'),
             message: err.message,
             value: err.path.reduce((obj, key) => obj?.[key], data as any),
@@ -177,6 +179,7 @@ export class UniversalValidator<T> {
         success: false,
         errors: [
           {
+            name: 'ValidationError',
             field: 'root',
             message: 'Validation failed with unexpected error',
             value: data,
@@ -218,6 +221,7 @@ export class UniversalValidator<T> {
         success: false,
         errors: [
           {
+            name: 'ValidationError',
             field: 'transformation',
             message: 'Data transformation failed',
             value: result.data,
@@ -343,6 +347,7 @@ export async function validateAsync<T>(
         success: false,
         errors: [
           {
+            name: 'ValidationError',
             field: 'async_validation',
             message: 'Async validation failed',
             value: data,
@@ -394,4 +399,72 @@ export function createValidatedResponse<T>(
   }
 
   return result.data as ValidatedAgentResponse<T>;
+}
+
+// Simple validation functions for basic types
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+export function validateUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function validatePhone(phone: string): boolean {
+  const phoneRegex = /^\+[1-9]\d{1,14}$/;
+  return phoneRegex.test(phone);
+}
+
+export function validateApiKey(apiKey: string): boolean {
+  // Basic API key validation - at least 16 chars, alphanumeric with underscores
+  const apiKeyRegex = /^[a-zA-Z0-9_]{16,}$/;
+  return apiKeyRegex.test(apiKey);
+}
+
+export function validateJson(jsonString: string): any {
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    throw new ValidationError('Invalid JSON format');
+  }
+}
+
+export function validateEnum<T>(value: T, enumValues: T[]): boolean {
+  return enumValues.includes(value);
+}
+
+export function validateRange(value: number, min: number, max: number): boolean {
+  return value >= min && value <= max;
+}
+
+export function validateArrayLength(array: unknown[], min: number, max?: number): boolean {
+  if (array.length < min) return false;
+  if (max !== undefined && array.length > max) return false;
+  return true;
+}
+
+export function sanitizeInput(input: string): string {
+  // Basic HTML sanitization
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/&/g, '&amp;');
+}
+
+export class ValidationError extends Error {
+  public field?: string;
+  
+  constructor(message: string, field?: string) {
+    super(message);
+    this.name = 'ValidationError';
+    this.field = field;
+  }
 }

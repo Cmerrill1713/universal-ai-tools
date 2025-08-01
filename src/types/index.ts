@@ -28,6 +28,14 @@ export interface AgentContext {
   userId?: string;
   previousContext?: unknown;
   metadata?: Record<string, any>;
+  conversationHistory?: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+  }>;
+  sessionId?: string;
+  timestamp?: Date;
+  messageHistory?: any[];
+  contextData?: Record<string, any>;
 }
 
 export interface AgentResponse {
@@ -36,6 +44,7 @@ export interface AgentResponse {
   confidence: number;
   message: string;
   reasoning: string;
+  content?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -153,6 +162,19 @@ export interface ErrorCode {
   EMBEDDING_ERROR: 'EMBEDDING_ERROR';
   SERVICE_ERROR: 'SERVICE_ERROR';
   REFINEMENT_ERROR: 'REFINEMENT_ERROR';
+  SELECTION_ERROR: 'SELECTION_ERROR';
+  EXECUTION_ERROR: 'EXECUTION_ERROR';
+  SMART_CHAT_ERROR: 'SMART_CHAT_ERROR';
+  REVIEW_FAILED: 'REVIEW_FAILED';
+  ANALYSIS_FAILED: 'ANALYSIS_FAILED';
+  SCAN_FAILED: 'SCAN_FAILED';
+  INDEXING_FAILED: 'INDEXING_FAILED';
+  REPOSITORY_ERROR: 'REPOSITORY_ERROR';
+  USER_ID_REQUIRED: 'USER_ID_REQUIRED';
+  ACCESS_DENIED: 'ACCESS_DENIED';
+  PROFILE_NOT_FOUND: 'PROFILE_NOT_FOUND';
+  HEALTH_CHECK_FAILED: 'HEALTH_CHECK_FAILED';
+  MISSING_PARAMETER: 'MISSING_PARAMETER';
 }
 
 export interface ApiResponse<T = unknown> {
@@ -426,4 +448,92 @@ export interface FeedbackItem {
     [key: string]: any;
   };
   [key: string]: any;
+}
+
+// Module declarations for tree-sitter libraries
+declare module 'tree-sitter' {
+  export default class Parser {
+    setLanguage(language: any): void;
+    parse(input: string | Buffer | ((index: number, position?: Point) => string)): Tree;
+  }
+  
+  export interface Point {
+    row: number;
+    column: number;
+  }
+  
+  export interface Language {
+    // Language implementation details
+  }
+  
+  export interface Tree {
+    rootNode: Node;
+    getLanguage(): any;
+  }
+  
+  export interface Node {
+    type: string;
+    text: string;
+    startPosition: Point;
+    endPosition: Point;
+    children: Node[];
+    childCount: number;
+    namedChildCount: number;
+    namedChildren: Node[];
+    parent: Node | null;
+    nextSibling: Node | null;
+    previousSibling: Node | null;
+    child(index: number): Node | null;
+    namedChild(index: number): Node | null;
+    firstChild: Node | null;
+    lastChild: Node | null;
+    walk(): TreeCursor;
+    descendantsOfType(type: string): Node[];
+    descendantsOfType(types: string[]): Node[];
+  }
+  
+  export interface TreeCursor {
+    nodeType: string;
+    nodeText: string;
+    startPosition: Point;
+    endPosition: Point;
+    gotoFirstChild(): boolean;
+    gotoNextSibling(): boolean;
+    gotoParent(): boolean;
+    currentNode(): Node;
+  }
+  
+  export class Language {
+    static load(path: string): Language;
+  }
+}
+
+declare module 'tree-sitter-typescript' {
+  import type { Language } from 'tree-sitter';
+  export const typescript: Language;
+  export const tsx: Language;
+}
+
+declare module 'tree-sitter-javascript' {
+  import type { Language } from 'tree-sitter';
+  const language: Language;
+  export default language;
+}
+
+declare module 'tree-sitter-python' {
+  import type { Language } from 'tree-sitter';
+  const language: Language;
+  export default language;
+}
+
+declare module 'tree-sitter-go' {
+  import type { Language } from 'tree-sitter';
+  const language: Language;
+  export default language;
+}
+
+declare module 'tree-sitter-rust' {
+  import type { Language } from 'tree-sitter';
+  const language: Language;
+  export default language;
 }

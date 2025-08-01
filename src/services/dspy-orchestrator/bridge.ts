@@ -5,6 +5,7 @@ import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getSafePort } from '../../utils/port-finder';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +15,11 @@ export interface DSPyRequest {
   method: string;
   params: unknown;
   metadata?: unknown;
+  // Extended properties for compatibility
+  task?: string;
+  userRequest?: string;
+  context?: unknown;
+  agents?: string[];
 }
 
 export interface DSPyResponse {
@@ -22,6 +28,9 @@ export interface DSPyResponse {
   data: unknown;
   error?: string;
   metadata?: unknown;
+  // Extended properties for compatibility
+  enhancedPrompt?: string;
+  confidence?: number;
 }
 
 export class DSPyBridge extends EventEmitter {
@@ -32,7 +41,7 @@ export class DSPyBridge extends EventEmitter {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private isConnected = false;
-  private port = 8766;
+  private port = parseInt(process.env.DSPY_PORT || '8766', 10);
 
   constructor() {
     super();
@@ -44,6 +53,10 @@ export class DSPyBridge extends EventEmitter {
   }
 
   private async startPythonService(): Promise<void> {
+    // Find an available port
+    const preferredPort = parseInt(process.env.DSPY_PORT || '8766', 10);
+    this.port = await getSafePort('DSPy', preferredPort, [8767, 8768, 8769]);
+    
     const serverPath = path.join(__dirname, 'server.py');
 
     log.info('🚀 Starting DSPy Python service', LogContext.AI, {

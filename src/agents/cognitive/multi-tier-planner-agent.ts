@@ -1,5 +1,5 @@
 /**
- * Multi-Tier Planner Agent - Agent Zero Competitor
+ * Multi-Tier Planner Agent - Advanced Planning
  * Uses local LLM orchestra for superior planning capabilities
  * Tier 3-4 preferred for complex strategic planning
  */
@@ -161,6 +161,8 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
         if (match[1]) {
           resources.push(match[1]);
         }
+        return undefined;
+        return undefined;
       });
     }
 
@@ -231,9 +233,9 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
               (sum: number, phase: PlanPhase) => sum + (phase.tasks ? phase.tasks.length : 0),
               0
             ),
-            has_risk_assessment: !!(parsed.plan.risks && parsed.plan.risks.length > 0),
+            has_risk_assessment: !!(parsed?.plan?.risks.length > 0),
             has_success_criteria: !!(
-              parsed.plan.success_criteria && parsed.plan.success_criteria.length > 0
+              parsed?.plan?.success_criteria.length > 0
             ),
           },
         };

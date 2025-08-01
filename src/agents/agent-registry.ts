@@ -13,6 +13,7 @@ import { EnhancedRetrieverAgent } from './cognitive/enhanced-retriever-agent';
 import { EnhancedSynthesizerAgent } from './cognitive/enhanced-synthesizer-agent';
 import { EnhancedPersonalAssistantAgent } from './personal/enhanced-personal-assistant-agent';
 import { EnhancedCodeAssistantAgent } from './specialized/enhanced-code-assistant-agent';
+import { AthenaAgent } from './athena-agent';
 
 export interface AgentLoadingLock {
   [agentName: string]: Promise<BaseAgent | null>;
@@ -101,6 +102,21 @@ export class AgentRegistry extends EventEmitter {
       retryAttempts: 2,
     });
 
+    // Athena - The primary AI assistant with dynamic capabilities
+    this.registerAgent({
+      name: 'athena',
+      category: AgentCategory.PERSONAL,
+      description: 'Athena - Advanced AI assistant with dynamic agent spawning capabilities',
+      priority: 1,
+      className: 'AthenaAgent',
+      modulePath: './athena-agent',
+      dependencies: [],
+      capabilities: ['assistance', 'coordination', 'task_management', 'agent_spawning', 'tool_creation'],
+      memoryEnabled: true,
+      maxLatencyMs: 10000,
+      retryAttempts: 3,
+    });
+
     this.registerAgent({
       name: 'code_assistant',
       category: AgentCategory.SPECIALIZED,
@@ -136,6 +152,9 @@ export class AgentRegistry extends EventEmitter {
 
       case 'personal_assistant':
         return new EnhancedPersonalAssistantAgent(config);
+
+      case 'athena':
+        return new AthenaAgent();
 
       case 'code_assistant':
         return new EnhancedCodeAssistantAgent(config);
@@ -505,6 +524,8 @@ export class AgentRegistry extends EventEmitter {
       ) {
         toUnload.push(agentName);
       }
+      return undefined;
+      return undefined;
     }
 
     for (const agentName of toUnload) {

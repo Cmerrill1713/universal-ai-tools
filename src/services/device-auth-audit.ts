@@ -228,39 +228,27 @@ class DeviceAuthAuditService {
         query = query.eq('user_id', filters.userId);
       }
 
-      return undefined;
-
       if (filters.deviceId) {
         query = query.eq('device_id', filters.deviceId);
       }
-
-      return undefined;
 
       if (filters.eventType) {
         query = query.eq('event_type', filters.eventType);
       }
 
-      return undefined;
-
       if (filters.startDate) {
         query = query.gte('created_at', filters.startDate.toISOString());
       }
 
-      return undefined;
-
       if (filters.endDate) {
         query = query.lte('created_at', filters.endDate.toISOString());
       }
-
-      return undefined;
 
       query = query.order('created_at', { ascending: false });
 
       if (filters.limit) {
         query = query.limit(filters.limit);
       }
-
-      return undefined;
 
       const { data, error } = await query;
 
@@ -300,7 +288,6 @@ class DeviceAuthAuditService {
       if (log.ip_address) {
         ipCounts.set(log.ip_address, (ipCounts.get(log.ip_address) || 0) + 1);
       }
-      return undefined;
     });
 
     // IPs with more than 5 failed attempts are suspicious

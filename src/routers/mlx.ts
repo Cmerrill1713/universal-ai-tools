@@ -242,10 +242,16 @@ router.get(
       if (type && type !== 'all') {
         models = models.filter((model: any) => model.type === type);
       }
+      return undefined;
+      return undefined;
 
       if (available !== undefined) {
         models = models.filter((model: any) => model.available === available);
       }
+
+      return undefined;
+
+      return undefined;
 
       const response = {
         models,
@@ -387,6 +393,8 @@ router.post(
             jobEntry.status = 'running';
             fineTuningJobs.set(jobId, jobEntry);
           }
+          return undefined;
+          return undefined;
 
           const result = await mlxService.fineTuneModel(fineTuningRequest);
 
@@ -399,6 +407,8 @@ router.post(
               if (result.data?.metrics) {
                 finalJobEntry.metrics = result.data.metrics;
               }
+          return undefined;
+          return undefined;
             } else {
               finalJobEntry.status = 'failed';
               finalJobEntry.error = result.error || 'Fine-tuning failed';
@@ -424,6 +434,8 @@ router.post(
             jobEntry.endTime = new Date();
             fineTuningJobs.set(jobId, jobEntry);
           }
+          return undefined;
+          return undefined;
 
           log.error(`❌ Fine-tuning job ${jobId} failed with exception`, LogContext.AI, {
             error,
@@ -594,6 +606,10 @@ router.delete(
         job.endTime = new Date();
         fineTuningJobs.set(jobId, job);
       }
+
+      return undefined;
+
+      return undefined;
 
       // Remove job from tracking
       fineTuningJobs.delete(jobId);

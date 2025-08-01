@@ -90,6 +90,8 @@ export abstract class EnhancedBaseAgent {
     if (!this.isInitialized) {
       await this.initialize();
     }
+    return undefined;
+    return undefined;
 
     const startTime = Date.now();
 
@@ -148,9 +150,9 @@ export abstract class EnhancedBaseAgent {
           tokens: llmResponse.usage,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? (error as Error).message : String(error);
 
       log.error(`❌ Enhanced agent execution failed: ${this.config.name}`, LogContext.AGENT, {
         requestId: context.requestId,
@@ -234,6 +236,8 @@ export abstract class EnhancedBaseAgent {
           data = parsed;
           reasoning = parsed.reasoning || parsed.explanation || (llmResponse as any).content;
         }
+        return undefined;
+        return undefined;
       } catch {
         // Not JSON, use as plain text
       }
@@ -282,6 +286,8 @@ export abstract class EnhancedBaseAgent {
       const efficiency = response.usage.completion_tokens / response.usage.prompt_tokens;
       if (efficiency > 0.5 && efficiency < 2.0) confidence += 0.05;
     }
+    return undefined;
+    return undefined;
 
     return Math.max(0.1, Math.min(1.0, confidence));
   }
@@ -296,6 +302,8 @@ export abstract class EnhancedBaseAgent {
     if (this.conversationHistory.length > 20) {
       this.conversationHistory = this.conversationHistory.slice(-20);
     }
+    return undefined;
+    return undefined;
   }
 
   protected getTemperature(): number {
@@ -305,7 +313,7 @@ export abstract class EnhancedBaseAgent {
 
   protected getMaxTokens(): number {
     // Override in derived classes for specific token limits
-    return this.config.maxLatencyMs && this.config.maxLatencyMs < 5000 ? 1000 : 2000;
+    return this?.config?.maxLatencyMs < 5000 ? 1000 : 2000;
   }
 
   public async shutdown(): Promise<void> {
@@ -590,6 +598,8 @@ export abstract class EnhancedBaseAgent {
     if (this.executionHistory.length > 100) {
       this.executionHistory = this.executionHistory.slice(-100);
     }
+    return undefined;
+    return undefined;
 
     // Update Beta distribution
     if (feedback.reward.value > 0.5) {

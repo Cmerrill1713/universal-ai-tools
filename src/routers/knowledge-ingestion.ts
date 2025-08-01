@@ -5,6 +5,9 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response} from 'express';
+import { NextFunction } from 'express';
+
 import { LogContext, log } from '@/utils/logger';
 import { huggingFaceIngestionService } from '@/services/huggingface-ingestion-service';
 
@@ -14,7 +17,7 @@ const router = Router();
  * POST /api/v1/knowledge-ingestion/huggingface
  * Trigger Hugging Face data ingestion
  */
-router.post('/huggingface', async (req, res) => {
+router.post('/huggingface', async (req: Request, res: Response) => {
   try {
     const {
       includeModels = true,
@@ -79,7 +82,7 @@ router.post('/huggingface', async (req, res) => {
  * POST /api/v1/knowledge-ingestion/huggingface/models
  * Ingest only Hugging Face models
  */
-router.post('/huggingface/models', async (req, res) => {
+router.post('/huggingface/models', async (req: Request, res: Response) => {
   try {
     const { limit = 50, popularOnly = true } = req.body;
 
@@ -116,7 +119,7 @@ router.post('/huggingface/models', async (req, res) => {
  * POST /api/v1/knowledge-ingestion/huggingface/datasets
  * Ingest only Hugging Face datasets  
  */
-router.post('/huggingface/datasets', async (req, res) => {
+router.post('/huggingface/datasets', async (req: Request, res: Response) => {
   try {
     const { limit = 25, popularOnly = true } = req.body;
 
@@ -153,7 +156,7 @@ router.post('/huggingface/datasets', async (req, res) => {
  * POST /api/v1/knowledge-ingestion/huggingface/papers
  * Ingest only Hugging Face papers
  */
-router.post('/huggingface/papers', async (req, res) => {
+router.post('/huggingface/papers', async (req: Request, res: Response) => {
   try {
     const { limit = 15 } = req.body;
 
@@ -189,7 +192,7 @@ router.post('/huggingface/papers', async (req, res) => {
  * GET /api/v1/knowledge-ingestion/stats
  * Get ingestion statistics and monitoring data
  */
-router.get('/stats', async (req, res) => {
+router.get('/stats', async (req: Request, res: Response) => {
   try {
     const stats = await huggingFaceIngestionService.getIngestionStats();
 
@@ -219,7 +222,7 @@ router.get('/stats', async (req, res) => {
  * POST /api/v1/knowledge-ingestion/test
  * Test ingestion with minimal data (for development)
  */
-router.post('/test', async (req, res) => {
+router.post('/test', async (req: Request, res: Response) => {
   try {
     log.info('🧪 Running test ingestion with minimal data', LogContext.AI);
 
@@ -254,7 +257,7 @@ router.post('/test', async (req, res) => {
  * DELETE /api/v1/knowledge-ingestion/clear
  * Clear all Hugging Face data from knowledge base (for development)
  */
-router.delete('/clear', async (req, res) => {
+router.delete('/clear', async (req: Request, res: Response) => {
   try {
     const { confirm } = req.body;
 

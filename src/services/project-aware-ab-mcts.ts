@@ -13,11 +13,9 @@ import type {
 } from '@/types/ab-mcts';
 import type { 
   Project, 
-  ProjectTask, 
-  ProjectType, 
-  TaskPriority, 
-  TaskType 
+  ProjectTask
 } from './project-orchestrator';
+import { ProjectType, TaskPriority, TaskType } from './project-orchestrator';
 import { LogContext, log } from '@/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 

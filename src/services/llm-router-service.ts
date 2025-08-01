@@ -8,6 +8,9 @@ import { config } from '@/config/environment';
 import { LogContext, log } from '@/utils/logger';
 import { secretsManager } from './secrets-manager';
 import { mcpIntegrationService } from './mcp-integration-service';
+import { getCorrelationId } from '@/utils/correlation-id';
+import { traceAsync } from '@/utils/tracing';
+import { recordLLMUsage } from '@/utils/metrics';
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
@@ -248,19 +251,26 @@ export class LLMRouterService {
       requestId?: string;
     }
   ): Promise<LLMResponse> {
-    const startTime = Date.now();
+    const correlationId = getCorrelationId();
+    
+    return traceAsync(`llm.generateResponse`, async (span) => {
+      span.setAttribute('llm.model', internalModel);
+      span.setAttribute('llm.message_count', messages.length);
+      if (correlationId) span.setAttribute('correlation_id', correlationId);
+      
+      const startTime = Date.now();
 
-    // Enhance messages with MCP context if requested (default: true)
-    const shouldIncludeContext = options?.includeContext !== false;
-    let enhancedMessages = messages;
+      // Enhance messages with MCP context if requested (default: true)
+      const shouldIncludeContext = options?.includeContext !== false;
+      let enhancedMessages = messages;
 
-    if (shouldIncludeContext) {
-      enhancedMessages = await this.enhanceMessagesWithMCPContext(messages, {
-        contextTypes: options?.contextTypes || ['project_overview', 'code_patterns'],
-        userId: options?.userId,
-        requestId: options?.requestId,
-      });
-    }
+      if (shouldIncludeContext) {
+        enhancedMessages = await this.enhanceMessagesWithMCPContext(messages, {
+          contextTypes: options?.contextTypes || ['project_overview', 'code_patterns'],
+          userId: options?.userId,
+          requestId: options?.requestId,
+        });
+      }
 
     // Get model config or find best match
     let modelConfig = this.modelConfigs.get(internalModel);
@@ -292,6 +302,15 @@ export class LLMRouterService {
         tokens: response.usage?.total_tokens || 0,
       });
 
+      // Record metrics
+      recordLLMUsage(
+        response.provider,
+        response.model,
+        true,
+        duration,
+        response.usage
+      );
+
       return {
         ...response,
         metadata: {
@@ -300,6 +319,14 @@ export class LLMRouterService {
         },
       };
     } catch (error) {
+      // Record failed metrics
+      recordLLMUsage(
+        modelConfig.provider,
+        modelConfig.externalModel,
+        false,
+        Date.now() - startTime
+      );
+
       // Try fallback provider if available
       if (modelConfig.priority < 3) {
         log.warn(`⚠️ Primary provider failed, trying fallback`, LogContext.AI, {
@@ -315,6 +342,7 @@ export class LLMRouterService {
 
       throw error;
     }
+    });
   }
 
   private async routeToProvider(

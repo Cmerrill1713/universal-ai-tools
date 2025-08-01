@@ -4,6 +4,9 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response} from 'express';
+import { NextFunction } from 'express';
+
 // Use LM Studio adapter instead of native HuggingFace service
 import { huggingFaceService } from '../services/huggingface-to-lmstudio';
 import { LogContext, log } from '../utils/logger';
@@ -37,7 +40,7 @@ router.use(parameterEffectivenessLogger());
 /**
  * Health check endpoint
  */
-router.get('/health', async (req, res) => {
+router.get('/health', async (req: Request, res: Response) => {
   try {
     if (!huggingFaceService) {
       return res.status(503).json({
@@ -67,7 +70,7 @@ router.get('/health', async (req, res) => {
 /**
  * Get service metrics
  */
-router.get('/metrics', async (req, res) => {
+router.get('/metrics', async (req: Request, res: Response) => {
   try {
     if (!huggingFaceService) {
       return res.status(503).json({
@@ -98,7 +101,7 @@ router.get('/metrics', async (req, res) => {
 /**
  * List available models
  */
-router.get('/models', async (req, res) => {
+router.get('/models', async (req: Request, res: Response) => {
   try {
     if (!huggingFaceService) {
       return res.status(503).json({
@@ -125,7 +128,7 @@ router.get('/models', async (req, res) => {
 router.post(
   '/generate',
   creativeParametersMiddleware(), // Apply intelligent parameters for creative tasks
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       if (!huggingFaceService) {
         return res.status(503).json({
@@ -182,7 +185,7 @@ router.post(
 /**
  * Generate embeddings
  */
-router.post('/embeddings', async (req, res) => {
+router.post('/embeddings', async (req: Request, res: Response) => {
   try {
     if (!huggingFaceService) {
       return res.status(503).json({
@@ -227,7 +230,7 @@ router.post('/embeddings', async (req, res) => {
 router.post(
   '/qa',
   analysisParametersMiddleware(), // Apply intelligent parameters for analysis tasks
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       if (!huggingFaceService) {
         return res.status(503).json({
@@ -272,7 +275,7 @@ router.post(
 /**
  * Text summarization
  */
-router.post('/summarize', async (req, res) => {
+router.post('/summarize', async (req: Request, res: Response) => {
   try {
     if (!huggingFaceService) {
       return res.status(503).json({
@@ -315,7 +318,7 @@ router.post('/summarize', async (req, res) => {
 /**
  * Sentiment analysis
  */
-router.post('/sentiment', async (req, res) => {
+router.post('/sentiment', async (req: Request, res: Response) => {
   try {
     if (!huggingFaceService) {
       return res.status(503).json({
@@ -354,7 +357,7 @@ router.post('/sentiment', async (req, res) => {
 /**
  * Batch processing endpoint
  */
-router.post('/batch', async (req, res) => {
+router.post('/batch', async (req: Request, res: Response) => {
   try {
     if (!huggingFaceService) {
       return res.status(503).json({

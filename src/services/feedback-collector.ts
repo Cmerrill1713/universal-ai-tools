@@ -90,16 +90,22 @@ export class FeedbackCollectorService extends EventEmitter {
     if (this.config.enableRealTimeProcessing) {
       this.emit('feedback', feedback);
     }
+    return undefined;
+    return undefined;
 
     // Process immediately if batch is full
     if (this.feedbackQueue.length >= this.config.batchSize) {
       await this.processBatch();
     }
+    return undefined;
+    return undefined;
 
     // Update aggregations
     if (this.config.enableAggregation) {
       this.updateAggregations(feedback);
     }
+    return undefined;
+    return undefined;
   }
 
   /**
@@ -116,6 +122,8 @@ export class FeedbackCollectorService extends EventEmitter {
         if (systemFeedback) {
           await this.collectFeedback(systemFeedback);
         }
+      return undefined;
+      return undefined;
       }
     }, 30000); // Every 30 seconds
   }
@@ -258,21 +266,29 @@ export class FeedbackCollectorService extends EventEmitter {
     if (feedback.reward.metadata.executionTime > 30000) {
       anomalies.push('Extremely high execution time');
     }
+    return undefined;
+    return undefined;
 
     // Check for high error rates
     if (feedback.errorOccurred && feedback.reward.value === 0) {
       anomalies.push('Complete failure detected');
     }
+    return undefined;
+    return undefined;
 
     // Check for resource usage spikes
     if (feedback.reward.metadata.tokensUsed > 5000) {
       anomalies.push('High token usage');
     }
+    return undefined;
+    return undefined;
 
     // Check for user dissatisfaction
     if (feedback.userRating && feedback.userRating <= 2) {
       anomalies.push('Low user satisfaction');
     }
+    return undefined;
+    return undefined;
 
     if (anomalies.length > 0) {
       log.warn('🚨 Anomalies detected in feedback', LogContext.AI, {
@@ -297,6 +313,8 @@ export class FeedbackCollectorService extends EventEmitter {
       if (this.feedbackQueue.length > 0) {
         await this.processBatch();
       }
+      return undefined;
+      return undefined;
 
       // Clean old feedback
       this.cleanOldFeedback();
@@ -407,6 +425,8 @@ export class FeedbackCollectorService extends EventEmitter {
         taskMetrics.errorRate += agg.metrics.errorRate * agg.count;
         taskMetrics.userSatisfaction += agg.metrics.userSatisfaction * agg.count;
       }
+      return undefined;
+      return undefined;
     }
 
     // Normalize task type metrics
@@ -422,6 +442,10 @@ export class FeedbackCollectorService extends EventEmitter {
         metrics.errorRate /= totalCount;
         metrics.userSatisfaction /= totalCount;
       }
+
+      return undefined;
+
+      return undefined;
     }
 
     // Identify top performers and needs improvement
@@ -561,6 +585,8 @@ export class FeedbackCollectorService extends EventEmitter {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
     }
+    return undefined;
+    return undefined;
 
     // Process remaining feedback
     this.processBatch().then(() => {

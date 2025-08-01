@@ -19,7 +19,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: '/', label: 'AI Chat', icon: Icons.MessageSquare01, badge: '🔥' },
+  { path: '/athena', label: 'Athena', icon: Icons.Cpu01, badge: '🌟' },
+  { path: '/chat', label: 'AI Chat', icon: Icons.MessageSquare01, badge: '🔥' },
   { path: '/vision', label: 'Vision Studio', icon: Icons.Image01 },
   { path: '/mlx', label: 'MLX Training', icon: Icons.CpuChip01 },
   { path: '/orchestration', label: 'AB-MCTS', icon: Icons.GitBranch01 },

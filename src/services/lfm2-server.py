@@ -29,6 +29,14 @@ class LFM2Server:
         self.request_count = 0
         self.total_time = 0
         self.model_path = "/Users/christianmerrill/Desktop/universal-ai-tools/models/agents/LFM2-1.2B-bf16"
+        # Use mock implementation to save memory - set to False to load real model
+        self.use_mock = False
+        
+        # Memory optimization settings
+        self.last_used = time.time()
+        self.idle_timeout = 300  # 5 minutes
+        self.batch_size = 1
+        self.max_sequence_length = 512  # Limit sequence length for memory
         
         # Setup logging
         logging.basicConfig(
@@ -43,6 +51,12 @@ class LFM2Server:
         try:
             self.logger.info("🚀 Initializing LFM2-1.2B server with MLX...")
             
+            # Use mock to save memory unless explicitly disabled
+            if self.use_mock:
+                self.logger.info("📦 Using mock LFM2 to save memory (2.3GB saved)")
+                self._initialize_mock()
+                return
+            
             if not HAS_MLX_LM:
                 self.logger.warning("⚠️ MLX-LM not available, using mock implementation")
                 self._initialize_mock()
@@ -55,12 +69,25 @@ class LFM2Server:
                 self._initialize_mock()
                 return
             
-            # Try to load with MLX - use fallback if LFM2 type not supported
+            # Try to load with MLX - use lazy loading and optimizations
             try:
-                self.logger.info(f"Loading LFM2 from {self.model_path}...")
-                self.model, self.tokenizer = load(self.model_path)
+                self.logger.info(f"Loading LFM2 from {self.model_path} with optimizations...")
+                
+                # Load with lazy loading to reduce initial memory spike
+                self.model, self.tokenizer = load(
+                    self.model_path,
+                    lazy=True  # Lazy loading for memory efficiency
+                )
+                
+                # Set model to evaluation mode and optimize
+                if hasattr(self.model, 'eval'):
+                    self.model.eval()
+                
                 self.is_ready = True
-                self.logger.info("✅ LFM2-1.2B loaded successfully with MLX")
+                self.logger.info("✅ LFM2-1.2B loaded successfully with MLX (lazy mode)")
+                
+                # Schedule periodic memory cleanup
+                self._schedule_memory_cleanup()
                 
             except Exception as mlx_error:
                 self.logger.warning(f"⚠️ MLX loading failed: {mlx_error}")
@@ -77,11 +104,47 @@ class LFM2Server:
         self.tokenizer = None
         self.is_ready = True
         self.logger.info("✅ Mock LFM2 server ready")
+    
+    def _schedule_memory_cleanup(self):
+        """Schedule periodic memory cleanup with proper shutdown handling"""
+        import threading
+        import gc
+        
+        def cleanup():
+            try:
+                while self.is_ready:
+                    time.sleep(60)  # Check every minute
+                    if not self.is_ready:  # Check again after sleep
+                        break
+                        
+                    current_time = time.time()
+                    
+                    # If model hasn't been used for idle_timeout, consider unloading
+                    if current_time - self.last_used > self.idle_timeout:
+                        self.logger.info("🧹 Model idle for too long, clearing cache")
+                        gc.collect()
+                        
+                        # MLX specific cleanup if available
+                        try:
+                            import mlx.core as mx
+                            mx.metal.clear_cache()
+                        except ImportError:
+                            pass
+                        except Exception as e:
+                            self.logger.warning(f"MLX cleanup warning: {e}")
+            except Exception as e:
+                self.logger.error(f"Memory cleanup thread error: {e}")
+            finally:
+                self.logger.info("Memory cleanup thread shutting down")
+        
+        self.cleanup_thread = threading.Thread(target=cleanup, daemon=True)
+        self.cleanup_thread.start()
             
     def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Process a request"""
         start_time = time.time()
         self.request_count += 1
+        self.last_used = time.time()  # Update last used time
         
         try:
             task_type = data.get('type', 'unknown')
@@ -131,15 +194,28 @@ class LFM2Server:
                         messages, add_generation_prompt=True
                     )
                 
-                # Generate response using MLX
+                # Truncate prompt if too long to save memory
+                if len(prompt) > self.max_sequence_length:
+                    prompt = prompt[-self.max_sequence_length:]
+                    self.logger.debug(f"Truncated prompt to {self.max_sequence_length} chars")
+                
+                # Generate response using MLX with memory limits
+                # MLX-LM uses 'temperature' parameter in generate
                 response = generate(
                     self.model,
                     self.tokenizer,
                     prompt=prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
+                    max_tokens=min(max_tokens, 256),  # Limit max tokens for memory
+                    temperature=temperature,  # Corrected parameter name
                     verbose=False
                 )
+                
+                # Clear GPU cache after generation
+                try:
+                    import mlx.core as mx
+                    mx.metal.clear_cache()
+                except:
+                    pass
                 
                 # Extract just the generated part
                 if prompt in response:
@@ -253,6 +329,34 @@ class LFM2Server:
                 print(json.dumps(error_response), flush=True)
                 
         self.logger.info("👋 LFM2 server shutting down")
+        self.shutdown()
+    
+    def shutdown(self):
+        """Properly shutdown the server and cleanup resources"""
+        self.logger.info("🛑 Shutting down LFM2 server...")
+        self.is_ready = False
+        
+        # Wait for cleanup thread to finish
+        if hasattr(self, 'cleanup_thread') and self.cleanup_thread.is_alive():
+            self.cleanup_thread.join(timeout=2)
+        
+        # Clear model and tokenizer
+        self.model = None
+        self.tokenizer = None
+        
+        # Final memory cleanup
+        import gc
+        gc.collect()
+        
+        try:
+            import mlx.core as mx
+            mx.metal.clear_cache()
+        except ImportError:
+            pass
+        except Exception as e:
+            self.logger.warning(f"Final MLX cleanup warning: {e}")
+        
+        self.logger.info("✅ LFM2 server shutdown complete")
 
 if __name__ == "__main__":
     server = LFM2Server()

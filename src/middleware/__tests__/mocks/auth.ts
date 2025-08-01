@@ -55,7 +55,7 @@ export const validateApiKey = async (req: Request, res: Response, next: NextFunc
   }
 
   res.locals.apiKey = keyRecord;
-  next();
+  return next();
 };
 
 export const authenticateRequest = async (req: Request, res: Response, next: NextFunction) => {
@@ -76,7 +76,7 @@ export const authenticateRequest = async (req: Request, res: Response, next: Nex
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret') as any;
     res.locals.user = decoded;
-    next();
+    return next();
   } catch (error) {
     return res.status(401).json({
       success: false,
@@ -109,7 +109,7 @@ export const rateLimitByApiKey = async (req: Request, res: Response, next: NextF
   apiKey.current_usage = (apiKey.current_usage || 0) + 1;
   res.locals.apiKey = apiKey;
   
-  next();
+  return next();
 };
 
 // Helper function to set up mock data for tests

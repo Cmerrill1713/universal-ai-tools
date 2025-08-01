@@ -145,6 +145,8 @@ export class DSPyFastOptimizer {
       if (examples.length >= 5) {
         await this.optimizeLFM2Responses(taskType, examples);
       }
+      return undefined;
+      return undefined;
     }
   }
 
@@ -192,6 +194,8 @@ export class DSPyFastOptimizer {
         results.lfm2.avgResponseTime += responseTime;
         results.lfm2.tokenEfficiency += coordinated.metadata.tokensUsed / responseTime;
       }
+      return undefined;
+      return undefined;
       // Similar for other services...
     }
 
@@ -203,6 +207,8 @@ export class DSPyFastOptimizer {
         metrics.avgResponseTime /= numTests;
         metrics.tokenEfficiency /= numTests;
       }
+      return undefined;
+      return undefined;
     });
 
     // Generate recommendations
@@ -231,6 +237,8 @@ export class DSPyFastOptimizer {
         optimizationsApplied++;
         totalImprovement += optimization.performanceGain;
       }
+      return undefined;
+      return undefined;
     }
 
     const avgImprovement = optimizationsApplied > 0 ? totalImprovement / optimizationsApplied : 0;
@@ -327,6 +335,8 @@ Create an optimized prompt that generates higher quality responses for this task
       if (newMetrics[k] !== undefined) {
         existing[k] = alpha * newMetrics[k]! + (1 - alpha) * existing[k];
       }
+      return undefined;
+      return undefined;
     });
 
     this.metrics.set(taskType, existing);

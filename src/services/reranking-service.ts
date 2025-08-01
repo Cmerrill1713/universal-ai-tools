@@ -75,6 +75,10 @@ export class RerankingService {
       if (selectedModel) {
         this.activeModel = selectedModel;
       }
+
+    return undefined;
+
+    return undefined;
     }
 
     log.info('🔄 Starting reranking process', LogContext.AI, {

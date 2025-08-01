@@ -11,6 +11,9 @@ import { fileURLToPath } from 'url';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
 import { LogContext, log } from '../utils/logger.js';
+import { recordMCPMessage } from '../utils/metrics.js';
+import { RetryStrategies, withRetry } from '../utils/retry.js';
+import { getCorrelationId } from '../utils/correlation-id.js';
 
 interface MCPMessage {
   id: string;
@@ -199,6 +202,8 @@ export class MCPIntegrationService extends EventEmitter {
         log.info('🔄 Auto-restarting MCP server', LogContext.MCP);
         setTimeout(() => this.start(), 5000);
       }
+      return undefined;
+      return undefined;
     });
 
     this.supabaseMCPProcess.on('error', (error) => {
@@ -274,6 +279,7 @@ export class MCPIntegrationService extends EventEmitter {
 
         // For now, simulate successful response since we don't have bidirectional communication
         clearTimeout(timeout);
+        recordMCPMessage(method, true);
         resolve({ success: true, method, params });
       });
     } catch (error) {
@@ -283,6 +289,7 @@ export class MCPIntegrationService extends EventEmitter {
       });
 
       // Fallback to direct Supabase operations
+      recordMCPMessage(method, false);
       return await this.fallbackOperation(method, params);
     }
   }
@@ -336,7 +343,12 @@ export class MCPIntegrationService extends EventEmitter {
       created_at: new Date().toISOString(),
     });
 
-    if (error) throw new Error(`Failed to save context: ${error.message}`);
+    if (error) {
+      recordMCPMessage('save_context', false);
+      throw new Error(`Failed to save context: ${error.message}`);
+    }
+    
+    recordMCPMessage('save_context', true);
     return { success: true, message: `Saved context in category: ${params.category}` };
   }
 
@@ -359,6 +371,10 @@ export class MCPIntegrationService extends EventEmitter {
     if (params.category) {
       query = query.eq('category', params.category);
     }
+
+    return undefined;
+
+    return undefined;
 
     query = query.ilike('content', `%${params.query}%`);
 
@@ -386,6 +402,10 @@ export class MCPIntegrationService extends EventEmitter {
     if (params.category) {
       query = query.eq('category', params.category);
     }
+
+    return undefined;
+
+    return undefined;
 
     const { data, error } = await query;
     if (error) throw new Error(`Failed to get recent context: ${error.message}`);
@@ -434,9 +454,17 @@ export class MCPIntegrationService extends EventEmitter {
       query = query.eq('pattern_type', params.pattern_type);
     }
 
+    return undefined;
+
+    return undefined;
+
     if (params.error_type) {
       query = query.contains('error_types', [params.error_type]);
     }
+
+    return undefined;
+
+    return undefined;
 
     const { data, error } = await query;
     if (error) throw new Error(`Failed to get code patterns: ${error.message}`);
@@ -535,6 +563,8 @@ export class MCPIntegrationService extends EventEmitter {
             if (this.supabaseMCPProcess && !this.supabaseMCPProcess.killed) {
               this.supabaseMCPProcess.kill('SIGKILL');
             }
+    return undefined;
+    return undefined;
             resolve(undefined);
           }, 5000);
         } else {

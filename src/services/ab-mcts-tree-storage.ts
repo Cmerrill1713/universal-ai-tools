@@ -156,6 +156,8 @@ export class ABMCTSTreeStorage {
           child.parent = node;
           node.children.set(childId, child);
         }
+        return undefined;
+        return undefined;
       }
 
       return node;
@@ -188,6 +190,8 @@ export class ABMCTSTreeStorage {
       if (result.bestPath.length > 0 && result.bestPath[0]) {
         await this.saveNode(result.bestPath[0], options);
       }
+      return undefined;
+      return undefined;
 
       // Save search result metadata
       const resultData = {
@@ -327,6 +331,10 @@ export class ABMCTSTreeStorage {
           for (const child of n.children.values()) {
             visit(child);
           }
+
+        return undefined;
+
+        return undefined;
         }
       };
 
@@ -385,6 +393,8 @@ export class ABMCTSTreeStorage {
           await this.redis.del(key);
           deleted++;
         }
+        return undefined;
+        return undefined;
       }
 
       log.info('Cleaned up old MCTS trees', LogContext.CACHE, {

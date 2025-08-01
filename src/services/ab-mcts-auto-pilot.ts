@@ -121,6 +121,8 @@ export class ABMCTSAutoPilot extends EventEmitter {
     if (this.config.monitoringEnabled) {
       this.startMonitoring();
     }
+    return undefined;
+    return undefined;
   }
 
   /**
@@ -135,6 +137,10 @@ export class ABMCTSAutoPilot extends EventEmitter {
       clearInterval(this.learningTimer);
       this.learningTimer = null;
     }
+
+    return undefined;
+
+    return undefined;
 
     // Wait for current tasks to complete
     await this.waitForTaskCompletion();
@@ -228,6 +234,8 @@ export class ABMCTSAutoPilot extends EventEmitter {
       if (results[i]?.status === 'rejected' && batch[i]) {
         await this.handleFailedTask(batch[i]!);
       }
+      return undefined;
+      return undefined;
     }
   }
 
@@ -363,6 +371,8 @@ export class ABMCTSAutoPilot extends EventEmitter {
       if (this.config.autoOptimizeParameters && performanceAnalysis.averageScore < 0.8) {
         await this.optimizeParameters(performanceAnalysis);
       }
+      return undefined;
+      return undefined;
 
       // Emit learning complete event
       this.emit('learningComplete', {
@@ -511,6 +521,8 @@ export class ABMCTSAutoPilot extends EventEmitter {
       this.metrics.averageResponseTime =
         alpha * update.processingTime + (1 - alpha) * this.metrics.averageResponseTime;
     }
+    return undefined;
+    return undefined;
   }
 
   /**

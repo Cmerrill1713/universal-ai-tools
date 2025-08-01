@@ -151,6 +151,10 @@ export class KokoroTTSService {
         if (output.includes('KOKORO_READY')) {
           this.isInitialized = true;
         }
+
+    return undefined;
+
+    return undefined;
       });
 
       this.pythonProcess.stderr.on('data', (data) => {
@@ -528,6 +532,10 @@ if __name__ == "__main__":
       this.pythonProcess.kill();
       this.pythonProcess = null;
     }
+
+    return undefined;
+
+    return undefined;
 
     this.isInitialized = false;
   }

@@ -407,6 +407,10 @@ router.delete(
             fs.unlinkSync(filePath);
             deletedCount++;
           }
+
+          return undefined;
+
+          return undefined;
         }
       }
 

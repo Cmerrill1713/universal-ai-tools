@@ -4,6 +4,9 @@
  */
 
 import { Router } from 'express';
+import type { Request, Response} from 'express';
+import { NextFunction } from 'express';
+
 import { LogContext, log } from '@/utils/logger';
 import { contextStorageService } from '@/services/context-storage-service';
 
@@ -13,7 +16,7 @@ const router = Router();
  * GET /api/v1/context/:userId
  * Get all context for a user
  */
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const { category, projectPath, limit } = req.query;
@@ -64,7 +67,7 @@ router.get('/:userId', async (req, res) => {
  * GET /api/v1/context/:userId/stats
  * Get context statistics for a user
  */
-router.get('/:userId/stats', async (req, res) => {
+router.get('/:userId/stats', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
 
@@ -99,7 +102,7 @@ router.get('/:userId/stats', async (req, res) => {
  * POST /api/v1/context/:userId/search
  * Search context by content
  */
-router.post('/:userId/search', async (req, res) => {
+router.post('/:userId/search', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const { query, category, limit } = req.body;
@@ -169,7 +172,7 @@ router.post('/:userId/search', async (req, res) => {
  * POST /api/v1/context/:userId
  * Store new context entry
  */
-router.post('/:userId', async (req, res) => {
+router.post('/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     const { content, category, source, projectPath, metadata } = req.body;

@@ -8,11 +8,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { LogContext, log } from '@/utils/logger';
 import type { 
   ProjectSpecification, 
-  ProjectTask, 
-  ProjectType, 
-  TaskPriority, 
-  TaskType 
+  ProjectTask
 } from './project-orchestrator';
+import { ProjectType, TaskPriority, TaskType } from './project-orchestrator';
 
 export interface ProjectTemplate {
   id: string;

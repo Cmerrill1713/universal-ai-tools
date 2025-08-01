@@ -239,6 +239,8 @@ Be genuinely helpful, efficient, and memorable. Focus on making the user's life 
         if (parsed.response.tasks_identified && Array.isArray(parsed.response.tasks_identified)) {
           confidence += 0.1;
         }
+      return undefined;
+      return undefined;
 
         // Check for actionable items
         if (parsed.response.actionable_items && Array.isArray(parsed.response.actionable_items)) {
@@ -250,11 +252,15 @@ Be genuinely helpful, efficient, and memorable. Focus on making the user's life 
       if (parsed.assistance_type) {
         confidence += 0.05;
       }
+      return undefined;
+      return undefined;
 
       // Check for memory and context tracking
       if (parsed.context_memory) {
         confidence += 0.05;
       }
+      return undefined;
+      return undefined;
 
       // Check for follow-up suggestions
       if (parsed.follow_up_suggestions && Array.isArray(parsed.follow_up_suggestions)) {
@@ -265,6 +271,8 @@ Be genuinely helpful, efficient, and memorable. Focus on making the user's life 
       if (parsed.response.tone) {
         confidence += 0.02;
       }
+      return undefined;
+      return undefined;
     } catch {
       // Not valid JSON, reduce confidence
       confidence -= 0.1;

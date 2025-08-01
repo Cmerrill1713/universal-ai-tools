@@ -161,6 +161,10 @@ export class CircuitBreaker<T = any> {
       if (shouldOpenByCount || shouldOpenByPercentage) {
         this.openCircuit();
       }
+
+      return undefined;
+
+      return undefined;
     }
 
     this.updateMetrics();

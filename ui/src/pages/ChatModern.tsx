@@ -75,6 +75,7 @@ export default function ChatModern() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [abMctsMetrics, setAbMctsMetrics] = useState<ABMCTSMetrics | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentModel, setCurrentModel] = useState('llama3.2:3b');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -200,9 +201,42 @@ export default function ChatModern() {
       } else {
         // Regular chat API
         try {
-          const response = await api.sendMessage(userMessage.content);
+          const response = await api.chat(userMessage.content);
           
-          await simulateStreaming(assistantMessage.id, response.message || 'Processing your request...', {
+          // Extract message content from different possible response formats
+          let messageContent = 'Processing your request...';
+          
+          if (response.data?.message?.content) {
+            messageContent = response.data.message.content;
+          } else if (response.response) {
+            messageContent = response.response;
+          } else if (response.message) {
+            messageContent = response.message;
+          }
+          
+          // Update current model with LFM2 routing information
+          if (response.metadata?.serviceUsed || response.metadata?.model || response.data?.message?.metadata?.model) {
+            let modelDisplay = response.metadata?.model || response.data?.message?.metadata?.model || 'unknown';
+            
+            // Show service used by LFM2 routing
+            if (response.metadata?.serviceUsed) {
+              const serviceUsed = response.metadata.serviceUsed;
+              if (serviceUsed.includes('fallback')) {
+                modelDisplay = `${serviceUsed}`;
+              } else {
+                modelDisplay = `${serviceUsed} → ${modelDisplay}`;
+              }
+            }
+            
+            // Add LFM2 indicator if routing was used
+            if (response.metadata?.lfm2Enabled) {
+              modelDisplay = `🎯 ${modelDisplay}`;
+            }
+            
+            setCurrentModel(modelDisplay);
+          }
+          
+          await simulateStreaming(assistantMessage.id, messageContent, {
             model: response.metadata?.model,
             confidence: response.metadata?.confidence,
             tokensUsed: response.metadata?.tokensUsed,
@@ -338,6 +372,9 @@ export default function ChatModern() {
           <div>
             <h1 className="text-xl font-semibold">Universal AI Tools</h1>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Cpu className="w-3 h-3 text-blue-500" />
+              <span>{currentModel}</span>
+              <span>•</span>
               <Zap className="w-3 h-3 text-green-500" />
               <span>Connected</span>
               {autoPilotActive && (

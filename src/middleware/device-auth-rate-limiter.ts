@@ -31,7 +31,7 @@ redisClient.connect().catch((err) => {
  */
 export const deviceRegistrationLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:device:register:',
   }),
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -77,7 +77,7 @@ export const deviceRegistrationLimiter = rateLimit({
  */
 export const challengeRequestLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:device:challenge:',
   }),
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -107,7 +107,7 @@ export const challengeRequestLimiter = rateLimit({
  */
 export const verificationLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:device:verify:',
   }),
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -154,7 +154,7 @@ export const verificationLimiter = rateLimit({
  */
 export const proximityUpdateLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:device:proximity:',
   }),
   windowMs: 60 * 1000, // 1 minute
@@ -184,7 +184,7 @@ export const proximityUpdateLimiter = rateLimit({
  */
 export const wsConnectionLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:device:ws:',
   }),
   windowMs: 60 * 1000, // 1 minute
@@ -212,7 +212,7 @@ export const wsConnectionLimiter = rateLimit({
  */
 export const globalDeviceAuthLimiter = rateLimit({
   store: new RedisStore({
-    client: redisClient,
+    sendCommand: (...args: string[]) => redisClient.sendCommand(args),
     prefix: 'rl:device:global:',
   }),
   windowMs: 60 * 1000, // 1 minute

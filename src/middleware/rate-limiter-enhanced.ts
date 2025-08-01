@@ -8,6 +8,7 @@ const MILLISECONDS_IN_SECOND = 1000;
 interface RateLimitConfig {
   windowMs: number;
   maxRequests: number;
+  max?: number; // Alias for maxRequests for express-rate-limit compatibility
   keyPrefix?: string;
   skipSuccessfulRequests?: boolean;
   skipFailedRequests?: boolean;
@@ -168,6 +169,10 @@ class RateLimiter {
       bucket.lastRefill = now;
     }
 
+    return undefined;
+
+    return undefined;
+
     return bucket;
   }
 
@@ -193,6 +198,8 @@ class RateLimiter {
     if (this.inMemoryStore.size > 10000) {
       this.cleanupInMemoryStore();
     }
+    return undefined;
+    return undefined;
   }
 
   private cleanupInMemoryStore(): void {
@@ -204,6 +211,8 @@ class RateLimiter {
       if (now - bucket.lastRefill > 3600000) {
         this.inMemoryStore.delete(key);
       }
+      return undefined;
+      return undefined;
     });
   }
 
@@ -226,6 +235,8 @@ class RateLimiter {
       res.setHeader('RateLimit-Remaining', info.remaining);
       res.setHeader('RateLimit-Reset', info.reset.toISOString());
     }
+    return undefined;
+    return undefined;
 
     if (config.legacyHeaders !== false) {
       res.setHeader('X-RateLimit-Limit', info.limit);
@@ -233,9 +244,17 @@ class RateLimiter {
       res.setHeader('X-RateLimit-Reset', Math.floor(info.reset.getTime() / MILLISECONDS_IN_SECOND));
     }
 
+    return undefined;
+
+    return undefined;
+
     if (info.retryAfter !== undefined) {
       res.setHeader('Retry-After', info.retryAfter);
     }
+
+    return undefined;
+
+    return undefined;
   }
 
   public middleware(customConfig?: Partial<RateLimitConfig>) {
@@ -288,6 +307,8 @@ class RateLimiter {
         if (config.legacyHeaders !== false) {
           res.setHeader('X-RateLimit-Remaining', Math.max(0, bucket.tokens));
         }
+        return undefined;
+        return undefined;
 
         next();
       } catch (error) {
@@ -308,6 +329,10 @@ class RateLimiter {
           if (keys.length > 0) {
             await this.redis.del(...keys);
           }
+
+      return undefined;
+
+      return undefined;
         } catch (error) {
           log.error('Redis error resetting rate limit', LogContext.API, { error, identifier });
         }
@@ -342,6 +367,10 @@ class RateLimiter {
         if (bucket.lastRefill > 0) {
           status[endpoint] = this.getRateLimitInfo(bucket, endpointConfig);
         }
+
+        return undefined;
+
+        return undefined;
       }
 
       return Object.keys(status).length > 0 ? status : null;

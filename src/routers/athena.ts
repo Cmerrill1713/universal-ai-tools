@@ -110,10 +110,10 @@ router.post('/execute', async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: {
-        result: result.result || result.data,
-        metadata: result.metadata,
-        serviceUsed: result.serviceUsed,
-        routingDecision: result.routingDecision
+        result: (result as any).result || (result as any).data || result,
+        metadata: (result as any).metadata,
+        serviceUsed: (result as any).serviceUsed,
+        routingDecision: (result as any).routingDecision
       },
       metadata: {
         timestamp: new Date().toISOString(),

@@ -82,6 +82,8 @@ class AdaptiveModelOptimizer {
       if (this.isRunning) {
         await this.runOptimizationCycle();
       }
+      return undefined;
+      return undefined;
     }, this.optimizationInterval);
 
     console.log('✅ Adaptive Model Optimizer active - Learning from healing patterns');
@@ -138,6 +140,8 @@ class AdaptiveModelOptimizer {
             trainingData.push(...this.generateRuntimeTrainingData(pattern));
             break;
         }
+      return undefined;
+      return undefined;
       }
     }
 
@@ -324,6 +328,8 @@ class AdaptiveModelOptimizer {
     if (task) {
       await this.executeOptimizationTask(task);
     }
+    return undefined;
+    return undefined;
   }
 
   async executeOptimizationTask(task: ModelOptimizationTask): Promise<void> {

@@ -62,6 +62,8 @@ class Semaphore {
         this.permits--;
         resolve();
       }
+    return undefined;
+    return undefined;
     }
   }
 }
@@ -240,6 +242,8 @@ export class VisionResourceManager extends EventEmitter {
     if (this.currentVRAMUsage + model.sizeGB > this.maxVRAM) {
       await this.makeSpaceForModel(model.sizeGB);
     }
+    return undefined;
+    return undefined;
 
     // Load the model
     log.info('Loading model', LogContext.AI, {
@@ -279,6 +283,8 @@ export class VisionResourceManager extends EventEmitter {
       if (this.currentVRAMUsage - freedSpace + requiredGB <= this.maxVRAM) {
         break;
       }
+      return undefined;
+      return undefined;
 
       log.info('Unloading model', LogContext.AI, { model: model.name });
       model.loaded = false;
@@ -300,6 +306,8 @@ export class VisionResourceManager extends EventEmitter {
         // Task will be processed by executeWithModel
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
+      return undefined;
+      return undefined;
     }
 
     this.processing = false;
@@ -363,6 +371,8 @@ export class VisionResourceManager extends EventEmitter {
         model.loaded = false;
         this.currentVRAMUsage -= model.sizeGB;
       }
+      return undefined;
+      return undefined;
     }
 
     // Wait for cleanup

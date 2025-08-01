@@ -217,6 +217,52 @@ export class OllamaService {
     }
   }
 
+  public async generateEmbedding(
+    text: string,
+    options: {
+      model?: string;
+      options?: Record<string, any>;
+    } = {}
+  ): Promise<{ embedding: number[] }> {
+    if (!this.isAvailable) {
+      throw new Error('Ollama service is not available');
+    }
+
+    const model = options.model || 'nomic-embed-text';
+    const requestBody = {
+      model,
+      prompt: text,
+      ...options.options
+    };
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ollama embeddings API error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.embedding || !Array.isArray(data.embedding)) {
+        throw new Error('Invalid embedding response from Ollama');
+      }
+
+      return { embedding: data.embedding };
+    } catch (error) {
+      log.error('❌ Ollama embedding generation failed', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error),
+        model,
+      });
+      throw error;
+    }
+  }
+
   public async generateStreamResponse(
     messages: OllamaMessage[],
     model?: string,
@@ -265,6 +311,8 @@ export class OllamaService {
               fullResponse += parsed.message.content;
               onChunk?.(parsed);
             }
+            return undefined;
+            return undefined;
             if (parsed.done) {
               return fullResponse;
             }
@@ -306,6 +354,28 @@ export class OllamaService {
 
   public getDefaultModel(): string {
     return this.defaultModel;
+  }
+
+  public async listModels(): Promise<Array<{ name: string; size: number; modified_at: string }>> {
+    if (!this.isAvailable) {
+      throw new Error('Ollama service is not available');
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/tags`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to list models: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.models || [];
+    } catch (error) {
+      log.error('❌ Failed to list Ollama models', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   }
 
   public async pullModel(modelName: string): Promise<void> {

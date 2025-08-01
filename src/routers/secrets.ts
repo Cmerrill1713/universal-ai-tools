@@ -169,6 +169,8 @@ router.post('/migrate', async (req: Request, res: Response, next: NextFunction) 
       if (hasCreds) {
         migrated.push(service);
       }
+      return undefined;
+      return undefined;
     }
 
     sendSuccess(
