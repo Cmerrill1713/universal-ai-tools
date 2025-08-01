@@ -98,7 +98,6 @@ const router = Router();
 router.use(createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many personality API requests, please try again later',
   standardHeaders: true,
   legacyHeaders: false
 }));
@@ -175,7 +174,7 @@ router.post('/analyze',
 
     } catch (error) {
       logger.error('Error in personality analysis:', error);
-      return sendError(res, 'Personality analysis failed', 500, { 
+      return sendError(res, 'INTERNAL_ERROR', 'Personality analysis failed', 500, { 
         error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
@@ -201,18 +200,18 @@ router.get('/profile/:userId?',
       const requestingUserId = req.user?.id;
 
       if (!targetUserId) {
-        return sendError(res, 'User ID required', 400);
+        return sendError(res, 'USER_ID_REQUIRED', 'User ID required', 400);
       }
 
       // Security check: users can only access their own profile unless admin
-      if (targetUserId !== requestingUserId && req.user?.role !== 'admin') {
-        return sendError(res, 'Access denied', 403);
+      if (targetUserId !== requestingUserId && !req.user?.isAdmin) {
+        return sendError(res, 'ACCESS_DENIED', 'Access denied', 403);
       }
 
       const personalityProfile = await personalityAnalyticsService.getPersonalityProfile(targetUserId);
 
       if (!personalityProfile) {
-        return sendError(res, 'Personality profile not found', 404);
+        return sendError(res, 'PROFILE_NOT_FOUND', 'Personality profile not found', 404);
       }
 
       // Filter sensitive information based on requesting user
@@ -238,16 +237,16 @@ router.get('/profile/:userId?',
       return sendSuccess(res, {
         personalityProfile: sanitizedProfile,
         profileMetadata: {
-          completeness: this.calculateProfileCompleteness(personalityProfile),
+          completeness: calculateProfileCompleteness(personalityProfile!),
           lastAnalysisDate: personalityProfile.lastInteraction,
           modelStatus: personalityProfile.currentModelPath ? 'trained' : 'default',
-          recommendedUpdates: this.getProfileRecommendations(personalityProfile)
+          recommendedUpdates: getProfileRecommendations(personalityProfile!)
         }
       });
 
     } catch (error) {
       logger.error('Error retrieving personality profile:', error);
-      return sendError(res, 'Failed to retrieve personality profile', 500);
+      return sendError(res, 'INTERNAL_ERROR', 'Failed to retrieve personality profile', 500);
     }
   }
 );
@@ -288,18 +287,18 @@ router.post('/models/train',
       const userId = req.user?.id;
 
       if (!userId) {
-        return sendError(res, 'User ID required for model training', 401);
+        return sendError(res, 'USER_ID_REQUIRED', 'User ID required for model training', 401);
       }
 
       // Get user's personality profile
       const personalityProfile = await personalityAnalyticsService.getPersonalityProfile(userId);
       if (!personalityProfile) {
-        return sendError(res, 'Personality profile required for model training', 400);
+        return sendError(res, 'VALIDATION_ERROR', 'Personality profile required for model training', 400);
       }
 
       // Check if user has consented to model training
       if (!personalityProfile.privacySettings.modelTraining) {
-        return sendError(res, 'User has not consented to model training', 403);
+        return sendError(res, 'ACCESS_DENIED', 'User has not consented to model training', 403);
       }
 
       logger.info(`Starting personality model training for user: ${userId}`);
@@ -321,12 +320,12 @@ router.post('/models/train',
           modelId: personalityModel.modelId,
           status: personalityModel.status,
           deviceTargets: personalityModel.deviceTargets.map(d => d.deviceType),
-          estimatedDuration: this.estimateTrainingDuration(personalityModel),
+          estimatedDuration: estimateTrainingDuration(personalityModel),
           estimatedModelSize: personalityModel.mobileOptimizations.memoryConstraints?.maxModelSizeMB || 250
         },
         trainingMetadata: {
           baseModel: 'llama3.2:3b',
-          optimizationLevel: this.determineOptimizationLevel(deviceTargets),
+          optimizationLevel: determineOptimizationLevel(deviceTargets || []),
           privacyLevel: privacyLevel || 'balanced',
           personalityStrength: personalityProfile.consistencyScore,
           createdAt: personalityModel.createdAt
@@ -335,7 +334,7 @@ router.post('/models/train',
 
     } catch (error) {
       logger.error('Error starting personality model training:', error);
-      return sendError(res, 'Model training failed to start', 500, {
+      return sendError(res, 'INTERNAL_ERROR', 'Model training failed to start', 500, {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -361,7 +360,7 @@ router.get('/models/status/:modelId?',
       const userId = req.user?.id;
 
       if (!userId) {
-        return sendError(res, 'User ID required', 401);
+        return sendError(res, 'USER_ID_REQUIRED', 'User ID required', 401);
       }
 
       if (modelId) {
@@ -404,7 +403,7 @@ router.get('/models/status/:modelId?',
 
     } catch (error) {
       logger.error('Error retrieving model status:', error);
-      return sendError(res, 'Failed to retrieve model status', 500);
+      return sendError(res, 'INTERNAL_ERROR', 'Failed to retrieve model status', 500);
     }
   }
 );
@@ -448,7 +447,7 @@ router.post('/execute',
       const requestId = req.headers['x-request-id'] || Date.now().toString();
 
       if (!userId) {
-        return sendError(res, 'User ID required for personalized execution', 401);
+        return sendError(res, 'USER_ID_REQUIRED', 'User ID required for personalized execution', 401);
       }
 
       logger.info(`Personalized execution request for user: ${userId}, device: ${deviceContext.deviceType}`);
@@ -477,9 +476,9 @@ router.post('/execute',
         enhancedContext,
         deviceContext,
         executionConstraints: {
-          maxExecutionTime: this.getMaxExecutionTime(deviceContext.deviceType),
-          maxMemoryUsage: this.getMaxMemoryUsage(deviceContext.deviceType),
-          maxConcurrentAgents: this.getMaxConcurrentAgents(deviceContext.deviceType),
+          maxExecutionTime: getMaxExecutionTime(deviceContext.deviceType),
+          maxMemoryUsage: getMaxMemoryUsage(deviceContext.deviceType),
+          maxConcurrentAgents: getMaxConcurrentAgents(deviceContext.deviceType),
           batteryOptimization: deviceContext.batteryLevel < 30
         },
         personalityRequirements: {
@@ -514,7 +513,7 @@ router.post('/execute',
 
     } catch (error) {
       logger.error('Error in personalized execution:', error);
-      return sendError(res, 'Personalized execution failed', 500, {
+      return sendError(res, 'INTERNAL_ERROR', 'Personalized execution failed', 500, {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -552,11 +551,11 @@ router.get('/metrics',
       const userId = req.user?.id;
 
       if (!userId) {
-        return sendError(res, 'User ID required', 401);
+        return sendError(res, 'USER_ID_REQUIRED', 'User ID required', 401);
       }
 
       // Get personality system metrics
-      const metrics = await this.getPersonalityMetrics(userId, {
+      const metrics = await getPersonalityMetrics(userId, {
         timeRange: timeRange as string,
         deviceType: deviceType as string,
         metricTypes: metricTypes ? (metricTypes as string).split(',') : undefined
@@ -576,7 +575,7 @@ router.get('/metrics',
 
     } catch (error) {
       logger.error('Error retrieving personality metrics:', error);
-      return sendError(res, 'Failed to retrieve metrics', 500);
+      return sendError(res, 'INTERNAL_ERROR', 'Failed to retrieve metrics', 500);
     }
   }
 );
@@ -616,7 +615,7 @@ router.put('/privacy-settings',
       const privacySettings = req.body;
 
       if (!userId) {
-        return sendError(res, 'User ID required', 401);
+        return sendError(res, 'USER_ID_REQUIRED', 'User ID required', 401);
       }
 
       // Update privacy settings
@@ -631,7 +630,7 @@ router.put('/privacy-settings',
 
     } catch (error) {
       logger.error('Error updating privacy settings:', error);
-      return sendError(res, 'Failed to update privacy settings', 500);
+      return sendError(res, 'INTERNAL_ERROR', 'Failed to update privacy settings', 500);
     }
   }
 );

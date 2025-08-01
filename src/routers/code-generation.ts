@@ -558,7 +558,7 @@ router.post('/analyze',
             confidenceScore: result.confidenceScore,
             cacheHit: result.cacheHit
           }
-        }, 'Code analysis completed successfully'));
+        }, { message: 'Code analysis completed successfully' }));
       } else {
         return res.status(422).json(apiResponse.error('Code analysis failed', 'ANALYSIS_FAILED'));
       }
@@ -685,7 +685,7 @@ router.post('/security-scan',
             rulesApplied: result.rulesApplied,
             confidenceScore: result.confidenceScore
           }
-        }, 'Security scan completed successfully'));
+        }, { message: 'Security scan completed successfully' }));
       } else {
         return res.status(422).json(apiResponse.error('Security scan failed', 'SCAN_FAILED'));
       }
@@ -803,7 +803,7 @@ router.post('/repository/index',
             patternsExtracted: result.patternsExtracted,
             storageUsed: result.storageUsed
           }
-        }, 'Repository indexed successfully'));
+        }, { message: 'Repository indexed successfully' }));
       } else {
         return res.status(422).json(apiResponse.error('Repository indexing failed', 'INDEXING_FAILED'));
       }
@@ -875,7 +875,7 @@ router.get('/repository/patterns',
           patternType,
           minQuality
         }
-      }, 'Repository patterns retrieved successfully'));
+      }, { message: 'Repository patterns retrieved successfully' }));
 
     } catch (error) {
       log.error('❌ Repository patterns retrieval failed', LogContext.API, {
