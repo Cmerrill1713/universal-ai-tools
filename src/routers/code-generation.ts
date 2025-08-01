@@ -156,7 +156,7 @@ router.post('/generate',
       const sessionId = req.headers['x-session-id'] as string;
 
       if (!userId) {
-        return res.status(401).json(apiResponse.error('AUTHENTICATION_ERROR', 'User ID required for code generation'));
+        return res.status(401).json(apiResponse.error('User ID required for code generation', 'USER_ID_REQUIRED'));
       }
 
       log.info('🚀 Code generation request received', LogContext.API, {
@@ -273,7 +273,7 @@ router.post('/generate',
 
         return res.status(200).json(apiResponse.success(response, { message: 'Code generated successfully' }));
       } else {
-        return res.status(422).json(apiResponse.error('VALIDATION_ERROR', 'Code generation failed', {
+        return res.status(422).json(apiResponse.error('Code generation failed', 'GENERATION_ERROR', {
           generationId: result.generationId,
           errors: result.improvements.map(imp => imp.description)
         }));
@@ -311,7 +311,7 @@ router.post('/refactor',
       const sessionId = req.headers['x-session-id'] as string;
 
       if (!userId) {
-        return res.status(401).json(apiResponse.error('AUTHENTICATION_ERROR', 'User ID required for code refactoring'));
+        return res.status(401).json(apiResponse.error('User ID required for code refactoring', 'USER_ID_REQUIRED'));
       }
 
       log.info('🔄 Code refactoring request received', LogContext.API, {
@@ -347,7 +347,7 @@ router.post('/refactor',
           }
         }, { message: 'Code refactored successfully' }));
       } else {
-        return res.status(422).json(apiResponse.error('VALIDATION_ERROR', 'Code refactoring failed'));
+        return res.status(422).json(apiResponse.error('Code refactoring failed', 'GENERATION_ERROR'));
       }
 
     } catch (error) {
@@ -382,7 +382,7 @@ router.post('/review',
       const sessionId = req.headers['x-session-id'] as string;
 
       if (!userId) {
-        return res.status(401).json(apiResponse.error('AUTHENTICATION_ERROR', 'User ID required for code review'));
+        return res.status(401).json(apiResponse.error('User ID required for code review', 'USER_ID_REQUIRED'));
       }
 
       log.info('👀 Code review request received', LogContext.API, {

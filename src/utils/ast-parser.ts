@@ -22,6 +22,7 @@ export interface ASTNode {
 }
 
 export interface CodePattern {
+  id?: string;
   type: 'function' | 'class' | 'interface' | 'component' | 'api_endpoint' | 'test_pattern';
   name: string;
   signature: string;
@@ -315,6 +316,7 @@ export class ASTParser {
     const documentation = this.extractDocumentation(node, code);
 
     return {
+      id: `${language}-function-${name}-${node.startPosition.row}`,
       type: 'function',
       name,
       signature,
@@ -340,6 +342,7 @@ export class ASTParser {
     const documentation = this.extractDocumentation(node, code);
 
     return {
+      id: `${language}-class-${name}-${node.startPosition.row}`,
       type: 'class',
       name,
       signature,
@@ -363,6 +366,7 @@ export class ASTParser {
     const documentation = this.extractDocumentation(node, code);
 
     return {
+      id: `${language}-interface-${name}-${node.startPosition.row}`,
       type: 'interface',
       name,
       signature,
@@ -387,6 +391,7 @@ export class ASTParser {
     const documentation = this.extractDocumentation(node, code);
 
     return {
+      id: `${language}-component-${name}-${node.startPosition.row}`,
       type: 'component',
       name,
       signature,
