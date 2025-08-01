@@ -1,0 +1,54 @@
+{
+  "timestamp": "2025-08-01T01:01:32.680Z",
+  "testResults": {
+    "screenshots": [
+      "frontend-initial-load.png"
+    ],
+    "errors": [
+      {
+        "test": "content_analysis",
+        "error": "page.waitForTimeout is not a function",
+        "timestamp": "2025-08-01T01:01:32.466Z"
+      },
+      {
+        "test": "api_connectivity",
+        "error": "page.waitForTimeout is not a function",
+        "timestamp": "2025-08-01T01:01:32.545Z"
+      }
+    ],
+    "consoleMessages": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting...",
+        "timestamp": "2025-08-01T01:01:30.471Z"
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected.",
+        "timestamp": "2025-08-01T01:01:30.496Z"
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+        "timestamp": "2025-08-01T01:01:30.878Z"
+      },
+      {
+        "type": "log",
+        "text": "🔥 Universal AI Tools Loading...",
+        "timestamp": "2025-08-01T01:01:31.102Z"
+      },
+      {
+        "type": "warn",
+        "text": "⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.",
+        "timestamp": "2025-08-01T01:01:31.169Z"
+      }
+    ],
+    "summary": {
+      "totalScreenshots": 1,
+      "totalErrors": 2,
+      "totalConsoleMessages": 5,
+      "consoleErrors": 0,
+      "consoleWarnings": 1
+    }
+  }
+}

@@ -1,0 +1,15 @@
+// Swift Settings
+SWIFT_VERSION = 5.0
+ENABLE_MODULES = YES
+DEFINES_MODULE = YES
+ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES
+
+// Framework Search Paths
+FRAMEWORK_SEARCH_PATHS = $(inherited) $(PLATFORM_DIR)/Developer/Library/Frameworks
+
+// Deployment Target
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
+
+// Signing
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = ZUJ8AVW4ZS

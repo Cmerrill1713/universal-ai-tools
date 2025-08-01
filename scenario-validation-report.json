@@ -1,0 +1,269 @@
+{
+  "timestamp": "2025-08-01T03:54:47.014Z",
+  "summary": {
+    "total": 12,
+    "passed": 4,
+    "failed": 8,
+    "percentage": 33
+  },
+  "results": [
+    {
+      "name": "Basic Chat Message",
+      "category": "Core",
+      "status": "failed",
+      "duration": 6,
+      "error": "Request failed with status code 400",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Invalid request data",
+          "details": [
+            {
+              "type": "field",
+              "value": "test-basic-1",
+              "msg": "Invalid conversation ID",
+              "path": "conversationId",
+              "location": "body"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "LFM2 Intelligent Routing",
+      "category": "Routing",
+      "status": "failed",
+      "duration": 3,
+      "error": "Request failed with status code 400",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Invalid request data",
+          "details": [
+            {
+              "type": "field",
+              "value": "test-lfm2-simple",
+              "msg": "Invalid conversation ID",
+              "path": "conversationId",
+              "location": "body"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Complex Task Routing to Agent",
+      "category": "Routing",
+      "status": "failed",
+      "duration": 2,
+      "error": "Request failed with status code 400",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Invalid request data",
+          "details": [
+            {
+              "type": "field",
+              "value": "test-lfm2-complex",
+              "msg": "Invalid conversation ID",
+              "path": "conversationId",
+              "location": "body"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Specific Model Selection",
+      "category": "Models",
+      "status": "failed",
+      "duration": 1,
+      "error": "Request failed with status code 400",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Invalid request data",
+          "details": [
+            {
+              "type": "field",
+              "value": "test-model-1",
+              "msg": "Invalid conversation ID",
+              "path": "conversationId",
+              "location": "body"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Health Check Endpoint",
+      "category": "Infrastructure",
+      "status": "passed",
+      "duration": 2,
+      "result": {
+        "status": "ok",
+        "timestamp": "2025-08-01T03:54:46.994Z",
+        "version": "1.0.0",
+        "environment": "development",
+        "services": {
+          "supabase": true,
+          "websocket": true,
+          "agentRegistry": true,
+          "redis": false,
+          "mlx": true
+        },
+        "agents": {
+          "total": 6,
+          "loaded": 0,
+          "available": [
+            "planner",
+            "synthesizer",
+            "retriever",
+            "personal_assistant",
+            "athena",
+            "code_assistant"
+          ]
+        },
+        "uptime": 49.215888791
+      }
+    },
+    {
+      "name": "Memory Storage",
+      "category": "Features",
+      "status": "failed",
+      "duration": 5,
+      "error": "Request failed with status code 401",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "AUTHENTICATION_ERROR",
+          "message": "No token provided"
+        },
+        "metadata": {
+          "requestId": "14221c13-22c2-41c0-8594-86a806425b70",
+          "timestamp": "2025-08-01T03:54:46.998Z",
+          "version": "1.0.0"
+        }
+      }
+    },
+    {
+      "name": "List Available Agents",
+      "category": "Agents",
+      "status": "passed",
+      "duration": 1,
+      "result": {
+        "agentCount": 0,
+        "agents": []
+      }
+    },
+    {
+      "name": "System Metrics",
+      "category": "Infrastructure",
+      "status": "failed",
+      "duration": 3,
+      "error": "Request failed with status code 404",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "Path /api/v1/monitoring/metrics not found"
+        },
+        "metadata": {
+          "timestamp": "2025-08-01T03:54:47.002Z",
+          "path": "/api/v1/monitoring/metrics",
+          "method": "GET"
+        }
+      }
+    },
+    {
+      "name": "Vision Service Status",
+      "category": "Features",
+      "status": "passed",
+      "duration": 2,
+      "result": {
+        "success": true,
+        "data": {
+          "service": {
+            "initialized": false,
+            "uptime": 49.226578875
+          },
+          "python": {
+            "available": false,
+            "models": []
+          },
+          "gpu": {
+            "available": true,
+            "memory": "Unified Memory"
+          },
+          "metrics": {
+            "totalRequests": 0,
+            "successRate": 0,
+            "avgResponseTime": "0ms",
+            "cacheHitRate": "0.0%"
+          }
+        }
+      }
+    },
+    {
+      "name": "Conversation Context Handling",
+      "category": "Core",
+      "status": "failed",
+      "duration": 2,
+      "error": "Request failed with status code 400",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Invalid request data",
+          "details": [
+            {
+              "type": "field",
+              "value": "test-context-1754020487005",
+              "msg": "Invalid conversation ID",
+              "path": "conversationId",
+              "location": "body"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Graceful Error Handling",
+      "category": "Infrastructure",
+      "status": "passed",
+      "duration": 1,
+      "result": {
+        "errorHandled": true,
+        "statusCode": 400,
+        "hasErrorMessage": true
+      }
+    },
+    {
+      "name": "Parallel Request Processing",
+      "category": "Performance",
+      "status": "failed",
+      "duration": 6,
+      "error": "Request failed with status code 400",
+      "details": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Invalid request data",
+          "details": [
+            {
+              "type": "field",
+              "value": "parallel-0",
+              "msg": "Invalid conversation ID",
+              "path": "conversationId",
+              "location": "body"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

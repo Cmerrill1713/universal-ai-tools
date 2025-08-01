@@ -1,0 +1,6 @@
+framework module UniversalAICompanion {
+    umbrella header "UniversalAICompanion.h"
+    
+    export *
+    module * { export * }
+}
