@@ -4,10 +4,13 @@
  */
 
 import express from 'express';
+import type { NextFunction, Request, Response } from 'express';
+
 import cors from 'cors';
 import helmet from 'helmet';
 import type { Server } from 'http';
 import { createServer } from 'http';
+import { createServer as createHttpsServer } from 'https';
 import { Server as SocketIOServer } from 'socket.io';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
@@ -37,6 +40,10 @@ import { mcpIntegrationService } from '@/services/mcp-integration-service';
 import { contextStorageService } from '@/services/context-storage-service';
 // Context injection middleware temporarily disabled
 
+// Project Orchestration Services
+import type { ProjectOrchestrator } from '@/services/project-orchestrator';
+import { createProjectOrchestrator } from '@/services/project-orchestrator';
+
 // Types
 import type { ServiceConfig } from '@/types';
 
@@ -46,21 +53,50 @@ class UniversalAIToolsServer {
   private io: SocketIOServer | null = null;
   private supabase: SupabaseClient | null = null;
   private agentRegistry: AgentRegistry | null = null;
+  private projectOrchestrator: ProjectOrchestrator | null = null;
   private isShuttingDown = false;
 
   constructor() {
     this.app = express();
-    this.server = createServer(this.app);
+    this.server = this.createSecureServer();
     this.setupMiddleware();
     this.setupWebSocket();
 
     // Services and routes will be initialized in start() method due to async operations
   }
 
+  private createSecureServer(): Server {
+    // Import SSL configuration
+    const { getSSLConfig } = require('@/config/ssl-config');
+    const sslConfig = getSSLConfig();
+
+    if (sslConfig.enabled && sslConfig.key && sslConfig.cert) {
+      log.info('Creating HTTPS server with SSL/TLS', LogContext.SERVER);
+      return createHttpsServer(
+        {
+          key: sslConfig.key,
+          cert: sslConfig.cert,
+          ca: sslConfig.ca,
+          passphrase: sslConfig.passphrase,
+          requestCert: sslConfig.requestCert,
+          rejectUnauthorized: sslConfig.rejectUnauthorized,
+        },
+        this.app
+      );
+    } else {
+      if (process.env.NODE_ENV === 'production') {
+        log.warn('Running HTTP server in production - SSL/TLS is recommended', LogContext.SERVER);
+      }
+      return undefined;
+      return createServer(this.app);
+    }
+  }
+
   private async initializeServices(): Promise<void> {
     this.initializeSupabase();
     this.initializeAgentRegistry();
     await this.initializeContextServices();
+    await this.initializeProjectOrchestrator();
   }
 
   private initializeAgentRegistry(): void {
@@ -136,6 +172,42 @@ class UniversalAIToolsServer {
     }
   }
 
+  private async initializeProjectOrchestrator(): Promise<void> {
+    try {
+      log.info('🎯 Initializing Project Orchestrator service', LogContext.PROJECT);
+
+      // Import the required services for ProjectOrchestrator
+      const { abMCTSService } = await import('@/services/ab-mcts-service');
+      const { default: alphaEvolveService } = await import('@/services/alpha-evolve-service');
+      const { default: llmRouterService } = await import('@/services/llm-router-service');
+
+      // Initialize ProjectOrchestrator with required dependencies including AgentRegistry
+      this.projectOrchestrator = createProjectOrchestrator(
+        abMCTSService,
+        contextStorageService,
+        alphaEvolveService,
+        llmRouterService,
+        this.agentRegistry || undefined
+      );
+
+      log.info('✅ Project Orchestrator service initialized', LogContext.PROJECT, {
+        features: [
+          'Universal project management',
+          'AB-MCTS task decomposition',
+          'Dynamic agent spawning',
+          'Context-aware persistence',
+          'Cross-project learning',
+        ],
+      });
+    } catch (error) {
+      log.error('❌ Failed to initialize Project Orchestrator service', LogContext.PROJECT, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Don't throw - allow server to start without project orchestration
+      this.projectOrchestrator = null;
+    }
+  }
+
   private async initializeMCPService(): Promise<void> {
     try {
       // Start MCP service for context management
@@ -206,7 +278,7 @@ class UniversalAIToolsServer {
     this.app.use(apiResponseMiddleware);
 
     // Request logging middleware
-    this.app.use((req, res, next) => {
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
       const startTime = Date.now();
 
       res.on('finish', () => {
@@ -225,7 +297,7 @@ class UniversalAIToolsServer {
     });
 
     // Handle preflight requests
-    this.app.options('*', (req, res) => {
+    this.app.options('*', (req: Request, res: Response) => {
       res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
       res.header(
@@ -241,7 +313,7 @@ class UniversalAIToolsServer {
 
   private async setupRoutesSync(): Promise<void> {
     // Health check endpoint
-    this.app.get('/health', async (req, res) => {
+    this.app.get('/health', async (req: Request, res: Response) => {
       try {
         // Check MLX service health
         let mlxHealth = false;
@@ -263,6 +335,7 @@ class UniversalAIToolsServer {
             supabase: !!this.supabase,
             websocket: !!this.io,
             agentRegistry: !!this.agentRegistry,
+            projectOrchestrator: !!this.projectOrchestrator,
             redis: false, // Will be updated when Redis is added
             mlx: mlxHealth,
           },
@@ -306,7 +379,7 @@ class UniversalAIToolsServer {
     });
 
     // System status endpoint (frontend expects this)
-    this.app.get('/api/v1/status', async (req, res) => {
+    this.app.get('/api/v1/status', async (req: Request, res: Response) => {
       try {
         const health = {
           status: 'operational',
@@ -318,6 +391,7 @@ class UniversalAIToolsServer {
             database: this.supabase ? 'healthy' : 'unavailable',
             websocket: this.io ? 'healthy' : 'unavailable',
             agents: this.agentRegistry ? 'healthy' : 'unavailable',
+            projectOrchestrator: this.projectOrchestrator ? 'healthy' : 'unavailable',
             redis: false,
             mlx: false,
           },
@@ -356,7 +430,7 @@ class UniversalAIToolsServer {
     });
 
     // Simple monitoring endpoints for client compatibility
-    this.app.get('/metrics', (req, res) => {
+    this.app.get('/metrics', (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -367,7 +441,7 @@ class UniversalAIToolsServer {
       });
     });
 
-    this.app.get('/status', (req, res) => {
+    this.app.get('/status', (req: Request, res: Response) => {
       res.json({
         success: true,
         status: 'operational',
@@ -375,7 +449,7 @@ class UniversalAIToolsServer {
       });
     });
 
-    this.app.get('/performance', (req, res) => {
+    this.app.get('/performance', (req: Request, res: Response) => {
       res.json({
         success: true,
         data: {
@@ -387,20 +461,20 @@ class UniversalAIToolsServer {
     });
 
     // Common AI Assistant endpoint aliases
-    this.app.post('/api/chat', (req, res) => {
+    this.app.post('/api/chat', (req: Request, res: Response) => {
       // Redirect to the assistant chat endpoint
       req.url = '/api/v1/assistant/chat';
       this.app._router.handle(req, res, () => {});
     });
 
-    this.app.post('/api/assistant', (req, res) => {
+    this.app.post('/api/assistant', (req: Request, res: Response) => {
       // Redirect to the assistant chat endpoint
       req.url = '/api/v1/assistant/chat';
       this.app._router.handle(req, res, () => {});
     });
 
     // Root endpoint
-    this.app.get('/', (req, res) => {
+    this.app.get('/', (req: Request, res: Response) => {
       res.json({
         service: 'Universal AI Tools',
         status: 'running',
@@ -415,6 +489,7 @@ class UniversalAIToolsServer {
         },
         features: [
           'Agent Orchestration',
+          'Project Management & Orchestration',
           'Agent-to-Agent (A2A) Communication',
           'Alpha Evolve Self-Improvement',
           'Multi-Tier LLM Architecture',
@@ -427,7 +502,7 @@ class UniversalAIToolsServer {
     });
 
     // API base route
-    this.app.get('/api/v1', (req, res) => {
+    this.app.get('/api/v1', (req: Request, res: Response) => {
       res.json({
         message: 'Universal AI Tools API v1',
         timestamp: new Date().toISOString(),
@@ -436,6 +511,10 @@ class UniversalAIToolsServer {
           '/api/v1/agents/execute',
           '/api/v1/agents/parallel',
           '/api/v1/agents/orchestrate',
+          '/api/v1/projects',
+          '/api/v1/projects/templates',
+          '/api/v1/projects/{id}/orchestration-insights',
+          '/api/v1/projects/parallel/metrics',
           '/api/v1/a2a',
           '/api/v1/memory',
           '/api/v1/orchestration',
@@ -464,7 +543,7 @@ class UniversalAIToolsServer {
     // this.app.use('/api/v1/a2a', a2aRouter);
 
     // Multi-tier LLM test endpoint
-    this.app.post('/api/v1/multi-tier/execute', async (req, res) => {
+    this.app.post('/api/v1/multi-tier/execute', async (req: Request, res: Response) => {
       try {
         const { userRequest, context = {} } = req.body;
 
@@ -515,7 +594,7 @@ class UniversalAIToolsServer {
 
   private setupVisionRoutes(): void {
     // Basic vision endpoints (these will be replaced by the full vision router)
-    this.app.get('/api/v1/vision/health', async (req, res) => {
+    this.app.get('/api/v1/vision/health', async (req: Request, res: Response) => {
       try {
         // Try to get actual PyVision status
         const { pyVisionBridge } = await import('./services/pyvision-bridge');
@@ -547,7 +626,7 @@ class UniversalAIToolsServer {
       }
     });
 
-    this.app.get('/api/v1/vision/status', async (req, res) => {
+    this.app.get('/api/v1/vision/status', async (req: Request, res: Response) => {
       try {
         // Try to get actual PyVision status
         const { pyVisionBridge } = await import('./services/pyvision-bridge');
@@ -598,7 +677,7 @@ class UniversalAIToolsServer {
     });
 
     // Mock analyze endpoint for testing
-    this.app.post('/api/v1/vision/analyze', (req, res) => {
+    this.app.post('/api/v1/vision/analyze', (req: Request, res: Response) => {
       const { imagePath, imageBase64 } = req.body;
 
       if (!imagePath && !imageBase64) {
@@ -637,7 +716,7 @@ class UniversalAIToolsServer {
     });
 
     // Vision embedding endpoint with Supabase integration
-    this.app.post('/api/v1/vision/embed', async (req, res) => {
+    this.app.post('/api/v1/vision/embed', async (req: Request, res: Response) => {
       try {
         const { imagePath, imageBase64, saveToMemory = true } = req.body;
 
@@ -784,7 +863,7 @@ class UniversalAIToolsServer {
     });
 
     // Vision similarity search endpoint
-    this.app.post('/api/v1/vision/search', async (req, res) => {
+    this.app.post('/api/v1/vision/search', async (req: Request, res: Response) => {
       try {
         const { imagePath, imageBase64, limit = 10, threshold = 0.8 } = req.body;
 
@@ -820,6 +899,10 @@ class UniversalAIToolsServer {
             queryEmbedding = result.data.vector;
             log.info('✅ Query embedding generated for search', LogContext.AI);
           }
+
+          return undefined;
+
+          return undefined;
         } catch (error) {
           log.warn('PyVision not available for search', LogContext.AI, { error });
         }
@@ -880,7 +963,7 @@ class UniversalAIToolsServer {
 
   private setupAgentRoutes(): void {
     // List available agents
-    this.app.get('/api/v1/agents', (req, res) => {
+    this.app.get('/api/v1/agents', (req: Request, res: Response) => {
       if (!this.agentRegistry) {
         res.status(503).json({
           success: false,
@@ -923,7 +1006,7 @@ class UniversalAIToolsServer {
       '/api/v1/agents/execute',
       // Context injection middleware temporarily disabled
       intelligentParametersMiddleware(), // Apply intelligent parameters for agent tasks
-      async (req, res) => {
+      async (req: Request, res: Response) => {
         try {
           if (!this.agentRegistry) {
             return res.status(503).json({
@@ -992,7 +1075,7 @@ class UniversalAIToolsServer {
     // Parallel agent execution
     this.app.post(
       '/api/v1/agents/parallel',
-      /* agentContextMiddleware(), */ async (req, res) => {
+      /* agentContextMiddleware(), */ async (req: Request, res: Response) => {
         try {
           if (!this.agentRegistry) {
             return res.status(503).json({
@@ -1086,7 +1169,7 @@ class UniversalAIToolsServer {
     // Agent orchestration
     this.app.post(
       '/api/v1/agents/orchestrate',
-      /* agentContextMiddleware(), */ async (req, res) => {
+      /* agentContextMiddleware(), */ async (req: Request, res: Response) => {
         try {
           if (!this.agentRegistry) {
             return res.status(503).json({
@@ -1163,7 +1246,7 @@ class UniversalAIToolsServer {
     );
 
     // Agent status endpoint
-    this.app.get('/api/v1/agents/status', async (req, res) => {
+    this.app.get('/api/v1/agents/status', async (req: Request, res: Response) => {
       try {
         if (!this.agentRegistry) {
           return res.status(503).json({
@@ -1317,12 +1400,16 @@ class UniversalAIToolsServer {
               if (mockWs.emit) {
                 mockWs.emit('message', Buffer.from(JSON.stringify(data)));
               }
+              return undefined;
+              return undefined;
             });
 
             socket.on('disconnect', () => {
               if (mockWs.emit) {
                 mockWs.emit('close');
               }
+              return undefined;
+              return undefined;
             });
           });
 
@@ -1348,7 +1435,7 @@ class UniversalAIToolsServer {
 
   private async setupErrorHandling(): Promise<void> {
     // 404 handler
-    this.app.use((req, res) => {
+    this.app.use((req: Request, res: Response) => {
       res.status(404).json({
         success: false,
         error: {
@@ -1420,6 +1507,18 @@ class UniversalAIToolsServer {
       // Shutdown agent registry
       if (this.agentRegistry) {
         await this.agentRegistry.shutdown();
+      }
+      return undefined;
+      return undefined;
+
+      // Shutdown project orchestrator
+      if (this.projectOrchestrator) {
+        // Cancel any active projects and cleanup resources
+        const activeProjects = this.projectOrchestrator.listProjects({ activeOnly: true });
+        for (const project of activeProjects) {
+          await this.projectOrchestrator.cancelProject(project.id, 'Server shutdown');
+        }
+        log.info('✅ Project orchestrator shut down', LogContext.PROJECT);
       }
 
       // Shutdown MCP service
@@ -1860,6 +1959,26 @@ class UniversalAIToolsServer {
       });
     }
 
+    // Load project orchestration routes
+    try {
+      log.info('🎯 Loading project orchestration router...', LogContext.SERVER);
+      const projectModule = await import('./routers/projects');
+
+      // Make project orchestrator available to the router
+      if (this.projectOrchestrator) {
+        this.app.locals.projectOrchestrator = this.projectOrchestrator;
+      }
+      return undefined;
+      return undefined;
+
+      this.app.use('/api/v1/projects', projectModule.default);
+      log.info('✅ Project orchestration routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load project orchestration router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Load other async routes here as needed
   }
 }
@@ -1869,6 +1988,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const server = new UniversalAIToolsServer();
   server.start();
 }
+return undefined;
+return undefined;
 
 export default UniversalAIToolsServer;
 export { UniversalAIToolsServer };

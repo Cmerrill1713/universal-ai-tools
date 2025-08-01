@@ -14,6 +14,14 @@ import { validateRequest } from '@/middleware/express-validator';
 import { body, param, query } from 'express-validator';
 import crypto from 'crypto';
 import { deviceAuthWebSocket } from '@/services/device-auth-websocket';
+import {
+  deviceRegistrationLimiter,
+  challengeRequestLimiter,
+  verificationLimiter,
+  proximityUpdateLimiter,
+  globalDeviceAuthLimiter,
+} from '@/middleware/device-auth-rate-limiter';
+import { deviceAuthAudit } from '@/services/device-auth-audit';
 
 interface RegisteredDevice {
   id: string;
@@ -66,7 +74,7 @@ function generateDeviceAuthToken(device: RegisteredDevice): string {
       deviceType: device.deviceType,
       trusted: device.trusted,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+      exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
     },
     secret
   );
@@ -125,12 +133,16 @@ seedChristianDevices();
 
 const router = Router();
 
+// Apply global rate limiter to all routes
+router.use(globalDeviceAuthLimiter);
+
 /**
  * POST /api/v1/device-auth/register-initial
  * Initial device registration without authentication (for Swift app first-time setup)
  */
 router.post(
   '/register-initial',
+  deviceRegistrationLimiter,
   [
     body('deviceId').isString().withMessage('Device ID is required'),
     body('deviceName').isString().withMessage('Device name is required'),
@@ -144,7 +156,14 @@ router.post(
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const { deviceId, deviceName, deviceType, publicKey, userId = 'default-user', metadata = {} } = req.body;
+      const {
+        deviceId,
+        deviceName,
+        deviceType,
+        publicKey,
+        userId = 'default-user',
+        metadata = {},
+      } = req.body;
 
       // Check if device already registered
       const existingDevice = Array.from(registeredDevices.values()).find(
@@ -190,6 +209,14 @@ router.post(
         deviceName,
       });
 
+      // Log to audit trail
+      await deviceAuthAudit.logDeviceRegistration(
+        userId,
+        device.id,
+        { deviceName, deviceType, trusted: device.trusted },
+        { ip: req.ip, userAgent: req.headers['user-agent'] as string }
+      );
+
       // Broadcast device registration event
       deviceAuthWebSocket.broadcastAuthEvent({
         type: 'device_registered',
@@ -233,6 +260,7 @@ router.post(
 router.post(
   '/register',
   authenticate,
+  deviceRegistrationLimiter,
   [
     body('deviceId').isString().withMessage('Device ID is required'),
     body('deviceName').isString().withMessage('Device name is required'),
@@ -383,6 +411,7 @@ router.get('/devices', authenticate, async (req: Request, res: Response) => {
  */
 router.post(
   '/challenge',
+  challengeRequestLimiter,
   [body('deviceId').isString().withMessage('Device ID is required')],
   validateRequest,
   async (req: Request, res: Response) => {
@@ -393,7 +422,12 @@ router.post(
       const device = Array.from(registeredDevices.values()).find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        // Only create temporary device for test devices with specific prefix  
+        // Log failed challenge request
+        await deviceAuthAudit.logChallengeRequest(deviceId, false, {
+          ip: req.ip,
+          userAgent: req.headers['user-agent'] as string,
+        });
+        // Only create temporary device for test devices with specific prefix
         if (deviceId.startsWith('TEST-DEVICE-') || deviceId.startsWith('test-device-')) {
           const tempDevice = {
             id: uuidv4(),
@@ -405,10 +439,10 @@ router.post(
             createdAt: new Date().toISOString(),
             lastSeen: new Date().toISOString(),
             trusted: true,
-            metadata: {}
+            metadata: {},
           };
           registeredDevices.set(tempDevice.id, tempDevice);
-          
+
           // Generate challenge for temp device
           const challenge: DeviceChallenge = {
             id: uuidv4(),
@@ -455,6 +489,12 @@ router.post(
 
       deviceChallenges.set(challenge.id, challenge);
 
+      // Log successful challenge request
+      await deviceAuthAudit.logChallengeRequest(device.id, true, {
+        ip: req.ip,
+        userAgent: req.headers['user-agent'] as string,
+      });
+
       return res.json({
         success: true,
         data: {
@@ -489,6 +529,7 @@ router.post(
  */
 router.post(
   '/verify',
+  verificationLimiter,
   [
     body('challengeId').isString().withMessage('Challenge ID is required'),
     body('signature').isString().withMessage('Signature is required'),
@@ -501,6 +542,15 @@ router.post(
 
       const challenge = deviceChallenges.get(challengeId);
       if (!challenge) {
+        // Log suspicious activity - invalid challenge ID
+        await deviceAuthAudit.logSuspiciousActivity(
+          undefined,
+          undefined,
+          'invalid_challenge_id',
+          { challengeId },
+          { ip: req.ip, userAgent: req.headers['user-agent'] as string }
+        );
+
         return res.status(404).json({
           success: false,
           error: {
@@ -513,6 +563,16 @@ router.post(
       // Check expiration
       if (Date.now() > challenge.expiresAt) {
         deviceChallenges.delete(challengeId);
+
+        // Log expired challenge attempt
+        await deviceAuthAudit.logVerificationAttempt(
+          '',
+          challenge.deviceId,
+          false,
+          'challenge_expired',
+          { ip: req.ip, userAgent: req.headers['user-agent'] as string }
+        );
+
         return res.status(401).json({
           success: false,
           error: {
@@ -580,6 +640,12 @@ router.post(
         proximity: proximity?.rssi ? determineProximity(proximity.rssi) : 'unknown',
       });
 
+      // Log successful verification
+      await deviceAuthAudit.logVerificationAttempt(device.userId, device.id, true, undefined, {
+        ip: req.ip,
+        userAgent: req.headers['user-agent'] as string,
+      });
+
       // Broadcast authentication state change
       deviceAuthWebSocket.broadcastAuthEvent({
         type: 'auth_state_changed',
@@ -629,6 +695,7 @@ router.post(
 router.post(
   '/proximity',
   authenticate,
+  proximityUpdateLimiter,
   [
     body('deviceId').isString().withMessage('Device ID is required'),
     body('rssi').isInt({ min: -100, max: 0 }).withMessage('Invalid RSSI value'),
