@@ -1,18 +1,18 @@
 /**
  * Context Storage Service - Store and Retrieve Context from Supabase
- * Implements the CLAUDE.md instruction: "Always use supabase for context. Save context to supabase for later use."
+ * Implements the CLAUDE.md instruction: "Always use supabase for context. Save context to supabase for later use.""""
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
-import { config } from '@/config/environment';
+import type { SupabaseClient } from '@supabase/supabase-js';';';';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { config    } from '@/config/environment';';';';
 
 interface ContextEntry {
   id?: string;
-  content: string;
-  category: 'conversation' | 'project_info' | 'error_analysis' | 'code_patterns' | 'test_results' | 'architecture_patterns';
-  source: string;
+  content: string;,
+  category: 'conversation' | 'project_info' | 'error_analysis' | 'code_patterns' | 'test_results' | 'architecture_patterns';',''
+  source: string;,
   userId: string;
   projectPath?: string;
   metadata?: Record<string, any>;
@@ -21,14 +21,14 @@ interface ContextEntry {
 }
 
 interface StoredContext {
-  id: string;
-  content: string;
-  category: string;
-  source: string;
-  userId: string;
-  projectPath: string | null;
+  id: string;,
+  content: string;,
+  category: string;,
+  source: string;,
+  userId: string;,
+  projectPath: string | null;,
   metadata: Record<string, any> | null;
-  created_at: string;
+  created_at: string;,
   updated_at: string;
 }
 
@@ -41,13 +41,13 @@ export class ContextStorageService {
 
   /**
    * Store context to Supabase for future use
-   * Implements CLAUDE.md instruction: "Save context to supabase for later use"
+   * Implements CLAUDE.md instruction: "Save context to supabase for later use""""
    */
   async storeContext(context: ContextEntry): Promise<string | null> {
     try {
-      const { data, error } = await this.supabase
-        .from('context_storage')
-        .insert({
+      const { data, error } = await this.supabase;
+        .from('context_storage')'''
+        .insert({)
           content: context.content,
           category: context.category,
           source: context.source,
@@ -55,11 +55,11 @@ export class ContextStorageService {
           project_path: context.projectPath || null,
           metadata: context.metadata || {},
         })
-        .select('id')
+        .select('id')'''
         .single();
 
       if (error) {
-        log.error('Failed to store context to Supabase', LogContext.DATABASE, {
+        log.error('Failed to store context to Supabase', LogContext.DATABASE, {')''
           error: error.message,
           category: context.category,
           source: context.source
@@ -67,7 +67,7 @@ export class ContextStorageService {
         return null;
       }
 
-      log.info('✅ Context stored to Supabase', LogContext.DATABASE, {
+      log.info('✅ Context stored to Supabase', LogContext.DATABASE, {')''
         contextId: data.id,
         category: context.category,
         source: context.source,
@@ -76,7 +76,7 @@ export class ContextStorageService {
 
       return data.id;
     } catch (error) {
-      log.error('Error storing context to Supabase', LogContext.DATABASE, {
+      log.error('Error storing context to Supabase', LogContext.DATABASE, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       return null;
@@ -85,34 +85,34 @@ export class ContextStorageService {
 
   /**
    * Retrieve context from Supabase by category and user
-   * Implements CLAUDE.md instruction: "Always use supabase for context"
+   * Implements CLAUDE.md instruction: "Always use supabase for context""""
    */
-  async getContext(
+  async getContext()
     userId: string,
     category?: string,
     projectPath?: string,
     limit = 10
   ): Promise<StoredContext[]> {
     try {
-      let query = this.supabase
-        .from('context_storage')
-        .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
+      let query = this.supabase;
+        .from('context_storage')'''
+        .select('*')'''
+        .eq('user_id', userId)'''
+        .order('updated_at', { ascending: false })'''
         .limit(limit);
 
       if (category) {
-        query = query.eq('category', category);
+        query = query.eq('category', category);'''
       }
 
       if (projectPath) {
-        query = query.eq('project_path', projectPath);
+        query = query.eq('project_path', projectPath);'''
       }
 
       const { data, error } = await query;
 
       if (error) {
-        log.error('Failed to retrieve context from Supabase', LogContext.DATABASE, {
+        log.error('Failed to retrieve context from Supabase', LogContext.DATABASE, {')''
           error: error.message,
           userId,
           category,
@@ -121,7 +121,7 @@ export class ContextStorageService {
         return [];
       }
 
-      log.info('📖 Retrieved context from Supabase', LogContext.DATABASE, {
+      log.info('📖 Retrieved context from Supabase', LogContext.DATABASE, {')''
         resultsCount: data?.length || 0,
         userId,
         category,
@@ -130,7 +130,7 @@ export class ContextStorageService {
 
       return data || [];
     } catch (error) {
-      log.error('Error retrieving context from Supabase', LogContext.DATABASE, {
+      log.error('Error retrieving context from Supabase', LogContext.DATABASE, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       return [];
@@ -152,26 +152,26 @@ export class ContextStorageService {
       
       updateData.updated_at = new Date().toISOString();
 
-      const { error } = await this.supabase
-        .from('context_storage')
+      const { error } = await this.supabase;
+        .from('context_storage')'''
         .update(updateData)
-        .eq('id', contextId);
+        .eq('id', contextId);'''
 
       if (error) {
-        log.error('Failed to update context in Supabase', LogContext.DATABASE, {
+        log.error('Failed to update context in Supabase', LogContext.DATABASE, {')''
           error: error.message,
           contextId
         });
         return false;
       }
 
-      log.info('✅ Context updated in Supabase', LogContext.DATABASE, {
+      log.info('✅ Context updated in Supabase', LogContext.DATABASE, {')''
         contextId
       });
 
       return true;
     } catch (error) {
-      log.error('Error updating context in Supabase', LogContext.DATABASE, {
+      log.error('Error updating context in Supabase', LogContext.DATABASE, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       return false;
@@ -181,29 +181,29 @@ export class ContextStorageService {
   /**
    * Search context by content similarity
    */
-  async searchContext(
+  async searchContext()
     userId: string,
     searchQuery: string,
     category?: string,
     limit = 5
   ): Promise<StoredContext[]> {
     try {
-      let query = this.supabase
-        .from('context_storage')
-        .select('*')
-        .eq('user_id', userId)
-        .textSearch('content', searchQuery)
-        .order('updated_at', { ascending: false })
+      let query = this.supabase;
+        .from('context_storage')'''
+        .select('*')'''
+        .eq('user_id', userId)'''
+        .textSearch('content', searchQuery)'''
+        .order('updated_at', { ascending: false })'''
         .limit(limit);
 
       if (category) {
-        query = query.eq('category', category);
+        query = query.eq('category', category);'''
       }
 
       const { data, error } = await query;
 
       if (error) {
-        log.error('Failed to search context in Supabase', LogContext.DATABASE, {
+        log.error('Failed to search context in Supabase', LogContext.DATABASE, {')''
           error: error.message,
           searchQuery,
           userId,
@@ -212,7 +212,7 @@ export class ContextStorageService {
         return [];
       }
 
-      log.info('🔍 Context search completed', LogContext.DATABASE, {
+      log.info('🔍 Context search completed', LogContext.DATABASE, {')''
         resultsCount: data?.length || 0,
         searchQuery,
         userId,
@@ -221,7 +221,7 @@ export class ContextStorageService {
 
       return data || [];
     } catch (error) {
-      log.error('Error searching context in Supabase', LogContext.DATABASE, {
+      log.error('Error searching context in Supabase', LogContext.DATABASE, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       return [];
@@ -231,21 +231,21 @@ export class ContextStorageService {
   /**
    * Store test results as context for future reference
    */
-  async storeTestResults(
+  async storeTestResults()
     userId: string,
     testResults: any,
     source: string,
     projectPath?: string
   ): Promise<string | null> {
-    return this.storeContext({
+    return this.storeContext({);
       content: JSON.stringify(testResults, null, 2),
-      category: 'test_results',
+      category: 'test_results','''
       source,
       userId,
       projectPath,
-      metadata: {
+      metadata: {,
         timestamp: new Date().toISOString(),
-        testType: 'automated',
+        testType: 'automated','''
         resultType: typeof testResults
       }
     });
@@ -254,21 +254,21 @@ export class ContextStorageService {
   /**
    * Store conversation history for context
    */
-  async storeConversation(
+  async storeConversation()
     userId: string,
     conversation: string,
     source: string,
     projectPath?: string
   ): Promise<string | null> {
-    return this.storeContext({
+    return this.storeContext({);
       content: conversation,
-      category: 'conversation',
+      category: 'conversation','''
       source,
       userId,
       projectPath,
-      metadata: {
+      metadata: {,
         timestamp: new Date().toISOString(),
-        conversationType: 'user_assistant'
+        conversationType: 'user_assistant''''
       }
     });
   }
@@ -281,15 +281,15 @@ export class ContextStorageService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-      const { data, error } = await this.supabase
-        .from('context_storage')
+      const { data, error } = await this.supabase;
+        .from('context_storage')'''
         .delete()
-        .eq('user_id', userId)
-        .lt('created_at', cutoffDate.toISOString())
-        .select('id');
+        .eq('user_id', userId)'''
+        .lt('created_at', cutoffDate.toISOString())'''
+        .select('id');'''
 
       if (error) {
-        log.error('Failed to cleanup old context', LogContext.DATABASE, {
+        log.error('Failed to cleanup old context', LogContext.DATABASE, {')''
           error: error.message,
           userId,
           daysOld
@@ -298,7 +298,7 @@ export class ContextStorageService {
       }
 
       const deletedCount = data?.length || 0;
-      log.info('🧹 Cleaned up old context entries', LogContext.DATABASE, {
+      log.info('🧹 Cleaned up old context entries', LogContext.DATABASE, {')''
         deletedCount,
         userId,
         daysOld
@@ -306,7 +306,7 @@ export class ContextStorageService {
 
       return deletedCount;
     } catch (error) {
-      log.error('Error cleaning up old context', LogContext.DATABASE, {
+      log.error('Error cleaning up old context', LogContext.DATABASE, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       return 0;
@@ -316,17 +316,17 @@ export class ContextStorageService {
   /**
    * Get context statistics for a user
    */
-  async getContextStats(userId: string): Promise<{
-    totalEntries: number;
+  async getContextStats(userId: string): Promise<{,
+    totalEntries: number;,
     entriesByCategory: Record<string, number>;
-    oldestEntry: string | null;
+    oldestEntry: string | null;,
     newestEntry: string | null;
   }> {
     try {
-      const { data, error } = await this.supabase
-        .from('context_storage')
-        .select('category, created_at')
-        .eq('user_id', userId);
+      const { data, error } = await this.supabase;
+        .from('context_storage')'''
+        .select('category, created_at')'''
+        .eq('user_id', userId);'''
 
       if (error) {
         throw error;
@@ -341,7 +341,7 @@ export class ContextStorageService {
 
       if (data && data.length > 0) {
         // Count by category
-        data.forEach(entry => {
+        data.forEach(entry => {)
           stats.entriesByCategory[entry.category] = 
             (stats.entriesByCategory[entry.category] || 0) + 1;
         });
@@ -354,7 +354,7 @@ export class ContextStorageService {
 
       return stats;
     } catch (error) {
-      log.error('Error getting context stats', LogContext.DATABASE, {
+      log.error('Error getting context stats', LogContext.DATABASE, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       

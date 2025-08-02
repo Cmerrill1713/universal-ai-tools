@@ -4,36 +4,36 @@
  * Uses pattern matching and ML features for classification
  */
 
-import { LogContext, log } from '@/utils/logger';
-import { ModelTier } from './model-tier-manager';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { ModelTier    } from './model-tier-manager';';';';
 
 export enum QueryComplexity {
-  SIMPLE = 'simple',           // Greetings, basic facts, yes/no
-  MEDIUM = 'medium',           // Explanations, summaries, general chat
-  COMPLEX = 'complex',         // Analysis, reasoning, problem solving
-  EXPERT = 'expert'            // Complex coding, research, creative tasks
+  SIMPLE = 'simple',           // Greetings, basic facts, yes/no'''
+  MEDIUM = 'medium',           // Explanations, summaries, general chat'''
+  COMPLEX = 'complex',         // Analysis, reasoning, problem solving'''
+  EXPERT = 'expert'            // Complex coding, research, creative tasks'''
 }
 
 export interface QueryFeatures {
-  wordCount: number;
-  sentenceCount: number;
-  questionCount: number;
-  technicalTerms: number;
-  codeKeywords: number;
-  analysisKeywords: number;
-  complexityIndicators: number;
-  hasCode: boolean;
-  isGreeting: boolean;
-  isSimpleFact: boolean;
-  requiresReasoning: boolean;
+  wordCount: number;,
+  sentenceCount: number;,
+  questionCount: number;,
+  technicalTerms: number;,
+  codeKeywords: number;,
+  analysisKeywords: number;,
+  complexityIndicators: number;,
+  hasCode: boolean;,
+  isGreeting: boolean;,
+  isSimpleFact: boolean;,
+  requiresReasoning: boolean;,
   isMultiStep: boolean;
 }
 
 export interface ClassificationResult {
-  complexity: QueryComplexity;
-  confidence: number;
-  suggestedTier: ModelTier;
-  features: QueryFeatures;
+  complexity: QueryComplexity;,
+  confidence: number;,
+  suggestedTier: ModelTier;,
+  features: QueryFeatures;,
   reasoning: string;
   fallbackTier?: ModelTier;
 }
@@ -42,12 +42,12 @@ export class QueryComplexityClassifier {
   private readonly patterns = {
     greetings: [
       /^(hi|hello|hey|good\s+(morning|afternoon|evening)|howdy|greetings)[\s!.]*$/i,
-      /^(how\s+(are\s+you|r\s+u)|what'?s\s+up|sup)[\s!.]*$/i
+      /^(how\s+(are\s+you|r\s+u)|what'?s\s+up|sup)[\s!.]*$/i'''
     ],
     
     simpleFacts: [
       /^(what|when|where|who)\s+is\s+/i,
-      /^(what'?s|when'?s|where'?s|who'?s)\s+/i,
+      /^(what'?s|when'?s|where'?s|who'?s)\s+/i,'''
       /capital\s+of/i,
       /\d+\s*[+\-*\/]\s*\d+/,
       /^(yes|no|true|false|maybe)[\s!.]*$/i
@@ -66,13 +66,13 @@ export class QueryComplexityClassifier {
       /\b(code|program|script|debug|error|bug|compile|syntax|variable|loop|condition)\b/i,
       /\b(write\s+(a\s+)?(function|class|program|script))\b/i,
       /\b(fix\s+(this\s+)?(code|bug|error))\b/i,
-      /```[\s\S]*```/,
+      /```[sS]*```/,
       /`[^`]+`/
     ],
     
     analysisKeywords: [
-      /\b(analyze|compare|evaluate|assess|examine|investigate|study|research)\b/i,
-      /\b(pros\s+and\s+cons|advantages\s+and\s+disadvantages|benefits\s+and\s+drawbacks)\b/i,
+      /b(analyze|compare|evaluate|assess|examine|investigate|study|research)b/i,
+      /b(pros\s+and\s+cons|advantages\s+and\s+disadvantages|benefits\s+and\s+drawbacks)\b/i,
       /\b(explain\s+(why|how|what|when|where))\b/i,
       /\b(difference\s+between|relationship\s+between|correlation)\b/i
     ],
@@ -118,7 +118,7 @@ export class QueryComplexityClassifier {
       fallbackTier
     };
 
-    log.debug('Query classified', LogContext.AI, {
+    log.debug('Query classified', LogContext.AI, {')''
       complexity,
       tier: suggestedTier,
       confidence: `${Math.round(confidence * 100)  }%`,
@@ -133,13 +133,13 @@ export class QueryComplexityClassifier {
    */
   private extractFeatures(query: string): QueryFeatures {
     const text = query.trim().toLowerCase();
-    const words = text.split(/\s+/).filter(w => w.length > 0);
+    const words = text.split(/s+/).filter(w => w.length > 0);
     const sentences = query.split(/[.!?]+/).filter(s => s.trim().length > 0);
     
     return {
       wordCount: words.length,
       sentenceCount: sentences.length,
-      questionCount: (query.match(/\?/g) || []).length,
+      questionCount: (query.match(/?/g) || []).length,
       technicalTerms: this.countMatches(query, this.patterns.technicalTerms),
       codeKeywords: this.countMatches(query, this.patterns.codeKeywords),
       analysisKeywords: this.countMatches(query, this.patterns.analysisKeywords),
@@ -158,7 +158,7 @@ export class QueryComplexityClassifier {
   private countMatches(text: string, patterns: RegExp[]): number {
     return patterns.reduce((count, pattern) => {
       const matches = text.match(pattern);
-      return count + (matches ? matches.length : 0);
+      return count + (matches ? matches.length: 0);
     }, 0);
   }
 
@@ -208,16 +208,11 @@ export class QueryComplexityClassifier {
    */
   private mapComplexityToTier(complexity: QueryComplexity): ModelTier {
     switch (complexity) {
-      case QueryComplexity.SIMPLE:
-        return ModelTier.ULTRA_FAST;
-      case QueryComplexity.MEDIUM:
-        return ModelTier.FAST;
-      case QueryComplexity.COMPLEX:
-        return ModelTier.BALANCED;
-      case QueryComplexity.EXPERT:
-        return ModelTier.POWERFUL;
-      default:
-        return ModelTier.FAST;
+      case QueryComplexity.SIMPLE: return ModelTier.ULTRA_FAST;
+      case QueryComplexity.MEDIUM: return ModelTier.FAST;
+      case QueryComplexity.COMPLEX: return ModelTier.BALANCED;
+      case QueryComplexity.EXPERT: return ModelTier.POWERFUL;,;
+      default: return ModelTier.FAST;
     }
   }
 
@@ -225,7 +220,7 @@ export class QueryComplexityClassifier {
    * Calculate confidence score for the classification
    */
   private calculateConfidence(features: QueryFeatures, complexity: QueryComplexity): number {
-    let confidence = 0.5; // Base confidence
+    let confidence = 0.5; // Base confidence;
 
     // High confidence indicators
     if (features.isGreeting && complexity === QueryComplexity.SIMPLE) {
@@ -237,8 +232,8 @@ export class QueryComplexityClassifier {
     } else {
       // Calculate based on feature strength
       const indicators = {
-        [QueryComplexity.SIMPLE]: features.isGreeting || features.isSimpleFact ? 0.3 : 0,
-        [QueryComplexity.MEDIUM]: features.wordCount >= 5 && features.wordCount <= 20 ? 0.2 : 0,
+        [QueryComplexity.SIMPLE]: features.isGreeting || features.isSimpleFact ? 0.3: 0,
+        [QueryComplexity.MEDIUM]: features.wordCount >= 5 && features.wordCount <= 20 ? 0.2: 0,
         [QueryComplexity.COMPLEX]: (features.analysisKeywords + features.requiresReasoning) * 0.1,
         [QueryComplexity.EXPERT]: (features.technicalTerms + features.codeKeywords + features.complexityIndicators) * 0.1
       };
@@ -281,15 +276,15 @@ export class QueryComplexityClassifier {
     const reasons: string[] = [];
 
     if (features.isGreeting) {
-      reasons.push('greeting detected');
+      reasons.push('greeting detected');'''
     }
     
     if (features.isSimpleFact) {
-      reasons.push('simple factual query');
+      reasons.push('simple factual query');'''
     }
     
     if (features.hasCode) {
-      reasons.push('contains code');
+      reasons.push('contains code');'''
     }
     
     if (features.technicalTerms > 0) {
@@ -301,22 +296,22 @@ export class QueryComplexityClassifier {
     }
     
     if (features.requiresReasoning) {
-      reasons.push('requires reasoning');
+      reasons.push('requires reasoning');'''
     }
     
     if (features.isMultiStep) {
-      reasons.push('multi-step process');
+      reasons.push('multi-step process');'''
     }
     
     if (features.wordCount >= 30) {
-      reasons.push('long query');
+      reasons.push('long query');'''
     }
 
     if (reasons.length === 0) {
       reasons.push(`${features.wordCount} words, general conversation`);
     }
 
-    return `${complexity}: ${reasons.join(', ')}`;
+    return `${complexity}: ${reasons.join(', ')}`;';';';
   }
 
   /**
@@ -344,13 +339,13 @@ export class QueryComplexityClassifier {
   /**
    * Update classification based on user feedback
    */
-  public updateClassification(
+  public updateClassification()
     query: string, 
     actualComplexity: QueryComplexity,
     userSatisfaction: number
   ): void {
     // In production, this would update ML models or pattern weights
-    log.info('Classification feedback received', LogContext.AI, {
+    log.info('Classification feedback received', LogContext.AI, {')''
       query: query.substring(0, 50),
       actualComplexity,
       satisfaction: userSatisfaction

@@ -3,10 +3,10 @@
  * Provides request tracking across distributed services
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { AsyncLocalStorage } from 'async_hooks';
-import { LogContext, log } from './logger';
-import { getCurrentSpan } from './tracing';
+import { v4 as uuidv4    } from 'uuid';';';';
+import { AsyncLocalStorage    } from 'async_hooks';';';';
+import { LogContext, log    } from './logger';';';';
+import { getCurrentSpan    } from './tracing';';';';
 
 // AsyncLocalStorage for correlation ID context
 const correlationIdStorage = new AsyncLocalStorage<string>();
@@ -22,7 +22,7 @@ export function generateCorrelationId(): string {
  * Validate correlation ID format
  */
 export function isValidCorrelationId(correlationId: string): boolean {
-  if (!correlationId || typeof correlationId !== 'string') {
+  if (!correlationId || typeof correlationId !== 'string') {'''
     return false;
   }
   
@@ -45,7 +45,7 @@ export function getCorrelationId(): string | undefined {
 /**
  * Run a function with a correlation ID context
  */
-export async function withCorrelationId<T>(
+export async function withCorrelationId<T>(;
   correlationId: string,
   fn: () => Promise<T>
 ): Promise<T> {
@@ -53,11 +53,11 @@ export async function withCorrelationId<T>(
     // Add to current span if tracing is active
     const span = getCurrentSpan();
     if (span) {
-      span.setAttribute('correlation_id', correlationId);
+      span.setAttribute('correlation_id', correlationId);'''
     }
 
     // Add to logger context
-    log.debug('🔗 Correlation ID set', LogContext.SYSTEM, { correlationId });
+    log.debug('🔗 Correlation ID set', LogContext.SYSTEM, { correlationId });'''
 
     return fn();
   });
@@ -69,12 +69,12 @@ export async function withCorrelationId<T>(
 export function correlationIdMiddleware() {
   return (req: any, res: any, next: any) => {
     // Check for existing correlation ID in headers
-    let correlationId = req.headers['x-correlation-id'] as string;
+    let correlationId = req.headers['x-correlation-id'] as string;';';';
     
     // Validate existing correlation ID or generate new one
     if (!correlationId || !isValidCorrelationId(correlationId)) {
       if (correlationId) {
-        log.warn('Invalid correlation ID received, generating new one', LogContext.API, {
+        log.warn('Invalid correlation ID received, generating new one', LogContext.API, {')''
           invalidId: correlationId,
         });
       }
@@ -85,15 +85,15 @@ export function correlationIdMiddleware() {
     req.correlationId = correlationId;
 
     // Add to response headers
-    res.setHeader('X-Correlation-ID', correlationId);
+    res.setHeader('X-Correlation-ID', correlationId);'''
 
     // Run the rest of the request in correlation context
     correlationIdStorage.run(correlationId, () => {
-      log.info('📨 Request received', LogContext.API, {
+      log.info('📨 Request received', LogContext.API, {')''
         method: req.method,
         path: req.path,
         correlationId,
-        userAgent: req.headers['user-agent'],
+        userAgent: req.headers['user-agent'],'''
       });
 
       // Continue with correlation ID context
@@ -108,7 +108,7 @@ export function correlationIdMiddleware() {
 export function addCorrelationIdToRequest(headers: Record<string, string>): Record<string, string> {
   const correlationId = getCorrelationId();
   if (correlationId) {
-    headers['X-Correlation-ID'] = correlationId;
+    headers['X-Correlation-ID'] = correlationId;'''
   }
   return headers;
 }
@@ -117,18 +117,18 @@ export function addCorrelationIdToRequest(headers: Record<string, string>): Reco
  * WebSocket correlation ID handler
  */
 export function handleWebSocketCorrelation(socket: any): void {
-  socket.on('message', (data: any) => {
+  socket.on('message', (data: any) => {'''
     let correlationId: string;
     
     // Handle different data formats
-    if (typeof data === 'string') {
+    if (typeof data === 'string') {'''
       try {
         const parsed = JSON.parse(data);
         correlationId = parsed.correlationId;
       } catch {
         correlationId = generateCorrelationId();
       }
-    } else if (data && typeof data === 'object') {
+    } else if (data && typeof data === 'object') {'''
       correlationId = data.correlationId;
     } else {
       correlationId = generateCorrelationId();
@@ -144,7 +144,7 @@ export function handleWebSocketCorrelation(socket: any): void {
 
     // Run handlers with correlation context
     correlationIdStorage.run(correlationId, () => {
-      log.debug('🔌 WebSocket message received', LogContext.WEBSOCKET, {
+      log.debug('🔌 WebSocket message received', LogContext.WEBSOCKET, {')''
         correlationId,
         socketId: socket.id,
       });
@@ -164,7 +164,7 @@ export class CorrelatedJob {
 
   async execute<T>(name: string, fn: () => Promise<T>): Promise<T> {
     return withCorrelationId(this.correlationId, async () => {
-      log.info(`🏃 Starting job: ${name}`, LogContext.SYSTEM, {
+      log.info(`🏃 Starting job: ${name}`, LogContext.SYSTEM, {)
         correlationId: this.correlationId,
         jobName: name,
       });
@@ -175,7 +175,7 @@ export class CorrelatedJob {
         const result = await fn();
         const duration = Date.now() - startTime;
 
-        log.info(`✅ Job completed: ${name}`, LogContext.SYSTEM, {
+        log.info(`✅ Job completed: ${name}`, LogContext.SYSTEM, {)
           correlationId: this.correlationId,
           jobName: name,
           duration: `${duration}ms`,
@@ -185,7 +185,7 @@ export class CorrelatedJob {
       } catch (error) {
         const duration = Date.now() - startTime;
 
-        log.error(`❌ Job failed: ${name}`, LogContext.SYSTEM, {
+        log.error(`❌ Job failed: ${name}`, LogContext.SYSTEM, {)
           correlationId: this.correlationId,
           jobName: name,
           duration: `${duration}ms`,
@@ -229,8 +229,8 @@ export function extractCorrelationId(source: any): string | undefined {
   }
 
   // From headers
-  if (source.headers?.['x-correlation-id']) {
-    return source.headers['x-correlation-id'];
+  if (source.headers?.['x-correlation-id']) {'''
+    return source.headers['x-correlation-id'];';';';
   }
 
   // From WebSocket
@@ -246,8 +246,8 @@ export function extractCorrelationId(source: any): string | undefined {
 /**
  * Format log with correlation ID
  */
-export function logWithCorrelation(
-  level: 'info' | 'warn' | 'error' | 'debug',
+export function logWithCorrelation();
+  level: 'info' | 'warn' | 'error' | 'debug','''
   message: string,
   context: LogContext,
   metadata?: Record<string, any>

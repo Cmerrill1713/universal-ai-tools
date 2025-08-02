@@ -1,5 +1,5 @@
-import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
-import { LogContext, log } from '@/utils/logger';
+import type { AgentConfig, AgentContext, AgentResponse } from '@/types';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
 
 export abstract class BaseAgent {
   protected config: AgentConfig;
@@ -35,7 +35,7 @@ export abstract class BaseAgent {
       this.isInitialized = true;
       log.info(`Agent initialized: ${this.config.name}`, LogContext.AGENT);
     } catch (error) {
-      log.error(`Failed to initialize agent: ${this.config.name}`, LogContext.AGENT, {
+      log.error(`Failed to initialize agent: ${this.config.name}`, LogContext.AGENT, {)
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -50,7 +50,7 @@ export abstract class BaseAgent {
     const startTime = Date.now();
 
     try {
-      log.info(`Executing agent: ${this.config.name}`, LogContext.AGENT, {
+      log.info(`Executing agent: ${this.config.name}`, LogContext.AGENT, {)
         requestId: context.requestId,
         userRequest: context.userRequest,
       });
@@ -58,7 +58,7 @@ export abstract class BaseAgent {
       const response = await this.process(context);
 
       const executionTime = Date.now() - startTime;
-      log.info(`Agent execution completed: ${this.config.name}`, LogContext.AGENT, {
+      log.info(`Agent execution completed: ${this.config.name}`, LogContext.AGENT, {)
         requestId: context.requestId,
         executionTime: `${executionTime}ms`,
         success: response.success,
@@ -75,9 +75,9 @@ export abstract class BaseAgent {
       };
     } catch (error: unknown) {
       const executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? (error as Error).message : String(error);
+      const errorMessage = error instanceof Error ? (error: as Error).message : String(error);
 
-      log.error(`Agent execution failed: ${this.config.name}`, LogContext.AGENT, {
+      log.error(`Agent execution failed: ${this.config.name}`, LogContext.AGENT, {)
         requestId: context.requestId,
         error: errorMessage,
         executionTime: `${executionTime}ms`,
@@ -87,7 +87,7 @@ export abstract class BaseAgent {
         success: false,
         data: null,
         confidence: 0,
-        message: `Agent execution failed: ${errorMessage}`,
+        message: `Agent execution, failed: ${errorMessage}`,
         reasoning: `Error in ${this.config.name}: ${errorMessage}`,
         metadata: {
           executionTime,
@@ -104,7 +104,7 @@ export abstract class BaseAgent {
       this.isInitialized = false;
       log.info(`Agent shutdown: ${this.config.name}`, LogContext.AGENT);
     } catch (error) {
-      log.error(`Error during agent shutdown: ${this.config.name}`, LogContext.AGENT, {
+      log.error(`Error during agent shutdown: ${this.config.name}`, LogContext.AGENT, {)
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -125,16 +125,16 @@ export abstract class BaseAgent {
   // Helper method to validate context
   protected validateContext(context: AgentContext): void {
     if (!context.userRequest || context.userRequest.trim().length === 0) {
-      throw new Error('User request is required and cannot be empty');
+      throw new Error('User request is required and cannot be empty');';';';
     }
 
     if (!context.requestId) {
-      throw new Error('Request ID is required');
+      throw new Error('Request ID is required');';';';
     }
   }
 
   // Helper method to create success response
-  protected createSuccessResponse(
+  protected createSuccessResponse()
     data: unknown,
     message: string,
     confidence = 0.8,
@@ -146,7 +146,7 @@ export abstract class BaseAgent {
       confidence: Math.max(0, Math.min(1, confidence)),
       message,
       reasoning: reasoning || `Processed by ${this.config.name}`,
-      metadata: {
+      metadata: {,
         agentName: this.config.name,
         timestamp: new Date().toISOString(),
       },
@@ -161,7 +161,7 @@ export abstract class BaseAgent {
       confidence: 0,
       message,
       reasoning: reasoning || `Error in ${this.config.name}: ${message}`,
-      metadata: {
+      metadata: {,
         agentName: this.config.name,
         timestamp: new Date().toISOString(),
       },

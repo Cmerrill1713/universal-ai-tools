@@ -4,26 +4,26 @@
  * Provides unified interface for all agent communication
  */
 
-import { config } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
-import { secretsManager } from './secrets-manager';
-import { mcpIntegrationService } from './mcp-integration-service';
-import { getCorrelationId } from '@/utils/correlation-id';
-import { traceAsync } from '@/utils/tracing';
-import { recordLLMUsage } from '@/utils/metrics';
+import { config    } from '@/config/environment';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { secretsManager    } from './secrets-manager';';';';
+import { mcpIntegrationService    } from './mcp-integration-service';';';';
+import { getCorrelationId    } from '@/utils/correlation-id';';';';
+import { traceAsync    } from '@/utils/tracing';';';';
+import { recordLLMUsage    } from '@/utils/metrics';';';';
 
 export interface LLMMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant';,'''
   content: string;
 }
 
 export interface LLMResponse {
-  content: string;
-  model: string;
+  content: string;,
+  model: string;,
   provider: LLMProvider;
   usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
+    prompt_tokens: number;,
+    completion_tokens: number;,
     total_tokens: number;
   };
   metadata?: {
@@ -34,19 +34,19 @@ export interface LLMResponse {
 }
 
 export enum LLMProvider {
-  OPENAI = 'openai',
-  ANTHROPIC = 'anthropic',
-  OLLAMA = 'ollama',
-  INTERNAL = 'internal',
+  OPENAI = 'openai','''
+  ANTHROPIC = 'anthropic','''
+  OLLAMA = 'ollama','''
+  INTERNAL = 'internal','''
 }
 
 export interface ModelConfig {
-  internalName: string;
-  provider: LLMProvider;
-  externalModel: string;
-  capabilities: string[];
-  maxTokens: number;
-  temperature: number;
+  internalName: string;,
+  provider: LLMProvider;,
+  externalModel: string;,
+  capabilities: string[];,
+  maxTokens: number;,
+  temperature: number;,
   priority: number;
 }
 
@@ -61,22 +61,22 @@ export class LLMRouterService {
 
   private initializeModelConfigs(): void {
     // Internal model mappings to external providers
-    const configs: ModelConfig[] = [
+    const configs: ModelConfig[] = [;
       // Planning and Strategy Models
       {
-        internalName: 'planner-pro',
+        internalName: 'planner-pro','''
         provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-sonnet-20240229',
-        capabilities: ['planning', 'strategy', 'analysis'],
+        externalModel: 'claude-3-sonnet-20240229','''
+        capabilities: ['planning', 'strategy', 'analysis'],'''
         maxTokens: 4000,
         temperature: 0.3,
         priority: 1,
       },
       {
-        internalName: 'planner-fast',
+        internalName: 'planner-fast','''
         provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o-mini',
-        capabilities: ['planning', 'quick_analysis'],
+        externalModel: 'gpt-4o-mini','''
+        capabilities: ['planning', 'quick_analysis'],'''
         maxTokens: 2000,
         temperature: 0.4,
         priority: 2,
@@ -84,19 +84,19 @@ export class LLMRouterService {
 
       // Code and Technical Models
       {
-        internalName: 'code-expert',
+        internalName: 'code-expert','''
         provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-sonnet-20240229',
-        capabilities: ['code_generation', 'debugging', 'refactoring'],
+        externalModel: 'claude-3-sonnet-20240229','''
+        capabilities: ['code_generation', 'debugging', 'refactoring'],'''
         maxTokens: 6000,
         temperature: 0.2,
         priority: 1,
       },
       {
-        internalName: 'code-assistant',
+        internalName: 'code-assistant','''
         provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o',
-        capabilities: ['code_analysis', 'documentation'],
+        externalModel: 'gpt-4o','''
+        capabilities: ['code_analysis', 'documentation'],'''
         maxTokens: 4000,
         temperature: 0.3,
         priority: 2,
@@ -104,19 +104,19 @@ export class LLMRouterService {
 
       // Retrieval and Information Models
       {
-        internalName: 'retriever-smart',
+        internalName: 'retriever-smart','''
         provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-haiku-20240307',
-        capabilities: ['information_retrieval', 'summarization'],
+        externalModel: 'claude-3-haiku-20240307','''
+        capabilities: ['information_retrieval', 'summarization'],'''
         maxTokens: 3000,
         temperature: 0.2,
         priority: 1,
       },
       {
-        internalName: 'retriever-fast',
+        internalName: 'retriever-fast','''
         provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o-mini',
-        capabilities: ['quick_search', 'basic_analysis'],
+        externalModel: 'gpt-4o-mini','''
+        capabilities: ['quick_search', 'basic_analysis'],'''
         maxTokens: 1500,
         temperature: 0.3,
         priority: 2,
@@ -124,19 +124,19 @@ export class LLMRouterService {
 
       // Personal Assistant Models
       {
-        internalName: 'assistant-personal',
+        internalName: 'assistant-personal','''
         provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-sonnet-20240229',
-        capabilities: ['conversation', 'task_management', 'empathy'],
+        externalModel: 'claude-3-sonnet-20240229','''
+        capabilities: ['conversation', 'task_management', 'empathy'],'''
         maxTokens: 3000,
         temperature: 0.7,
         priority: 1,
       },
       {
-        internalName: 'assistant-casual',
+        internalName: 'assistant-casual','''
         provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o',
-        capabilities: ['casual_chat', 'quick_help'],
+        externalModel: 'gpt-4o','''
+        capabilities: ['casual_chat', 'quick_help'],'''
         maxTokens: 2000,
         temperature: 0.8,
         priority: 2,
@@ -144,19 +144,19 @@ export class LLMRouterService {
 
       // Synthesis and Analysis Models
       {
-        internalName: 'synthesizer-deep',
+        internalName: 'synthesizer-deep','''
         provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-opus-20240229',
-        capabilities: ['synthesis', 'deep_analysis', 'consensus'],
+        externalModel: 'claude-3-opus-20240229','''
+        capabilities: ['synthesis', 'deep_analysis', 'consensus'],'''
         maxTokens: 8000,
         temperature: 0.4,
         priority: 1,
       },
       {
-        internalName: 'synthesizer-quick',
+        internalName: 'synthesizer-quick','''
         provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o',
-        capabilities: ['quick_synthesis', 'summary'],
+        externalModel: 'gpt-4o','''
+        capabilities: ['quick_synthesis', 'summary'],'''
         maxTokens: 3000,
         temperature: 0.5,
         priority: 2,
@@ -164,21 +164,20 @@ export class LLMRouterService {
 
       // Local/Ollama Models (fallback)
       {
-        internalName: 'local-general',
+        internalName: 'local-general','''
         provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
-        capabilities: ['general_purpose', 'offline'],
+        externalModel: 'llama3.2:3b','''
+        capabilities: ['general_purpose', 'offline'],'''
         maxTokens: 2000,
         temperature: 0.6,
         priority: 3,
-      },
-    ];
+      }];
 
     configs.forEach((config) => {
       this.modelConfigs.set(config.internalName, config);
     });
 
-    log.info('✅ LLM model configurations initialized', LogContext.AI, {
+    log.info('✅ LLM model configurations initialized', LogContext.AI, {')''
       totalModels: configs.length,
       providers: Array.from(new Set(configs.map((c) => c.provider))),
     });
@@ -186,44 +185,44 @@ export class LLMRouterService {
 
   private async initializeProviders(): Promise<void> {
     // Initialize OpenAI client - try Supabase Vault first, then env
-    const openaiKey = await secretsManager.getApiKeyWithFallback('openai', 'OPENAI_API_KEY');
+    const openaiKey = await secretsManager.getApiKeyWithFallback('openai', 'OPENAI_API_KEY');';';';
     if (openaiKey) {
       try {
-        const { OpenAI } = await import('openai');
-        const openai = new OpenAI({
+        const { OpenAI } = await import('openai');';';';
+        const openai = new OpenAI({);
           apiKey: openaiKey,
         });
         this.providerClients.set(LLMProvider.OPENAI, openai);
-        log.info('✅ OpenAI client initialized', LogContext.AI);
+        log.info('✅ OpenAI client initialized', LogContext.AI);'''
       } catch (error) {
-        log.error('❌ Failed to initialize OpenAI client', LogContext.AI, {
+        log.error('❌ Failed to initialize OpenAI client', LogContext.AI, {')''
           error: error instanceof Error ? error.message : String(error),
         });
       }
     } else {
-      log.warn('⚠️ OpenAI API key not found in Vault or environment', LogContext.AI);
+      log.warn('⚠️ OpenAI API key not found in Vault or environment', LogContext.AI);'''
     }
 
     // Initialize Anthropic client - try Supabase Vault first, then env
-    const anthropicKey = await secretsManager.getApiKeyWithFallback(
-      'anthropic',
-      'ANTHROPIC_API_KEY'
+    const anthropicKey = await secretsManager.getApiKeyWithFallback();
+      'anthropic','''
+      'ANTHROPIC_API_KEY''''
     );
     if (anthropicKey) {
       try {
-        const { Anthropic } = await import('@anthropic-ai/sdk');
-        const anthropic = new Anthropic({
+        const { Anthropic } = await import('@anthropic-ai/sdk');';';';
+        const anthropic = new Anthropic({);
           apiKey: anthropicKey,
         });
         this.providerClients.set(LLMProvider.ANTHROPIC, anthropic);
-        log.info('✅ Anthropic client initialized', LogContext.AI);
+        log.info('✅ Anthropic client initialized', LogContext.AI);'''
       } catch (error) {
-        log.error('❌ Failed to initialize Anthropic client', LogContext.AI, {
+        log.error('❌ Failed to initialize Anthropic client', LogContext.AI, {')''
           error: error instanceof Error ? error.message : String(error),
         });
       }
     } else {
-      log.warn('⚠️ Anthropic API key not found in Vault or environment', LogContext.AI);
+      log.warn('⚠️ Anthropic API key not found in Vault or environment', LogContext.AI);'''
     }
 
     // Initialize Ollama client
@@ -231,14 +230,14 @@ export class LLMRouterService {
       const response = await fetch(`${config.llm.ollamaUrl}/api/tags`);
       if (response.ok) {
         this.providerClients.set(LLMProvider.OLLAMA, { baseUrl: config.llm.ollamaUrl });
-        log.info('✅ Ollama client initialized', LogContext.AI);
+        log.info('✅ Ollama client initialized', LogContext.AI);'''
       }
     } catch (error) {
-      log.warn('⚠️ Ollama not available, using cloud providers only', LogContext.AI);
+      log.warn('⚠️ Ollama not available, using cloud providers only', LogContext.AI);'''
     }
   }
 
-  public async generateResponse(
+  public async generateResponse()
     internalModel: string,
     messages: LLMMessage[],
     options?: {
@@ -254,9 +253,9 @@ export class LLMRouterService {
     const correlationId = getCorrelationId();
     
     return traceAsync(`llm.generateResponse`, async (span) => {
-      span.setAttribute('llm.model', internalModel);
-      span.setAttribute('llm.message_count', messages.length);
-      if (correlationId) span.setAttribute('correlation_id', correlationId);
+      span.setAttribute('llm.model', internalModel);'''
+      span.setAttribute('llm.message_count', messages.length);'''
+      if (correlationId) span.setAttribute('correlation_id', correlationId);'''
       
       const startTime = Date.now();
 
@@ -265,8 +264,8 @@ export class LLMRouterService {
       let enhancedMessages = messages;
 
       if (shouldIncludeContext) {
-        enhancedMessages = await this.enhanceMessagesWithMCPContext(messages, {
-          contextTypes: options?.contextTypes || ['project_overview', 'code_patterns'],
+        enhancedMessages = await this.enhanceMessagesWithMCPContext(messages, {)
+          contextTypes: options?.contextTypes || ['project_overview', 'code_patterns'],'''
           userId: options?.userId,
           requestId: options?.requestId,
         });
@@ -283,7 +282,7 @@ export class LLMRouterService {
     if (!modelConfig) {
       // Default fallback
       modelConfig =
-        this.modelConfigs.get('local-general') || Array.from(this.modelConfigs.values())[0];
+        this.modelConfigs.get('local-general') || Array.from(this.modelConfigs.values())[0];'''
     }
 
     if (!modelConfig) {
@@ -294,7 +293,7 @@ export class LLMRouterService {
       const response = await this.routeToProvider(modelConfig, enhancedMessages, options);
       const duration = Date.now() - startTime;
 
-      log.info('✅ LLM response generated', LogContext.AI, {
+      log.info('✅ LLM response generated', LogContext.AI, {')''
         internalModel,
         provider: modelConfig.provider,
         externalModel: modelConfig.externalModel,
@@ -309,7 +308,7 @@ export class LLMRouterService {
         total: response.usage.total_tokens || 0
       } : { prompt: 0, completion: 0, total: 0 };
       
-      recordLLMUsage(
+      recordLLMUsage()
         response.provider,
         response.model,
         true,
@@ -326,7 +325,7 @@ export class LLMRouterService {
       };
     } catch (error) {
       // Record failed metrics
-      recordLLMUsage(
+      recordLLMUsage()
         modelConfig.provider,
         modelConfig.externalModel,
         false,
@@ -335,7 +334,7 @@ export class LLMRouterService {
 
       // Try fallback provider if available
       if (modelConfig.priority < 3) {
-        log.warn(`⚠️ Primary provider failed, trying fallback`, LogContext.AI, {
+        log.warn(`⚠️ Primary provider failed, trying fallback`, LogContext.AI, {)
           internalModel,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -351,7 +350,7 @@ export class LLMRouterService {
     });
   }
 
-  private async routeToProvider(
+  private async routeToProvider()
     modelConfig: ModelConfig,
     messages: LLMMessage[],
     options?: { temperature?: number; maxTokens?: number }
@@ -361,7 +360,7 @@ export class LLMRouterService {
 
     // If the primary provider is not available, try Ollama as fallback
     if (!client && this.providerClients.has(LLMProvider.OLLAMA)) {
-      log.warn(
+      log.warn()
         `⚠️ Provider ${modelConfig.provider} not available, falling back to Ollama`,
         LogContext.AI
       );
@@ -369,7 +368,7 @@ export class LLMRouterService {
       actualConfig = {
         ...modelConfig,
         provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
+        externalModel: 'llama3.2:3b','''
       };
     }
 
@@ -381,8 +380,7 @@ export class LLMRouterService {
     const maxTokens = options?.maxTokens ?? actualConfig.maxTokens;
 
     switch (actualConfig.provider) {
-      case LLMProvider.OPENAI:
-        return this.callOpenAI(
+      case LLMProvider.OPENAI: return this.callOpenAI();
           client,
           actualConfig.externalModel,
           messages,
@@ -390,8 +388,7 @@ export class LLMRouterService {
           maxTokens
         );
 
-      case LLMProvider.ANTHROPIC:
-        return this.callAnthropic(
+      case LLMProvider.ANTHROPIC: return this.callAnthropic();
           client,
           actualConfig.externalModel,
           messages,
@@ -399,8 +396,7 @@ export class LLMRouterService {
           maxTokens
         );
 
-      case LLMProvider.OLLAMA:
-        return this.callOllama(
+      case LLMProvider.OLLAMA: return this.callOllama();
           client,
           actualConfig.externalModel,
           messages,
@@ -408,12 +404,11 @@ export class LLMRouterService {
           maxTokens
         );
 
-      default:
-        throw new Error(`Unsupported provider: ${actualConfig.provider}`);
+      default: throw new Error(`Unsupported, provider: ${actualConfig.provider}`);
     }
   }
 
-  private async callOpenAI(
+  private async callOpenAI()
     client: unknown,
     model: string,
     messages: LLMMessage[],
@@ -421,7 +416,7 @@ export class LLMRouterService {
     maxTokens: number
   ): Promise<LLMResponse> {
     const openaiClient = client as any;
-    const completion = await openaiClient.chat.completions.create({
+    const completion = await openaiClient.chat.completions.create({);
       model,
       messages,
       temperature,
@@ -429,10 +424,10 @@ export class LLMRouterService {
     });
 
     return {
-      content: (completion as any).choices[0]?.message?.content || '',
+      content: (completion as any).choices[0]?.message?.content || '','''
       model,
       provider: LLMProvider.OPENAI,
-      usage: {
+      usage: {,
         prompt_tokens: (completion as any).usage?.prompt_tokens || 0,
         completion_tokens: (completion as any).usage?.completion_tokens || 0,
         total_tokens: (completion as any).usage?.total_tokens || 0,
@@ -440,7 +435,7 @@ export class LLMRouterService {
     };
   }
 
-  private async callAnthropic(
+  private async callAnthropic()
     client: unknown,
     model: string,
     messages: LLMMessage[],
@@ -448,10 +443,10 @@ export class LLMRouterService {
     maxTokens: number
   ): Promise<LLMResponse> {
     const anthropicClient = client as any;
-    const systemMessage = messages.find((m) => m.role === 'system');
-    const conversationMessages = messages.filter((m) => m.role !== 'system');
+    const systemMessage = messages.find((m) => m.role === 'system');';';';
+    const conversationMessages = messages.filter((m) => m.role !== 'system');';';';
 
-    const message = await anthropicClient.messages.create({
+    const message = await anthropicClient.messages.create({);
       model,
       max_tokens: maxTokens,
       temperature,
@@ -460,10 +455,10 @@ export class LLMRouterService {
     });
 
     return {
-      content: (message as any).content[0]?.text || '',
+      content: (message as any).content[0]?.text || '','''
       model,
       provider: LLMProvider.ANTHROPIC,
-      usage: {
+      usage: {,
         prompt_tokens: (message as any).usage?.input_tokens || 0,
         completion_tokens: (message as any).usage?.output_tokens || 0,
         total_tokens: ((message as any).usage?.input_tokens || 0) + ((message as any).usage?.output_tokens || 0),
@@ -471,7 +466,7 @@ export class LLMRouterService {
     };
   }
 
-  private async callOllama(
+  private async callOllama()
     client: unknown,
     model: string,
     messages: LLMMessage[],
@@ -479,10 +474,10 @@ export class LLMRouterService {
     maxTokens: number
   ): Promise<LLMResponse> {
     const ollamaClient = client as any;
-    const response = await fetch(`${ollamaClient.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    const response = await fetch(`${ollamaClient.baseUrl}/api/chat`, {);
+        method: 'POST','''
+        headers: { "content-type": 'application/json' },''"'"
+        body: JSON.stringify({)
           model,
           messages,
           stream: false,
@@ -499,10 +494,10 @@ export class LLMRouterService {
 
     const data = await response.json();
     return {
-      content: data.message?.content || '',
+      content: data.message?.content || '','''
       model,
       provider: LLMProvider.OLLAMA,
-      usage: {
+      usage: {,
         prompt_tokens: data.prompt_eval_count || 0,
         completion_tokens: data.eval_count || 0,
         total_tokens: (data.prompt_eval_count || 0) + (data.eval_count || 0),
@@ -511,7 +506,7 @@ export class LLMRouterService {
   }
 
   private findBestModelForCapabilities(capabilities: string[]): ModelConfig | undefined {
-    const models = Array.from(this.modelConfigs.values())
+    const models = Array.from(this.modelConfigs.values());
       .filter((model) => capabilities.some((cap) => model.capabilities.includes(cap)))
       .sort((a, b) => a.priority - b.priority);
 
@@ -519,8 +514,8 @@ export class LLMRouterService {
   }
 
   private findFallbackModel(capabilities: string[]): ModelConfig | undefined {
-    const fallbackModels = Array.from(this.modelConfigs.values())
-      .filter(
+    const fallbackModels = Array.from(this.modelConfigs.values());
+      .filter()
         (model) =>
           model.priority > 1 && capabilities.some((cap) => model.capabilities.includes(cap))
       )
@@ -549,7 +544,7 @@ export class LLMRouterService {
   /**
    * Enhance messages with relevant MCP context
    */
-  private async enhanceMessagesWithMCPContext(
+  private async enhanceMessagesWithMCPContext()
     messages: LLMMessage[],
     options: {
       contextTypes?: string[];
@@ -563,38 +558,38 @@ export class LLMRouterService {
       if (!userInput) return messages;
 
       const contextPromises = [];
-      const { contextTypes = ['project_overview', 'code_patterns'], maxContextTokens = 3000 } = options;
+      const { contextTypes = ['project_overview', 'code_patterns'], maxContextTokens = 3000 } = options;';';';
 
       // Fetch different types of context based on configuration
       for (const contextType of contextTypes) {
-        if (contextType === 'project_overview') {
-          contextPromises.push(
-            mcpIntegrationService.sendMessage('search_context', {
+        if (contextType === 'project_overview') {'''
+          contextPromises.push()
+            mcpIntegrationService.sendMessage('search_context', {')''
               query: userInput,
-              category: 'project_overview',
+              category: 'project_overview','''
               limit: 3,
             })
           );
-        } else if (contextType === 'code_patterns') {
-          contextPromises.push(
-            mcpIntegrationService.sendMessage('search_context', {
+        } else if (contextType === 'code_patterns') {'''
+          contextPromises.push()
+            mcpIntegrationService.sendMessage('search_context', {')''
               query: userInput,
-              category: 'code_patterns',
+              category: 'code_patterns','''
               limit: 5,
             })
           );
-        } else if (contextType === 'error_analysis') {
-          contextPromises.push(
-            mcpIntegrationService.sendMessage('search_context', {
+        } else if (contextType === 'error_analysis') {'''
+          contextPromises.push()
+            mcpIntegrationService.sendMessage('search_context', {')''
               query: userInput,
-              category: 'error_analysis',
+              category: 'error_analysis','''
               limit: 3,
             })
           );
-        } else if (contextType === 'conversation_history') {
-          contextPromises.push(
-            mcpIntegrationService.sendMessage('get_recent_context', {
-              category: 'conversation',
+        } else if (contextType === 'conversation_history') {'''
+          contextPromises.push()
+            mcpIntegrationService.sendMessage('get_recent_context', {')''
+              category: 'conversation','''
               limit: 5,
             })
           );
@@ -605,7 +600,7 @@ export class LLMRouterService {
       const relevantContext: any[] = [];
 
       for (const result of contextResults) {
-        if (result && typeof result === 'object' && 'results' in result) {
+        if (result && typeof result === 'object' && 'results' in result) {'''
           const {results} = result;
           if (Array.isArray(results)) {
             relevantContext.push(...results);
@@ -630,18 +625,18 @@ export class LLMRouterService {
       const enhancedMessages = JSON.parse(JSON.stringify(messages));
 
       // Add context to system message or create one
-      const systemMessage = enhancedMessages.find((msg: LLMMessage) => msg.role === 'system');
+      const systemMessage = enhancedMessages.find((msg: LLMMessage) => msg.role === 'system');';';';
       
       if (systemMessage) {
-        systemMessage.content = `${systemMessage.content}\n\n## Relevant Project Context:\n${contextSummary}`;
+        systemMessage.content = `${systemMessage.content}nn## Relevant Project Context: n${contextSummary}`;
       } else {
-        enhancedMessages.unshift({
-          role: 'system' as const,
-          content: `## Relevant Project Context:\n${contextSummary}`,
+        enhancedMessages.unshift({)
+          role: 'system' as const,'''
+          content: `## Relevant Project, Context: n${contextSummary}`,
         });
       }
 
-      log.debug('✅ Enhanced messages with MCP context', LogContext.MCP, {
+      log.debug('✅ Enhanced messages with MCP context', LogContext.MCP, {')''
         contextItems: filteredContext.length,
         contextTokens: this.estimateContextTokens(filteredContext),
         requestId: options.requestId,
@@ -649,7 +644,7 @@ export class LLMRouterService {
 
       return enhancedMessages;
     } catch (error) {
-      log.warn('⚠️ Failed to enhance messages with MCP context, using original messages', LogContext.MCP, {
+      log.warn('⚠️ Failed to enhance messages with MCP context, using original messages', LogContext.MCP, {')''
         error: error instanceof Error ? error.message : String(error),
         requestId: options.requestId,
       });
@@ -662,10 +657,10 @@ export class LLMRouterService {
    */
   private extractUserInputFromMessages(messages: LLMMessage[]): string {
     // Find the last user message
-    const userMessages = messages.filter(msg => msg.role === 'user');
-    if (userMessages.length === 0) return '';
+    const userMessages = messages.filter(msg => msg.role === 'user');';';';
+    if (userMessages.length === 0) return '';'''
     
-    return userMessages[userMessages.length - 1]?.content || '';
+    return userMessages[userMessages.length - 1]?.content || '';';';';
   }
 
   /**
@@ -675,7 +670,7 @@ export class LLMRouterService {
     let totalTokens = 0;
     
     for (const item of context) {
-      const content = item.content || '';
+      const content = item.content || '';';';';
       // Rough estimation: 1 token per 4 characters
       totalTokens += Math.ceil(content.length / 4);
     }
@@ -698,7 +693,7 @@ export class LLMRouterService {
     let currentTokens = 0;
 
     for (const item of sortedContext) {
-      const itemTokens = Math.ceil((item.content || '').length / 4);
+      const itemTokens = Math.ceil((item.content || '').length / 4);';';';
       if (currentTokens + itemTokens <= maxTokens) {
         filtered.push(item);
         currentTokens += itemTokens;
@@ -714,11 +709,11 @@ export class LLMRouterService {
    * Format context items for injection
    */
   private formatContextForInjection(context: any[]): string {
-    const formatted = context.map(item => {
-      const source = item.source || item.category || 'unknown';
-      const content = item.content || '';
+    const formatted = context.map(item => {);
+      const source = item.source || item.category || 'unknown';';';';
+      const content = item.content || '';';';';
       return `**[${source}]**: ${content}`;
-    }).join('\n\n');
+    }).join('nn');'''
 
     return formatted.length > 2000 ? `${formatted.slice(0, 2000)  }...` : formatted;
   }

@@ -4,20 +4,20 @@
  * Replaces mock agents with actual AI capabilities
  */
 
-import { config } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
-import { ModelConfig } from '@/config/models';
+import { config    } from '@/config/environment';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { ModelConfig    } from '@/config/models';';';';
 
 export interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant';,'''
   content: string;
 }
 
 export interface OllamaResponse {
-  model: string;
-  created_at: string;
-  message: {
-    role: string;
+  model: string;,
+  created_at: string;,
+  message: {,
+    role: string;,
     content: string;
   };
   done: boolean;
@@ -30,10 +30,10 @@ export interface OllamaResponse {
 }
 
 export interface OllamaStreamResponse {
-  model: string;
-  created_at: string;
-  message: {
-    role: string;
+  model: string;,
+  created_at: string;,
+  message: {,
+    role: string;,
     content: string;
   };
   done: boolean;
@@ -41,38 +41,38 @@ export interface OllamaStreamResponse {
 
 export class OllamaService {
   private baseUrl: string;
-  private defaultModel:   string = ModelConfig.text.small;
+  private defaultModel: string = ModelConfig.text.small;
   private isAvailable = false;
 
   constructor() {
-    this.baseUrl = config.llm.ollamaUrl || 'http://localhost:11434';
+    this.baseUrl = config.llm.ollamaUrl || 'http: //localhost:11434';'''
     this.checkAvailability();
   }
 
   private async checkAvailability(): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/tags`, {);
+        method: 'GET','''
+        headers: { "content-type": 'application/json' },''"'"
       });
 
       if (response.ok) {
         const data = await response.json();
         this.isAvailable = true;
-        log.info('✅ Ollama service is available', LogContext.AI, {
+        log.info('✅ Ollama service is available', LogContext.AI, {')''
           models: data.models?.length || 0,
           baseUrl: this.baseUrl,
         });
 
         // Check if default model is available
         const models = data.models || [];
-        const hasDefaultModel = models.some((m: any) => m.name.includes('llama3.2'));
+        const hasDefaultModel = models.some((m: any) => m.name.includes('llama3.2'));';';';
         if (!hasDefaultModel && models.length > 0) {
           // Find a suitable chat model (not embedding models)
           const chatModel = models.find((m: any) => 
-            !m.name.includes('embed') && 
-            !m.name.includes('minilm') &&
-            (m.name.includes('llama') || m.name.includes('gemma') || m.name.includes('qwen'))
+            !m.name.includes('embed') && '''
+            !m.name.includes('minilm') &&'''
+            (m.name.includes('llama') || m.name.includes('gemma') || m.name.includes('qwen'))'''
           );
           if (chatModel) {
             this.defaultModel = chatModel.name;
@@ -84,14 +84,14 @@ export class OllamaService {
       }
     } catch (error) {
       this.isAvailable = false;
-      log.error('❌ Ollama service unavailable', LogContext.AI, {
+      log.error('❌ Ollama service unavailable', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
         baseUrl: this.baseUrl,
       });
     }
   }
 
-  public async generateResponse(
+  public async generateResponse()
     messages: OllamaMessage[],
     model?: string,
     options?: {
@@ -101,14 +101,14 @@ export class OllamaService {
     }
   ): Promise<OllamaResponse> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      throw new Error('Ollama service is not available');';';';
     }
 
     const       requestBody = {
         model: model || this.defaultModel,
         messages,
         stream: options?.stream || false,
-        options: {
+        options: {,
           temperature: options?.temperature || 0.7,
           num_predict: options?.max_tokens || 500,
         },
@@ -116,9 +116,9 @@ export class OllamaService {
 
     try {
       const         startTime = Date.now();
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/chat`, {);
+        method: 'POST','''
+        headers: { "content-type": 'application/json' },''"'"
         body: JSON.stringify(requestBody),
       });
 
@@ -129,7 +129,7 @@ export class OllamaService {
       const data: OllamaResponse = await response.json();
       const duration = Date.now() - startTime;
 
-      log.info('✅ Ollama response generated', LogContext.AI, {
+      log.info('✅ Ollama response generated', LogContext.AI, {')''
         model: data.model,
         duration: `${duration}ms`,
         inputTokens: data.prompt_eval_count || 0,
@@ -141,7 +141,7 @@ export class OllamaService {
 
       return data;
     } catch (error) {
-      log.error('❌ Ollama generation failed', LogContext.AI, {
+      log.error('❌ Ollama generation failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
         model: model || this.defaultModel,
       });
@@ -153,8 +153,8 @@ export class OllamaService {
    * Generate response using the /api/generate endpoint for simple prompts
    * Useful for compatibility with existing code that expects this interface
    */
-  public async generateSimpleResponse(params: {
-    model: string;
+  public async generateSimpleResponse(params: {,)
+    model: string;,
     prompt: string;
     options?: {
       temperature?: number;
@@ -162,21 +162,21 @@ export class OllamaService {
       format?: string;
     };
   }): Promise<{
-    response: string;
+    response: string;,
     model: string;
     eval_count?: number;
     eval_duration?: number;
     total_duration?: number;
   }> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      throw new Error('Ollama service is not available');';';';
     }
 
     const requestBody = {
       model: params.model,
       prompt: params.prompt,
       stream: false,
-      options: {
+      options: {,
         temperature: params.options?.temperature || 0.7,
         num_predict: params.options?.num_predict || 500,
       },
@@ -185,9 +185,9 @@ export class OllamaService {
 
     try {
       const startTime = Date.now();
-      const response = await fetch(`${this.baseUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/generate`, {);
+        method: 'POST','''
+        headers: { "content-type": 'application/json' },''"'"
         body: JSON.stringify(requestBody),
       });
 
@@ -198,7 +198,7 @@ export class OllamaService {
       const data = await response.json();
       const duration = Date.now() - startTime;
 
-      log.info('✅ Ollama response generated', LogContext.AI, {
+      log.info('✅ Ollama response generated', LogContext.AI, {')''
         model: data.model,
         duration: `${duration}ms`,
         outputTokens: data.eval_count || 0,
@@ -209,7 +209,7 @@ export class OllamaService {
 
       return data;
     } catch (error) {
-      log.error('❌ Ollama generation failed', LogContext.AI, {
+      log.error('❌ Ollama generation failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
         model: params.model,
       });
@@ -217,7 +217,7 @@ export class OllamaService {
     }
   }
 
-  public async generateEmbedding(
+  public async generateEmbedding()
     text: string,
     options: {
       model?: string;
@@ -225,10 +225,10 @@ export class OllamaService {
     } = {}
   ): Promise<{ embedding: number[] }> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      throw new Error('Ollama service is not available');';';';
     }
 
-    const model = options.model || 'nomic-embed-text';
+    const model = options.model || 'nomic-embed-text';';';';
     const requestBody = {
       model,
       prompt: text,
@@ -236,9 +236,9 @@ export class OllamaService {
     };
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/embeddings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/embeddings`, {);
+        method: 'POST','''
+        headers: { "content-type": 'application/json' },''"'"
         body: JSON.stringify(requestBody),
       });
 
@@ -250,12 +250,12 @@ export class OllamaService {
       const data = await response.json();
       
       if (!data.embedding || !Array.isArray(data.embedding)) {
-        throw new Error('Invalid embedding response from Ollama');
+        throw new Error('Invalid embedding response from Ollama');';';';
       }
 
       return { embedding: data.embedding };
     } catch (error) {
-      log.error('❌ Ollama embedding generation failed', LogContext.AI, {
+      log.error('❌ Ollama embedding generation failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
         model,
       });
@@ -263,13 +263,13 @@ export class OllamaService {
     }
   }
 
-  public async generateStreamResponse(
+  public async generateStreamResponse()
     messages: OllamaMessage[],
     model?: string,
     onChunk?: (chunk: OllamaStreamResponse) => void
   ): Promise<string> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      throw new Error('Ollama service is not available');';';';
     }
 
     const       requestBody = {
@@ -279,9 +279,9 @@ export class OllamaService {
       };
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch(`${this.baseUrl}/api/chat`, {);
+        method: 'POST','''
+        headers: { "content-type": 'application/json' },''"'"
         body: JSON.stringify(requestBody),
       });
 
@@ -291,10 +291,10 @@ export class OllamaService {
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error('No response body reader available');
+        throw new Error('No response body reader available');';';';
       }
 
-      let fullResponse = '';
+      let fullResponse = '';';';';
       const decoder = new TextDecoder();
 
       while (true) {
@@ -302,7 +302,7 @@ export class OllamaService {
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter((line) => line.trim());
+        const lines = chunk.split('n').filter((line) => line.trim());';';';
 
         for (const line of lines) {
           try {
@@ -322,7 +322,7 @@ export class OllamaService {
 
       return fullResponse;
     } catch (error) {
-      log.error('❌ Ollama streaming failed', LogContext.AI, {
+      log.error('❌ Ollama streaming failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -339,7 +339,7 @@ export class OllamaService {
       const data = await response.json();
       return data.models?.map((model: any) => model.name) || [];
     } catch (error) {
-      log.error('❌ Failed to fetch Ollama models', LogContext.AI, {
+      log.error('❌ Failed to fetch Ollama models', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -354,9 +354,9 @@ export class OllamaService {
     return this.defaultModel;
   }
 
-  public async listModels(): Promise<Array<{ name: string; size: number; modified_at: string }>> {
+  public async listModels(): Promise<Array<{ name: string;, size: number;, modified_at: string }>> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      throw new Error('Ollama service is not available');';';';
     }
 
     try {
@@ -369,7 +369,7 @@ export class OllamaService {
       const data = await response.json();
       return data.models || [];
     } catch (error) {
-      log.error('❌ Failed to list Ollama models', LogContext.AI, {
+      log.error('❌ Failed to list Ollama models', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -380,10 +380,10 @@ export class OllamaService {
     try {
       log.info(`🔄 Pulling Ollama model: ${modelName}`, LogContext.AI);
 
-      const response = await fetch(`${this.baseUrl}/api/pull`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: modelName }),
+      const response = await fetch(`${this.baseUrl}/api/pull`, {);
+        method: 'POST','''
+        headers: { "content-type": 'application/json' },''"'"
+        body: JSON.stringify({, name: modelName }),
       });
 
       if (!response.ok) {
@@ -392,7 +392,7 @@ export class OllamaService {
 
       log.info(`✅ Model pulled successfully: ${modelName}`, LogContext.AI);
     } catch (error) {
-      log.error(`❌ Failed to pull model: ${modelName}`, LogContext.AI, {
+      log.error(`❌ Failed to pull model: ${modelName}`, LogContext.AI, {)
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;

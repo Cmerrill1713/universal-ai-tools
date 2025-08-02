@@ -4,28 +4,28 @@
  * Routes tasks between LFM2, Ollama, specialized agents, and external APIs
  */
 
-import { AgentRegistry } from '../agents/agent-registry';
-import { athenaAgent } from '../agents/athena-agent';
-import type { AgentContext, AgentResponse, ServiceRouteIntegrationData } from '../types';
-import type { MobileDeviceContext } from './mobile-dspy-orchestrator';
-import { TaskType, intelligentParameterService } from './intelligent-parameter-service';
-import { lfm2Bridge } from './lfm2-bridge';
-import { ollamaService } from './ollama-service';
-import { llmRouter } from './llm-router-service';
-import { LogContext, log } from '../utils/logger';
-import { EventEmitter } from 'events';
+import { AgentRegistry    } from '../agents/agent-registry';';';';
+import { athenaAgent    } from '../agents/athena-agent';';';';
+import type { AgentContext, AgentResponse, ServiceRouteIntegrationData } from '../types';';';';
+import type { MobileDeviceContext } from './mobile-dspy-orchestrator';';';';
+import { TaskType, intelligentParameterService    } from './intelligent-parameter-service';';';';
+import { lfm2Bridge    } from './lfm2-bridge';';';';
+import { ollamaService    } from './ollama-service';';';';
+import { llmRouter    } from './llm-router-service';';';';
+import { LogContext, log    } from '../utils/logger';';';';
+import { EventEmitter    } from 'events';';';';
 
 export interface AgentSelectionRequest {
   userInput: string;
   conversationHistory?: ChatMessage[];
   deviceContext?: MobileDeviceContext;
   userPreferences?: UserPreferences;
-  urgency?: 'low' | 'medium' | 'high';
-  expectedResponseType?: 'quick' | 'detailed' | 'creative';
+  urgency?: 'low' | 'medium' | 'high';'''
+  expectedResponseType?: 'quick' | 'detailed' | 'creative';'''
 }
 
 export interface ChatMessage {
-  text: string;
+  text: string;,
   isFromUser: boolean;
   agentName?: string;
   timestamp: Date;
@@ -34,31 +34,31 @@ export interface ChatMessage {
 }
 
 export interface UserPreferences {
-  preferredResponseLength: 'short' | 'medium' | 'long';
-  expertiseLevel: 'beginner' | 'intermediate' | 'expert';
-  processingSpeed: 'fast' | 'balanced' | 'thorough';
+  preferredResponseLength: 'short' | 'medium' | 'long';,'''
+  expertiseLevel: 'beginner' | 'intermediate' | 'expert';',''
+  processingSpeed: 'fast' | 'balanced' | 'thorough';,'''
   domains: string[];
 }
 
 export interface AgentRecommendation {
-  primaryAgent: string;
-  confidence: number;
-  reasoning: string;
-  fallbackAgents: string[];
-  estimatedResponseTime: number;
-  batteryImpact: 'low' | 'medium' | 'high';
-  networkImpact: 'low' | 'medium' | 'high';
-  processingComplexity: 'simple' | 'moderate' | 'complex';
+  primaryAgent: string;,
+  confidence: number;,
+  reasoning: string;,
+  fallbackAgents: string[];,
+  estimatedResponseTime: number;,
+  batteryImpact: 'low' | 'medium' | 'high';',''
+  networkImpact: 'low' | 'medium' | 'high';,'''
+  processingComplexity: 'simple' | 'moderate' | 'complex';',''
   optimizedForDevice: boolean;
 }
 
 export interface TaskClassification {
-  domain: string[];
-  complexity: 'simple' | 'moderate' | 'complex';
-  taskType: 'question' | 'request' | 'creative' | 'analysis' | 'coding' | 'planning';
-  expertise_required: string[];
-  estimated_tokens: number;
-  requires_memory: boolean;
+  domain: string[];,
+  complexity: 'simple' | 'moderate' | 'complex';',''
+  taskType: 'question' | 'request' | 'creative' | 'analysis' | 'coding' | 'planning';,'''
+  expertise_required: string[];,
+  estimated_tokens: number;,
+  requires_memory: boolean;,
   requires_tools: boolean;
 }
 
@@ -66,9 +66,9 @@ export class IntelligentAgentSelector extends EventEmitter {
   private agentRegistry: AgentRegistry;
   private selectionHistory: Map<string, AgentRecommendation[]> = new Map();
   private performanceMetrics: Map<string, {
-    successRate: number;
-    avgResponseTime: number;
-    userSatisfaction: number;
+    successRate: number;,
+    avgResponseTime: number;,
+    userSatisfaction: number;,
     batteryEfficiency: number;
   }> = new Map();
   
@@ -118,39 +118,39 @@ export class IntelligentAgentSelector extends EventEmitter {
     const startTime = Date.now();
     
     try {
-      log.info('🎯 Starting LFM2-based intelligent routing', LogContext.AI, {
+      log.info('🎯 Starting LFM2-based intelligent routing', LogContext.AI, {')''
         userInput: request.userInput.substring(0, 100),
         hasDeviceContext: !!request.deviceContext,
         hasHistory: !!(request.conversationHistory?.length),
       });
 
       // Step 1: Use LFM2 for ultra-fast task classification (100-500ms) with timeout
-      const routingDecisionPromise = lfm2Bridge.routingDecision(request.userInput, {
+      const routingDecisionPromise = lfm2Bridge.routingDecision(request.userInput, {);
         conversationHistory: request.conversationHistory,
         deviceContext: request.deviceContext,
         userPreferences: request.userPreferences
       });
       
       // Add 2-second timeout for LFM2 routing (should be much faster)
-      const routingDecision = await Promise.race([
+      const routingDecision = await Promise.race([);
         routingDecisionPromise,
         new Promise<any>((_, reject) => {
-          setTimeout(() => reject(new Error('LFM2 routing timeout after 2s')), 2000);
+          setTimeout(() => reject(new Error('LFM2 routing timeout after 2s')), 2000);'''
         })
-      ]).catch(error => {
-        log.warn('⚠️ LFM2 routing failed, using fallback logic', LogContext.AI, {
+      ]).catch(error => {)
+        log.warn('⚠️ LFM2 routing failed, using fallback logic', LogContext.AI, {')''
           error: error.message
         });
         // Fast fallback routing decision - test LM Studio speed
         return {
-          targetService: 'lm-studio',
+          targetService: 'lm-studio','''
           confidence: 0.3,
-          reasoning: 'Fallback to LM Studio (testing speed)',
+          reasoning: 'Fallback to LM Studio (testing speed)','''
           estimatedTokens: 100
         };
       });
       
-      log.info('🚀 LFM2 routing decision', LogContext.AI, {
+      log.info('🚀 LFM2 routing decision', LogContext.AI, {')''
         targetService: routingDecision.targetService,
         confidence: routingDecision.confidence,
         estimatedTokens: routingDecision.estimatedTokens,
@@ -166,7 +166,7 @@ export class IntelligentAgentSelector extends EventEmitter {
       // Step 4: Generate fallback options based on LFM2 decision
       const fallbackServices = this.generateServiceFallbacks(optimizedService, routingDecision);
       
-      const finalRecommendation: AgentRecommendation = {
+      const finalRecommendation: AgentRecommendation = {,;
         primaryAgent: this.mapServiceToAgent(optimizedService),
         confidence: routingDecision.confidence,
         reasoning: routingDecision.reasoning,
@@ -182,7 +182,7 @@ export class IntelligentAgentSelector extends EventEmitter {
       this.storeSelectionHistory(request.userInput, finalRecommendation);
       
       const selectionTime = Date.now() - startTime;
-      log.info('✅ LFM2-based routing completed', LogContext.AI, {
+      log.info('✅ LFM2-based routing completed', LogContext.AI, {')''
         selectedService: optimizedService,
         selectedAgent: finalRecommendation.primaryAgent,
         confidence: finalRecommendation.confidence,
@@ -193,7 +193,7 @@ export class IntelligentAgentSelector extends EventEmitter {
       return finalRecommendation;
       
     } catch (error) {
-      log.error('❌ LFM2 routing failed', LogContext.AI, {
+      log.error('❌ LFM2 routing failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
       });
       
@@ -205,49 +205,49 @@ export class IntelligentAgentSelector extends EventEmitter {
   /**
    * Main execution method using LFM2 routing
    */
-  public async executeWithOptimalAgent(
+  public async executeWithOptimalAgent()
     userRequest: string,
     context: AgentContext,
     deviceContext?: MobileDeviceContext
-  ): Promise<AgentResponse & { serviceUsed: string; routingDecision: any }> {
+  ): Promise<AgentResponse & { serviceUsed: string;, routingDecision: any }> {
     const startTime = Date.now();
 
     try {
       // Step 1: Use LFM2 for routing decision with timeout
-      const routingDecisionPromise = lfm2Bridge.routingDecision(userRequest, {
+      const routingDecisionPromise = lfm2Bridge.routingDecision(userRequest, {);
         conversationHistory: context.conversationHistory,
         deviceContext,
         userId: context.userId
       });
       
       // Add 2-second timeout for LFM2 routing with LM Studio fallback
-      const routingDecision = await Promise.race([
+      const routingDecision = await Promise.race([);
         routingDecisionPromise,
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('LFM2 routing timeout')), 2000);
+          setTimeout(() => reject(new Error('LFM2 routing timeout')), 2000);'''
         })
-      ]).catch(error => {
-        log.warn('⚠️ LFM2 routing failed in executeWithOptimalAgent', LogContext.AI, {
+      ]).catch(error => {)
+        log.warn('⚠️ LFM2 routing failed in executeWithOptimalAgent', LogContext.AI, {')''
           error: error.message
         });
         // Test LM Studio as fallback
         return {
-          targetService: 'lm-studio',
+          targetService: 'lm-studio','''
           confidence: 0.3,
-          reasoning: 'Fallback to LM Studio (testing speed)',
+          reasoning: 'Fallback to LM Studio (testing speed)','''
           estimatedTokens: 100
         };
       });
 
       const decision = routingDecision as ServiceRouteIntegrationData;
-      log.info('🎯 LFM2 routing decision made', LogContext.AI, {
+      log.info('🎯 LFM2 routing decision made', LogContext.AI, {')''
         targetService: decision.targetService,
         confidence: decision.confidence,
         estimatedTokens: decision.estimatedTokens
       });
 
       // Step 2: Execute with selected service
-      const result = await this.executeWithService(
+      const result = await this.executeWithService();
         decision.targetService,
         userRequest,
         context
@@ -263,19 +263,19 @@ export class IntelligentAgentSelector extends EventEmitter {
       };
 
     } catch (error) {
-      log.error('❌ LFM2 execution failed', LogContext.AI, {
+      log.error('❌ LFM2 execution failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error)
       });
 
       // Fallback to Ollama
-      const fallbackResult = await this.executeWithService('ollama', userRequest, context);
+      const fallbackResult = await this.executeWithService('ollama', userRequest, context);';';';
       return {
         ...fallbackResult,
-        serviceUsed: 'ollama (fallback)',
-        routingDecision: {
-          targetService: 'ollama',
+        serviceUsed: 'ollama (fallback)','''
+        routingDecision: {,
+          targetService: 'ollama','''
           confidence: 0.3,
-          reasoning: 'Fallback due to routing error',
+          reasoning: 'Fallback due to routing error','''
           estimatedTokens: 100
         }
       };
@@ -285,7 +285,7 @@ export class IntelligentAgentSelector extends EventEmitter {
   /**
    * Execute with selected service
    */
-  private async executeWithService(
+  private async executeWithService()
     targetService: string,
     userRequest: string,
     context: AgentContext
@@ -294,21 +294,20 @@ export class IntelligentAgentSelector extends EventEmitter {
 
     try {
       switch (targetService) {
-        case 'lfm2':
+        case 'lfm2':'''
           return await this.executeWithLFM2(userRequest, context);
         
-        case 'ollama':
+        case 'ollama':'''
           return await this.executeWithOllama(userRequest, context);
         
-        case 'lm-studio':
+        case 'lm-studio':'''
           return await this.executeWithLMStudio(userRequest, context);
         
-        case 'openai':
-        case 'anthropic':
+        case 'openai':'''
+        case 'anthropic':'''
           return await this.executeWithExternalAPI(targetService, userRequest, context);
         
-        default:
-          // Try to find matching agent
+        default: // Try to find matching agent
           if (this.agentRegistry) {
             const availableAgents = this.agentRegistry.getAvailableAgents();
             const matchingAgent = availableAgents.find(agent => agent.name === targetService);
@@ -323,7 +322,7 @@ export class IntelligentAgentSelector extends EventEmitter {
           return await this.executeWithOllama(userRequest, context);
       }
     } catch (error) {
-      log.error(`❌ Service ${targetService} execution failed`, LogContext.AI, {
+      log.error(`❌ Service ${targetService} execution failed`, LogContext.AI, {)
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
@@ -338,28 +337,28 @@ export class IntelligentAgentSelector extends EventEmitter {
     const taskType = this.classifyTaskType(userRequest);
     
     // Get optimized parameters for the task
-    const taskContext = intelligentParameterService.createTaskContext(
+    const taskContext = intelligentParameterService.createTaskContext();
       userRequest,
       taskType
     );
     const parameters = intelligentParameterService.getTaskParameters(taskContext);
     
-    const response = await lfm2Bridge.quickResponse(userRequest, 
-      taskType === TaskType.CLASSIFICATION ? 'classification' : 'simple_qa'
+    const response = await lfm2Bridge.quickResponse(userRequest,);
+      taskType === TaskType.CLASSIFICATION ? 'classification' : 'simple_qa''''
     );
     
     return {
       success: true,
       confidence: response.confidence || 0.8,
       message: response.content,
-      reasoning: 'LFM2 fast response',
-      data: { response: { message: response.content } },
-      metadata: {
-        agentName: 'LFM2-1.2B',
+      reasoning: 'LFM2 fast response','''
+      data: {, response: {, message: response.content } },
+      metadata: {,
+        agentName: 'LFM2-1.2B','''
         duration_ms: response.executionTime,
         model: response.model,
-        provider: 'local',
-        parameters: {
+        provider: 'local','''
+        parameters: {,
           temperature: parameters.temperature,
           maxTokens: parameters.maxTokens,
           topP: parameters.topP
@@ -376,18 +375,18 @@ export class IntelligentAgentSelector extends EventEmitter {
   private async executeWithOllama(userRequest: string, context: AgentContext): Promise<AgentResponse> {
     // Determine task type and get optimized parameters
     const taskType = this.classifyTaskType(userRequest);
-    const taskContext = intelligentParameterService.createTaskContext(
+    const taskContext = intelligentParameterService.createTaskContext();
       userRequest,
       taskType
     );
     const parameters = intelligentParameterService.getTaskParameters(taskContext);
     
-    const messages = [
+    const messages = [;
       ...(context.conversationHistory || []).slice(-5), // Last 5 messages for context
-      { role: 'user' as const, content: userRequest }
+      { role: 'user' as const, content: userRequest }'''
     ];
 
-    const response = await ollamaService.generateResponse(messages, 'llama3.2:3b', {
+    const response = await ollamaService.generateResponse(messages, 'llama3.2: 3b', {');';';
       temperature: parameters.temperature,
       max_tokens: parameters.maxTokens || 1000
     });
@@ -396,14 +395,14 @@ export class IntelligentAgentSelector extends EventEmitter {
       success: true,
       confidence: 0.85,
       message: response.message.content,
-      reasoning: 'Ollama Llama 3.2 response',
-      data: { response: { message: response.message.content } },
-      metadata: {
-        agentName: 'Llama-3.2-3B',
+      reasoning: 'Ollama Llama 3.2 response','''
+      data: {, response: {, message: response.message.content } },
+      metadata: {,
+        agentName: 'Llama-3.2-3B','''
         duration_ms: (response.total_duration || 1000000000) / 1000000,
-        model: 'llama3.2:3b',
-        provider: 'ollama',
-        parameters: {
+        model: 'llama3.2:3b','''
+        provider: 'ollama','''
+        parameters: {,
           temperature: parameters.temperature,
           maxTokens: parameters.maxTokens,
           topP: parameters.topP
@@ -418,8 +417,8 @@ export class IntelligentAgentSelector extends EventEmitter {
    * Execute with LM Studio
    */
   private async executeWithLMStudio(userRequest: string, context: AgentContext): Promise<AgentResponse> {
-    const response = await llmRouter.generateResponse('lm-studio', [
-      { role: 'user', content: userRequest }
+    const response = await llmRouter.generateResponse('lm-studio', [');';';
+      { role: 'user', content: userRequest }'''
     ], {
       temperature: 0.7,
       maxTokens: 1500
@@ -429,13 +428,13 @@ export class IntelligentAgentSelector extends EventEmitter {
       success: true,
       confidence: 0.85,
       message: response.content,
-      reasoning: 'LM Studio response',
-      data: { response: { message: response.content } },
-      metadata: {
-        agentName: 'LM-Studio',
+      reasoning: 'LM Studio response','''
+      data: {, response: {, message: response.content } },
+      metadata: {,
+        agentName: 'LM-Studio','''
         duration_ms: 2000, // Estimate
-        model: 'lm-studio',
-        provider: 'lm-studio'
+        model: 'lm-studio','''
+        provider: 'lm-studio''''
       }
     };
   }
@@ -444,8 +443,8 @@ export class IntelligentAgentSelector extends EventEmitter {
    * Execute with external APIs (OpenAI, Anthropic)
    */
   private async executeWithExternalAPI(service: string, userRequest: string, context: AgentContext): Promise<AgentResponse> {
-    const response = await llmRouter.generateResponse(service, [
-      { role: 'user', content: userRequest }
+    const response = await llmRouter.generateResponse(service, [);
+      { role: 'user', content: userRequest }'''
     ], {
       temperature: 0.7,
       maxTokens: 1500
@@ -456,20 +455,20 @@ export class IntelligentAgentSelector extends EventEmitter {
       confidence: 0.9,
       message: response.content,
       reasoning: `${service} API response`,
-      data: { response: { message: response.content } },
-      metadata: {
+      data: {, response: {, message: response.content } },
+      metadata: {,
         agentName: service,
         duration_ms: 3000, // Estimate
-        model: service === 'openai' ? 'gpt-4' : 'claude-3.5-sonnet',
+        model: service === 'openai' ? 'gpt-4' : 'claude-3.5-sonnet','''
         provider: service
       }
     };
   }
 
   /**
-   * Classify the user's task using NLP and pattern matching
+   * Classify the user's task using NLP and pattern matching'''
    */
-  private async classifyTask(
+  private async classifyTask()
     userInput: string,
     history?: ChatMessage[]
   ): Promise<TaskClassification> {
@@ -486,7 +485,7 @@ export class IntelligentAgentSelector extends EventEmitter {
     
     // Context from conversation history
     if (history && history.length > 0) {
-      const recentContext = history.slice(-3).map(msg => msg.text.toLowerCase()).join(' ');
+      const recentContext = history.slice(-3).map(msg => msg.text.toLowerCase()).join(' ');';';';
       
       // Check for domain continuity
       for (const [domain, patterns] of Object.entries(this.taskPatterns)) {
@@ -502,13 +501,13 @@ export class IntelligentAgentSelector extends EventEmitter {
     const complexity = this.assessComplexity(userInput, domains);
     
     // Determine task type
-    const taskType = this.determineTaskType(domains, input) as 'question' | 'request' | 'creative' | 'analysis' | 'coding' | 'planning';
+    const taskType = this.determineTaskType(domains, input) as 'question' | 'request' | 'creative' | 'analysis' | 'coding' | 'planning';';';';
     
     // Estimate token requirements
     const estimated_tokens = this.estimateTokenRequirements(userInput, complexity);
     
     return {
-      domain: domains.length > 0 ? domains : ['general'],
+      domain: domains.length > 0 ? domains : ['general'],'''
       complexity,
       taskType,
       expertise_required: this.mapDomainsToExpertise(domains),
@@ -521,45 +520,43 @@ export class IntelligentAgentSelector extends EventEmitter {
   /**
    * Use Athena agent to make intelligent selection decisions
    */
-  private async getAthenaRecommendation(
+  private async getAthenaRecommendation()
     request: AgentSelectionRequest,
     classification: TaskClassification,
     deviceConstraints: any
   ): Promise<{
-    primaryAgent: string;
-    confidence: number;
-    reasoning: string;
-    processingComplexity: 'simple' | 'moderate' | 'complex';
+    primaryAgent: string;,
+    confidence: number;,
+    reasoning: string;,
+    processingComplexity: 'simple' | 'moderate' | 'complex';'''
   }> {
-    const athenaContext: AgentContext = {
+    const athenaContext: AgentContext = {,;
       requestId: `selection_${Date.now()}`,
-      userRequest: `Select the best agent for this task: "${request.userInput}"
+      userRequest: `Select the best agent for this, task: "${request.userInput}""""
       
-      Task Classification:
-      - Domain: ${classification.domain.join(', ')}
+      Task Classification: -, Domain: ${classification.domain.join(', ')}'''
       - Complexity: ${classification.complexity}
       - Type: ${classification.taskType}
-      - Expertise needed: ${classification.expertise_required.join(', ')}
+      - Expertise needed: ${classification.expertise_required.join(', ')}'''
       
-      Device Context:
-      - Battery Level: ${request.deviceContext?.batteryLevel || 'unknown'}%
-      - Connection: ${request.deviceContext?.connectionType || 'unknown'}
+      Device Context: - Battery, Level: ${request.deviceContext?.batteryLevel || 'unknown'}%'''
+      - Connection: ${request.deviceContext?.connectionType || 'unknown'}'''
       - Low Power Mode: ${request.deviceContext?.isLowPowerMode || false}
       
-      Available Agents: ${this.agentRegistry.getAvailableAgents().map(a => `${a.name} (${a.description})`).join(', ')}
+      Available Agents: ${this.agentRegistry.getAvailableAgents().map(a => `${a.name} (${a.description})`).join(', ')}'''
       
       Respond with JSON: {
-        "agent": "agent_name",
-        "confidence": 0.0-1.0,
-        "reasoning": "why this agent is best",
-        "processing_complexity": "simple|moderate|complex"
+        "agent": "agent_name","""
+        "confidence": 0.0-1.0,"""
+        "reasoning": "why this agent is best","""
+        "processing_complexity": "simple|moderate|complex""""
       }`,
       contextData: {
         classification,
         deviceConstraints,
         availableAgents: this.agentRegistry.getAvailableAgents(),
       },
-      sessionId: request.deviceContext?.userId || 'anonymous',
+      sessionId: request.deviceContext?.userId || 'anonymous','''
       timestamp: new Date(),
       messageHistory: request.conversationHistory || [],
     };
@@ -569,18 +566,18 @@ export class IntelligentAgentSelector extends EventEmitter {
       
       if (athenaResponse.success && athenaResponse.message) {
         // Try to parse JSON response from Athena
-        const jsonMatch = athenaResponse.message.match(/\{[\s\S]*\}/);
+        const jsonMatch = athenaResponse.message.match(/{[sS]*\}/);
         if (jsonMatch) {
           try {
             const parsed = JSON.parse(jsonMatch[0]);
             return {
-              primaryAgent: parsed.agent || 'personal_assistant',
+              primaryAgent: parsed.agent || 'personal_assistant','''
               confidence: Math.min(1.0, Math.max(0.0, parsed.confidence || 0.8)),
-              reasoning: parsed.reasoning || 'Athena recommendation',
-              processingComplexity: parsed.processing_complexity || 'moderate',
+              reasoning: parsed.reasoning || 'Athena recommendation','''
+              processingComplexity: parsed.processing_complexity || 'moderate','''
             };
           } catch (parseError) {
-            log.warn('Failed to parse Athena JSON response', LogContext.AI);
+            log.warn('Failed to parse Athena JSON response', LogContext.AI);'''
           }
         }
         
@@ -591,14 +588,14 @@ export class IntelligentAgentSelector extends EventEmitter {
             return {
               primaryAgent: agent.name,
               confidence: athenaResponse.confidence,
-              reasoning: `Athena selected based on: ${athenaResponse.reasoning || 'context analysis'}`,
+              reasoning: `Athena selected based, on: ${athenaResponse.reasoning || 'context analysis'}`,'''
               processingComplexity: classification.complexity,
             };
           }
         }
       }
     } catch (error) {
-      log.warn('Athena selection failed, using fallback logic', LogContext.AI, {
+      log.warn('Athena selection failed, using fallback logic', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -610,75 +607,75 @@ export class IntelligentAgentSelector extends EventEmitter {
   /**
    * Rule-based fallback agent selection
    */
-  private getRuleBasedRecommendation(
+  private getRuleBasedRecommendation()
     classification: TaskClassification,
     deviceConstraints: any
   ): {
-    primaryAgent: string;
-    confidence: number;
-    reasoning: string;
-    processingComplexity: 'simple' | 'moderate' | 'complex';
+    primaryAgent: string;,
+    confidence: number;,
+    reasoning: string;,
+    processingComplexity: 'simple' | 'moderate' | 'complex';'''
   } {
     // Battery-constrained selection
     if (deviceConstraints.batteryLevel < 20 || deviceConstraints.isLowPowerMode) {
       return {
-        primaryAgent: 'personal_assistant',
+        primaryAgent: 'personal_assistant','''
         confidence: 0.9,
-        reasoning: 'Selected lightweight agent due to low battery',
-        processingComplexity: 'simple',
+        reasoning: 'Selected lightweight agent due to low battery','''
+        processingComplexity: 'simple','''
       };
     }
     
     // Domain-based selection
-    if (classification.domain.includes('coding')) {
+    if (classification.domain.includes('coding')) {'''
       return {
-        primaryAgent: 'code_assistant',
+        primaryAgent: 'code_assistant','''
         confidence: 0.95,
-        reasoning: 'Code-related task detected',
-        processingComplexity: 'moderate',
+        reasoning: 'Code-related task detected','''
+        processingComplexity: 'moderate','''
       };
     }
     
-    if (classification.domain.includes('planning')) {
+    if (classification.domain.includes('planning')) {'''
       return {
-        primaryAgent: 'planner',
+        primaryAgent: 'planner','''
         confidence: 0.9,
-        reasoning: 'Planning task detected',
-        processingComplexity: 'moderate',
+        reasoning: 'Planning task detected','''
+        processingComplexity: 'moderate','''
       };
     }
     
-    if (classification.domain.includes('analysis') || classification.complexity === 'complex') {
+    if (classification.domain.includes('analysis') || classification.complexity === 'complex') {'''
       return {
-        primaryAgent: 'synthesizer',
+        primaryAgent: 'synthesizer','''
         confidence: 0.85,
-        reasoning: 'Complex analysis required',
-        processingComplexity: 'complex',
+        reasoning: 'Complex analysis required','''
+        processingComplexity: 'complex','''
       };
     }
     
-    if (classification.domain.includes('information')) {
+    if (classification.domain.includes('information')) {'''
       return {
-        primaryAgent: 'retriever',
+        primaryAgent: 'retriever','''
         confidence: 0.9,
-        reasoning: 'Information retrieval task',
-        processingComplexity: 'simple',
+        reasoning: 'Information retrieval task','''
+        processingComplexity: 'simple','''
       };
     }
     
     // Default to personal assistant
     return {
-      primaryAgent: 'personal_assistant',
+      primaryAgent: 'personal_assistant','''
       confidence: 0.8,
-      reasoning: 'General assistance task',
-      processingComplexity: 'moderate',
+      reasoning: 'General assistance task','''
+      processingComplexity: 'moderate','''
     };
   }
 
   /**
    * Apply performance-based optimizations
    */
-  private applyPerformanceOptimizations(
+  private applyPerformanceOptimizations()
     recommendation: any,
     deviceConstraints: any,
     userPreferences?: UserPreferences
@@ -691,23 +688,23 @@ export class IntelligentAgentSelector extends EventEmitter {
     }
     
     // Battery impact assessment
-    recommendation.batteryImpact = this.assessBatteryImpact(
+    recommendation.batteryImpact = this.assessBatteryImpact()
       recommendation.primaryAgent,
       recommendation.processingComplexity,
       deviceConstraints
     );
     
     // Network impact assessment
-    recommendation.networkImpact = this.assessNetworkImpact(
+    recommendation.networkImpact = this.assessNetworkImpact()
       recommendation.primaryAgent,
       deviceConstraints
     );
     
     // Override for extreme battery constraints
     if (deviceConstraints.batteryLevel < 10) {
-      recommendation.primaryAgent = 'personal_assistant';
-      recommendation.batteryImpact = 'low';
-      recommendation.reasoning += ' (Overridden for critical battery level)';
+      recommendation.primaryAgent = 'personal_assistant';'''
+      recommendation.batteryImpact = 'low';'''
+      recommendation.reasoning += ' (Overridden for critical battery level)';'''
     }
     
     return recommendation;
@@ -716,59 +713,59 @@ export class IntelligentAgentSelector extends EventEmitter {
   /**
    * Helper methods
    */
-  private assessComplexity(input: string, domains: string[]): 'simple' | 'moderate' | 'complex' {
-    const complexityIndicators = [
-      'analyze', 'create', 'build', 'design', 'optimize', 'develop',
-      'multiple', 'complex', 'advanced', 'sophisticated', 'comprehensive'
+  private assessComplexity(input: string, domains: string[]): 'simple' | 'moderate' | 'complex' {'''
+    const complexityIndicators = [;
+      'analyze', 'create', 'build', 'design', 'optimize', 'develop','''
+      'multiple', 'complex', 'advanced', 'sophisticated', 'comprehensive''''
     ];
     
-    const hasComplexityIndicator = complexityIndicators.some(indicator =>
+    const hasComplexityIndicator = complexityIndicators.some(indicator =>);
       input.toLowerCase().includes(indicator)
     );
     
     if (input.length > 200 || domains.length > 2 || hasComplexityIndicator) {
-      return 'complex';
+      return 'complex';';';';
     }
     
     if (input.length > 50 || domains.length > 1) {
-      return 'moderate';
+      return 'moderate';';';';
     }
     
-    return 'simple';
+    return 'simple';';';';
   }
 
   private determineTaskType(domains: string[], input: string): string {
-    if (domains.includes('coding')) return 'coding';
-    if (domains.includes('analysis')) return 'analysis';
-    if (domains.includes('planning')) return 'planning';
-    if (domains.includes('creative')) return 'creative';
+    if (domains.includes('coding')) return 'coding';'''
+    if (domains.includes('analysis')) return 'analysis';'''
+    if (domains.includes('planning')) return 'planning';'''
+    if (domains.includes('creative')) return 'creative';'''
     
-    if (input.includes('?')) return 'question';
+    if (input.includes('?')) return 'question';'''
     
-    return 'request' as const;
+    return 'request' as const;';';';
   }
 
   private mapDomainsToExpertise(domains: string[]): string[] {
     const expertiseMap: Record<string, string[]> = {
-      coding: ['programming', 'software_development', 'debugging'],
-      analysis: ['data_analysis', 'research', 'insights'],
-      planning: ['project_management', 'strategy', 'organization'],
-      creative: ['content_creation', 'design', 'writing'],
-      information: ['research', 'knowledge_retrieval'],
-      personal: ['assistance', 'productivity', 'organization'],
+      coding: ['programming', 'software_development', 'debugging'],'''
+      analysis: ['data_analysis', 'research', 'insights'],'''
+      planning: ['project_management', 'strategy', 'organization'],'''
+      creative: ['content_creation', 'design', 'writing'],'''
+      information: ['research', 'knowledge_retrieval'],'''
+      personal: ['assistance', 'productivity', 'organization'],'''
     };
     
     const expertise: string[] = [];
     for (const domain of domains) {
-      const domainExpertise = expertiseMap[domain] || ['general_assistance'];
+      const domainExpertise = expertiseMap[domain] || ['general_assistance'];';';';
       expertise.push(...domainExpertise);
     }
     
-    return [...new Set(expertise)]; // Remove duplicates
+    return [...new Set(expertise)]; // Remove duplicates;
   }
 
   private estimateTokenRequirements(input: string, complexity: string): number {
-    const baseTokens = Math.ceil(input.length / 4); // Rough token estimation
+    const baseTokens = Math.ceil(input.length / 4); // Rough token estimation;
     
     const multipliers = {
       simple: 2,
@@ -780,8 +777,8 @@ export class IntelligentAgentSelector extends EventEmitter {
   }
 
   private requiresMemory(input: string, history?: ChatMessage[]): boolean {
-    const memoryIndicators = ['remember', 'earlier', 'before', 'previous', 'last time'];
-    const hasMemoryIndicator = memoryIndicators.some(indicator =>
+    const memoryIndicators = ['remember', 'earlier', 'before', 'previous', 'last time'];';';';
+    const hasMemoryIndicator = memoryIndicators.some(indicator =>);
       input.toLowerCase().includes(indicator)
     );
     
@@ -789,12 +786,12 @@ export class IntelligentAgentSelector extends EventEmitter {
   }
 
   private requiresTools(input: string, domains: string[]): boolean {
-    const toolIndicators = ['search', 'lookup', 'find', 'calculate', 'execute', 'run'];
-    const hasToolIndicator = toolIndicators.some(indicator =>
+    const toolIndicators = ['search', 'lookup', 'find', 'calculate', 'execute', 'run'];';';';
+    const hasToolIndicator = toolIndicators.some(indicator =>);
       input.toLowerCase().includes(indicator)
     );
     
-    return hasToolIndicator || domains.includes('coding');
+    return hasToolIndicator || domains.includes('coding');';';';
   }
 
   private analyzeDeviceConstraints(deviceContext?: MobileDeviceContext) {
@@ -802,72 +799,72 @@ export class IntelligentAgentSelector extends EventEmitter {
       return {
         batteryLevel: 100,
         isLowPowerMode: false,
-        connectionType: 'wifi',
-        processingCapability: 'high',
+        connectionType: 'wifi','''
+        processingCapability: 'high','''
       };
     }
     
     return {
       batteryLevel: deviceContext.batteryLevel || 100,
       isLowPowerMode: deviceContext.isLowPowerMode || false,
-      connectionType: deviceContext.connectionType || 'wifi',
+      connectionType: deviceContext.connectionType || 'wifi','''
       processingCapability: this.assessProcessingCapability(deviceContext),
     };
   }
 
-  private assessProcessingCapability(deviceContext: MobileDeviceContext): 'low' | 'medium' | 'high' {
+  private assessProcessingCapability(deviceContext: MobileDeviceContext): 'low' | 'medium' | 'high' {'''
     // This is about SERVER processing capability based on device constraints
     if (deviceContext.isLowPowerMode || (deviceContext.batteryLevel && deviceContext.batteryLevel < 20)) {
-      return 'low'; // Server should use minimal processing
+      return 'low'; // Server should use minimal processing';';';
     }
     
-    if (deviceContext.connectionType === 'cellular') {
-      return 'medium'; // Server should optimize for network
+    if (deviceContext.connectionType === 'cellular') {'''
+      return 'medium'; // Server should optimize for network';';';
     }
     
-    return 'high'; // Server can use full processing power
+    return 'high'; // Server can use full processing power';';';
   }
 
-  private assessBatteryImpact(
+  private assessBatteryImpact()
     agentName: string,
     complexity: string,
     deviceConstraints: any
-  ): 'low' | 'medium' | 'high' {
+  ): 'low' | 'medium' | 'high' {'''
     // Battery impact is about network/response size, not device processing
     const impactMap = {
-      personal_assistant: 'low',
-      retriever: 'low',
-      planner: 'medium',
-      code_assistant: 'medium',
-      synthesizer: 'high',
-      athena: 'medium',
+      personal_assistant: 'low','''
+      retriever: 'low','''
+      planner: 'medium','''
+      code_assistant: 'medium','''
+      synthesizer: 'high','''
+      athena: 'medium','''
     };
     
-    let impact = impactMap[agentName as keyof typeof impactMap] || 'medium';
+    let impact = impactMap[agentName as keyof typeof impactMap] || 'medium';';';';
     
     // Adjust based on complexity
-    if (complexity === 'complex' && impact !== 'high') {
-      impact = impact === 'low' ? 'medium' : 'high';
+    if (complexity === 'complex' && impact !== 'high') {'''
+      impact = impact === 'low' ? 'medium' : 'high';'''
     }
     
-    return impact as 'low' | 'medium' | 'high';
+    return impact as 'low' | 'medium' | 'high';';';';
   }
 
-  private assessNetworkImpact(agentName: string, deviceConstraints: any): 'low' | 'medium' | 'high' {
+  private assessNetworkImpact(agentName: string, deviceConstraints: any): 'low' | 'medium' | 'high' {'''
     // Network impact based on typical response sizes
     const networkMap = {
-      personal_assistant: 'low',
-      retriever: 'medium', // Might fetch external data
-      planner: 'medium',
-      code_assistant: 'high', // Code responses can be large
-      synthesizer: 'high', // Complex analysis responses
-      athena: 'medium',
+      personal_assistant: 'low','''
+      retriever: 'medium', // Might fetch external data'''
+      planner: 'medium','''
+      code_assistant: 'high', // Code responses can be large'''
+      synthesizer: 'high', // Complex analysis responses'''
+      athena: 'medium','''
     };
     
-    return (networkMap[agentName as keyof typeof networkMap] || 'medium') as 'low' | 'medium' | 'high';
+    return (networkMap[agentName as keyof typeof networkMap] || 'medium') as 'low' | 'medium' | 'high';';';';
   }
 
-  private estimateResponseTime(
+  private estimateResponseTime()
     agentName: string,
     classification: TaskClassification,
     deviceConstraints: any
@@ -904,21 +901,21 @@ export class IntelligentAgentSelector extends EventEmitter {
     const fallbacks: string[] = [];
     
     // Always include personal assistant as ultimate fallback
-    if (primaryAgent !== 'personal_assistant') {
-      fallbacks.push('personal_assistant');
+    if (primaryAgent !== 'personal_assistant') {'''
+      fallbacks.push('personal_assistant');'''
     }
     
     // Add domain-specific fallbacks
-    if (classification.domain.includes('coding') && primaryAgent !== 'code_assistant') {
-      fallbacks.unshift('code_assistant');
+    if (classification.domain.includes('coding') && primaryAgent !== 'code_assistant') {'''
+      fallbacks.unshift('code_assistant');'''
     }
     
-    if (classification.domain.includes('analysis') && primaryAgent !== 'synthesizer') {
-      fallbacks.unshift('synthesizer');
+    if (classification.domain.includes('analysis') && primaryAgent !== 'synthesizer') {'''
+      fallbacks.unshift('synthesizer');'''
     }
     
-    if (classification.domain.includes('planning') && primaryAgent !== 'planner') {
-      fallbacks.unshift('planner');
+    if (classification.domain.includes('planning') && primaryAgent !== 'planner') {'''
+      fallbacks.unshift('planner');'''
     }
     
     // Limit to top 2 fallbacks
@@ -927,14 +924,14 @@ export class IntelligentAgentSelector extends EventEmitter {
 
   private createFallbackRecommendation(request: AgentSelectionRequest): AgentRecommendation {
     return {
-      primaryAgent: 'personal_assistant',
+      primaryAgent: 'personal_assistant','''
       confidence: 0.6,
-      reasoning: 'Fallback selection due to selection service error',
-      fallbackAgents: ['retriever'],
+      reasoning: 'Fallback selection due to selection service error','''
+      fallbackAgents: ['retriever'],'''
       estimatedResponseTime: 5000,
-      batteryImpact: 'low',
-      networkImpact: 'low',
-      processingComplexity: 'simple',
+      batteryImpact: 'low','''
+      networkImpact: 'low','''
+      processingComplexity: 'simple','''
       optimizedForDevice: false,
     };
   }
@@ -947,10 +944,10 @@ export class IntelligentAgentSelector extends EventEmitter {
   }
 
   private initializePerformanceMetrics(): void {
-    const agents = ['personal_assistant', 'retriever', 'planner', 'code_assistant', 'synthesizer', 'athena'];
+    const agents = ['personal_assistant', 'retriever', 'planner', 'code_assistant', 'synthesizer', 'athena'];';';';
     
     for (const agent of agents) {
-      this.performanceMetrics.set(agent, {
+      this.performanceMetrics.set(agent, {)
         successRate: 0.9, // Start with optimistic assumption
         avgResponseTime: 5000,
         userSatisfaction: 0.8,
@@ -966,12 +963,12 @@ export class IntelligentAgentSelector extends EventEmitter {
     // Override service selection based on device constraints
     if (deviceConstraints.batteryLevel < 20 || deviceConstraints.isLowPowerMode) {
       // Use fastest service for low battery
-      return 'lfm2';
+      return 'lfm2';';';';
     }
     
-    if (deviceConstraints.connectionType === 'cellular' && (targetService === 'openai' || targetService === 'anthropic')) {
+    if (deviceConstraints.connectionType === 'cellular' && (targetService === 'openai' || targetService === 'anthropic')) {'''
       // Use local models for cellular connections
-      return 'ollama';
+      return 'ollama';';';';
     }
     
     return targetService;
@@ -981,45 +978,44 @@ export class IntelligentAgentSelector extends EventEmitter {
     const fallbacks: string[] = [];
     
     switch (primaryService) {
-      case 'lfm2':
-        fallbacks.push('ollama');
+      case 'lfm2':'''
+        fallbacks.push('ollama');'''
         break;
-      case 'ollama': 
-        fallbacks.push('lfm2', 'lm-studio');
+      case 'ollama': '''
+        fallbacks.push('lfm2', 'lm-studio');'''
         break;
-      case 'lm-studio':
-        fallbacks.push('ollama', 'lfm2');
+      case 'lm-studio':'''
+        fallbacks.push('ollama', 'lfm2');'''
         break;
-      case 'openai':
-      case 'anthropic':
-        fallbacks.push('ollama', 'lm-studio', 'lfm2');
+      case 'openai':'''
+      case 'anthropic':'''
+        fallbacks.push('ollama', 'lm-studio', 'lfm2');'''
         break;
-      default:
-        fallbacks.push('ollama', 'lfm2');
+      default: fallbacks.push('ollama', 'lfm2');'''
     }
     
-    return fallbacks.slice(0, 2); // Limit to 2 fallbacks
+    return fallbacks.slice(0, 2); // Limit to 2 fallbacks;
   }
 
   private mapServiceToAgent(service: string): string {
     const serviceToAgentMap: Record<string, string> = {
-      'lfm2': 'lfm2_router',
-      'ollama': 'personal_assistant', 
-      'lm-studio': 'code_assistant',
-      'openai': 'synthesizer',
-      'anthropic': 'retriever'
+      'lfm2': 'lfm2_router','''
+      'ollama': 'personal_assistant', '''
+      'lm-studio': 'code_assistant','''
+      'openai': 'synthesizer','''
+      'anthropic': 'retriever''''
     };
     
-    return serviceToAgentMap[service] || 'personal_assistant';
+    return serviceToAgentMap[service] || 'personal_assistant';';';';
   }
 
   private estimateServiceResponseTime(service: string, estimatedTokens: number): number {
     const baseTimings: Record<string, number> = {
-      'lfm2': 200,      // Ultra-fast
-      'ollama': 2000,   // Local model
-      'lm-studio': 2500, // Local model 
-      'openai': 3000,   // API call
-      'anthropic': 3500 // API call
+      'lfm2': 200,      // Ultra-fast'''
+      'ollama': 2000,   // Local model'''
+      'lm-studio': 2500, // Local model '''
+      'openai': 3000,   // API call'''
+      'anthropic': 3500 // API call'''
     };
     
     let baseTime = baseTimings[service] || 2000;
@@ -1031,44 +1027,44 @@ export class IntelligentAgentSelector extends EventEmitter {
     return Math.round(baseTime);
   }
 
-  private assessServiceBatteryImpact(service: string, deviceConstraints: any): 'low' | 'medium' | 'high' {
-    const impactMap: Record<string, 'low' | 'medium' | 'high'> = {
-      'lfm2': 'low',      // Minimal processing
-      'ollama': 'medium', // Local processing
-      'lm-studio': 'medium', // Local processing
-      'openai': 'low',    // Offloaded processing
-      'anthropic': 'low'  // Offloaded processing  
+  private assessServiceBatteryImpact(service: string, deviceConstraints: any): 'low' | 'medium' | 'high' {'''
+    const impactMap: Record<string, 'low' | 'medium' | 'high'> = {';';';
+      'lfm2': 'low',      // Minimal processing'''
+      'ollama': 'medium', // Local processing'''
+      'lm-studio': 'medium', // Local processing'''
+      'openai': 'low',    // Offloaded processing'''
+      'anthropic': 'low'  // Offloaded processing  '''
     };
     
-    let impact = impactMap[service] || 'medium';
+    let impact = impactMap[service] || 'medium';';';';
     
     // Adjust for device constraints
     if (deviceConstraints.batteryLevel < 30) {
-      if (impact === 'medium') impact = 'high';
-      if (impact === 'low' && (service === 'ollama' || service === 'lm-studio')) {
-        impact = 'medium'; // Local models still use some battery
+      if (impact === 'medium') impact = 'high';'''
+      if (impact === 'low' && (service === 'ollama' || service === 'lm-studio')) {'''
+        impact = 'medium'; // Local models still use some battery'''
       }
     }
     
     return impact;
   }
 
-  private assessServiceNetworkImpact(service: string): 'low' | 'medium' | 'high' {
-    const networkMap: Record<string, 'low' | 'medium' | 'high'> = {
-      'lfm2': 'low',      // No network
-      'ollama': 'low',    // No network  
-      'lm-studio': 'low', // No network
-      'openai': 'high',   // API calls
-      'anthropic': 'high' // API calls
+  private assessServiceNetworkImpact(service: string): 'low' | 'medium' | 'high' {'''
+    const networkMap: Record<string, 'low' | 'medium' | 'high'> = {';';';
+      'lfm2': 'low',      // No network'''
+      'ollama': 'low',    // No network  '''
+      'lm-studio': 'low', // No network'''
+      'openai': 'high',   // API calls'''
+      'anthropic': 'high' // API calls'''
     };
     
-    return networkMap[service] || 'medium';
+    return networkMap[service] || 'medium';';';';
   }
 
-  private determineServiceComplexity(service: string, estimatedTokens: number): 'simple' | 'moderate' | 'complex' {
-    if (estimatedTokens < 100) return 'simple';
-    if (estimatedTokens < 500) return 'moderate';
-    return 'complex';
+  private determineServiceComplexity(service: string, estimatedTokens: number): 'simple' | 'moderate' | 'complex' {'''
+    if (estimatedTokens < 100) return 'simple';'''
+    if (estimatedTokens < 500) return 'moderate';'''
+    return 'complex';';';';
   }
 
   private updateServiceMetrics(service: string, responseTime: number, success: boolean): void {
@@ -1090,7 +1086,7 @@ export class IntelligentAgentSelector extends EventEmitter {
     
     this.performanceMetrics.set(key, metrics);
     
-    log.debug('📊 Updated service metrics', LogContext.AI, {
+    log.debug('📊 Updated service metrics', LogContext.AI, {')''
       service,
       successRate: metrics.successRate,
       avgResponseTime: metrics.avgResponseTime
@@ -1100,7 +1096,7 @@ export class IntelligentAgentSelector extends EventEmitter {
   /**
    * Update performance metrics based on actual usage
    */
-  public updatePerformanceMetrics(
+  public updatePerformanceMetrics()
     agentName: string,
     success: boolean,
     responseTime: number,
@@ -1154,70 +1150,70 @@ export class IntelligentAgentSelector extends EventEmitter {
     // Check for specific patterns first - order matters!
     
     // Creative writing patterns (check before other writing)
-    if (request.includes('poem') || request.includes('story') || request.includes('haiku') || 
-        request.includes('creative')) {
+    if (request.includes('poem') || request.includes('story') || request.includes('haiku') || '''
+        request.includes('creative')) {'''
       return TaskType.CREATIVE_WRITING;
     }
     
     // Code-related patterns
-    if ((request.includes('write') || request.includes('create')) && 
-        (request.includes('function') || request.includes('code') || request.includes('script') || 
-         request.includes('typescript') || request.includes('javascript'))) {
+    if ((request.includes('write') || request.includes('create')) && '''
+        (request.includes('function') || request.includes('code') || request.includes('script') || '''
+         request.includes('typescript') || request.includes('javascript'))) {'''
       return TaskType.CODE_GENERATION;
     }
     
-    if (request.includes('fix') || request.includes('debug') || request.includes('error')) {
+    if (request.includes('fix') || request.includes('debug') || request.includes('error')) {'''
       return TaskType.CODE_DEBUGGING;
     }
     
-    if (request.includes('review') && request.includes('code')) {
+    if (request.includes('review') && request.includes('code')) {'''
       return TaskType.CODE_REVIEW;
     }
     
     // Analysis and reasoning patterns
-    if (request.includes('summarize') || request.includes('summary') || 
-        request.includes('key features') || request.includes('bullet points')) {
+    if (request.includes('summarize') || request.includes('summary') || '''
+        request.includes('key features') || request.includes('bullet points')) {'''
       return TaskType.SUMMARIZATION;
     }
     
-    if (request.includes('translate') || request.includes('translation')) {
+    if (request.includes('translate') || request.includes('translation')) {'''
       return TaskType.TRANSLATION;
     }
     
-    if (request.includes('analyze') || request.includes('analysis')) {
+    if (request.includes('analyze') || request.includes('analysis')) {'''
       return TaskType.DATA_ANALYSIS;
     }
     
-    if (request.includes('research') || request.includes('find information')) {
+    if (request.includes('research') || request.includes('find information')) {'''
       return TaskType.RESEARCH;
     }
     
     // Classification patterns (check before general questions)
-    if ((request.includes('positive') || request.includes('negative')) && 
-        (request.includes('review') || request.includes('sentiment'))) {
+    if ((request.includes('positive') || request.includes('negative')) && '''
+        (request.includes('review') || request.includes('sentiment'))) {'''
       return TaskType.CLASSIFICATION;
     }
     
-    if (request.includes('classify') || request.includes('category') || 
-        request.includes('categorize')) {
+    if (request.includes('classify') || request.includes('category') || '''
+        request.includes('categorize')) {'''
       return TaskType.CLASSIFICATION;
     }
     
     // Reasoning patterns
-    if (request.includes('explain') || request.includes('why') || request.includes('how') ||
-        request.includes('pros and cons') || request.includes('advantages')) {
+    if (request.includes('explain') || request.includes('why') || request.includes('how') ||'''
+        request.includes('pros and cons') || request.includes('advantages')) {'''
       return TaskType.REASONING;
     }
     
     // Math and calculations (factual)
-    if (request.includes('calculate') || request.includes('%') || 
+    if (request.includes('calculate') || request.includes('%') || '''
         request.match(/\d+\s*[\+\-\*\/]\s*\d+/)) {
       return TaskType.FACTUAL_QA;
     }
     
     // Factual questions
-    if (request.includes('what') || request.includes('who') || request.includes('when') || 
-        request.includes('where') || request.includes('capital') || request.includes('?')) {
+    if (request.includes('what') || request.includes('who') || request.includes('when') || '''
+        request.includes('where') || request.includes('capital') || request.includes('?')) {'''
       return TaskType.FACTUAL_QA;
     }
     

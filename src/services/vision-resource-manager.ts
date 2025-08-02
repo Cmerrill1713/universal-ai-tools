@@ -4,34 +4,34 @@
  * Ensures efficient utilization of available hardware (24GB VRAM)
  */
 
-import { EventEmitter } from 'events';
-import { LogContext, log } from '@/utils/logger';
+import { EventEmitter    } from 'events';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
 
 export interface ModelInfo {
-  name: string;
-  type: 'analysis' | 'generation' | 'embedding';
-  sizeGB: number;
-  loadTimeMs: number;
-  lastUsed: number;
-  loaded: boolean;
+  name: string;,
+  type: 'analysis' | 'generation' | 'embedding';',''
+  sizeGB: number;,
+  loadTimeMs: number;,
+  lastUsed: number;,
+  loaded: boolean;,
   priority: number;
 }
 
 export interface GPUMetrics {
-  totalVRAM: number;
-  usedVRAM: number;
-  availableVRAM: number;
-  temperature: number;
+  totalVRAM: number;,
+  usedVRAM: number;,
+  availableVRAM: number;,
+  temperature: number;,
   utilization: number;
 }
 
 export interface ProcessingTask {
-  id: string;
-  model: string;
-  type: 'analysis' | 'generation' | 'embedding';
-  priority: number;
-  createdAt: number;
-  estimatedVRAM: number;
+  id: string;,
+  model: string;,
+  type: 'analysis' | 'generation' | 'embedding';,'''
+  priority: number;,
+  createdAt: number;,
+  estimatedVRAM: number;,
   estimatedTimeMs: number;
 }
 
@@ -83,9 +83,9 @@ export class VisionResourceManager extends EventEmitter {
 
   private initializeModels(): void {
     // Define available models and their resource requirements
-    this.models.set('yolo-v8n', {
-      name: 'yolo-v8n',
-      type: 'analysis',
+    this.models.set('yolo-v8n', {')''
+      name: 'yolo-v8n','''
+      type: 'analysis','''
       sizeGB: 0.006, // 6MB
       loadTimeMs: 500,
       lastUsed: 0,
@@ -93,9 +93,9 @@ export class VisionResourceManager extends EventEmitter {
       priority: 1,
     });
 
-    this.models.set('clip-vit-b32', {
-      name: 'clip-vit-b32',
-      type: 'embedding',
+    this.models.set('clip-vit-b32', {')''
+      name: 'clip-vit-b32','''
+      type: 'embedding','''
       sizeGB: 0.4, // 400MB
       loadTimeMs: 2000,
       lastUsed: 0,
@@ -103,9 +103,9 @@ export class VisionResourceManager extends EventEmitter {
       priority: 2,
     });
 
-    this.models.set('sd3b', {
-      name: 'sd3b',
-      type: 'generation',
+    this.models.set('sd3b', {')''
+      name: 'sd3b','''
+      type: 'generation','''
       sizeGB: 6.0, // 6GB
       loadTimeMs: 15000,
       lastUsed: 0,
@@ -113,9 +113,9 @@ export class VisionResourceManager extends EventEmitter {
       priority: 3,
     });
 
-    this.models.set('sdxl-refiner', {
-      name: 'sdxl-refiner',
-      type: 'generation',
+    this.models.set('sdxl-refiner', {')''
+      name: 'sdxl-refiner','''
+      type: 'generation','''
       sizeGB: 2.5, // 2.5GB for Q4_1 quantized
       loadTimeMs: 10000,
       lastUsed: 0,
@@ -123,7 +123,7 @@ export class VisionResourceManager extends EventEmitter {
       priority: 4,
     });
 
-    log.info('Vision models initialized', LogContext.AI, {
+    log.info('Vision models initialized', LogContext.AI, {')''
       models: Array.from(this.models.keys()),
       maxVRAM: this.maxVRAM,
     });
@@ -144,7 +144,7 @@ export class VisionResourceManager extends EventEmitter {
 
     // Add to queue
     const taskId = this.generateTaskId();
-    const processingTask: ProcessingTask = {
+    const processingTask: ProcessingTask = {,;
       id: taskId,
       model: modelName,
       type: model.type,
@@ -157,7 +157,7 @@ export class VisionResourceManager extends EventEmitter {
     this.taskQueue.push(processingTask);
     this.taskQueue.sort((a, b) => b.priority - a.priority);
 
-    log.info('Task queued', LogContext.AI, {
+    log.info('Task queued', LogContext.AI, {')''
       taskId,
       model: modelName,
       queueLength: this.taskQueue.length,
@@ -195,7 +195,7 @@ export class VisionResourceManager extends EventEmitter {
       await this.ensureModelLoaded(modelName);
 
       // Execute task
-      log.info('Executing vision task', LogContext.AI, { model: modelName });
+      log.info('Executing vision task', LogContext.AI, { model: modelName });'''
       const result = await task();
 
       // Update metrics
@@ -203,7 +203,7 @@ export class VisionResourceManager extends EventEmitter {
       model.lastUsed = Date.now();
 
       const executionTime = Date.now() - startTime;
-      this.emit('taskCompleted', {
+      this.emit('taskCompleted', {')''
         model: modelName,
         executionTime,
         success: true,
@@ -211,12 +211,12 @@ export class VisionResourceManager extends EventEmitter {
 
       return result;
     } catch (error) {
-      log.error('Vision task failed', LogContext.AI, {
+      log.error('Vision task failed', LogContext.AI, {')''
         model: modelName,
         error: error instanceof Error ? error.message : String(error),
       });
 
-      this.emit('taskFailed', {
+      this.emit('taskFailed', {')''
         model: modelName,
         error,
       });
@@ -232,7 +232,7 @@ export class VisionResourceManager extends EventEmitter {
     }
 
     if (model.loaded) {
-      log.debug('Model already loaded', LogContext.AI, { model: modelName });
+      log.debug('Model already loaded', LogContext.AI, { model: modelName });'''
       return;
     }
 
@@ -242,7 +242,7 @@ export class VisionResourceManager extends EventEmitter {
     }
 
     // Load the model
-    log.info('Loading model', LogContext.AI, {
+    log.info('Loading model', LogContext.AI, {')''
       model: modelName,
       sizeGB: model.sizeGB,
     });
@@ -256,7 +256,7 @@ export class VisionResourceManager extends EventEmitter {
     model.lastUsed = Date.now();
     this.currentVRAMUsage += model.sizeGB;
 
-    log.info('Model loaded', LogContext.AI, {
+    log.info('Model loaded', LogContext.AI, {')''
       model: modelName,
       loadTimeMs: Date.now() - loadStart,
       currentVRAM: this.currentVRAMUsage,
@@ -264,13 +264,13 @@ export class VisionResourceManager extends EventEmitter {
   }
 
   private async makeSpaceForModel(requiredGB: number): Promise<void> {
-    log.info('Making space for model', LogContext.AI, {
+    log.info('Making space for model', LogContext.AI, {')''
       requiredGB,
       currentUsage: this.currentVRAMUsage,
     });
 
     // Find least recently used models to unload
-    const loadedModels = Array.from(this.models.values())
+    const loadedModels = Array.from(this.models.values());
       .filter((m) => m.loaded)
       .sort((a, b) => a.lastUsed - b.lastUsed);
 
@@ -280,7 +280,7 @@ export class VisionResourceManager extends EventEmitter {
         break;
       }
 
-      log.info('Unloading model', LogContext.AI, { model: model.name });
+      log.info('Unloading model', LogContext.AI, { model: model.name });'''
       model.loaded = false;
       freedSpace += model.sizeGB;
       this.currentVRAMUsage -= model.sizeGB;
@@ -329,7 +329,7 @@ export class VisionResourceManager extends EventEmitter {
    * Get all loaded models
    */
   public getLoadedModels(): string[] {
-    return Array.from(this.models.values())
+    return Array.from(this.models.values());
       .filter((m) => m.loaded)
       .map((m) => m.name);
   }
@@ -338,13 +338,13 @@ export class VisionResourceManager extends EventEmitter {
    * Preload models for better performance
    */
   public async preloadModels(modelNames: string[]): Promise<void> {
-    log.info('Preloading models', LogContext.AI, { models: modelNames });
+    log.info('Preloading models', LogContext.AI, { models: modelNames });'''
 
     for (const modelName of modelNames) {
       try {
         await this.ensureModelLoaded(modelName);
       } catch (error) {
-        log.error('Failed to preload model', LogContext.AI, {
+        log.error('Failed to preload model', LogContext.AI, {')''
           model: modelName,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -356,7 +356,7 @@ export class VisionResourceManager extends EventEmitter {
    * Unload all models to free memory
    */
   public async unloadAllModels(): Promise<void> {
-    log.info('Unloading all models', LogContext.AI);
+    log.info('Unloading all models', LogContext.AI);'''
 
     for (const model of this.models.values()) {
       if (model.loaded) {
@@ -372,11 +372,11 @@ export class VisionResourceManager extends EventEmitter {
   private startMetricsCollection(): void {
     setInterval(() => {
       const metrics = this.getGPUMetrics();
-      this.emit('metrics', metrics);
+      this.emit('metrics', metrics);'''
 
       // Log if VRAM usage is high
       if (metrics.usedVRAM / metrics.totalVRAM > 0.8) {
-        log.warn('High VRAM usage', LogContext.AI, { ...metrics });
+        log.warn('High VRAM usage', LogContext.AI, { ...metrics });'''
       }
     }, 5000); // Every 5 seconds
   }
@@ -389,7 +389,7 @@ export class VisionResourceManager extends EventEmitter {
    * Shutdown and cleanup
    */
   public async shutdown(): Promise<void> {
-    log.info('Shutting down vision resource manager', LogContext.AI);
+    log.info('Shutting down vision resource manager', LogContext.AI);'''
     await this.unloadAllModels();
     this.removeAllListeners();
   }

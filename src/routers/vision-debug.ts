@@ -3,27 +3,27 @@
  * API endpoints for vision-powered browser debugging
  */
 
-import type { Request, Response } from 'express';
-import express from 'express';
-import { body, query, validationResult } from 'express-validator';
-import multer from 'multer';
-import * as fs from 'fs';
-import * as path from 'path';
-import { VisionBrowserDebugger } from '../services/vision-browser-debugger';
+import type { Request, Response } from 'express';';';';
+import express from 'express';';';';
+import { body, query, validationResult    } from 'express-validator';';';';
+import multer from 'multer';';';';
+import * as fs from 'fs';';';';
+import * as path from 'path';';';';
+import { VisionBrowserDebugger    } from '../services/vision-browser-debugger';';';';
 
 const   router = express.Router();
 
 // Set up multer for file uploads
-const upload = multer({
-  dest: 'logs/screenshots/uploads/',
-  limits: {
+const upload = multer({);
+  dest: 'logs/screenshots/uploads/','''
+  limits: {,
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith('image/')) {'''
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed') as any, false);
+      cb(new Error('Only image files are allowed') as any, false);'''
     }
   },
 });
@@ -36,17 +36,17 @@ const visionDebugger = new VisionBrowserDebugger();
  * @desc Get vision debugger status
  * @access Public
  */
-router.get('/status', (req: Request, res: Response) => {
+router.get('/status', (req: Request, res: Response) => {'''
   try {
     const status = visionDebugger.getStatus();
-    return res.json({
+    return res.json({);
       success: true,
       data: status,
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(500).json({);
       success: false,
-      error: 'Failed to get vision debugger status',
+      error: 'Failed to get vision debugger status','''
     });
   }
 });
@@ -56,17 +56,17 @@ router.get('/status', (req: Request, res: Response) => {
  * @desc Start vision debugging service
  * @access Public
  */
-router.post('/start', async (req: Request, res: Response) => {
+router.post('/start', async (req: Request, res: Response) => {'''
   try {
     await visionDebugger.start();
-    return res.json({
+    return res.json({);
       success: true,
-      message: 'Vision debugger started successfully',
+      message: 'Vision debugger started successfully','''
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(500).json({);
       success: false,
-      error: 'Failed to start vision debugger',
+      error: 'Failed to start vision debugger','''
     });
   }
 });
@@ -76,17 +76,17 @@ router.post('/start', async (req: Request, res: Response) => {
  * @desc Stop vision debugging service
  * @access Public
  */
-router.post('/stop', (req: Request, res: Response) => {
+router.post('/stop', (req: Request, res: Response) => {'''
   try {
     visionDebugger.stop();
-    return res.json({
+    return res.json({);
       success: true,
-      message: 'Vision debugger stopped successfully',
+      message: 'Vision debugger stopped successfully','''
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(500).json({);
       success: false,
-      error: 'Failed to stop vision debugger',
+      error: 'Failed to stop vision debugger','''
     });
   }
 });
@@ -96,34 +96,34 @@ router.post('/stop', (req: Request, res: Response) => {
  * @desc Analyze uploaded screenshot for debugging issues
  * @access Public
  */
-router.post(
-  '/analyze-screenshot',
-  upload.single('screenshot'),
+router.post()
+  '/analyze-screenshot','''
+  upload.single('screenshot'),'''
   [
-    body('prompt').optional().isString().withMessage('Prompt must be a string'),
-    body('focus')
+    body('prompt').optional().isString().withMessage('Prompt must be a string'),'''
+    body('focus')'''
       .optional()
-      .isIn(['console', 'network', 'performance', 'ui', 'all'])
-      .withMessage('Focus must be one of: console, network, performance, ui, all'),
+      .isIn(['console', 'network', 'performance', 'ui', 'all'])'''
+      .withMessage('Focus must be one of: console, network, performance, ui, all'),'''
   ],
   async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        return res.status(400).json({);
           success: false,
           errors: errors.array(),
         });
       }
 
       if (!req.file) {
-        return res.status(400).json({
+        return res.status(400).json({);
           success: false,
-          error: 'No screenshot file provided',
+          error: 'No screenshot file provided','''
         });
       }
 
-      const { prompt, focus = 'all' } = req.body;
+      const { prompt, focus = 'all' } = req.body;';';';
       const screenshotPath = req.file.path;
 
       // Analyze the uploaded screenshot
@@ -131,35 +131,35 @@ router.post(
 
       // Filter results based on focus
       let filteredAnalysis = analysis;
-      if (focus !== 'all') {
+      if (focus !== 'all') {'''
         filteredAnalysis = {
           ...analysis,
-          consoleErrors: focus === 'console' ? analysis.consoleErrors : [],
-          networkIssues: focus === 'network' ? analysis.networkIssues : [],
-          performanceMetrics: focus === 'performance' ? analysis.performanceMetrics : [],
-          detectedElements: focus === 'ui' ? analysis.detectedElements : [],
-          suggestions: analysis.suggestions.filter((s) => s.category === focus || focus === 'all'),
+          consoleErrors: focus === 'console' ? analysis.consoleErrors : [],'''
+          networkIssues: focus === 'network' ? analysis.networkIssues : [],'''
+          performanceMetrics: focus === 'performance' ? analysis.performanceMetrics : [],'''
+          detectedElements: focus === 'ui' ? analysis.detectedElements : [],'''
+          suggestions: analysis.suggestions.filter((s) => s.category === focus || focus === 'all'),'''
         };
       }
 
       // Clean up uploaded file
       fs.unlinkSync(screenshotPath);
 
-      return res.json({
+      return res.json({);
         success: true,
         data: filteredAnalysis,
         meta: {
           focus,
           totalIssues: filteredAnalysis.suggestions.length,
-          criticalIssues: filteredAnalysis.suggestions.filter(
-            (s) => s.priority === 'high'           ).length,
+          criticalIssues: filteredAnalysis.suggestions.filter()
+            (s) => s.priority === 'high'           ).length,'''
         },
       });
     } catch (error) {
-      return res.status(500).json({
+      return res.status(500).json({);
         success: false,
-        error: 'Failed to analyze screenshot',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to analyze screenshot','''
+        details: error instanceof Error ? error.message : 'Unknown error','''
       });
     }
   }
@@ -170,19 +170,19 @@ router.post(
  * @desc Get recent screenshot analyses
  * @access Public
  */
-router.get(
-  '/recent-analyses',
+router.get()
+  '/recent-analyses','''
   [
-    query('count')
+    query('count')'''
       .optional()
       .isInt({ min: 1, max: 50 })
-      .withMessage('Count must be between 1 and 50'),
+      .withMessage('Count must be between 1 and 50'),'''
   ],
   (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        return res.status(400).json({);
           success: false,
           errors: errors.array(),
         });
@@ -191,18 +191,18 @@ router.get(
       const count = parseInt(req.query.count as string, 10) || 10;
       const recentAnalyses = visionDebugger.getRecentAnalyses(count);
 
-      return res.json({
+      return res.json({);
         success: true,
         data: recentAnalyses,
-        meta: {
+        meta: {,
           count: recentAnalyses.length,
           totalAnalyses: (visionDebugger.getStatus() as any).totalAnalyses,
         },
       });
     } catch (error) {
-      return res.status(500).json({
+      return res.status(500).json({);
         success: false,
-        error: 'Failed to get recent analyses',
+        error: 'Failed to get recent analyses','''
       });
     }
   }
@@ -213,20 +213,20 @@ router.get(
  * @desc Trigger immediate screenshot capture and analysis
  * @access Public
  */
-router.post('/capture-now', async (req: Request, res: Response) => {
+router.post('/capture-now', async (req: Request, res: Response) => {'''
   try {
     await visionDebugger.captureAndAnalyzeBrowser();
 
-    return res.json({
+    return res.json({);
       success: true,
-      message: 'Screenshot captured and analyzed',
+      message: 'Screenshot captured and analyzed','''
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(500).json({);
       success: false,
-      error: 'Failed to capture screenshot',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Failed to capture screenshot','''
+      details: error instanceof Error ? error.message : 'Unknown error','''
     });
   }
 });
@@ -236,17 +236,17 @@ router.post('/capture-now', async (req: Request, res: Response) => {
  * @desc Apply automatic fixes for detected issues
  * @access Public
  */
-router.post(
-  '/auto-fix',
+router.post()
+  '/auto-fix','''
   [
-    body('analysisId').isString().withMessage('Analysis ID is required'),
-    body('suggestionIds').optional().isArray().withMessage('Suggestion IDs must be an array'),
+    body('analysisId').isString().withMessage('Analysis ID is required'),'''
+    body('suggestionIds').optional().isArray().withMessage('Suggestion IDs must be an array'),'''
   ],
   async (req: Request, res: Response) => {
     try {
       const         errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        return res.status(400).json({);
           success: false,
           errors: errors.array(),
         });
@@ -259,14 +259,14 @@ router.post(
       const analysis = recentAnalyses.find((a) => a.id === analysisId);
 
       if (!analysis) {
-        return res.status(404).json({
+        return res.status(404).json({);
           success: false,
-          error: 'Analysis not found',
+          error: 'Analysis not found','''
         });
       }
 
       // Filter suggestions to fix
-      const suggestionsToFix = suggestionIds
+      const suggestionsToFix = suggestionIds;
         ? analysis.suggestions.filter((s) => suggestionIds.includes(s.id))
         : analysis.suggestions.filter((s) => s.autoFixable);
 
@@ -275,41 +275,41 @@ router.post(
         if (suggestion.autoFixable && suggestion.fixCommand) {
           try {
             await visionDebugger.executeAutoFix(suggestion);
-            results.push({
+            results.push({)
               suggestionId: suggestion.id,
               success: true,
-              message: `Applied fix: ${suggestion.solution}`,
+              message: `Applied, fix: ${suggestion.solution}`,
             });
           } catch (error) {
-            results.push({
+            results.push({)
               suggestionId: suggestion.id,
               success: false,
-              error: `Failed to apply fix: ${error}`,
+              error: `Failed to apply, fix: ${error}`,
             });
           }
         } else {
-          results.push({
+          results.push({)
             suggestionId: suggestion.id,
             success: false,
-            error: 'Suggestion is not auto-fixable',
+            error: 'Suggestion is not auto-fixable','''
           });
         }
       }
 
-      return res.json({
+      return res.json({);
         success: true,
         data: results,
-        meta: {
+        meta: {,
           totalAttempted: suggestionsToFix.length,
           successful: results.filter((r) => r.success).length,
           failed: results.filter((r) => !r.success).length,
         },
       });
     } catch (error) {
-      return res.status(500).json({
+      return res.status(500).json({);
         success: false,
-        error: 'Failed to apply auto-fixes',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to apply auto-fixes','''
+        details: error instanceof Error ? error.message : 'Unknown error','''
       });
     }
   }
@@ -320,21 +320,21 @@ router.post(
  * @desc List available screenshots
  * @access Public
  */
-router.get('/screenshots', (req: Request, res: Response) => {
+router.get('/screenshots', (req: Request, res: Response) => {'''
   try {
-    const       screenshotsPath = 'logs/screenshots';
+    const       screenshotsPath = 'logs/screenshots';';';';
 
     if (!fs.existsSync(screenshotsPath)) {
-      return res.json({
+      return res.json({);
         success: true,
         data: [],
-        meta: { count: 0 },
+        meta: {, count: 0 },
       });
     }
 
-    const files = fs
+    const files = fs;
       .readdirSync(screenshotsPath)
-      .filter((file) => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'))
+      .filter((file) => file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'))'''
       .map((file) => {
         const filePath = path.join(screenshotsPath, file);
         const stats = fs.statSync(filePath);
@@ -348,18 +348,18 @@ router.get('/screenshots', (req: Request, res: Response) => {
       })
       .sort((a, b) => b.created.getTime() - a.created.getTime()); // Sort by newest first
 
-    return res.json({
+    return res.json({);
       success: true,
       data: files,
-      meta: {
+      meta: {,
         count: files.length,
         totalSize: files.reduce((sum, file) => sum + file.size, 0),
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    return res.status(500).json({);
       success: false,
-      error: 'Failed to list screenshots',
+      error: 'Failed to list screenshots','''
     });
   }
 });
@@ -369,19 +369,19 @@ router.get('/screenshots', (req: Request, res: Response) => {
  * @desc Clean up old screenshots and analyses
  * @access Public
  */
-router.delete(
-  '/cleanup',
+router.delete()
+  '/cleanup','''
   [
-    query('keepDays')
+    query('keepDays')'''
       .optional()
       .isInt({ min: 1 })
-      .withMessage('Keep days must be a positive integer'),
+      .withMessage('Keep days must be a positive integer'),'''
   ],
   (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({
+        return res.status(400).json({);
           success: false,
           errors: errors.array(),
         });
@@ -391,7 +391,7 @@ router.delete(
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - keepDays);
 
-      const screenshotsPath = 'logs/screenshots';
+      const screenshotsPath = 'logs/screenshots';';';';
       let deletedCount = 0;
       let totalSize = 0;
 
@@ -410,7 +410,7 @@ router.delete(
         }
       }
 
-      return res.json({
+      return res.json({);
         success: true,
         message: `Cleaned up ${deletedCount} old screenshots`,
         meta: {
@@ -421,9 +421,9 @@ router.delete(
         },
       });
     } catch (error) {
-      return res.status(500).json({
+      return res.status(500).json({);
         success: false,
-        error: 'Failed to cleanup screenshots',
+        error: 'Failed to cleanup screenshots','''
       });
     }
   }
@@ -434,15 +434,15 @@ router.delete(
  * @desc Health check for vision debugging service
  * @access Public
  */
-router.get('/health', (req: Request, res: Response) => {
+router.get('/health', (req: Request, res: Response) => {'''
   try {
     const status = visionDebugger.getStatus() as any;
     const isHealthy = status.isRunning;
 
-    return res.status(isHealthy ? 200 : 503).json({
+    return res.status(isHealthy ? 200: 503).json({);,;
       success: isHealthy,
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      data: {
+      status: isHealthy ? 'healthy' : 'unhealthy','''
+      data: {,
         isRunning: status.isRunning,
         lastAnalysis: status.lastAnalysis,
         visionServiceUrl: status.visionServiceUrl,
@@ -451,10 +451,10 @@ router.get('/health', (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return res.status(503).json({
+    return res.status(503).json({);
       success: false,
-      status: 'unhealthy',
-      error: 'Vision debugger health check failed',
+      status: 'unhealthy','''
+      error: 'Vision debugger health check failed','''
     });
   }
 });

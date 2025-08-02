@@ -4,29 +4,29 @@
  * No hardcoded model names - fully dynamic and future-proof
  */
 
-import { readdir, stat } from 'fs/promises';
-import { join } from 'path';
-import { LogContext, log } from '@/utils/logger';
+import { readdir, stat    } from 'fs/promises';';';';
+import { join    } from 'path';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
 
 export enum ModelTier {
-  ULTRA_FAST = 'ultra_fast',    // <300ms - Simple queries, greetings
-  FAST = 'fast',                // <1s - General chat, explanations  
-  BALANCED = 'balanced',        // <2s - Analysis, reasoning
-  POWERFUL = 'powerful',        // <5s - Complex tasks, coding
-  ROUTER = 'router'             // <100ms - Routing decisions only
+  ULTRA_FAST = 'ultra_fast',    // <300ms - Simple queries, greetings'''
+  FAST = 'fast',                // <1s - General chat, explanations  '''
+  BALANCED = 'balanced',        // <2s - Analysis, reasoning'''
+  POWERFUL = 'powerful',        // <5s - Complex tasks, coding'''
+  ROUTER = 'router'             // <100ms - Routing decisions only'''
 }
 
 export enum ModelFormat {
-  MLX = 'mlx',
-  GGUF = 'gguf',
-  SAFETENSORS = 'safetensors'
+  MLX = 'mlx','''
+  GGUF = 'gguf','''
+  SAFETENSORS = 'safetensors''''
 }
 
 export interface ModelMetadata {
-  id: string;
-  name: string;
-  format: ModelFormat;
-  size: number;
+  id: string;,
+  name: string;,
+  format: ModelFormat;,
+  size: number;,
   location: string;
   tier?: ModelTier;
   benchmarkResults?: BenchmarkResults;
@@ -37,17 +37,17 @@ export interface ModelMetadata {
 }
 
 export interface BenchmarkResults {
-  avgResponseTime: number;
-  qualityScore: number;  // 0-1 based on simple test
-  memoryUsage: number;
-  warmupTime: number;
-  throughput: number;    // tokens/second
+  avgResponseTime: number;,
+  qualityScore: number;  // 0-1 based on simple test,
+  memoryUsage: number;,
+  warmupTime: number;,
+  throughput: number;    // tokens/second,
   testDate: Date;
 }
 
 export interface TierConfiguration {
-  maxResponseTimeMs: number;
-  useCases: string[];
+  maxResponseTimeMs: number;,
+  useCases: string[];,
   preferredFormat: ModelFormat[];
   fallbackTo?: ModelTier;
   minQualityScore?: number;
@@ -56,19 +56,19 @@ export interface TierConfiguration {
 
 export interface ModelTierConfig {
   tiers: Record<ModelTier, TierConfiguration>;
-  discovery: {
-    mlxCachePath: string;
-    localModelPaths: string[];
+  discovery: {,
+    mlxCachePath: string;,
+    localModelPaths: string[];,
     huggingFacePath: string;
   };
-  benchmarking: {
-    testPrompts: string[];
-    warmupPrompts: string[];
+  benchmarking: {,
+    testPrompts: string[];,
+    warmupPrompts: string[];,
     maxBenchmarkTime: number;
   };
-  warming: {
-    alwaysWarmTiers: ModelTier[];
-    predictiveWarmingEnabled: boolean;
+  warming: {,
+    alwaysWarmTiers: ModelTier[];,
+    predictiveWarmingEnabled: boolean;,
     maxConcurrentWarmModels: number;
   };
 }
@@ -84,7 +84,7 @@ export class ModelTierManager {
       tiers: {
         [ModelTier.ULTRA_FAST]: {
           maxResponseTimeMs: 300,
-          useCases: ['simple_qa', 'greetings', 'quick_facts', 'classification'],
+          useCases: ['simple_qa', 'greetings', 'quick_facts', 'classification'],'''
           preferredFormat: [ModelFormat.MLX, ModelFormat.GGUF],
           fallbackTo: ModelTier.FAST,
           minQualityScore: 0.6,
@@ -92,7 +92,7 @@ export class ModelTierManager {
         },
         [ModelTier.FAST]: {
           maxResponseTimeMs: 1000,
-          useCases: ['general_chat', 'explanations', 'summaries', 'casual_conversation'],
+          useCases: ['general_chat', 'explanations', 'summaries', 'casual_conversation'],'''
           preferredFormat: [ModelFormat.MLX, ModelFormat.GGUF],
           fallbackTo: ModelTier.BALANCED,
           minQualityScore: 0.7,
@@ -100,7 +100,7 @@ export class ModelTierManager {
         },
         [ModelTier.BALANCED]: {
           maxResponseTimeMs: 2000,
-          useCases: ['analysis', 'reasoning', 'detailed_explanations', 'problem_solving'],
+          useCases: ['analysis', 'reasoning', 'detailed_explanations', 'problem_solving'],'''
           preferredFormat: [ModelFormat.MLX, ModelFormat.GGUF],
           fallbackTo: ModelTier.POWERFUL,
           minQualityScore: 0.8,
@@ -108,42 +108,42 @@ export class ModelTierManager {
         },
         [ModelTier.POWERFUL]: {
           maxResponseTimeMs: 5000,
-          useCases: ['complex_analysis', 'coding', 'research', 'creative_writing'],
+          useCases: ['complex_analysis', 'coding', 'research', 'creative_writing'],'''
           preferredFormat: [ModelFormat.MLX, ModelFormat.GGUF],
           minQualityScore: 0.85,
           maxMemoryMB: 16000
         },
         [ModelTier.ROUTER]: {
           maxResponseTimeMs: 100,
-          useCases: ['routing', 'classification', 'intent_detection'],
+          useCases: ['routing', 'classification', 'intent_detection'],'''
           preferredFormat: [ModelFormat.MLX],
           minQualityScore: 0.9,
           maxMemoryMB: 3000
         }
       },
-      discovery: {
+      discovery: {,
         mlxCachePath: `${process.env.HOME}/.cache/huggingface/hub`,
         localModelPaths: [
-          '/Users/christianmerrill/Desktop/universal-ai-tools/models',
+          '/Users/christianmerrill/Desktop/universal-ai-tools/models','''
           `${process.env.HOME}/.ollama/models`
         ],
         huggingFacePath: `${process.env.HOME}/.cache/huggingface/hub`
       },
-      benchmarking: {
+      benchmarking: {,
         testPrompts: [
-          'Hello, how are you?',
-          'Explain quantum physics in simple terms.',
-          'Write a Python function to calculate fibonacci numbers.',
-          'What is the capital of France?',
-          'Analyze the pros and cons of renewable energy.'
+          'Hello, how are you?','''
+          'Explain quantum physics in simple terms.','''
+          'Write a Python function to calculate fibonacci numbers.','''
+          'What is the capital of France?','''
+          'Analyze the pros and cons of renewable energy.''''
         ],
         warmupPrompts: [
-          'Hi',
-          'Test'
+          'Hi','''
+          'Test''''
         ],
         maxBenchmarkTime: 30000 // 30 seconds max per model
       },
-      warming: {
+      warming: {,
         alwaysWarmTiers: [ModelTier.ULTRA_FAST],
         predictiveWarmingEnabled: true,
         maxConcurrentWarmModels: 3
@@ -152,7 +152,7 @@ export class ModelTierManager {
     };
 
     // Initialize tier assignments
-    Object.values(ModelTier).forEach(tier => {
+    Object.values(ModelTier).forEach(tier => {)
       this.tierAssignments.set(tier, []);
     });
   }
@@ -161,7 +161,7 @@ export class ModelTierManager {
    * Initialize the model tier manager - discover and benchmark models
    */
   public async initialize(): Promise<void> {
-    log.info('🔍 Initializing Model Tier Manager', LogContext.AI);
+    log.info('🔍 Initializing Model Tier Manager', LogContext.AI);'''
     
     try {
       // Discover all available models
@@ -176,14 +176,14 @@ export class ModelTierManager {
       // Start warming always-warm models
       await this.startAlwaysWarmModels();
       
-      log.info('✅ Model Tier Manager initialized', LogContext.AI, {
+      log.info('✅ Model Tier Manager initialized', LogContext.AI, {')''
         totalModels: this.models.size,
         tierDistribution: this.getTierDistribution(),
         warmModels: this.warmModels.size
       });
       
     } catch (error) {
-      log.error('❌ Failed to initialize Model Tier Manager', LogContext.AI, {
+      log.error('❌ Failed to initialize Model Tier Manager', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
@@ -194,7 +194,7 @@ export class ModelTierManager {
    * Discover all available models in configured paths
    */
   private async discoverModels(): Promise<void> {
-    log.info('📡 Discovering models', LogContext.AI);
+    log.info('📡 Discovering models', LogContext.AI);'''
     
     // Discover MLX models in Hugging Face cache
     await this.discoverMLXModels();
@@ -202,7 +202,7 @@ export class ModelTierManager {
     // Discover local models
     await this.discoverLocalModels();
     
-    log.info('📡 Model discovery complete', LogContext.AI, {
+    log.info('📡 Model discovery complete', LogContext.AI, {')''
       discovered: this.models.size
     });
   }
@@ -216,13 +216,13 @@ export class ModelTierManager {
       const entries = await readdir(hubPath);
       
       for (const entry of entries) {
-        if (entry.startsWith('models--mlx-community--') || entry.includes('mlx')) {
+        if (entry.startsWith('models--mlx-community--') || entry.includes('mlx')) {'''
           const modelPath = join(hubPath, entry);
           const stats = await stat(modelPath);
           
           if (stats.isDirectory()) {
             const modelId = this.generateModelId(entry);
-            const metadata: ModelMetadata = {
+            const metadata: ModelMetadata = {,;
               id: modelId,
               name: this.cleanModelName(entry),
               format: ModelFormat.MLX,
@@ -232,12 +232,12 @@ export class ModelTierManager {
             };
             
             this.models.set(modelId, metadata);
-            log.debug('Found MLX model', LogContext.AI, { name: metadata.name });
+            log.debug('Found MLX model', LogContext.AI, { name: metadata.name });'''
           }
         }
       }
     } catch (error) {
-      log.warn('⚠️ Could not discover MLX models', LogContext.AI, {
+      log.warn('⚠️ Could not discover MLX models', LogContext.AI, {')''
         path: this.config.discovery.huggingFacePath,
         error: error instanceof Error ? error.message : String(error)
       });
@@ -252,7 +252,7 @@ export class ModelTierManager {
       try {
         await this.scanDirectory(basePath);
       } catch (error) {
-        log.debug('Could not scan model directory', LogContext.AI, {
+        log.debug('Could not scan model directory', LogContext.AI, {')''
           path: basePath,
           error: error instanceof Error ? error.message : String(error)
         });
@@ -277,7 +277,7 @@ export class ModelTierManager {
           const format = this.detectModelFormat(entry);
           const modelId = this.generateModelId(entry);
           
-          const metadata: ModelMetadata = {
+          const metadata: ModelMetadata = {,;
             id: modelId,
             name: this.cleanModelName(entry),
             format,
@@ -287,14 +287,14 @@ export class ModelTierManager {
           };
           
           this.models.set(modelId, metadata);
-          log.debug('Found local model', LogContext.AI, { 
+          log.debug('Found local model', LogContext.AI, { ')''
             name: metadata.name, 
             format: metadata.format 
           });
         }
       }
     } catch (error) {
-      // Directory doesn't exist or can't be read, skip silently
+      // Directory doesn't exist or can't be read, skip silently'''
     }
   }
 
@@ -302,7 +302,7 @@ export class ModelTierManager {
    * Check if file is a model file
    */
   private isModelFile(filename: string): boolean {
-    const modelExtensions = ['.safetensors', '.gguf', '.bin', '.pt', '.pth'];
+    const modelExtensions = ['.safetensors', '.gguf', '.bin', '.pt', '.pth'];';';';
     return modelExtensions.some(ext => filename.endsWith(ext));
   }
 
@@ -310,29 +310,29 @@ export class ModelTierManager {
    * Detect model format from filename
    */
   private detectModelFormat(filename: string): ModelFormat {
-    if (filename.endsWith('.safetensors')) return ModelFormat.SAFETENSORS;
-    if (filename.endsWith('.gguf')) return ModelFormat.GGUF;
-    return ModelFormat.MLX; // Default for MLX format
+    if (filename.endsWith('.safetensors')) return ModelFormat.SAFETENSORS;'''
+    if (filename.endsWith('.gguf')) return ModelFormat.GGUF;'''
+    return ModelFormat.MLX; // Default for MLX format;
   }
 
   /**
    * Generate unique model ID
    */
   private generateModelId(name: string): string {
-    return name.toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+    return name.toLowerCase();
+      .replace(/[^a-z0-9-]/g, '-')'''
+      .replace(/-+/g, '-')'''
+      .replace(/^-|-$/g, '');'''
   }
 
   /**
    * Clean model name for display
    */
   private cleanModelName(name: string): string {
-    return name
-      .replace('models--mlx-community--', '')
-      .replace(/--/g, '/')
-      .replace(/-/g, ' ')
+    return name;
+      .replace('models--mlx-community--', '')'''
+      .replace(/--/g, '/')'''
+      .replace(/-/g, ' ')'''
       .replace(/\b\w/g, l => l.toUpperCase());
   }
 
@@ -340,7 +340,7 @@ export class ModelTierManager {
    * Benchmark all discovered models (mock implementation for now)
    */
   private async benchmarkModels(): Promise<void> {
-    log.info('⚡ Starting model benchmarking', LogContext.AI, {
+    log.info('⚡ Starting model benchmarking', LogContext.AI, {')''
       total: this.models.size
     });
     
@@ -352,14 +352,14 @@ export class ModelTierManager {
       model.averageInferenceTime = benchmarkResults.avgResponseTime;
       model.warmupTime = benchmarkResults.warmupTime;
       
-      log.debug('Benchmarked model', LogContext.AI, {
+      log.debug('Benchmarked model', LogContext.AI, {')''
         name: model.name,
         avgTime: benchmarkResults.avgResponseTime,
         quality: benchmarkResults.qualityScore
       });
     }
     
-    log.info('⚡ Model benchmarking complete', LogContext.AI);
+    log.info('⚡ Model benchmarking complete', LogContext.AI);'''
   }
 
   /**
@@ -367,7 +367,7 @@ export class ModelTierManager {
    */
   private generateMockBenchmark(model: ModelMetadata): BenchmarkResults {
     // Estimate performance based on model size and format
-    let baseTime = 1000; // Base 1 second
+    let baseTime = 1000; // Base 1 second;
     
     // MLX models are faster
     if (model.format === ModelFormat.MLX) {
@@ -375,7 +375,7 @@ export class ModelTierManager {
     }
     
     // Smaller models are faster (rough estimation)
-    const sizeFactor = Math.min(model.size / (1024 * 1024 * 1024), 10); // GB
+    const sizeFactor = Math.min(model.size / (1024 * 1024 * 1024), 10); // GB;
     baseTime *= Math.max(0.1, sizeFactor * 0.2);
     
     // Add some randomness
@@ -395,7 +395,7 @@ export class ModelTierManager {
    * Assign models to appropriate tiers based on benchmark results
    */
   private assignModelsTiers(): void {
-    log.info('🎯 Assigning models to tiers', LogContext.AI);
+    log.info('🎯 Assigning models to tiers', LogContext.AI);'''
     
     for (const [id, model] of this.models.entries()) {
       if (!model.benchmarkResults) continue;
@@ -407,7 +407,7 @@ export class ModelTierManager {
       tierModels.push(id);
       this.tierAssignments.set(tier, tierModels);
       
-      log.debug('Assigned model to tier', LogContext.AI, {
+      log.debug('Assigned model to tier', LogContext.AI, {')''
         name: model.name,
         tier,
         responseTime: model.benchmarkResults.avgResponseTime
@@ -427,8 +427,8 @@ export class ModelTierManager {
     const { avgResponseTime, qualityScore } = model.benchmarkResults;
     
     // Special case for router models (small, specialized)
-    if (model.name.toLowerCase().includes('lfm2') || 
-        model.name.toLowerCase().includes('router')) {
+    if (model.name.toLowerCase().includes('lfm2') || '''
+        model.name.toLowerCase().includes('router')) {'''
       return ModelTier.ROUTER;
     }
     
@@ -484,7 +484,7 @@ export class ModelTierManager {
     const tierModels = this.tierAssignments.get(tier) || [];
     if (tierModels.length === 0) return null;
     
-    const bestModelId = tierModels[0]; // Already sorted by performance
+    const bestModelId = tierModels[0]; // Already sorted by performance;
     return this.models.get(bestModelId) || null;
   }
 
@@ -510,7 +510,7 @@ export class ModelTierManager {
     const model = this.models.get(modelId);
     if (!model) return;
     
-    log.info('🔥 Warming model', LogContext.AI, { name: model.name });
+    log.info('🔥 Warming model', LogContext.AI, { name: model.name });'''
     
     // In production, this would load the model into memory
     this.warmModels.add(modelId);
@@ -558,7 +558,7 @@ export class ModelTierManager {
    */
   public updateConfig(config: Partial<ModelTierConfig>): void {
     this.config = { ...this.config, ...config };
-    log.info('📝 Model tier configuration updated', LogContext.AI);
+    log.info('📝 Model tier configuration updated', LogContext.AI);'''
   }
 }
 

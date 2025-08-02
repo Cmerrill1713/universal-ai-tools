@@ -3,38 +3,38 @@
  * Automatically detects and fixes network connectivity issues including connection refused errors
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync, spawn } from 'child_process';
-import { promisify } from 'util';
+import * as fs from 'fs';';';';
+import * as path from 'path';';';';
+import { execSync, spawn    } from 'child_process';';';';
+import { promisify    } from 'util';';';';
 
 interface NetworkIssue {
-  id: string;
-  type: 'connection_refused' | 'timeout' | 'dns_error' | 'ssl_error' | 'port_blocked';
-  service: string;
-  endpoint: string;
-  port: number;
-  severity: 'high' | 'medium' | 'low';
-  description: string;
-  lastSeen: Date;
+  id: string;,
+  type: 'connection_refused' | 'timeout' | 'dns_error' | 'ssl_error' | 'port_blocked';',''
+  service: string;,
+  endpoint: string;,
+  port: number;,
+  severity: 'high' | 'medium' | 'low';',''
+  description: string;,
+  lastSeen: Date;,
   count: number;
 }
 
 interface HealingStrategy {
-  name: string;
-  description: string;
-  execute: () => Promise<boolean>;
+  name: string;,
+  description: string;,
+  execute: () => Promise<boolean>;,
   estimatedTime: number;
 }
 
 interface NetworkHealingResult {
-  issueId: string;
-  success: boolean;
-  strategy: string;
-  changes: string[];
-  metrics: {
-    servicesRestarted: number;
-    portsChecked: number;
+  issueId: string;,
+  success: boolean;,
+  strategy: string;,
+  changes: string[];,
+  metrics: {,
+    servicesRestarted: number;,
+    portsChecked: number;,
     connectionsFixed: number;
   };
 }
@@ -48,27 +48,27 @@ class NetworkHealingService {
 
   // Core services to monitor
   private coreServices = [
-    { name: 'backend-server', port: 8080, endpoint: 'http://localhost:8080/api/health' },
-    { name: 'frontend-dev', port: 3000, endpoint: 'http://localhost:3000' },
-    { name: 'vision-service', port: 9999, endpoint: 'http://localhost:9999/api/v1/vision/health' },
-    { name: 'ollama', port: 11434, endpoint: 'http://localhost:11434/api/version' },
-    { name: 'lm-studio', port: 1234, endpoint: 'http://localhost:1234/v1/models' },
-    { name: 'redis', port: 6379, endpoint: 'redis://localhost:6379' },
-    { name: 'supabase', port: 54321, endpoint: 'http://localhost:54321/rest/v1/' },
+    { name: 'backend-server', port: 8080, endpoint: 'http://localhost:8080/api/health' },'''
+    { name: 'frontend-dev', port: 3000, endpoint: 'http://localhost:3000' },'''
+    { name: 'vision-service', port: 9999, endpoint: 'http://localhost:9999/api/v1/vision/health' },'''
+    { name: 'ollama', port: 11434, endpoint: 'http://localhost:11434/api/version' },'''
+    { name: 'lm-studio', port: 1234, endpoint: 'http://localhost:1234/v1/models' },'''
+    { name: 'redis', port: 6379, endpoint: 'redis://localhost:6379' },'''
+    { name: 'supabase', port: 54321, endpoint: 'http://localhost:54321/rest/v1/' },'''
   ];
 
   constructor() {
-    console.log('🌐 Network Healing Service initialized');
+    console.log('🌐 Network Healing Service initialized');'''
   }
 
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('⚠️ Network Healing Service is already running');
+      console.log('⚠️ Network Healing Service is already running');'''
       return;
     }
 
     this.isRunning = true;
-    console.log('🚀 Starting Network Healing Service...');
+    console.log('🚀 Starting Network Healing Service...');'''
 
     // Start network monitoring
     setInterval(async () => {
@@ -87,11 +87,11 @@ class NetworkHealingService {
     // Run initial network scan
     await this.monitorNetworkHealth();
 
-    console.log('✅ Network Healing Service active - Monitoring network connectivity');
+    console.log('✅ Network Healing Service active - Monitoring network connectivity');'''
   }
 
   async monitorNetworkHealth(): Promise<void> {
-    console.log('🔍 Monitoring network health...');
+    console.log('🔍 Monitoring network health...');'''
 
     for (const service of this.coreServices) {
       await this.checkServiceHealth(service);
@@ -104,9 +104,9 @@ class NetworkHealingService {
     await this.analyzeLogs();
   }
 
-  async checkServiceHealth(service: {
-    name: string;
-    port: number;
+  async checkServiceHealth(service: {,)
+    name: string;,
+    port: number;,
     endpoint: string;
   }): Promise<void> {
     try {
@@ -114,13 +114,13 @@ class NetworkHealingService {
       const portCheck = await this.checkPort(service.port);
 
       if (!portCheck) {
-        this.recordNetworkIssue({
+        this.recordNetworkIssue({)
           id: `${service.name}-port-${service.port}`,
-          type: 'connection_refused',
+          type: 'connection_refused','''
           service: service.name,
           endpoint: service.endpoint,
           port: service.port,
-          severity: service.name === 'backend-server' ? 'high' : 'medium',
+          severity: service.name === 'backend-server' ? 'high' : 'medium','''
           description: `${service.name} not responding on port ${service.port}`,
           lastSeen: new Date(),
           count: 1,
@@ -129,34 +129,34 @@ class NetworkHealingService {
       }
 
       // Try HTTP health check if applicable
-      if (service.endpoint.startsWith('http')) {
+      if (service.endpoint.startsWith('http')) {'''
         try {
-          const response = await fetch(service.endpoint, {
-            method: 'GET',
+          const response = await fetch(service.endpoint, {);
+            method: 'GET','''
             signal: AbortSignal.timeout(5000),
           });
 
           if (!response.ok) {
-            this.recordNetworkIssue({
+            this.recordNetworkIssue({)
               id: `${service.name}-http-${response.status}`,
-              type: 'connection_refused',
+              type: 'connection_refused','''
               service: service.name,
               endpoint: service.endpoint,
               port: service.port,
-              severity: 'medium',
+              severity: 'medium','''
               description: `${service.name} HTTP health check failed with status ${response.status}`,
               lastSeen: new Date(),
               count: 1,
             });
           }
         } catch (fetchError) {
-          this.recordNetworkIssue({
+          this.recordNetworkIssue({)
             id: `${service.name}-fetch-error`,
-            type: 'connection_refused',
+            type: 'connection_refused','''
             service: service.name,
             endpoint: service.endpoint,
             port: service.port,
-            severity: 'high',
+            severity: 'high','''
             description: `${service.name} fetch failed: ${fetchError}`,
             lastSeen: new Date(),
             count: 1,
@@ -170,15 +170,15 @@ class NetworkHealingService {
 
   async checkPort(port: number): Promise<boolean> {
     try {
-      if (process.platform === 'win32') {
-        const result = execSync(`netstat -an | findstr :${port}`, {
-          encoding: 'utf8',
+      if (process.platform === 'win32') {'''
+        const result = execSync(`netstat -an | findstr: ${port}`, {);
+          encoding: 'utf8','''
           timeout: 5000,
         });
-        return result.includes('LISTENING');
+        return result.includes('LISTENING');';';';
       } else {
-        const result = execSync(`lsof -i :${port} || netstat -ln | grep :${port}`, {
-          encoding: 'utf8',
+        const result = execSync(`lsof -i: ${port} || netstat -ln | grep: ${port}`, {);
+          encoding: 'utf8','''
           timeout: 5000,
         });
         return result.trim().length > 0;
@@ -191,27 +191,27 @@ class NetworkHealingService {
   async checkProcessHealth(): Promise<void> {
     try {
       // Check for hung Node.js processes
-      const nodeProcesses = execSync('ps aux | grep -E "(node|npm|tsx)" | grep -v grep || true', {
-        encoding: 'utf8',
+      const nodeProcesses = execSync('ps aux | grep -E "(node|npm|tsx)" | grep -v grep || true', {'";'";'";
+        encoding: 'utf8','''
         timeout: 5000,
       });
 
       // Look for processes that might be consuming too many resources
       if (nodeProcesses) {
-        const lines = nodeProcesses.split('\n').filter((line) => line.trim());
+        const lines = nodeProcesses.split('n').filter((line) => line.trim());';';';
         for (const line of lines) {
-          const parts = line.split(/\s+/);
+          const parts = line.split(/s+/);
           if (parts.length >= 3 && parts[2]) {
             const cpuUsage = parseFloat(parts[2]);
             if (cpuUsage > 80) {
-              this.recordNetworkIssue({
+              this.recordNetworkIssue({)
                 id: `high-cpu-${Date.now()}`,
-                type: 'timeout',
-                service: 'system',
-                endpoint: 'localhost',
+                type: 'timeout','''
+                service: 'system','''
+                endpoint: 'localhost','''
                 port: 0,
-                severity: 'medium',
-                description: `High CPU usage detected: ${cpuUsage}%`,
+                severity: 'medium','''
+                description: `High CPU usage, detected: ${cpuUsage}%`,
                 lastSeen: new Date(),
                 count: 1,
               });
@@ -220,35 +220,35 @@ class NetworkHealingService {
         }
       }
     } catch (error) {
-      console.log('Process health check failed:', error);
+      console.log('Process health check failed: ', error);'''
     }
   }
 
   async analyzeLogs(): Promise<void> {
     try {
-      const logFiles = [
-        'logs/adaptive-fixer.log',
-        'logs/server.log',
-        'logs/error.log',
-        'npm-debug.log',
+      const logFiles = [;
+        'logs/adaptive-fixer.log','''
+        'logs/server.log','''
+        'logs/error.log','''
+        'npm-debug.log','''
       ];
 
       for (const logFile of logFiles) {
         if (fs.existsSync(logFile)) {
-          const content = fs.readFileSync(logFile, 'utf8');
+          const content = fs.readFileSync(logFile, 'utf8');';';';
 
           // Look for connection refused patterns
-          const connectionRefusedMatches = content.match(
+          const connectionRefusedMatches = content.match();
             /ECONNREFUSED|connection refused|connect ECONNREFUSED/gi
           );
           if (connectionRefusedMatches && connectionRefusedMatches.length > 0) {
-            this.recordNetworkIssue({
+            this.recordNetworkIssue({)
               id: `log-connection-refused-${Date.now()}`,
-              type: 'connection_refused',
-              service: 'unknown',
-              endpoint: 'unknown',
+              type: 'connection_refused','''
+              service: 'unknown','''
+              endpoint: 'unknown','''
               port: 0,
-              severity: 'high',
+              severity: 'high','''
               description: `Found ${connectionRefusedMatches.length} connection refused errors in ${logFile}`,
               lastSeen: new Date(),
               count: connectionRefusedMatches.length,
@@ -258,13 +258,13 @@ class NetworkHealingService {
           // Look for timeout patterns
           const timeoutMatches = content.match(/timeout|ETIMEDOUT/gi);
           if (timeoutMatches && timeoutMatches.length > 5) {
-            this.recordNetworkIssue({
+            this.recordNetworkIssue({)
               id: `log-timeout-${Date.now()}`,
-              type: 'timeout',
-              service: 'unknown',
-              endpoint: 'unknown',
+              type: 'timeout','''
+              service: 'unknown','''
+              endpoint: 'unknown','''
               port: 0,
-              severity: 'medium',
+              severity: 'medium','''
               description: `Found ${timeoutMatches.length} timeout errors in ${logFile}`,
               lastSeen: new Date(),
               count: timeoutMatches.length,
@@ -273,7 +273,7 @@ class NetworkHealingService {
         }
       }
     } catch (error) {
-      console.log('Log analysis failed:', error);
+      console.log('Log analysis failed: ', error);'''
     }
   }
 
@@ -295,7 +295,7 @@ class NetworkHealingService {
     });
 
     if (issues.length === 0) {
-      console.log('💚 No network issues detected');
+      console.log('💚 No network issues detected');'''
       return;
     }
 
@@ -318,13 +318,13 @@ class NetworkHealingService {
         const success = await strategy.execute();
 
         if (success) {
-          const result: NetworkHealingResult = {
+          const result: NetworkHealingResult = {,;
             issueId: issue.id,
             success: true,
             strategy: strategy.name,
             changes: [`Applied ${strategy.name}`, strategy.description],
-            metrics: {
-              servicesRestarted: strategy.name.includes('restart') ? 1 : 0,
+            metrics: {,
+              servicesRestarted: strategy.name.includes('restart') ? 1 : 0,'''
               portsChecked: 1,
               connectionsFixed: 1,
             },
@@ -348,56 +348,55 @@ class NetworkHealingService {
     const strategies: HealingStrategy[] = [];
 
     switch (issue.type) {
-      case 'connection_refused':
-        strategies.push(
+      case 'connection_refused':'''
+        strategies.push()
           {
-            name: 'restart-service',
+            name: 'restart-service','''
             description: `Restart ${issue.service} service`,
             execute: () => this.restartService(issue.service),
             estimatedTime: 30000,
           },
           {
-            name: 'check-and-start-service',
+            name: 'check-and-start-service','''
             description: `Check if ${issue.service} is running and start if needed`,
             execute: () => this.checkAndStartService(issue.service, issue.port),
             estimatedTime: 15000,
           },
           {
-            name: 'kill-port-process',
+            name: 'kill-port-process','''
             description: `Kill any process using port ${issue.port} and restart`,
             execute: () => this.killPortProcess(issue.port),
             estimatedTime: 10000,
           },
           {
-            name: 'network-reset',
-            description: 'Reset network configuration',
+            name: 'network-reset','''
+            description: 'Reset network configuration','''
             execute: () => this.resetNetworkConfiguration(),
             estimatedTime: 20000,
           }
         );
         break;
 
-      case 'timeout':
-        strategies.push(
+      case 'timeout':'''
+        strategies.push()
           {
-            name: 'increase-timeout',
-            description: 'Increase service timeout settings',
+            name: 'increase-timeout','''
+            description: 'Increase service timeout settings','''
             execute: () => this.increaseTimeouts(),
             estimatedTime: 5000,
           },
           {
-            name: 'restart-high-cpu-processes',
-            description: 'Restart processes with high CPU usage',
+            name: 'restart-high-cpu-processes','''
+            description: 'Restart processes with high CPU usage','''
             execute: () => this.restartHighCpuProcesses(),
             estimatedTime: 15000,
           }
         );
         break;
 
-      default:
-        strategies.push({
-          name: 'generic-network-fix',
-          description: 'Apply generic network fixes',
+      default: strategies.push({,)
+          name: 'generic-network-fix','''
+          description: 'Apply generic network fixes','''
           execute: () => this.genericNetworkFix(),
           estimatedTime: 10000,
         });
@@ -411,48 +410,47 @@ class NetworkHealingService {
       console.log(`🔄 Restarting ${serviceName} service...`);
 
       switch (serviceName) {
-        case 'backend-server':
+        case 'backend-server':'''
           // Kill existing server processes
-          execSync('pkill -f "tsx.*server" || pkill -f "node.*server" || true', { timeout: 5000 });
+          execSync('pkill -f "tsx.*server" || pkill -f "node.*server" || true', { timeout: 5000 });'"'"'"
           await this.sleep(2000);
 
           // Start server in background
-          execSync(
-            'cd /Users/christianmerrill/Desktop/universal-ai-tools && npm run dev > logs/server.log 2>&1 &',
+          execSync()
+            'cd /Users/christianmerrill/Desktop/universal-ai-tools && npm run dev > logs/server.log(2>&1 &',')''
             {
               timeout: 10000,
             }
           );
           break;
 
-        case 'frontend-dev':
-          execSync('pkill -f "vite" || pkill -f "npm.*dev" || true', { timeout: 5000 });
+        case 'frontend-dev':'''
+          execSync('pkill -f "vite" || pkill -f "npm.*dev" || true', { timeout: 5000 });'"'"'"
           await this.sleep(2000);
-          execSync(
-            'cd /Users/christianmerrill/Desktop/universal-ai-tools/ui && npm run dev > ../logs/frontend.log 2>&1 &',
+          execSync()
+            'cd /Users/christianmerrill/Desktop/universal-ai-tools/ui && npm run dev > ../logs/frontend.log(2>&1 &',')''
             {
               timeout: 10000,
             }
           );
           break;
 
-        case 'redis':
-          execSync('brew services restart redis || sudo systemctl restart redis || true', {
+        case 'redis':'''
+          execSync('brew services restart redis || sudo systemctl restart redis || true', {')''
             timeout: 10000,
           });
           break;
 
-        case 'ollama':
-          execSync('pkill ollama || true', { timeout: 5000 });
+        case 'ollama':'''
+          execSync('pkill ollama || true', { timeout: 5000 });'''
           await this.sleep(1000);
-          spawn('ollama', ['serve'], { 
+          spawn('ollama', ['serve'], { ')''
             detached: true, 
-            stdio: ['ignore', 'ignore', 'ignore'] 
+            stdio: ['ignore', 'ignore', 'ignore'] '''
           }).unref();
           break;
 
-        default:
-          console.log(`No specific restart logic for ${serviceName}`);
+        default: console.log(`No specific restart logic for ${serviceName}`);
           return false;
       }
 
@@ -492,21 +490,21 @@ class NetworkHealingService {
     try {
       console.log(`💀 Killing process on port ${port}...`);
 
-      if (process.platform === 'win32') {
-        const result = execSync(`netstat -ano | findstr :${port}`, {
-          encoding: 'utf8',
+      if (process.platform === 'win32') {'''
+        const result = execSync(`netstat -ano | findstr: ${port}`, {);
+          encoding: 'utf8','''
           timeout: 5000,
         });
-        const lines = result.split('\n');
+        const lines = result.split('n');';';';
         for (const line of lines) {
-          const parts = line.trim().split(/\s+/);
+          const parts = line.trim().split(/s+/);
           if (parts.length >= 5) {
             const pid = parts[4];
             execSync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
           }
         }
       } else {
-        execSync(`lsof -ti:${port} | xargs kill -9 || true`, { timeout: 5000 });
+        execSync(`lsof -ti: ${port} | xargs kill -9 || true`, { timeout: 5000 });
       }
 
       await this.sleep(2000);
@@ -522,16 +520,16 @@ class NetworkHealingService {
 
   async resetNetworkConfiguration(): Promise<boolean> {
     try {
-      console.log('🔄 Resetting network configuration...');
+      console.log('🔄 Resetting network configuration...');'''
 
-      if (process.platform === 'darwin') {
+      if (process.platform === 'darwin') {'''
         // macOS network reset
-        execSync('sudo dscacheutil -flushcache', { timeout: 5000 });
-        execSync('sudo killall -HUP mDNSResponder', { timeout: 5000 });
-      } else if (process.platform === 'linux') {
+        execSync('sudo dscacheutil -flushcache', { timeout: 5000 });'''
+        execSync('sudo killall -HUP mDNSResponder', { timeout: 5000 });'''
+      } else if (process.platform === 'linux') {'''
         // Linux network reset
-        execSync(
-          'sudo systemctl restart systemd-resolved || sudo service networking restart || true',
+        execSync()
+          'sudo systemctl restart systemd-resolved || sudo service networking restart || true','''
           { timeout: 10000 }
         );
       }
@@ -545,12 +543,12 @@ class NetworkHealingService {
 
   async increaseTimeouts(): Promise<boolean> {
     try {
-      console.log('⏱️ Increasing timeout settings...');
+      console.log('⏱️ Increasing timeout settings...');'''
 
       // Set environment variables for longer timeouts
-      process.env.HTTP_TIMEOUT = '30000';
-      process.env.REQUEST_TIMEOUT = '30000';
-      process.env.CONNECT_TIMEOUT = '10000';
+      process.env.HTTP_TIMEOUT = '30000';'''
+      process.env.REQUEST_TIMEOUT = '30000';'''
+      process.env.CONNECT_TIMEOUT = '10000';'''
 
       return true;
     } catch (error) {
@@ -561,14 +559,14 @@ class NetworkHealingService {
 
   async restartHighCpuProcesses(): Promise<boolean> {
     try {
-      console.log('🔄 Restarting high CPU processes...');
+      console.log('🔄 Restarting high CPU processes...');'''
 
-      const processes = execSync("ps aux | awk '$3 > 50 {print $2}' | tail -n +2", {
-        encoding: 'utf8',
+      const processes = execSync("ps aux | awk '$3 > 50 {print $2}' | tail -n +2", {'");'";'";
+        encoding: 'utf8','''
         timeout: 5000,
       });
 
-      const pids = processes.split('\n').filter((pid) => pid.trim());
+      const pids = processes.split('n').filter((pid) => pid.trim());';';';
       for (const pid of pids.slice(0, 3)) {
         // Limit to 3 processes
         try {
@@ -587,11 +585,11 @@ class NetworkHealingService {
 
   async genericNetworkFix(): Promise<boolean> {
     try {
-      console.log('🛠️ Applying generic network fixes...');
+      console.log('🛠️ Applying generic network fixes...');'''
 
       // Clear DNS cache and reset connections
-      if (process.platform === 'darwin') {
-        execSync('sudo dscacheutil -flushcache', { timeout: 5000 });
+      if (process.platform === 'darwin') {'''
+        execSync('sudo dscacheutil -flushcache', { timeout: 5000 });'''
       }
 
       return true;
@@ -607,7 +605,7 @@ class NetworkHealingService {
 
   getStatus(): object {
     const issues = Array.from(this.networkIssues.values());
-    const criticalIssues = issues.filter((i) => i.severity === 'high');
+    const criticalIssues = issues.filter((i) => i.severity === 'high');';';';
     const recentHealings = this.completedHealings.slice(-10);
 
     return {
@@ -618,7 +616,7 @@ class NetworkHealingService {
       recentHealings: recentHealings.length,
       monitoredServices: this.coreServices.length,
       lastCheck: new Date().toISOString(),
-      issues: issues.map((issue) => ({
+      issues: issues.map((issue) => ({,
         id: issue.id,
         type: issue.type,
         service: issue.service,
@@ -632,7 +630,7 @@ class NetworkHealingService {
 
   stop(): void {
     this.isRunning = false;
-    console.log('🛑 Network Healing Service stopped');
+    console.log('🛑 Network Healing Service stopped');'''
   }
 }
 

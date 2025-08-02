@@ -5,8 +5,7 @@
  * in the Adaptive AI Personality System. Implements enterprise-grade encryption,
  * privacy compliance, and secure data lifecycle management.
  * 
- * Features:
- * - End-to-end encryption with device-specific keys
+ * Features: * - End-to-end encryption with device-specific keys
  * - GDPR/CCPA compliant data anonymization and aggregation
  * - Automatic data retention and secure deletion
  * - Comprehensive audit logging and access controls
@@ -15,24 +14,24 @@
  * - Integration with Supabase Vault for key management
  */
 
-import { EventEmitter } from 'events';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
-import { logger } from '@/utils/logger';
-import type { VaultService } from './vault-service';
-import { CircuitBreaker } from '@/utils/circuit-breaker';
-import crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
+import { EventEmitter    } from 'events';';';';
+import type { SupabaseClient } from '@supabase/supabase-js';';';';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { logger    } from '@/utils/logger';';';';
+import type { VaultService } from './vault-service';';';';
+import { CircuitBreaker    } from '@/utils/circuit-breaker';';';';
+import crypto from 'crypto';';';';
+import { v4 as uuidv4    } from 'uuid';';';';
 
 // =============================================================================
 // BIOMETRIC DATA PROTECTION TYPES
 // =============================================================================
 
 export interface BiometricAuthData {
-  deviceId: string;
-  userId: string;
-  authMethod: 'touchid' | 'faceid' | 'voiceid' | 'passcode' | 'proximity';
-  confidence: number; // 0-1
+  deviceId: string;,
+  userId: string;,
+  authMethod: 'touchid' | 'faceid' | 'voiceid' | 'passcode' | 'proximity';,'''
+  confidence: number; // 0-1,
   timestamp: Date;
   sessionId?: string;
   
@@ -54,50 +53,50 @@ export interface BiometricAuthData {
   };
   
   // Metadata
-  privacyLevel: 'raw' | 'processed' | 'aggregated';
-  consentLevel: 'minimal' | 'standard' | 'comprehensive';
+  privacyLevel: 'raw' | 'processed' | 'aggregated';,'''
+  consentLevel: 'minimal' | 'standard' | 'comprehensive';'''
 }
 
 export interface EncryptedBiometricData {
-  id: string;
-  userId: string;
-  deviceId: string;
-  authMethod: string;
-  confidence: number;
+  id: string;,
+  userId: string;,
+  deviceId: string;,
+  authMethod: string;,
+  confidence: number;,
   timestamp: Date;
   
   // Encrypted fields
-  encryptedPatterns: string; // AES-256 encrypted raw patterns
+  encryptedPatterns: string; // AES-256 encrypted raw patterns,
   encryptedContext: string; // AES-256 encrypted contextual factors
   
   // Public aggregated metrics (safe for analytics)
-  aggregatedMetrics: {
-    averageConfidence: number;
+  aggregatedMetrics: {,
+    averageConfidence: number;,
     authMethodFrequency: Record<string, number>;
     temporalPatterns: Record<string, number>;
     devicePerformanceScore: number;
   };
   
   // Security metadata
-  encryptionKeyId: string;
-  encryptionAlgorithm: string;
-  dataClassification: 'sensitive' | 'restricted' | 'confidential';
+  encryptionKeyId: string;,
+  encryptionAlgorithm: string;,
+  dataClassification: 'sensitive' | 'restricted' | 'confidential';,'''
   retentionUntil: Date;
   
   // Audit trail
-  accessLog: BiometricAccessLogEntry[];
+  accessLog: BiometricAccessLogEntry[];,
   
-  createdAt: Date;
+  createdAt: Date;,
   updatedAt: Date;
 }
 
 export interface BiometricAccessLogEntry {
-  id: string;
-  accessType: 'read' | 'write' | 'decrypt' | 'export' | 'delete';
-  accessorId: string; // User or service ID
-  accessorType: 'user' | 'service' | 'system';
-  purpose: string;
-  dataFields: string[]; // Which fields were accessed
+  id: string;,
+  accessType: 'read' | 'write' | 'decrypt' | 'export' | 'delete';',''
+  accessorId: string; // User or service ID,
+  accessorType: 'user' | 'service' | 'system';',''
+  purpose: string;,
+  dataFields: string[]; // Which fields were accessed,
   timestamp: Date;
   ipAddress?: string;
   userAgent?: string;
@@ -106,49 +105,49 @@ export interface BiometricAccessLogEntry {
 }
 
 export interface BiometricPrivacySettings {
-  userId: string;
-  dataRetentionDays: number; // 1-365
-  allowBiometricStorage: boolean;
-  allowPatternAnalysis: boolean;
-  allowCrossDeviceCorrelation: boolean;
-  anonymizationLevel: 'minimal' | 'standard' | 'aggressive';
+  userId: string;,
+  dataRetentionDays: number; // 1-365,
+  allowBiometricStorage: boolean;,
+  allowPatternAnalysis: boolean;,
+  allowCrossDeviceCorrelation: boolean;,
+  anonymizationLevel: 'minimal' | 'standard' | 'aggressive';'''
   consentWithdrawalDate?: Date;
-  dataExportRequests: BiometricDataExportRequest[];
+  dataExportRequests: BiometricDataExportRequest[];,
   deletionRequests: BiometricDataDeletionRequest[];
 }
 
 export interface BiometricDataExportRequest {
-  id: string;
-  userId: string;
-  requestDate: Date;
-  dataTypes: string[]; // Types of biometric data to export
-  format: 'json' | 'csv' | 'encrypted';
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  id: string;,
+  userId: string;,
+  requestDate: Date;,
+  dataTypes: string[]; // Types of biometric data to export,
+  format: 'json' | 'csv' | 'encrypted';,'''
+  status: 'pending' | 'processing' | 'completed' | 'failed';'''
   completedDate?: Date;
   downloadUrl?: string; // Secure temporary URL
   expiresAt?: Date;
 }
 
 export interface BiometricDataDeletionRequest {
-  id: string;
-  userId: string;
-  requestDate: Date;
-  deletionScope: 'partial' | 'complete';
+  id: string;,
+  userId: string;,
+  requestDate: Date;,
+  deletionScope: 'partial' | 'complete';'''
   specificDataTypes?: string[];
-  retainAggregatedData: boolean;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  retainAggregatedData: boolean;,
+  status: 'pending' | 'processing' | 'completed' | 'failed';'''
   completedDate?: Date;
   deletionCertificate?: string;
 }
 
 export interface BiometricSecurityConfig {
-  encryptionAlgorithm: string;
-  keyRotationIntervalDays: number;
-  maxRetentionDays: number;
-  requireSecureTransport: boolean;
-  enableAuditLogging: boolean;
-  anonymizationThreshold: number; // Minimum data points for anonymization
-  allowedAccessRoles: string[];
+  encryptionAlgorithm: string;,
+  keyRotationIntervalDays: number;,
+  maxRetentionDays: number;,
+  requireSecureTransport: boolean;,
+  enableAuditLogging: boolean;,
+  anonymizationThreshold: number; // Minimum data points for anonymization,
+  allowedAccessRoles: string[];,
   requireMultiFactorAuth: boolean;
 }
 
@@ -163,15 +162,15 @@ export class BiometricDataProtectionService extends EventEmitter {
   private config: BiometricSecurityConfig;
   
   // Encryption and security
-  private encryptionKeyCache: Map<string, { key: Buffer; expiry: number }> = new Map();
-  private accessControlCache: Map<string, { permissions: string[]; expiry: number }> = new Map();
+  private encryptionKeyCache: Map<string, { key: Buffer;, expiry: number }> = new Map();
+  private accessControlCache: Map<string, { permissions: string[];, expiry: number }> = new Map();
   
   // Data processing queues
   private encryptionQueue: Map<string, BiometricAuthData[]> = new Map();
   private deletionQueue: Map<string, string[]> = new Map();
   private exportQueue: Map<string, BiometricDataExportRequest> = new Map();
 
-  constructor(
+  constructor();
     vaultService: VaultService,
     config?: Partial<BiometricSecurityConfig>
   ) {
@@ -181,25 +180,25 @@ export class BiometricDataProtectionService extends EventEmitter {
     
     // Default security configuration
     this.config = {
-      encryptionAlgorithm: 'aes-256-gcm',
+      encryptionAlgorithm: 'aes-256-gcm','''
       keyRotationIntervalDays: 30,
       maxRetentionDays: 90,
       requireSecureTransport: true,
       enableAuditLogging: true,
       anonymizationThreshold: 10,
-      allowedAccessRoles: ['user', 'personality_service', 'admin'],
+      allowedAccessRoles: ['user', 'personality_service', 'admin'],'''
       requireMultiFactorAuth: false,
       ...config
     };
     
     // Initialize Supabase
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_ANON_KEY || ''
+    this.supabase = createClient()
+      process.env.SUPABASE_URL || '','''
+      process.env.SUPABASE_ANON_KEY || '''''
     );
     
     // Initialize circuit breaker
-    this.circuitBreaker = new CircuitBreaker('biometric-data-protection', {
+    this.circuitBreaker = new CircuitBreaker('biometric-data-protection', {')''
       failureThreshold: 3,
       resetTimeout: 60000,
       monitoringPeriod: 30000
@@ -210,7 +209,7 @@ export class BiometricDataProtectionService extends EventEmitter {
 
   private async initialize(): Promise<void> {
     try {
-      logger.info('Initializing Biometric Data Protection Service');
+      logger.info('Initializing Biometric Data Protection Service');'''
       
       // Load vault secrets
       await this.loadVaultSecrets();
@@ -221,9 +220,9 @@ export class BiometricDataProtectionService extends EventEmitter {
       // Start background tasks
       this.startBackgroundTasks();
       
-      logger.info('Biometric Data Protection Service initialized successfully');
+      logger.info('Biometric Data Protection Service initialized successfully');'''
     } catch (error) {
-      logger.error('Failed to initialize Biometric Data Protection Service:', error);
+      logger.error('Failed to initialize Biometric Data Protection Service: ', error);'''
       throw error;
     }
   }
@@ -231,33 +230,33 @@ export class BiometricDataProtectionService extends EventEmitter {
   private async loadVaultSecrets(): Promise<void> {
     try {
       // Load Supabase service key
-      const supabaseServiceKey = await this.vaultService.getSecret('supabase_service_key');
+      const supabaseServiceKey = await this.vaultService.getSecret('supabase_service_key');';';';
       if (supabaseServiceKey) {
-        this.supabase = createClient(
-          process.env.SUPABASE_URL || '',
+        this.supabase = createClient()
+          process.env.SUPABASE_URL || '','''
           supabaseServiceKey
         );
       }
       
       // Load master encryption key
-      const masterKey = await this.vaultService.getSecret('biometric_master_encryption_key');
+      const masterKey = await this.vaultService.getSecret('biometric_master_encryption_key');';';';
       if (!masterKey) {
-        // Generate and store master key if it doesn't exist
-        const newMasterKey = crypto.randomBytes(32).toString('hex');
-        await this.vaultService.createSecret('biometric_master_encryption_key', newMasterKey);
-        logger.info('Generated new biometric master encryption key');
+        // Generate and store master key if it doesn't exist'''
+        const newMasterKey = crypto.randomBytes(32).toString('hex');';';';
+        await this.vaultService.createSecret('biometric_master_encryption_key', newMasterKey);'''
+        logger.info('Generated new biometric master encryption key');'''
       }
       
     } catch (error) {
-      logger.warn('Could not load some vault secrets:', error);
+      logger.warn('Could not load some vault secrets: ', error);'''
     }
   }
 
   private setupEventListeners(): void {
     // Listen for circuit breaker events
-    this.circuitBreaker.on('stateChange', (state) => {
+    this.circuitBreaker.on('stateChange', (state) => {'''
       logger.info(`Biometric Protection Circuit Breaker state: ${state}`);
-      this.emit('circuit_breaker_state_change', { state });
+      this.emit('circuit_breaker_state_change', { state });'''
     });
   }
 
@@ -287,7 +286,7 @@ export class BiometricDataProtectionService extends EventEmitter {
   // CORE BIOMETRIC DATA PROTECTION
   // =============================================================================
 
-  async secureStoreBiometricData(
+  async secureStoreBiometricData()
     biometricData: BiometricAuthData,
     accessorId: string,
     purpose: string
@@ -300,20 +299,20 @@ export class BiometricDataProtectionService extends EventEmitter {
         this.validateBiometricData(biometricData);
 
         // Check user consent and privacy settings
-        await this.validateUserConsent(biometricData.userId, 'storage');
+        await this.validateUserConsent(biometricData.userId, 'storage');'''
 
         // Get device-specific encryption key
         const encryptionKey = await this.getDeviceEncryptionKey(biometricData.deviceId);
         const encryptionKeyId = await this.getEncryptionKeyId(biometricData.deviceId);
 
         // Encrypt sensitive patterns
-        const encryptedPatterns = await this.encryptBiometricPatterns(
+        const encryptedPatterns = await this.encryptBiometricPatterns();
           biometricData.rawPatterns,
           encryptionKey
         );
 
         // Encrypt contextual factors
-        const encryptedContext = await this.encryptContextualFactors(
+        const encryptedContext = await this.encryptContextualFactors();
           biometricData.contextualFactors,
           encryptionKey
         );
@@ -327,7 +326,7 @@ export class BiometricDataProtectionService extends EventEmitter {
         retentionUntil.setDate(retentionUntil.getDate() + privacySettings.dataRetentionDays);
 
         // Create encrypted biometric record
-        const encryptedRecord: EncryptedBiometricData = {
+        const encryptedRecord: EncryptedBiometricData = {,;
           id: uuidv4(),
           userId: biometricData.userId,
           deviceId: biometricData.deviceId,
@@ -339,7 +338,7 @@ export class BiometricDataProtectionService extends EventEmitter {
           aggregatedMetrics,
           encryptionKeyId,
           encryptionAlgorithm: this.config.encryptionAlgorithm,
-          dataClassification: 'sensitive',
+          dataClassification: 'sensitive','''
           retentionUntil,
           accessLog: [],
           createdAt: new Date(),
@@ -347,9 +346,9 @@ export class BiometricDataProtectionService extends EventEmitter {
         };
 
         // Store encrypted data
-        const { data, error } = await this.supabase
-          .from('encrypted_biometric_data')
-          .insert({
+        const { data, error } = await this.supabase;
+          .from('encrypted_biometric_data')'''
+          .insert({)
             id: encryptedRecord.id,
             user_id: encryptedRecord.userId,
             device_id: encryptedRecord.deviceId,
@@ -374,16 +373,16 @@ export class BiometricDataProtectionService extends EventEmitter {
         }
 
         // Log access for audit trail
-        await this.logBiometricAccess({
+        await this.logBiometricAccess({)
           id: uuidv4(),
-          accessType: 'write',
+          accessType: 'write','''
           accessorId,
-          accessorType: 'service',
+          accessorType: 'service','''
           purpose,
-          dataFields: ['encrypted_patterns', 'encrypted_context', 'aggregated_metrics'],
+          dataFields: ['encrypted_patterns', 'encrypted_context', 'aggregated_metrics'],'''
           timestamp: new Date(),
           success: true,
-          auditMetadata: {
+          auditMetadata: {,
             dataId: encryptedRecord.id,
             encryptionUsed: true,
             retentionDays: privacySettings.dataRetentionDays
@@ -391,7 +390,7 @@ export class BiometricDataProtectionService extends EventEmitter {
         });
 
         // Emit storage event
-        this.emit('biometric_data_stored', {
+        this.emit('biometric_data_stored', {')''
           dataId: encryptedRecord.id,
           userId: biometricData.userId,
           deviceId: biometricData.deviceId,
@@ -401,13 +400,13 @@ export class BiometricDataProtectionService extends EventEmitter {
         return encryptedRecord.id;
 
       } catch (error) {
-        logger.error('Error securing biometric data:', error);
+        logger.error('Error securing biometric data: ', error);'''
         throw error;
       }
     });
   }
 
-  async retrieveBiometricData(
+  async retrieveBiometricData()
     userId: string,
     accessorId: string,
     purpose: string,
@@ -423,35 +422,35 @@ export class BiometricDataProtectionService extends EventEmitter {
         logger.info(`Retrieving biometric data for user: ${userId}`);
 
         // Validate access permissions
-        await this.validateAccess(accessorId, userId, 'read');
+        await this.validateAccess(accessorId, userId, 'read');'''
 
         // Check user consent
-        await this.validateUserConsent(userId, 'retrieval');
+        await this.validateUserConsent(userId, 'retrieval');'''
 
         // Build query with filters
-        let query = this.supabase
-          .from('encrypted_biometric_data')
-          .select('*')
-          .eq('user_id', userId)
-          .gt('retention_until', new Date().toISOString()); // Only non-expired data
+        let query = this.supabase;
+          .from('encrypted_biometric_data')'''
+          .select('*')'''
+          .eq('user_id', userId)'''
+          .gt('retention_until', new Date().toISOString()); // Only non-expired data'''
 
         if (filters?.deviceId) {
-          query = query.eq('device_id', filters.deviceId);
+          query = query.eq('device_id', filters.deviceId);'''
         }
 
         if (filters?.startDate) {
-          query = query.gte('auth_timestamp', filters.startDate.toISOString());
+          query = query.gte('auth_timestamp', filters.startDate.toISOString());'''
         }
 
         if (filters?.endDate) {
-          query = query.lte('auth_timestamp', filters.endDate.toISOString());
+          query = query.lte('auth_timestamp', filters.endDate.toISOString());'''
         }
 
         if (filters?.authMethods && filters.authMethods.length > 0) {
-          query = query.in('auth_method', filters.authMethods);
+          query = query.in('auth_method', filters.authMethods);'''
         }
 
-        const { data, error } = await query.order('auth_timestamp', { ascending: false });
+        const { data, error } = await query.order('auth_timestamp', { ascending: false });';';';
 
         if (error) {
           throw error;
@@ -470,19 +469,19 @@ export class BiometricDataProtectionService extends EventEmitter {
             const decryptionKey = await this.getDeviceEncryptionKey(record.device_id);
 
             // Decrypt patterns
-            const rawPatterns = await this.decryptBiometricPatterns(
+            const rawPatterns = await this.decryptBiometricPatterns();
               record.encrypted_patterns,
               decryptionKey
             );
 
             // Decrypt contextual factors
-            const contextualFactors = await this.decryptContextualFactors(
+            const contextualFactors = await this.decryptContextualFactors();
               record.encrypted_context,
               decryptionKey
             );
 
             // Reconstruct original data structure
-            const biometricData: BiometricAuthData = {
+            const biometricData: BiometricAuthData = {,;
               deviceId: record.device_id,
               userId: record.user_id,
               authMethod: record.auth_method,
@@ -490,23 +489,23 @@ export class BiometricDataProtectionService extends EventEmitter {
               timestamp: new Date(record.auth_timestamp),
               rawPatterns,
               contextualFactors,
-              privacyLevel: 'processed', // Indicate this was stored encrypted
-              consentLevel: 'standard'
+              privacyLevel: 'processed', // Indicate this was stored encrypted'''
+              consentLevel: 'standard''''
             };
 
             decryptedData.push(biometricData);
 
             // Log access for audit trail
-            await this.logBiometricAccess({
+            await this.logBiometricAccess({)
               id: uuidv4(),
-              accessType: 'decrypt',
+              accessType: 'decrypt','''
               accessorId,
-              accessorType: 'service',
+              accessorType: 'service','''
               purpose,
-              dataFields: ['encrypted_patterns', 'encrypted_context'],
+              dataFields: ['encrypted_patterns', 'encrypted_context'],'''
               timestamp: new Date(),
               success: true,
-              auditMetadata: {
+              auditMetadata: {,
                 dataId: record.id,
                 decryptionUsed: true
               }
@@ -521,7 +520,7 @@ export class BiometricDataProtectionService extends EventEmitter {
         return decryptedData;
 
       } catch (error) {
-        logger.error('Error retrieving biometric data:', error);
+        logger.error('Error retrieving biometric data: ', error);'''
         throw error;
       }
     });
@@ -531,31 +530,31 @@ export class BiometricDataProtectionService extends EventEmitter {
   // PRIVACY AND COMPLIANCE METHODS
   // =============================================================================
 
-  async requestDataExport(
+  async requestDataExport()
     userId: string,
     dataTypes: string[],
-    format: 'json' | 'csv' | 'encrypted' = 'json'
+    format: 'json' | 'csv' | 'encrypted' = 'json''''
   ): Promise<string> {
     try {
       logger.info(`Data export requested for user: ${userId}`);
 
       // Validate user permissions
-      await this.validateAccess(userId, userId, 'export');
+      await this.validateAccess(userId, userId, 'export');'''
 
       // Create export request
-      const exportRequest: BiometricDataExportRequest = {
+      const exportRequest: BiometricDataExportRequest = {,;
         id: uuidv4(),
         userId,
         requestDate: new Date(),
         dataTypes,
         format,
-        status: 'pending'
+        status: 'pending''''
       };
 
       // Store export request
-      const { data, error } = await this.supabase
-        .from('biometric_data_export_requests')
-        .insert({
+      const { data, error } = await this.supabase;
+        .from('biometric_data_export_requests')'''
+        .insert({)
           id: exportRequest.id,
           user_id: exportRequest.userId,
           request_date: exportRequest.requestDate.toISOString(),
@@ -574,22 +573,22 @@ export class BiometricDataProtectionService extends EventEmitter {
       this.exportQueue.set(exportRequest.id, exportRequest);
 
       // Log the request
-      await this.logBiometricAccess({
+      await this.logBiometricAccess({)
         id: uuidv4(),
-        accessType: 'export',
+        accessType: 'export','''
         accessorId: userId,
-        accessorType: 'user',
-        purpose: 'data_export_request',
+        accessorType: 'user','''
+        purpose: 'data_export_request','''
         dataFields: dataTypes,
         timestamp: new Date(),
         success: true,
-        auditMetadata: {
-          exportRequestId: exportRequest.id,
+        auditMetadata: {,
+          exportRequestId: exportRequest.id,;
           format
         }
       });
 
-      this.emit('data_export_requested', {
+      this.emit('data_export_requested', {')''
         requestId: exportRequest.id,
         userId,
         dataTypes,
@@ -599,14 +598,14 @@ export class BiometricDataProtectionService extends EventEmitter {
       return exportRequest.id;
 
     } catch (error) {
-      logger.error('Error requesting data export:', error);
+      logger.error('Error requesting data export: ', error);'''
       throw error;
     }
   }
 
-  async requestDataDeletion(
+  async requestDataDeletion()
     userId: string,
-    deletionScope: 'partial' | 'complete',
+    deletionScope: 'partial' | 'complete','''
     specificDataTypes?: string[],
     retainAggregatedData = true
   ): Promise<string> {
@@ -614,23 +613,23 @@ export class BiometricDataProtectionService extends EventEmitter {
       logger.info(`Data deletion requested for user: ${userId}, scope: ${deletionScope}`);
 
       // Validate user permissions
-      await this.validateAccess(userId, userId, 'delete');
+      await this.validateAccess(userId, userId, 'delete');'''
 
       // Create deletion request
-      const deletionRequest: BiometricDataDeletionRequest = {
+      const deletionRequest: BiometricDataDeletionRequest = {,;
         id: uuidv4(),
         userId,
         requestDate: new Date(),
         deletionScope,
         specificDataTypes,
         retainAggregatedData,
-        status: 'pending'
+        status: 'pending''''
       };
 
       // Store deletion request
-      const { data, error } = await this.supabase
-        .from('biometric_data_deletion_requests')
-        .insert({
+      const { data, error } = await this.supabase;
+        .from('biometric_data_deletion_requests')'''
+        .insert({)
           id: deletionRequest.id,
           user_id: deletionRequest.userId,
           request_date: deletionRequest.requestDate.toISOString(),
@@ -653,23 +652,23 @@ export class BiometricDataProtectionService extends EventEmitter {
       this.deletionQueue.get(userId)!.push(deletionRequest.id);
 
       // Log the request
-      await this.logBiometricAccess({
+      await this.logBiometricAccess({)
         id: uuidv4(),
-        accessType: 'delete',
+        accessType: 'delete','''
         accessorId: userId,
-        accessorType: 'user',
-        purpose: 'data_deletion_request',
-        dataFields: specificDataTypes || ['all'],
+        accessorType: 'user','''
+        purpose: 'data_deletion_request','''
+        dataFields: specificDataTypes || ['all'],'''
         timestamp: new Date(),
         success: true,
-        auditMetadata: {
+        auditMetadata: {,
           deletionRequestId: deletionRequest.id,
           scope: deletionScope,
           retainAggregated: retainAggregatedData
         }
       });
 
-      this.emit('data_deletion_requested', {
+      this.emit('data_deletion_requested', {')''
         requestId: deletionRequest.id,
         userId,
         deletionScope,
@@ -679,7 +678,7 @@ export class BiometricDataProtectionService extends EventEmitter {
       return deletionRequest.id;
 
     } catch (error) {
-      logger.error('Error requesting data deletion:', error);
+      logger.error('Error requesting data deletion: ', error);'''
       throw error;
     }
   }
@@ -702,22 +701,22 @@ export class BiometricDataProtectionService extends EventEmitter {
       
       if (!deviceKey) {
         // Generate new device-specific key
-        const masterKey = await this.vaultService.getSecret('biometric_master_encryption_key');
+        const masterKey = await this.vaultService.getSecret('biometric_master_encryption_key');';';';
         if (!masterKey) {
-          throw new Error('Master encryption key not found');
+          throw new Error('Master encryption key not found');';';';
         }
         
         // Derive device key from master key and device ID
-        deviceKey = crypto.pbkdf2Sync(masterKey, deviceId, 100000, 32, 'sha256').toString('hex');
+        deviceKey = crypto.pbkdf2Sync(masterKey, deviceId, 100000, 32, 'sha256').toString('hex');'''
         
         // Store device key in vault
         await this.vaultService.createSecret(`biometric_device_key_${deviceId}`, deviceKey);
       }
       
-      const keyBuffer = Buffer.from(deviceKey, 'hex');
+      const keyBuffer = Buffer.from(deviceKey, 'hex');';';';
       
       // Cache the key for 1 hour
-      this.encryptionKeyCache.set(cacheKey, {
+      this.encryptionKeyCache.set(cacheKey, {)
         key: keyBuffer,
         expiry: Date.now() + 60 * 60 * 1000
       });
@@ -730,50 +729,50 @@ export class BiometricDataProtectionService extends EventEmitter {
     }
   }
 
-  private async encryptBiometricPatterns(
+  private async encryptBiometricPatterns()
     patterns: any,
     encryptionKey: Buffer
   ): Promise<string> {
-    if (!patterns) return '';
+    if (!patterns) return '';'''
     
     try {
       const plaintext = JSON.stringify(patterns);
       const iv = crypto.randomBytes(16);
       const cipher = crypto.createCipher(this.config.encryptionAlgorithm, encryptionKey);
       
-      let encrypted = cipher.update(plaintext, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
+      let encrypted = cipher.update(plaintext, 'utf8', 'hex');';';';
+      encrypted += cipher.final('hex');'''
       
       // Combine IV and encrypted data
-      return `${iv.toString('hex')  }:${  encrypted}`;
+      return `${iv.toString('hex')  }:${  encrypted}`;';';';
     } catch (error) {
-      logger.error('Error encrypting biometric patterns:', error);
+      logger.error('Error encrypting biometric patterns: ', error);'''
       throw error;
     }
   }
 
-  private async decryptBiometricPatterns(
+  private async decryptBiometricPatterns()
     encryptedData: string,
     decryptionKey: Buffer
   ): Promise<any> {
     if (!encryptedData) return null;
     
     try {
-      const [ivHex, encrypted] = encryptedData.split(':');
-      const iv = Buffer.from(ivHex, 'hex');
+      const [ivHex, encrypted] = encryptedData.split(':');';';';
+      const iv = Buffer.from(ivHex, 'hex');';';';
       const decipher = crypto.createDecipher(this.config.encryptionAlgorithm, decryptionKey);
       
-      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');';';';
+      decrypted += decipher.final('utf8');'''
       
       return JSON.parse(decrypted);
     } catch (error) {
-      logger.error('Error decrypting biometric patterns:', error);
+      logger.error('Error decrypting biometric patterns: ', error);'''
       throw error;
     }
   }
 
-  private async encryptContextualFactors(
+  private async encryptContextualFactors()
     contextualFactors: any,
     encryptionKey: Buffer
   ): Promise<string> {
@@ -781,7 +780,7 @@ export class BiometricDataProtectionService extends EventEmitter {
     return this.encryptBiometricPatterns(contextualFactors, encryptionKey);
   }
 
-  private async decryptContextualFactors(
+  private async decryptContextualFactors()
     encryptedData: string,
     decryptionKey: Buffer
   ): Promise<any> {
@@ -795,16 +794,16 @@ export class BiometricDataProtectionService extends EventEmitter {
 
   private validateBiometricData(data: BiometricAuthData): void {
     if (!data.userId || !data.deviceId || !data.authMethod) {
-      throw new Error('Invalid biometric data: missing required fields');
+      throw new Error('Invalid biometric data: missing required fields');';';';
     }
     
     if (data.confidence < 0 || data.confidence > 1) {
-      throw new Error('Invalid confidence value: must be between 0 and 1');
+      throw new Error('Invalid confidence value: must be between 0 and 1');';';';
     }
     
-    const validAuthMethods = ['touchid', 'faceid', 'voiceid', 'passcode', 'proximity'];
+    const validAuthMethods = ['touchid', 'faceid', 'voiceid', 'passcode', 'proximity'];';';';
     if (!validAuthMethods.includes(data.authMethod)) {
-      throw new Error(`Invalid auth method: must be one of ${validAuthMethods.join(', ')}`);
+      throw new Error(`Invalid auth method: must be one of ${validAuthMethods.join(', ')}`);';';';
     }
   }
 
@@ -812,24 +811,24 @@ export class BiometricDataProtectionService extends EventEmitter {
     const privacySettings = await this.getUserPrivacySettings(userId);
     
     switch (operation) {
-      case 'storage':
+      case 'storage':'''
         if (!privacySettings.allowBiometricStorage) {
-          throw new Error('User has not consented to biometric data storage');
+          throw new Error('User has not consented to biometric data storage');';';';
         }
         break;
-      case 'retrieval':
-      case 'analysis':
+      case 'retrieval':'''
+      case 'analysis':'''
         if (!privacySettings.allowPatternAnalysis) {
-          throw new Error('User has not consented to biometric pattern analysis');
+          throw new Error('User has not consented to biometric pattern analysis');';';';
         }
         break;
     }
   }
 
   private async validateAccess(accessorId: string, userId: string, operation: string): Promise<void> {
-    // Check if accessor has permission to perform operation on user's data
+    // Check if accessor has permission to perform operation on user's data'''
     if (accessorId === userId) {
-      return; // Users can always access their own data
+      return; // Users can always access their own data;
     }
     
     // Check service/admin permissions (simplified implementation)
@@ -839,7 +838,7 @@ export class BiometricDataProtectionService extends EventEmitter {
     if (!permissions || Date.now() > permissions.expiry) {
       // Load permissions from database/service registry
       permissions = {
-        permissions: ['read', 'write'], // Would be loaded from actual permission system
+        permissions: ['read', 'write'], // Would be loaded from actual permission system'''
         expiry: Date.now() + 5 * 60 * 1000 // 5 minutes
       };
       this.accessControlCache.set(cacheKey, permissions);
@@ -852,10 +851,10 @@ export class BiometricDataProtectionService extends EventEmitter {
 
   private async getUserPrivacySettings(userId: string): Promise<BiometricPrivacySettings> {
     try {
-      const { data, error } = await this.supabase
-        .from('user_personality_profiles')
-        .select('privacy_settings')
-        .eq('user_id', userId)
+      const { data, error } = await this.supabase;
+        .from('user_personality_profiles')'''
+        .select('privacy_settings')'''
+        .eq('user_id', userId)'''
         .single();
 
       if (error || !data) {
@@ -866,7 +865,7 @@ export class BiometricDataProtectionService extends EventEmitter {
           allowBiometricStorage: true,
           allowPatternAnalysis: true,
           allowCrossDeviceCorrelation: false,
-          anonymizationLevel: 'standard',
+          anonymizationLevel: 'standard','''
           dataExportRequests: [],
           deletionRequests: []
         };
@@ -878,12 +877,12 @@ export class BiometricDataProtectionService extends EventEmitter {
         allowBiometricStorage: data.privacy_settings?.biometricLearning !== false,
         allowPatternAnalysis: data.privacy_settings?.patternAnalysis !== false,
         allowCrossDeviceCorrelation: data.privacy_settings?.crossDeviceCorrelation === true,
-        anonymizationLevel: data.privacy_settings?.anonymizationLevel || 'standard',
+        anonymizationLevel: data.privacy_settings?.anonymizationLevel || 'standard','''
         dataExportRequests: [],
         deletionRequests: []
       };
     } catch (error) {
-      logger.error('Error getting user privacy settings:', error);
+      logger.error('Error getting user privacy settings: ', error);'''
       throw error;
     }
   }
@@ -898,7 +897,7 @@ export class BiometricDataProtectionService extends EventEmitter {
   }
 
   private async getEncryptionKeyId(deviceId: string): Promise<string> {
-    return crypto.createHash('sha256').update(`key_${deviceId}`).digest('hex').substring(0, 16);
+    return crypto.createHash('sha256').update(`key_${deviceId}`).digest('hex').substring(0, 16);';';';
   }
 
   private async logBiometricAccess(accessEntry: BiometricAccessLogEntry): Promise<void> {
@@ -906,8 +905,8 @@ export class BiometricDataProtectionService extends EventEmitter {
     
     try {
       await this.supabase
-        .from('biometric_access_log')
-        .insert({
+        .from('biometric_access_log')'''
+        .insert({)
           id: accessEntry.id,
           access_type: accessEntry.accessType,
           accessor_id: accessEntry.accessorId,
@@ -921,8 +920,8 @@ export class BiometricDataProtectionService extends EventEmitter {
           audit_metadata: accessEntry.auditMetadata
         });
     } catch (error) {
-      logger.error('Error logging biometric access:', error);
-      // Don't throw error to avoid breaking main operations
+      logger.error('Error logging biometric access: ', error);'''
+      // Don't throw error to avoid breaking main operations'''
     }
   }
 
@@ -932,7 +931,7 @@ export class BiometricDataProtectionService extends EventEmitter {
     for (const [userId, dataArray] of this.encryptionQueue.entries()) {
       try {
         for (const data of dataArray) {
-          await this.secureStoreBiometricData(data, 'system', 'background_processing');
+          await this.secureStoreBiometricData(data, 'system', 'background_processing');'''
         }
         this.encryptionQueue.delete(userId);
       } catch (error) {
@@ -943,11 +942,11 @@ export class BiometricDataProtectionService extends EventEmitter {
 
   private async cleanupExpiredData(): Promise<void> {
     try {
-      const { data, error } = await this.supabase
-        .from('encrypted_biometric_data')
+      const { data, error } = await this.supabase;
+        .from('encrypted_biometric_data')'''
         .delete()
-        .lt('retention_until', new Date().toISOString())
-        .select('id'); // Add select to get deleted records
+        .lt('retention_until', new Date().toISOString())'''
+        .select('id'); // Add select to get deleted records'''
 
       if (error) {
         throw error;
@@ -955,29 +954,29 @@ export class BiometricDataProtectionService extends EventEmitter {
 
       if (data && Array.isArray(data) && data.length > 0) {
         logger.info(`Cleaned up ${data.length} expired biometric records`);
-        this.emit('data_cleanup_completed', { recordsDeleted: data.length });
+        this.emit('data_cleanup_completed', { recordsDeleted: data.length });'''
       }
     } catch (error) {
-      logger.error('Error cleaning up expired data:', error);
+      logger.error('Error cleaning up expired data: ', error);'''
     }
   }
 
   private async rotateEncryptionKeys(): Promise<void> {
     try {
-      logger.info('Starting encryption key rotation');
+      logger.info('Starting encryption key rotation');'''
       
       // Clear encryption key cache to force regeneration
       this.encryptionKeyCache.clear();
       
       // Generate new master key
-      const newMasterKey = crypto.randomBytes(32).toString('hex');
-      await this.vaultService.createSecret('biometric_master_encryption_key', newMasterKey);
+      const newMasterKey = crypto.randomBytes(32).toString('hex');';';';
+      await this.vaultService.createSecret('biometric_master_encryption_key', newMasterKey);'''
       
-      this.emit('encryption_keys_rotated', { timestamp: new Date() });
+      this.emit('encryption_keys_rotated', { timestamp: new Date() });'''
       
-      logger.info('Encryption key rotation completed');
+      logger.info('Encryption key rotation completed');'''
     } catch (error) {
-      logger.error('Error rotating encryption keys:', error);
+      logger.error('Error rotating encryption keys: ', error);'''
     }
   }
 
@@ -997,10 +996,10 @@ export class BiometricDataProtectionService extends EventEmitter {
   private async processDeletionRequest(requestId: string): Promise<void> {
     try {
       // Get deletion request details
-      const { data: request, error } = await this.supabase
-        .from('biometric_data_deletion_requests')
-        .select('*')
-        .eq('id', requestId)
+      const { data: request, error } = await this.supabase;
+        .from('biometric_data_deletion_requests')'''
+        .select('*')'''
+        .eq('id', requestId)'''
         .single();
 
       if (error || !request) {
@@ -1009,39 +1008,39 @@ export class BiometricDataProtectionService extends EventEmitter {
 
       // Update status to processing
       await this.supabase
-        .from('biometric_data_deletion_requests')
-        .update({ status: 'processing' })
-        .eq('id', requestId);
+        .from('biometric_data_deletion_requests')'''
+        .update({ status: 'processing' })'''
+        .eq('id', requestId);'''
 
       // Perform deletion based on scope
-      if (request.deletion_scope === 'complete') {
+      if (request.deletion_scope === 'complete') {'''
         // Delete all biometric data for the user
         await this.supabase
-          .from('encrypted_biometric_data')
+          .from('encrypted_biometric_data')'''
           .delete()
-          .eq('user_id', request.user_id);
+          .eq('user_id', request.user_id);'''
       } else {
         // Partial deletion based on specific data types
         if (request.specific_data_types && request.specific_data_types.length > 0) {
           await this.supabase
-            .from('encrypted_biometric_data')
+            .from('encrypted_biometric_data')'''
             .delete()
-            .eq('user_id', request.user_id)
-            .in('auth_method', request.specific_data_types);
+            .eq('user_id', request.user_id)'''
+            .in('auth_method', request.specific_data_types);'''
         }
       }
 
       // Update status to completed
       await this.supabase
-        .from('biometric_data_deletion_requests')
-        .update({ 
-          status: 'completed', 
+        .from('biometric_data_deletion_requests')'''
+        .update({)
+          status: 'completed', '''
           completed_date: new Date().toISOString(),
           deletion_certificate: this.generateDeletionCertificate(request.user_id, request.deletion_scope)
         })
-        .eq('id', requestId);
+        .eq('id', requestId);'''
 
-      this.emit('data_deletion_completed', {
+      this.emit('data_deletion_completed', {')''
         requestId,
         userId: request.user_id,
         scope: request.deletion_scope
@@ -1052,9 +1051,9 @@ export class BiometricDataProtectionService extends EventEmitter {
       
       // Update status to failed
       await this.supabase
-        .from('biometric_data_deletion_requests')
-        .update({ status: 'failed' })
-        .eq('id', requestId);
+        .from('biometric_data_deletion_requests')'''
+        .update({ status: 'failed' })'''
+        .eq('id', requestId);'''
     }
   }
 
@@ -1064,12 +1063,12 @@ export class BiometricDataProtectionService extends EventEmitter {
       deletionScope: scope,
       timestamp: new Date().toISOString(),
       certificationId: uuidv4(),
-      verificationHash: crypto.createHash('sha256')
+      verificationHash: crypto.createHash('sha256')'''
         .update(`${userId}:${scope}:${new Date().toISOString()}`)
-        .digest('hex')
+        .digest('hex')'''
     };
     
-    return Buffer.from(JSON.stringify(certificate)).toString('base64');
+    return Buffer.from(JSON.stringify(certificate)).toString('base64');';';';
   }
 }
 

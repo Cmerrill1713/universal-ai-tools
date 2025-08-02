@@ -4,12 +4,12 @@
  * Prevents repeated debugging of the same issues
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
-import { z } from 'zod';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { z    } from 'zod';';';';
 
 // Zod schemas for validation
-const DebuggingSessionSchema = z.object({
+const DebuggingSessionSchema = z.object({);
   error_pattern: z.string(),
   error_message: z.string(),
   stack_trace: z.string().optional(),
@@ -18,14 +18,14 @@ const DebuggingSessionSchema = z.object({
   prevention_strategy: z.string().optional(),
   root_cause: z.string().optional(),
   time_to_fix_minutes: z.number().optional(),
-  severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
-  category: z.enum(['syntax', 'runtime', 'logic', 'performance', 'security', 'other']).optional(),
+  severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),'''
+  category: z.enum(['syntax', 'runtime', 'logic', 'performance', 'security', 'other']).optional(),'''
   tags: z.array(z.string()).optional(),
   related_sessions: z.array(z.string()).optional(),
   metadata: z.record(z.any()).optional()
 });
 
-const ErrorPatternSchema = z.object({
+const ErrorPatternSchema = z.object({);
   pattern_signature: z.string(),
   error_type: z.string(),
   common_causes: z.array(z.string()),
@@ -35,8 +35,8 @@ const ErrorPatternSchema = z.object({
   fix_script: z.string().optional()
 });
 
-const DevelopmentContextSchema = z.object({
-  context_type: z.enum(['bug_fix', 'feature', 'refactor', 'optimization', 'research']),
+const DevelopmentContextSchema = z.object({);
+  context_type: z.enum(['bug_fix', 'feature', 'refactor', 'optimization', 'research']),'''
   title: z.string(),
   description: z.string(),
   context_data: z.record(z.any()),
@@ -67,8 +67,8 @@ type DevelopmentContext = z.infer<typeof DevelopmentContextSchema> & {
 };
 
 export interface SimilarError {
-  session_id: string;
-  similarity_score: number;
+  session_id: string;,
+  similarity_score: number;,
   solution: string;
   prevention_strategy?: string;
 }
@@ -82,7 +82,7 @@ export class DebuggingContextService {
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration missing');
+      throw new Error('Supabase configuration missing');';';';
     }
 
     this.supabase = createClient(supabaseUrl, supabaseKey);
@@ -95,15 +95,15 @@ export class DebuggingContextService {
     try {
       const validated = DebuggingSessionSchema.parse(session);
       
-      const { data, error } = await this.supabase
-        .from('debugging_sessions')
+      const { data, error } = await this.supabase;
+        .from('debugging_sessions')'''
         .insert(validated)
-        .select('id')
+        .select('id')'''
         .single();
 
       if (error) throw error;
 
-      log.info('📝 Debugging session recorded', LogContext.AI, {
+      log.info('📝 Debugging session recorded', LogContext.AI, {')''
         sessionId: data.id,
         errorPattern: session.error_pattern.substring(0, 50)
       });
@@ -113,7 +113,7 @@ export class DebuggingContextService {
 
       return data.id;
     } catch (error) {
-      log.error('❌ Failed to record debugging session', LogContext.AI, { error });
+      log.error('❌ Failed to record debugging session', LogContext.AI, { error });'''
       throw error;
     }
   }
@@ -123,22 +123,22 @@ export class DebuggingContextService {
    */
   async findSimilarErrors(errorText: string, threshold = 0.7): Promise<SimilarError[]> {
     try {
-      const { data, error } = await this.supabase
-        .rpc('find_similar_errors', {
+      const { data, error } = await this.supabase;
+        .rpc('find_similar_errors', {')''
           error_text: errorText,
           threshold
         });
 
       if (error) throw error;
 
-      log.info('🔍 Found similar errors', LogContext.AI, {
+      log.info('🔍 Found similar errors', LogContext.AI, {')''
         count: data?.length || 0,
         threshold
       });
 
       return data || [];
     } catch (error) {
-      log.error('❌ Failed to find similar errors', LogContext.AI, { error });
+      log.error('❌ Failed to find similar errors', LogContext.AI, { error });'''
       return [];
     }
   }
@@ -149,38 +149,38 @@ export class DebuggingContextService {
   private async updateErrorPattern(session: DebuggingSession): Promise<void> {
     try {
       // Check if pattern exists
-      const { data: existing } = await this.supabase
-        .from('error_patterns')
-        .select('id, occurrence_count')
-        .eq('pattern_signature', session.error_pattern)
+      const { data: existing } = await this.supabase;
+        .from('error_patterns')'''
+        .select('id, occurrence_count')'''
+        .eq('pattern_signature', session.error_pattern)'''
         .single();
 
       if (existing) {
         // Update occurrence count
         await this.supabase
-          .from('error_patterns')
-          .update({
+          .from('error_patterns')'''
+          .update({)
             occurrence_count: (existing.occurrence_count || 0) + 1,
             last_seen: new Date().toISOString()
           })
-          .eq('id', existing.id);
+          .eq('id', existing.id);'''
       } else {
         // Create new pattern
-        const pattern: ErrorPattern = {
+        const pattern: ErrorPattern = {,;
           pattern_signature: session.error_pattern,
-          error_type: session.category || 'other',
-          common_causes: [session.root_cause || 'Unknown'],
+          error_type: session.category || 'other','''
+          common_causes: [session.root_cause || 'Unknown'],'''
           quick_fixes: [session.solution],
           long_term_solutions: session.prevention_strategy ? [session.prevention_strategy] : [],
           auto_fixable: false
         };
 
         await this.supabase
-          .from('error_patterns')
+          .from('error_patterns')'''
           .insert(pattern);
       }
     } catch (error) {
-      log.warn('⚠️ Failed to update error pattern', LogContext.AI, { error });
+      log.warn('⚠️ Failed to update error pattern', LogContext.AI, { error });'''
     }
   }
 
@@ -191,25 +191,25 @@ export class DebuggingContextService {
     try {
       const validated = DevelopmentContextSchema.parse(context);
       
-      const { data, error } = await this.supabase
-        .from('development_context')
-        .insert({
+      const { data, error } = await this.supabase;
+        .from('development_context')'''
+        .insert({)
           ...validated,
           session_id: this.currentSessionId
         })
-        .select('id')
+        .select('id')'''
         .single();
 
       if (error) throw error;
 
-      log.info('💾 Development context stored', LogContext.AI, {
+      log.info('💾 Development context stored', LogContext.AI, {')''
         contextId: data.id,
         type: context.context_type
       });
 
       return data.id;
     } catch (error) {
-      log.error('❌ Failed to store development context', LogContext.AI, { error });
+      log.error('❌ Failed to store development context', LogContext.AI, { error });'''
       throw error;
     }
   }
@@ -219,16 +219,16 @@ export class DebuggingContextService {
    */
   async getRecentSessions(limit = 10): Promise<DebuggingSession[]> {
     try {
-      const { data, error } = await this.supabase
-        .from('recent_debugging_sessions')
-        .select('*')
+      const { data, error } = await this.supabase;
+        .from('recent_debugging_sessions')'''
+        .select('*')'''
         .limit(limit);
 
       if (error) throw error;
 
       return data || [];
     } catch (error) {
-      log.error('❌ Failed to get recent sessions', LogContext.AI, { error });
+      log.error('❌ Failed to get recent sessions', LogContext.AI, { error });'''
       return [];
     }
   }
@@ -238,16 +238,16 @@ export class DebuggingContextService {
    */
   async getQualityPatterns(): Promise<any[]> {
     try {
-      const { data, error } = await this.supabase
-        .from('code_quality_patterns')
-        .select('*')
-        .order('effectiveness_score', { ascending: false });
+      const { data, error } = await this.supabase;
+        .from('code_quality_patterns')'''
+        .select('*')'''
+        .order('effectiveness_score', { ascending: false });'''
 
       if (error) throw error;
 
       return data || [];
     } catch (error) {
-      log.error('❌ Failed to get quality patterns', LogContext.AI, { error });
+      log.error('❌ Failed to get quality patterns', LogContext.AI, { error });'''
       return [];
     }
   }
@@ -255,9 +255,9 @@ export class DebuggingContextService {
   /**
    * Check if an error has been seen before and get solutions
    */
-  async checkKnownError(errorMessage: string): Promise<{
-    isKnown: boolean;
-    solutions: string[];
+  async checkKnownError(errorMessage: string): Promise<{,
+    isKnown: boolean;,
+    solutions: string[];,
     preventionStrategies: string[];
   }> {
     try {
@@ -279,7 +279,7 @@ export class DebuggingContextService {
         preventionStrategies: []
       };
     } catch (error) {
-      log.error('❌ Failed to check known error', LogContext.AI, { error });
+      log.error('❌ Failed to check known error', LogContext.AI, { error });'''
       return {
         isKnown: false,
         solutions: [],
@@ -293,7 +293,7 @@ export class DebuggingContextService {
    */
   startSession(): string {
     this.currentSessionId = crypto.randomUUID();
-    log.info('🚀 Started new debugging session', LogContext.AI, {
+    log.info('🚀 Started new debugging session', LogContext.AI, {')''
       sessionId: this.currentSessionId
     });
     return this.currentSessionId;
@@ -304,16 +304,16 @@ export class DebuggingContextService {
    */
   async getErrorAnalytics(): Promise<any[]> {
     try {
-      const { data, error } = await this.supabase
-        .from('error_pattern_analytics')
-        .select('*')
+      const { data, error } = await this.supabase;
+        .from('error_pattern_analytics')'''
+        .select('*')'''
         .limit(20);
 
       if (error) throw error;
 
       return data || [];
     } catch (error) {
-      log.error('❌ Failed to get error analytics', LogContext.AI, { error });
+      log.error('❌ Failed to get error analytics', LogContext.AI, { error });'''
       return [];
     }
   }
@@ -321,16 +321,16 @@ export class DebuggingContextService {
   /**
    * Auto-fix known error if possible
    */
-  async attemptAutoFix(errorPattern: string): Promise<{
+  async attemptAutoFix(errorPattern: string): Promise<{,
     canAutoFix: boolean;
     fixScript?: string;
     explanation?: string;
   }> {
     try {
-      const { data, error } = await this.supabase
-        .from('error_patterns')
-        .select('auto_fixable, fix_script, quick_fixes')
-        .eq('pattern_signature', errorPattern)
+      const { data, error } = await this.supabase;
+        .from('error_patterns')'''
+        .select('auto_fixable, fix_script, quick_fixes')'''
+        .eq('pattern_signature', errorPattern)'''
         .single();
 
       if (error || !data) {
@@ -347,7 +347,7 @@ export class DebuggingContextService {
 
       return { canAutoFix: false };
     } catch (error) {
-      log.error('❌ Failed to check auto-fix', LogContext.AI, { error });
+      log.error('❌ Failed to check auto-fix', LogContext.AI, { error });'''
       return { canAutoFix: false };
     }
   }

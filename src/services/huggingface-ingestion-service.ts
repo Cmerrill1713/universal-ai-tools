@@ -4,8 +4,8 @@
  * Integrates with Universal AI Tools knowledge system
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
 // Context injection service temporarily disabled
 
 interface HuggingFaceModel {
@@ -16,7 +16,7 @@ interface HuggingFaceModel {
   lastModified?: string;
   private?: boolean;
   disabled?: boolean;
-  gated?: boolean | 'auto' | 'manual';
+  gated?: boolean | 'auto' | 'manual';'''
   pipeline_tag?: string;
   tags?: string[];
   downloads?: number;
@@ -72,7 +72,7 @@ interface HuggingFaceDataset {
 }
 
 interface HuggingFacePaper {
-  id: string;
+  id: string;,
   title: string;
   authors?: string[];
   published?: string;
@@ -85,31 +85,31 @@ interface HuggingFacePaper {
 }
 
 interface IngestionStats {
-  modelsProcessed: number;
-  datasetsProcessed: number;
-  papersProcessed: number;
-  errors: string[];
+  modelsProcessed: number;,
+  datasetsProcessed: number;,
+  papersProcessed: number;,
+  errors: string[];,
   startTime: Date;
   endTime?: Date;
 }
 
 export class HuggingFaceIngestionService {
   private supabase;
-  private baseUrl = 'https://huggingface.co/api';
-  private hubUrl = 'https://huggingface.co';
-  private papersUrl = 'https://huggingface.co/api/papers';
+  private baseUrl = 'https: //huggingface.co/api';'''
+  private hubUrl = 'https: //huggingface.co';'''
+  private papersUrl = 'https: //huggingface.co/api/papers';'''
 
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
-      process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || ''
+    this.supabase = createClient()
+      process.env.SUPABASE_URL || 'http: //127.0.0.1:54321','''
+      process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '''''
     );
   }
 
   /**
    * Main ingestion method - fetches comprehensive HF data
    */
-  async ingestHuggingFaceData(options: {
+  async ingestHuggingFaceData(options: {)
     includeModels?: boolean;
     includeDatasets?: boolean;
     includePapers?: boolean;
@@ -118,7 +118,7 @@ export class HuggingFaceIngestionService {
     paperLimit?: number;
     popularOnly?: boolean;
   } = {}): Promise<IngestionStats> {
-    const stats: IngestionStats = {
+    const stats: IngestionStats = {,;
       modelsProcessed: 0,
       datasetsProcessed: 0,
       papersProcessed: 0,
@@ -137,7 +137,7 @@ export class HuggingFaceIngestionService {
     } = options;
 
     try {
-      log.info('🤗 Starting Hugging Face data ingestion', LogContext.AI, {
+      log.info('🤗 Starting Hugging Face data ingestion', LogContext.AI, {')''
         includeModels,
         includeDatasets,
         includePapers,
@@ -164,7 +164,7 @@ export class HuggingFaceIngestionService {
       stats.endTime = new Date();
       const duration = (stats.endTime.getTime() - stats.startTime.getTime()) / 1000;
 
-      log.info('✅ Hugging Face ingestion completed', LogContext.AI, {
+      log.info('✅ Hugging Face ingestion completed', LogContext.AI, {')''
         duration: `${duration}s`,
         modelsProcessed: stats.modelsProcessed,
         datasetsProcessed: stats.datasetsProcessed,
@@ -174,7 +174,7 @@ export class HuggingFaceIngestionService {
 
     } catch (error) {
       stats.errors.push(`Ingestion failed: ${error instanceof Error ? error.message : String(error)}`);
-      log.error('❌ Hugging Face ingestion failed', LogContext.AI, {
+      log.error('❌ Hugging Face ingestion failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error)
       });
     }
@@ -187,21 +187,21 @@ export class HuggingFaceIngestionService {
    */
   private async ingestModels(limit: number, popularOnly: boolean, stats: IngestionStats): Promise<void> {
     try {
-      log.info('📦 Fetching Hugging Face models', LogContext.AI, { limit, popularOnly });
+      log.info('📦 Fetching Hugging Face models', LogContext.AI, { limit, popularOnly });'''
 
       // Fetch models with different sorting strategies
       const sortOptions = popularOnly 
-        ? ['downloads', 'likes', 'trending']
-        : ['downloads', 'likes', 'trending', 'createdAt'];
+        ? ['downloads', 'likes', 'trending']'''
+        : ['downloads', 'likes', 'trending', 'createdAt'];'''
 
       for (const sort of sortOptions) {
         const modelsPerPage = Math.min(100, Math.ceil(limit / sortOptions.length));
         
         try {
           const url = `${this.baseUrl}/models?limit=${modelsPerPage}&sort=${sort}&direction=-1`;
-          const response = await fetch(url, {
+          const response = await fetch(url, {);
             headers: {
-              'User-Agent': 'Universal-AI-Tools/1.0'
+              'User-Agent': 'Universal-AI-Tools/1.0''''
             }
           });
 
@@ -221,14 +221,14 @@ export class HuggingFaceIngestionService {
               await new Promise(resolve => setTimeout(resolve, 100));
               
             } catch (error) {
-              stats.errors.push(`Failed to store model ${model.id}: ${error instanceof Error ? error.message : String(error)}`);
+              stats.errors.push(`Failed to store model ${model.id}: ${error instanceof Error ? error.message: String(error)}`);
             }
           }
 
           log.info(`✅ Processed ${models.length} models (${sort})`, LogContext.AI);
 
         } catch (error) {
-          stats.errors.push(`Failed to fetch models with sort ${sort}: ${error instanceof Error ? error.message : String(error)}`);
+          stats.errors.push(`Failed to fetch models with sort ${sort}: ${error instanceof Error ? error.message: String(error)}`);
         }
       }
 
@@ -242,20 +242,20 @@ export class HuggingFaceIngestionService {
    */
   private async ingestDatasets(limit: number, popularOnly: boolean, stats: IngestionStats): Promise<void> {
     try {
-      log.info('📊 Fetching Hugging Face datasets', LogContext.AI, { limit, popularOnly });
+      log.info('📊 Fetching Hugging Face datasets', LogContext.AI, { limit, popularOnly });'''
 
       const sortOptions = popularOnly 
-        ? ['downloads', 'likes']
-        : ['downloads', 'likes', 'createdAt'];
+        ? ['downloads', 'likes']'''
+        : ['downloads', 'likes', 'createdAt'];'''
 
       for (const sort of sortOptions) {
         const datasetsPerPage = Math.min(100, Math.ceil(limit / sortOptions.length));
         
         try {
           const url = `${this.baseUrl}/datasets?limit=${datasetsPerPage}&sort=${sort}&direction=-1`;
-          const response = await fetch(url, {
+          const response = await fetch(url, {);
             headers: {
-              'User-Agent': 'Universal-AI-Tools/1.0'
+              'User-Agent': 'Universal-AI-Tools/1.0''''
             }
           });
 
@@ -275,14 +275,14 @@ export class HuggingFaceIngestionService {
               await new Promise(resolve => setTimeout(resolve, 100));
               
             } catch (error) {
-              stats.errors.push(`Failed to store dataset ${dataset.id}: ${error instanceof Error ? error.message : String(error)}`);
+              stats.errors.push(`Failed to store dataset ${dataset.id}: ${error instanceof Error ? error.message: String(error)}`);
             }
           }
 
           log.info(`✅ Processed ${datasets.length} datasets (${sort})`, LogContext.AI);
 
         } catch (error) {
-          stats.errors.push(`Failed to fetch datasets with sort ${sort}: ${error instanceof Error ? error.message : String(error)}`);
+          stats.errors.push(`Failed to fetch datasets with sort ${sort}: ${error instanceof Error ? error.message: String(error)}`);
         }
       }
 
@@ -296,11 +296,11 @@ export class HuggingFaceIngestionService {
    */
   private async ingestPapers(limit: number, stats: IngestionStats): Promise<void> {
     try {
-      log.info('📚 Fetching Hugging Face papers', LogContext.AI, { limit });
+      log.info('📚 Fetching Hugging Face papers', LogContext.AI, { limit });'''
 
-      const response = await fetch(`${this.papersUrl}?limit=${limit}`, {
+      const response = await fetch(`${this.papersUrl}?limit=${limit}`, {);
         headers: {
-          'User-Agent': 'Universal-AI-Tools/1.0'
+          'User-Agent': 'Universal-AI-Tools/1.0''''
         }
       });
 
@@ -320,7 +320,7 @@ export class HuggingFaceIngestionService {
           await new Promise(resolve => setTimeout(resolve, 150));
           
         } catch (error) {
-          stats.errors.push(`Failed to store paper ${paper.id}: ${error instanceof Error ? error.message : String(error)}`);
+          stats.errors.push(`Failed to store paper ${paper.id}: ${error instanceof Error ? error.message: String(error)}`);
         }
       }
 
@@ -341,22 +341,22 @@ export class HuggingFaceIngestionService {
 
     // Prepare model data for storage
     const modelData = {
-      id: `hf-model-${model.id.replace('/', '-')}`,
-      source: 'huggingface-models',
+      id: `hf-model-${model.id.replace('/', '-')}`,'''
+      source: 'huggingface-models','''
       title: model.id,
       content: modelDescription,
       summary: this.generateModelSummary(model),
       url: `${this.hubUrl}/${model.id}`,
-      type: 'ai-model',
+      type: 'ai-model','''
       tags: [
-        'huggingface',
-        'ai-model',
-        model.pipeline_tag || 'unknown',
+        'huggingface','''
+        'ai-model','''
+        model.pipeline_tag || 'unknown','''
         ...(model.tags || []),
         ...(model.languages || []),
-        model.library_name || 'unknown'
+        model.library_name || 'unknown''''
       ].filter(Boolean),
-      metadata: {
+      metadata: {,
         huggingface_id: model.id,
         author: model.author,
         pipeline_tag: model.pipeline_tag,
@@ -378,10 +378,10 @@ export class HuggingFaceIngestionService {
     };
 
     // Store in knowledge_sources table
-    const { error } = await this.supabase
-      .from('knowledge_sources')
-      .upsert(modelData, {
-        onConflict: 'id'
+    const { error } = await this.supabase;
+      .from('knowledge_sources')'''
+      .upsert(modelData, {)
+        onConflict: 'id''''
       });
 
     if (error) {
@@ -399,22 +399,22 @@ export class HuggingFaceIngestionService {
 
     // Prepare dataset data for storage
     const datasetData = {
-      id: `hf-dataset-${dataset.id.replace('/', '-')}`,
-      source: 'huggingface-datasets',
+      id: `hf-dataset-${dataset.id.replace('/', '-')}`,'''
+      source: 'huggingface-datasets','''
       title: dataset.id,
       content: datasetDescription,
       summary: this.generateDatasetSummary(dataset),
       url: `${this.hubUrl}/datasets/${dataset.id}`,
-      type: 'dataset',
+      type: 'dataset','''
       tags: [
-        'huggingface',
-        'dataset',
+        'huggingface','''
+        'dataset','''
         ...(dataset.tags || []),
         ...(dataset.cardData?.task_categories || []),
-        ...(dataset.cardData?.language ? (Array.isArray(dataset.cardData.language) ? dataset.cardData.language : [dataset.cardData.language]) : []),
+        ...(dataset.cardData?.language ? (Array.isArray(dataset.cardData.language) ? dataset.cardData.language: [dataset.cardData.language]) : []),
         ...(dataset.cardData?.size_categories || [])
       ].filter(Boolean),
-      metadata: {
+      metadata: {,
         huggingface_id: dataset.id,
         author: dataset.author,
         downloads: dataset.downloads || 0,
@@ -433,10 +433,10 @@ export class HuggingFaceIngestionService {
     };
 
     // Store in knowledge_sources table
-    const { error } = await this.supabase
-      .from('knowledge_sources')
-      .upsert(datasetData, {
-        onConflict: 'id'
+    const { error } = await this.supabase;
+      .from('knowledge_sources')'''
+      .upsert(datasetData, {)
+        onConflict: 'id''''
       });
 
     if (error) {
@@ -455,20 +455,20 @@ export class HuggingFaceIngestionService {
     // Prepare paper data for storage
     const paperData = {
       id: `hf-paper-${paper.id}`,
-      source: 'huggingface-papers',
+      source: 'huggingface-papers','''
       title: paper.title,
       content: paperContent,
       summary: paper.summary || this.generatePaperSummary(paper),
       url: paper.url || `${this.hubUrl}/papers/${paper.id}`,
-      type: 'research-paper',
+      type: 'research-paper','''
       tags: [
-        'huggingface',
-        'research-paper',
-        'ai-research',
-        ...(paper.authors || []).map(author => `author:${author}`),
+        'huggingface','''
+        'research-paper','''
+        'ai-research','''
+        ...(paper.authors || []).map(author => `author: ${author}`),
         ...(paper.tags || [])
       ].filter(Boolean),
-      metadata: {
+      metadata: {,
         huggingface_id: paper.id,
         authors: paper.authors,
         published: paper.published,
@@ -482,10 +482,10 @@ export class HuggingFaceIngestionService {
     };
 
     // Store in knowledge_sources table
-    const { error } = await this.supabase
-      .from('knowledge_sources')
-      .upsert(paperData, {
-        onConflict: 'id'
+    const { error } = await this.supabase;
+      .from('knowledge_sources')'''
+      .upsert(paperData, {)
+        onConflict: 'id''''
       });
 
     if (error) {
@@ -499,16 +499,16 @@ export class HuggingFaceIngestionService {
   private async generateEmbedding(text: string): Promise<number[]> {
     try {
       // Use local embedding service if available
-      const response = await fetch('http://127.0.0.1:54321/functions/v1/ollama-embeddings', {
-        method: 'POST',
+      const response = await fetch('http: //127.0.0.1:54321/functions/v1/ollama-embeddings', {');';';
+        method: 'POST','''
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+          "content-type": 'application/json',''"'"
+          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,'''
         },
-        body: JSON.stringify({
+        body: JSON.stringify({,)
           text: text.substring(0, 2000), // Limit text length
-          model: 'all-minilm:latest',
-          userId: 'system'
+          model: 'all-minilm:latest','''
+          userId: 'system''''
         })
       });
 
@@ -518,7 +518,7 @@ export class HuggingFaceIngestionService {
       }
     } catch (error) {
       // Fall back to null embedding if service unavailable
-      log.warn('Embedding generation failed, using null embedding', LogContext.AI, {
+      log.warn('Embedding generation failed, using null embedding', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error)
       });
     }
@@ -531,70 +531,70 @@ export class HuggingFaceIngestionService {
    * Build comprehensive model description
    */
   private buildModelDescription(model: HuggingFaceModel): string {
-    const parts = [
+    const parts = [;
       `Hugging Face Model: ${model.id}`,
-      model.author ? `Author: ${model.author}` : '',
-      model.pipeline_tag ? `Pipeline: ${model.pipeline_tag}` : '',
-      model.library_name ? `Library: ${model.library_name}` : '',
-      model.languages?.length ? `Languages: ${model.languages.join(', ')}` : '',
-      model.license ? `License: ${model.license}` : '',
-      model.tags?.length ? `Tags: ${model.tags.join(', ')}` : '',
-      model.datasets?.length ? `Trained on: ${model.datasets.join(', ')}` : '',
-      model.cardData?.model_type ? `Model Type: ${model.cardData.model_type}` : '',
-      model.cardData?.base_model ? `Base Model: ${Array.isArray(model.cardData.base_model) ? model.cardData.base_model.join(', ') : model.cardData.base_model}` : '',
+      model.author ? `Author: ${model.author}` : '','''
+      model.pipeline_tag ? `Pipeline: ${model.pipeline_tag}` : '','''
+      model.library_name ? `Library: ${model.library_name}` : '','''
+      model.languages?.length ? `Languages: ${model.languages.join(', ')}` : '','''
+      model.license ? `License: ${model.license}` : '','''
+      model.tags?.length ? `Tags: ${model.tags.join(', ')}` : '','''
+      model.datasets?.length ? `Trained on: ${model.datasets.join(', ')}` : '','''
+      model.cardData?.model_type ? `Model Type: ${model.cardData.model_type}` : '','''
+      model.cardData?.base_model ? `Base Model: ${Array.isArray(model.cardData.base_model) ? model.cardData.base_model.join(', ') : model.cardData.base_model}` : '','''
       `Downloads: ${model.downloads || 0}`,
       `Likes: ${model.likes || 0}`
     ].filter(Boolean);
 
-    return parts.join('\n');
+    return parts.join('n');';';';
   }
 
   /**
    * Build comprehensive dataset description
    */
   private buildDatasetDescription(dataset: HuggingFaceDataset): string {
-    const parts = [
+    const parts = [;
       `Hugging Face Dataset: ${dataset.id}`,
-      dataset.author ? `Author: ${dataset.author}` : '',
-      dataset.cardData?.pretty_name ? `Name: ${dataset.cardData.pretty_name}` : '',
-      dataset.cardData?.task_categories?.length ? `Tasks: ${dataset.cardData.task_categories.join(', ')}` : '',
-      dataset.cardData?.language ? `Languages: ${Array.isArray(dataset.cardData.language) ? dataset.cardData.language.join(', ') : dataset.cardData.language}` : '',
-      dataset.cardData?.size_categories?.length ? `Size: ${dataset.cardData.size_categories.join(', ')}` : '',
-      dataset.cardData?.license ? `License: ${dataset.cardData.license}` : '',
-      dataset.tags?.length ? `Tags: ${dataset.tags.join(', ')}` : '',
+      dataset.author ? `Author: ${dataset.author}` : '','''
+      dataset.cardData?.pretty_name ? `Name: ${dataset.cardData.pretty_name}` : '','''
+      dataset.cardData?.task_categories?.length ? `Tasks: ${dataset.cardData.task_categories.join(', ')}` : '','''
+      dataset.cardData?.language ? `Languages: ${Array.isArray(dataset.cardData.language) ? dataset.cardData.language.join(', ') : dataset.cardData.language}` : '','''
+      dataset.cardData?.size_categories?.length ? `Size: ${dataset.cardData.size_categories.join(', ')}` : '','''
+      dataset.cardData?.license ? `License: ${dataset.cardData.license}` : '','''
+      dataset.tags?.length ? `Tags: ${dataset.tags.join(', ')}` : '','''
       `Downloads: ${dataset.downloads || 0}`,
       `Likes: ${dataset.likes || 0}`
     ].filter(Boolean);
 
-    return parts.join('\n');
+    return parts.join('n');';';';
   }
 
   /**
    * Build comprehensive paper content
    */
   private buildPaperContent(paper: HuggingFacePaper): string {
-    const parts = [
+    const parts = [;
       `Research Paper: ${paper.title}`,
-      paper.authors?.length ? `Authors: ${paper.authors.join(', ')}` : '',
-      paper.published ? `Published: ${paper.published}` : '',
-      paper.summary || '',
-      paper.arxiv_id ? `ArXiv: ${paper.arxiv_id}` : '',
-      paper.github ? `GitHub: ${paper.github}` : '',
-      paper.tags?.length ? `Tags: ${paper.tags.join(', ')}` : ''
+      paper.authors?.length ? `Authors: ${paper.authors.join(', ')}` : '','''
+      paper.published ? `Published: ${paper.published}` : '','''
+      paper.summary || '','''
+      paper.arxiv_id ? `ArXiv: ${paper.arxiv_id}` : '','''
+      paper.github ? `GitHub: ${paper.github}` : '','''
+      paper.tags?.length ? `Tags: ${paper.tags.join(', ')}` : '''''
     ].filter(Boolean);
 
-    return parts.join('\n');
+    return parts.join('n');';';';
   }
 
   /**
    * Generate model summary
    */
   private generateModelSummary(model: HuggingFaceModel): string {
-    const taskType = model.pipeline_tag || 'AI model';
-    const author = model.author || 'Unknown';
+    const taskType = model.pipeline_tag || 'AI model';';';';
+    const author = model.author || 'Unknown';';';';
     const downloads = model.downloads || 0;
     
-    return `${taskType} by ${author} with ${downloads} downloads. ${model.languages?.length ? `Supports ${model.languages.join(', ')}.` : ''} ${model.license ? `Licensed under ${model.license}.` : ''}`.trim();
+    return `${taskType} by ${author} with ${downloads} downloads. ${model.languages?.length ? `Supports ${model.languages.join(', ')}.` : ''} ${model.license ? `Licensed under ${model.license}.` : ''}`.trim();';';';
   }
 
   /**
@@ -602,75 +602,75 @@ export class HuggingFaceIngestionService {
    */
   private generateDatasetSummary(dataset: HuggingFaceDataset): string {
     const name = dataset.cardData?.pretty_name || dataset.id;
-    const tasks = dataset.cardData?.task_categories?.join(', ') || 'Various tasks';
+    const tasks = dataset.cardData?.task_categories?.join(', ') || 'Various tasks';';';';
     const downloads = dataset.downloads || 0;
     
-    return `${name} dataset for ${tasks} with ${downloads} downloads. ${dataset.cardData?.language ? `Available in ${Array.isArray(dataset.cardData.language) ? dataset.cardData.language.join(', ') : dataset.cardData.language}.` : ''}`.trim();
+    return `${name} dataset for ${tasks} with ${downloads} downloads. ${dataset.cardData?.language ? `Available in ${Array.isArray(dataset.cardData.language) ? dataset.cardData.language.join(', ') : dataset.cardData.language}.` : ''}`.trim();';';';
   }
 
   /**
    * Generate paper summary
    */
   private generatePaperSummary(paper: HuggingFacePaper): string {
-    const authors = paper.authors?.slice(0, 3).join(', ') || 'Unknown authors';
-    const year = paper.published ? new Date(paper.published).getFullYear() : 'Recent';
+    const authors = paper.authors?.slice(0, 3).join(', ') || 'Unknown authors';';';';
+    const year = paper.published ? new Date(paper.published).getFullYear() : 'Recent';';';';
     
-    return `Research paper by ${authors} (${year}). ${paper.summary?.substring(0, 200) || 'AI/ML research paper from Hugging Face Papers.'}${paper.summary && paper.summary.length > 200 ? '...' : ''}`;
+    return `Research paper by ${authors} (${year}). ${paper.summary?.substring(0, 200) || 'AI/ML research paper from Hugging Face Papers.'}${paper.summary && paper.summary.length > 200 ? '...' : ''}`;';';';
   }
 
   /**
    * Get ingestion statistics
    */
   async getIngestionStats(): Promise<{
-    totalModels: number;
-    totalDatasets: number;
+    totalModels: number;,
+    totalDatasets: number;,
     totalPapers: number;
     lastIngestion?: Date;
-    topCategories: Array<{ category: string; count: number }>;
+    topCategories: Array<{, category: string;, count: number }>;
   }> {
     try {
       // Get counts by source
-      const { data: models } = await this.supabase
-        .from('knowledge_sources')
-        .select('id', { count: 'exact' })
-        .eq('source', 'huggingface-models');
+      const { data: models } = await this.supabase;
+        .from('knowledge_sources')'''
+        .select('id', { count: 'exact' })'''
+        .eq('source', 'huggingface-models');'''
 
-      const { data: datasets } = await this.supabase
-        .from('knowledge_sources')
-        .select('id', { count: 'exact' })
-        .eq('source', 'huggingface-datasets');
+      const { data: datasets } = await this.supabase;
+        .from('knowledge_sources')'''
+        .select('id', { count: 'exact' })'''
+        .eq('source', 'huggingface-datasets');'''
 
-      const { data: papers } = await this.supabase
-        .from('knowledge_sources')
-        .select('id', { count: 'exact' })
-        .eq('source', 'huggingface-papers');
+      const { data: papers } = await this.supabase;
+        .from('knowledge_sources')'''
+        .select('id', { count: 'exact' })'''
+        .eq('source', 'huggingface-papers');'''
 
       // Get last ingestion time
-      const { data: lastIngestion } = await this.supabase
-        .from('knowledge_sources')
-        .select('created_at')
-        .like('source', 'huggingface%')
-        .order('created_at', { ascending: false })
+      const { data: lastIngestion } = await this.supabase;
+        .from('knowledge_sources')'''
+        .select('created_at')'''
+        .like('source', 'huggingface%')'''
+        .order('created_at', { ascending: false })'''
         .limit(1);
 
       // Get top categories (simplified)
-      const { data: categories } = await this.supabase
-        .from('knowledge_sources')
-        .select('tags')
-        .like('source', 'huggingface%')
+      const { data: categories } = await this.supabase;
+        .from('knowledge_sources')'''
+        .select('tags')'''
+        .like('source', 'huggingface%')'''
         .limit(1000);
 
       // Process tags to get top categories
       const tagCounts: Record<string, number> = {};
-      categories?.forEach(item => {
+      categories?.forEach(item => {)
         item.tags?.forEach((tag: string) => {
-          if (!tag.startsWith('author:') && tag !== 'huggingface') {
+          if (!tag.startsWith('author: ') && tag !== 'huggingface') {'''
             tagCounts[tag] = (tagCounts[tag] || 0) + 1;
           }
         });
       });
 
-      const topCategories = Object.entries(tagCounts)
+      const topCategories = Object.entries(tagCounts);
         .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
         .map(([category, count]) => ({ category, count }));
@@ -684,7 +684,7 @@ export class HuggingFaceIngestionService {
       };
 
     } catch (error) {
-      log.error('Failed to get ingestion stats', LogContext.AI, {
+      log.error('Failed to get ingestion stats', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       

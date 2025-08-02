@@ -2,8 +2,7 @@
  * MLX Fine-tuning Service
  * Comprehensive service for managing the entire fine-tuning lifecycle on Apple Silicon
  *
- * Features:
- * - Dataset management and validation
+ * Features: * - Dataset management and validation
  * - Fine-tuning job orchestration
  * - Hyperparameter optimization
  * - Real-time progress monitoring
@@ -12,89 +11,89 @@
  * - Resource management and queuing
  */
 
-import { EventEmitter } from 'events';
-import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
-import { basename, dirname, extname, join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { LogContext, log } from '../utils/logger';
-import { CircuitBreaker, CircuitBreakerRegistry } from '../utils/circuit-breaker';
-import { mlxService } from './mlx-service';
-import { type SupabaseClient, createClient } from '@supabase/supabase-js';
-import { config } from '../config/environment';
-import { THREE, TWO } from '../utils/constants';
+import { EventEmitter    } from 'events';';';';
+import type { ChildProcess } from 'child_process';';';';
+import { spawn    } from 'child_process';';';';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync    } from 'fs';';';';
+import { basename, dirname, extname, join    } from 'path';';';';
+import { v4 as uuidv4    } from 'uuid';';';';
+import { LogContext, log    } from '../utils/logger';';';';
+import { CircuitBreaker, CircuitBreakerRegistry    } from '../utils/circuit-breaker';';';';
+import { mlxService    } from './mlx-service';';';';
+import { type SupabaseClient, createClient    } from '@supabase/supabase-js';';';';
+import { config    } from '../config/environment';';';';
+import { THREE, TWO    } from '../utils/constants';';';';
 
 // ============================================================================
 // Type Definitions
 // ============================================================================
 
 export interface Dataset {
-  id: string;
-  name: string;
-  path: string;
-  format: 'json' | 'jsonl' | 'csv';
-  totalSamples: number;
-  trainingSamples: number;
-  validationSamples: number;
-  validationResults: DatasetValidationResult;
-  preprocessingConfig: PreprocessingConfig;
+  id: string;,
+  name: string;,
+  path: string;,
+  format: 'json' | 'jsonl' | 'csv';',''
+  totalSamples: number;,
+  trainingSamples: number;,
+  validationSamples: number;,
+  validationResults: DatasetValidationResult;,
+  preprocessingConfig: PreprocessingConfig;,
   statistics: DatasetStatistics;
   // Enhanced for iOS mobile personalization
   isMobileOptimized?: boolean;
   deviceContextCategories?: string[];
-  personalizationLevel?: 'basic' | 'intermediate' | 'advanced';
-  createdAt: Date;
+  personalizationLevel?: 'basic' | 'intermediate' | 'advanced';'''
+  createdAt: Date;,
   updatedAt: Date;
 }
 
 export interface DatasetValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-  qualityScore: number;
-  sampleSize: number;
-  duplicateCount: number;
+  isValid: boolean;,
+  errors: string[];,
+  warnings: string[];,
+  qualityScore: number;,
+  sampleSize: number;,
+  duplicateCount: number;,
   malformedEntries: number;
 }
 
 export interface PreprocessingConfig {
-  maxLength: number;
-  truncation: boolean;
-  padding: boolean;
-  removeDuplicates: boolean;
-  shuffle: boolean;
+  maxLength: number;,
+  truncation: boolean;,
+  padding: boolean;,
+  removeDuplicates: boolean;,
+  shuffle: boolean;,
   validationSplit: number;
   testSplit?: number;
   customFilters?: string[];
 }
 
 export interface DatasetStatistics {
-  avgLength: number;
-  minLength: number;
-  maxLength: number;
-  vocabSize: number;
-  uniqueTokens: number;
+  avgLength: number;,
+  minLength: number;,
+  maxLength: number;,
+  vocabSize: number;,
+  uniqueTokens: number;,
   lengthDistribution: { [key: string]: number };
   tokenFrequency: { [key: string]: number };
 }
 
 export interface FineTuningJob {
-  id: string;
-  jobName: string;
-  userId: string;
-  status: JobStatus;
-  baseModelName: string;
-  baseModelPath: string;
-  outputModelName: string;
-  outputModelPath: string;
-  datasetPath: string;
-  datasetFormat: 'json' | 'jsonl' | 'csv';
-  hyperparameters: Hyperparameters;
-  validationConfig: ValidationConfig;
-  progress: JobProgress;
-  metrics: TrainingMetrics;
-  evaluation: ModelEvaluation | null;
+  id: string;,
+  jobName: string;,
+  userId: string;,
+  status: JobStatus;,
+  baseModelName: string;,
+  baseModelPath: string;,
+  outputModelName: string;,
+  outputModelPath: string;,
+  datasetPath: string;,
+  datasetFormat: 'json' | 'jsonl' | 'csv';',''
+  hyperparameters: Hyperparameters;,
+  validationConfig: ValidationConfig;,
+  progress: JobProgress;,
+  metrics: TrainingMetrics;,
+  evaluation: ModelEvaluation | null;,
   resourceUsage: ResourceUsage;
   // Enhanced iOS mobile personalization
   mobileOptimization?: MobileOptimizationConfig;
@@ -107,50 +106,50 @@ export interface FineTuningJob {
   updatedAt: Date;
 }
 
-export type JobStatus =
-  | 'created'
-  | 'preparing'
-  | 'training'
-  | 'evaluating'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'paused';
+export type JobStatus =;
+  | 'created''''
+  | 'preparing''''
+  | 'training''''
+  | 'evaluating''''
+  | 'completed''''
+  | 'failed''''
+  | 'cancelled''''
+  | 'paused';'''
 
 export interface Hyperparameters {
-  learningRate: number;
-  batchSize: number;
-  epochs: number;
-  maxSeqLength: number;
-  gradientAccumulation: number;
-  warmupSteps: number;
-  weightDecay: number;
+  learningRate: number;,
+  batchSize: number;,
+  epochs: number;,
+  maxSeqLength: number;,
+  gradientAccumulation: number;,
+  warmupSteps: number;,
+  weightDecay: number;,
   dropout: number;
-  optimizerType?: 'adam' | 'sgd' | 'adamw';
-  scheduler?: 'linear' | 'cosine' | 'polynomial';
+  optimizerType?: 'adam' | 'sgd' | 'adamw';'''
+  scheduler?: 'linear' | 'cosine' | 'polynomial';'''
 }
 
 export interface ValidationConfig {
-  splitRatio: number;
-  validationMetrics: string[];
-  earlyStopping: boolean;
+  splitRatio: number;,
+  validationMetrics: string[];,
+  earlyStopping: boolean;,
   patience: number;
   minDelta?: number;
   evaluateEveryNSteps?: number;
 }
 
 export interface JobProgress {
-  currentEpoch: number;
-  totalEpochs: number;
-  currentStep: number;
-  totalSteps: number;
+  currentEpoch: number;,
+  totalEpochs: number;,
+  currentStep: number;,
+  totalSteps: number;,
   progressPercentage: number;
   estimatedTimeRemaining?: number;
   lastUpdateTime: Date;
 }
 
 export interface TrainingMetrics {
-  trainingLoss: number[];
+  trainingLoss: number[];,
   validationLoss: number[];
   trainingAccuracy?: number[];
   validationAccuracy?: number[];
@@ -161,46 +160,46 @@ export interface TrainingMetrics {
 }
 
 export interface ModelEvaluation {
-  id: string;
-  jobId: string;
-  modelPath: string;
-  evaluationType: 'training' | 'validation' | 'test' | 'final';
-  metrics: EvaluationMetrics;
-  sampleOutputs: SampleOutput[];
-  evaluationConfig: EvaluationConfig;
+  id: string;,
+  jobId: string;,
+  modelPath: string;,
+  evaluationType: 'training' | 'validation' | 'test' | 'final';',''
+  metrics: EvaluationMetrics;,
+  sampleOutputs: SampleOutput[];,
+  evaluationConfig: EvaluationConfig;,
   createdAt: Date;
 }
 
 export interface EvaluationMetrics {
-  perplexity: number;
-  loss: number;
+  perplexity: number;,
+  loss: number;,
   accuracy: number;
   bleuScore?: number;
   rougeScores?: {
-    rouge1: number;
-    rouge2: number;
+    rouge1: number;,
+    rouge2: number;,
     rougeL: number;
   };
   customMetrics?: { [key: string]: number };
 }
 
 export interface SampleOutput {
-  input: string;
+  input: string;,
   output: string;
   reference?: string;
   confidence?: number;
 }
 
 export interface EvaluationConfig {
-  numSamples: number;
-  maxTokens: number;
-  temperature: number;
+  numSamples: number;,
+  maxTokens: number;,
+  temperature: number;,
   topP: number;
   testDatasetPath?: string;
 }
 
 export interface ResourceUsage {
-  memoryUsageMB: number;
+  memoryUsageMB: number;,
   gpuUtilizationPercentage: number;
   estimatedDurationMinutes?: number;
   actualDurationMinutes?: number;
@@ -208,21 +207,21 @@ export interface ResourceUsage {
 }
 
 export interface JobError {
-  message: string;
-  details: unknown;
-  retryCount: number;
-  maxRetries: number;
+  message: string;,
+  details: unknown;,
+  retryCount: number;,
+  maxRetries: number;,
   recoverable: boolean;
 }
 
 export interface HyperparameterOptimization {
-  id: string;
-  experimentName: string;
-  baseJobId: string;
-  userId: string;
-  optimizationMethod: 'grid_search' | 'random_search' | 'bayesian' | 'genetic';
-  parameterSpace: ParameterSpace;
-  status: 'created' | 'running' | 'completed' | 'failed' | 'cancelled';
+  id: string;,
+  experimentName: string;,
+  baseJobId: string;,
+  userId: string;,
+  optimizationMethod: 'grid_search' | 'random_search' | 'bayesian' | 'genetic';,'''
+  parameterSpace: ParameterSpace;,
+  status: 'created' | 'running' | 'completed' | 'failed' | 'cancelled';,'''
   trials: OptimizationTrial[];
   bestTrial?: OptimizationTrial;
   createdAt: Date;
@@ -230,36 +229,36 @@ export interface HyperparameterOptimization {
 }
 
 export interface ParameterSpace {
-  learningRate: { min: number; max: number; step?: number } | number[];
-  batchSize: number[];
-  epochs: { min: number; max: number } | number[];
-  dropout: { min: number; max: number; step?: number };
-  weightDecay: { min: number; max: number; step?: number };
+  learningRate: {, min: number;, max: number; step?: number } | number[];
+  batchSize: number[];,
+  epochs: {, min: number;, max: number } | number[];
+  dropout: {, min: number;, max: number; step?: number };
+  weightDecay: {, min: number;, max: number; step?: number };
   [key: string]: unknown;
 }
 
 export interface OptimizationTrial {
-  id: string;
-  parameters: Hyperparameters;
-  metrics: EvaluationMetrics;
-  status: 'running' | 'completed' | 'failed';
+  id: string;,
+  parameters: Hyperparameters;,
+  metrics: EvaluationMetrics;,
+  status: 'running' | 'completed' | 'failed';',''
   startTime: Date;
   endTime?: Date;
   jobId?: string;
 }
 
 export interface JobQueue {
-  id: string;
-  jobId: string;
-  priority: number;
-  queuePosition: number;
-  estimatedResources: {
-    memoryMB: number;
-    gpuMemoryMB: number;
+  id: string;,
+  jobId: string;,
+  priority: number;,
+  queuePosition: number;,
+  estimatedResources: {,
+    memoryMB: number;,
+    gpuMemoryMB: number;,
     durationMinutes: number;
   };
-  dependsOnJobIds: string[];
-  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  dependsOnJobIds: string[];,
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';'''
   scheduledAt?: Date;
   startedAt?: Date;
   createdAt: Date;
@@ -267,30 +266,30 @@ export interface JobQueue {
 
 // New interfaces for iOS mobile personalization
 export interface MobileOptimizationConfig {
-  modelSizeTarget: 'tiny' | 'small' | 'medium' | 'large'; // Target model size for mobile
-  quantization: {
-    enabled: boolean;
-    bits: 4 | 8 | 16; // Quantization precision
-    method: 'dynamic' | 'static';
+  modelSizeTarget: 'tiny' | 'small' | 'medium' | 'large'; // Target model size for mobile,'''
+  quantization: {,
+    enabled: boolean;,
+    bits: 4 | 8 | 16; // Quantization precision,
+    method: 'dynamic' | 'static';'''
   };
-  pruning: {
-    enabled: boolean;
-    sparsity: number; // 0.0 to 1.0
+  pruning: {,
+    enabled: boolean;,
+    sparsity: number; // 0.0 to 1.0,
     structured: boolean;
   };
-  distillation: {
+  distillation: {,
     enabled: boolean;
     teacherModel?: string;
-    temperature: number;
+    temperature: number;,
     alpha: number;
   };
-  memoryConstraints: {
-    maxModelSizeMB: number;
+  memoryConstraints: {,
+    maxModelSizeMB: number;,
     maxRuntimeMemoryMB: number;
   };
-  inferenceOptimization: {
-    enableCoreML: boolean;
-    enableNeuralEngine: boolean;
+  inferenceOptimization: {,
+    enableCoreML: boolean;,
+    enableNeuralEngine: boolean;,
     batchSize: number;
   };
 }
@@ -298,33 +297,33 @@ export interface MobileOptimizationConfig {
 export interface PersonalizationContext {
   userId: string;
   deviceId?: string;
-  interactionPatterns: {
-    commonQueries: string[];
-    preferredResponseStyle: 'concise' | 'detailed' | 'conversational';
-    topicPreferences: string[];
+  interactionPatterns: {,
+    commonQueries: string[];,
+    preferredResponseStyle: 'concise' | 'detailed' | 'conversational';,'''
+    topicPreferences: string[];,
     timeBasedPatterns: { [hour: string]: string[] };
   };
-  biometricConfidenceHistory: number[];
-  authenticationPatterns: {
-    averageSessionDuration: number;
-    frequentAuthTimes: string[];
-    securityLevel: 'high' | 'medium' | 'low';
+  biometricConfidenceHistory: number[];,
+  authenticationPatterns: {,
+    averageSessionDuration: number;,
+    frequentAuthTimes: string[];,
+    securityLevel: 'high' | 'medium' | 'low';'''
   };
-  contextualPreferences: {
-    workingDirectory: string;
-    programmingLanguages: string[];
-    projectTypes: string[];
+  contextualPreferences: {,
+    workingDirectory: string;,
+    programmingLanguages: string[];,
+    projectTypes: string[];,
     preferredAgents: string[];
   };
 }
 
 export interface iOSDeviceTarget {
-  deviceType: 'iPhone' | 'iPad' | 'AppleWatch' | 'Mac';
-  osVersion: string;
-  chipset: 'A-series' | 'M-series' | 'S-series';
-  availableRAM: number; // MB
-  availableStorage: number; // MB
-  neuralEngineSupport: boolean;
+  deviceType: 'iPhone' | 'iPad' | 'AppleWatch' | 'Mac';,'''
+  osVersion: string;,
+  chipset: 'A-series' | 'M-series' | 'S-series';,'''
+  availableRAM: number; // MB,
+  availableStorage: number; // MB,
+  neuralEngineSupport: boolean;,
   coreMLVersion: string;
 }
 
@@ -348,14 +347,14 @@ export class MLXFineTuningService extends EventEmitter {
     // Initialize Supabase client
     this.supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 
-    this.modelsPath = join(process.cwd(), 'models', 'fine-tuned');
-    this.datasetsPath = join(process.cwd(), 'datasets');
-    this.tempPath = join(process.cwd(), 'temp', 'mlx-training');
+    this.modelsPath = join(process.cwd(), 'models', 'fine-tuned');'''
+    this.datasetsPath = join(process.cwd(), 'datasets');'''
+    this.tempPath = join(process.cwd(), 'temp', 'mlx-training');'''
 
     this.ensureDirectories();
     this.startQueueProcessor();
 
-    log.info('🍎 MLX Fine-tuning Service initialized', LogContext.AI, {
+    log.info('🍎 MLX Fine-tuning Service initialized', LogContext.AI, {')''
       modelsPath: this.modelsPath,
       datasetsPath: this.datasetsPath,
       maxConcurrentJobs: this.maxConcurrentJobs,
@@ -369,14 +368,14 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Load and validate a dataset
    */
-  public async loadDataset(
+  public async loadDataset()
     datasetPath: string,
     name: string,
     userId: string,
     preprocessingConfig?: Partial<PreprocessingConfig>
   ): Promise<Dataset> {
     try {
-      log.info('📊 Loading dataset', LogContext.AI, { path: datasetPath, name });
+      log.info('📊 Loading dataset', LogContext.AI, { path: datasetPath, name });'''
 
       if (!existsSync(datasetPath)) {
         throw new Error(`Dataset file not found: ${datasetPath}`);
@@ -388,11 +387,11 @@ export class MLXFineTuningService extends EventEmitter {
       // Validate dataset
       const validationResults = await this.validateDataset(rawData, format);
       if (!validationResults.isValid) {
-        throw new Error(`Dataset validation failed: ${validationResults.errors.join(', ')}`);
+        throw new Error(`Dataset validation failed: ${validationResults.errors.join(', ')}`);';';';
       }
 
       // Apply preprocessing
-      const config: PreprocessingConfig = {
+      const config: PreprocessingConfig = {,;
         maxLength: 2048,
         truncation: true,
         padding: true,
@@ -410,11 +409,11 @@ export class MLXFineTuningService extends EventEmitter {
       await this.saveProcessedDataset(processedData, processedPath);
 
       // Create dataset record
-      const dataset: Dataset = {
+      const dataset: Dataset = {,;
         id: uuidv4(),
         name,
         path: processedPath,
-        format: 'jsonl',
+        format: 'jsonl','''
         totalSamples: processedData.length,
         trainingSamples: Math.floor(processedData.length * (1 - config.validationSplit)),
         validationSamples: Math.floor(processedData.length * config.validationSplit),
@@ -428,7 +427,7 @@ export class MLXFineTuningService extends EventEmitter {
       // Save to database
       await this.saveDatasetToDatabase(dataset, userId);
 
-      log.info('✅ Dataset loaded successfully', LogContext.AI, {
+      log.info('✅ Dataset loaded successfully', LogContext.AI, {')''
         name,
         totalSamples: dataset.totalSamples,
         qualityScore: validationResults.qualityScore,
@@ -436,7 +435,7 @@ export class MLXFineTuningService extends EventEmitter {
 
       return dataset;
     } catch (error) {
-      log.error('❌ Failed to load dataset', LogContext.AI, { error, path: datasetPath });
+      log.error('❌ Failed to load dataset', LogContext.AI, { error, path: datasetPath });'''
       throw error;
     }
   }
@@ -445,7 +444,7 @@ export class MLXFineTuningService extends EventEmitter {
    * Validate dataset quality and format
    */
   private async validateDataset(data: unknown[], format: string): Promise<DatasetValidationResult> {
-    const result: DatasetValidationResult = {
+    const result: DatasetValidationResult = {,;
       isValid: true,
       errors: [],
       warnings: [],
@@ -456,13 +455,13 @@ export class MLXFineTuningService extends EventEmitter {
     };
 
     if (data.length === 0) {
-      result.errors.push('Dataset is empty');
+      result.errors.push('Dataset is empty');'''
       result.isValid = false;
       return result;
     }
 
     // Check for required fields
-    const requiredFields = ['input', 'output'];
+    const requiredFields = ['input', 'output'];';';';
     const sampleEntry = data[0] as any;
 
     for (const field of requiredFields) {
@@ -509,7 +508,7 @@ export class MLXFineTuningService extends EventEmitter {
       result.warnings.push(`High malformed entry ratio: ${(malformedRatio * 100).toFixed(1)}%`);
     }
     if (data.length < 100) {
-      result.warnings.push('Dataset size is small, consider adding more samples');
+      result.warnings.push('Dataset size is small, consider adding more samples');'''
     }
 
     return result;
@@ -522,7 +521,7 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Create a personalized fine-tuning job for iOS devices
    */
-  public async createPersonalizedMobileJob(
+  public async createPersonalizedMobileJob()
     jobName: string,
     userId: string,
     baseModelName: string,
@@ -535,7 +534,7 @@ export class MLXFineTuningService extends EventEmitter {
     validationConfig: Partial<ValidationConfig> = {}
   ): Promise<FineTuningJob> {
     try {
-      log.info('🍎 Creating personalized mobile fine-tuning job', LogContext.AI, {
+      log.info('🍎 Creating personalized mobile fine-tuning job', LogContext.AI, {')''
         jobName,
         userId,
         deviceTargets: deviceTargets.length,
@@ -543,7 +542,7 @@ export class MLXFineTuningService extends EventEmitter {
       });
 
       // Enhanced mobile-optimized hyperparameters
-      const mobileHyperparameters: Partial<Hyperparameters> = {
+      const mobileHyperparameters: Partial<Hyperparameters> = {,;
         learningRate: 0.00005, // Lower learning rate for stability
         batchSize: 2, // Smaller batch size for mobile constraints
         epochs: 2, // Fewer epochs for faster deployment
@@ -556,28 +555,28 @@ export class MLXFineTuningService extends EventEmitter {
       };
 
       // Mobile optimization configuration
-      const optimizationConfig: MobileOptimizationConfig = {
-        modelSizeTarget: 'small',
-        quantization: {
+      const optimizationConfig: MobileOptimizationConfig = {,;
+        modelSizeTarget: 'small','''
+        quantization: {,
           enabled: true,
           bits: 8,
-          method: 'dynamic',
+          method: 'dynamic','''
         },
-        pruning: {
+        pruning: {,
           enabled: true,
           sparsity: 0.1,
           structured: false,
         },
-        distillation: {
+        distillation: {,
           enabled: false,
           temperature: 3.0,
           alpha: 0.7,
         },
-        memoryConstraints: {
+        memoryConstraints: {,
           maxModelSizeMB: 100,
           maxRuntimeMemoryMB: 512,
         },
-        inferenceOptimization: {
+        inferenceOptimization: {,
           enableCoreML: true,
           enableNeuralEngine: true,
           batchSize: 1,
@@ -586,13 +585,13 @@ export class MLXFineTuningService extends EventEmitter {
       };
 
       // Create personalized dataset based on user patterns
-      const personalizedDatasetPath = await this.createPersonalizedDataset(
+      const personalizedDatasetPath = await this.createPersonalizedDataset();
         datasetPath,
         personalizationContext,
         userId
       );
 
-      const job = await this.createFineTuningJob(
+      const job = await this.createFineTuningJob();
         `${jobName}_mobile_personalized`,
         userId,
         baseModelName,
@@ -609,7 +608,7 @@ export class MLXFineTuningService extends EventEmitter {
 
       await this.updateJobInDatabase(job);
 
-      log.info('✅ Personalized mobile job created', LogContext.AI, {
+      log.info('✅ Personalized mobile job created', LogContext.AI, {')''
         jobId: job.id,
         modelSizeTarget: optimizationConfig.modelSizeTarget,
         quantizationBits: optimizationConfig.quantization.bits,
@@ -617,7 +616,7 @@ export class MLXFineTuningService extends EventEmitter {
 
       return job;
     } catch (error) {
-      log.error('❌ Failed to create personalized mobile job', LogContext.AI, { error, jobName });
+      log.error('❌ Failed to create personalized mobile job', LogContext.AI, { error, jobName });'''
       throw error;
     }
   }
@@ -625,7 +624,7 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Create a new fine-tuning job
    */
-  public async createFineTuningJob(
+  public async createFineTuningJob()
     jobName: string,
     userId: string,
     baseModelName: string,
@@ -639,18 +638,18 @@ export class MLXFineTuningService extends EventEmitter {
       const outputModelName = `${baseModelName}_${jobName}_${Date.now()}`;
       const outputModelPath = join(this.modelsPath, outputModelName);
 
-      const job: FineTuningJob = {
+      const job: FineTuningJob = {,;
         id: jobId,
         jobName,
         userId,
-        status: 'created',
+        status: 'created','''
         baseModelName,
         baseModelPath,
         outputModelName,
         outputModelPath,
         datasetPath,
         datasetFormat: this.detectDatasetFormat(datasetPath) as any,
-        hyperparameters: {
+        hyperparameters: {,
           learningRate: 0.0001,
           batchSize: 4,
           epochs: 3,
@@ -661,14 +660,14 @@ export class MLXFineTuningService extends EventEmitter {
           dropout: 0.1,
           ...hyperparameters,
         },
-        validationConfig: {
+        validationConfig: {,
           splitRatio: 0.1,
-          validationMetrics: ['loss', 'perplexity', 'accuracy'],
+          validationMetrics: ['loss', 'perplexity', 'accuracy'],'''
           earlyStopping: true,
           patience: 3,
           ...validationConfig,
         },
-        progress: {
+        progress: {,
           currentEpoch: 0,
           totalEpochs: hyperparameters.epochs || THREE,
           currentStep: 0,
@@ -676,7 +675,7 @@ export class MLXFineTuningService extends EventEmitter {
           progressPercentage: 0,
           lastUpdateTime: new Date(),
         },
-        metrics: {
+        metrics: {,
           trainingLoss: [],
           validationLoss: [],
           trainingAccuracy: [],
@@ -687,7 +686,7 @@ export class MLXFineTuningService extends EventEmitter {
           epochTimes: [],
         },
         evaluation: null,
-        resourceUsage: {
+        resourceUsage: {,
           memoryUsageMB: 0,
           gpuUtilizationPercentage: 0,
         },
@@ -701,17 +700,17 @@ export class MLXFineTuningService extends EventEmitter {
       // Add to queue
       await this.addJobToQueue(job);
 
-      log.info('✅ Fine-tuning job created', LogContext.AI, {
+      log.info('✅ Fine-tuning job created', LogContext.AI, {')''
         jobId,
         jobName,
         baseModel: baseModelName,
         dataset: basename(datasetPath),
       });
 
-      this.emit('jobCreated', job);
+      this.emit('jobCreated', job);'''
       return job;
     } catch (error) {
-      log.error('❌ Failed to create fine-tuning job', LogContext.AI, { error, jobName });
+      log.error('❌ Failed to create fine-tuning job', LogContext.AI, { error, jobName });'''
       throw error;
     }
   }
@@ -726,14 +725,14 @@ export class MLXFineTuningService extends EventEmitter {
         throw new Error(`Job not found: ${jobId}`);
       }
 
-      if (job.status !== 'created') {
+      if (job.status !== 'created') {'''
         throw new Error(`Job cannot be started from status: ${job.status}`);
       }
 
-      log.info('🚀 Starting fine-tuning job', LogContext.AI, { jobId, jobName: job.jobName });
+      log.info('🚀 Starting fine-tuning job', LogContext.AI, { jobId, jobName: job.jobName });'''
 
       // Update status
-      job.status = 'preparing';
+      job.status = 'preparing';'''
       job.startedAt = new Date();
       await this.updateJobInDatabase(job);
 
@@ -743,12 +742,12 @@ export class MLXFineTuningService extends EventEmitter {
       writeFileSync(scriptPath, trainingScript);
 
       // Start training process
-      const pythonProcess = spawn('python3', [scriptPath], {
-        stdio: ['pipe', 'pipe', 'pipe'],
+      const pythonProcess = spawn('python3', [scriptPath], {');';';
+        stdio: ['pipe', 'pipe', 'pipe'],'''
         cwd: dirname(job.baseModelPath),
         env: {
           ...process.env,
-          PYTHONPATH: join(__dirname, '..', '..'),
+          PYTHONPATH: join(__dirname, '..', '..'),'''
           MLX_JOB_ID: jobId,
         },
       });
@@ -758,16 +757,16 @@ export class MLXFineTuningService extends EventEmitter {
       // Handle process output
       this.setupProcessHandlers(jobId, pythonProcess, job);
 
-      job.status = 'training';
+      job.status = 'training';'''
       await this.updateJobInDatabase(job);
 
-      this.emit('jobStarted', job);
+      this.emit('jobStarted', job);'''
     } catch (error) {
-      log.error('❌ Failed to start fine-tuning job', LogContext.AI, { error, jobId });
+      log.error('❌ Failed to start fine-tuning job', LogContext.AI, { error, jobId });'''
       const job = await this.getJob(jobId);
       if (job) {
-        job.status = 'failed';
-        job.error = {
+        job.status = 'failed';'''
+        job.error(= {)
           message: error instanceof Error ? error.message : String(error),
           details: error,
           retryCount: 0,
@@ -775,7 +774,7 @@ export class MLXFineTuningService extends EventEmitter {
           recoverable: true,
         };
         await this.updateJobInDatabase(job);
-        this.emit('jobFailed', job);
+        this.emit('jobFailed', job);'''
       }
       throw error;
     }
@@ -786,18 +785,18 @@ export class MLXFineTuningService extends EventEmitter {
    */
   public async pauseJob(jobId: string): Promise<void> {
     const job = await this.getJob(jobId);
-    if (!job || job.status !== 'training') {
+    if (!job || job.status !== 'training') {'''
       throw new Error(`Cannot pause job ${jobId} with status ${job?.status}`);
     }
 
     const process = this.activeJobs.get(jobId);
     if (process) {
-      process.kill('SIGSTOP'); // Pause the process
-      job.status = 'paused';
+      process.kill('SIGSTOP'); // Pause the process'''
+      job.status = 'paused';'''
       await this.updateJobInDatabase(job);
-      this.emit('jobPaused', job);
+      this.emit('jobPaused', job);'''
 
-      log.info('⏸️ Job paused', LogContext.AI, { jobId });
+      log.info('⏸️ Job paused', LogContext.AI, { jobId });'''
     }
   }
 
@@ -806,18 +805,18 @@ export class MLXFineTuningService extends EventEmitter {
    */
   public async resumeJob(jobId: string): Promise<void> {
     const job = await this.getJob(jobId);
-    if (!job || job.status !== 'paused') {
+    if (!job || job.status !== 'paused') {'''
       throw new Error(`Cannot resume job ${jobId} with status ${job?.status}`);
     }
 
     const       process = this.activeJobs.get(jobId);
     if (process) {
-      process.kill('SIGCONT'); // Resume the process
-      job.status = 'training';
+      process.kill('SIGCONT'); // Resume the process'''
+      job.status = 'training';'''
       await this.updateJobInDatabase(job);
-      this.emit('jobResumed', job);
+      this.emit('jobResumed', job);'''
 
-      log.info('▶️ Job resumed', LogContext.AI, { jobId });
+      log.info('▶️ Job resumed', LogContext.AI, { jobId });'''
     }
   }
 
@@ -832,17 +831,17 @@ export class MLXFineTuningService extends EventEmitter {
 
     const process = this.activeJobs.get(jobId);
     if (process) {
-      process.kill('SIGTERM');
+      process.kill('SIGTERM');'''
       this.activeJobs.delete(jobId);
     }
 
-    job.status = 'cancelled';
+    job.status = 'cancelled';'''
     job.completedAt = new Date();
     await this.updateJobInDatabase(job);
     await this.removeJobFromQueue(jobId);
 
-    this.emit('jobCancelled', job);
-    log.info('🛑 Job cancelled', LogContext.AI, { jobId });
+    this.emit('jobCancelled', job);'''
+    log.info('🛑 Job cancelled', LogContext.AI, { jobId });'''
   }
 
   // ============================================================================
@@ -852,16 +851,16 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Run hyperparameter optimization experiment
    */
-  public async runHyperparameterOptimization(
+  public async runHyperparameterOptimization()
     experimentName: string,
     baseJobId: string,
     userId: string,
-    optimizationMethod: 'grid_search' | 'random_search' | 'bayesian' | 'genetic',
+    optimizationMethod: 'grid_search' | 'random_search' | 'bayesian' | 'genetic','''
     parameterSpace: ParameterSpace,
     maxTrials = 20
   ): Promise<HyperparameterOptimization> {
     try {
-      log.info('🔬 Starting hyperparameter optimization', LogContext.AI, {
+      log.info('🔬 Starting hyperparameter optimization', LogContext.AI, {')''
         experimentName,
         method: optimizationMethod,
         maxTrials,
@@ -872,26 +871,26 @@ export class MLXFineTuningService extends EventEmitter {
         throw new Error(`Base job not found: ${baseJobId}`);
       }
 
-      const experiment: HyperparameterOptimization = {
+      const experiment: HyperparameterOptimization = {,;
         id: uuidv4(),
         experimentName,
         baseJobId,
         userId,
         optimizationMethod,
         parameterSpace,
-        status: 'created',
+        status: 'created','''
         trials: [],
         createdAt: new Date(),
       };
 
       // Generate parameter combinations
-      const parameterCombinations = this.generateParameterCombinations(
+      const parameterCombinations = this.generateParameterCombinations();
         parameterSpace,
         optimizationMethod,
         maxTrials
       );
 
-      experiment.status = 'running';
+      experiment.status = 'running';'''
       await this.saveExperimentToDatabase(experiment);
 
       // Run trials
@@ -900,7 +899,7 @@ export class MLXFineTuningService extends EventEmitter {
 
         if (!params) continue;
 
-        log.info(`🧪 Running trial ${i + 1}/${parameterCombinations.length}`, LogContext.AI, {
+        log.info(`🧪 Running trial ${i + 1}/${parameterCombinations.length}`, LogContext.AI, {)
           params,
         });
 
@@ -915,26 +914,26 @@ export class MLXFineTuningService extends EventEmitter {
         await this.updateExperimentInDatabase(experiment);
 
         // Early stopping for Bayesian optimization
-        if (optimizationMethod === 'bayesian' && this.shouldStopOptimization(experiment)) {
-          log.info('🛑 Early stopping optimization', LogContext.AI);
+        if (optimizationMethod === 'bayesian' && this.shouldStopOptimization(experiment)) {'''
+          log.info('🛑 Early stopping optimization', LogContext.AI);'''
           break;
         }
       }
 
-      experiment.status = 'completed';
+      experiment.status = 'completed';'''
       experiment.completedAt = new Date();
       await this.updateExperimentInDatabase(experiment);
 
-      log.info('✅ Hyperparameter optimization completed', LogContext.AI, {
+      log.info('✅ Hyperparameter optimization completed', LogContext.AI, {')''
         experimentName,
         totalTrials: experiment.trials.length,
         bestScore: experiment.bestTrial?.metrics.accuracy || 0,
       });
 
-      this.emit('optimizationCompleted', experiment);
+      this.emit('optimizationCompleted', experiment);'''
       return experiment;
     } catch (error) {
-      log.error('❌ Hyperparameter optimization failed', LogContext.AI, { error, experimentName });
+      log.error('❌ Hyperparameter optimization failed', LogContext.AI, { error, experimentName });'''
       throw error;
     }
   }
@@ -946,16 +945,16 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Evaluate a fine-tuned model
    */
-  public async evaluateModel(
+  public async evaluateModel()
     jobId: string,
     modelPath: string,
-    evaluationType: 'training' | 'validation' | 'test' | 'final',
+    evaluationType: 'training' | 'validation' | 'test' | 'final','''
     evaluationConfig: Partial<EvaluationConfig> = {}
   ): Promise<ModelEvaluation> {
     try {
-      log.info('📊 Evaluating model', LogContext.AI, { jobId, modelPath, evaluationType });
+      log.info('📊 Evaluating model', LogContext.AI, { jobId, modelPath, evaluationType });'''
 
-      const config: EvaluationConfig = {
+      const config: EvaluationConfig = {,;
         numSamples: 100,
         maxTokens: 256,
         temperature: 0.7,
@@ -969,13 +968,13 @@ export class MLXFineTuningService extends EventEmitter {
 
       // Run evaluation
       const metrics = await this.calculateEvaluationMetrics(modelPath, samples, config);
-      const sampleOutputs = await this.generateSampleOutputs(
+      const sampleOutputs = await this.generateSampleOutputs();
         modelPath,
         samples.slice(0, 10),
         config
       );
 
-      const evaluation: ModelEvaluation = {
+      const evaluation: ModelEvaluation = {,;
         id: uuidv4(),
         jobId,
         modelPath,
@@ -989,17 +988,17 @@ export class MLXFineTuningService extends EventEmitter {
       // Save to database
       await this.saveEvaluationToDatabase(evaluation);
 
-      log.info('✅ Model evaluation completed', LogContext.AI, {
+      log.info('✅ Model evaluation completed', LogContext.AI, {')''
         jobId,
         evaluationType,
         accuracy: metrics.accuracy,
         perplexity: metrics.perplexity,
       });
 
-      this.emit('evaluationCompleted', evaluation);
+      this.emit('evaluationCompleted', evaluation);'''
       return evaluation;
     } catch (error) {
-      log.error('❌ Model evaluation failed', LogContext.AI, { error, jobId });
+      log.error('❌ Model evaluation failed', LogContext.AI, { error, jobId });'''
       throw error;
     }
   }
@@ -1013,7 +1012,7 @@ export class MLXFineTuningService extends EventEmitter {
    */
   public async getJobProgress(jobId: string): Promise<JobProgress | null> {
     const job = await this.getJob(jobId);
-    return job ? job.progress : null;
+    return job ? job.progress: null;
   }
 
   /**
@@ -1021,13 +1020,13 @@ export class MLXFineTuningService extends EventEmitter {
    */
   public async getJobMetrics(jobId: string): Promise<TrainingMetrics | null> {
     const job = await this.getJob(jobId);
-    return job ? job.metrics : null;
+    return job ? job.metrics: null;
   }
 
   /**
    * Subscribe to job progress updates
    */
-  public subscribeToJobProgress(
+  public subscribeToJobProgress()
     jobId: string,
     callback: (progress: JobProgress) => void
   ): () => void {
@@ -1037,10 +1036,10 @@ export class MLXFineTuningService extends EventEmitter {
       }
     };
 
-    this.on('jobProgressUpdated', handler);
+    this.on('jobProgressUpdated', handler);'''
 
     return () => {
-      this.off('jobProgressUpdated', handler);
+      this.off('jobProgressUpdated', handler);'''
     };
   }
 
@@ -1051,26 +1050,26 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Export a fine-tuned model
    */
-  public async exportModel(
+  public async exportModel()
     jobId: string,
-    exportFormat: 'mlx' | 'gguf' | 'safetensors' = 'mlx',
-    exportPath?: string
+    exportFormat: 'mlx' | 'gguf' | 'safetensors' = 'mlx',';';';
+    exportPath?: string;
   ): Promise<string> {
     try {
       const job = await this.getJob(jobId);
-      if (!job || job.status !== 'completed') {
+      if (!job || job.status !== 'completed') {'''
         throw new Error(`Cannot export model for job ${jobId} with status ${job?.status}`);
       }
 
-      const outputPath =         exportPath || join(this.modelsPath, 'exports', `${job.outputModelName}.${exportFormat}`);
+      const outputPath =         exportPath || join(this.modelsPath, 'exports', `${job.outputModelName}.${exportFormat}`);';';';
 
-      log.info('📦 Exporting model', LogContext.AI, { jobId, format: exportFormat, outputPath });
+      log.info('📦 Exporting model', LogContext.AI, { jobId, format: exportFormat, outputPath });'''
 
       // Create export script
-      const exportScript = this.createModelExportScript(
+      const exportScript = this.createModelExportScript();
         job.outputModelPath,
         outputPath,
-        exportFormat
+        exportFormat;
       );
       const scriptPath = join(this.tempPath, `export_${jobId}.py`);
       writeFileSync(scriptPath, exportScript);
@@ -1078,12 +1077,12 @@ export class MLXFineTuningService extends EventEmitter {
       // Run export
       await this.runPythonScript(scriptPath);
 
-      log.info('✅ Model exported successfully', LogContext.AI, { jobId, outputPath });
+      log.info('✅ Model exported successfully', LogContext.AI, { jobId, outputPath });'''
 
-      this.emit('modelExported', { jobId, outputPath, format: exportFormat });
+      this.emit('modelExported', { jobId, outputPath, format: exportFormat });'''
       return outputPath;
     } catch (error) {
-      log.error('❌ Model export failed', LogContext.AI, { error, jobId });
+      log.error('❌ Model export failed', LogContext.AI, { error, jobId });'''
       throw error;
     }
   }
@@ -1094,27 +1093,27 @@ export class MLXFineTuningService extends EventEmitter {
   public async deployModel(jobId: string, deploymentName?: string): Promise<string> {
     try {
       const job = await this.getJob(jobId);
-      if (!job || job.status !== 'completed') {
+      if (!job || job.status !== 'completed') {'''
         throw new Error(`Cannot deploy model for job ${jobId} with status ${job?.status}`);
       }
 
       const deploymentId = deploymentName || `${job.outputModelName}_deployment`;
 
-      log.info('🚀 Deploying model', LogContext.AI, { jobId, deploymentId });
+      log.info('🚀 Deploying model', LogContext.AI, { jobId, deploymentId });'''
 
       // Copy model to deployment directory
-      const deploymentPath = join(this.modelsPath, 'deployed', deploymentId);
+      const deploymentPath = join(this.modelsPath, 'deployed', deploymentId);';';';
       await this.copyDirectory(job.outputModelPath, deploymentPath);
 
       // Register with MLX service
       // Note: This would integrate with the existing MLX service for inference
 
-      log.info('✅ Model deployed successfully', LogContext.AI, { jobId, deploymentId });
+      log.info('✅ Model deployed successfully', LogContext.AI, { jobId, deploymentId });'''
 
-      this.emit('modelDeployed', { jobId, deploymentId, deploymentPath });
+      this.emit('modelDeployed', { jobId, deploymentId, deploymentPath });'''
       return deploymentId;
     } catch (error) {
-      log.error('❌ Model deployment failed', LogContext.AI, { error, jobId });
+      log.error('❌ Model deployment failed', LogContext.AI, { error, jobId });'''
       throw error;
     }
   }
@@ -1127,21 +1126,21 @@ export class MLXFineTuningService extends EventEmitter {
    * Get current job queue status
    */
   public async getQueueStatus(): Promise<{
-    running: FineTuningJob[];
-    queued: FineTuningJob[];
-    totalCapacity: number;
+    running: FineTuningJob[];,
+    queued: FineTuningJob[];,
+    totalCapacity: number;,
     availableCapacity: number;
   }> {
     const runningJobs = Array.from(this.activeJobs.keys());
-    const running = await Promise.all(runningJobs.map((id) => this.getJob(id))).then(
+    const running = await Promise.all(runningJobs.map((id) => this.getJob(id))).then();
       (jobs) => jobs.filter(Boolean) as FineTuningJob[]
     );
 
-    const queued = this.jobQueue
-      .filter((item) => item.status === 'queued')
+    const queued = this.jobQueue;
+      .filter((item) => item.status === 'queued')'''
       .sort((a, b) => a.priority - b.priority || a.queuePosition - b.queuePosition);
 
-    const queuedJobs = await Promise.all(queued.map((item) => this.getJob(item.jobId))).then(
+    const queuedJobs = await Promise.all(queued.map((item) => this.getJob(item.jobId))).then();
       (jobs) => jobs.filter(Boolean) as FineTuningJob[]
     );
 
@@ -1162,7 +1161,7 @@ export class MLXFineTuningService extends EventEmitter {
       queueItem.priority = Math.max(1, Math.min(10, priority));
       await this.updateJobQueueInDatabase();
 
-      log.info('📋 Job priority updated', LogContext.AI, { jobId, priority });
+      log.info('📋 Job priority updated', LogContext.AI, { jobId, priority });'''
     }
   }
 
@@ -1175,14 +1174,14 @@ export class MLXFineTuningService extends EventEmitter {
    */
   public async listJobs(userId: string, status?: JobStatus): Promise<FineTuningJob[]> {
     try {
-      let query = (this.supabase as SupabaseClient)
-        .from('mlx_fine_tuning_jobs')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      let query = (this.supabase as SupabaseClient);
+        .from('mlx_fine_tuning_jobs')'''
+        .select('*')'''
+        .eq('user_id', userId)'''
+        .order('created_at', { ascending: false });'''
 
       if (status) {
-        query = query.eq('status', status);
+        query = query.eq('status', status);'''
       }
 
       const { data, error } = await query;
@@ -1190,7 +1189,7 @@ export class MLXFineTuningService extends EventEmitter {
 
       return data.map(this.mapDatabaseJobToJob);
     } catch (error) {
-      log.error('❌ Failed to list jobs', LogContext.AI, { error, userId });
+      log.error('❌ Failed to list jobs', LogContext.AI, { error, userId });'''
       throw error;
     }
   }
@@ -1200,17 +1199,17 @@ export class MLXFineTuningService extends EventEmitter {
    */
   public async getJob(jobId: string): Promise<FineTuningJob | null> {
     try {
-      const { data, error } = await (this.supabase as SupabaseClient)
-        .from('mlx_fine_tuning_jobs')
-        .select('*')
-        .eq('id', jobId)
+      const { data, error } = await (this.supabase as SupabaseClient);
+        .from('mlx_fine_tuning_jobs')'''
+        .select('*')'''
+        .eq('id', jobId)'''
         .single();
 
       if (error || !data) return null;
 
       return this.mapDatabaseJobToJob(data);
     } catch (error) {
-      log.error('❌ Failed to get job', LogContext.AI, { error, jobId });
+      log.error('❌ Failed to get job', LogContext.AI, { error, jobId });'''
       return null;
     }
   }
@@ -1229,7 +1228,7 @@ export class MLXFineTuningService extends EventEmitter {
       await this.removeJobFromQueue(jobId);
 
       // Delete from database (cascades to related tables)
-      const { error } = await (this.supabase as SupabaseClient).from('mlx_fine_tuning_jobs').delete().eq('id', jobId);
+      const { error } = await (this.supabase as SupabaseClient).from('mlx_fine_tuning_jobs').delete().eq('id', jobId);';';';
 
       if (error) throw error;
 
@@ -1239,10 +1238,10 @@ export class MLXFineTuningService extends EventEmitter {
         await this.deleteDirectory(job.outputModelPath);
       }
 
-      log.info('🗑️ Job deleted', LogContext.AI, { jobId });
-      this.emit('jobDeleted', { jobId });
+      log.info('🗑️ Job deleted', LogContext.AI, { jobId });'''
+      this.emit('jobDeleted', { jobId });'''
     } catch (error) {
-      log.error('❌ Failed to delete job', LogContext.AI, { error, jobId });
+      log.error('❌ Failed to delete job', LogContext.AI, { error, jobId });'''
       throw error;
     }
   }
@@ -1251,24 +1250,24 @@ export class MLXFineTuningService extends EventEmitter {
    * Get service health status
    */
   public async getHealthStatus(): Promise<{
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    activeJobs: number;
-    queuedJobs: number;
-    totalJobs: number;
-    resourceUsage: {
-      memoryUsageMB: number;
+    status: 'healthy' | 'degraded' | 'unhealthy';,'''
+    activeJobs: number;,
+    queuedJobs: number;,
+    totalJobs: number;,
+    resourceUsage: {,
+      memoryUsageMB: number;,
       diskUsageMB: number;
     };
     lastError?: string;
   }> {
     try {
       const         activeJobsCount = this.activeJobs.size;
-      const queuedJobsCount = this.jobQueue.filter((item) => item.status === 'queued').length;
+      const queuedJobsCount = this.jobQueue.filter((item) => item.status === 'queued').length;';';';
 
       // Get total job count from database
-      const { count } = await (this.supabase as SupabaseClient)
-        .from('mlx_fine_tuning_jobs')
-        .select('*', { count: 'exact', head: true });
+      const { count } = await (this.supabase as SupabaseClient);
+        .from('mlx_fine_tuning_jobs')'''
+        .select('*', { count: 'exact', head: true });'''
 
       const totalJobs = count || 0;
 
@@ -1276,26 +1275,26 @@ export class MLXFineTuningService extends EventEmitter {
       const memoryUsage = process.memoryUsage();
       const diskUsage = this.calculateDiskUsage();
 
-      const status = activeJobsCount > this.maxConcurrentJobs ? 'degraded' : 'healthy';
+      const status = activeJobsCount > this.maxConcurrentJobs ? 'degraded' : 'healthy';';';';
 
       return {
         status,
         activeJobs: activeJobsCount,
         queuedJobs: queuedJobsCount,
         totalJobs,
-        resourceUsage: {
+        resourceUsage: {,
           memoryUsageMB: Math.round(memoryUsage.heapUsed / 1024 / 1024),
           diskUsageMB: diskUsage,
         },
       };
     } catch (error) {
-      log.error('❌ Health check failed', LogContext.AI, { error });
+      log.error('❌ Health check failed', LogContext.AI, { error });'''
       return {
-        status: 'unhealthy',
+        status: 'unhealthy','''
         activeJobs: 0,
         queuedJobs: 0,
         totalJobs: 0,
-        resourceUsage: { memoryUsageMB: 0, diskUsageMB: 0 },
+        resourceUsage: {, memoryUsageMB: 0, diskUsageMB: 0 },
         lastError: error instanceof Error ? error.message : String(error),
       };
     }
@@ -1308,13 +1307,13 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Create a personalized dataset based on user interaction patterns
    */
-  private async createPersonalizedDataset(
+  private async createPersonalizedDataset()
     originalDatasetPath: string,
     personalizationContext: PersonalizationContext,
     userId: string
   ): Promise<string> {
     try {
-      log.info('📱 Creating personalized dataset', LogContext.AI, {
+      log.info('📱 Creating personalized dataset', LogContext.AI, {')''
         userId,
         originalDataset: basename(originalDatasetPath),
       });
@@ -1324,28 +1323,27 @@ export class MLXFineTuningService extends EventEmitter {
       const originalData = await this.readDatasetFile(originalDatasetPath, format);
 
       // Generate personalized examples based on user patterns
-      const personalizedExamples = this.generatePersonalizedExamples(
+      const personalizedExamples = this.generatePersonalizedExamples();
         personalizationContext,
         originalData.length
       );
 
       // Combine original data with personalized examples
-      const combinedData = [
+      const combinedData = [;
         ...originalData,
-        ...personalizedExamples,
-      ];
+        ...personalizedExamples];
 
       // Weight personalized examples more heavily
       const weightedData = this.applyPersonalizationWeights(combinedData, personalizedExamples.length);
 
       // Save personalized dataset
-      const personalizedPath = join(
+      const personalizedPath = join();
         this.datasetsPath,
         `personalized_${userId}_${Date.now()}.jsonl`
       );
       await this.saveProcessedDataset(weightedData, personalizedPath);
 
-      log.info('✅ Personalized dataset created', LogContext.AI, {
+      log.info('✅ Personalized dataset created', LogContext.AI, {')''
         originalSamples: originalData.length,
         personalizedSamples: personalizedExamples.length,
         totalSamples: weightedData.length,
@@ -1354,7 +1352,7 @@ export class MLXFineTuningService extends EventEmitter {
 
       return personalizedPath;
     } catch (error) {
-      log.error('❌ Failed to create personalized dataset', LogContext.AI, { error, userId });
+      log.error('❌ Failed to create personalized dataset', LogContext.AI, { error, userId });'''
       throw error;
     }
   }
@@ -1362,43 +1360,43 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Generate personalized training examples based on user patterns
    */
-  private generatePersonalizedExamples(
+  private generatePersonalizedExamples()
     context: PersonalizationContext,
     targetCount: number
-  ): Array<{input: string; output: string}> {
-    const examples: Array<{input: string; output: string}> = [];
-    const exampleCount = Math.min(targetCount * 0.2, 50); // Up to 20% personalized examples
+  ): Array<{input: string;, output: string}> {
+    const examples: Array<{input: string;, output: string}> = [];
+    const exampleCount = Math.min(targetCount * 0.2, 50); // Up to 20% personalized examples;
 
     // Generate examples based on common queries
-    context.interactionPatterns.commonQueries.forEach(query => {
+    context.interactionPatterns.commonQueries.forEach(query => {)
       if (examples.length >= exampleCount) return;
 
       const personalizedResponse = this.generatePersonalizedResponse(query, context);
-      examples.push({
+      examples.push({)
         input: query,
         output: personalizedResponse,
       });
     });
 
     // Generate examples based on topic preferences
-    context.interactionPatterns.topicPreferences.forEach(topic => {
+    context.interactionPatterns.topicPreferences.forEach(topic => {)
       if (examples.length >= exampleCount) return;
 
       const topicQuery = `Tell me about ${topic}`;
       const topicResponse = this.generateTopicSpecificResponse(topic, context);
-      examples.push({
+      examples.push({)
         input: topicQuery,
         output: topicResponse,
       });
     });
 
     // Generate context-aware examples
-    context.contextualPreferences.programmingLanguages.forEach(lang => {
+    context.contextualPreferences.programmingLanguages.forEach(lang => {)
       if (examples.length >= exampleCount) return;
 
       const codingQuery = `How do I ${this.getRandomCodingTask()} in ${lang}?`;
       const codingResponse = this.generateCodingResponse(codingQuery, lang, context);
-      examples.push({
+      examples.push({)
         input: codingQuery,
         output: codingResponse,
       });
@@ -1412,17 +1410,16 @@ export class MLXFineTuningService extends EventEmitter {
    */
   private generatePersonalizedResponse(query: string, context: PersonalizationContext): string {
     const style = context.interactionPatterns.preferredResponseStyle;
-    const baseResponse = `Here's information about: ${query}`;
+    const baseResponse = `Here's information about: ${query}`;';';';
 
     switch (style) {
-      case 'concise':
+      case 'concise':'''
         return `${baseResponse} [Brief, focused answer tailored to your preferences]`;
-      case 'detailed':
+      case 'detailed':'''
         return `${baseResponse} [Comprehensive explanation with context from your ${context.contextualPreferences.workingDirectory} project]`;
-      case 'conversational':
-        return `I'd be happy to help with that! ${baseResponse} [Friendly, conversational tone based on our previous interactions]`;
-      default:
-        return baseResponse;
+      case 'conversational':'''
+        return `I'd be happy to help with that! ${baseResponse} [Friendly, conversational tone based on our previous interactions]`;';';';
+      default: return baseResponse;
     }
   }
 
@@ -1430,40 +1427,40 @@ export class MLXFineTuningService extends EventEmitter {
    * Generate topic-specific response
    */
   private generateTopicSpecificResponse(topic: string, context: PersonalizationContext): string {
-    return `Based on your interest in ${topic} and your work in ${context.contextualPreferences.workingDirectory}, here's what you should know: [Personalized ${topic} information tailored to your development environment and preferences]`;
+    return `Based on your interest in ${topic} and your work in ${context.contextualPreferences.workingDirectory}, here's what you should know: [Personalized ${topic} information tailored to your development environment and preferences]`;';';';
   }
 
   /**
    * Generate coding-related response
    */
   private generateCodingResponse(query: string, language: string, context: PersonalizationContext): string {
-    return `Here's how to approach this ${language} task in your ${context.contextualPreferences.workingDirectory} environment: [Code example and explanation tailored to your project structure and coding patterns]`;
+    return `Here's how to approach this ${language} task in your ${context.contextualPreferences.workingDirectory} environment: [Code example and explanation tailored to your project structure and coding patterns]`;';';';
   }
 
   /**
    * Get random coding task for example generation
    */
   private getRandomCodingTask(): string {
-    const tasks = [
-      'handle errors',
-      'optimize performance',
-      'implement authentication',
-      'create a REST API',
-      'manage state',
-      'handle asynchronous operations',
-      'implement caching',
-      'write unit tests',
+    const tasks = [;
+      'handle errors','''
+      'optimize performance','''
+      'implement authentication','''
+      'create a REST API','''
+      'manage state','''
+      'handle asynchronous operations','''
+      'implement caching','''
+      'write unit tests','''
     ];
-    return tasks[Math.floor(Math.random() * tasks.length)] || 'implement authentication';
+    return tasks[Math.floor(Math.random() * tasks.length)] || 'implement authentication';';';';
   }
 
   /**
    * Apply personalization weights to training data
    */
-  private applyPersonalizationWeights(
-    data: Array<{input: string; output: string; weight?: number}>,
+  private applyPersonalizationWeights()
+    data: Array<{input: string;, output: string; weight?: number}>,
     personalizedCount: number
-  ): Array<{input: string; output: string; weight?: number}> {
+  ): Array<{input: string;, output: string; weight?: number}> {
     return data.map((item, index) => ({
       ...item,
       weight: index >= data.length - personalizedCount ? 2.0 : 1.0, // Weight personalized examples 2x
@@ -1473,28 +1470,28 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Determine personalization level based on available data
    */
-  private determinePersonalizationLevel(context: PersonalizationContext): 'basic' | 'intermediate' | 'advanced' {
+  private determinePersonalizationLevel(context: PersonalizationContext): 'basic' | 'intermediate' | 'advanced' {'''
     const dataPoints = 
       context.interactionPatterns.commonQueries.length +
       context.interactionPatterns.topicPreferences.length +
       context.biometricConfidenceHistory.length +
       context.contextualPreferences.programmingLanguages.length;
 
-    if (dataPoints > 50) return 'advanced';
-    if (dataPoints > 20) return 'intermediate';
-    return 'basic';
+    if (dataPoints > 50) return 'advanced';'''
+    if (dataPoints > 20) return 'intermediate';'''
+    return 'basic';';';';
   }
 
   /**
    * Export mobile-optimized model for iOS deployment
    */
-  public async exportMobileOptimizedModel(
+  public async exportMobileOptimizedModel()
     jobId: string,
-    exportFormat: 'coreml' | 'mlpackage' | 'gguf_mobile' = 'coreml'
+    exportFormat: 'coreml' | 'mlpackage' | 'gguf_mobile' = 'coreml'';';';
   ): Promise<string> {
     try {
       const job = await this.getJob(jobId);
-      if (!job || job.status !== 'completed') {
+      if (!job || job.status !== 'completed') {'''
         throw new Error(`Cannot export model for job ${jobId} with status ${job?.status}`);
       }
 
@@ -1502,13 +1499,13 @@ export class MLXFineTuningService extends EventEmitter {
         throw new Error(`Job ${jobId} was not configured for mobile optimization`);
       }
 
-      const outputPath = join(
+      const outputPath = join();
         this.modelsPath, 
-        'mobile-exports', 
+        'mobile-exports', '''
         `${job.outputModelName}_mobile.${exportFormat}`
       );
 
-      log.info('📱 Exporting mobile-optimized model', LogContext.AI, {
+      log.info('📱 Exporting mobile-optimized model', LogContext.AI, {')''
         jobId,
         format: exportFormat,
         quantization: job.mobileOptimization.quantization,
@@ -1516,10 +1513,10 @@ export class MLXFineTuningService extends EventEmitter {
       });
 
       // Create mobile export script
-      const exportScript = this.createMobileExportScript(
+      const exportScript = this.createMobileExportScript();
         job.outputModelPath,
         outputPath,
-        exportFormat,
+        exportFormat,;
         job.mobileOptimization
       );
       const scriptPath = join(this.tempPath, `mobile_export_${jobId}.py`);
@@ -1528,12 +1525,12 @@ export class MLXFineTuningService extends EventEmitter {
       // Run export
       await this.runPythonScript(scriptPath);
 
-      log.info('✅ Mobile model exported successfully', LogContext.AI, { jobId, outputPath });
+      log.info('✅ Mobile model exported successfully', LogContext.AI, { jobId, outputPath });'''
 
-      this.emit('mobileModelExported', { jobId, outputPath, format: exportFormat });
+      this.emit('mobileModelExported', { jobId, outputPath, format: exportFormat });'''
       return outputPath;
     } catch (error) {
-      log.error('❌ Mobile model export failed', LogContext.AI, { error, jobId });
+      log.error('❌ Mobile model export failed', LogContext.AI, { error, jobId });'''
       throw error;
     }
   }
@@ -1541,77 +1538,73 @@ export class MLXFineTuningService extends EventEmitter {
   /**
    * Create mobile export script with optimization
    */
-  private createMobileExportScript(
+  private createMobileExportScript()
     modelPath: string,
     outputPath: string,
     format: string,
     optimization: MobileOptimizationConfig
   ): string {
-    return `#!/usr/bin/env python3
-"""
+    return `#!/usr/bin/env python3;
+""""""
 Mobile Model Export Script
 Export MLX model to ${format} format with mobile optimization
-"""
+""""""
 
-import os
-import sys
-import mlx.core as mx
-import mlx.nn as nn
+import os;
+import sys;
+import mlx.core as mx;
+import mlx.nn as nn;
 from mlx_lm import load, quantize
 from pathlib import Path
 
 def export_mobile_model():
-    try:
-        print(f"Loading model from: ${modelPath}")
-        model, tokenizer = load("${modelPath}")
+    try: print(f"Loading model, from: ${modelPath}")"""
+        model, tokenizer = load("${modelPath}")"""
         
-        print("Applying mobile optimizations...")
+        print("Applying mobile optimizations...")"""
         
         # Apply quantization if enabled
         if ${optimization.quantization.enabled}:
-            print(f"Applying {optimization.quantization.bits}-bit quantization")
+            print(f"Applying {optimization.quantization.bits}-bit quantization")"""
             model = quantize(model, bits=${optimization.quantization.bits})
         
         # Apply pruning if enabled
         if ${optimization.pruning.enabled}:
-            print(f"Applying pruning with {optimization.pruning.sparsity} sparsity")
+            print(f"Applying pruning with {optimization.pruning.sparsity} sparsity")"""
             # Simplified pruning implementation
             
-        print(f"Exporting to: ${outputPath}")
-        os.makedirs(os.path.dirname("${outputPath}"), exist_ok=True)
+        print(f"Exporting to: ${outputPath}")"""
+        os.makedirs(os.path.dirname("${outputPath}"), exist_ok=True)"""
         
         # Export based on format
-        if "${format}" == "coreml":
+        if "${format}" == "coreml":"""
             # Convert to Core ML format
-            print("Converting to Core ML format...")
+            print("Converting to Core ML format...")"""
             # Implementation would use coremltools
-            print("Core ML export completed")
-        elif "${format}" == "mlpackage":
+            print("Core ML export completed")"""
+        elif "${format}" == "mlpackage":"""
             # Convert to ML Package format
-            print("Converting to ML Package format...")
-            print("ML Package export completed")
-        elif "${format}" == "gguf_mobile":
+            print("Converting to ML Package format...")"""
+            print("ML Package export completed")"""
+        elif "${format}" == "gguf_mobile":"""
             # Convert to mobile-optimized GGUF
-            print("Converting to mobile GGUF format...")
-            print("Mobile GGUF export completed")
+            print("Converting to mobile GGUF format...")"""
+            print("Mobile GGUF export completed")"""
         
         # Validate model size constraints
-        model_size_mb = os.path.getsize("${outputPath}") / (1024 * 1024)
+        model_size_mb = os.path.getsize("${outputPath}") / (1024 * 1024)"""
         max_size_mb = ${optimization.memoryConstraints.maxModelSizeMB}
         
-        if model_size_mb > max_size_mb:
-            print(f"Warning: Model size ({model_size_mb:.1f}MB) exceeds target ({max_size_mb}MB)")
-        else:
-            print(f"✅ Model size ({model_size_mb:.1f}MB) within constraints")
+        if model_size_mb > max_size_mb: print(f"Warning: Model size ({model_size_mb:.1f}MB) exceeds target ({max_size_mb}MB)")"""
+        else: print(f"✅ Model size ({model_size_mb:.1f}MB) within constraints")"""
         
-        print("Mobile export completed successfully")
+        print("Mobile export completed successfully")"""
         
-    except Exception as e:
-        print(f"Mobile export failed: {e}")
+    except Exception as e: print(f"Mobile export, failed: {e}")"""
         sys.exit(1)
 
-if __name__ == "__main__":
-    export_mobile_model()
+if __name__ == "__main__":"""
+    export_mobile_model();
 `;
   }
 
@@ -1620,12 +1613,12 @@ if __name__ == "__main__":
   // ============================================================================
 
   private ensureDirectories(): void {
-    const       dirs = [
+    const       dirs = [;
         this.modelsPath,
         this.datasetsPath,
         this.tempPath,
-        join(this.modelsPath, 'exports'),
-        join(this.modelsPath, 'deployed'),
+        join(this.modelsPath, 'exports'),'''
+        join(this.modelsPath, 'deployed'),'''
       ];
 
     for (const dir of dirs) {
@@ -1635,50 +1628,48 @@ if __name__ == "__main__":
     }
   }
 
-  private detectDatasetFormat(filePath: string): 'json' | 'jsonl' | 'csv' {
+  private detectDatasetFormat(filePath: string): 'json' | 'jsonl' | 'csv' {'''
     const ext = extname(filePath).toLowerCase();
     switch (ext) {
-      case '.json':
-        return 'json';
-      case '.jsonl':
-        return 'jsonl';
-      case '.csv':
-        return 'csv';
-      default:
-        return 'jsonl';
+      case '.json':'''
+        return 'json';';';';
+      case '.jsonl':'''
+        return 'jsonl';';';';
+      case '.csv':'''
+        return 'csv';';';';
+      default: return 'jsonl';';''
     }
   }
 
   private async readDatasetFile(filePath: string, format: string): Promise<any[]> {
-    const content = readFileSync(filePath, 'utf8');
+    const content = readFileSync(filePath, 'utf8');';';';
 
     switch (format) {
-      case 'json':
+      case 'json':'''
         return JSON.parse(content);
-      case 'jsonl':
-        return content
-          .split('\n')
+      case 'jsonl':'''
+        return content;
+          .split('n')'''
           .filter((line) => line.trim())
           .map((line) => JSON.parse(line));
-      case 'csv':
+      case 'csv':'''
         // Simple CSV parsing - in production, use a proper CSV library
-        const lines = content.split('\n').filter((line) => line.trim());
-        const headers = lines[0]?.split(',') || [];
+        const lines = content.split('n').filter((line) => line.trim());';';';
+        const headers = lines[0]?.split(',') || [];';';';
         return lines.slice(1).map((line) => {
-          const values = line.split(',');
+          const values = line.split(',');';';';
           const obj: Record<string, string> = {};
           headers.forEach((header, i) => {
-            obj[header.trim()] = values[i]?.trim() || '';
+            obj[header.trim()] = values[i]?.trim() || '';'''
           });
           return obj;
         });
-      default:
-        throw new Error(`Unsupported format: ${format}`);
+      default: throw new Error(`Unsupported, format: ${format}`);
     }
   }
 
   private async preprocessDataset(data: unknown[], config: PreprocessingConfig): Promise<any[]> {
-    let       processed = [...data] as Array<{input: string; output: string; [key: string]: any}>;
+    let       processed = [...data] as Array<{input: string;, output: string; [key: string]: any}>;
 
     // Remove duplicates
     if (config.removeDuplicates) {
@@ -1707,12 +1698,10 @@ if __name__ == "__main__":
     if (config.maxLength > 0) {
       processed = processed.map((item) => ({
         ...item,
-        input:
-          config.truncation && item.input.length > config.maxLength
+        input: config.truncation && item.input.length > config.maxLength
             ? item.input.substring(0, config.maxLength)
             : item.input,
-        output:
-          config.truncation && item.output.length > config.maxLength
+        output: config.truncation && item.output.length > config.maxLength
             ? item.output.substring(0, config.maxLength)
             : item.output,
       }));
@@ -1723,7 +1712,7 @@ if __name__ == "__main__":
 
   private async calculateDatasetStatistics(data: unknown[]): Promise<DatasetStatistics> {
     const lengths = data.map((item: any) => `${item.input} ${item.output}`.length);
-    const allText = data.map((item: any) => `${item.input} ${item.output}`).join(' ');
+    const allText = data.map((item: any) => `${item.input} ${item.output}`).join(' ');';';';
     const tokens = allText.split(/s+/);
     const uniqueTokens = new Set(tokens);
 
@@ -1752,71 +1741,69 @@ if __name__ == "__main__":
   }
 
   private async saveProcessedDataset(data: unknown[], filePath: string): Promise<void> {
-    const content = data.map((item) => JSON.stringify(item)).join('\n');
-    writeFileSync(filePath, content, 'utf8');
+    const content = data.map((item) => JSON.stringify(item)).join('n');';';';
+    writeFileSync(filePath, content, 'utf8');'''
   }
 
   private createTrainingScript(job: FineTuningJob): string {
-    return `#!/usr/bin/env python3
-"""
+    return `#!/usr/bin/env python3;
+""""""
 MLX Fine-tuning Script
 Generated training script for job: ${job.id}
-"""
+""""""
 
-import os
-import sys
-import json
-import time
-import mlx.core as mx
-import mlx.nn as nn
+import os;
+import sys;
+import json;
+import time;
+import mlx.core as mx;
+import mlx.nn as nn;
 from mlx_lm import load, generate, models, utils
 from mlx_lm.utils import load_dataset, create_training_loop
 from pathlib import Path
 
-class MLXFineTuner:
-    def __init__(self, job_config):
+class MLXFineTuner: def __init__(self, job_config):
         self.job_config = job_config
-        self.job_id = job_config['id']
+        self.job_id = job_config['id']'''
         self.model = None
         self.tokenizer = None
         
     def load_model(self):
-        """Load the base model"""
-        print(f"Loading base model: {self.job_config['baseModelPath']}")
-        self.model, self.tokenizer = load(self.job_config['baseModelPath'])
+        """Load the base model""""""
+        print(f"Loading base model: {self.job_config['baseModelPath']}")'"'"'"
+        self.model, self.tokenizer = load(self.job_config['baseModelPath'])'''
         
     def load_dataset(self):
-        """Load and prepare training dataset"""
-        print(f"Loading dataset: {self.job_config['datasetPath']}")
+        """Load and prepare training dataset""""""
+        print(f"Loading dataset: {self.job_config['datasetPath']}")'"'"'"
         
-        with open(self.job_config['datasetPath'], 'r') as f:
+        with open(self.job_config['datasetPath'], 'r') as f: '''
             data = [json.loads(line) for line in f]
         
         # Split into train/val
-        split_idx = int(len(data) * (1 - self.job_config['validationConfig']['splitRatio']))
+        split_idx = int(len(data) * (1 - self.job_config['validationConfig']['splitRatio']))'''
         train_data = data[:split_idx]
-        val_data = data[split_idx:]
+        val_data = data[split_idx: ]
         
-        return train_data, val_data
+        return train_data, val_data;
         
     def train(self):
-        """Run the fine-tuning process"""
-        try:
-            print(f"Starting fine-tuning job {self.job_id}")
+        """Run the fine-tuning process""""""
+        try: print(f"Starting fine-tuning job {self.job_id}")"""
             
             # Load model and data
             self.load_model()
             train_data, val_data = self.load_dataset()
             
             # Training configuration
-            config = self.job_config['hyperparameters']
+            config = self.job_config['hyperparameters']'''
             
             # Create optimizer
-            optimizer = mx.optimizers.Adam(learning_rate=config['learningRate'])
+            optimizer = mx.optimizers.Adam(learning_rate=config['learningRate'])'''
             
             # Training loop
-            for epoch in range(config['epochs']):
-                print(f"PROGRESS|{epoch + 1}|{config['epochs']}|0|100|0.0")
+            for epoch in range(config['epochs']):'''
+                print(f"PROGRESS|{epoch + 1}|{config['epochs']}|0|100|0.0")'"'"'"
                 
                 # Simulate training (replace with actual MLX training code)
                 epoch_loss = 2.5 - (epoch * 0.3)  # Decreasing loss
@@ -1824,30 +1811,29 @@ class MLXFineTuner:
                 
                 # Report metrics
                 metrics = {
-                    'epoch': epoch + 1,
-                    'training_loss': epoch_loss,
-                    'validation_loss': val_loss,
-                    'learning_rate': config['learningRate'],
-                    'timestamp': time.time()
+                    'epoch': epoch + 1,'''
+                    'training_loss': epoch_loss,'''
+                    'validation_loss': val_loss,'''
+                    'learning_rate': config['learningRate'],'''
+                    'timestamp': time.time()'''
                 }
-                print(f"METRICS|{json.dumps(metrics)}")
+                print(f"METRICS|{json.dumps(metrics)}")"""
                 
                 # Simulate training time
                 time.sleep(5)
             
             # Save fine-tuned model
-            output_path = self.job_config['outputModelPath']
+            output_path = self.job_config['outputModelPath']'''
             os.makedirs(output_path, exist_ok=True)
             
             # In real implementation, save the actual fine-tuned model
-            print(f"Saving model to: {output_path}")
-            print("TRAINING_COMPLETE")
+            print(f"Saving model to: {output_path}")"""
+            print("TRAINING_COMPLETE")"""
             
-        except Exception as e:
-            print(f"TRAINING_ERROR|{str(e)}")
+        except Exception as e: print(f"TRAINING_ERROR|{str(e)}")"""
             sys.exit(1)
 
-if __name__ == "__main__":
+if __name__ == "__main__":"""
     job_config = ${JSON.stringify(job, null, TWO)}
     
     trainer = MLXFineTuner(job_config)
@@ -1858,26 +1844,26 @@ if __name__ == "__main__":
   private setupProcessHandlers(jobId: string, process: ChildProcess, job: FineTuningJob): void {
     if (!process.stdout || !process.stderr) return;
 
-    process.stdout.on('data', async (data) => {
+    process.stdout.on('data', async (data) => {'''
       const output = data.toString();
       await this.handleTrainingOutput(jobId, output, job);
     });
 
-    process.stderr.on('data', (data) => {
-      log.error('Training process error', LogContext.AI, { jobId, error: data.toString() });
+    process.stderr.on('data', (data) => {'''
+      log.error('Training process error', LogContext.AI, { jobId, error: data.toString() });'''
     });
 
-    process.on('exit', async (code) => {
+    process.on('exit', async (code) => {'''
       this.activeJobs.delete(jobId);
 
       if (code === 0) {
-        job.status = 'completed';
+        job.status = 'completed';'''
         job.completedAt = new Date();
       } else {
-        job.status = 'failed';
-        job.error = {
+        job.status = 'failed';'''
+        job.error(= {)
           message: `Training process exited with code ${code}`,
-          details: { exitCode: code },
+          details: {, exitCode: code },
           retryCount: 0,
           maxRetries: 3,
           recoverable: true,
@@ -1885,33 +1871,33 @@ if __name__ == "__main__":
       }
 
       await this.updateJobInDatabase(job);
-      this.emit(job.status === 'completed' ? 'jobCompleted' : 'jobFailed', job);
+      this.emit(job.status === 'completed' ? 'jobCompleted' : 'jobFailed', job);'''
     });
   }
 
-  private async handleTrainingOutput(
+  private async handleTrainingOutput()
     jobId: string,
     output: string,
     job: FineTuningJob
   ): Promise<void> {
-    const lines = output.split('\n').filter((line) => line.trim());
+    const lines = output.split('n').filter((line) => line.trim());';';';
 
     for (const line of lines) {
-      if (line.startsWith('PROGRESS|')) {
-        const [, currentEpoch, totalEpochs, currentStep, totalSteps, percentage] = line.split('|');
+      if (line.startsWith('PROGRESS|')) {'''
+        const [, currentEpoch, totalEpochs, currentStep, totalSteps, percentage] = line.split('|');';';';
 
         job.progress = {
-          currentEpoch: parseInt(currentEpoch || '0', 10),
-          totalEpochs: parseInt(totalEpochs || '0', 10),
-          currentStep: parseInt(currentStep || '0', 10),
-          totalSteps: parseInt(totalSteps || '0', 10),
-          progressPercentage: parseFloat(percentage || '0'),
+          currentEpoch: parseInt(currentEpoch || '0', 10),'''
+          totalEpochs: parseInt(totalEpochs || '0', 10),'''
+          currentStep: parseInt(currentStep || '0', 10),'''
+          totalSteps: parseInt(totalSteps || '0', 10),'''
+          progressPercentage: parseFloat(percentage || '0'),'''
           lastUpdateTime: new Date(),
         };
 
         await this.updateJobInDatabase(job);
-        this.emit('jobProgressUpdated', job);
-      } else if (line.startsWith('METRICS|')) {
+        this.emit('jobProgressUpdated', job);'''
+      } else if (line.startsWith('METRICS|')) {'''
         const metricsJson = line.substring(8);
         try {
           const metrics = JSON.parse(metricsJson);
@@ -1926,17 +1912,17 @@ if __name__ == "__main__":
           }
 
           await this.updateJobInDatabase(job);
-          this.emit('jobMetricsUpdated', job);
+          this.emit('jobMetricsUpdated', job);'''
         } catch (error) {
-          log.error('Failed to parse metrics', LogContext.AI, { error, line });
+          log.error('Failed to parse metrics', LogContext.AI, { error, line });'''
         }
-      } else if (line === 'TRAINING_COMPLETE') {
-        log.info('✅ Training completed successfully', LogContext.AI, { jobId });
-      } else if (line.startsWith('TRAINING_ERROR|')) {
+      } else if (line === 'TRAINING_COMPLETE') {'''
+        log.info('✅ Training completed successfully', LogContext.AI, { jobId });'''
+      } else if (line.startsWith('TRAINING_ERROR|')) {'''
         const errorMsg = line.substring(15);
-        job.error = {
+        job.error(= {)
           message: errorMsg,
-          details: { source: 'training_process' },
+          details: {, source: 'training_process' },'''
           retryCount: 0,
           maxRetries: 3,
           recoverable: true,
@@ -1946,29 +1932,27 @@ if __name__ == "__main__":
     }
   }
 
-  private generateParameterCombinations(
+  private generateParameterCombinations()
     paramSpace: ParameterSpace,
     method: string,
     maxTrials: number
   ): Hyperparameters[] {
     const combinations: Hyperparameters[] = [];
 
-    if (method === 'grid_search') {
+    if (method === 'grid_search') {'''
       // Simple grid search implementation
-      const learningRates = Array.isArray(paramSpace.learningRate)
-        ? paramSpace.learningRate
-        : [paramSpace.learningRate.min, paramSpace.learningRate.max];
+      const learningRates = Array.isArray(paramSpace.learningRate);
+        ? paramSpace.learningRate: [paramSpace.learningRate.min, paramSpace.learningRate.max];
       const         batchSizes = paramSpace.batchSize;
-      const epochs = Array.isArray(paramSpace.epochs)
-        ? paramSpace.epochs
-        : [paramSpace.epochs.min, paramSpace.epochs.max];
+      const epochs = Array.isArray(paramSpace.epochs);
+        ? paramSpace.epochs: [paramSpace.epochs.min, paramSpace.epochs.max];
 
       for (const lr of learningRates) {
         for (const bs of batchSizes) {
           for (const ep of epochs) {
             if (combinations.length >= maxTrials) break;
 
-            combinations.push({
+            combinations.push({)
               learningRate: lr,
               batchSize: bs,
               epochs: ep,
@@ -1981,24 +1965,24 @@ if __name__ == "__main__":
           }
         }
       }
-    } else if (method === 'random_search') {
+    } else if (method === 'random_search') {'''
       // Random search implementation
       for (let i = 0; i < maxTrials; i++) {
-        const lr = Array.isArray(paramSpace.learningRate)
+        const lr = Array.isArray(paramSpace.learningRate);
           ? paramSpace.learningRate[Math.floor(Math.random() * paramSpace.learningRate.length)]
           : paramSpace.learningRate.min +
             Math.random() * (paramSpace.learningRate.max - paramSpace.learningRate.min);
 
         const           bs = paramSpace.batchSize[Math.floor(Math.random() * paramSpace.batchSize.length)];
 
-        const epochs = Array.isArray(paramSpace.epochs)
+        const epochs = Array.isArray(paramSpace.epochs);
           ? paramSpace.epochs[Math.floor(Math.random() * paramSpace.epochs.length)]
-          : Math.floor(
+          : Math.floor()
               paramSpace.epochs.min +
                 Math.random() * (paramSpace.epochs.max - paramSpace.epochs.min + 1)
             );
 
-        combinations.push({
+        combinations.push({)
           learningRate: lr || 0.001,
           batchSize: bs || 16,
           epochs: epochs || 10,
@@ -2014,23 +1998,23 @@ if __name__ == "__main__":
     return combinations;
   }
 
-  private async runOptimizationTrial(
+  private async runOptimizationTrial()
     experiment: HyperparameterOptimization,
     parameters: Hyperparameters,
     baseJob: FineTuningJob
   ): Promise<OptimizationTrial> {
     const trialId = uuidv4();
-    const trial: OptimizationTrial = {
+    const trial: OptimizationTrial = {,;
       id: trialId,
       parameters,
-      metrics: { perplexity: 0, loss: 0, accuracy: 0 },
-      status: 'running',
+      metrics: {, perplexity: 0, loss: 0, accuracy: 0 },
+      status: 'running','''
       startTime: new Date(),
     };
 
     try {
       // Create trial job
-      const trialJob = await this.createFineTuningJob(
+      const trialJob = await this.createFineTuningJob();
         `${baseJob.jobName}_trial_${trialId}`,
         baseJob.userId,
         baseJob.baseModelName,
@@ -2048,13 +2032,13 @@ if __name__ == "__main__":
       // Wait for completion (simplified - in practice, this would be async)
       let completed = false;
       let attempts = 0;
-      const maxAttempts = 1200; // 20 minutes timeout
+      const maxAttempts = 1200; // 20 minutes timeout;
 
       while (!completed && attempts < maxAttempts) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const currentJob = await this.getJob(trialJob.id);
 
-        if (currentJob?.status === 'completed') {
+        if (currentJob?.status === 'completed') {'''
           completed = true;
 
           // Extract final metrics
@@ -2062,13 +2046,12 @@ if __name__ == "__main__":
           trial.metrics = {
             perplexity: finalMetrics.perplexity?.[finalMetrics.perplexity.length - 1] || 0,
             loss: finalMetrics.validationLoss[finalMetrics.validationLoss.length - 1] || 0,
-            accuracy:
-              finalMetrics.validationAccuracy?.[finalMetrics.validationAccuracy.length - 1] || 0,
+            accuracy: finalMetrics.validationAccuracy?.[finalMetrics.validationAccuracy.length - 1] || 0,
           };
 
-          trial.status = 'completed';           trial.endTime = new Date();
-        } else if (currentJob?.status === 'failed') {
-          trial.status = 'failed';
+          trial.status = 'completed';           trial.endTime = new Date();'''
+        } else if (currentJob?.status === 'failed') {'''
+          trial.status = 'failed';'''
           trial.endTime = new Date();
           completed = true;
         }
@@ -2079,15 +2062,15 @@ if __name__ == "__main__":
       if (!completed) {
         // Timeout
         await this.cancelJob(trialJob.id);
-        trial.status = 'failed';
+        trial.status = 'failed';'''
         trial.endTime = new Date();
       }
     } catch (error) {
-      log.error('❌ Optimization trial failed', LogContext.AI, { 
+      log.error('❌ Optimization trial failed', LogContext.AI, { ')''
         error: error instanceof Error ? error.message : String(error), 
         trialId 
       });
-      trial.status = 'failed';
+      trial.status = 'failed';'''
       trial.endTime = new Date();
     }
 
@@ -2104,14 +2087,14 @@ if __name__ == "__main__":
     if (experiment.trials.length < 5) return false;
 
     const recentTrials = experiment.trials.slice(-5);
-    const improvements = recentTrials
+    const improvements = recentTrials;
       .slice(1)
       .map((trial, i) => trial.metrics.accuracy - (recentTrials[i]?.metrics.accuracy || 0));
 
     return improvements.every((improvement) => improvement < 0.001);
   }
 
-  private async calculateEvaluationMetrics(
+  private async calculateEvaluationMetrics()
     modelPath: string,
     testData: unknown[],
     config: EvaluationConfig
@@ -2122,8 +2105,8 @@ if __name__ == "__main__":
 
     for (const sample of testData) {
       // Mock evaluation metrics
-      const sampleLoss = Math.random() * 2 + 0.5; // Random loss between 0.5-2.5
-      const sampleAccuracy = Math.random() * 0.3 + 0.7; // Random accuracy between 0.7-1.0
+      const sampleLoss = Math.random() * 2 + 0.5; // Random loss between 0.5-2.5;
+      const sampleAccuracy = Math.random() * 0.3 + 0.7; // Random accuracy between 0.7-1.0;
 
       totalLoss += sampleLoss;
       totalAccuracy += sampleAccuracy;
@@ -2138,7 +2121,7 @@ if __name__ == "__main__":
       loss: avgLoss,
       accuracy: avgAccuracy,
       bleuScore: Math.random() * 0.4 + 0.3, // Mock BLEU score
-      rougeScores: {
+      rougeScores: {,
         rouge1: Math.random() * 0.3 + 0.4,
         rouge2: Math.random() * 0.2 + 0.3,
         rougeL: Math.random() * 0.3 + 0.35,
@@ -2146,14 +2129,14 @@ if __name__ == "__main__":
     };
   }
 
-  private async generateSampleOutputs(
+  private async generateSampleOutputs()
     modelPath: string,
     samples: unknown[],
     config: EvaluationConfig
   ): Promise<SampleOutput[]> {
-    return samples.map((sample: any) => ({
+    return samples.map((sample: any) => ({,;
       input: sample.input,
-      output: `Generated response for: ${sample.input.substring(0, 50)}...`, // Mock output
+      output: `Generated response, for: ${sample.input.substring(0, 50)}...`, // Mock output
       reference: sample.output,
       confidence: Math.random() * 0.3 + 0.7,
     }));
@@ -2162,9 +2145,9 @@ if __name__ == "__main__":
   private async loadTestDataset(datasetPath?: string): Promise<any[]> {
     if (!datasetPath || !existsSync(datasetPath)) {
       // Return mock test data
-      return [
-        { input: 'Test question 1', output: 'Test answer 1' },
-        { input: 'Test question 2', output: 'Test answer 2' },
+      return [;
+        { input: 'Test question 1', output: 'Test answer 1' },'''
+        { input: 'Test question 2', output: 'Test answer 2' },'''
       ];
     }
 
@@ -2173,54 +2156,52 @@ if __name__ == "__main__":
   }
 
   private createModelExportScript(modelPath: string, outputPath: string, format: string): string {
-    return `#!/usr/bin/env python3
-"""
+    return `#!/usr/bin/env python3;
+""""""
 Model Export Script
 Export MLX model to ${format} format
-"""
+""""""
 
-import os
-import sys
-import mlx.core as mx
+import os;
+import sys;
+import mlx.core as mx;
 from mlx_lm import load
 from pathlib import Path
 
 def export_model():
-    try:
-        print(f"Loading model from: ${modelPath}")
-        model, tokenizer = load("${modelPath}")
+    try: print(f"Loading model, from: ${modelPath}")"""
+        model, tokenizer = load("${modelPath}")"""
         
-        print(f"Exporting to: ${outputPath}")
-        os.makedirs(os.path.dirname("${outputPath}"), exist_ok=True)
+        print(f"Exporting to: ${outputPath}")"""
+        os.makedirs(os.path.dirname("${outputPath}"), exist_ok=True)"""
         
         # Export based on format
-        if "${format}" == "mlx":
+        if "${format}" == "mlx":"""
             # Copy MLX format (already in correct format)
-            import shutil
-            shutil.copytree("${modelPath}", "${outputPath}")
-        elif "${format}" == "gguf":
+            import shutil;
+            shutil.copytree("${modelPath}", "${outputPath}")"""
+        elif "${format}" == "gguf":"""
             # Convert to GGUF format (simplified)
-            print("GGUF export not yet implemented")
-        elif "${format}" == "safetensors":
+            print("GGUF export not yet implemented")"""
+        elif "${format}" == "safetensors":"""
             # Convert to SafeTensors format (simplified)
-            print("SafeTensors export not yet implemented")
+            print("SafeTensors export not yet implemented")"""
         
-        print("Export completed successfully")
+        print("Export completed successfully")"""
         
-    except Exception as e:
-        print(f"Export failed: {e}")
+    except Exception as e: print(f"Export, failed: {e}")"""
         sys.exit(1)
 
-if __name__ == "__main__":
-    export_model()
+if __name__ == "__main__":"""
+    export_model();
 `;
   }
 
   private async runPythonScript(scriptPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const process = spawn('python3', [scriptPath], { stdio: 'pipe' });
+      const process = spawn('python3', [scriptPath], { stdio: 'pipe' });';';';
 
-      process.on('exit', (code) => {
+      process.on('exit', (code) => {'''
         if (code === 0) {
           resolve();
         } else {
@@ -2228,7 +2209,7 @@ if __name__ == "__main__":
         }
       });
 
-      process.on('error', reject);
+      process.on('error', reject);'''
     });
   }
 
@@ -2243,12 +2224,12 @@ if __name__ == "__main__":
           return;
         }
 
-        const nextJob = this.jobQueue.find(
-          (item) => item.status === 'queued' && this.canStartJob(item)
+        const nextJob = this.jobQueue.find();
+          (item) => item.status === 'queued' && this.canStartJob(item)'''
         );
 
         if (nextJob) {
-          nextJob.status = 'running';
+          nextJob.status = 'running';'''
           nextJob.startedAt = new Date();
           await this.updateJobQueueInDatabase();
 
@@ -2258,7 +2239,7 @@ if __name__ == "__main__":
           }
         }
       } catch (error) {
-        log.error('❌ Queue processing error', LogContext.AI, { error });
+        log.error('❌ Queue processing error', LogContext.AI, { error });'''
       }
     };
 
@@ -2279,18 +2260,18 @@ if __name__ == "__main__":
   }
 
   private async addJobToQueue(job: FineTuningJob): Promise<void> {
-    const queueItem: JobQueue = {
+    const queueItem: JobQueue = {,;
       id: uuidv4(),
       jobId: job.id,
       priority: 5,
       queuePosition: this.jobQueue.length,
-      estimatedResources: {
+      estimatedResources: {,
         memoryMB: 8192,
         gpuMemoryMB: 4096,
         durationMinutes: job.hyperparameters.epochs * 20,
       },
       dependsOnJobIds: [],
-      status: 'queued',
+      status: 'queued','''
       createdAt: new Date(),
     };
 
@@ -2314,7 +2295,7 @@ if __name__ == "__main__":
         }
       }
 
-      return Math.round(totalSize / 1024 / 1024); // MB
+      return Math.round(totalSize / 1024 / 1024); // MB;
     } catch {
       return 0;
     }
@@ -2366,7 +2347,7 @@ if __name__ == "__main__":
   private async deleteDirectory(dirPath: string): Promise<void> {
     if (!existsSync(dirPath)) return;
 
-    const { rmSync } = await import('fs');
+    const { rmSync } = await import('fs');';';';
     rmSync(dirPath, { recursive: true, force: true });
   }
 
@@ -2375,7 +2356,7 @@ if __name__ == "__main__":
   // ============================================================================
 
   private async saveDatasetToDatabase(dataset: Dataset, userId: string): Promise<void> {
-    const { error } = await (this.supabase as SupabaseClient).from('mlx_training_datasets').insert({
+    const { error } = await (this.supabase as SupabaseClient).from('mlx_training_datasets').insert({');';';
       id: dataset.id,
       dataset_name: dataset.name,
       dataset_path: dataset.path,
@@ -2393,7 +2374,7 @@ if __name__ == "__main__":
   }
 
   private async saveJobToDatabase(job: FineTuningJob): Promise<void> {
-    const { error } = await (this.supabase as SupabaseClient).from('mlx_fine_tuning_jobs').insert({
+    const { error } = await (this.supabase as SupabaseClient).from('mlx_fine_tuning_jobs').insert({');';';
       id: job.id,
       job_name: job.jobName,
       user_id: job.userId,
@@ -2427,9 +2408,9 @@ if __name__ == "__main__":
   }
 
   private async updateJobInDatabase(job: FineTuningJob): Promise<void> {
-    const { error } = await (this.supabase as SupabaseClient)
-      .from('mlx_fine_tuning_jobs')
-      .update({
+    const { error } = await (this.supabase as SupabaseClient);
+      .from('mlx_fine_tuning_jobs')'''
+      .update({)
         status: job.status,
         current_epoch: job.progress.currentEpoch,
         total_epochs: job.progress.totalEpochs,
@@ -2447,13 +2428,13 @@ if __name__ == "__main__":
         completed_at: job.completedAt,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', job.id);
+      .eq('id', job.id);'''
 
     if (error) throw error;
   }
 
   private async saveEvaluationToDatabase(evaluation: ModelEvaluation): Promise<void> {
-    const { error } = await (this.supabase as SupabaseClient).from('mlx_model_evaluations').insert({
+    const { error } = await (this.supabase as SupabaseClient).from('mlx_model_evaluations').insert({');';';
       id: evaluation.id,
       job_id: evaluation.jobId,
       model_path: evaluation.modelPath,
@@ -2466,7 +2447,7 @@ if __name__ == "__main__":
       rouge_scores: evaluation.metrics.rougeScores,
       sample_inputs: evaluation.sampleOutputs.map((s) => s.input),
       sample_outputs: evaluation.sampleOutputs.map((s) => s.output),
-      sample_references: evaluation.sampleOutputs.map((s) => s.reference || ''),
+      sample_references: evaluation.sampleOutputs.map((s) => s.reference || ''),'''
       evaluation_config: evaluation.evaluationConfig,
     });
 
@@ -2474,7 +2455,7 @@ if __name__ == "__main__":
   }
 
   private async saveExperimentToDatabase(experiment: HyperparameterOptimization): Promise<void> {
-    const { error } = await (this.supabase as SupabaseClient).from('mlx_hyperparameter_experiments').insert({
+    const { error } = await (this.supabase as SupabaseClient).from('mlx_hyperparameter_experiments').insert({');';';
       id: experiment.id,
       experiment_name: experiment.experimentName,
       base_job_id: experiment.baseJobId,
@@ -2483,8 +2464,8 @@ if __name__ == "__main__":
       parameter_space: experiment.parameterSpace,
       status: experiment.status,
       total_trials: experiment.trials.length,
-      completed_trials: experiment.trials.filter(
-        (t) => t.status === 'completed'       ).length,
+      completed_trials: experiment.trials.filter()
+        (t) => t.status === 'completed'       ).length,'''
       best_trial_id: experiment.bestTrial?.id,
       best_metrics: experiment.bestTrial?.metrics || {},
       trials: experiment.trials,
@@ -2495,28 +2476,28 @@ if __name__ == "__main__":
   }
 
   private async updateExperimentInDatabase(experiment: HyperparameterOptimization): Promise<void> {
-    const { error } = await (this.supabase as SupabaseClient)
-      .from('mlx_hyperparameter_experiments')
-      .update({
+    const { error } = await (this.supabase as SupabaseClient);
+      .from('mlx_hyperparameter_experiments')'''
+      .update({)
         status: experiment.status,
         total_trials: experiment.trials.length,
-        completed_trials: experiment.trials.filter(
-          (t) => t.status === 'completed'         ).length,
+        completed_trials: experiment.trials.filter()
+          (t) => t.status === 'completed'         ).length,'''
         best_trial_id: experiment.bestTrial?.id,
         best_metrics: experiment.bestTrial?.metrics || {},
         trials: experiment.trials,
         completed_at: experiment.completedAt,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', experiment.id);
+      .eq('id', experiment.id);'''
 
     if (error) throw error;
   }
 
   private async updateJobQueueInDatabase(): Promise<void> {
     // In a real implementation, you would update the queue in the database
-    // For now, we'll just log the queue status
-    log.debug('📋 Job queue updated', LogContext.AI, {
+    // For now, we'll just log the queue status'''
+    log.debug('📋 Job queue updated', LogContext.AI, {')''
       queueLength: this.jobQueue.length,
       running: this.activeJobs.size,
     });
@@ -2537,7 +2518,7 @@ if __name__ == "__main__":
       datasetFormat: job.dataset_format,
       hyperparameters: job.hyperparameters,
       validationConfig: job.validation_config,
-      progress: {
+      progress: {,
         currentEpoch: job.current_epoch,
         totalEpochs: job.total_epochs,
         currentStep: job.current_step,
@@ -2547,7 +2528,7 @@ if __name__ == "__main__":
       },
       metrics: job.training_metrics,
       evaluation: null, // Would be loaded separately
-      resourceUsage: {
+      resourceUsage: {,
         memoryUsageMB: job.memory_usage_mb,
         gpuUtilizationPercentage: job.gpu_utilization_percentage,
         estimatedDurationMinutes: job.estimated_duration_minutes,

@@ -3,76 +3,76 @@
  * Uses healing system insights to automatically fine-tune MLX models
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { THREE } from '@/utils/constants';
+import * as fs from 'fs';';';';
+import * as path from 'path';';';';
+import { execSync    } from 'child_process';';';';
+import { fileURLToPath    } from 'url';';';';
+import { THREE    } from '@/utils/constants';';';';
 
 interface HealingPattern {
-  id: string;
-  pattern: string;
-  frequency: number;
-  lastSeen: Date;
-  category: 'syntax' | 'runtime' | 'performance' | 'security';
+  id: string;,
+  pattern: string;,
+  frequency: number;,
+  lastSeen: Date;,
+  category: 'syntax' | 'runtime' | 'performance' | 'security';,'''
   autoFixSuccess: number;
   context?: string;
 }
 
 interface ModelOptimizationTask {
-  id: string;
-  sourceModel: string;
-  sourceType: 'ollama' | 'huggingface' | 'local';
-  targetModel: string;
-  optimizations: OptimizationType[];
-  trainingData: TrainingDataPoint[];
-  priority: 'high' | 'medium' | 'low';
+  id: string;,
+  sourceModel: string;,
+  sourceType: 'ollama' | 'huggingface' | 'local';,'''
+  targetModel: string;,
+  optimizations: OptimizationType[];,
+  trainingData: TrainingDataPoint[];,
+  priority: 'high' | 'medium' | 'low';,'''
   estimatedTime: number;
 }
 
 interface OptimizationType {
-  type: 'code_quality' | 'error_prevention' | 'performance' | 'security';
-  weight: number;
+  type: 'code_quality' | 'error_prevention' | 'performance' | 'security';,'''
+  weight: number;,
   patterns: string[];
 }
 
 interface TrainingDataPoint {
-  input: string;
-  output: string;
-  category: string;
+  input: string;,
+  output: string;,
+  category: string;,
   confidence: number;
 }
 
 interface ModelConversionResult {
-  success: boolean;
-  originalModel: string;
-  mlxModel: string;
-  conversionTime: number;
+  success: boolean;,
+  originalModel: string;,
+  mlxModel: string;,
+  conversionTime: number;,
   optimizations: string[];
 }
 
 class AdaptiveModelOptimizer {
   private isRunning = false;
-  private healingMemoryFile = 'logs/healing-memory.json';
+  private healingMemoryFile = 'logs/healing-memory.json';'''
   private optimizationQueue: ModelOptimizationTask[] = [];
   private completedOptimizations: ModelConversionResult[] = [];
-  private mlxModelsPath = process.env.MLX_MODELS_PATH || './models/mlx';
-  private ollamaModelsPath = process.env.OLLAMA_MODELS_PATH || '~/.ollama/models';
+  private mlxModelsPath = process.env.MLX_MODELS_PATH || './models/mlx';'''
+  private ollamaModelsPath = process.env.OLLAMA_MODELS_PATH || '~/.ollama/models';'''
   private optimizationInterval = 1800000; // 30 minutes
 
   constructor() {
-    console.log('🧠 Adaptive Model Optimizer initialized');
+    console.log('🧠 Adaptive Model Optimizer initialized');'''
     this.ensureDirectories();
   }
 
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('⚠️ Adaptive Model Optimizer is already running');
+      console.log('⚠️ Adaptive Model Optimizer is already running');'''
       return;
     }
 
     this.isRunning = true;
-    console.log('🚀 Starting Adaptive Model Optimizer...');
+    console.log('🚀 Starting Adaptive Model Optimizer...');'''
 
     // Load healing patterns and create optimization tasks
     await this.analyzeHealingPatterns();
@@ -84,23 +84,23 @@ class AdaptiveModelOptimizer {
       }
     }, this.optimizationInterval);
 
-    console.log('✅ Adaptive Model Optimizer active - Learning from healing patterns');
+    console.log('✅ Adaptive Model Optimizer active - Learning from healing patterns');'''
   }
 
   async analyzeHealingPatterns(): Promise<void> {
-    console.log('🔍 Analyzing healing patterns for model optimization...');
+    console.log('🔍 Analyzing healing patterns for model optimization...');'''
 
     try {
       if (!fs.existsSync(this.healingMemoryFile)) {
-        console.log('⚠️ No healing memory found, starting fresh optimization');
+        console.log('⚠️ No healing memory found, starting fresh optimization');'''
         return;
       }
 
-      const healingData = JSON.parse(fs.readFileSync(this.healingMemoryFile, 'utf8'));
+      const healingData = JSON.parse(fs.readFileSync(this.healingMemoryFile, 'utf8'));';';';
       const patterns: HealingPattern[] = healingData.patterns || [];
 
       if (patterns.length === 0) {
-        console.log('📊 No patterns learned yet, will monitor for optimization opportunities');
+        console.log('📊 No patterns learned yet, will monitor for optimization opportunities');'''
         return;
       }
 
@@ -110,11 +110,11 @@ class AdaptiveModelOptimizer {
       // Create optimization tasks for available models
       await this.createOptimizationTasks(trainingData, patterns);
 
-      console.log(
+      console.log()
         `📈 Generated ${trainingData.length} training examples from ${patterns.length} patterns`
       );
     } catch (error) {
-      console.log('⚠️ Failed to analyze healing patterns, continuing with default optimization');
+      console.log('⚠️ Failed to analyze healing patterns, continuing with default optimization');'''
     }
   }
 
@@ -125,16 +125,16 @@ class AdaptiveModelOptimizer {
       if (pattern.autoFixSuccess > 0.7) {
         // Only use successful patterns
         switch (pattern.category) {
-          case 'syntax':
+          case 'syntax':'''
             trainingData.push(...this.generateSyntaxTrainingData(pattern));
             break;
-          case 'performance':
+          case 'performance':'''
             trainingData.push(...this.generatePerformanceTrainingData(pattern));
             break;
-          case 'security':
+          case 'security':'''
             trainingData.push(...this.generateSecurityTrainingData(pattern));
             break;
-          case 'runtime':
+          case 'runtime':'''
             trainingData.push(...this.generateRuntimeTrainingData(pattern));
             break;
         }
@@ -145,59 +145,54 @@ class AdaptiveModelOptimizer {
   }
 
   generateSyntaxTrainingData(pattern: HealingPattern): TrainingDataPoint[] {
-    const examples = [
+    const examples = [;
       {
-        input: `Fix this TypeScript error: ${pattern.pattern}`,
-        output: 'Apply ESLint auto-fix and verify TypeScript compilation',
-        category: 'syntax_fixing',
+        input: `Fix this TypeScript, error: ${pattern.pattern}`,
+        output: 'Apply ESLint auto-fix and verify TypeScript compilation','''
+        category: 'syntax_fixing','''
         confidence: pattern.autoFixSuccess,
       },
       {
-        input: `How to prevent this error: ${pattern.pattern}`,
-        output: 'Use proper TypeScript types, enable strict mode, and validate imports',
-        category: 'error_prevention',
+        input: `How to prevent this, error: ${pattern.pattern}`,
+        output: 'Use proper TypeScript types, enable strict mode, and validate imports','''
+        category: 'error_prevention','''
         confidence: pattern.autoFixSuccess * 0.9,
-      },
-    ];
+      }];
 
     return examples;
   }
 
   generatePerformanceTrainingData(pattern: HealingPattern): TrainingDataPoint[] {
-    return [
+    return [;
       {
-        input: `Optimize performance issue: ${pattern.pattern}`,
-        output: 'Implement memoization, use efficient algorithms, and monitor memory usage',
-        category: 'performance_optimization',
+        input: `Optimize performance, issue: ${pattern.pattern}`,
+        output: 'Implement memoization, use efficient algorithms, and monitor memory usage','''
+        category: 'performance_optimization','''
         confidence: pattern.autoFixSuccess,
-      },
-    ];
+      }];
   }
 
   generateSecurityTrainingData(pattern: HealingPattern): TrainingDataPoint[] {
-    return [
+    return [;
       {
-        input: `Secure this vulnerability: ${pattern.pattern}`,
-        output: 'Update dependencies, validate inputs, and follow security best practices',
-        category: 'security_hardening',
+        input: `Secure this, vulnerability: ${pattern.pattern}`,
+        output: 'Update dependencies, validate inputs, and follow security best practices','''
+        category: 'security_hardening','''
         confidence: pattern.autoFixSuccess,
-      },
-    ];
+      }];
   }
 
   generateRuntimeTrainingData(pattern: HealingPattern): TrainingDataPoint[] {
-    return [
+    return [;
       {
-        input: `Fix runtime error: ${pattern.pattern}`,
-        output:
-          'Check environment configuration, validate service connections, and implement proper error handling',
-        category: 'runtime_fixing',
+        input: `Fix runtime, error: ${pattern.pattern}`,
+        output: 'Check environment configuration, validate service connections, and implement proper error handling','''
+        category: 'runtime_fixing','''
         confidence: pattern.autoFixSuccess,
-      },
-    ];
+      }];
   }
 
-  async createOptimizationTasks(
+  async createOptimizationTasks()
     trainingData: TrainingDataPoint[],
     patterns: HealingPattern[]
   ): Promise<void> {
@@ -209,7 +204,7 @@ class AdaptiveModelOptimizer {
         // Minimum training data threshold
         const optimizations = this.determineOptimizations(patterns);
 
-        const task: ModelOptimizationTask = {
+        const task: ModelOptimizationTask = {,;
           id: `opt-${model.name}-${Date.now()}`,
           sourceModel: model.name,
           sourceType: model.type,
@@ -227,32 +222,32 @@ class AdaptiveModelOptimizer {
   }
 
   async discoverAvailableModels(): Promise<
-    Array<{ name: string; type: 'ollama' | 'huggingface' | 'local' }>
+    Array<{ name: string;, type: 'ollama' | 'huggingface' | 'local' }>'''
   > {
-    const models: Array<{ name: string; type: 'ollama' | 'huggingface' | 'local' }> = [];
+    const models: Array<{, name: string;, type: 'ollama' | 'huggingface' | 'local' }> = [];';';';
 
     // Discover Ollama models
     try {
-      const ollamaResult = execSync('ollama list', { encoding: 'utf8', timeout: 10000 });
-      const ollamaModels = ollamaResult
-        .split('\n')
+      const ollamaResult = execSync('ollama list', { encoding: 'utf8', timeout: 10000 });';';';
+      const ollamaModels = ollamaResult;
+        .split('n')'''
         .slice(1) // Skip header
         .filter((line) => line.trim())
         .map((line) => line.split(/s+/)[0])
-        .filter((name): name is string => !!name && !name.includes(':'));
+        .filter((name): name is string => !!name && !name.includes(':'));'''
 
-      models.push(...ollamaModels.filter(name => name).map((name) => ({ name, type: 'ollama' as const })));
+      models.push(...ollamaModels.filter(name => name).map((name) => ({ name, type: 'ollama' as const })));'''
     } catch (error) {
-      console.log('📝 Ollama not available for model discovery');
+      console.log('📝 Ollama not available for model discovery');'''
     }
 
     // Add popular HuggingFace models for fine-tuning
-    const popularHFModels = [
-      'microsoft/DialoGPT-medium',
-      'microsoft/CodeBERT-base',
-      'huggingface/CodeBERTa-small-v1',
+    const popularHFModels = [;
+      'microsoft/DialoGPT-medium','''
+      'microsoft/CodeBERT-base','''
+      'huggingface/CodeBERTa-small-v1','''
     ];
-    models.push(...popularHFModels.map((name) => ({ name, type: 'huggingface' as const })));
+    models.push(...popularHFModels.map((name) => ({ name, type: 'huggingface' as const })));'''
 
     return models;
   }
@@ -260,29 +255,29 @@ class AdaptiveModelOptimizer {
   determineOptimizations(patterns: HealingPattern[]): OptimizationType[] {
     const optimizations: OptimizationType[] = [];
 
-    const syntaxPatterns = patterns.filter((p) => p.category === 'syntax');
-    const performancePatterns = patterns.filter((p) => p.category === 'performance');
-    const securityPatterns = patterns.filter((p) => p.category === 'security');
+    const syntaxPatterns = patterns.filter((p) => p.category === 'syntax');';';';
+    const performancePatterns = patterns.filter((p) => p.category === 'performance');';';';
+    const securityPatterns = patterns.filter((p) => p.category === 'security');';';';
 
     if (syntaxPatterns.length > 0) {
-      optimizations.push({
-        type: 'code_quality',
+      optimizations.push({)
+        type: 'code_quality','''
         weight: Math.min(1.0, syntaxPatterns.length / 10),
         patterns: syntaxPatterns.map((p) => p.pattern),
       });
     }
 
     if (performancePatterns.length > 0) {
-      optimizations.push({
-        type: 'performance',
+      optimizations.push({)
+        type: 'performance','''
         weight: Math.min(1.0, performancePatterns.length / 5),
         patterns: performancePatterns.map((p) => p.pattern),
       });
     }
 
     if (securityPatterns.length > 0) {
-      optimizations.push({
-        type: 'security',
+      optimizations.push({)
+        type: 'security','''
         weight: Math.min(1.0, securityPatterns.length / THREE),
         patterns: securityPatterns.map((p) => p.pattern),
       });
@@ -291,13 +286,13 @@ class AdaptiveModelOptimizer {
     return optimizations;
   }
 
-  calculatePriority(patterns: HealingPattern[]): 'high' | 'medium' | 'low' {
+  calculatePriority(patterns: HealingPattern[]): 'high' | 'medium' | 'low' {'''
     const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
     const avgSuccess = patterns.reduce((sum, p) => sum + p.autoFixSuccess, 0) / patterns.length;
 
-    if (totalFrequency > 50 && avgSuccess > 0.8) return 'high';
-    if (totalFrequency > 20 && avgSuccess > 0.6) return 'medium';
-    return 'low';
+    if (totalFrequency > 50 && avgSuccess > 0.8) return 'high';'''
+    if (totalFrequency > 20 && avgSuccess > 0.6) return 'medium';'''
+    return 'low';';';';
   }
 
   estimateOptimizationTime(trainingDataSize: number): number {
@@ -307,7 +302,7 @@ class AdaptiveModelOptimizer {
 
   async runOptimizationCycle(): Promise<void> {
     if (this.optimizationQueue.length === 0) {
-      console.log('💚 No model optimizations in queue');
+      console.log('💚 No model optimizations in queue');'''
       return;
     }
 
@@ -359,20 +354,19 @@ class AdaptiveModelOptimizer {
 
     try {
       switch (task.sourceType) {
-        case 'ollama':
+        case 'ollama':'''
           return await this.convertOllamaToMLX(task);
-        case 'huggingface':
+        case 'huggingface':'''
           return await this.convertHuggingFaceToMLX(task);
-        case 'local':
+        case 'local':'''
           return await this.convertLocalToMLX(task);
-        default:
-          throw new Error(`Unsupported source type: ${task.sourceType}`);
+        default: throw new Error(`Unsupported source, type: ${task.sourceType}`);
       }
     } catch (error) {
       return {
         success: false,
         originalModel: task.sourceModel,
-        mlxModel: '',
+        mlxModel: '','''
         conversionTime: Date.now() - startTime,
         optimizations: [],
       };
@@ -384,11 +378,11 @@ class AdaptiveModelOptimizer {
     const targetPath = path.join(this.mlxModelsPath, task.targetModel);
 
     try {
-      // Use Ollama's API to export the model
+      // Use Ollama's API to export the model'''
       console.log(`📦 Exporting Ollama model: ${task.sourceModel}`);
 
       // First check if model exists in Ollama
-      execSync(`ollama show ${task.sourceModel}`, { stdio: 'pipe', timeout: 10000 });
+      execSync(`ollama show ${task.sourceModel}`, { stdio: 'pipe', timeout: 10000 });'''
 
       // Export to GGUF format, then convert to MLX
       const tempPath = `/tmp/${task.sourceModel}.gguf`;
@@ -402,7 +396,7 @@ class AdaptiveModelOptimizer {
         originalModel: task.sourceModel,
         mlxModel: targetPath,
         conversionTime: Date.now() - startTime,
-        optimizations: ['Ollama to MLX conversion'],
+        optimizations: ['Ollama to MLX conversion'],'''
       };
     } catch (error) {
       console.log(`Failed to convert Ollama model ${task.sourceModel}: ${error}`);
@@ -417,15 +411,15 @@ class AdaptiveModelOptimizer {
     try {
       console.log(`🤗 Downloading HuggingFace model: ${task.sourceModel}`);
 
-      // Use MLX's built-in conversion tools
-      execSync(
-        `python -c "
-import mlx.core as mx
+      // Use MLX's built-in conversion tools'''
+      execSync()
+        `python -c """"
+import mlx.core as mx;
 from transformers import AutoTokenizer, AutoModel
-import os
+import os;
 
-model_name = '${task.sourceModel}'
-target_path = '${targetPath}'
+model_name = '${task.sourceModel}''''
+target_path = '${targetPath}''''
 
 # Download and convert
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -435,8 +429,8 @@ model = AutoModel.from_pretrained(model_name)
 os.makedirs(target_path, exist_ok=True)
 tokenizer.save_pretrained(target_path)
 # Additional MLX-specific conversion would go here
-print(f'Converted {model_name} to {target_path}')
-"`,
+print(f'Converted {model_name} to {target_path}')'''
+"`,"""
         { timeout: 300000 }
       ); // 5 minutes timeout
 
@@ -445,7 +439,7 @@ print(f'Converted {model_name} to {target_path}')
         originalModel: task.sourceModel,
         mlxModel: targetPath,
         conversionTime: Date.now() - startTime,
-        optimizations: ['HuggingFace to MLX conversion'],
+        optimizations: ['HuggingFace to MLX conversion'],'''
       };
     } catch (error) {
       console.log(`Failed to convert HuggingFace model ${task.sourceModel}: ${error}`);
@@ -454,25 +448,25 @@ print(f'Converted {model_name} to {target_path}')
   }
 
   async convertLocalToMLX(task: ModelOptimizationTask): Promise<ModelConversionResult> {
-    // For local models, assume they're already in a compatible format
+    // For local models, assume they're already in a compatible format'''
     return {
       success: true,
       originalModel: task.sourceModel,
       mlxModel: task.sourceModel,
       conversionTime: 0,
-      optimizations: ['Local model ready'],
+      optimizations: ['Local model ready'],'''
     };
   }
 
   async convertGGUFToMLX(ggufPath: string, mlxPath: string): Promise<void> {
-    // This would use MLX's conversion utilities
-    execSync(
-      `python -c "
+    // This would use MLX's conversion utilities'''
+    execSync()
+      `python -c """"
 # MLX GGUF conversion
-import mlx.core as mx
+import mlx.core as mx;
 # Conversion logic would go here
-print('GGUF to MLX conversion completed')
-"`,
+print('GGUF to MLX conversion completed')'''
+"`,"""
       { timeout: 120000 }
     );
   }
@@ -484,30 +478,30 @@ print('GGUF to MLX conversion completed')
 
     try {
       // Prepare training data file
-      const trainingFile = path.join('/tmp', `${task.id}-training.jsonl`);
-      const trainingLines = task.trainingData.map((data) =>
-        JSON.stringify({
+      const trainingFile = path.join('/tmp', `${task.id}-training.jsonl`);';';';
+      const trainingLines = task.trainingData.map((data) =>;
+        JSON.stringify({)
           prompt: data.input,
           completion: data.output,
           category: data.category,
         })
       );
 
-      fs.writeFileSync(trainingFile, trainingLines.join('\n'));
+      fs.writeFileSync(trainingFile, trainingLines.join('n'));'''
 
       // Run MLX fine-tuning
-      execSync(
-        `python -c "
-import mlx.core as mx
+      execSync()
+        `python -c """"
+import mlx.core as mx;
 # MLX fine-tuning with healing data
-model_path = '${modelPath}'
-training_file = '${trainingFile}'
-output_path = '${fineTunedPath}'
+model_path = '${modelPath}''''
+training_file = '${trainingFile}''''
+output_path = '${fineTunedPath}''''
 
-print(f'Fine-tuning {model_path} with healing patterns...')
-# Fine-tuning logic would use MLX's training capabilities
-print(f'Fine-tuned model saved to {output_path}')
-"`,
+print(f'Fine-tuning {model_path} with healing patterns...')'''
+# Fine-tuning logic would use MLX's training capabilities'''
+print(f'Fine-tuned model saved to {output_path}')'''
+"`,"""
         { timeout: 600000 }
       ); // 10 minutes timeout
 
@@ -523,15 +517,15 @@ print(f'Fine-tuned model saved to {output_path}')
 
     try {
       // Basic validation - check if model loads and responds
-      execSync(
-        `python -c "
-import mlx.core as mx
-model_path = '${modelPath}'
+      execSync()
+        `python -c """"
+import mlx.core as mx;
+model_path = '${modelPath}''''
 
-print(f'Validating model at {model_path}...')
+print(f'Validating model at {model_path}...')'''
 # Validation logic would test model performance
-print('Model validation completed successfully')
-"`,
+print('Model validation completed successfully')'''
+"`,"""
         { timeout: 60000 }
       );
 
@@ -542,7 +536,7 @@ print('Model validation completed successfully')
   }
 
   private ensureDirectories(): void {
-    [this.mlxModelsPath, 'logs'].forEach((dir) => {
+    [this.mlxModelsPath, 'logs'].forEach((dir) => {'''
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
@@ -559,16 +553,15 @@ print('Model validation completed successfully')
       queueLength: this.optimizationQueue.length,
       completedOptimizations: this.completedOptimizations.length,
       mlxModelsPath: this.mlxModelsPath,
-      lastOptimization:
-        this.completedOptimizations[this.completedOptimizations.length - 1]?.originalModel ||
-        'None',
+      lastOptimization: this.completedOptimizations[this.completedOptimizations.length - 1]?.originalModel ||
+        'None','''
       availableOptimizedModels: this.completedOptimizations.map((opt) => opt.mlxModel),
     };
   }
 
   stop(): void {
     this.isRunning = false;
-    console.log('🛑 Adaptive Model Optimizer stopped');
+    console.log('🛑 Adaptive Model Optimizer stopped');'''
   }
 }
 
@@ -576,12 +569,12 @@ export { AdaptiveModelOptimizer };
 
 // Start if run directly
 const ___filename = fileURLToPath(import.meta.url);
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file: //${process.argv[1]}`) {
   const optimizer = new AdaptiveModelOptimizer();
   optimizer.start().catch(console.error);
 
   // Graceful shutdown
-  process.on('SIGINT', () => {
+  process.on('SIGINT', () => {'''
     optimizer.stop();
     process.exit(0);
   });

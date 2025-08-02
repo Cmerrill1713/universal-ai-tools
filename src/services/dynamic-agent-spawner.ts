@@ -4,53 +4,53 @@
  * Features autonomous agent creation, tool generation, and self-improvement
  */
 
-import { LogContext, log } from '@/utils/logger';
-import { llmRouter } from './llm-router-service';
-import { createClient } from '@supabase/supabase-js';
-import { v4 as uuidv4 } from 'uuid';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { llmRouter    } from './llm-router-service';';';';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { v4 as uuidv4    } from 'uuid';';';';
 
 interface AgentSpecification {
-  name: string;
-  purpose: string;
-  capabilities: string[];
-  tools: ToolDefinition[];
-  systemPrompt: string;
-  personality: string;
-  expertise: string[];
-  autonomyLevel: 'basic' | 'intermediate' | 'advanced' | 'autonomous';
+  name: string;,
+  purpose: string;,
+  capabilities: string[];,
+  tools: ToolDefinition[];,
+  systemPrompt: string;,
+  personality: string;,
+  expertise: string[];,
+  autonomyLevel: 'basic' | 'intermediate' | 'advanced' | 'autonomous';'''
 }
 
 interface ToolDefinition {
-  name: string;
-  description: string;
+  name: string;,
+  description: string;,
   parameters: Record<string, any>;
-  implementation: string;
-  type: 'api_call' | 'computation' | 'data_processing' | 'file_operation' | 'custom';
+  implementation: string;,
+  type: 'api_call' | 'computation' | 'data_processing' | 'file_operation' | 'custom';'''
 }
 
 interface SpawnedAgent {
-  id: string;
-  specification: AgentSpecification;
-  createdAt: Date;
-  performance: AgentPerformance;
-  evolutionHistory: EvolutionEvent[];
-  status: 'active' | 'learning' | 'evolving' | 'dormant';
+  id: string;,
+  specification: AgentSpecification;,
+  createdAt: Date;,
+  performance: AgentPerformance;,
+  evolutionHistory: EvolutionEvent[];,
+  status: 'active' | 'learning' | 'evolving' | 'dormant';'''
 }
 
 interface AgentPerformance {
-  tasksCompleted: number;
-  successRate: number;
-  averageResponseTime: number;
-  userSatisfaction: number;
-  learningRate: number;
+  tasksCompleted: number;,
+  successRate: number;,
+  averageResponseTime: number;,
+  userSatisfaction: number;,
+  learningRate: number;,
   adaptabilityScore: number;
 }
 
 interface EvolutionEvent {
-  timestamp: Date;
-  type: 'capability_added' | 'tool_created' | 'prompt_optimized' | 'performance_improved';
-  description: string;
-  impact: number;
+  timestamp: Date;,
+  type: 'capability_added' | 'tool_created' | 'prompt_optimized' | 'performance_improved';',''
+  description: string;,
+  impact: number;,
   metrics: Record<string, any>;
 }
 
@@ -60,9 +60,9 @@ export class DynamicAgentSpawner {
   private evolutionInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
-      process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || ''
+    this.supabase = createClient()
+      process.env.SUPABASE_URL || 'http: //127.0.0.1:54321','''
+      process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '''''
     );
     this.startEvolutionCycle();
   }
@@ -70,18 +70,18 @@ export class DynamicAgentSpawner {
   /**
    * Spawn a new agent based on user requirements
    */
-  async spawnAgent(requirements: {
-    task: string;
-    context: string;
+  async spawnAgent(requirements: {,)
+    task: string;,
+    context: string;,
     expertise_needed: string[];
-    autonomy_level?: 'basic' | 'intermediate' | 'advanced' | 'autonomous';
+    autonomy_level?: 'basic' | 'intermediate' | 'advanced' | 'autonomous';'''
     performance_requirements?: {
-      speed?: 'fast' | 'balanced' | 'thorough';
-      accuracy?: 'high' | 'medium' | 'low';
-      creativity?: 'high' | 'medium' | 'low';
+      speed?: 'fast' | 'balanced' | 'thorough';'''
+      accuracy?: 'high' | 'medium' | 'low';'''
+      creativity?: 'high' | 'medium' | 'low';'''
     };
   }): Promise<SpawnedAgent> {
-    log.info('🤖 Spawning new agent', LogContext.AGENT, { 
+    log.info('🤖 Spawning new agent', LogContext.AGENT, { ')''
       task: requirements.task,
       expertiseNeeded: requirements.expertise_needed
     });
@@ -95,11 +95,11 @@ export class DynamicAgentSpawner {
       specification.tools = tools;
 
       // Create spawned agent instance
-      const spawnedAgent: SpawnedAgent = {
+      const spawnedAgent: SpawnedAgent = {,;
         id: uuidv4(),
         specification,
         createdAt: new Date(),
-        performance: {
+        performance: {,
           tasksCompleted: 0,
           successRate: 1.0,
           averageResponseTime: 0,
@@ -108,14 +108,14 @@ export class DynamicAgentSpawner {
           adaptabilityScore: 0.5
         },
         evolutionHistory: [],
-        status: 'active'
+        status: 'active''''
       };
 
       // Store agent in memory and database
       this.spawnedAgents.set(spawnedAgent.id, spawnedAgent);
       await this.persistAgent(spawnedAgent);
 
-      log.info('✅ Agent spawned successfully', LogContext.AGENT, {
+      log.info('✅ Agent spawned successfully', LogContext.AGENT, {')''
         agentId: spawnedAgent.id,
         name: specification.name,
         capabilities: specification.capabilities.length,
@@ -125,7 +125,7 @@ export class DynamicAgentSpawner {
       return spawnedAgent;
 
     } catch (error) {
-      log.error('❌ Failed to spawn agent', LogContext.AGENT, {
+      log.error('❌ Failed to spawn agent', LogContext.AGENT, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
@@ -136,33 +136,32 @@ export class DynamicAgentSpawner {
    * Generate agent specification using LLM
    */
   private async generateAgentSpecification(requirements: any): Promise<AgentSpecification> {
-    const prompt = `Create a specialized AI agent specification for the following requirements:
+    const prompt = `Create a specialized AI agent specification for the following requirements: ;,;
 
 Task: ${requirements.task}
 Context: ${requirements.context}
-Expertise Needed: ${requirements.expertise_needed.join(', ')}
-Autonomy Level: ${requirements.autonomy_level || 'intermediate'}
+Expertise Needed: ${requirements.expertise_needed.join(', ')}'''
+Autonomy Level: ${requirements.autonomy_level || 'intermediate'}'''
 
-Generate a JSON response with:
-{
-  "name": "Agent name (creative and descriptive)",
-  "purpose": "Clear purpose statement",
-  "capabilities": ["capability1", "capability2", ...],
-  "systemPrompt": "Detailed system prompt for the agent",
-  "personality": "Agent personality traits",
-  "expertise": ["domain1", "domain2", ...],
-  "autonomyLevel": "${requirements.autonomy_level || 'intermediate'}"
+Generate a JSON response with: {
+  "name": "Agent name (creative and descriptive)","""
+  "purpose": "Clear purpose statement","""
+  "capabilities": ["capability1", "capability2", ...],"""
+  "systemPrompt": "Detailed system prompt for the agent","""
+  "personality": "Agent personality traits","""
+  "expertise": ["domain1", "domain2", ...],"""
+  "autonomyLevel": "${requirements.autonomy_level || 'intermediate'}"'"'"'"
 }
 
 Make the agent highly specialized for the task while being creative and effective.`;
 
-    const response = await llmRouter.generateResponse('planner-pro', [
+    const response = await llmRouter.generateResponse('planner-pro', [');';';
       {
-        role: 'system',
-        content: 'You are an expert AI agent architect. Create precise, effective agent specifications in JSON format.'
+        role: 'system','''
+        content: 'You are an expert AI agent architect. Create precise, effective agent specifications in JSON format.''''
       },
       {
-        role: 'user',
+        role: 'user','''
         content: prompt
       }
     ], {
@@ -173,10 +172,10 @@ Make the agent highly specialized for the task while being creative and effectiv
     // Parse JSON response
     let specification: AgentSpecification;
     try {
-      const cleanedContent = response.content.replace(/```json\n?|\n?```/g, '').trim();
+      const cleanedContent = response.content.replace(/```jsonn?|n?```/g, '').trim();';';';
       specification = JSON.parse(cleanedContent);
     } catch (parseError) {
-      log.warn('Failed to parse agent specification, using fallback', LogContext.AGENT);
+      log.warn('Failed to parse agent specification, using fallback', LogContext.AGENT);'''
       specification = this.createFallbackSpecification(requirements);
     }
 
@@ -187,33 +186,32 @@ Make the agent highly specialized for the task while being creative and effectiv
    * Generate tools for the agent based on its specification
    */
   private async generateToolsForAgent(specification: AgentSpecification): Promise<ToolDefinition[]> {
-    const toolPrompt = `Generate 3-5 specialized tools for an AI agent with these specifications:
+    const toolPrompt = `Generate 3-5 specialized tools for an AI agent with these specifications: ;,;
 
 Name: ${specification.name}
 Purpose: ${specification.purpose}
-Capabilities: ${specification.capabilities.join(', ')}
-Expertise: ${specification.expertise.join(', ')}
+Capabilities: ${specification.capabilities.join(', ')}'''
+Expertise: ${specification.expertise.join(', ')}'''
 
-Create tools that would help this agent excel at its purpose. Return JSON array:
-[
+Create tools that would help this agent excel at its purpose. Return JSON array: [
   {
-    "name": "tool_name",
-    "description": "What this tool does",
-    "parameters": {"param1": "type", "param2": "type"},
-    "implementation": "JavaScript/TypeScript implementation code",
-    "type": "api_call|computation|data_processing|file_operation|custom"
+    "name": "tool_name","""
+    "description": "What this tool does","""
+    "parameters": {"param1": "type", "param2": "type"},"""
+    "implementation": "JavaScript/TypeScript implementation code","""
+    "type": "api_call|computation|data_processing|file_operation|custom""""
   }
 ]
 
-Make tools practical, specific, and highly relevant to the agent's purpose.`;
+Make tools practical, specific, and highly relevant to the agent's purpose.`;'''
 
-    const response = await llmRouter.generateResponse('code-expert', [
+    const response = await llmRouter.generateResponse('code-expert', [');';';
       {
-        role: 'system',
-        content: 'You are an expert tool creator. Generate practical, working tools for AI agents in JSON format.'
+        role: 'system','''
+        content: 'You are an expert tool creator. Generate practical, working tools for AI agents in JSON format.''''
       },
       {
-        role: 'user',
+        role: 'user','''
         content: toolPrompt
       }
     ], {
@@ -224,10 +222,10 @@ Make tools practical, specific, and highly relevant to the agent's purpose.`;
     // Parse tools response
     let tools: ToolDefinition[];
     try {
-      const cleanedContent = response.content.replace(/```json\n?|\n?```/g, '').trim();
+      const cleanedContent = response.content.replace(/```jsonn?|n?```/g, '').trim();';';';
       tools = JSON.parse(cleanedContent);
     } catch (parseError) {
-      log.warn('Failed to parse tool definitions, using basic tools', LogContext.AGENT);
+      log.warn('Failed to parse tool definitions, using basic tools', LogContext.AGENT);'''
       tools = this.createBasicTools(specification);
     }
 
@@ -238,7 +236,7 @@ Make tools practical, specific, and highly relevant to the agent's purpose.`;
    * Execute task using spawned agent
    */
   async executeWithAgent(agentId: string, task: string, context?: any): Promise<{
-    result: any;
+    result: any;,
     performance: AgentPerformance;
     evolution?: EvolutionEvent;
   }> {
@@ -253,14 +251,14 @@ Make tools practical, specific, and highly relevant to the agent's purpose.`;
       // Build context-aware prompt
       const agentPrompt = this.buildAgentPrompt(agent, task, context);
       
-      // Execute task with agent's specialized prompt
-      const response = await llmRouter.generateResponse('planner-pro', [
+      // Execute task with agent's specialized prompt'''
+      const response = await llmRouter.generateResponse('planner-pro', [');';';
         {
-          role: 'system',
+          role: 'system','''
           content: agentPrompt
         },
         {
-          role: 'user',
+          role: 'user','''
           content: task
         }
       ], {
@@ -301,7 +299,7 @@ Make tools practical, specific, and highly relevant to the agent's purpose.`;
   /**
    * Check if agent should evolve based on performance
    */
-  private async checkForEvolution(
+  private async checkForEvolution()
     agent: SpawnedAgent, 
     response: any, 
     executionTime: number
@@ -316,29 +314,29 @@ Make tools practical, specific, and highly relevant to the agent's purpose.`;
     if (!shouldEvolve) return undefined;
 
     // Determine evolution type
-    let evolutionType: EvolutionEvent['type'];
+    let evolutionType: EvolutionEvent['type'];';';';
     let description: string;
     
     if (agent.performance.successRate < 0.8) {
-      evolutionType = 'prompt_optimized';
-      description = 'Optimized system prompt to improve success rate';
+      evolutionType = 'prompt_optimized';'''
+      description = 'Optimized system prompt to improve success rate';'''
       await this.optimizeAgentPrompt(agent);
     } else if (agent.performance.averageResponseTime > 10000) {
-      evolutionType = 'performance_improved';
-      description = 'Enhanced response speed optimization';
+      evolutionType = 'performance_improved';'''
+      description = 'Enhanced response speed optimization';'''
       await this.optimizeAgentPerformance(agent);
     } else {
-      evolutionType = 'capability_added';
-      description = 'Added new capability based on usage patterns';
+      evolutionType = 'capability_added';'''
+      description = 'Added new capability based on usage patterns';'''
       await this.addAgentCapability(agent);
     }
 
-    const evolutionEvent: EvolutionEvent = {
+    const evolutionEvent: EvolutionEvent = {,;
       timestamp: new Date(),
       type: evolutionType,
       description,
       impact: 0.1,
-      metrics: {
+      metrics: {,
         successRate: agent.performance.successRate,
         avgResponseTime: agent.performance.averageResponseTime,
         tasksCompleted: agent.performance.tasksCompleted
@@ -346,9 +344,9 @@ Make tools practical, specific, and highly relevant to the agent's purpose.`;
     };
 
     agent.evolutionHistory.push(evolutionEvent);
-    agent.status = 'evolving';
+    agent.status = 'evolving';'''
 
-    log.info('🧬 Agent evolution triggered', LogContext.AGENT, {
+    log.info('🧬 Agent evolution triggered', LogContext.AGENT, {')''
       agentId: agent.id,
       evolutionType,
       description
@@ -365,25 +363,21 @@ Make tools practical, specific, and highly relevant to the agent's purpose.`;
     
     return `${spec.systemPrompt}
 
-AGENT IDENTITY:
-- Name: ${spec.name}
+AGENT IDENTITY: -, Name: ${spec.name}
 - Purpose: ${spec.purpose}
 - Personality: ${spec.personality}
-- Expertise: ${spec.expertise.join(', ')}
+- Expertise: ${spec.expertise.join(', ')}'''
 - Autonomy Level: ${spec.autonomyLevel}
 
-CAPABILITIES:
-${spec.capabilities.map(cap => `- ${cap}`).join('\n')}
+CAPABILITIES: ${spec.capabilities.map(cap => `- ${cap}`).join('n')}'''
 
-AVAILABLE TOOLS:
-${spec.tools.map(tool => `- ${tool.name}: ${tool.description}`).join('\n')}
+AVAILABLE TOOLS: ${spec.tools.map(tool => `- ${tool.name}: ${tool.description}`).join('n')}'''
 
-PERFORMANCE CONTEXT:
-- Tasks Completed: ${agent.performance.tasksCompleted}
+PERFORMANCE CONTEXT: - Tasks, Completed: ${agent.performance.tasksCompleted}
 - Success Rate: ${(agent.performance.successRate * 100).toFixed(1)}%
 - Evolution Events: ${agent.evolutionHistory.length}
 
-${context ? `ADDITIONAL CONTEXT:\n${JSON.stringify(context, null, 2)}` : ''}
+${context ? `ADDITIONAL CONTEXT: n${JSON.stringify(context, null, 2)}` : ''}'''
 
 Provide a comprehensive, expert response using your specialized knowledge and tools.`;
   }
@@ -394,13 +388,13 @@ Provide a comprehensive, expert response using your specialized knowledge and to
   private startEvolutionCycle(): void {
     this.evolutionInterval = setInterval(async () => {
       for (const [agentId, agent] of this.spawnedAgents) {
-        if (agent.status === 'active' && agent.performance.tasksCompleted > 0) {
+        if (agent.status === 'active' && agent.performance.tasksCompleted > 0) {'''
           await this.performPeriodicEvolution(agent);
         }
       }
     }, 15 * 60 * 1000); // Every 15 minutes
 
-    log.info('🔄 Agent evolution cycle started', LogContext.AGENT);
+    log.info('🔄 Agent evolution cycle started', LogContext.AGENT);'''
   }
 
   /**
@@ -422,16 +416,16 @@ Provide a comprehensive, expert response using your specialized knowledge and to
    */
   private async optimizeAgentPrompt(agent: SpawnedAgent): Promise<void> {
     // Use LLM to optimize the system prompt based on performance
-    const optimizationPrompt = `Optimize this agent's system prompt to improve performance:
+    const optimizationPrompt = `Optimize this agent's system prompt to improve performance: ';';';
 
-Current Prompt: ${agent.specification.systemPrompt}
+Current, Prompt: ${agent.specification.systemPrompt}
 Performance Issues: Success rate ${(agent.performance.successRate * 100).toFixed(1)}%
 
 Provide an improved system prompt that addresses the performance issues.`;
 
-    const response = await llmRouter.generateResponse('planner-pro', [
-      { role: 'system', content: 'You are an expert AI prompt engineer.' },
-      { role: 'user', content: optimizationPrompt }
+    const response = await llmRouter.generateResponse('planner-pro', [');';';
+      { role: 'system', content: 'You are an expert AI prompt engineer.' },'''
+      { role: 'user', content: optimizationPrompt }'''
     ]);
 
     agent.specification.systemPrompt = response.content;
@@ -460,41 +454,41 @@ Provide an improved system prompt that addresses the performance issues.`;
 
   private createFallbackSpecification(requirements: any): AgentSpecification {
     return {
-      name: `${requirements.expertise_needed[0]?.toUpperCase() || 'General'} Assistant`,
+      name: `${requirements.expertise_needed[0]?.toUpperCase() || 'General'} Assistant`,'''
       purpose: `Specialized assistant for ${requirements.task}`,
-      capabilities: ['analysis', 'problem_solving', 'task_completion'],
+      capabilities: ['analysis', 'problem_solving', 'task_completion'],'''
       tools: [],
       systemPrompt: `You are a specialized AI assistant focused on ${requirements.task}. Provide expert guidance and solutions.`,
-      personality: 'professional, helpful, detail-oriented',
-      expertise: requirements.expertise_needed || ['general'],
-      autonomyLevel: requirements.autonomy_level || 'intermediate'
+      personality: 'professional, helpful, detail-oriented','''
+      expertise: requirements.expertise_needed || ['general'],'''
+      autonomyLevel: requirements.autonomy_level || 'intermediate''''
     };
   }
 
   private createBasicTools(specification: AgentSpecification): ToolDefinition[] {
-    return [
+    return [;
       {
-        name: 'analyze_data',
-        description: 'Analyze and process data for insights',
-        parameters: { data: 'any', analysis_type: 'string' },
-        implementation: 'return { analysis: data, insights: [] };',
-        type: 'data_processing'
+        name: 'analyze_data','''
+        description: 'Analyze and process data for insights','''
+        parameters: {, data: 'any', analysis_type: 'string' },'''
+        implementation: 'return {, analysis: data, insights: [] };','''
+        type: 'data_processing''''
       },
       {
-        name: 'generate_report',
-        description: 'Generate comprehensive reports',
-        parameters: { topic: 'string', data: 'any' },
-        implementation: 'return { report: `Report on ${topic}`, data };',
-        type: 'custom'
+        name: 'generate_report','''
+        description: 'Generate comprehensive reports','''
+        parameters: {, topic: 'string', data: 'any' },'''
+        implementation: 'return {, report: `Report on ${topic}`, data };','''
+        type: 'custom''''
       }
     ];
   }
 
   private async persistAgent(agent: SpawnedAgent): Promise<void> {
     try {
-      const { error } = await this.supabase
-        .from('spawned_agents')
-        .upsert({
+      const { error } = await this.supabase;
+        .from('spawned_agents')'''
+        .upsert({)
           id: agent.id,
           specification: agent.specification,
           performance: agent.performance,
@@ -505,10 +499,10 @@ Provide an improved system prompt that addresses the performance issues.`;
         });
 
       if (error) {
-        log.warn('Failed to persist agent to database', LogContext.AGENT, { error: error.message });
+        log.warn('Failed to persist agent to database', LogContext.AGENT, { error: error.message });'''
       }
     } catch (error) {
-      log.warn('Database persistence failed, continuing in memory', LogContext.AGENT);
+      log.warn('Database persistence failed, continuing in memory', LogContext.AGENT);'''
     }
   }
 

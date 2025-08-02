@@ -1,11 +1,11 @@
 // Core Types for Universal AI Tools
 export interface AgentConfig {
-  name: string;
-  description: string;
-  priority: number;
-  capabilities: AgentCapabilityDetail[];
-  maxLatencyMs: number;
-  retryAttempts: number;
+  name: string;,
+  description: string;,
+  priority: number;,
+  capabilities: AgentCapabilityDetail[];,
+  maxLatencyMs: number;,
+  retryAttempts: number;,
   dependencies: string[];
   memoryEnabled?: boolean;
   toolExecutionEnabled?: boolean;
@@ -14,37 +14,37 @@ export interface AgentConfig {
 
 // Agent capabilities as string enum for easier testing and usage
 export enum AgentCapabilities {
-  PLANNING = 'planning',
-  TASK_DECOMPOSITION = 'task_decomposition',
-  STRATEGY = 'strategy',
-  SYNTHESIS = 'synthesis',
-  CONSENSUS = 'consensus',
-  ANALYSIS = 'analysis',
-  INFORMATION_RETRIEVAL = 'information_retrieval',
-  CONTEXT_GATHERING = 'context_gathering',
-  SEARCH = 'search',
-  ASSISTANCE = 'assistance',
-  COORDINATION = 'coordination',
-  TASK_MANAGEMENT = 'task_management',
-  AGENT_SPAWNING = 'agent_spawning',
-  TOOL_CREATION = 'tool_creation',
-  CODE_GENERATION = 'code_generation',
-  CODE_ANALYSIS = 'code_analysis',
-  REFACTORING = 'refactoring'
+  PLANNING = 'planning','''
+  TASK_DECOMPOSITION = 'task_decomposition','''
+  STRATEGY = 'strategy','''
+  SYNTHESIS = 'synthesis','''
+  CONSENSUS = 'consensus','''
+  ANALYSIS = 'analysis','''
+  INFORMATION_RETRIEVAL = 'information_retrieval','''
+  CONTEXT_GATHERING = 'context_gathering','''
+  SEARCH = 'search','''
+  ASSISTANCE = 'assistance','''
+  COORDINATION = 'coordination','''
+  TASK_MANAGEMENT = 'task_management','''
+  AGENT_SPAWNING = 'agent_spawning','''
+  TOOL_CREATION = 'tool_creation','''
+  CODE_GENERATION = 'code_generation','''
+  CODE_ANALYSIS = 'code_analysis','''
+  REFACTORING = 'refactoring''''
 }
 
 export type AgentCapability = AgentCapabilities | string;
 
 export interface AgentCapabilityDetail {
-  name: string;
-  description: string;
+  name: string;,
+  description: string;,
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown>;
   requiresTools?: string[];
 }
 
 export interface AgentContext {
-  userRequest: string;
+  userRequest: string;,
   requestId: string;
   workingDirectory?: string;
   memoryContext?: unknown;
@@ -52,7 +52,7 @@ export interface AgentContext {
   previousContext?: unknown;
   metadata?: Record<string, any>;
   conversationHistory?: Array<{
-    role: 'system' | 'user' | 'assistant';
+    role: 'system' | 'user' | 'assistant';,'''
     content: string;
   }>;
   sessionId?: string;
@@ -62,46 +62,46 @@ export interface AgentContext {
 }
 
 export interface AgentResponse {
-  success: boolean;
-  data: unknown;
-  confidence: number;
-  message: string;
+  success: boolean;,
+  data: unknown;,
+  confidence: number;,
+  message: string;,
   reasoning: string;
   content?: string;
   metadata?: Record<string, unknown>;
 }
 
 export interface Memory {
-  id: string;
-  type: string;
-  content: string;
+  id: string;,
+  type: string;,
+  content: string;,
   metadata: Record<string, unknown>;
-  tags: string[];
-  importance: number;
+  tags: string[];,
+  importance: number;,;
   timestamp: string;
   embedding?: number[];
 }
 
 // Extended Request interfaces for middleware
 export interface ExtendedRequest extends Request {
-  taskContext: TaskContext;
+  taskContext: TaskContext;,
   optimizedParameters: OptimizedParameters;
   userPreferences?: UserPreferences;
 }
 
 export interface OrchestrationRequest {
-  requestId: string;
-  userRequest: string;
+  requestId: string;,
+  userRequest: string;,
   userId: string;
-  orchestrationMode?: 'simple' | 'standard' | 'cognitive' | 'adaptive';
+  orchestrationMode?: 'simple' | 'standard' | 'cognitive' | 'adaptive';'''
   context: Record<string, unknown>;
   timestamp: Date;
 }
 
 export interface OrchestrationResponse {
-  requestId: string;
-  success: boolean;
-  mode: string;
+  requestId: string;,
+  success: boolean;,
+  mode: string;,
   result: unknown;
   complexity?: string;
   confidence?: number;
@@ -112,45 +112,45 @@ export interface OrchestrationResponse {
 }
 
 export enum AgentCategory {
-  CORE = 'core',
-  COGNITIVE = 'cognitive',
-  PERSONAL = 'personal',
-  UTILITY = 'utility',
-  SPECIALIZED = 'specialized',
+  CORE = 'core','''
+  COGNITIVE = 'cognitive','''
+  PERSONAL = 'personal','''
+  UTILITY = 'utility','''
+  SPECIALIZED = 'specialized','''
 }
 
 export interface AgentDefinition {
-  name: string;
-  category: AgentCategory;
-  description: string;
-  priority: number;
-  className: string;
-  modulePath: string;
-  dependencies: string[];
-  capabilities: AgentCapability[];
-  memoryEnabled: boolean;
-  maxLatencyMs: number;
+  name: string;,
+  category: AgentCategory;,
+  description: string;,
+  priority: number;,
+  className: string;,
+  modulePath: string;,
+  dependencies: string[];,
+  capabilities: AgentCapability[];,
+  memoryEnabled: boolean;,
+  maxLatencyMs: number;,
   retryAttempts: number;
 }
 
 export interface ServiceConfig {
-  port: number;
-  environment: string;
-  database: {
-    url: string;
+  port: number;,
+  environment: string;,
+  database: {,
+    url: string;,
     poolSize: number;
   };
   redis?: {
-    url: string;
+    url: string;,
     retryAttempts: number;
   };
-  supabase: {
-    url: string;
-    anonKey: string;
+  supabase: {,
+    url: string;,
+    anonKey: string;,
     serviceKey: string;
   };
-  jwt: {
-    secret: string;
+  jwt: {,
+    secret: string;,
     expiresIn: string;
   };
   llm: {
@@ -158,70 +158,70 @@ export interface ServiceConfig {
     anthropicApiKey?: string;
     ollamaUrl?: string;
   };
-  vision: {
-    enableSdxlRefiner: boolean;
-    sdxlRefinerPath: string;
-    preferredBackend: 'mlx' | 'gguf' | 'auto';
-    maxVram: number;
+  vision: {,
+    enableSdxlRefiner: boolean;,
+    sdxlRefinerPath: string;,
+    preferredBackend: 'mlx' | 'gguf' | 'auto';',''
+    maxVram: number;,
     enableCaching: boolean;
   };
 }
 
 export interface ErrorCode {
-  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD';
-  INVALID_FORMAT: 'INVALID_FORMAT';
-  REQUEST_TOO_LARGE: 'REQUEST_TOO_LARGE';
-  MEMORY_STORAGE_ERROR: 'MEMORY_STORAGE_ERROR';
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR';
-  AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR';
-  AGENT_NOT_FOUND: 'AGENT_NOT_FOUND';
-  ORCHESTRATION_ERROR: 'ORCHESTRATION_ERROR';
-  VALIDATION_ERROR: 'VALIDATION_ERROR';
-  NOT_FOUND: 'NOT_FOUND';
-  UNAUTHORIZED: 'UNAUTHORIZED';
-  INTERNAL_ERROR: 'INTERNAL_ERROR';
-  ANALYSIS_ERROR: 'ANALYSIS_ERROR';
-  GENERATION_ERROR: 'GENERATION_ERROR';
-  EMBEDDING_ERROR: 'EMBEDDING_ERROR';
-  SERVICE_ERROR: 'SERVICE_ERROR';
-  REFINEMENT_ERROR: 'REFINEMENT_ERROR';
-  SELECTION_ERROR: 'SELECTION_ERROR';
-  EXECUTION_ERROR: 'EXECUTION_ERROR';
-  SMART_CHAT_ERROR: 'SMART_CHAT_ERROR';
-  REVIEW_FAILED: 'REVIEW_FAILED';
-  ANALYSIS_FAILED: 'ANALYSIS_FAILED';
-  SCAN_FAILED: 'SCAN_FAILED';
-  INDEXING_FAILED: 'INDEXING_FAILED';
-  REPOSITORY_ERROR: 'REPOSITORY_ERROR';
-  USER_ID_REQUIRED: 'USER_ID_REQUIRED';
-  ACCESS_DENIED: 'ACCESS_DENIED';
-  PROFILE_NOT_FOUND: 'PROFILE_NOT_FOUND';
-  HEALTH_CHECK_FAILED: 'HEALTH_CHECK_FAILED';
-  MISSING_PARAMETER: 'MISSING_PARAMETER';
+  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD';,'''
+  INVALID_FORMAT: 'INVALID_FORMAT';',''
+  REQUEST_TOO_LARGE: 'REQUEST_TOO_LARGE';,'''
+  MEMORY_STORAGE_ERROR: 'MEMORY_STORAGE_ERROR';',''
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR';,'''
+  AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR';',''
+  AGENT_NOT_FOUND: 'AGENT_NOT_FOUND';,'''
+  ORCHESTRATION_ERROR: 'ORCHESTRATION_ERROR';',''
+  VALIDATION_ERROR: 'VALIDATION_ERROR';,'''
+  NOT_FOUND: 'NOT_FOUND';',''
+  UNAUTHORIZED: 'UNAUTHORIZED';,'''
+  INTERNAL_ERROR: 'INTERNAL_ERROR';',''
+  ANALYSIS_ERROR: 'ANALYSIS_ERROR';,'''
+  GENERATION_ERROR: 'GENERATION_ERROR';',''
+  EMBEDDING_ERROR: 'EMBEDDING_ERROR';,'''
+  SERVICE_ERROR: 'SERVICE_ERROR';',''
+  REFINEMENT_ERROR: 'REFINEMENT_ERROR';,'''
+  SELECTION_ERROR: 'SELECTION_ERROR';',''
+  EXECUTION_ERROR: 'EXECUTION_ERROR';,'''
+  SMART_CHAT_ERROR: 'SMART_CHAT_ERROR';',''
+  REVIEW_FAILED: 'REVIEW_FAILED';,'''
+  ANALYSIS_FAILED: 'ANALYSIS_FAILED';',''
+  SCAN_FAILED: 'SCAN_FAILED';,'''
+  INDEXING_FAILED: 'INDEXING_FAILED';',''
+  REPOSITORY_ERROR: 'REPOSITORY_ERROR';,'''
+  USER_ID_REQUIRED: 'USER_ID_REQUIRED';',''
+  ACCESS_DENIED: 'ACCESS_DENIED';,'''
+  PROFILE_NOT_FOUND: 'PROFILE_NOT_FOUND';',''
+  HEALTH_CHECK_FAILED: 'HEALTH_CHECK_FAILED';,'''
+  MISSING_PARAMETER: 'MISSING_PARAMETER';'''
 }
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
-    code: keyof ErrorCode;
+    code: keyof ErrorCode;,
     message: string;
     details?: unknown;
   };
   metadata?: {
-    requestId: string;
-    timestamp: string;
+    requestId: string;,
+    timestamp: string;,
     version: string;
     processingTime?: number;
   };
 }
 
 export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
+  page: number;,
+  limit: number;,
+  total: number;,
+  totalPages: number;,
+  hasNext: boolean;,
   hasPrev: boolean;
 }
 
@@ -231,47 +231,47 @@ export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
 
 // Planning Agent Types
 export interface PlanTask {
-  id: string;
-  title: string;
-  description: string;
-  dependencies: string[];
-  resources: string[];
-  priority: 'high' | 'medium' | 'low';
+  id: string;,
+  title: string;,
+  description: string;,
+  dependencies: string[];,
+  resources: string[];,
+  priority: 'high' | 'medium' | 'low';',''
   estimatedHours: number;
 }
 
 export interface PlanPhase {
-  name: string;
-  duration: string;
+  name: string;,
+  duration: string;,
   tasks: PlanTask[];
 }
 
 export interface PlanRisk {
-  description: string;
-  probability: 'high' | 'medium' | 'low';
-  impact: 'high' | 'medium' | 'low';
+  description: string;,
+  probability: 'high' | 'medium' | 'low';',''
+  impact: 'high' | 'medium' | 'low';,'''
   mitigation: string;
 }
 
 export interface Plan {
-  title: string;
-  overview: string;
-  phases: PlanPhase[];
-  risks: PlanRisk[];
+  title: string;,
+  overview: string;,
+  phases: PlanPhase[];,
+  risks: PlanRisk[];,
   success_criteria: string[];
 }
 
 export interface PlanResponse {
-  plan: Plan;
-  reasoning: string;
-  confidence: number;
+  plan: Plan;,
+  reasoning: string;,
+  confidence: number;,
   next_steps: string[];
   alternatives?: Plan[];
 }
 
 // Code Assistant Types
 export interface CodeBlock {
-  language: string;
+  language: string;,
   code: string;
   explanation?: string;
   filename?: string;
@@ -288,38 +288,38 @@ export interface CodeAssistantResponse {
   code_response: CodeResponse;
   implementation_guide?: string;
   testing_recommendations?: string[];
-  confidence: number;
+  confidence: number;,
   reasoning: string;
 }
 
 // AB-MCTS Types
 export interface MCTSStats {
-  total_simulations: number;
-  win_rate: number;
+  total_simulations: number;,
+  win_rate: number;,
   confidence_interval: [number, number];
-  best_path: string[];
+  best_path: string[];,
   exploration_rate: number;
 }
 
 export interface MCTSNode {
-  id: string;
-  state: unknown;
-  visits: number;
-  wins: number;
+  id: string;,
+  state: unknown;,
+  visits: number;,
+  wins: number;,
   children: MCTSNode[];
   parent?: MCTSNode;
 }
 
 export interface QueueStatus {
-  pending: number;
-  processing: number;
-  completed: number;
+  pending: number;,
+  processing: number;,
+  completed: number;,
   failed: number;
 }
 
 export interface SystemStats {
-  circuitBreakerState: 'OPEN' | 'CLOSED' | 'HALF_OPEN';
-  successRate: number;
+  circuitBreakerState: 'OPEN' | 'CLOSED' | 'HALF_OPEN';,'''
+  successRate: number;,
   activeSearches: number;
   totalRequests?: number;
   averageResponseTime?: number;
@@ -335,7 +335,7 @@ export interface EmbeddingResult {
 
 // Parameter Optimization Types
 export interface OptimizedParameters {
-  temperature: number;
+  temperature: number;,
   maxTokens: number;
   contextLength?: number;
   topP?: number;
@@ -346,8 +346,8 @@ export interface OptimizedParameters {
 }
 
 export interface TaskContext {
-  type: string;
-  complexity: 'simple' | 'medium' | 'complex';
+  type: string;,
+  complexity: 'simple' | 'medium' | 'complex';'''
   domain?: string;
   userPreferences?: UserPreferences;
 }
@@ -356,7 +356,7 @@ export interface UserPreferences {
   preferredStyle?: string;
   maxResponseLength?: number;
   includeExamples?: boolean;
-  technicalLevel?: 'beginner' | 'intermediate' | 'advanced';
+  technicalLevel?: 'beginner' | 'intermediate' | 'advanced';'''
 }
 
 export interface ParameterOverrides {
@@ -385,8 +385,8 @@ export interface ObjectDifference {
 }
 
 export interface LearningDelta {
-  added: ObjectDifference;
-  removed: ObjectDifference;
+  added: ObjectDifference;,
+  removed: ObjectDifference;,
   confidence_change: number;
 }
 
@@ -400,14 +400,14 @@ export interface VisionDebugData {
   }>;
   ui_elements?: Array<{
     type?: string;
-    coordinates?: { x: number; y: number; width: number; height: number };
+    coordinates?: { x: number;, y: number;, width: number;, height: number };
     text?: string;
     severity?: string;
     description?: string;
     [key: string]: any;
   }>;
   network_issues?: Array<{
-    url: string;
+    url: string;,
     status: number;
     method?: string;
     responseTime?: number;
@@ -415,7 +415,7 @@ export interface VisionDebugData {
     [key: string]: any;
   }>;
   performance?: Array<{
-    name: string;
+    name: string;,
     value: number;
     threshold?: number;
     [key: string]: any;
@@ -454,8 +454,8 @@ export interface UpdateData {
 
 
 export interface AnalysisResult {
-  averageScore: number;
-  averageTime: number;
+  averageScore: number;,
+  averageTime: number;,
   totalFeedback: number;
   [key: string]: any;
 }
@@ -475,7 +475,7 @@ export interface FeedbackItem {
 
 // Module declarations for tree-sitter libraries
 // Removed duplicate tree-sitter declarations - using tree-sitter.d.ts instead
-/* declare module 'tree-sitter' {
+/* declare module 'tree-sitter' {'''
   export default class Parser {
     setLanguage(language: any): void;
     parse(input: string | Buffer | ((index: number, position?: Point) => string)): Tree;
@@ -492,20 +492,20 @@ export interface FeedbackItem {
   }
   
   export interface Node {
-    type: string;
-    text: string;
-    startPosition: Point;
-    endPosition: Point;
-    children: Node[];
-    childCount: number;
-    namedChildCount: number;
-    namedChildren: Node[];
-    parent: Node | null;
-    nextSibling: Node | null;
+    type: string;,
+    text: string;,
+    startPosition: Point;,
+    endPosition: Point;,
+    children: Node[];,
+    childCount: number;,
+    namedChildCount: number;,
+    namedChildren: Node[];,
+    parent: Node | null;,
+    nextSibling: Node | null;,
     previousSibling: Node | null;
     child(index: number): Node | null;
-    namedChild(index: number): Node | null;
-    firstChild: Node | null;
+    namedChild(index: number): Node | null;,
+    firstChild: Node | null;,
     lastChild: Node | null;
     walk(): TreeCursor;
     descendantsOfType(type: string): Node[];
@@ -513,9 +513,9 @@ export interface FeedbackItem {
   }
   
   export interface TreeCursor {
-    nodeType: string;
-    nodeText: string;
-    startPosition: Point;
+    nodeType: string;,
+    nodeText: string;,
+    startPosition: Point;,
     endPosition: Point;
     gotoFirstChild(): boolean;
     gotoNextSibling(): boolean;
@@ -551,7 +551,7 @@ export interface VaultServiceInterface {
   getWebhookSecret(): Promise<string | null>;
   getDatabaseEncryptionKey(): Promise<string | null>;
   clearCache(): void;
-  getCacheStats(): { size: number; entries: string[] };
+  getCacheStats(): { size: number;, entries: string[] };
   testVaultConnectivity(): Promise<{ connected: boolean; error?: string }>;
 }
 
@@ -590,13 +590,13 @@ export interface ABMCTSServiceInterface {
 
 // iOS Device Context (missing from adaptive-model-registry errors)
 export interface iOSDeviceContext {
-  deviceType: "iPhone" | "iPad" | "AppleWatch" | "Mac";
-  availableMemory: number;
-  batteryLevel: number;
-  connectionType: "WiFi" | "Cellular" | "Bluetooth" | "USB";
-  isLowPowerMode: boolean;
-  processingCapability: "high" | "medium" | "low";
-  coreMLAvailable: boolean;
+  deviceType: "iPhone" | "iPad" | "AppleWatch" | "Mac";,"""
+  availableMemory: number;,
+  batteryLevel: number;,
+  connectionType: "WiFi" | "Cellular" | "Bluetooth" | "USB";",""
+  isLowPowerMode: boolean;,
+  processingCapability: "high" | "medium" | "low";",""
+  coreMLAvailable: boolean;,
   neuralEngineAvailable: boolean;
 }
 
@@ -612,13 +612,13 @@ export interface MobileOptimizationConfig {
 
 // Quality Breakdown for code-quality-service
 export interface QualityBreakdown {
-  maintainability: number;
-  readability: number;
-  testability: number;
-  performance: number;
-  security: number;
-  documentation: number;
-  consistency: number;
+  maintainability: number;,
+  readability: number;,
+  testability: number;,
+  performance: number;,
+  security: number;,
+  documentation: number;,
+  consistency: number;,
   complexity: number;
 }
 
@@ -627,7 +627,7 @@ export interface VisionOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number;
-  format?: 'jpeg' | 'png' | 'webp';
+  format?: 'jpeg' | 'png' | 'webp';'''
   enableFaceDetection?: boolean;
   enableObjectDetection?: boolean;
   enableSceneAnalysis?: boolean;
@@ -644,14 +644,14 @@ export interface VisionAnalysis {
 }
 
 export interface VisionResponse<T = VisionAnalysis> {
-  success: boolean;
-  data: T;
-  confidence: number;
+  success: boolean;,
+  data: T;,
+  confidence: number;,
   processingTime: number;
   qualityMetrics?: {
-    sharpness: number;
-    brightness: number;
-    contrast: number;
+    sharpness: number;,
+    brightness: number;,
+    contrast: number;,
     colorfulness: number;
   };
   objects?: any[];
@@ -662,32 +662,32 @@ export interface VisionResponse<T = VisionAnalysis> {
 
 // Photo Metadata interface
 export interface PhotoMetadata {
-  id: string;
-  filename: string;
-  path: string;
-  size: number;
-  createdAt: Date;
+  id: string;,
+  filename: string;,
+  path: string;,
+  size: number;,
+  createdAt: Date;,
   modifiedAt: Date;
   width?: number;
   height?: number;
   format?: string;
   aiAnalysis?: {
-    objects: any[];
-    faces: any[];
-    scene: string;
-    qualityScore: number;
-    aestheticScore: number;
+    objects: any[];,
+    faces: any[];,
+    scene: string;,
+    qualityScore: number;,
+    aestheticScore: number;,
     tags: string[];
   };
   enhancementSuggestions?: Array<{
-    type: 'brightness' | 'contrast' | 'sharpness' | 'color_correction' | 'noise_reduction';
-    confidence: number;
+    type: 'brightness' | 'contrast' | 'sharpness' | 'color_correction' | 'noise_reduction';,'''
+    confidence: number;,
     parameters: Record<string, number>;
   }>;
   duplicateGroup?: string;
   tags?: string[];
   location?: {
-    latitude: number;
+    latitude: number;,
     longitude: number;
     address?: string;
   };
@@ -698,10 +698,10 @@ export interface PhotoMetadata {
 
 // Project Context interface
 export interface ProjectContext {
-  projectId: string;
+  projectId: string;,
   name: string;
   description?: string;
-  type: 'web' | 'mobile' | 'desktop' | 'api' | 'library' | 'other';
+  type: 'web' | 'mobile' | 'desktop' | 'api' | 'library' | 'other';,'''
   technologies: string[];
   framework?: string;
   language: string;
@@ -719,29 +719,29 @@ export interface ProjectContext {
 
 // User Personality Profile interface
 export interface UserPersonalityProfile {
-  userId: string;
-  communicationStyle: 'formal' | 'casual' | 'friendly' | 'professional';
-  technicality: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-  verbosity: 'concise' | 'moderate' | 'detailed' | 'comprehensive';
-  preferences: {
-    codeExamples: boolean;
-    explanations: boolean;
-    stepByStep: boolean;
+  userId: string;,
+  communicationStyle: 'formal' | 'casual' | 'friendly' | 'professional';',''
+  technicality: 'beginner' | 'intermediate' | 'advanced' | 'expert';,'''
+  verbosity: 'concise' | 'moderate' | 'detailed' | 'comprehensive';',''
+  preferences: {,
+    codeExamples: boolean;,
+    explanations: boolean;,
+    stepByStep: boolean;,
     backgroundInfo: boolean;
   };
-  domains: string[];
-  learningStyle: 'visual' | 'textual' | 'hands-on' | 'conceptual';
-  responseFormat: 'structured' | 'conversational' | 'bullet-points' | 'narrative';
+  domains: string[];,
+  learningStyle: 'visual' | 'textual' | 'hands-on' | 'conceptual';',''
+  responseFormat: 'structured' | 'conversational' | 'bullet-points' | 'narrative';'''
 }
 
 // Adapted Personality Model
 export interface AdaptedPersonalityModel {
-  baseProfile: UserPersonalityProfile;
+  baseProfile: UserPersonalityProfile;,
   contextualAdaptations: Record<string, any>;
-  learningHistory: Array<{
-    context: string;
-    adaptation: any;
-    effectiveness: number;
+  learningHistory: Array<{,
+    context: string;,
+    adaptation: any;,
+    effectiveness: number;,
     timestamp: Date;
   }>;
   confidenceScore: number;
@@ -749,11 +749,11 @@ export interface AdaptedPersonalityModel {
 
 // Service Route Integration Data
 export interface ServiceRouteIntegrationData {
-  targetService: string;
-  confidence: number;
-  estimatedTokens: number;
-  routingDecision: 'local' | 'external' | 'hybrid';
-  fallbackOptions: string[];
+  targetService: string;,
+  confidence: number;,
+  estimatedTokens: number;,
+  routingDecision: 'local' | 'external' | 'hybrid';',''
+  fallbackOptions: string[];,
   estimatedLatency: number;
   costEstimate?: number;
 }

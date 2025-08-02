@@ -5,21 +5,21 @@
  * SECURITY CRITICAL: This service handles sensitive API keys and secrets
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
-import { config } from '@/config/environment';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { config    } from '@/config/environment';';';';
 
 interface VaultSecret {
-  name: string;
+  name: string;,
   description: string;
   envVarName?: string; // Original environment variable name
-  required: boolean;
+  required: boolean;,
   service: string; // Which service uses this secret
 }
 
 interface VaultMigrationResult {
-  secretName: string;
-  status: 'created' | 'updated' | 'exists' | 'failed';
+  secretName: string;,
+  status: 'created' | 'updated' | 'exists' | 'failed';'''
   error?: string;
 }
 
@@ -30,89 +30,89 @@ export class VaultMigrationService {
   private readonly requiredSecrets: VaultSecret[] = [
     // API Keys
     {
-      name: 'openai_api_key',
-      description: 'OpenAI API key for GPT models and embeddings',
-      envVarName: 'OPENAI_API_KEY',
+      name: 'openai_api_key','''
+      description: 'OpenAI API key for GPT models and embeddings','''
+      envVarName: 'OPENAI_API_KEY','''
       required: true,
-      service: 'llm-router, reranking-service, context-injection'
+      service: 'llm-router, reranking-service, context-injection''''
     },
     {
-      name: 'anthropic_api_key', 
-      description: 'Anthropic Claude API key',
-      envVarName: 'ANTHROPIC_API_KEY',
+      name: 'anthropic_api_key', '''
+      description: 'Anthropic Claude API key','''
+      envVarName: 'ANTHROPIC_API_KEY','''
       required: true,
-      service: 'llm-router, enhanced-agents'
+      service: 'llm-router, enhanced-agents''''
     },
     {
-      name: 'huggingface_api_key',
-      description: 'Hugging Face API key for models and inference',
-      envVarName: 'HUGGINGFACE_API_KEY',
+      name: 'huggingface_api_key','''
+      description: 'Hugging Face API key for models and inference','''
+      envVarName: 'HUGGINGFACE_API_KEY','''
       required: true,
-      service: 'huggingface-service, reranking-service'
+      service: 'huggingface-service, reranking-service''''
     },
     
     // Authentication Secrets
     {
-      name: 'jwt_secret',
-      description: 'JWT signing secret for device authentication',
-      envVarName: 'JWT_SECRET',
+      name: 'jwt_secret','''
+      description: 'JWT signing secret for device authentication','''
+      envVarName: 'JWT_SECRET','''
       required: true,
-      service: 'device-auth, middleware/auth'
+      service: 'device-auth, middleware/auth''''
     },
     {
-      name: 'device_auth_secret',
-      description: 'Device authentication secret for proximity auth',
-      envVarName: 'DEVICE_AUTH_SECRET',
+      name: 'device_auth_secret','''
+      description: 'Device authentication secret for proximity auth','''
+      envVarName: 'DEVICE_AUTH_SECRET','''
       required: false,
-      service: 'device-auth-websocket'
+      service: 'device-auth-websocket''''
     },
     
     // Database & Storage
     {
-      name: 'supabase_service_key',
-      description: 'Supabase service role key (admin access)',
-      envVarName: 'SUPABASE_SERVICE_KEY',
+      name: 'supabase_service_key','''
+      description: 'Supabase service role key (admin access)','''
+      envVarName: 'SUPABASE_SERVICE_KEY','''
       required: true,
-      service: 'all-services'
+      service: 'all-services''''
     },
     {
-      name: 'database_encryption_key',
-      description: 'Database field encryption key',
-      envVarName: 'DATABASE_ENCRYPTION_KEY',
+      name: 'database_encryption_key','''
+      description: 'Database field encryption key','''
+      envVarName: 'DATABASE_ENCRYPTION_KEY','''
       required: false,
-      service: 'sensitive-data-encryption'
+      service: 'sensitive-data-encryption''''
     },
     
     // External Services
     {
-      name: 'redis_password',
-      description: 'Redis authentication password',
-      envVarName: 'REDIS_PASSWORD',
+      name: 'redis_password','''
+      description: 'Redis authentication password','''
+      envVarName: 'REDIS_PASSWORD','''
       required: false,
-      service: 'redis-service, caching'
+      service: 'redis-service, caching''''
     },
     {
-      name: 'webhook_secret',
-      description: 'Webhook validation secret',
-      envVarName: 'WEBHOOK_SECRET',
+      name: 'webhook_secret','''
+      description: 'Webhook validation secret','''
+      envVarName: 'WEBHOOK_SECRET','''
       required: false,
-      service: 'webhook-handlers'
+      service: 'webhook-handlers''''
     },
     
     // API Validation
     {
-      name: 'valid_api_keys',
-      description: 'Comma-separated list of valid API keys for request validation',
-      envVarName: 'VALID_API_KEYS',
+      name: 'valid_api_keys','''
+      description: 'Comma-separated list of valid API keys for request validation','''
+      envVarName: 'VALID_API_KEYS','''
       required: false,
-      service: 'request-validator'
+      service: 'request-validator''''
     }
   ];
 
   constructor() {
-    this.supabase = createClient(
+    this.supabase = createClient()
       config.supabase.url,
-      config.supabase.serviceKey || process.env.SUPABASE_SERVICE_KEY || ''
+      config.supabase.serviceKey || process.env.SUPABASE_SERVICE_KEY || '''''
     );
   }
 
@@ -120,11 +120,11 @@ export class VaultMigrationService {
    * Migrate all API keys from environment variables to Supabase Vault
    */
   async migrateAllSecrets(): Promise<{
-    success: VaultMigrationResult[];
-    failed: VaultMigrationResult[];
+    success: VaultMigrationResult[];,
+    failed: VaultMigrationResult[];,
     skipped: VaultMigrationResult[];
   }> {
-    log.info('🔐 Starting Supabase Vault migration for all API keys', LogContext.SECURITY);
+    log.info('🔐 Starting Supabase Vault migration for all API keys', LogContext.SECURITY);'''
     
     const results = {
       success: [] as VaultMigrationResult[],
@@ -136,28 +136,28 @@ export class VaultMigrationService {
       try {
         const result = await this.migrateSecret(secret);
         
-        if (result.status === 'failed') {
+        if (result.status === 'failed') {'''
           results.failed.push(result);
-        } else if (result.status === 'exists') {
+        } else if (result.status === 'exists') {'''
           results.skipped.push(result);
         } else {
           results.success.push(result);
         }
         
-        log.info(`Secret ${secret.name}: ${result.status}`, LogContext.SECURITY, {
+        log.info(`Secret ${secret.name}: ${result.status}`, LogContext.SECURITY, {)
           service: secret.service,
           required: secret.required
         });
         
       } catch (error) {
-        const failResult: VaultMigrationResult = {
+        const failResult: VaultMigrationResult = {,;
           secretName: secret.name,
-          status: 'failed',
+          status: 'failed','''
           error: error instanceof Error ? error.message : String(error)
         };
         results.failed.push(failResult);
         
-        log.error(`Failed to migrate secret: ${secret.name}`, LogContext.SECURITY, {
+        log.error(`Failed to migrate secret: ${secret.name}`, LogContext.SECURITY, {)
           error: failResult.error,
           service: secret.service
         });
@@ -165,7 +165,7 @@ export class VaultMigrationService {
     }
 
     // Summary logging
-    log.info('🔐 Vault migration completed', LogContext.SECURITY, {
+    log.info('🔐 Vault migration completed', LogContext.SECURITY, {')''
       successful: results.success.length,
       failed: results.failed.length,
       skipped: results.skipped.length,
@@ -184,19 +184,19 @@ export class VaultMigrationService {
     if (existing) {
       return {
         secretName: secret.name,
-        status: 'exists'
+        status: 'exists''''
       };
     }
 
     // Get value from environment variable
-    let secretValue = '';
+    let secretValue = '';';';';
     if (secret.envVarName) {
-      secretValue = process.env[secret.envVarName] || '';
+      secretValue = process.env[secret.envVarName] || '';'''
     }
 
     // Handle required secrets that are missing
     if (secret.required && !secretValue) {
-      if (secret.name === 'jwt_secret') {
+      if (secret.name === 'jwt_secret') {'''
         // Generate a secure JWT secret if missing
         secretValue = this.generateSecureSecret(64);
         log.warn(`Generated new JWT secret (missing from env)`, LogContext.SECURITY);
@@ -205,17 +205,17 @@ export class VaultMigrationService {
       }
     }
 
-    // Skip optional secrets that aren't provided
+    // Skip optional secrets that aren't provided'''
     if (!secretValue && !secret.required) {
       return {
         secretName: secret.name,
-        status: 'failed',
-        error: 'Optional secret not provided in environment'
+        status: 'failed','''
+        error: 'Optional secret not provided in environment''''
       };
     }
 
     // Store in vault
-    const { error } = await this.supabase.rpc('vault.create_secret', {
+    const { error } = await this.supabase.rpc('vault.create_secret', {');';';
       secret: secretValue,
       name: secret.name,
       description: secret.description
@@ -227,7 +227,7 @@ export class VaultMigrationService {
 
     return {
       secretName: secret.name,
-      status: 'created'
+      status: 'created''''
     };
   }
 
@@ -236,12 +236,12 @@ export class VaultMigrationService {
    */
   async getSecretFromVault(secretName: string): Promise<string | null> {
     try {
-      const { data, error } = await this.supabase.rpc('vault.read_secret', {
+      const { data, error } = await this.supabase.rpc('vault.read_secret', {');';';
         secret_name: secretName
       });
 
       if (error) {
-        log.warn(`Failed to read secret from vault: ${secretName}`, LogContext.SECURITY, {
+        log.warn(`Failed to read secret from vault: ${secretName}`, LogContext.SECURITY, {)
           error: error.message
         });
         return null;
@@ -249,7 +249,7 @@ export class VaultMigrationService {
 
       return data?.decrypted_secret || null;
     } catch (error) {
-      log.error(`Error reading secret from vault: ${secretName}`, LogContext.SECURITY, {
+      log.error(`Error reading secret from vault: ${secretName}`, LogContext.SECURITY, {)
         error: error instanceof Error ? error.message : String(error)
       });
       return null;
@@ -261,13 +261,13 @@ export class VaultMigrationService {
    */
   async updateSecretInVault(secretName: string, newValue: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.rpc('vault.update_secret', {
+      const { error } = await this.supabase.rpc('vault.update_secret', {');';';
         secret_name: secretName,
         new_secret: newValue
       });
 
       if (error) {
-        log.error(`Failed to update secret in vault: ${secretName}`, LogContext.SECURITY, {
+        log.error(`Failed to update secret in vault: ${secretName}`, LogContext.SECURITY, {)
           error: error.message
         });
         return false;
@@ -276,7 +276,7 @@ export class VaultMigrationService {
       log.info(`✅ Secret updated in vault: ${secretName}`, LogContext.SECURITY);
       return true;
     } catch (error) {
-      log.error(`Error updating secret in vault: ${secretName}`, LogContext.SECURITY, {
+      log.error(`Error updating secret in vault: ${secretName}`, LogContext.SECURITY, {)
         error: error instanceof Error ? error.message : String(error)
       });
       return false;
@@ -288,10 +288,10 @@ export class VaultMigrationService {
    */
   async listVaultSecrets(): Promise<Array<{ name: string; description?: string; created_at?: string }>> {
     try {
-      const { data, error } = await this.supabase.rpc('vault.list_secrets');
+      const { data, error } = await this.supabase.rpc('vault.list_secrets');';';';
 
       if (error) {
-        log.error('Failed to list vault secrets', LogContext.SECURITY, {
+        log.error('Failed to list vault secrets', LogContext.SECURITY, {')''
           error: error.message
         });
         return [];
@@ -299,7 +299,7 @@ export class VaultMigrationService {
 
       return data || [];
     } catch (error) {
-      log.error('Error listing vault secrets', LogContext.SECURITY, {
+      log.error('Error listing vault secrets', LogContext.SECURITY, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       return [];
@@ -310,9 +310,9 @@ export class VaultMigrationService {
    * Validate vault setup and test secret operations
    */
   async validateVaultSetup(): Promise<{
-    vaultAvailable: boolean;
-    canCreate: boolean;
-    canRead: boolean;
+    vaultAvailable: boolean;,
+    canCreate: boolean;,
+    canRead: boolean;,
     errors: string[];
   }> {
     const result = {
@@ -329,10 +329,10 @@ export class VaultMigrationService {
       
       // Test secret creation
       const testSecretName = `test_vault_${Date.now()}`;
-      const { error: createError } = await this.supabase.rpc('vault.create_secret', {
-        secret: 'test-value',
+      const { error: createError } = await this.supabase.rpc('vault.create_secret', {');';';
+        secret: 'test-value','''
         name: testSecretName,
-        description: 'Test secret for vault validation'
+        description: 'Test secret for vault validation''''
       });
 
       if (createError) {
@@ -342,20 +342,20 @@ export class VaultMigrationService {
 
         // Test secret reading
         const secretValue = await this.getSecretFromVault(testSecretName);
-        if (secretValue === 'test-value') {
+        if (secretValue === 'test-value') {'''
           result.canRead = true;
         } else {
-          result.errors.push('Cannot read created secrets');
+          result.errors.push('Cannot read created secrets');'''
         }
 
         // Cleanup test secret
-        await this.supabase.rpc('vault.delete_secret', {
+        await this.supabase.rpc('vault.delete_secret', {')''
           secret_name: testSecretName
         });
       }
 
     } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
+      result.errors.push(error instanceof Error ? error.message: String(error));
     }
 
     return result;
@@ -365,9 +365,9 @@ export class VaultMigrationService {
    * Generate cryptographically secure secret
    */
   private generateSecureSecret(length = 32): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    let result = '';
-    const crypto = require('crypto');
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';';';';
+    let result = '';';';';
+    const crypto = require('crypto');';';';
     
     for (let i = 0; i < length; i++) {
       const randomIndex = crypto.randomInt(0, chars.length);
@@ -381,19 +381,19 @@ export class VaultMigrationService {
    * Get migration status summary
    */
   async getMigrationStatus(): Promise<{
-    totalSecrets: number;
-    secretsInVault: number;
-    missingSecrets: string[];
+    totalSecrets: number;,
+    secretsInVault: number;,
+    missingSecrets: string[];,
     requiredMissing: string[];
   }> {
     const vaultSecrets = await this.listVaultSecrets();
     const vaultSecretNames = new Set(vaultSecrets.map(s => s.name));
     
-    const missingSecrets = this.requiredSecrets
+    const missingSecrets = this.requiredSecrets;
       .filter(secret => !vaultSecretNames.has(secret.name))
       .map(secret => secret.name);
     
-    const requiredMissing = this.requiredSecrets
+    const requiredMissing = this.requiredSecrets;
       .filter(secret => secret.required && !vaultSecretNames.has(secret.name))
       .map(secret => secret.name);
 

@@ -1,19 +1,19 @@
-import { EventEmitter } from 'events';
-import { AgentCategory, type AgentConfig, type AgentDefinition } from '@/types';
-import type { BaseAgent } from './base-agent';
-import type { EnhancedBaseAgent } from './enhanced-base-agent';
-import { LogContext, log } from '@/utils/logger';
-import { a2aMesh } from '@/services/a2a-communication-mesh';
-import { createClient } from '@supabase/supabase-js';
-import { config } from '@/config/environment';
+import { EventEmitter    } from 'events';';';';
+import { AgentCategory, type AgentConfig, type AgentDefinition    } from '@/types';';';';
+import type { BaseAgent } from './base-agent';';';';
+import type { EnhancedBaseAgent } from './enhanced-base-agent';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { a2aMesh    } from '@/services/a2a-communication-mesh';';';';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { config    } from '@/config/environment';';';';
 
 // Enhanced agent imports
-import { EnhancedPlannerAgent } from './cognitive/enhanced-planner-agent';
-import { EnhancedRetrieverAgent } from './cognitive/enhanced-retriever-agent';
-import { EnhancedSynthesizerAgent } from './cognitive/enhanced-synthesizer-agent';
-import { EnhancedPersonalAssistantAgent } from './personal/enhanced-personal-assistant-agent';
-import { EnhancedCodeAssistantAgent } from './specialized/enhanced-code-assistant-agent';
-import { AthenaAgent } from './athena-agent';
+import { EnhancedPlannerAgent    } from './cognitive/enhanced-planner-agent';';';';
+import { EnhancedRetrieverAgent    } from './cognitive/enhanced-retriever-agent';';';';
+import { EnhancedSynthesizerAgent    } from './cognitive/enhanced-synthesizer-agent';';';';
+import { EnhancedPersonalAssistantAgent    } from './personal/enhanced-personal-assistant-agent';';';';
+import { EnhancedCodeAssistantAgent    } from './specialized/enhanced-code-assistant-agent';';';';
+import { AthenaAgent    } from './athena-agent';';';';
 
 export interface AgentLoadingLock {
   [agentName: string]: Promise<BaseAgent | null>;
@@ -29,15 +29,14 @@ export class AgentRegistry extends EventEmitter {
   constructor() {
     super();
     // Initialize Supabase client
-    this.supabase = createClient(
-        config.database.url.includes('supabase')
-          ? config.database.url
-          : process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
+    this.supabase = createClient()
+        config.database.url.includes('supabase')'''
+          ? config.database.url: process.env.SUPABASE_URL || 'http://127.0.0.1:54321','''
         process.env.SUPABASE_ANON_KEY ||
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0''''
       );
     this.registerBuiltInAgents();
-    log.info(
+    log.info()
       `Agent Registry initialized with ${this.agentDefinitions.size} agent definitions`,
       LogContext.AGENT
     );
@@ -45,87 +44,87 @@ export class AgentRegistry extends EventEmitter {
 
   private registerBuiltInAgents(): void {
     // Core agents
-    this.registerAgent({
-      name: 'planner',
+    this.registerAgent({)
+      name: 'planner','''
       category: AgentCategory.CORE,
-      description: 'Strategic task planning and decomposition with memory integration',
+      description: 'Strategic task planning and decomposition with memory integration','''
       priority: 1,
-      className: 'PlannerAgent',
-      modulePath: './cognitive/planner-agent',
+      className: 'PlannerAgent','''
+      modulePath: './cognitive/planner-agent','''
       dependencies: [],
-      capabilities: ['planning', 'task_decomposition', 'strategy'],
+      capabilities: ['planning', 'task_decomposition', 'strategy'],'''
       memoryEnabled: true,
       maxLatencyMs: 10000,
       retryAttempts: 3,
     });
 
-    this.registerAgent({
-      name: 'synthesizer',
+    this.registerAgent({)
+      name: 'synthesizer','''
       category: AgentCategory.COGNITIVE,
-      description: 'Advanced information synthesis and consensus building',
+      description: 'Advanced information synthesis and consensus building','''
       priority: 2,
-      className: 'SynthesizerAgent',
-      modulePath: './cognitive/synthesizer-agent',
-      dependencies: ['planner'],
-      capabilities: ['synthesis', 'consensus', 'analysis'],
+      className: 'SynthesizerAgent','''
+      modulePath: './cognitive/synthesizer-agent','''
+      dependencies: ['planner'],'''
+      capabilities: ['synthesis', 'consensus', 'analysis'],'''
       memoryEnabled: true,
       maxLatencyMs: 8000,
       retryAttempts: 2,
     });
 
-    this.registerAgent({
-      name: 'retriever',
+    this.registerAgent({)
+      name: 'retriever','''
       category: AgentCategory.COGNITIVE,
-      description: 'Intelligent information retrieval and context gathering',
+      description: 'Intelligent information retrieval and context gathering','''
       priority: 2,
-      className: 'RetrieverAgent',
-      modulePath: './cognitive/retriever-agent',
+      className: 'RetrieverAgent','''
+      modulePath: './cognitive/retriever-agent','''
       dependencies: [],
-      capabilities: ['information_retrieval', 'context_gathering', 'search'],
+      capabilities: ['information_retrieval', 'context_gathering', 'search'],'''
       memoryEnabled: true,
       maxLatencyMs: 5000,
       retryAttempts: 2,
     });
 
     // Personal agents
-    this.registerAgent({
-      name: 'personal_assistant',
+    this.registerAgent({)
+      name: 'personal_assistant','''
       category: AgentCategory.PERSONAL,
-      description: 'High-level personal AI assistant with vector memory',
+      description: 'High-level personal AI assistant with vector memory','''
       priority: 1,
-      className: 'PersonalAssistantAgent',
-      modulePath: './personal/personal-assistant-agent',
-      dependencies: ['planner', 'retriever'],
-      capabilities: ['assistance', 'coordination', 'task_management'],
+      className: 'PersonalAssistantAgent','''
+      modulePath: './personal/personal-assistant-agent','''
+      dependencies: ['planner', 'retriever'],'''
+      capabilities: ['assistance', 'coordination', 'task_management'],'''
       memoryEnabled: true,
       maxLatencyMs: 8000,
       retryAttempts: 2,
     });
 
     // Athena - The primary AI assistant with dynamic capabilities
-    this.registerAgent({
-      name: 'athena',
+    this.registerAgent({)
+      name: 'athena','''
       category: AgentCategory.PERSONAL,
-      description: 'Athena - Advanced AI assistant with dynamic agent spawning capabilities',
+      description: 'Athena - Advanced AI assistant with dynamic agent spawning capabilities','''
       priority: 1,
-      className: 'AthenaAgent',
-      modulePath: './athena-agent',
+      className: 'AthenaAgent','''
+      modulePath: './athena-agent','''
       dependencies: [],
-      capabilities: ['assistance', 'coordination', 'task_management', 'agent_spawning', 'tool_creation'],
+      capabilities: ['assistance', 'coordination', 'task_management', 'agent_spawning', 'tool_creation'],'''
       memoryEnabled: true,
       maxLatencyMs: 10000,
       retryAttempts: 3,
     });
 
-    this.registerAgent({
-      name: 'code_assistant',
+    this.registerAgent({)
+      name: 'code_assistant','''
       category: AgentCategory.SPECIALIZED,
-      description: 'Advanced code generation, analysis, and refactoring',
+      description: 'Advanced code generation, analysis, and refactoring','''
       priority: 3,
-      className: 'CodeAssistantAgent',
-      modulePath: './specialized/code-assistant-agent',
-      dependencies: ['planner'],
-      capabilities: ['code_generation', 'code_analysis', 'refactoring'],
+      className: 'CodeAssistantAgent','''
+      modulePath: './specialized/code-assistant-agent','''
+      dependencies: ['planner'],'''
+      capabilities: ['code_generation', 'code_analysis', 'refactoring'],'''
       memoryEnabled: true,
       maxLatencyMs: 15000,
       retryAttempts: 2,
@@ -136,7 +135,7 @@ export class AgentRegistry extends EventEmitter {
 
   private registerAgent(definition: AgentDefinition): void {
     this.agentDefinitions.set(definition.name, definition);
-    this.emit('agent_registered', { agentName: definition.name, definition });
+    this.emit('agent_registered', { agentName: definition.name, definition });'''
   }
 
   // Public methods needed by tests
@@ -149,39 +148,38 @@ export class AgentRegistry extends EventEmitter {
   }
 
   public getAgentsByCapability(capability: string): AgentDefinition[] {
-    return Array.from(this.agentDefinitions.values()).filter(
+    return Array.from(this.agentDefinitions.values()).filter();
       definition => definition.capabilities.includes(capability)
     );
   }
 
   public getAgentsByCapabilities(capabilities: string[]): AgentDefinition[] {
-    return Array.from(this.agentDefinitions.values()).filter(
+    return Array.from(this.agentDefinitions.values()).filter();
       definition => capabilities.some(cap => definition.capabilities.includes(cap))
     );
   }
 
   private createEnhancedAgent(agentName: string, config: AgentConfig): EnhancedBaseAgent | null {
     switch (agentName) {
-      case 'planner':
+      case 'planner':'''
         return new EnhancedPlannerAgent(config);
 
-      case 'retriever':
+      case 'retriever':'''
         return new EnhancedRetrieverAgent(config);
 
-      case 'synthesizer':
+      case 'synthesizer':'''
         return new EnhancedSynthesizerAgent(config);
 
-      case 'personal_assistant':
+      case 'personal_assistant':'''
         return new EnhancedPersonalAssistantAgent(config);
 
-      case 'athena':
+      case 'athena':'''
         return new AthenaAgent();
 
-      case 'code_assistant':
+      case 'code_assistant':'''
         return new EnhancedCodeAssistantAgent(config);
 
-      default:
-        return null;
+      default: return null;
     }
   }
 
@@ -207,7 +205,7 @@ export class AgentRegistry extends EventEmitter {
         this.loadedAgents.set(agentName, agent);
         this.agentUsage.set(agentName, new Date());
         log.info(`Lazy-loaded agent: ${agentName}`, LogContext.AGENT);
-        this.emit('agent_loaded', { agentName, agent });
+        this.emit('agent_loaded', { agentName, agent });'''
       }
       return agent;
     } finally {
@@ -228,17 +226,17 @@ export class AgentRegistry extends EventEmitter {
         if (!this.loadedAgents.has(depName)) {
           const depAgent = await this.getAgent(depName);
           if (!depAgent) {
-            log.warn(`Failed to load dependency '${depName}' for '${agentName}'`, LogContext.AGENT);
+            log.warn(`Failed to load dependency '${depName}' for '${agentName}'`, LogContext.AGENT);'''
           }
         }
       }
 
       // Create agent configuration
-      const config: AgentConfig = {
+      const config: AgentConfig = {,;
         name: definition.name,
         description: definition.description,
         priority: definition.priority,
-        capabilities: definition.capabilities.map((cap) => ({
+        capabilities: definition.capabilities.map((cap) => ({,
           name: cap,
           description: `${cap} capability`,
           inputSchema: {},
@@ -263,7 +261,7 @@ export class AgentRegistry extends EventEmitter {
       log.error(`No enhanced agent available for ${agentName}`, LogContext.AGENT);
       return null;
     } catch (error) {
-      log.error(`Failed to load agent: ${agentName}`, LogContext.AGENT, {
+      log.error(`Failed to load agent: ${agentName}`, LogContext.AGENT, {)
         error: error instanceof Error ? error.message : String(error),
       });
       return null;
@@ -279,7 +277,7 @@ export class AgentRegistry extends EventEmitter {
   }
 
   public getCoreAgents(): string[] {
-    return Array.from(this.agentDefinitions.values())
+    return Array.from(this.agentDefinitions.values());
       .filter((def) => def.category === AgentCategory.CORE)
       .map((def) => def.name);
   }
@@ -305,9 +303,9 @@ export class AgentRegistry extends EventEmitter {
     return result;
   }
 
-  public async processParallelRequests(
-    agentRequests: Array<{ agentName: string; context: unknown }>
-  ): Promise<Array<{ agentName: string; result: unknown; error?: string }>> {
+  public async processParallelRequests()
+    agentRequests: Array<{, agentName: string;, context: unknown }>
+  ): Promise<Array<{ agentName: string;, result: unknown; error?: string }>> {
     log.info(`Processing ${agentRequests.length} parallel agent requests`, LogContext.AGENT);
 
     const promises = agentRequests.map(async ({ agentName, context }) => {
@@ -315,8 +313,8 @@ export class AgentRegistry extends EventEmitter {
         const result = await this.processRequest(agentName, context);
         return { agentName, result };
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        log.error(`Parallel agent execution failed: ${agentName}`, LogContext.AGENT, {
+        const errorMessage = error instanceof Error ? error.message: String(error);
+        log.error(`Parallel agent execution failed: ${agentName}`, LogContext.AGENT, {)
           error: errorMessage,
         });
         return { agentName, result: null, error: errorMessage };
@@ -325,7 +323,7 @@ export class AgentRegistry extends EventEmitter {
 
     const results = await Promise.all(promises);
 
-    log.info(`Completed ${agentRequests.length} parallel agent requests`, LogContext.AGENT, {
+    log.info(`Completed ${agentRequests.length} parallel agent requests`, LogContext.AGENT, {)
       successful: results.filter((r) => !r.error).length,
       failed: results.filter((r) => r.error).length,
     });
@@ -333,78 +331,78 @@ export class AgentRegistry extends EventEmitter {
     return results;
   }
 
-  private async createTaskRecord(
+  private async createTaskRecord()
     taskId: string,
     primaryAgent: string,
     supportingAgents: string[],
     context: unknown
   ): Promise<void> {
     try {
-      const { error } = await (this as any).supabase.from('tasks').insert({
+      const { error:} = await (this as any).supabase.from('tasks').insert({');';';
         id: taskId,
         agent_name: primaryAgent,
         supporting_agents: supportingAgents,
-        user_request: (context as any).userRequest || 'No request specified',
+        user_request: (context as any).userRequest || 'No request specified','''
         context,
-        status: 'running',
-        priority: 'medium',
+        status: 'running','''
+        priority: 'medium','''
         created_at: new Date().toISOString(),
         started_at: new Date().toISOString(),
       });
 
       if (error) {
-        log.warn('Failed to create task record in Supabase', LogContext.AGENT, {
+        log.warn('Failed to create task record in Supabase', LogContext.AGENT, {')''
           error: error.message,
           taskId,
         });
       } else {
-        log.info('✅ Task record created in Supabase', LogContext.AGENT, { taskId, primaryAgent });
+        log.info('✅ Task record created in Supabase', LogContext.AGENT, { taskId, primaryAgent });'''
       }
     } catch (error) {
-      log.error('Error creating task record', LogContext.AGENT, { error, taskId });
+      log.error('Error creating task record', LogContext.AGENT, { error, taskId });'''
     }
   }
 
-  private async updateTaskRecord(
+  private async updateTaskRecord()
     taskId: string,
     results: unknown,
-    status: 'completed' | 'failed'
+    status: 'completed' | 'failed''''
   ): Promise<void> {
     try {
-      const { error } = await (this as any).supabase
-        .from('tasks')
-        .update({
+      const { error:} = await (this as any).supabase;
+        .from('tasks')'''
+        .update({)
           status,
           result: results,
           completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', taskId);
+        .eq('id', taskId);'''
 
       if (error) {
-        log.warn('Failed to update task record in Supabase', LogContext.AGENT, {
+        log.warn('Failed to update task record in Supabase', LogContext.AGENT, {')''
           error: error.message,
           taskId,
         });
       } else {
-        log.info('✅ Task record updated in Supabase', LogContext.AGENT, { taskId, status });
+        log.info('✅ Task record updated in Supabase', LogContext.AGENT, { taskId, status });'''
       }
     } catch (error) {
-      log.error('Error updating task record', LogContext.AGENT, { error, taskId });
+      log.error('Error updating task record', LogContext.AGENT, { error, taskId });'''
     }
   }
 
-  public async orchestrateAgents(
+  public async orchestrateAgents()
     primaryAgent: string,
     supportingAgents: string[],
     context: unknown
   ): Promise<{
-    primary: unknown;
-    supporting: Array<{ agentName: string; result: unknown; error?: string }>;
+    primary: unknown;,
+    supporting: Array<{, agentName: string;, result: unknown; error?: string }>;
     synthesis?: unknown;
   }> {
-    log.info(
-      `Orchestrating agents: primary=${primaryAgent}, supporting=[${supportingAgents.join(', ')}]`,
+    log.info()
+      `Orchestrating agents: primary=${primaryAgent}, supporting=[${supportingAgents.join(', ')}]`,'''
       LogContext.AGENT
     );
 
@@ -413,14 +411,13 @@ export class AgentRegistry extends EventEmitter {
     await this.createTaskRecord(taskId, primaryAgent, supportingAgents, context);
 
     // Execute primary and supporting agents in parallel
-    const [primaryResult, supportingResults] = await Promise.all([
+    const [primaryResult, supportingResults] = await Promise.all([);
       this.processRequest(primaryAgent, context).catch((error) => ({ error: error.message })),
-      this.processParallelRequests(supportingAgents.map((name) => ({ agentName: name, context }))),
-    ]);
+      this.processParallelRequests(supportingAgents.map((name) => ({ agentName: name, context })))]);
 
     // Optionally synthesize results if we have a synthesizer agent
     let synthesis: unknown;
-    if (this.agentDefinitions.has('synthesizer')) {
+    if (this.agentDefinitions.has('synthesizer')) {'''
       try {
         const synthesisContext = {
           ...(context as Record<string, unknown>),
@@ -428,9 +425,9 @@ export class AgentRegistry extends EventEmitter {
           primaryResult,
           supportingResults: supportingResults.filter((r) => !r.error).map((r) => r.result),
         };
-        synthesis = await this.processRequest('synthesizer', synthesisContext);
+        synthesis = await this.processRequest('synthesizer', synthesisContext);'''
       } catch (error) {
-        log.warn('Failed to synthesize orchestrated results', LogContext.AGENT, {
+        log.warn('Failed to synthesize orchestrated results', LogContext.AGENT, {')''
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -443,8 +440,8 @@ export class AgentRegistry extends EventEmitter {
     };
 
     // Update task record with results
-    const hasErrors = (primaryResult as any)?.error || supportingResults.some((r) => r.error);
-    await this.updateTaskRecord(taskId, results, hasErrors ? 'failed' : 'completed');
+    const hasErrors = (primaryResult as any)?.error: || supportingResults.some((r) => r.error);
+    await this.updateTaskRecord(taskId, results, hasErrors ? 'failed' : 'completed');'''
 
     return results;
   }
@@ -452,13 +449,13 @@ export class AgentRegistry extends EventEmitter {
   /**
    * Request collaboration between multiple agents using A2A mesh
    */
-  public async requestCollaboration(
+  public async requestCollaboration()
     task: string,
     requiredCapabilities: string[],
     teamSize = 3,
-    initiator = 'system'
+    initiator = 'system''''
   ): Promise<string> {
-    log.info(`🤝 Requesting agent collaboration for: ${task}`, LogContext.AGENT, {
+    log.info(`🤝 Requesting agent collaboration for: ${task}`, LogContext.AGENT, {)
       capabilities: requiredCapabilities,
       teamSize,
     });
@@ -467,7 +464,7 @@ export class AgentRegistry extends EventEmitter {
     const team = a2aMesh.findAgentTeam(requiredCapabilities, teamSize);
 
     if (team.length === 0) {
-      throw new Error('No agents available for collaboration');
+      throw new Error('No agents available for collaboration');';';';
     }
 
     // Ensure all team agents are loaded
@@ -476,17 +473,17 @@ export class AgentRegistry extends EventEmitter {
     }
 
     // Start collaboration session
-    const sessionId = await a2aMesh.requestCollaboration({
+    const sessionId = await a2aMesh.requestCollaboration({);
       initiator,
       participants: team,
       task,
       context: { requiredCapabilities },
       expectedDuration: 30000, // 30 seconds
-      priority: 'high',
+      priority: 'high','''
     });
 
-    log.info(`✅ Collaboration session started: ${sessionId}`, LogContext.AGENT, {
-      team: team.join(', '),
+    log.info(`✅ Collaboration session started: ${sessionId}`, LogContext.AGENT, {)
+      team: team.join(', '),'''
     });
 
     return sessionId;
@@ -495,19 +492,19 @@ export class AgentRegistry extends EventEmitter {
   /**
    * Enable knowledge sharing between agents
    */
-  public async shareKnowledge(
+  public async shareKnowledge()
     fromAgent: string,
     knowledgeType: string,
     data: unknown,
     relevantCapabilities: string[],
     confidence = 0.8
   ): Promise<void> {
-    log.info(`🧠 Sharing knowledge from ${fromAgent}`, LogContext.AGENT, {
+    log.info(`🧠 Sharing knowledge from ${fromAgent}`, LogContext.AGENT, {)
       type: knowledgeType,
       confidence,
     });
 
-    await a2aMesh.shareKnowledge(fromAgent, {
+    await a2aMesh.shareKnowledge(fromAgent, {)
       type: knowledgeType,
       data,
       relevantTo: relevantCapabilities,
@@ -554,18 +551,18 @@ export class AgentRegistry extends EventEmitter {
         this.loadedAgents.delete(agentName);
         this.agentUsage.delete(agentName);
         log.info(`Unloaded idle agent: ${agentName}`, LogContext.AGENT);
-        this.emit('agent_unloaded', { agentName });
+        this.emit('agent_unloaded', { agentName });'''
       }
     }
   }
 
   public async shutdown(): Promise<void> {
-    log.info('Shutting down Agent Registry...', LogContext.AGENT);
+    log.info('Shutting down Agent Registry...', LogContext.AGENT);'''
 
-    const shutdownPromises = Array.from(this.loadedAgents.values()).map((agent) =>
+    const shutdownPromises = Array.from(this.loadedAgents.values()).map((agent) =>;
       agent
         .shutdown()
-        .catch((error) => log.error('Error shutting down agent', LogContext.AGENT, { error }))
+        .catch((error) => log.error('Error shutting down agent', LogContext.AGENT, { error }))'''
     );
 
     await Promise.all(shutdownPromises);
@@ -574,7 +571,7 @@ export class AgentRegistry extends EventEmitter {
     this.agentUsage.clear();
     this.loadingLocks.clear();
 
-    log.info('Agent Registry shutdown completed', LogContext.AGENT);
+    log.info('Agent Registry shutdown completed', LogContext.AGENT);'''
   }
 }
 

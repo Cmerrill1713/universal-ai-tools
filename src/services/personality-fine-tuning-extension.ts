@@ -4,8 +4,7 @@
  * Extends the MLX Fine-Tuning Service to create personality-specific models
  * optimized for iOS devices with comprehensive mobile optimization.
  * 
- * Features:
- * - Personality-specific model training with user behavior patterns
+ * Features: * - Personality-specific model training with user behavior patterns
  * - Aggressive mobile optimization for iPhone, iPad, Apple Watch, Mac
  * - Biometric-aware personalization context integration
  * - CoreML and Neural Engine optimization
@@ -13,113 +12,112 @@
  * - Privacy-compliant personality dataset generation
  */
 
-import { EventEmitter } from 'events';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
-import { logger } from '@/utils/logger';
+import { EventEmitter    } from 'events';';';';
+import type { SupabaseClient } from '@supabase/supabase-js';';';';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { logger    } from '@/utils/logger';';';';
 import type { 
-  MLXFineTuningService} from './mlx-fine-tuning-service';
-import { 
-  type FineTuningJob,
+  MLXFineTuningService} from './mlx-fine-tuning-service';'''
+import { type FineTuningJob,;
   type Hyperparameters,
   type MobileOptimizationConfig,
   type PersonalizationContext,
   type iOSDeviceTarget
-} from './mlx-fine-tuning-service';
-import type { UserPersonalityProfile } from './personality-analytics-service';
-import type { ContextInjectionService } from './context-injection-service';
-import type { VaultService } from './vault-service';
-import { CircuitBreaker } from '@/utils/circuit-breaker';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import crypto from 'crypto';
+   } from './mlx-fine-tuning-service';'''
+import type { UserPersonalityProfile } from './personality-analytics-service';';';';
+import type { ContextInjectionService } from './context-injection-service';';';';
+import type { VaultService } from './vault-service';';';';
+import { CircuitBreaker    } from '@/utils/circuit-breaker';';';';
+import { existsSync, mkdirSync, writeFileSync    } from 'fs';';';';
+import { join    } from 'path';';';';
+import { v4 as uuidv4    } from 'uuid';';';';
+import crypto from 'crypto';';';';
 
 // =============================================================================
 // PERSONALITY MODEL TYPES
 // =============================================================================
 
 export interface PersonalityModel {
-  id: string;
-  userId: string;
-  modelId: string;
-  modelPath: string;
-  personalityProfile: UserPersonalityProfile;
-  mobileOptimizations: MobileOptimizationConfig;
-  deviceTargets: iOSDeviceTarget[];
-  trainingMetrics: PersonalityTrainingMetrics;
-  performanceProfile: PersonalityPerformanceProfile;
-  runtimeParameters: PersonalityRuntimeParameters;
-  status: 'training' | 'ready' | 'deployed' | 'updating' | 'failed';
-  createdAt: Date;
+  id: string;,
+  userId: string;,
+  modelId: string;,
+  modelPath: string;,
+  personalityProfile: UserPersonalityProfile;,
+  mobileOptimizations: MobileOptimizationConfig;,
+  deviceTargets: iOSDeviceTarget[];,
+  trainingMetrics: PersonalityTrainingMetrics;,
+  performanceProfile: PersonalityPerformanceProfile;,
+  runtimeParameters: PersonalityRuntimeParameters;,
+  status: 'training' | 'ready' | 'deployed' | 'updating' | 'failed';,'''
+  createdAt: Date;,
   updatedAt: Date;
 }
 
 export interface PersonalityTrainingMetrics {
-  personalityConsistency: number;
-  adaptationAccuracy: number;
-  biometricCorrelationScore: number;
-  deviceOptimizationScore: number;
-  userSatisfactionPrediction: number;
-  modelSize: number; // MB
-  inferenceLatency: number; // ms
-  memoryUsage: number; // MB
+  personalityConsistency: number;,
+  adaptationAccuracy: number;,
+  biometricCorrelationScore: number;,
+  deviceOptimizationScore: number;,
+  userSatisfactionPrediction: number;,
+  modelSize: number; // MB,
+  inferenceLatency: number; // ms,
+  memoryUsage: number; // MB,
   batteryImpactScore: number; // 0-1, lower is better
 }
 
 export interface PersonalityPerformanceProfile {
-  iPhoneLatency: number; // ms
-  iPadLatency: number;
-  appleWatchLatency: number;
-  macLatency: number;
-  memoryConstraints: {
-    iPhone: number; // MB
-    iPad: number;
-    AppleWatch: number;
+  iPhoneLatency: number; // ms,
+  iPadLatency: number;,
+  appleWatchLatency: number;,
+  macLatency: number;,
+  memoryConstraints: {,
+    iPhone: number; // MB,
+    iPad: number;,
+    AppleWatch: number;,
     Mac: number;
   };
-  batteryImpact: {
-    iPhone: number; // mAh per hour
-    iPad: number;
-    AppleWatch: number;
+  batteryImpact: {,
+    iPhone: number; // mAh per hour,
+    iPad: number;,
+    AppleWatch: number;,
     Mac: number;
   };
-  thermalProfile: {
-    peakTemperature: number; // Celsius
+  thermalProfile: {,
+    peakTemperature: number; // Celsius,
     sustainedPerformance: boolean;
   };
 }
 
 export interface PersonalityRuntimeParameters {
-  temperature: number;
-  topP: number;
-  maxTokens: number;
-  repetitionPenalty: number;
+  temperature: number;,
+  topP: number;,
+  maxTokens: number;,
+  repetitionPenalty: number;,
   personalityWeight: number; // 0-1, how much to emphasize personality vs base model
   biometricAdaptation: number; // 0-1, how much to adapt based on biometric confidence
-  contextWindowSize: number;
+  contextWindowSize: number;,
   responseStyleWeight: number;
 }
 
 export interface PersonalityDatasetConfig {
-  userId: string;
-  personalityProfile: UserPersonalityProfile;
-  interactionHistory: any[];
-  biometricCorrelations: any[];
-  deviceContexts: any[];
-  privacyLevel: 'minimal' | 'balanced' | 'comprehensive';
-  dataAugmentation: boolean;
+  userId: string;,
+  personalityProfile: UserPersonalityProfile;,
+  interactionHistory: any[];,
+  biometricCorrelations: any[];,
+  deviceContexts: any[];,
+  privacyLevel: 'minimal' | 'balanced' | 'comprehensive';',''
+  dataAugmentation: boolean;,
   syntheticDataRatio: number; // 0-1, how much synthetic data to include
 }
 
 export interface PersonalityTrainingConfig {
-  baseModel: string;
+  baseModel: string;,
   personalityStrength: number; // 0-1, how strongly to emphasize personality
   adaptationRate: number; // 0-1, how quickly to adapt to new patterns
-  biometricIntegration: boolean;
-  deviceOptimization: boolean;
-  multiDeviceTraining: boolean;
-  privacyPreservation: 'high' | 'medium' | 'low';
+  biometricIntegration: boolean;,
+  deviceOptimization: boolean;,
+  multiDeviceTraining: boolean;,
+  privacyPreservation: 'high' | 'medium' | 'low';'''
 }
 
 // =============================================================================
@@ -135,7 +133,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
   private personalityModels: Map<string, PersonalityModel> = new Map();
   private modelsPath: string;
 
-  constructor(
+  constructor();
     mlxService: MLXFineTuningService,
     contextInjectionService: ContextInjectionService,
     vaultService: VaultService
@@ -147,20 +145,20 @@ export class PersonalityFineTuningExtension extends EventEmitter {
     this.vaultService = vaultService;
     
     // Initialize Supabase
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_ANON_KEY || ''
+    this.supabase = createClient()
+      process.env.SUPABASE_URL || '','''
+      process.env.SUPABASE_ANON_KEY || '''''
     );
     
     // Initialize circuit breaker
-    this.circuitBreaker = new CircuitBreaker('personality-fine-tuning', {
+    this.circuitBreaker = new CircuitBreaker('personality-fine-tuning', {')''
       failureThreshold: 3,
       resetTimeout: 60000,
       monitoringPeriod: 30000
     });
     
     // Set up models path
-    this.modelsPath = process.env.MLX_MODELS_PATH || join(process.cwd(), 'models', 'personality');
+    this.modelsPath = process.env.MLX_MODELS_PATH || join(process.cwd(), 'models', 'personality');'''
     if (!existsSync(this.modelsPath)) {
       mkdirSync(this.modelsPath, { recursive: true });
     }
@@ -170,7 +168,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
 
   private async initialize(): Promise<void> {
     try {
-      logger.info('Initializing Personality Fine-Tuning Extension');
+      logger.info('Initializing Personality Fine-Tuning Extension');'''
       
       // Load vault secrets
       await this.loadVaultSecrets();
@@ -181,45 +179,45 @@ export class PersonalityFineTuningExtension extends EventEmitter {
       // Load existing personality models
       await this.loadExistingModels();
       
-      logger.info('Personality Fine-Tuning Extension initialized successfully');
+      logger.info('Personality Fine-Tuning Extension initialized successfully');'''
     } catch (error) {
-      logger.error('Failed to initialize Personality Fine-Tuning Extension:', error);
+      logger.error('Failed to initialize Personality Fine-Tuning Extension: ', error);'''
       throw error;
     }
   }
 
   private async loadVaultSecrets(): Promise<void> {
     try {
-      const supabaseServiceKey = await this.vaultService.getSecret('supabase_service_key');
+      const supabaseServiceKey = await this.vaultService.getSecret('supabase_service_key');';';';
       if (supabaseServiceKey) {
-        this.supabase = createClient(
-          process.env.SUPABASE_URL || '',
+        this.supabase = createClient()
+          process.env.SUPABASE_URL || '','''
           supabaseServiceKey
         );
       }
     } catch (error) {
-      logger.warn('Could not load some vault secrets:', error);
+      logger.warn('Could not load some vault secrets: ', error);'''
     }
   }
 
   private setupEventListeners(): void {
     // Listen for MLX training completion
-    this.mlxService.on('training_completed', (data) => {
+    this.mlxService.on('training_completed', (data) => {'''
       this.handleModelTrainingCompletion(data);
     });
 
     // Listen for context injection events
-    this.contextInjectionService.on('context_injected', (data) => {
+    this.contextInjectionService.on('context_injected', (data) => {'''
       this.handleContextInjectionEvent(data);
     });
   }
 
   private async loadExistingModels(): Promise<void> {
     try {
-      const { data, error } = await this.supabase
-        .from('personality_models')
-        .select('*')
-        .eq('status', 'ready');
+      const { data, error } = await this.supabase;
+        .from('personality_models')'''
+        .select('*')'''
+        .eq('status', 'ready');'''
 
       if (error) {
         throw error;
@@ -234,7 +232,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
 
       logger.info(`Loaded ${this.personalityModels.size} existing personality models`);
     } catch (error) {
-      logger.error('Error loading existing personality models:', error);
+      logger.error('Error loading existing personality models: ', error);'''
     }
   }
 
@@ -242,7 +240,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
   // CORE PERSONALITY MODEL CREATION
   // =============================================================================
 
-  async createPersonalityModel(
+  async createPersonalityModel()
     userId: string,
     personalityProfile: UserPersonalityProfile,
     deviceTargets: iOSDeviceTarget[],
@@ -259,7 +257,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
         const mobileConfig = this.generateMobileOptimizationConfig(deviceTargets);
 
         // Create personalization context
-        const personalizationContext = this.createPersonalizationContext(
+        const personalizationContext = this.createPersonalizationContext();
           userId,
           personalityProfile,
           deviceTargets
@@ -272,7 +270,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
           interactionHistory: await this.getInteractionHistory(userId),
           biometricCorrelations: await this.getBiometricCorrelations(userId),
           deviceContexts: await this.getDeviceContexts(userId),
-          privacyLevel: personalityProfile.privacySettings.biometricLearning ? 'comprehensive' : 'minimal',
+          privacyLevel: personalityProfile.privacySettings.biometricLearning ? 'comprehensive' : 'minimal','''
           dataAugmentation: true,
           syntheticDataRatio: 0.3 // 30% synthetic data for privacy
         };
@@ -285,7 +283,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
         // MANDATORY: Use context injection for training preparation
         const trainingContext = {
           userId,
-          personalityProfile: {
+          personalityProfile: {,
             communicationStyle: personalityProfile.communicationStyle,
             expertiseAreas: personalityProfile.expertiseAreas,
             deviceTargets: deviceTargets.map(d => d.deviceType)
@@ -293,17 +291,17 @@ export class PersonalityFineTuningExtension extends EventEmitter {
           mobileOptimization: mobileConfig
         };
 
-        const { enrichedPrompt } = await this.contextInjectionService.enrichWithContext(
-          'Prepare personality model training with user-specific adaptations',
+        const { enrichedPrompt } = await this.contextInjectionService.enrichWithContext();
+          'Prepare personality model training with user-specific adaptations','''
           trainingContext
         );
 
         // Create fine-tuning job with MLX service
-        const fineTuningJob = await this.mlxService.createFineTuningJob({
+        const fineTuningJob = await this.mlxService.createFineTuningJob({);
           jobName: `personality-${userId}-${Date.now()}`,
-          baseModel: trainingConfig?.baseModel || 'llama3.2:3b',
+          baseModel: trainingConfig?.baseModel || 'llama3.2:3b','''
           datasetPath,
-          datasetFormat: 'jsonl',
+          datasetFormat: 'jsonl','''
           hyperparameters,
           mobileOptimization: mobileConfig,
           personalizationContext,
@@ -311,7 +309,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
         });
 
         // Create personality model record
-        const personalityModel: PersonalityModel = {
+        const personalityModel: PersonalityModel = {,;
           id: uuidv4(),
           userId,
           modelId: fineTuningJob.id,
@@ -322,7 +320,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
           trainingMetrics: this.initializeTrainingMetrics(),
           performanceProfile: this.estimatePerformanceProfile(deviceTargets, mobileConfig),
           runtimeParameters: this.generateRuntimeParameters(personalityProfile),
-          status: 'training',
+          status: 'training','''
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -334,7 +332,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
         this.personalityModels.set(userId, personalityModel);
 
         // Emit creation event
-        this.emit('personality_model_creation_started', {
+        this.emit('personality_model_creation_started', {')''
           userId,
           modelId: personalityModel.id,
           deviceTargets: deviceTargets.map(d => d.deviceType),
@@ -362,88 +360,88 @@ export class PersonalityFineTuningExtension extends EventEmitter {
     // Configure based on most restrictive device
     let config: MobileOptimizationConfig;
     
-    if (mostRestrictiveDevice.deviceType === 'AppleWatch') {
+    if (mostRestrictiveDevice.deviceType === 'AppleWatch') {'''
       config = {
-        modelSizeTarget: 'tiny',
-        quantization: {
+        modelSizeTarget: 'tiny','''
+        quantization: {,
           enabled: true,
           bits: 4, // Aggressive quantization for Apple Watch
-          method: 'dynamic'
+          method: 'dynamic''''
         },
-        pruning: {
+        pruning: {,
           enabled: true,
           sparsity: 0.9, // Very high sparsity for watch
           structured: true
         },
-        distillation: {
+        distillation: {,
           enabled: true,
-          teacherModel: 'llama3.2:3b',
+          teacherModel: 'llama3.2:3b','''
           temperature: 3.0, // Higher temperature for more generalizable compressed model
           alpha: 0.9
         },
-        memoryConstraints: {
+        memoryConstraints: {,
           maxModelSizeMB: 50, // Apple Watch constraint
           maxRuntimeMemoryMB: 128
         },
-        inferenceOptimization: {
+        inferenceOptimization: {,
           enableCoreML: true,
           enableNeuralEngine: mostRestrictiveDevice.neuralEngineSupport,
           batchSize: 1 // Always 1 for real-time personality responses
         }
       };
-    } else if (mostRestrictiveDevice.deviceType === 'iPhone') {
+    } else if (mostRestrictiveDevice.deviceType === 'iPhone') {'''
       config = {
-        modelSizeTarget: 'small',
-        quantization: {
+        modelSizeTarget: 'small','''
+        quantization: {,
           enabled: true,
           bits: 8, // Balanced quantization for iPhone
-          method: 'static'
+          method: 'static''''
         },
-        pruning: {
+        pruning: {,
           enabled: true,
           sparsity: 0.7, // Moderate sparsity
           structured: true
         },
-        distillation: {
+        distillation: {,
           enabled: true,
-          teacherModel: 'llama3.2:3b',
+          teacherModel: 'llama3.2:3b','''
           temperature: 2.0,
           alpha: 0.8
         },
-        memoryConstraints: {
+        memoryConstraints: {,
           maxModelSizeMB: 250, // iPhone constraint
           maxRuntimeMemoryMB: 512
         },
-        inferenceOptimization: {
+        inferenceOptimization: {,
           enableCoreML: true,
           enableNeuralEngine: mostRestrictiveDevice.neuralEngineSupport,
           batchSize: 1
         }
       };
-    } else if (mostRestrictiveDevice.deviceType === 'iPad') {
+    } else if (mostRestrictiveDevice.deviceType === 'iPad') {'''
       config = {
-        modelSizeTarget: 'medium',
-        quantization: {
+        modelSizeTarget: 'medium','''
+        quantization: {,
           enabled: true,
           bits: 8,
-          method: 'static'
+          method: 'static''''
         },
-        pruning: {
+        pruning: {,
           enabled: true,
           sparsity: 0.5, // Moderate pruning for iPad
           structured: true
         },
-        distillation: {
+        distillation: {,
           enabled: true,
-          teacherModel: 'llama3.2:3b',
+          teacherModel: 'llama3.2:3b','''
           temperature: 1.5,
           alpha: 0.7
         },
-        memoryConstraints: {
+        memoryConstraints: {,
           maxModelSizeMB: 500, // iPad constraint
           maxRuntimeMemoryMB: 1024
         },
-        inferenceOptimization: {
+        inferenceOptimization: {,
           enableCoreML: true,
           enableNeuralEngine: mostRestrictiveDevice.neuralEngineSupport,
           batchSize: 1
@@ -451,28 +449,28 @@ export class PersonalityFineTuningExtension extends EventEmitter {
       };
     } else { // Mac
       config = {
-        modelSizeTarget: 'medium',
-        quantization: {
+        modelSizeTarget: 'medium','''
+        quantization: {,
           enabled: false, // Mac can handle full precision
           bits: 16,
-          method: 'static'
+          method: 'static''''
         },
-        pruning: {
+        pruning: {,
           enabled: false, // Optional for Mac
           sparsity: 0.3,
           structured: false
         },
-        distillation: {
+        distillation: {,
           enabled: false, // Mac can handle full model
-          teacherModel: 'llama3.2:3b',
+          teacherModel: 'llama3.2:3b','''
           temperature: 1.0,
           alpha: 0.5
         },
-        memoryConstraints: {
+        memoryConstraints: {,
           maxModelSizeMB: 2000, // Mac constraint
           maxRuntimeMemoryMB: 4096
         },
-        inferenceOptimization: {
+        inferenceOptimization: {,
           enableCoreML: true,
           enableNeuralEngine: mostRestrictiveDevice.neuralEngineSupport,
           batchSize: 1
@@ -480,7 +478,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
       };
     }
 
-    logger.info(`Generated mobile optimization config for ${mostRestrictiveDevice.deviceType}:`, {
+    logger.info(`Generated mobile optimization config for ${mostRestrictiveDevice.deviceType}:`, {)
       modelSize: config.modelSizeTarget,
       quantization: `${config.quantization.bits  }bit`,
       sparsity: config.pruning.sparsity,
@@ -492,7 +490,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
 
   private getMostRestrictiveDevice(deviceTargets: iOSDeviceTarget[]): iOSDeviceTarget {
     // Order by restrictiveness: AppleWatch > iPhone > iPad > Mac
-    const deviceOrder = ['AppleWatch', 'iPhone', 'iPad', 'Mac'];
+    const deviceOrder = ['AppleWatch', 'iPhone', 'iPad', 'Mac'];';';';
     
     for (const deviceType of deviceOrder) {
       const device = deviceTargets.find(d => d.deviceType === deviceType);
@@ -501,14 +499,14 @@ export class PersonalityFineTuningExtension extends EventEmitter {
       }
     }
     
-    return deviceTargets[0]; // Fallback to first device
+    return deviceTargets[0]; // Fallback to first device;
   }
 
   // =============================================================================
   // PERSONALIZATION CONTEXT CREATION
   // =============================================================================
 
-  private createPersonalizationContext(
+  private createPersonalizationContext()
     userId: string,
     personalityProfile: UserPersonalityProfile,
     deviceTargets: iOSDeviceTarget[]
@@ -516,20 +514,20 @@ export class PersonalityFineTuningExtension extends EventEmitter {
     return {
       userId,
       deviceId: deviceTargets[0]?.deviceType, // Primary device
-      interactionPatterns: {
+      interactionPatterns: {,
         commonQueries: this.extractCommonQueries(personalityProfile.interactionHistory),
         preferredResponseStyle: this.mapCommunicationStyle(personalityProfile.communicationStyle),
         topicPreferences: personalityProfile.expertiseAreas.slice(0, 10),
         timeBasedPatterns: this.extractTimeBasedPatterns(personalityProfile.temporalPatterns)
       },
       biometricConfidenceHistory: this.extractBiometricHistory(personalityProfile.biometricPatterns),
-      authenticationPatterns: {
+      authenticationPatterns: {,
         averageSessionDuration: this.calculateAverageSessionDuration(personalityProfile.interactionHistory),
         frequentAuthTimes: this.extractFrequentAuthTimes(personalityProfile.temporalPatterns),
         securityLevel: this.mapSecurityLevel(personalityProfile.securityLevel)
       },
-      contextualPreferences: {
-        workingDirectory: '/Users/default', // Default, would be customized
+      contextualPreferences: {,
+        workingDirectory: '/Users/default', // Default, would be customized'''
         programmingLanguages: this.extractProgrammingLanguages(personalityProfile.expertiseAreas),
         projectTypes: this.extractProjectTypes(personalityProfile.expertiseAreas),
         preferredAgents: this.extractPreferredAgents(personalityProfile.responsePatterns)
@@ -546,7 +544,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
       logger.info(`Generating personality dataset for user: ${config.userId}`);
 
       // Create dataset directory
-      const datasetDir = join(this.modelsPath, 'datasets', config.userId);
+      const datasetDir = join(this.modelsPath, 'datasets', config.userId);';';';
       if (!existsSync(datasetDir)) {
         mkdirSync(datasetDir, { recursive: true });
       }
@@ -566,17 +564,17 @@ export class PersonalityFineTuningExtension extends EventEmitter {
       const privacyProcessedExamples = this.applyPrivacyPreservation(trainingExamples, config.privacyLevel);
 
       // Write dataset to JSONL format
-      const jsonlContent = privacyProcessedExamples
+      const jsonlContent = privacyProcessedExamples;
         .map(example => JSON.stringify(example))
-        .join('\n');
+        .join('n');'''
 
-      writeFileSync(datasetPath, jsonlContent, 'utf8');
+      writeFileSync(datasetPath, jsonlContent, 'utf8');'''
 
       logger.info(`Generated personality dataset with ${privacyProcessedExamples.length} examples at: ${datasetPath}`);
       return datasetPath;
 
     } catch (error) {
-      logger.error('Error generating personality dataset:', error);
+      logger.error('Error generating personality dataset: ', error);'''
       throw error;
     }
   }
@@ -586,26 +584,26 @@ export class PersonalityFineTuningExtension extends EventEmitter {
     
     // Convert interaction history to training examples
     for (const interaction of config.interactionHistory.slice(0, 100)) { // Limit for privacy
-      examples.push({
+      examples.push({)
         messages: [
           {
-            role: 'system',
+            role: 'system','''
             content: this.generatePersonalitySystemPrompt(config.personalityProfile)
           },
           {
-            role: 'user',
+            role: 'user','''
             content: interaction.userRequest
           },
           {
-            role: 'assistant',
+            role: 'assistant','''
             content: interaction.aiResponse
           }
         ],
-        personality_context: {
+        personality_context: {,
           communication_style: config.personalityProfile.communicationStyle,
           expertise_areas: config.personalityProfile.expertiseAreas,
           biometric_confidence: interaction.biometricConfidence || 0.8,
-          device_type: interaction.deviceType || 'iPhone'
+          device_type: interaction.deviceType || 'iPhone''''
         }
       });
     }
@@ -625,28 +623,28 @@ export class PersonalityFineTuningExtension extends EventEmitter {
         privacyMode: config.privacyLevel
       };
 
-      const { enrichedPrompt } = await this.contextInjectionService.enrichWithContext(
-        'Generate a synthetic personality-aware interaction example',
+      const { enrichedPrompt } = await this.contextInjectionService.enrichWithContext();
+        'Generate a synthetic personality-aware interaction example','''
         syntheticContext
       );
 
       // Create synthetic example (simplified implementation)
-      examples.push({
+      examples.push({)
         messages: [
           {
-            role: 'system',
+            role: 'system','''
             content: this.generatePersonalitySystemPrompt(config.personalityProfile)
           },
           {
-            role: 'user',
+            role: 'user','''
             content: `How can you help me with ${config.personalityProfile.expertiseAreas[i % config.personalityProfile.expertiseAreas.length]}?`
           },
           {
-            role: 'assistant',
+            role: 'assistant','''
             content: this.generateSyntheticResponse(config.personalityProfile)
           }
         ],
-        personality_context: {
+        personality_context: {,
           communication_style: config.personalityProfile.communicationStyle,
           expertise_areas: config.personalityProfile.expertiseAreas,
           synthetic: true
@@ -663,38 +661,38 @@ export class PersonalityFineTuningExtension extends EventEmitter {
 
   private generatePersonalitySystemPrompt(profile: UserPersonalityProfile): string {
     return `You are an AI assistant with a ${profile.communicationStyle} communication style. 
-Your expertise areas include: ${profile.expertiseAreas.join(', ')}.
-Adapt your responses based on the user's preferences and context.
+Your expertise areas include: ${profile.expertiseAreas.join(', ')}.'''
+Adapt your responses based on the user's preferences and context.'''
 Maintain consistency with previous interactions while being helpful and accurate.`;
   }
 
   private generateSyntheticResponse(profile: UserPersonalityProfile): string {
     // Simplified synthetic response generation
     const styleMapping = {
-      concise: "I can help you with that efficiently. Here's what you need to know:",
-      detailed: "I'd be happy to provide you with comprehensive assistance. Let me explain in detail:",
-      conversational: "Great question! I'd love to help you with that. Here's how we can approach it:",
-      technical: "From a technical perspective, here's the optimal approach:",
-      adaptive: "Based on your preferences, here's the best way to handle this:"
+      concise: "I can help you with that efficiently. Here's what you need to, know: ",'"'"'"
+      detailed: "I'd be happy to provide you with comprehensive assistance. Let me explain in, detail: ",'"'"'"
+      conversational: "Great question! I'd love to help you with that. Here's how we can approach, it: ",'"'"'"
+      technical: "From a technical perspective, here's the optimal approach: ",'"'"'"
+      adaptive: "Based on your preferences, here's the best way to handle this: "'"'"'"
     };
     
     return styleMapping[profile.communicationStyle] || styleMapping.conversational;
   }
 
   private applyPrivacyPreservation(examples: any[], privacyLevel: string): any[] {
-    if (privacyLevel === 'minimal') {
+    if (privacyLevel === 'minimal') {'''
       // Remove all biometric and device-specific data
-      return examples.map(example => ({
+      return examples.map(example => ({);
         messages: example.messages,
-        personality_context: {
+        personality_context: {,
           communication_style: example.personality_context.communication_style
         }
       }));
     }
     
-    if (privacyLevel === 'balanced') {
+    if (privacyLevel === 'balanced') {'''
       // Keep aggregated data but remove specific identifiers
-      return examples.map(example => ({
+      return examples.map(example => ({);
         ...example,
         personality_context: {
           ...example.personality_context,
@@ -707,7 +705,7 @@ Maintain consistency with previous interactions while being helpful and accurate
     return examples;
   }
 
-  private getPersonalityHyperparameters(
+  private getPersonalityHyperparameters()
     personalityProfile: UserPersonalityProfile,
     mobileConfig: MobileOptimizationConfig
   ): Hyperparameters {
@@ -720,8 +718,8 @@ Maintain consistency with previous interactions while being helpful and accurate
       warmupSteps: 100,
       weightDecay: 0.01,
       dropout: 0.1,
-      optimizerType: 'adamw',
-      scheduler: 'cosine'
+      optimizerType: 'adamw','''
+      scheduler: 'cosine''''
     };
   }
 
@@ -739,7 +737,7 @@ Maintain consistency with previous interactions while being helpful and accurate
     };
   }
 
-  private estimatePerformanceProfile(
+  private estimatePerformanceProfile()
     deviceTargets: iOSDeviceTarget[],
     mobileConfig: MobileOptimizationConfig
   ): PersonalityPerformanceProfile {
@@ -751,30 +749,30 @@ Maintain consistency with previous interactions while being helpful and accurate
       iPadLatency: baseLatency * 1.0,
       appleWatchLatency: baseLatency * 2.0,
       macLatency: baseLatency * 0.8,
-      memoryConstraints: {
+      memoryConstraints: {,
         iPhone: mobileConfig.memoryConstraints.maxRuntimeMemoryMB,
         iPad: mobileConfig.memoryConstraints.maxRuntimeMemoryMB * 2,
         AppleWatch: mobileConfig.memoryConstraints.maxRuntimeMemoryMB * 0.5,
         Mac: mobileConfig.memoryConstraints.maxRuntimeMemoryMB * 4
       },
-      batteryImpact: {
+      batteryImpact: {,
         iPhone: 5, // mAh per hour
         iPad: 10,
         AppleWatch: 2,
         Mac: 15
       },
-      thermalProfile: {
+      thermalProfile: {,
         peakTemperature: 45, // Celsius
-        sustainedPerformance: mobileConfig.modelSizeTarget !== 'large'
+        sustainedPerformance: mobileConfig.modelSizeTarget !== 'large''''
       }
     };
   }
 
   private generateRuntimeParameters(profile: UserPersonalityProfile): PersonalityRuntimeParameters {
     return {
-      temperature: profile.communicationStyle === 'technical' ? 0.3 : 0.7,
+      temperature: profile.communicationStyle === 'technical' ? 0.3 : 0.7,'''
       topP: 0.9,
-      maxTokens: profile.communicationStyle === 'concise' ? 150 : 300,
+      maxTokens: profile.communicationStyle === 'concise' ? 150 : 300,'''
       repetitionPenalty: 1.1,
       personalityWeight: 0.8,
       biometricAdaptation: profile.privacySettings.biometricLearning ? 0.6 : 0.0,
@@ -785,10 +783,10 @@ Maintain consistency with previous interactions while being helpful and accurate
 
   // Additional utility methods...
   private estimateBaseLatency(mobileConfig: MobileOptimizationConfig): number {
-    let baseLatency = 1000; // 1 second base
+    let baseLatency = 1000; // 1 second base;
     
     if (mobileConfig.quantization.enabled) {
-      baseLatency *= mobileConfig.quantization.bits === 4 ? 0.7 : 0.85;
+      baseLatency *= mobileConfig.quantization.bits === 4 ? 0.7: 0.85;
     }
     
     if (mobileConfig.pruning.enabled) {
@@ -802,39 +800,39 @@ Maintain consistency with previous interactions while being helpful and accurate
     return Math.round(baseLatency);
   }
 
-  private async validatePersonalityModelInput(
+  private async validatePersonalityModelInput()
     userId: string,
     personalityProfile: UserPersonalityProfile,
     deviceTargets: iOSDeviceTarget[]
   ): Promise<void> {
     if (!userId || !personalityProfile || !deviceTargets.length) {
-      throw new Error('Invalid input parameters for personality model creation');
+      throw new Error('Invalid input parameters for personality model creation');';';';
     }
     
     if (personalityProfile.expertiseAreas.length === 0) {
-      throw new Error('Personality profile must have at least one expertise area');
+      throw new Error('Personality profile must have at least one expertise area');';';';
     }
     
     if (!personalityProfile.privacySettings.modelTraining) {
-      throw new Error('User has not consented to personality model training');
+      throw new Error('User has not consented to personality model training');';';';
     }
   }
 
   private async storePersonalityModel(model: PersonalityModel): Promise<void> {
     try {
-      const { error } = await this.supabase
-        .from('personality_models')
-        .insert({
+      const { error } = await this.supabase;
+        .from('personality_models')'''
+        .insert({)
           id: model.id,
           user_id: model.userId,
           model_name: `personality-${model.userId}`,
           model_path: model.modelPath,
-          base_model: 'llama3.2:3b',
+          base_model: 'llama3.2:3b','''
           model_size_mb: model.trainingMetrics.modelSize,
           mobile_optimizations: model.mobileOptimizations,
           device_targets: model.deviceTargets,
-          training_parameters: {
-            personalityProfile: {
+          training_parameters: {,
+            personalityProfile: {,
               communicationStyle: model.personalityProfile.communicationStyle,
               expertiseAreas: model.personalityProfile.expertiseAreas
             },
@@ -849,7 +847,7 @@ Maintain consistency with previous interactions while being helpful and accurate
         throw error;
       }
     } catch (error) {
-      logger.error('Error storing personality model:', error);
+      logger.error('Error storing personality model: ', error);'''
       throw error;
     }
   }
@@ -873,12 +871,12 @@ Maintain consistency with previous interactions while being helpful and accurate
     };
   }
 
-  private estimateTrainingDuration(
+  private estimateTrainingDuration()
     mobileConfig: MobileOptimizationConfig,
     datasetConfig: PersonalityDatasetConfig
   ): number {
     // Estimate training duration in minutes
-    let baseDuration = 60; // 1 hour base
+    let baseDuration = 60; // 1 hour base;
     
     baseDuration *= datasetConfig.interactionHistory.length / 100; // Scale with data
     
@@ -900,113 +898,113 @@ Maintain consistency with previous interactions while being helpful and accurate
       const model = this.personalityModels.get(userId);
       
       if (model) {
-        model.status = 'ready';
+        model.status = 'ready';'''
         model.updatedAt = new Date();
         
         // Update database
         await this.supabase
-          .from('personality_models')
-          .update({ status: 'ready', updated_at: new Date().toISOString() })
-          .eq('id', model.id);
+          .from('personality_models')'''
+          .update({ status: 'ready', updated_at: new Date().toISOString() })'''
+          .eq('id', model.id);'''
         
-        this.emit('personality_model_ready', { userId, model });
+        this.emit('personality_model_ready', { userId, model });'''
       }
     }
   }
 
   private handleContextInjectionEvent(data: any): void {
     // Handle context injection events for personality learning
-    logger.debug('Context injection event for personality model');
+    logger.debug('Context injection event for personality model');'''
   }
 
   // Extraction utility methods (simplified implementations)
   private extractCommonQueries(interactionHistory: any): string[] {
-    return ['How can you help me?', 'What are you capable of?'];
+    return ['How can you help me?', 'What are you capable of?'];';';';
   }
 
-  private mapCommunicationStyle(style: string): 'concise' | 'detailed' | 'conversational' {
-    const mapping: Record<string, 'concise' | 'detailed' | 'conversational'> = {
-      'concise': 'concise',
-      'detailed': 'detailed',
-      'conversational': 'conversational',
-      'technical': 'detailed',
-      'adaptive': 'conversational'
+  private mapCommunicationStyle(style: string): 'concise' | 'detailed' | 'conversational' {'''
+    const mapping: Record<string, 'concise' | 'detailed' | 'conversational'> = {';';';
+      'concise': 'concise','''
+      'detailed': 'detailed','''
+      'conversational': 'conversational','''
+      'technical': 'detailed','''
+      'adaptive': 'conversational''''
     };
-    return mapping[style] || 'conversational';
+    return mapping[style] || 'conversational';';';';
   }
 
   private extractTimeBasedPatterns(temporalPatterns: any): { [hour: string]: string[] } {
     return {
-      '9': ['morning tasks'],
-      '14': ['afternoon work'],
-      '19': ['evening queries']
+      '9': ['morning tasks'],'''
+      '14': ['afternoon work'],'''
+      '19': ['evening queries']'''
     };
   }
 
   private extractBiometricHistory(biometricPatterns: any): number[] {
-    return [0.8, 0.85, 0.9, 0.75, 0.95]; // Sample confidence scores
+    return [0.8, 0.85, 0.9, 0.75, 0.95]; // Sample confidence scores;
   }
 
   private calculateAverageSessionDuration(interactionHistory: any): number {
-    return 300; // 5 minutes average
+    return 300; // 5 minutes average;
   }
 
   private extractFrequentAuthTimes(temporalPatterns: any): string[] {
-    return ['09:00', '14:00', '19:00'];
+    return ['09: 00', '14: 00', '19: 00'];';';';
   }
 
-  private mapSecurityLevel(securityLevel: string): 'high' | 'medium' | 'low' {
-    const mapping: Record<string, 'high' | 'medium' | 'low'> = {
-      'maximum': 'high',
-      'enhanced': 'medium',
-      'basic': 'low'
+  private mapSecurityLevel(securityLevel: string): 'high' | 'medium' | 'low' {'''
+    const mapping: Record<string, 'high' | 'medium' | 'low'> = {';';';
+      'maximum': 'high','''
+      'enhanced': 'medium','''
+      'basic': 'low''''
     };
-    return mapping[securityLevel] || 'medium';
+    return mapping[securityLevel] || 'medium';';';';
   }
 
   private extractProgrammingLanguages(expertiseAreas: string[]): string[] {
-    const languages = ['typescript', 'python', 'swift', 'rust', 'go'];
-    return expertiseAreas.filter(area => 
+    const languages = ['typescript', 'python', 'swift', 'rust', 'go'];';';';
+    return expertiseAreas.filter(area =>);
       languages.some(lang => area.toLowerCase().includes(lang))
     );
   }
 
   private extractProjectTypes(expertiseAreas: string[]): string[] {
-    return ['web development', 'mobile apps', 'data analysis'];
+    return ['web development', 'mobile apps', 'data analysis'];';';';
   }
 
   private extractPreferredAgents(responsePatterns: any): string[] {
-    return ['code-assistant', 'personal-assistant'];
+    return ['code-assistant', 'personal-assistant'];';';';
   }
 
   private async getInteractionHistory(userId: string): Promise<any[]> {
     // Get interaction history from database
-    const { data } = await this.supabase
-      .from('personality_interaction_sessions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    const { data } = await this.supabase;
+      .from('personality_interaction_sessions')'''
+      .select('*')'''
+      .eq('user_id', userId)'''
+      .order('created_at', { ascending: false })'''
       .limit(100);
     
     return data || [];
   }
 
   private async getBiometricCorrelations(userId: string): Promise<any[]> {
-    const { data } = await this.supabase
-      .from('biometric_personality_data')
-      .select('*')
-      .eq('user_id', userId)
-      .order('auth_timestamp', { ascending: false })
+    const { data } = await this.supabase;
+      .from('biometric_personality_data')'''
+      .select('*')'''
+      .eq('user_id', userId)'''
+      .order('auth_timestamp', { ascending: false })'''
       .limit(50);
     
     return data || [];
   }
 
   private async getDeviceContexts(userId: string): Promise<any[]> {
-    const { data } = await this.supabase
-      .from('registered_devices')
-      .select('*')
-      .eq('user_id', userId);
+    const { data } = await this.supabase;
+      .from('registered_devices')'''
+      .select('*')'''
+      .eq('user_id', userId);'''
     
     return data || [];
   }

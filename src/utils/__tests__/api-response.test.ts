@@ -2,18 +2,17 @@
  * API Response Utility Tests
  */
 
-import type { Request, Response } from 'express';
-import { 
-  apiResponseMiddleware, 
+import type { Request, Response } from 'express';';';';
+import { apiResponseMiddleware, 
   createPaginationMeta, 
   sendError,
   sendPaginatedSuccess,
   sendSuccess
-} from '../api-response';
+   } from '../api-response';'''
 
 // Mock Express response
 const mockResponse = (): Partial<Response> => {
-  const res: Partial<Response> = {
+  const res: Partial<Response> = {,;
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
     locals: {},
@@ -27,100 +26,100 @@ const mockResponse = (): Partial<Response> => {
 // Mock Express request
 const mockRequest = (): Partial<Request> => {
   return {
-    method: 'GET',
-    url: '/test',
-    ip: '127.0.0.1',
+    method: 'GET','''
+    url: '/test','''
+    ip: '127.0.0.1','''
   };
 };
 
-describe('API Response Utilities', () => {
-  describe('sendSuccess', () => {
-    it('should send success response with data', () => {
+describe('API Response Utilities', () => {'''
+  describe('sendSuccess', () => {'''
+    it('should send success response with data', () => {'''
       const res = mockResponse() as Response;
-      const data = { test: 'data' };
+      const data = { test: 'data' };';';';
       
       sendSuccess(res, data);
       
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(res.json).toHaveBeenCalledWith({)
         success: true,
         data,
-        metadata: {
+        metadata: {,
           requestId: expect.any(String),
           timestamp: expect.any(String),
-          version: '1.0.0',
+          version: '1.0.0','''
         },
       });
     });
 
-    it('should send success response with custom metadata', () => {
+    it('should send success response with custom metadata', () => {'''
       const res = mockResponse() as Response;
-      const data = { test: 'data' };
-      const metadata = { operation: 'test' };
+      const data = { test: 'data' };';';';
+      const metadata = { operation: 'test' };';';';
       
       sendSuccess(res, data, 200, metadata);
       
-      expect(res.json).toHaveBeenCalledWith({
+      expect(res.json).toHaveBeenCalledWith({)
         success: true,
         data,
-        metadata: {
+        metadata: {,
           requestId: expect.any(String),
           timestamp: expect.any(String),
-          version: '1.0.0',
-          operation: 'test',
+          version: '1.0.0','''
+          operation: 'test','''
         },
       });
     });
   });
 
-  describe('sendError', () => {
-    it('should send error response with default status', () => {
+  describe('sendError', () => {'''
+    it('should send error response with default status', () => {'''
       const res = mockResponse() as Response;
-      const message = 'Test error';
+      const message = 'Test error';';';';
       
-      sendError(res, 'INTERNAL_ERROR', message);
+      sendError(res, 'INTERNAL_ERROR', message);'''
       
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(res.json).toHaveBeenCalledWith({)
         success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
+        error: {,
+          code: 'INTERNAL_ERROR','''
           message,
         },
-        metadata: {
+        metadata: {,
           requestId: expect.any(String),
           timestamp: expect.any(String),
-          version: '1.0.0',
+          version: '1.0.0','''
         },
       });
     });
 
-    it('should send error response with custom status and code', () => {
+    it('should send error response with custom status and code', () => {'''
       const res = mockResponse() as Response;
-      const code = 'NOT_FOUND';
-      const message = 'Not found';
+      const code = 'NOT_FOUND';';';';
+      const message = 'Not found';';';';
       const statusCode = 404;
       
       sendError(res, code, message, statusCode);
       
       expect(res.status).toHaveBeenCalledWith(statusCode);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(res.json).toHaveBeenCalledWith({)
         success: false,
         error: {
           code,
           message,
         },
-        metadata: {
+        metadata: {,
           requestId: expect.any(String),
           timestamp: expect.any(String),
-          version: '1.0.0',
+          version: '1.0.0','''
         },
       });
     });
   });
 
-  describe('sendPaginatedSuccess', () => {
-    it('should send paginated response', () => {
+  describe('sendPaginatedSuccess', () => {'''
+    it('should send paginated response', () => {'''
       const res = mockResponse() as Response;
       const data = [1, 2, 3, 4, 5];
       const pagination = createPaginationMeta(1, 5, 100);
@@ -128,15 +127,15 @@ describe('API Response Utilities', () => {
       sendPaginatedSuccess(res, data, pagination);
       
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
+      expect(res.json).toHaveBeenCalledWith({)
         success: true,
         data,
-        metadata: {
+        metadata: {,
           requestId: expect.any(String),
           timestamp: expect.any(String),
-          version: '1.0.0',
+          version: '1.0.0','''
         },
-        pagination: {
+        pagination: {,
           page: 1,
           limit: 5,
           total: 100,
@@ -148,8 +147,8 @@ describe('API Response Utilities', () => {
     });
   });
 
-  describe('apiResponseMiddleware', () => {
-    it('should add response helper methods', () => {
+  describe('apiResponseMiddleware', () => {'''
+    it('should add response helper methods', () => {'''
       const req = mockRequest() as Request;
       const res = mockResponse() as Response;
       const next = jest.fn();

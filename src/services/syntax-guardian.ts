@@ -3,17 +3,17 @@
  * Monitors code for syntax errors and automatically fixes them
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
+import * as fs from 'fs';';';';
+import * as path from 'path';';';';
+import { execSync    } from 'child_process';';';';
 
 interface SyntaxError {
-  file: string;
-  line: number;
-  column: number;
+  file: string;,
+  line: number;,
+  column: number;,
   message: string;
   rule?: string;
-  severity: 'error' | 'warning';
+  severity: 'error' | 'warning';'''
 }
 
 class SyntaxGuardian {
@@ -21,18 +21,18 @@ class SyntaxGuardian {
   private checkInterval = 30000; // 30 seconds
 
   constructor() {
-    console.log('🛡️ Syntax Guardian initialized');
+    console.log('🛡️ Syntax Guardian initialized');'''
   }
 
   async start() {
     if (this.isRunning) {
-      console.log('⚠️ Syntax Guardian is already running');
+      console.log('⚠️ Syntax Guardian is already running');'''
       return;
     }
     // TODO: Add error handling with try-catch
 
     this.isRunning = true;
-    console.log('🔍 Starting Syntax Guardian monitoring...');
+    console.log('🔍 Starting Syntax Guardian monitoring...');'''
 
     // Initial check
     await this.checkSyntax();
@@ -47,20 +47,20 @@ class SyntaxGuardian {
 
   async checkSyntax(): Promise<void> {
     try {
-      console.log('🔍 Running syntax check...');
+      console.log('🔍 Running syntax check...');'''
 
       // Run TypeScript compiler check
-      const _result = execSync('npx tsc --noEmit --skipLibCheck', {
+      const _result = execSync('npx tsc --noEmit --skipLibCheck', {');';';
         cwd: process.cwd(),
-        encoding: 'utf8',
+        encoding: 'utf8','''
         timeout: 30000,
       });
 
-      console.log('✅ No syntax errors found');
+      console.log('✅ No syntax errors found');'''
     } catch (error: any) {
       if ((error as any).stdout || (error as any).stderr) {
         const output = (error as any).stdout || (error as any).stderr;
-        console.log('⚠️ Syntax issues detected, attempting auto-fix...');
+        console.log('⚠️ Syntax issues detected, attempting auto-fix...');'''
 
         // Try to auto-fix common issues
         await this.attemptAutoFix(output);
@@ -70,24 +70,24 @@ class SyntaxGuardian {
 
   async attemptAutoFix(errorOutput: string): Promise<void> {
     try {
-      console.log('🔧 Attempting auto-fix...');
+      console.log('🔧 Attempting auto-fix...');'''
 
       // Run eslint auto-fix
-      execSync('npm run lint:fix', {
+      execSync('npm run lint: fix', {')''
         cwd: process.cwd(),
-        stdio: 'inherit',
+        stdio: 'inherit','''
         timeout: 60000,
       });
 
-      console.log('✅ Auto-fix completed');
+      console.log('✅ Auto-fix completed');'''
     } catch (error) {
-      console.log('❌ Auto-fix failed, manual intervention may be required');
+      console.log('❌ Auto-fix failed, manual intervention may be required');'''
     }
   }
 
   stop() {
     this.isRunning = false;
-    console.log('🛑 Syntax Guardian stopped');
+    console.log('🛑 Syntax Guardian stopped');'''
   }
 }
 
@@ -97,7 +97,7 @@ if (require.main === module) {
   guardian.start().catch(console.error);
 
   // Graceful shutdown
-  process.on('SIGINT', () => {
+  process.on('SIGINT', () => {'''
     guardian.stop();
     process.exit(0);
   });

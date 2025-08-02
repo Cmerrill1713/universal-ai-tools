@@ -3,88 +3,88 @@
  * Extends the core AB-MCTS with project context understanding and task coordination
  */
 
-import { ABMCTSService } from './ab-mcts-service';
+import { ABMCTSService    } from './ab-mcts-service';';';';
 import type { 
   ABMCTSAction, 
   ABMCTSConfig, 
   ABMCTSNode, 
   ABMCTSReward,
   AgentContext 
-} from '@/types/ab-mcts';
+} from '@/types/ab-mcts';'''
 import type { 
   Project, 
   ProjectTask
-} from './project-orchestrator';
-import { ProjectType, TaskPriority, TaskType } from './project-orchestrator';
-import { LogContext, log } from '@/utils/logger';
-import { v4 as uuidv4 } from 'uuid';
+} from './project-orchestrator';'''
+import { ProjectType, TaskPriority, TaskType    } from './project-orchestrator';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { v4 as uuidv4    } from 'uuid';';';';
 
 export interface ProjectAwareContext extends AgentContext {
   project?: {
-    id: string;
-    name: string;
-    type: ProjectType;
-    phase: string;
-    constraints: {
-      complexity: string;
+    id: string;,
+    name: string;,
+    type: ProjectType;,
+    phase: string;,
+    constraints: {,;
+      complexity: string;,
       quality: string;
       timeframe?: string;
     };
   };
   task?: {
-    id: string;
-    name: string;
-    type: TaskType;
-    priority: TaskPriority;
-    dependencies: string[];
+    id: string;,
+    name: string;,
+    type: TaskType;,
+    priority: TaskPriority;,
+    dependencies: string[];,
     requiredCapabilities: string[];
   };
   taskContext?: {
-    relatedTasks: string[];
-    projectProgress: number;
-    availableResources: string[];
+    relatedTasks: string[];,
+    projectProgress: number;,
+    availableResources: string[];,
     previousDecisions: ProjectDecision[];
   };
 }
 
 export interface ProjectDecision {
-  taskId: string;
-  agentUsed: string;
-  decision: string;
-  outcome: 'success' | 'failure' | 'partial';
-  confidence: number;
-  timestamp: number;
+  taskId: string;,
+  agentUsed: string;,
+  decision: string;,
+  outcome: 'success' | 'failure' | 'partial';',''
+  confidence: number;,
+  timestamp: number;,
   learnedPatterns: string[];
 }
 
 export interface ProjectMCTSConfig extends ABMCTSConfig {
   // Project-specific parameters
-  projectTypeWeight: number; // Weight project type in selection
-  taskPriorityWeight: number; // Weight task priority in rewards
-  dependencyAwareness: boolean; // Consider task dependencies
-  crossTaskLearning: boolean; // Learn from other tasks in project
+  projectTypeWeight: number; // Weight project type in selection,
+  taskPriorityWeight: number; // Weight task priority in rewards,
+  dependencyAwareness: boolean; // Consider task dependencies,
+  crossTaskLearning: boolean; // Learn from other tasks in project,
   projectMemorySize: number; // Max decisions to remember per project
 }
 
 export interface ProjectTaskCoordination {
-  projectId: string;
-  taskId: string;
-  coordinationStrategy: 'sequential' | 'parallel' | 'hybrid';
+  projectId: string;,
+  taskId: string;,
+  coordinationStrategy: 'sequential' | 'parallel' | 'hybrid';,'''
   resourceAllocation: Map<string, number>; // agent -> allocation percentage
-  expectedInteractions: TaskInteraction[];
-  riskAssessment: {
-    probability: number;
-    impact: string;
+  expectedInteractions: TaskInteraction[];,
+  riskAssessment: {,
+    probability: number;,
+    impact: string;,
     mitigation: string;
   }[];
 }
 
 export interface TaskInteraction {
-  fromTask: string;
-  toTask: string;
-  interactionType: 'data_dependency' | 'resource_sharing' | 'synchronization';
-  strength: number; // 0-1
-  timing: 'before' | 'during' | 'after';
+  fromTask: string;,
+  toTask: string;,
+  interactionType: 'data_dependency' | 'resource_sharing' | 'synchronization';,'''
+  strength: number; // 0-1,
+  timing: 'before' | 'during' | 'after';'''
 }
 
 export class ProjectAwareABMCTSService extends ABMCTSService {
@@ -94,7 +94,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   private crossProjectLearning: Map<ProjectType, Map<TaskType, AgentPerformanceProfile>> = new Map();
 
   constructor(config: Partial<ProjectMCTSConfig> = {}) {
-    const projectConfig: ProjectMCTSConfig = {
+    const projectConfig: ProjectMCTSConfig = {,;
       maxIterations: 1000,
       maxDepth: 10,
       explorationConstant: Math.sqrt(2),
@@ -130,7 +130,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     for (const projectType of Object.values(ProjectType)) {
       const taskTypeMap = new Map<TaskType, AgentPerformanceProfile>();
       for (const taskType of Object.values(TaskType)) {
-        taskTypeMap.set(taskType, {
+        taskTypeMap.set(taskType, {)
           bestAgents: [],
           averageTime: 5000,
           successRate: 0.8,
@@ -146,26 +146,26 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   /**
    * Enhanced orchestration with project awareness
    */
-  async orchestrateProject(options: {
-    project: Project;
-    task: ProjectTask;
+  async orchestrateProject(options: {,)
+    project: Project;,
+    task: ProjectTask;,
     agents: string[];
     explorationRate?: number;
     maxIterations?: number;
     context?: Record<string, any>;
   }): Promise<{
-    bestAgent: string;
-    expectedQuality: number;
-    estimatedTime: number;
-    coordination: ProjectTaskCoordination;
-    reasoning: string;
-    alternativeStrategies: Array<{
-      agent: string;
-      score: number;
+    bestAgent: string;,
+    expectedQuality: number;,
+    estimatedTime: number;,
+    coordination: ProjectTaskCoordination;,
+    reasoning: string;,
+    alternativeStrategies: Array<{,
+      agent: string;,
+      score: number;,
       reasoning: string;
     }>;
   }> {
-    log.info('🧠 Starting project-aware AB-MCTS orchestration', LogContext.PROJECT, {
+    log.info('🧠 Starting project-aware AB-MCTS orchestration', LogContext.PROJECT, {')''
       projectId: options.project.id,
       taskId: options.task.id,
       taskType: options.task.type,
@@ -174,23 +174,23 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     });
 
     // Build project-aware context
-    const projectContext: ProjectAwareContext = {
-      userRequest: `Execute project task: ${options.task.name}`,
+    const projectContext: ProjectAwareContext = {,;
+      userRequest: `Execute project, task: ${options.task.name}`,
       requestId: `project_${options.project.id}_task_${options.task.id}_${Date.now()}`,
       workingDirectory: options.project.context.workingDirectory || process.cwd(),
-      userId: 'project_system',
-      project: {
+      userId: 'project_system','''
+      project: {,
         id: options.project.id,
         name: options.project.specification.name,
         type: options.project.specification.type,
         phase: options.project.progress.currentPhase,
-        constraints: {
+        constraints: {,;
           complexity: options.project.specification.constraints.complexity,
           quality: options.project.specification.constraints.quality,
           timeframe: options.project.specification.constraints.timeframe
         }
       },
-      task: {
+      task: {,
         id: options.task.id,
         name: options.task.name,
         type: options.task.type,
@@ -198,7 +198,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
         dependencies: options.task.dependencies,
         requiredCapabilities: options.task.requiredCapabilities
       },
-      taskContext: {
+      taskContext: {,
         relatedTasks: this.findRelatedTasks(options.project, options.task),
         projectProgress: options.project.progress.overallCompletion,
         availableResources: options.project.context.externalResources,
@@ -211,7 +211,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     const projectConfig = this.getProjectConfig(options.project);
 
     // Execute enhanced search with project awareness
-    const searchResult = await this.search(
+    const searchResult = await this.search();
       projectContext, 
       options.agents,
       {
@@ -223,7 +223,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     );
 
     // Analyze results with project context
-    const analysis = await this.analyzeProjectResults(
+    const analysis = await this.analyzeProjectResults();
       searchResult,
       options.project,
       options.task,
@@ -231,7 +231,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     );
 
     // Create task coordination plan
-    const coordination = await this.createTaskCoordination(
+    const coordination = await this.createTaskCoordination();
       options.project,
       options.task,
       analysis.bestAgent,
@@ -239,14 +239,14 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     );
 
     // Update cross-project learning
-    await this.updateCrossProjectLearning(
+    await this.updateCrossProjectLearning()
       options.project.specification.type,
       options.task.type,
       analysis.bestAgent,
       analysis.expectedQuality
     );
 
-    log.info('✅ Project-aware orchestration completed', LogContext.PROJECT, {
+    log.info('✅ Project-aware orchestration completed', LogContext.PROJECT, {')''
       projectId: options.project.id,
       taskId: options.task.id,
       selectedAgent: analysis.bestAgent,
@@ -268,8 +268,8 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
    * Find related tasks within the project for context
    */
   private findRelatedTasks(project: Project, currentTask: ProjectTask): string[] {
-    return project.tasks
-      .filter(task => 
+    return project.tasks;
+      .filter(task =>)
         task.id !== currentTask.id && (
           // Same type
           task.type === currentTask.type ||
@@ -277,7 +277,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
           task.dependencies.includes(currentTask.id) ||
           currentTask.dependencies.includes(task.id) ||
           // Same capabilities
-          task.requiredCapabilities.some(cap => 
+          task.requiredCapabilities.some(cap =>)
             currentTask.requiredCapabilities.includes(cap)
           )
         )
@@ -300,7 +300,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
       // Adjust parameters based on project type
       maxIterations: this.getIterationsForProjectType(project.specification.type),
       explorationConstant: this.getExplorationForComplexity(project.specification.constraints.complexity),
-      taskPriorityWeight: project.specification.constraints.quality === 'enterprise' ? 0.6 : 0.4,
+      taskPriorityWeight: project.specification.constraints.quality === 'enterprise' ? 0.6 : 0.4,'''
       timeLimit: project.specification.constraints.timeframe ? 
         this.parseTimeframe(project.specification.constraints.timeframe) : baseConfig.timeLimit
     };
@@ -312,32 +312,32 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   /**
    * Analyze AB-MCTS results with project context
    */
-  private async analyzeProjectResults(
+  private async analyzeProjectResults()
     searchResult: any,
     project: Project,
     task: ProjectTask,
     config: ProjectMCTSConfig
   ): Promise<{
-    bestAgent: string;
-    expectedQuality: number;
-    estimatedTime: number;
-    reasoning: string;
-    alternatives: Array<{ agent: string; score: number; reasoning: string; }>;
+    bestAgent: string;,
+    expectedQuality: number;,
+    estimatedTime: number;,
+    reasoning: string;,
+    alternatives: Array<{, agent: string;, score: number;, reasoning: string; }>;
   }> {
     // Get learned patterns for this project type and task type
-    const learnedPatterns = this.crossProjectLearning
+    const learnedPatterns = this.crossProjectLearning;
       .get(project.specification.type)
       ?.get(task.type);
 
     // Calculate scores for each agent considering project context
     const agentScores = new Map<string, number>();
-    const alternatives: Array<{ agent: string; score: number; reasoning: string; }> = [];
+    const alternatives: Array<{, agent: string;, score: number;, reasoning: string; }> = [];
 
     if (searchResult.bestPath && searchResult.bestPath.length > 0) {
       // Analyze the search tree results
       for (const node of searchResult.bestPath) {
         if (node.metadata?.agent) {
-          const score = this.calculateProjectAwareScore(
+          const score = this.calculateProjectAwareScore();
             node,
             task,
             project,
@@ -346,7 +346,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
           );
           agentScores.set(node.metadata.agent, score);
           
-          alternatives.push({
+          alternatives.push({)
             agent: node.metadata.agent,
             score,
             reasoning: this.generateAgentReasoning(node, task, project, score)
@@ -356,16 +356,16 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     }
 
     // Select best agent based on project-aware scoring
-    const bestEntry = Array.from(agentScores.entries())
+    const bestEntry = Array.from(agentScores.entries());
       .sort(([,a], [,b]) => b - a)[0];
 
-    const bestAgent = bestEntry ? bestEntry[0] : 'personal_assistant'; // fallback
+    const bestAgent = bestEntry ? bestEntry[0] : 'personal_assistant'; // fallback';';';
     const expectedQuality = bestEntry ? bestEntry[1] : 0.7;
 
     // Estimate time based on learned patterns and task complexity
     const estimatedTime = this.estimateTaskTime(task, bestAgent, learnedPatterns);
 
-    const reasoning = this.generateProjectReasoning(
+    const reasoning = this.generateProjectReasoning();
       bestAgent, 
       task, 
       project, 
@@ -385,17 +385,17 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   /**
    * Calculate project-aware score for agent selection
    */
-  private calculateProjectAwareScore(
+  private calculateProjectAwareScore()
     node: ABMCTSNode,
     task: ProjectTask,
     project: Project,
     learnedPatterns: AgentPerformanceProfile | undefined,
     config: ProjectMCTSConfig
   ): number {
-    let score = node.averageReward * 0.4; // Base AB-MCTS score
+    let score = node.averageReward * 0.4; // Base AB-MCTS score;
 
     // Project type alignment
-    const projectTypeBonus = this.getProjectTypeAlignment(
+    const projectTypeBonus = this.getProjectTypeAlignment();
       node.metadata.agent!,
       project.specification.type
     );
@@ -412,7 +412,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     }
 
     // Capability alignment
-    const capabilityAlignment = this.calculateCapabilityAlignment(
+    const capabilityAlignment = this.calculateCapabilityAlignment();
       node.metadata.agent!,
       task.requiredCapabilities
     );
@@ -420,7 +420,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
 
     // Dependency awareness bonus
     if (config.dependencyAwareness && task.dependencies.length > 0) {
-      const dependencyBonus = this.calculateDependencyBonus(
+      const dependencyBonus = this.calculateDependencyBonus();
         node.metadata.agent!,
         task,
         project
@@ -434,7 +434,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   /**
    * Create task coordination plan
    */
-  private async createTaskCoordination(
+  private async createTaskCoordination()
     project: Project,
     task: ProjectTask,
     selectedAgent: string,
@@ -443,19 +443,19 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     const coordinationId = `coord_${project.id}_${task.id}`;
 
     // Determine coordination strategy based on task characteristics
-    let strategy: 'sequential' | 'parallel' | 'hybrid' = 'sequential';
+    let strategy: 'sequential' | 'parallel' | 'hybrid' = 'sequential';';';';
     
     if (task.requiredCapabilities.length > 2) {
-      strategy = 'parallel'; // Multi-capability tasks benefit from parallel execution
+      strategy = 'parallel'; // Multi-capability tasks benefit from parallel execution'''
     } else if (task.dependencies.length > 1) {
-      strategy = 'hybrid'; // Complex dependencies need hybrid approach
+      strategy = 'hybrid'; // Complex dependencies need hybrid approach'''
     }
 
     // Calculate resource allocation
     const resourceAllocation = new Map<string, number>();
     resourceAllocation.set(selectedAgent, 0.7); // Primary agent gets 70%
     
-    const supportingAgents = availableAgents
+    const supportingAgents = availableAgents;
       .filter(agent => agent !== selectedAgent)
       .slice(0, 2); // Max 2 supporting agents
     
@@ -469,7 +469,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     // Assess risks
     const risks = this.assessTaskRisks(task, project, selectedAgent);
 
-    const coordination: ProjectTaskCoordination = {
+    const coordination: ProjectTaskCoordination = {,;
       projectId: project.id,
       taskId: task.id,
       coordinationStrategy: strategy,
@@ -485,7 +485,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   /**
    * Update cross-project learning patterns
    */
-  private async updateCrossProjectLearning(
+  private async updateCrossProjectLearning()
     projectType: ProjectType,
     taskType: TaskType,
     selectedAgent: string,
@@ -506,7 +506,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     patterns.qualityScore = patterns.qualityScore * (1 - alpha) + expectedQuality * alpha;
     patterns.lastUpdated = Date.now();
 
-    log.info('📚 Updated cross-project learning patterns', LogContext.PROJECT, {
+    log.info('📚 Updated cross-project learning patterns', LogContext.PROJECT, {')''
       projectType,
       taskType,
       selectedAgent,
@@ -532,26 +532,26 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
 
   private getExplorationForComplexity(complexity: string): number {
     const exploration = {
-      'simple': 1.0,
-      'moderate': 1.4,
-      'complex': 1.8,
-      'enterprise': 2.2
+      'simple': 1.0,'''
+      'moderate': 1.4,'''
+      'complex': 1.8,'''
+      'enterprise': 2.2'''
     };
     return exploration[complexity] || 1.4;
   }
 
   private parseTimeframe(timeframe: string): number {
     // Simple parsing - in production this would be more sophisticated
-    if (timeframe.includes('minute')) return 60000;
-    if (timeframe.includes('hour')) return 3600000;
-    if (timeframe.includes('day')) return 86400000;
-    return 30000; // Default 30 seconds
+    if (timeframe.includes('minute')) return 60000;'''
+    if (timeframe.includes('hour')) return 3600000;'''
+    if (timeframe.includes('day')) return 86400000;'''
+    return 30000; // Default 30 seconds;
   }
 
   private getProjectTypeAlignment(agent: string, projectType: ProjectType): number {
     // Agent-project type alignment scores
     const alignments: Record<string, Record<ProjectType, number>> = {
-      'code_assistant': {
+      'code_assistant': {'''
         [ProjectType.SOFTWARE_DEVELOPMENT]: 0.9,
         [ProjectType.AUTOMATION]: 0.7,
         [ProjectType.DATA_ANALYSIS]: 0.6,
@@ -560,7 +560,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
         [ProjectType.RESEARCH]: 0.5,
         [ProjectType.CUSTOM]: 0.5
       },
-      'retriever': {
+      'retriever': {'''
         [ProjectType.RESEARCH]: 0.9,
         [ProjectType.DATA_ANALYSIS]: 0.8,
         [ProjectType.CONTENT_CREATION]: 0.7,
@@ -569,7 +569,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
         [ProjectType.AUTOMATION]: 0.6,
         [ProjectType.CUSTOM]: 0.6
       },
-      'planner': {
+      'planner': {'''
         [ProjectType.SOFTWARE_DEVELOPMENT]: 0.8,
         [ProjectType.AUTOMATION]: 0.9,
         [ProjectType.RESEARCH]: 0.7,
@@ -596,11 +596,11 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   private calculateCapabilityAlignment(agent: string, capabilities: string[]): number {
     // This would be more sophisticated in production
     const agentCapabilities: Record<string, string[]> = {
-      'code_assistant': ['code_generation', 'code_analysis', 'refactoring', 'debugging'],
-      'retriever': ['information_retrieval', 'context_gathering', 'search', 'research'],
-      'planner': ['planning', 'task_decomposition', 'strategy', 'coordination'],
-      'synthesizer': ['synthesis', 'consensus', 'analysis', 'integration'],
-      'personal_assistant': ['assistance', 'coordination', 'task_management', 'communication']
+      'code_assistant': ['code_generation', 'code_analysis', 'refactoring', 'debugging'],'''
+      'retriever': ['information_retrieval', 'context_gathering', 'search', 'research'],'''
+      'planner': ['planning', 'task_decomposition', 'strategy', 'coordination'],'''
+      'synthesizer': ['synthesis', 'consensus', 'analysis', 'integration'],'''
+      'personal_assistant': ['assistance', 'coordination', 'task_management', 'communication']'''
     };
 
     const agentCaps = agentCapabilities[agent] || [];
@@ -611,8 +611,8 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
   private calculateDependencyBonus(agent: string, task: ProjectTask, project: Project): number {
     // Bonus for agents that have successfully handled dependent tasks
     const decisions = this.getProjectDecisions(project.id);
-    const dependentDecisions = decisions.filter(d => 
-      task.dependencies.includes(d.taskId) && d.agentUsed === agent && d.outcome === 'success'
+    const dependentDecisions = decisions.filter(d =>);
+      task.dependencies.includes(d.taskId) && d.agentUsed === agent && d.outcome === 'success''''
     );
     
     return Math.min(0.2, dependentDecisions.length * 0.05);
@@ -622,72 +622,72 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     const interactions: TaskInteraction[] = [];
     
     // Find interactions with dependent tasks
-    task.dependencies.forEach(depId => {
-      interactions.push({
+    task.dependencies.forEach(depId => {)
+      interactions.push({)
         fromTask: depId,
         toTask: task.id,
-        interactionType: 'data_dependency',
+        interactionType: 'data_dependency','''
         strength: 0.8,
-        timing: 'before'
+        timing: 'before''''
       });
     });
 
     // Find resource sharing with similar tasks
     project.tasks
-      .filter(t => t.id !== task.id && 
+      .filter(t => t.id !== task.id &&)
         t.requiredCapabilities.some(cap => task.requiredCapabilities.includes(cap)))
-      .forEach(relatedTask => {
-        interactions.push({
+      .forEach(relatedTask => {)
+        interactions.push({)
           fromTask: task.id,
           toTask: relatedTask.id,
-          interactionType: 'resource_sharing',
+          interactionType: 'resource_sharing','''
           strength: 0.5,
-          timing: 'during'
+          timing: 'during''''
         });
       });
 
     return interactions;
   }
 
-  private assessTaskRisks(task: ProjectTask, project: Project, agent: string): Array<{
-    probability: number;
-    impact: string;
+  private assessTaskRisks(task: ProjectTask, project: Project, agent: string): Array<{,
+    probability: number;,
+    impact: string;,
     mitigation: string;
   }> {
     const risks = [];
 
     // Dependency risk
     if (task.dependencies.length > 2) {
-      risks.push({
+      risks.push({)
         probability: 0.3,
-        impact: 'Task may be delayed due to dependency chain',
-        mitigation: 'Monitor dependent tasks closely and prepare fallback options'
+        impact: 'Task may be delayed due to dependency chain','''
+        mitigation: 'Monitor dependent tasks closely and prepare fallback options''''
       });
     }
 
     // Complexity risk
     if (task.requiredCapabilities.length > 3) {
-      risks.push({
+      risks.push({)
         probability: 0.4,
-        impact: 'High complexity may lead to quality issues',
-        mitigation: 'Use multiple agents in coordination for validation'
+        impact: 'High complexity may lead to quality issues','''
+        mitigation: 'Use multiple agents in coordination for validation''''
       });
     }
 
     // Agent mismatch risk
     const alignment = this.getProjectTypeAlignment(agent, project.specification.type);
     if (alignment < 0.6) {
-      risks.push({
+      risks.push({)
         probability: 0.25,
-        impact: 'Agent may not be optimal for this project type',
-        mitigation: 'Consider using supporting agents with better alignment'
+        impact: 'Agent may not be optimal for this project type','''
+        mitigation: 'Consider using supporting agents with better alignment''''
       });
     }
 
     return risks;
   }
 
-  private estimateTaskTime(
+  private estimateTaskTime()
     task: ProjectTask, 
     agent: string, 
     patterns: AgentPerformanceProfile | undefined
@@ -710,25 +710,25 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     return Math.round(baseTime * complexityMultiplier);
   }
 
-  private generateAgentReasoning(
+  private generateAgentReasoning()
     node: ABMCTSNode, 
     task: ProjectTask, 
     project: Project, 
     score: number
   ): string {
-    const quality = score > 0.8 ? 'excellent' : score > 0.6 ? 'good' : 'moderate';
-    return `Agent ${node.metadata.agent} scored ${score.toFixed(2)} (${quality}) for ${task.type} task in ${project.specification.type} project. ` +
+    const quality = score > 0.8 ? 'excellent' : score > 0.6 ? 'good' : 'moderate';';';';
+    return `Agent ${node.metadata.agent} scored ${score.toFixed(2)} (${quality}) for ${task.type} task in ${project.specification.type} project. ` +;
            `Factors: capability alignment, project type fit, learned patterns from similar tasks.`;
   }
 
-  private generateProjectReasoning(
+  private generateProjectReasoning()
     agent: string,
     task: ProjectTask,
     project: Project,
     quality: number,
     patterns: AgentPerformanceProfile | undefined
   ): string {
-    let reasoning = `Selected ${agent} for task "${task.name}" in ${project.specification.type} project. `;
+    let reasoning = `Selected ${agent} for task "${task.name}" in ${project.specification.type} project. `;";";";
     reasoning += `Expected quality: ${(quality * 100).toFixed(1)}%. `;
     
     if (patterns && patterns.bestAgents.includes(agent)) {
@@ -750,7 +750,7 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
    * Record a project decision for learning
    */
   recordProjectDecision(decision: ProjectDecision): void {
-    const projectId = decision.taskId.split('_')[0]; // Extract project ID from task ID
+    const projectId = decision.taskId.split('_')[0]; // Extract project ID from task ID';';';
     const decisions = this.getProjectDecisions(projectId);
     decisions.push(decision);
     
@@ -765,11 +765,11 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
 }
 
 interface AgentPerformanceProfile {
-  bestAgents: string[];
-  averageTime: number;
-  successRate: number;
-  qualityScore: number;
-  commonPatterns: string[];
+  bestAgents: string[];,
+  averageTime: number;,
+  successRate: number;,
+  qualityScore: number;,
+  commonPatterns: string[];,
   lastUpdated: number;
 }
 

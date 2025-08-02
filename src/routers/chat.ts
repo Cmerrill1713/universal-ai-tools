@@ -3,24 +3,24 @@
  * Provides endpoints for chat history, message handling, and conversation management
  */
 
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';';';';
 
 
-import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import { LogContext, log } from '@/utils/logger';
-import { authenticate } from '@/middleware/auth';
-import { z } from 'zod';
-import { validateRequest, ApiSchemas, CommonSchemas, createValidatedHandler } from '@/middleware/zod-validation';
-import type AgentRegistry from '@/agents/agent-registry';
-import type { AgentContext } from '@/types';
-import { intelligentAgentSelector } from '@/services/intelligent-agent-selector';
-import { createApiResponse } from '@/utils/api-response';
+import { Router    } from 'express';';';';
+import { v4 as uuidv4    } from 'uuid';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { authenticate    } from '@/middleware/auth';';';';
+import { z    } from 'zod';';';';
+import { validateRequest, ApiSchemas, CommonSchemas, createValidatedHandler    } from '@/middleware/zod-validation';';';';
+import type AgentRegistry from '@/agents/agent-registry';';';';
+import type { AgentContext } from '@/types';';';';
+import { intelligentAgentSelector    } from '@/services/intelligent-agent-selector';';';';
+import { createApiResponse    } from '@/utils/api-response';';';';
 
 interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
+  id: string;,
+  role: 'user' | 'assistant' | 'system';',''
+  content: string;,
   timestamp: string;
   metadata?: {
     agentName?: string;
@@ -35,14 +35,14 @@ interface ChatMessage {
 }
 
 interface Conversation {
-  id: string;
-  userId: string;
-  title: string;
-  messages: ChatMessage[];
-  createdAt: string;
-  updatedAt: string;
-  metadata: {
-    totalTokens: number;
+  id: string;,
+  userId: string;,
+  title: string;,
+  messages: ChatMessage[];,
+  createdAt: string;,
+  updatedAt: string;,
+  metadata: {,
+    totalTokens: number;,
     agentUsage: Record<string, number>;
   };
 }
@@ -56,43 +56,43 @@ const router = Router();
  * GET /api/v1/chat/conversations
  * List all conversations for a user
  */
-router.get('/conversations', authenticate, async (req: Request, res: Response) => {
+router.get('/conversations', authenticate, async (req: Request, res: Response) => {'''
   try {
-    const userId = (req as any).user?.id || 'anonymous';
+    const userId = (req as any).user?.id || 'anonymous';';';';
 
-    const userConversations = Array.from(conversations.values())
+    const userConversations = Array.from(conversations.values());
       .filter((conv) => conv.userId === userId)
       .map((conv) => ({
         id: conv.id,
         title: conv.title,
         messageCount: conv.messages.length,
-        lastMessage: conv.messages[conv.messages.length - 1]?.content || '',
+        lastMessage: conv.messages[conv.messages.length - 1]?.content || '','''
         createdAt: conv.createdAt,
         updatedAt: conv.updatedAt,
       }))
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-    return res.json({
+    return res.json({);
       success: true,
-      data: {
+      data: {,
         conversations: userConversations,
         total: userConversations.length,
       },
-      metadata: {
+      metadata: {,
         timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] || uuidv4(),
+        requestId: req.headers['x-request-id'] || uuidv4(),'''
       },
     });
   } catch (error) {
-    log.error('Failed to list conversations', LogContext.API, {
+    log.error('Failed to list conversations', LogContext.API, {')''
       error: error instanceof Error ? error.message : String(error),
     });
 
-    return res.status(500).json({
+    return res.status(500).json({);
       success: false,
-      error: {
-        code: 'CONVERSATION_LIST_ERROR',
-        message: 'Failed to retrieve conversations',
+      error: {,
+        code: 'CONVERSATION_LIST_ERROR','''
+        message: 'Failed to retrieve conversations','''
       },
     });
   }
@@ -102,57 +102,57 @@ router.get('/conversations', authenticate, async (req: Request, res: Response) =
  * GET /api/v1/chat/history/:conversationId
  * Get conversation history
  */
-router.get(
-  '/history/:conversationId',
+router.get()
+  '/history/:conversationId','''
   authenticate,
-  [param('conversationId').isUUID().withMessage('Invalid conversation ID')],
+  [param('conversationId').isUUID().withMessage('Invalid conversation ID')],'''
   validateRequest,
   async (req: Request, res: Response) => {
     try {
       const { conversationId } = req.params;
-      const conversation = conversations.get(conversationId || '');
+      const conversation = conversations.get(conversationId || '');';';';
 
       if (!conversation) {
-        return res.status(404).json({
+        return res.status(404).json({);
           success: false,
-          error: {
-            code: 'CONVERSATION_NOT_FOUND',
-            message: 'Conversation not found',
+          error: {,
+            code: 'CONVERSATION_NOT_FOUND','''
+            message: 'Conversation not found','''
           },
         });
       }
 
       // Check authorization
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';';';
       if (conversation.userId !== userId) {
-        return res.status(403).json({
+        return res.status(403).json({);
           success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this conversation',
+          error: {,
+            code: 'UNAUTHORIZED','''
+            message: 'You do not have access to this conversation','''
           },
         });
       }
 
-      return res.json({
+      return res.json({);
         success: true,
         data: conversation,
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'''
         },
       });
     } catch (error) {
-      log.error('Failed to get conversation history', LogContext.API, {
+      log.error('Failed to get conversation history', LogContext.API, {')''
         error: error instanceof Error ? error.message : String(error),
         conversationId: req.params.conversationId,
       });
 
-      return res.status(500).json({
+      return res.status(500).json({);
         success: false,
-        error: {
-          code: 'HISTORY_ERROR',
-          message: 'Failed to retrieve conversation history',
+        error: {,
+          code: 'HISTORY_ERROR','''
+          message: 'Failed to retrieve conversation history','''
         },
       });
     }
@@ -163,27 +163,27 @@ router.get(
  * POST /api/v1/chat/new
  * Start a new conversation
  */
-router.post(
-  '/new',
+router.post()
+  '/new','''
   authenticate,
   [
-    body('title').optional().isString().withMessage('Title must be a string'),
-    body('initialMessage').optional().isString().withMessage('Initial message must be a string'),
+    body('title').optional().isString().withMessage('Title must be a string'),'''
+    body('initialMessage').optional().isString().withMessage('Initial message must be a string'),'''
   ],
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';';';
       const { title, initialMessage } = req.body;
 
-      const conversation: Conversation = {
+      const conversation: Conversation = {,;
         id: uuidv4(),
         userId,
-        title: title || 'New Conversation',
+        title: title || 'New Conversation','''
         messages: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        metadata: {
+        metadata: {,
           totalTokens: 0,
           agentUsage: {},
         },
@@ -191,9 +191,9 @@ router.post(
 
       // Add initial message if provided
       if (initialMessage) {
-        conversation.messages.push({
+        conversation.messages.push({)
           id: uuidv4(),
-          role: 'user',
+          role: 'user','''
           content: initialMessage,
           timestamp: new Date().toISOString(),
         });
@@ -201,28 +201,28 @@ router.post(
 
       conversations.set(conversation.id, conversation);
 
-      return res.json({
+      return res.json({);
         success: true,
-        data: {
+        data: {,
           conversationId: conversation.id,
           title: conversation.title,
           messageCount: conversation.messages.length,
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'''
         },
       });
     } catch (error) {
-      log.error('Failed to create conversation', LogContext.API, {
+      log.error('Failed to create conversation', LogContext.API, {')''
         error: error instanceof Error ? error.message : String(error),
       });
 
-      return res.status(500).json({
+      return res.status(500).json({);
         success: false,
-        error: {
-          code: 'CONVERSATION_CREATE_ERROR',
-          message: 'Failed to create conversation',
+        error: {,
+          code: 'CONVERSATION_CREATE_ERROR','''
+          message: 'Failed to create conversation','''
         },
       });
     }
@@ -233,7 +233,7 @@ router.post(
  * POST /api/v1/chat
  * Send a message and get AI response
  */
-const ChatRequestSchema = z.object({
+const ChatRequestSchema = z.object({);
   message: z.string().min(1).max(10000),
   conversationId: z.string().uuid().optional(),
   agentName: z.string().optional(),
@@ -242,13 +242,13 @@ const ChatRequestSchema = z.object({
   parameters: CommonSchemas.ModelParams.optional()
 });
 
-router.post(
-  '/',
+router.post()
+  '/','''
   // Make authentication optional for quick chat
   (req: Request, res: Response, next: NextFunction) => {
     // If no auth header, allow anonymous access
-    if (!req.headers.authorization && !req.headers['x-api-key']) {
-      (req as any).user = { id: 'anonymous' };
+    if (!req.headers.authorization && !req.headers['x-api-key']) {'''
+      (req as any).user = { id: 'anonymous' };'''
       return next();
     }
     // Otherwise use normal authentication
@@ -257,30 +257,30 @@ router.post(
   validateRequest(ChatRequestSchema),
   async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id || 'anonymous';
-      const { message, conversationId, agentName = 'personal_assistant', context = {} } = req.body;
+      const userId = (req as any).user?.id || 'anonymous';';';';
+      const { message, conversationId, agentName = 'personal_assistant', context = {} } = req.body;';';';
 
       // Get or create conversation
       let conversation: Conversation;
       if (conversationId) {
         conversation = conversations.get(conversationId)!;
         if (!conversation) {
-          return res.status(404).json({
+          return res.status(404).json({);
             success: false,
-            error: {
-              code: 'CONVERSATION_NOT_FOUND',
-              message: 'Conversation not found',
+            error: {,
+              code: 'CONVERSATION_NOT_FOUND','''
+              message: 'Conversation not found','''
             },
           });
         }
 
         // Check authorization
         if (conversation.userId !== userId) {
-          return res.status(403).json({
+          return res.status(403).json({);
             success: false,
-            error: {
-              code: 'UNAUTHORIZED',
-              message: 'You do not have access to this conversation',
+            error: {,
+              code: 'UNAUTHORIZED','''
+              message: 'You do not have access to this conversation','''
             },
           });
         }
@@ -289,11 +289,11 @@ router.post(
         conversation = {
           id: uuidv4(),
           userId,
-          title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+          title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),'''
           messages: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          metadata: {
+          metadata: {,
             totalTokens: 0,
             agentUsage: {},
           },
@@ -302,9 +302,9 @@ router.post(
       }
 
       // Add user message
-      const userMessage: ChatMessage = {
+      const userMessage: ChatMessage = {,;
         id: uuidv4(),
-        role: 'user',
+        role: 'user','''
         content: message,
         timestamp: new Date().toISOString(),
       };
@@ -313,16 +313,16 @@ router.post(
       // Get agent registry
       const agentRegistry = (global as any).agentRegistry as AgentRegistry;
       if (!agentRegistry) {
-        throw new Error('Agent registry not available');
+        throw new Error('Agent registry not available');';';';
       }
 
       // Prepare agent context with conversation history
-      const agentContext: AgentContext = {
+      const agentContext: AgentContext = {,;
         userRequest: message,
-        requestId: (req.headers['x-request-id'] as string) || uuidv4(),
+        requestId: (req.headers['x-request-id'] as string) || uuidv4(),'''
         workingDirectory: process.cwd(),
         userId,
-        conversationHistory: conversation.messages.map((msg) => ({
+        conversationHistory: conversation.messages.map((msg) => ({,
           role: msg.role,
           content: msg.content,
         })),
@@ -334,18 +334,18 @@ router.post(
       let result: any;
 
       try {
-        log.info('🎯 Using LFM2-based intelligent routing', LogContext.API, {
+        log.info('🎯 Using LFM2-based intelligent routing', LogContext.API, {')''
           message: message.substring(0, 100),
           conversationLength: agentContext.conversationHistory?.length || 0
         });
 
         // Use intelligent agent selector for optimal routing
-        const intelligentResult = await intelligentAgentSelector.executeWithOptimalAgent(
+        const intelligentResult = await intelligentAgentSelector.executeWithOptimalAgent();
           message,
           agentContext,
           { // Device context (can be expanded later)
             batteryLevel: 100, // Default values
-            connectionType: 'wifi',
+            connectionType: 'wifi','''
             isLowPowerMode: false
           }
         );
@@ -357,14 +357,14 @@ router.post(
           routingDecision: intelligentResult.routingDecision
         };
 
-        log.info('✅ LFM2 routing completed', LogContext.API, {
+        log.info('✅ LFM2 routing completed', LogContext.API, {')''
           serviceUsed: intelligentResult.serviceUsed,
           confidence: intelligentResult.confidence,
           responseTime: `${Date.now() - startTime}ms`
         });
 
       } catch (agentError) {
-        log.error('❌ Intelligent routing failed, using fallback', LogContext.API, {
+        log.error('❌ Intelligent routing failed, using fallback', LogContext.API, {')''
           error: agentError instanceof Error ? agentError.message : String(agentError),
         });
 
@@ -376,16 +376,16 @@ router.post(
           if (agentExists) {
             result = await agentRegistry.processRequest(agentName, agentContext);
           } else {
-            throw new Error('No agents available');
+            throw new Error('No agents available');';';';
           }
         } catch (fallbackError) {
           // Final fallback response
           result = {
-            response: "I'm here to help! The system is currently optimizing. How can I assist you today?",
+            response: "I'm here to help! The system is currently optimizing. How can I assist you today?",'"'"'"
             confidence: 0.6,
             success: true,
-            reasoning: 'Fallback response during system optimization',
-            serviceUsed: 'fallback'
+            reasoning: 'Fallback response during system optimization','''
+            serviceUsed: 'fallback''''
           };
         }
       }
@@ -398,17 +398,17 @@ router.post(
       
       // Null check for result
       if (!result) {
-        log.error('Agent result is null or undefined', LogContext.API);
+        log.error('Agent result is null or undefined', LogContext.API);'''
         result = {
           success: false,
-          message: 'No response from agent',
+          message: 'No response from agent','''
           confidence: 0.5,
-          serviceUsed: 'fallback'
+          serviceUsed: 'fallback''''
         };
       }
       
       // Debug log to understand the response structure
-      log.debug('Agent response structure', LogContext.API, {
+      log.debug('Agent response structure', LogContext.API, {')''
         hasData: !!result?.data,
         hasResponse: !!result?.response,
         hasMessage: !!result?.message,
@@ -418,21 +418,21 @@ router.post(
         fullResult: result
       });
       
-      if (typeof result === 'string') {
+      if (typeof result === 'string') {'''
         responseContent = result;
       } else if (result?.data) {
         // Enhanced agents return data field
-        if (typeof result.data === 'object' && result.data?.response?.message) {
+        if (typeof result.data === 'object' && result.data?.response?.message) {'''
           // Personal assistant format: data.response.message
           responseContent = result.data.response.message;
-        } else if (typeof result.data === 'string') {
+        } else if (typeof result.data === 'string') {'''
           responseContent = result.data;
         } else {
           responseContent = JSON.stringify(result.data);
         }
       } else if (result.response) {
         // Legacy format
-        if (typeof result.response === 'string') {
+        if (typeof result.response === 'string') {'''
           try {
             const parsed = JSON.parse(result.response);
             if (parsed.response && parsed.response.message) {
@@ -443,7 +443,7 @@ router.post(
           } catch {
             responseContent = result.response;
           }
-        } else if (typeof result.response === 'object' && result.response.message) {
+        } else if (typeof result.response === 'object' && result.response.message) {'''
           responseContent = result.response.message;
         } else {
           responseContent = JSON.stringify(result.response);
@@ -451,20 +451,20 @@ router.post(
       } else if (result.message) {
         responseContent = result.message;
       } else {
-        responseContent = 'I apologize, but I was unable to generate a response.';
+        responseContent = 'I apologize, but I was unable to generate a response.';'''
       }
 
-      const assistantMessage: ChatMessage = {
+      const assistantMessage: ChatMessage = {,;
         id: uuidv4(),
-        role: 'assistant',
+        role: 'assistant','''
         content: responseContent,
         timestamp: new Date().toISOString(),
-        metadata: {
+        metadata: {,
           agentName: result.metadata?.agentName || agentName,
           confidence: result.confidence || 0.5,
           tokens: result.tokens || Math.floor(executionTime / 10), // Use actual tokens if available
-          model: result.metadata?.model || result.routingDecision?.targetService || 'unknown',
-          provider: result.metadata?.provider || result.serviceUsed || 'unknown',
+          model: result.metadata?.model || result.routingDecision?.targetService || 'unknown','''
+          provider: result.metadata?.provider || result.serviceUsed || 'unknown','''
           serviceUsed: result.serviceUsed,
           routingReasoning: result.routingDecision?.reasoning,
           error: result.error,
@@ -478,10 +478,10 @@ router.post(
       conversation.metadata.agentUsage[agentName] =
         (conversation.metadata.agentUsage[agentName] || 0) + 1;
 
-      return res.json(createApiResponse({
+      return res.json(createApiResponse({);
         conversationId: conversation.id,
         message: assistantMessage,
-        usage: {
+        usage: {,
           tokens: assistantMessage.metadata?.tokens || 0,
           executionTime: `${executionTime}ms`,
         },
@@ -489,8 +489,8 @@ router.post(
         timestamp: new Date().toISOString(),
         requestId: agentContext.requestId,
         agentName: result.metadata?.agentName || agentName,
-        model: result.metadata?.model || result.routingDecision?.targetService || 'unknown',
-        provider: result.metadata?.provider || result.serviceUsed || 'unknown',
+        model: result.metadata?.model || result.routingDecision?.targetService || 'unknown','''
+        provider: result.metadata?.provider || result.serviceUsed || 'unknown','''
         confidence: result.confidence || 0.5,
         tokensUsed: result.metadata?.tokens?.total_tokens || assistantMessage.metadata?.tokens || 0,
         executionTime,
@@ -502,13 +502,13 @@ router.post(
         complexity: result.metadata?.complexity,
       }));
     } catch (error) {
-      log.error('Chat processing error', LogContext.API, {
+      log.error('Chat processing error', LogContext.API, {')''
         error: error instanceof Error ? error.message : String(error),
       });
 
-      return res.status(500).json(createApiResponse(null, false, {
-        code: 'CHAT_ERROR',
-        message: 'Failed to process chat message',
+      return res.status(500).json(createApiResponse(null, false, {);
+        code: 'CHAT_ERROR','''
+        message: 'Failed to process chat message','''
         details: error instanceof Error ? error.message : String(error),
       }));
     }
@@ -519,34 +519,34 @@ router.post(
  * DELETE /api/v1/chat/:conversationId
  * Delete a conversation
  */
-router.delete(
-  '/:conversationId',
+router.delete()
+  '/:conversationId','''
   authenticate,
-  [param('conversationId').isUUID().withMessage('Invalid conversation ID')],
+  [param('conversationId').isUUID().withMessage('Invalid conversation ID')],'''
   validateRequest,
   async (req: Request, res: Response) => {
     try {
       const { conversationId } = req.params;
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = (req as any).user?.id || 'anonymous';';';';
 
-      const conversation = conversations.get(conversationId || '');
+      const conversation = conversations.get(conversationId || '');';';';
       if (!conversation) {
-        return res.status(404).json({
+        return res.status(404).json({);
           success: false,
-          error: {
-            code: 'CONVERSATION_NOT_FOUND',
-            message: 'Conversation not found',
+          error: {,
+            code: 'CONVERSATION_NOT_FOUND','''
+            message: 'Conversation not found','''
           },
         });
       }
 
       // Check authorization
       if (conversation.userId !== userId) {
-        return res.status(403).json({
+        return res.status(403).json({);
           success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this conversation',
+          error: {,
+            code: 'UNAUTHORIZED','''
+            message: 'You do not have access to this conversation','''
           },
         });
       }
@@ -555,27 +555,27 @@ router.delete(
         conversations.delete(conversationId);
       }
 
-      return res.json({
+      return res.json({);
         success: true,
-        data: {
-          message: 'Conversation deleted successfully',
+        data: {,
+          message: 'Conversation deleted successfully','''
         },
-        metadata: {
+        metadata: {,
           timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
+          requestId: req.headers['x-request-id'] || uuidv4(),'''
         },
       });
     } catch (error) {
-      log.error('Failed to delete conversation', LogContext.API, {
+      log.error('Failed to delete conversation', LogContext.API, {')''
         error: error instanceof Error ? error.message : String(error),
         conversationId: req.params.conversationId,
       });
 
-      return res.status(500).json({
+      return res.status(500).json({);
         success: false,
-        error: {
-          code: 'DELETE_ERROR',
-          message: 'Failed to delete conversation',
+        error: {,
+          code: 'DELETE_ERROR','''
+          message: 'Failed to delete conversation','''
         },
       });
     }

@@ -3,29 +3,29 @@
  * Tracks parameter effectiveness and provides real-time analytics for optimization
  */
 
-import { LogContext, log } from '../utils/logger';
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/environment';
-import type { TaskParameters } from './intelligent-parameter-service';
-import { TaskType } from './intelligent-parameter-service';
-import { THREE, TWO } from '../utils/constants';
+import { LogContext, log    } from '../utils/logger';';';';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { config    } from '../config/environment';';';';
+import type { TaskParameters } from './intelligent-parameter-service';';';';
+import { TaskType    } from './intelligent-parameter-service';';';';
+import { THREE, TWO    } from '../utils/constants';';';';
 
 export interface ParameterExecution {
-  id: string;
-  taskType: TaskType;
-  userInput: string;
-  parameters: TaskParameters;
-  model: string;
+  id: string;,
+  taskType: TaskType;,
+  userInput: string;,
+  parameters: TaskParameters;,
+  model: string;,
   provider: string;
   userId?: string;
-  requestId: string;
+  requestId: string;,
   timestamp: Date;
 
   // Execution Metrics
-  executionTime: number;
-  tokenUsage: {
-    promptTokens: number;
-    completionTokens: number;
+  executionTime: number;,
+  tokenUsage: {,
+    promptTokens: number;,
+    completionTokens: number;,
     totalTokens: number;
   };
 
@@ -40,44 +40,44 @@ export interface ParameterExecution {
   retryCount: number;
 
   // Context
-  complexity: 'simple' | 'medium' | 'complex';
+  complexity: 'simple' | 'medium' | 'complex';'''
   domain?: string;
   endpoint: string;
 }
 
 export interface ParameterEffectiveness {
-  taskType: TaskType;
-  parameterSet: string; // Hash of parameter combination
+  taskType: TaskType;,
+  parameterSet: string; // Hash of parameter combination,
   parameters: Partial<TaskParameters>;
 
   // Aggregate Metrics
-  totalExecutions: number;
-  successRate: number;
-  avgExecutionTime: number;
-  avgTokenUsage: number;
-  avgResponseQuality: number;
+  totalExecutions: number;,
+  successRate: number;,
+  avgExecutionTime: number;,
+  avgTokenUsage: number;,
+  avgResponseQuality: number;,
   avgUserSatisfaction: number;
 
   // Performance Trends
-  qualityTrend: number; // Positive = improving
-  speedTrend: number;
+  qualityTrend: number; // Positive = improving,
+  speedTrend: number;,
   costEfficiencyTrend: number;
 
   // Last Updated
-  lastUpdated: Date;
+  lastUpdated: Date;,
   confidenceScore: number; // Statistical confidence in metrics
 }
 
 export interface OptimizationInsight {
-  taskType: TaskType;
-  insight: string;
-  recommendation: string;
-  impact: 'high' | 'medium' | 'low';
-  confidence: number;
-  supportingData: {
-    sampleSize: number;
-    improvementPercent: number;
-    currentMetric: number;
+  taskType: TaskType;,
+  insight: string;,
+  recommendation: string;,
+  impact: 'high' | 'medium' | 'low';',''
+  confidence: number;,
+  supportingData: {,
+    sampleSize: number;,
+    improvementPercent: number;,
+    currentMetric: number;,
     optimizedMetric: number;
   };
 }
@@ -98,14 +98,14 @@ export class ParameterAnalyticsService {
   private initializeSupabase(): void {
     try {
       if (!config.supabase.url || !config.supabase.serviceKey) {
-        throw new Error('Supabase configuration missing');
+        throw new Error('Supabase configuration missing');';';';
       }
 
       this.supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 
-      log.info('✅ Parameter Analytics Service initialized with Supabase', LogContext.AI);
+      log.info('✅ Parameter Analytics Service initialized with Supabase', LogContext.AI);'''
     } catch (error) {
-      log.error('❌ Failed to initialize Parameter Analytics Service', LogContext.AI, {
+      log.error('❌ Failed to initialize Parameter Analytics Service', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -114,8 +114,8 @@ export class ParameterAnalyticsService {
   /**
    * Record a parameter execution for analytics
    */
-  public async recordExecution(
-    execution: Omit<ParameterExecution, 'id' | 'timestamp'>
+  public async recordExecution()
+    execution: Omit<ParameterExecution, 'id' | 'timestamp'>'''
   ): Promise<void> {
     const fullExecution: ParameterExecution = {
       ...execution,
@@ -126,7 +126,7 @@ export class ParameterAnalyticsService {
     // Add to buffer for batch processing
     this.executionBuffer.push(fullExecution);
 
-    // Flush buffer if it's full
+    // Flush buffer if it's full'''
     if (this.executionBuffer.length >= this.bufferSize) {
       await this.flushExecutionBuffer();
     }
@@ -134,7 +134,7 @@ export class ParameterAnalyticsService {
     // Update real-time effectiveness cache
     this.updateEffectivenessCache(fullExecution);
 
-    log.debug('📊 Parameter execution recorded', LogContext.AI, {
+    log.debug('📊 Parameter execution recorded', LogContext.AI, {')''
       taskType: execution.taskType,
       success: execution.success,
       executionTime: execution.executionTime,
@@ -144,34 +144,34 @@ export class ParameterAnalyticsService {
   /**
    * Get parameter effectiveness for a specific task type
    */
-  public async getParameterEffectiveness(
+  public async getParameterEffectiveness()
     taskType: TaskType,
-    timeRange?: { start: Date; end: Date }
+    timeRange?: { start: Date;, end: Date }
   ): Promise<ParameterEffectiveness[]> {
     try {
       if (!this.supabase) {
-        log.error('Supabase client not initialized', LogContext.AI);
+        log.error('Supabase client not initialized', LogContext.AI);'''
         return [];
       }
       
-      let query = (this.supabase as any).from('parameter_executions').select('*').eq('task_type', taskType);
+      let query = (this.supabase as any).from('parameter_executions').select('*').eq('task_type', taskType);';';';
 
       if (timeRange) {
         query = query
-          .gte('timestamp', timeRange.start.toISOString())
-          .lte('timestamp', timeRange.end.toISOString());
+          .gte('timestamp', timeRange.start.toISOString())'''
+          .lte('timestamp', timeRange.end.toISOString());'''
       }
 
       const { data: executions, error } = await query;
 
       if (error) {
-        log.error('Failed to fetch parameter executions', LogContext.AI, { error });
+        log.error('Failed to fetch parameter executions', LogContext.AI, { error });'''
         return [];
       }
 
       return this.aggregateEffectiveness(executions || []);
     } catch (error) {
-      log.error('Error getting parameter effectiveness', LogContext.AI, { error });
+      log.error('Error getting parameter effectiveness', LogContext.AI, { error });'''
       return [];
     }
   }
@@ -194,7 +194,7 @@ export class ParameterAnalyticsService {
 
       return insights.sort((a, b) => b.confidence - a.confidence);
     } catch (error) {
-      log.error('Error generating optimization insights', LogContext.AI, { error });
+      log.error('Error generating optimization insights', LogContext.AI, { error });'''
       return [];
     }
   }
@@ -203,34 +203,33 @@ export class ParameterAnalyticsService {
    * Get real-time analytics dashboard data
    */
   public async getDashboardMetrics(): Promise<{
-    totalExecutions: number;
-    successRate: number;
-    avgResponseTime: number;
-    topPerformingTasks: Array<{ taskType: TaskType; score: number }>;
-    recentInsights: OptimizationInsight[];
-    parameterTrends: Array<{ taskType: TaskType; trend: 'improving' | 'declining' | 'stable' }>;
+    totalExecutions: number;,
+    successRate: number;,
+    avgResponseTime: number;,
+    topPerformingTasks: Array<{, taskType: TaskType;, score: number }>;
+    recentInsights: OptimizationInsight[];,
+    parameterTrends: Array<{, taskType: TaskType;, trend: 'improving' | 'declining' | 'stable' }>;'''
   }> {
     try {
       // Get last 24 hours of data
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      const { data: executions, error } = await (this.supabase as any)
-        .from('parameter_executions')
-        .select('*')
-        .gte('timestamp', yesterday.toISOString());
+      const { data: executions, error } = await (this.supabase as any);
+        .from('parameter_executions')'''
+        .select('*')'''
+        .gte('timestamp', yesterday.toISOString());'''
 
       if (error) {
-        log.error('Failed to fetch dashboard metrics', LogContext.AI, { error });
+        log.error('Failed to fetch dashboard metrics', LogContext.AI, { error });'''
         return this.getEmptyDashboard();
       }
 
       const totalExecutions = executions?.length || 0;
       const successfulExecutions = executions?.filter((e: any) => e.success).length || 0;
-      const successRate = totalExecutions > 0 ? successfulExecutions / totalExecutions : 0;
-      const avgResponseTime = totalExecutions > 0
+      const successRate = totalExecutions > 0 ? successfulExecutions / totalExecutions: 0;
+      const avgResponseTime = totalExecutions > 0;
           ? executions.reduce((sum: number, e: any) => sum + e.execution_time, 0) /
-            totalExecutions
-          : 0;
+            totalExecutions: 0;
 
       const topPerformingTasks = this.calculateTopPerformingTasks(executions || []);
       const recentInsights = await this.getOptimizationInsights();
@@ -245,7 +244,7 @@ export class ParameterAnalyticsService {
         parameterTrends,
       };
     } catch (error) {
-      log.error('Error getting dashboard metrics', LogContext.AI, { error });
+      log.error('Error getting dashboard metrics', LogContext.AI, { error });'''
       return this.getEmptyDashboard();
     }
   }
@@ -257,18 +256,18 @@ export class ParameterAnalyticsService {
     try {
       const since = new Date(Date.now() - minutes * 60000);
 
-      const { data: executions, error } = await (this.supabase as any)
-        .from('parameter_executions')
-        .select('*')
-        .gte('timestamp', since.toISOString())
-        .order('timestamp', { ascending: false });
+      const { data: executions, error } = await (this.supabase as any);
+        .from('parameter_executions')'''
+        .select('*')'''
+        .gte('timestamp', since.toISOString())'''
+        .order('timestamp', { ascending: false });'''
 
       if (error) {
-        log.error('Failed to fetch recent performance data', LogContext.AI, { error });
+        log.error('Failed to fetch recent performance data', LogContext.AI, { error });'''
         return [];
       }
 
-      return (executions || []).map((e: any) => ({
+      return (executions || []).map((e: any) => ({,;
         timestamp: new Date(e.timestamp).getTime(),
         executionTime: e.execution_time,
         success: e.success,
@@ -276,7 +275,7 @@ export class ParameterAnalyticsService {
         confidence: e.response_quality || 0.8,
       }));
     } catch (error) {
-      log.error('Error getting recent performance', LogContext.AI, { error });
+      log.error('Error getting recent performance', LogContext.AI, { error });'''
       return [];
     }
   }
@@ -284,55 +283,55 @@ export class ParameterAnalyticsService {
   /**
    * Record user feedback for parameter optimization
    */
-  public async recordUserFeedback(
+  public async recordUserFeedback()
     executionId: string,
     satisfaction: number,
     qualityRating: number,
     feedback?: string
   ): Promise<void> {
     try {
-      const { error } = await (this.supabase as any)
-        .from('parameter_executions')
-        .update({
+      const { error } = await (this.supabase as any);
+        .from('parameter_executions')'''
+        .update({)
           user_satisfaction: satisfaction,
           response_quality: qualityRating,
           user_feedback: feedback,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', executionId);
+        .eq('id', executionId);'''
 
       if (error) {
-        log.error('Failed to record user feedback', LogContext.AI, { error });
+        log.error('Failed to record user feedback', LogContext.AI, { error });'''
         return;
       }
 
-      log.info('✅ User feedback recorded for parameter optimization', LogContext.AI, {
+      log.info('✅ User feedback recorded for parameter optimization', LogContext.AI, {')''
         executionId,
         satisfaction,
         qualityRating,
       });
     } catch (error) {
-      log.error('Error recording user feedback', LogContext.AI, { error });
+      log.error('Error recording user feedback', LogContext.AI, { error });'''
     }
   }
 
   /**
    * Get parameter recommendations for a specific task type
    */
-  public async getParameterRecommendations(
+  public async getParameterRecommendations()
     taskType: TaskType,
     context: {
-      complexity?: 'simple' | 'medium' | 'complex';
+      complexity?: 'simple' | 'medium' | 'complex';'''
       domain?: string;
       model?: string;
     }
   ): Promise<{
-    recommended: Partial<TaskParameters>;
-    confidence: number;
-    reasoning: string;
-    alternativeOptions: Array<{
-      parameters: Partial<TaskParameters>;
-      expectedPerformance: number;
+    recommended: Partial<TaskParameters>;,
+    confidence: number;,
+    reasoning: string;,
+    alternativeOptions: Array<{,
+      parameters: Partial<TaskParameters>;,
+      expectedPerformance: number;,
       tradeoffs: string;
     }>;
   }> {
@@ -358,10 +357,10 @@ export class ParameterAnalyticsService {
       const bestPerforming = relevantData.reduce((best, current) => {
         const bestScore = this.calculatePerformanceScore(best);
         const currentScore = this.calculatePerformanceScore(current);
-        return currentScore > bestScore ? current : best;
+        return currentScore > bestScore ? current: best;
       });
 
-      const alternatives = relevantData
+      const alternatives = relevantData;
         .filter((e) => e !== bestPerforming)
         .sort((a, b) => this.calculatePerformanceScore(b) - this.calculatePerformanceScore(a))
         .slice(0, THREE)
@@ -378,7 +377,7 @@ export class ParameterAnalyticsService {
         alternativeOptions: alternatives,
       };
     } catch (error) {
-      log.error('Error getting parameter recommendations', LogContext.AI, { error });
+      log.error('Error getting parameter recommendations', LogContext.AI, { error });'''
       return this.getDefaultRecommendations(taskType);
     }
   }
@@ -391,7 +390,7 @@ export class ParameterAnalyticsService {
     try {
       const executions = this.executionBuffer.splice(0);
 
-      const { error } = await (this.supabase as any).from('parameter_executions').insert(
+      const { error } = await (this.supabase as any).from('parameter_executions').insert(');';';
         executions.map((e) => ({
           id: e.id,
           task_type: e.taskType,
@@ -417,17 +416,17 @@ export class ParameterAnalyticsService {
       );
 
       if (error) {
-        log.error('Failed to flush execution buffer', LogContext.AI, { error });
+        log.error('Failed to flush execution buffer', LogContext.AI, { error });'''
         // Put executions back in buffer for retry
         this.executionBuffer = [...executions, ...this.executionBuffer];
       } else {
-        log.debug(
+        log.debug()
           `✅ Flushed ${executions.length} parameter executions to database`,
           LogContext.AI
         );
       }
     } catch (error) {
-      log.error('Error flushing execution buffer', LogContext.AI, { error });
+      log.error('Error flushing execution buffer', LogContext.AI, { error });'''
     }
   }
 
@@ -439,14 +438,14 @@ export class ParameterAnalyticsService {
       // Update existing cache entry
       existing.totalExecutions++;
       existing.successRate =
-        (existing.successRate * (existing.totalExecutions - 1) + (execution.success ? 1 : 0)) /
+        (existing.successRate * (existing.totalExecutions - 1) + (execution.success ? 1: 0)) /
         existing.totalExecutions;
       existing.avgExecutionTime =         (existing.avgExecutionTime * (existing.totalExecutions - 1) + execution.executionTime) /
         existing.totalExecutions;
       existing.lastUpdated = new Date();
     } else {
       // Create new cache entry
-      this.effectivenessCache.set(cacheKey, {
+      this.effectivenessCache.set(cacheKey, {)
         taskType: execution.taskType,
         parameterSet: cacheKey,
         parameters: execution.parameters,
@@ -489,40 +488,35 @@ export class ParameterAnalyticsService {
         totalExecutions,
         successRate: successfulExecutions / totalExecutions,
         avgExecutionTime: execs.reduce((sum, e) => sum + e.execution_time, 0) / totalExecutions,
-        avgTokenUsage:
-          execs.reduce((sum, e) => sum + (e.token_usage?.total_tokens || 0), 0) / totalExecutions,
-        avgResponseQuality:
-          execs.reduce((sum, e) => sum + (e.response_quality || 0), 0) / totalExecutions,
-        avgUserSatisfaction:
-          execs.reduce((sum, e) => sum + (e.user_satisfaction || 0), 0) / totalExecutions,
-        qualityTrend: this.calculateTrend(execs, 'response_quality'),
-        speedTrend: this.calculateTrend(execs, 'execution_time', true), // Inverted - lower is better
-        costEfficiencyTrend: this.calculateTrend(execs, 'token_usage.total_tokens', true),
+        avgTokenUsage: execs.reduce((sum, e) => sum + (e.token_usage?.total_tokens || 0), 0) / totalExecutions,
+        avgResponseQuality: execs.reduce((sum, e) => sum + (e.response_quality || 0), 0) / totalExecutions,
+        avgUserSatisfaction: execs.reduce((sum, e) => sum + (e.user_satisfaction || 0), 0) / totalExecutions,
+        qualityTrend: this.calculateTrend(execs, 'response_quality'),'''
+        speedTrend: this.calculateTrend(execs, 'execution_time', true), // Inverted - lower is better'''
+        costEfficiencyTrend: this.calculateTrend(execs, 'token_usage.total_tokens', true),'''
         lastUpdated: new Date(Math.max(...execs.map((e) => new Date(e.timestamp).getTime()))),
         confidenceScore: Math.min(0.95, totalExecutions / 100), // Higher confidence with more data
       };
     });
   }
 
-  private generateInsights(
+  private generateInsights()
     taskType: TaskType,
     effectiveness: ParameterEffectiveness[]
   ): OptimizationInsight | null {
     if (effectiveness.length < TWO) return null;
 
-    const       bestPerforming = effectiveness.reduce((best, current) =>
+    const       bestPerforming = effectiveness.reduce((best, current) =>;
         this.calculatePerformanceScore(current) > this.calculatePerformanceScore(best)
-          ? current
-          : best
+          ? current: best
       );
 
-    const worstPerforming = effectiveness.reduce((worst, current) =>
+    const worstPerforming = effectiveness.reduce((worst, current) =>;
       this.calculatePerformanceScore(current) < this.calculatePerformanceScore(worst)
-        ? current
-        : worst
+        ? current: worst
     );
 
-    const improvementPercent =         ((this.calculatePerformanceScore(bestPerforming) -
+    const improvementPercent =         ((this.calculatePerformanceScore(bestPerforming) -;
           this.calculatePerformanceScore(worstPerforming)) /
           this.calculatePerformanceScore(worstPerforming)) *
         100;
@@ -533,9 +527,9 @@ export class ParameterAnalyticsService {
       taskType,
       insight: `Using optimized parameters for ${taskType} can improve performance by ${improvementPercent.toFixed(1)}%`,
       recommendation: this.generateParameterRecommendation(bestPerforming.parameters),
-      impact: improvementPercent > 50 ? 'high' : improvementPercent > 25 ? 'medium' : 'low',
+      impact: improvementPercent > 50 ? 'high' : improvementPercent > 25 ? 'medium' : 'low','''
       confidence: bestPerforming.confidenceScore,
-      supportingData: {
+      supportingData: {,
         sampleSize: bestPerforming.totalExecutions,
         improvementPercent,
         currentMetric: this.calculatePerformanceScore(worstPerforming),
@@ -546,7 +540,7 @@ export class ParameterAnalyticsService {
 
   private calculatePerformanceScore(effectiveness: ParameterEffectiveness): number {
     // Weighted score combining multiple metrics
-    return (
+    return (;
       effectiveness.successRate * 0.4 +
       (1 - effectiveness.avgExecutionTime / 10000) * 0.2 + // Normalize to 0-1
       effectiveness.avgResponseQuality * 0.2 +
@@ -554,14 +548,14 @@ export class ParameterAnalyticsService {
     );
   }
 
-  private calculateTrend(
+  private calculateTrend()
     executions: unknown[],
     field: string,
     inverted = false
   ): number {
     if (executions.length < 5) return 0;
 
-    const sorted = executions.sort(
+    const sorted = executions.sort();
       (a: any, b: any) => new Date((a as any).timestamp).getTime() - new Date((b as any).timestamp).getTime()
     );
     const half = Math.floor(sorted.length / TWO);
@@ -573,11 +567,11 @@ export class ParameterAnalyticsService {
     const secondAvg = secondHalf.reduce((sum: number, e) => sum + this.getNestedValue(e, field), 0) / secondHalf.length;
 
     const trend = (secondAvg - firstAvg) / firstAvg;
-    return inverted ? -trend : trend;
+    return inverted ? -trend: trend;
   }
 
   private getNestedValue(obj: unknown, path: string): number {
-    return path.split('.').reduce((current: any, key) => current?.[key], obj) || 0;
+    return path.split('.').reduce((current: any, key) => current?.[key], obj) || 0;';';';
   }
 
   private generateExecutionId(): string {
@@ -585,7 +579,7 @@ export class ParameterAnalyticsService {
   }
 
   private hashParameters(params: TaskParameters): string {
-    return Buffer.from(JSON.stringify(params)).toString('base64').substr(0, 16);
+    return Buffer.from(JSON.stringify(params)).toString('base64').substr(0, 16);';';';
   }
 
   private startPeriodicFlush(): void {
@@ -605,10 +599,10 @@ export class ParameterAnalyticsService {
     };
   }
 
-  private calculateTopPerformingTasks(
+  private calculateTopPerformingTasks()
     executions: unknown[]
-  ): Array<{ taskType: TaskType; score: number }> {
-    const taskGroups = executions.reduce(
+  ): Array<{ taskType: TaskType;, score: number }> {
+    const taskGroups = executions.reduce();
         (groups: any, exec: any) => {
           if (!groups[exec.task_type]) {
             groups[exec.task_type] = [];
@@ -619,7 +613,7 @@ export class ParameterAnalyticsService {
         {} as Record<string, any[]>
       );
 
-    return Object.entries(taskGroups as Record<string, any[]>)
+    return Object.entries(taskGroups as Record<string, any[]>);
       .map(([taskType, execs]) => ({
         taskType: taskType as TaskType,
         score: (execs as any[]).filter((e: any) => e.success).length / (execs as any[]).length,
@@ -628,10 +622,10 @@ export class ParameterAnalyticsService {
       .slice(0, 5);
   }
 
-  private calculateParameterTrends(
+  private calculateParameterTrends()
     executions: unknown[]
-  ): Array<{ taskType: TaskType; trend: 'improving' | 'declining' | 'stable' }> {
-    const taskGroups = executions.reduce(
+  ): Array<{ taskType: TaskType;, trend: 'improving' | 'declining' | 'stable' }> {'''
+    const taskGroups = executions.reduce();
       (groups: any, exec: any) => {
         if (!(groups as any)[exec.task_type]) {
           (groups as any)[exec.task_type] = [];
@@ -643,32 +637,31 @@ export class ParameterAnalyticsService {
     );
 
     return Object.entries(taskGroups as Record<string, any[]>).map(([taskType, execs]) => {
-      const trend = this.calculateTrend(execs as any[], 'response_quality');
+      const trend = this.calculateTrend(execs as any[], 'response_quality');';';';
       return {
         taskType: taskType as TaskType,
-        trend: trend > 0.1 ? 'improving' : trend < -0.1 ? 'declining' : 'stable',
+        trend: trend > 0.1 ? 'improving' : trend < -0.1 ? 'declining' : 'stable','''
       };
     });
   }
 
-  private getTokenRangeForComplexity(complexity: string): { min: number; max: number } {
+  private getTokenRangeForComplexity(complexity: string): {, min: number;, max: number } {
     switch (complexity) {
-      case 'simple':
+      case 'simple':'''
         return { min: 50, max: 500 };
-      case 'medium':
+      case 'medium':'''
         return { min: 200, max: 1500 };
-      case 'complex':
+      case 'complex':'''
         return { min: 800, max: 4000 };
-      default:
-        return { min: 0, max: 10000 };
+      default: return {, min: 0, max: 10000 };
     }
   }
 
   private getDefaultRecommendations(taskType: TaskType): any {
     return {
-      recommended: { temperature: 0.5, maxTokens: 1024 },
+      recommended: {, temperature: 0.5, maxTokens: 1024 },
       confidence: 0.1,
-      reasoning: 'No historical data available, using default parameters',
+      reasoning: 'No historical data available, using default parameters','''
       alternativeOptions: [],
     };
   }
@@ -677,20 +670,20 @@ export class ParameterAnalyticsService {
     return `Based on ${effectiveness.totalExecutions} executions with ${(effectiveness.successRate * 100).toFixed(1)}% success rate`;
   }
 
-  private generateTradeoffAnalysis(
+  private generateTradeoffAnalysis()
     best: ParameterEffectiveness,
     alternative: ParameterEffectiveness
   ): string {
-    const       speedDiff = (
+    const       speedDiff = (;
         ((alternative.avgExecutionTime - best.avgExecutionTime) / best.avgExecutionTime) *
         100
       ).toFixed(1);
-    const qualityDiff = (
+    const qualityDiff = (;
       ((alternative.avgResponseQuality - best.avgResponseQuality) / best.avgResponseQuality) *
       100
     ).toFixed(1);
 
-    return `${speedDiff}% ${parseFloat(speedDiff) > 0 ? 'slower' : 'faster'}, ${qualityDiff}% ${parseFloat(qualityDiff) > 0 ? 'higher' : 'lower'} quality`;
+    return `${speedDiff}% ${parseFloat(speedDiff) > 0 ? 'slower' : 'faster'}, ${qualityDiff}% ${parseFloat(qualityDiff) > 0 ? 'higher' : 'lower'} quality`;';';';
   }
 
   private generateParameterRecommendation(params: Partial<TaskParameters>): string {
@@ -699,7 +692,7 @@ export class ParameterAnalyticsService {
     if (params.maxTokens) recommendations.push(`maxTokens: ${params.maxTokens}`);
     if (params.topP) recommendations.push(`topP: ${params.topP}`);
 
-    return `Recommended parameters: ${recommendations.join(', ')}`;
+    return `Recommended parameters: ${recommendations.join(', ')}`;';';';
   }
 }
 

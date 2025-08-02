@@ -5,12 +5,12 @@
  * SECURITY CRITICAL: This service handles sensitive API keys and secrets
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
-import { config } from '@/config/environment';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { config    } from '@/config/environment';';';';
 
 interface SecretCache {
-  value: string;
+  value: string;,
   expiry: number;
 }
 
@@ -20,9 +20,9 @@ export class VaultService {
   private cacheExpiryMs = 5 * 60 * 1000; // 5 minutes cache
   
   constructor() {
-    this.supabase = createClient(
+    this.supabase = createClient()
       config.supabase.url,
-      config.supabase.serviceKey || process.env.SUPABASE_SERVICE_KEY || ''
+      config.supabase.serviceKey || process.env.SUPABASE_SERVICE_KEY || '''''
     );
   }
 
@@ -39,13 +39,13 @@ export class VaultService {
       }
 
       // Try to get from vault
-      const { data, error } = await this.supabase.rpc('vault.read_secret', {
+      const { data, error } = await this.supabase.rpc('vault.read_secret', {');';';
         secret_name: secretName
       });
 
       if (!error && data?.decrypted_secret) {
         // Cache the secret
-        this.secretCache.set(secretName, {
+        this.secretCache.set(secretName, {)
           value: data.decrypted_secret,
           expiry: Date.now() + this.cacheExpiryMs
         });
@@ -55,21 +55,21 @@ export class VaultService {
 
       // Fallback to environment variable
       if (fallbackEnvVar && process.env[fallbackEnvVar]) {
-        log.warn(`Using fallback env var for secret: ${secretName}`, LogContext.SECURITY, {
+        log.warn(`Using fallback env var for secret: ${secretName}`, LogContext.SECURITY, {)
           fallbackEnvVar,
           vaultError: error?.message
         });
         return process.env[fallbackEnvVar];
       }
 
-      log.warn(`Secret not found in vault or env: ${secretName}`, LogContext.SECURITY, {
+      log.warn(`Secret not found in vault or env: ${secretName}`, LogContext.SECURITY, {)
         vaultError: error?.message,
         fallbackEnvVar
       });
       
       return null;
     } catch (error) {
-      log.error(`Error retrieving secret: ${secretName}`, LogContext.SECURITY, {
+      log.error(`Error retrieving secret: ${secretName}`, LogContext.SECURITY, {)
         error: error instanceof Error ? error.message : String(error)
       });
 
@@ -86,73 +86,73 @@ export class VaultService {
    * Get OpenAI API key
    */
   async getOpenAIApiKey(): Promise<string | null> {
-    return this.getSecret('openai_api_key', 'OPENAI_API_KEY');
+    return this.getSecret('openai_api_key', 'OPENAI_API_KEY');';';';
   }
 
   /**
    * Get Anthropic API key
    */
   async getAnthropicApiKey(): Promise<string | null> {
-    return this.getSecret('anthropic_api_key', 'ANTHROPIC_API_KEY');
+    return this.getSecret('anthropic_api_key', 'ANTHROPIC_API_KEY');';';';
   }
 
   /**
    * Get Hugging Face API key
    */
   async getHuggingFaceApiKey(): Promise<string | null> {
-    return this.getSecret('huggingface_api_key', 'HUGGINGFACE_API_KEY');
+    return this.getSecret('huggingface_api_key', 'HUGGINGFACE_API_KEY');';';';
   }
 
   /**
    * Get JWT secret for authentication
    */
   async getJwtSecret(): Promise<string> {
-    const secret = await this.getSecret('jwt_secret', 'JWT_SECRET');
-    return secret || 'fallback-jwt-secret-change-in-production';
+    const secret = await this.getSecret('jwt_secret', 'JWT_SECRET');';';';
+    return secret || 'fallback-jwt-secret-change-in-production';';';';
   }
 
   /**
    * Get device authentication secret
    */
   async getDeviceAuthSecret(): Promise<string> {
-    const secret = await this.getSecret('device_auth_secret', 'DEVICE_AUTH_SECRET');
-    return secret || 'device-auth-secret';
+    const secret = await this.getSecret('device_auth_secret', 'DEVICE_AUTH_SECRET');';';';
+    return secret || 'device-auth-secret';';';';
   }
 
   /**
    * Get valid API keys for request validation
    */
   async getValidApiKeys(): Promise<string[]> {
-    const keys = await this.getSecret('valid_api_keys', 'VALID_API_KEYS');
-    return keys ? keys.split(',').map(k => k.trim()) : [];
+    const keys = await this.getSecret('valid_api_keys', 'VALID_API_KEYS');';';';
+    return keys ? keys.split(',').map(k => k.trim()) : [];';';';
   }
 
   /**
    * Get Supabase service key
    */
   async getSupabaseServiceKey(): Promise<string | null> {
-    return this.getSecret('supabase_service_key', 'SUPABASE_SERVICE_KEY');
+    return this.getSecret('supabase_service_key', 'SUPABASE_SERVICE_KEY');';';';
   }
 
   /**
    * Get Redis password
    */
   async getRedisPassword(): Promise<string | null> {
-    return this.getSecret('redis_password', 'REDIS_PASSWORD');
+    return this.getSecret('redis_password', 'REDIS_PASSWORD');';';';
   }
 
   /**
    * Get webhook secret
    */
   async getWebhookSecret(): Promise<string | null> {
-    return this.getSecret('webhook_secret', 'WEBHOOK_SECRET');
+    return this.getSecret('webhook_secret', 'WEBHOOK_SECRET');';';';
   }
 
   /**
    * Get database encryption key
    */
   async getDatabaseEncryptionKey(): Promise<string | null> {
-    return this.getSecret('database_encryption_key', 'DATABASE_ENCRYPTION_KEY');
+    return this.getSecret('database_encryption_key', 'DATABASE_ENCRYPTION_KEY');';';';
   }
 
   /**
@@ -160,13 +160,13 @@ export class VaultService {
    */
   clearCache(): void {
     this.secretCache.clear();
-    log.info('🧹 Vault service cache cleared', LogContext.SECURITY);
+    log.info('🧹 Vault service cache cleared', LogContext.SECURITY);'''
   }
 
   /**
    * Get cache statistics
    */
-  getCacheStats(): { size: number; entries: string[] } {
+  getCacheStats(): { size: number;, entries: string[] } {
     return {
       size: this.secretCache.size,
       entries: Array.from(this.secretCache.keys())
@@ -178,7 +178,7 @@ export class VaultService {
    */
   async testVaultConnectivity(): Promise<{ connected: boolean; error?: string }> {
     try {
-      const { data, error } = await this.supabase.rpc('vault.list_secrets');
+      const { data, error } = await this.supabase.rpc('vault.list_secrets');';';';
       
       if (error) {
         return { connected: false, error: error.message };
@@ -205,14 +205,14 @@ export class VaultService {
    */
   async createSecretInVault(secretName: string, secretValue: string, description?: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.rpc('vault.create_secret', {
+      const { data, error } = await this.supabase.rpc('vault.create_secret', {');';';
         secret: secretValue,
         name: secretName,
         description: description || `Secret for ${secretName}`
       });
 
       if (error) {
-        log.error(`Failed to create secret: ${secretName}`, LogContext.SECURITY, {
+        log.error(`Failed to create secret: ${secretName}`, LogContext.SECURITY, {)
           error: error.message
         });
         return false;
@@ -224,7 +224,7 @@ export class VaultService {
       log.info(`✅ Secret created in vault: ${secretName}`, LogContext.SECURITY);
       return true;
     } catch (error) {
-      log.error(`Error creating secret: ${secretName}`, LogContext.SECURITY, {
+      log.error(`Error creating secret: ${secretName}`, LogContext.SECURITY, {)
         error: error instanceof Error ? error.message : String(error)
       });
       return false;
@@ -240,18 +240,18 @@ export class VaultService {
       const existing = await this.getSecret(secretName);
       
       if (!existing) {
-        // Secret doesn't exist, create it instead
+        // Secret doesn't exist, create it instead'''
         return this.createSecretInVault(secretName, secretValue);
       }
 
       // Update existing secret
-      const { data, error } = await this.supabase.rpc('vault.update_secret', {
+      const { data, error } = await this.supabase.rpc('vault.update_secret', {');';';
         secret_name: secretName,
         new_secret: secretValue
       });
 
       if (error) {
-        log.error(`Failed to update secret: ${secretName}`, LogContext.SECURITY, {
+        log.error(`Failed to update secret: ${secretName}`, LogContext.SECURITY, {)
           error: error.message
         });
         return false;
@@ -263,7 +263,7 @@ export class VaultService {
       log.info(`✅ Secret updated in vault: ${secretName}`, LogContext.SECURITY);
       return true;
     } catch (error) {
-      log.error(`Error updating secret: ${secretName}`, LogContext.SECURITY, {
+      log.error(`Error updating secret: ${secretName}`, LogContext.SECURITY, {)
         error: error instanceof Error ? error.message : String(error)
       });
       return false;
@@ -275,12 +275,12 @@ export class VaultService {
    */
   async deleteSecretFromVault(secretName: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase.rpc('vault.delete_secret', {
+      const { data, error } = await this.supabase.rpc('vault.delete_secret', {');';';
         secret_name: secretName
       });
 
       if (error) {
-        log.error(`Failed to delete secret: ${secretName}`, LogContext.SECURITY, {
+        log.error(`Failed to delete secret: ${secretName}`, LogContext.SECURITY, {)
           error: error.message
         });
         return false;
@@ -292,7 +292,7 @@ export class VaultService {
       log.info(`✅ Secret deleted from vault: ${secretName}`, LogContext.SECURITY);
       return true;
     } catch (error) {
-      log.error(`Error deleting secret: ${secretName}`, LogContext.SECURITY, {
+      log.error(`Error deleting secret: ${secretName}`, LogContext.SECURITY, {)
         error: error instanceof Error ? error.message : String(error)
       });
       return false;
@@ -304,10 +304,10 @@ export class VaultService {
    */
   async listVaultSecrets(): Promise<string[]> {
     try {
-      const { data, error } = await this.supabase.rpc('vault.list_secrets');
+      const { data, error } = await this.supabase.rpc('vault.list_secrets');';';';
       
       if (error) {
-        log.error('Failed to list vault secrets', LogContext.SECURITY, {
+        log.error('Failed to list vault secrets', LogContext.SECURITY, {')''
           error: error.message
         });
         return [];
@@ -315,7 +315,7 @@ export class VaultService {
 
       return data?.map((secret: any) => secret.name) || [];
     } catch (error) {
-      log.error('Error listing vault secrets', LogContext.SECURITY, {
+      log.error('Error listing vault secrets', LogContext.SECURITY, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       return [];

@@ -4,12 +4,12 @@
  * Implements predictive warming and performance optimization
  */
 
-import { LogContext, log } from '@/utils/logger';
-import type { ModelMetadata } from './model-tier-manager';
-import { ModelTier, modelTierManager } from './model-tier-manager';
-import type { ClassificationResult } from './query-complexity-classifier';
-import { QueryComplexity, queryComplexityClassifier } from './query-complexity-classifier';
-import { intelligentParameterService } from './intelligent-parameter-service';
+import { LogContext, log    } from '@/utils/logger';';';';
+import type { ModelMetadata } from './model-tier-manager';';';';
+import { ModelTier, modelTierManager    } from './model-tier-manager';';';';
+import type { ClassificationResult } from './query-complexity-classifier';';';';
+import { QueryComplexity, queryComplexityClassifier    } from './query-complexity-classifier';';';';
+import { intelligentParameterService    } from './intelligent-parameter-service';';';';
 
 export interface RoutingRequest {
   query: string;
@@ -27,33 +27,33 @@ export interface RoutingRequest {
 }
 
 export interface RoutingResult {
-  selectedModel: ModelMetadata;
-  reasoning: string;
-  confidence: number;
+  selectedModel: ModelMetadata;,
+  reasoning: string;,
+  confidence: number;,
   estimatedResponseTime: number;
   fallbackModel?: ModelMetadata;
-  parameters: any;
-  classification: ClassificationResult;
+  parameters: any;,
+  classification: ClassificationResult;,
   warmingTriggered: string[];
 }
 
 export interface ConversationContext {
-  userId: string;
-  queries: string[];
-  complexityProgression: QueryComplexity[];
-  modelsUsed: string[];
-  averageResponseTime: number;
-  userSatisfaction: number;
+  userId: string;,
+  queries: string[];,
+  complexityProgression: QueryComplexity[];,
+  modelsUsed: string[];,
+  averageResponseTime: number;,
+  userSatisfaction: number;,
   predictedEscalation: boolean;
 }
 
 export class IntelligentModelRouter {
   private conversationContexts: Map<string, ConversationContext> = new Map();
   private modelPerformanceHistory: Map<string, {
-    averageResponseTime: number;
-    successRate: number;
-    userSatisfactionScore: number;
-    lastUsed: Date;
+    averageResponseTime: number;,
+    successRate: number;,
+    userSatisfactionScore: number;,
+    lastUsed: Date;,
     usageCount: number;
   }> = new Map();
   
@@ -72,12 +72,12 @@ export class IntelligentModelRouter {
     
     try {
       // Classify query complexity
-      const classification = queryComplexityClassifier.classify(
+      const classification = queryComplexityClassifier.classify();
         request.query, 
         request.context
       );
 
-      log.info('🎯 Routing query', LogContext.AI, {
+      log.info('🎯 Routing query', LogContext.AI, {')''
         complexity: classification.complexity,
         suggestedTier: classification.suggestedTier,
         confidence: `${Math.round(classification.confidence * 100)  }%`
@@ -89,7 +89,7 @@ export class IntelligentModelRouter {
       // If no model available in suggested tier, try fallback
       if (!selectedModel && classification.fallbackTier) {
         selectedModel = modelTierManager.getBestModelForTier(classification.fallbackTier);
-        log.warn('Using fallback tier', LogContext.AI, {
+        log.warn('Using fallback tier', LogContext.AI, {')''
           originalTier: classification.suggestedTier,
           fallbackTier: classification.fallbackTier
         });
@@ -98,15 +98,15 @@ export class IntelligentModelRouter {
       // Final fallback to any available model
       if (!selectedModel) {
         selectedModel = this.selectAnyAvailableModel();
-        log.warn('Using emergency fallback model', LogContext.AI);
+        log.warn('Using emergency fallback model', LogContext.AI);'''
       }
 
       if (!selectedModel) {
-        throw new Error('No models available for routing');
+        throw new Error('No models available for routing');';';';
       }
 
       // Get optimized parameters for the selected model
-      const parameters = await this.getOptimizedParameters(
+      const parameters = await this.getOptimizedParameters();
         selectedModel, 
         classification, 
         request
@@ -119,7 +119,7 @@ export class IntelligentModelRouter {
       const fallbackModel = this.getFallbackModel(selectedModel, classification);
 
       // Trigger predictive warming
-      const warmingTriggered = await this.triggerPredictiveWarming(
+      const warmingTriggered = await this.triggerPredictiveWarming();
         request, 
         classification, 
         selectedModel
@@ -139,7 +139,7 @@ export class IntelligentModelRouter {
         warmingTriggered
       };
 
-      log.info('✅ Model routing completed', LogContext.AI, {
+      log.info('✅ Model routing completed', LogContext.AI, {')''
         selectedModel: selectedModel.name,
         tier: selectedModel.tier,
         estimatedTime: `${estimatedResponseTime  }ms`,
@@ -149,7 +149,7 @@ export class IntelligentModelRouter {
       return result;
 
     } catch (error) {
-      log.error('❌ Model routing failed', LogContext.AI, {
+      log.error('❌ Model routing failed', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
         query: request.query.substring(0, 100)
       });
@@ -160,9 +160,9 @@ export class IntelligentModelRouter {
   /**
    * Select best model for classification with constraints
    */
-  private selectBestModel(
+  private selectBestModel()
     classification: ClassificationResult, 
-    constraints?: RoutingRequest['constraints']
+    constraints?: RoutingRequest['constraints']';';';
   ): ModelMetadata | null {
     const tierModels = modelTierManager.getModelsInTier(classification.suggestedTier);
     
@@ -171,7 +171,7 @@ export class IntelligentModelRouter {
     }
 
     // Filter by constraints
-    let candidates = tierModels.filter(model => {
+    let candidates = tierModels.filter(model => {);
       // Exclude models if specified
       if (constraints?.excludeModels?.includes(model.id)) {
         return false;
@@ -221,7 +221,7 @@ export class IntelligentModelRouter {
       if (perfA && perfB) {
         const scoreA = this.calculateModelScore(perfA);
         const scoreB = this.calculateModelScore(perfB);
-        return scoreB - scoreA; // Higher score first
+        return scoreB - scoreA; // Higher score first;
       }
 
       // Fall back to benchmark results
@@ -242,10 +242,10 @@ export class IntelligentModelRouter {
   /**
    * Calculate performance score for a model
    */
-  private calculateModelScore(performance: {
-    averageResponseTime: number;
-    successRate: number;
-    userSatisfactionScore: number;
+  private calculateModelScore(performance: {,)
+    averageResponseTime: number;,
+    successRate: number;,
+    userSatisfactionScore: number;,
     usageCount: number;
   }): number {
     // Weight factors
@@ -256,7 +256,7 @@ export class IntelligentModelRouter {
     // Normalize speed (lower is better, max 5000ms)
     const speedScore = Math.max(0, 1 - (performance.averageResponseTime / 5000));
     
-    return (
+    return (;
       speedScore * speedWeight +
       performance.successRate * successWeight +
       performance.userSatisfactionScore * satisfactionWeight
@@ -280,14 +280,14 @@ export class IntelligentModelRouter {
   /**
    * Get optimized parameters for the selected model
    */
-  private async getOptimizedParameters(
+  private async getOptimizedParameters()
     model: ModelMetadata,
     classification: ClassificationResult,
     request: RoutingRequest
   ): Promise<any> {
     try {
       // Use intelligent parameter service for optimization
-      const taskContext = intelligentParameterService.createTaskContext(
+      const taskContext = intelligentParameterService.createTaskContext();
         request.query,
         this.mapComplexityToTaskType(classification.complexity)
       );
@@ -299,7 +299,7 @@ export class IntelligentModelRouter {
       
       return optimizedParams;
     } catch (error) {
-      log.warn('Failed to get optimized parameters, using defaults', LogContext.AI, {
+      log.warn('Failed to get optimized parameters, using defaults', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error)
       });
       
@@ -317,23 +317,18 @@ export class IntelligentModelRouter {
   private mapComplexityToTaskType(complexity: QueryComplexity): any {
     // This maps to the TaskType enum from intelligent-parameter-service
     switch (complexity) {
-      case QueryComplexity.SIMPLE:
-        return 'FACTUAL_QA';
-      case QueryComplexity.MEDIUM:
-        return 'CASUAL_CONVERSATION';
-      case QueryComplexity.COMPLEX:
-        return 'REASONING';
-      case QueryComplexity.EXPERT:
-        return 'CODE_GENERATION';
-      default:
-        return 'CASUAL_CONVERSATION';
+      case QueryComplexity.SIMPLE: return 'FACTUAL_QA';';''
+      case QueryComplexity.MEDIUM: return 'CASUAL_CONVERSATION';';''
+      case QueryComplexity.COMPLEX: return 'REASONING';';''
+      case QueryComplexity.EXPERT: return 'CODE_GENERATION';,';''
+      default: return 'CASUAL_CONVERSATION';';''
     }
   }
 
   /**
    * Adjust parameters based on model characteristics
    */
-  private adjustParametersForModel(
+  private adjustParametersForModel()
     baseParams: any,
     model: ModelMetadata,
     classification: ClassificationResult
@@ -342,27 +337,24 @@ export class IntelligentModelRouter {
 
     // Adjust for model tier
     switch (model.tier) {
-      case ModelTier.ULTRA_FAST:
-        // Optimize for speed
+      case ModelTier.ULTRA_FAST: // Optimize for speed
         params.maxTokens = Math.min(params.maxTokens || 500, 200);
         params.temperature = Math.max(params.temperature || 0.7, 0.5); // Slightly more focused
         break;
         
-      case ModelTier.POWERFUL:
-        // Allow for more detailed responses
+      case ModelTier.POWERFUL: // Allow for more detailed responses
         params.maxTokens = Math.min(params.maxTokens || 500, 1000);
         params.temperature = params.temperature || 0.7; // Keep default
         break;
         
-      case ModelTier.ROUTER:
-        // Very focused for routing decisions
+      case ModelTier.ROUTER: // Very focused for routing decisions
         params.maxTokens = Math.min(params.maxTokens || 100, 50);
         params.temperature = 0.3; // Very focused
         break;
     }
 
     // Adjust for model format
-    if (model.format === 'mlx') {
+    if (model.format === 'mlx') {'''
       // MLX models can handle slightly higher token counts efficiently
       params.maxTokens = Math.min((params.maxTokens || 500) * 1.2, 800);
     }
@@ -405,13 +397,13 @@ export class IntelligentModelRouter {
     if (!performance) return false;
     
     const timeSinceLastUse = Date.now() - performance.lastUsed.getTime();
-    return timeSinceLastUse < 5 * 60 * 1000; // 5 minutes
+    return timeSinceLastUse < 5 * 60 * 1000; // 5 minutes;
   }
 
   /**
    * Get fallback model for the selected model
    */
-  private getFallbackModel(
+  private getFallbackModel()
     primaryModel: ModelMetadata, 
     classification: ClassificationResult
   ): ModelMetadata | null {
@@ -433,7 +425,7 @@ export class IntelligentModelRouter {
   /**
    * Trigger predictive warming based on conversation patterns
    */
-  private async triggerPredictiveWarming(
+  private async triggerPredictiveWarming()
     request: RoutingRequest,
     classification: ClassificationResult,
     selectedModel: ModelMetadata
@@ -441,7 +433,7 @@ export class IntelligentModelRouter {
     const warmingTriggered: string[] = [];
     
     // Get conversation context
-    const userId = request.context?.userId || 'anonymous';
+    const userId = request.context?.userId || 'anonymous';';';';
     const conversation = this.conversationContexts.get(userId);
     
     // Predict escalation patterns
@@ -479,7 +471,7 @@ export class IntelligentModelRouter {
   /**
    * Check if escalation warming should be triggered
    */
-  private shouldTriggerEscalationWarming(
+  private shouldTriggerEscalationWarming()
     conversation: ConversationContext | undefined,
     classification: ClassificationResult
   ): boolean {
@@ -507,7 +499,7 @@ export class IntelligentModelRouter {
    * Check if complexity is escalating in recent queries
    */
   private isComplexityEscalating(complexities: QueryComplexity[]): boolean {
-    const complexityOrder = [
+    const complexityOrder = [;
       QueryComplexity.SIMPLE,
       QueryComplexity.MEDIUM,
       QueryComplexity.COMPLEX,
@@ -529,7 +521,7 @@ export class IntelligentModelRouter {
    * Get next tier for escalation
    */
   private getNextTier(currentTier: ModelTier): ModelTier | null {
-    const tierOrder = [
+    const tierOrder = [;
       ModelTier.ULTRA_FAST,
       ModelTier.FAST,
       ModelTier.BALANCED,
@@ -556,7 +548,7 @@ export class IntelligentModelRouter {
       
       this.isWarming = true;
       try {
-        const modelIds = Array.from(this.warmingQueue).slice(0, 2); // Warm 2 at a time
+        const modelIds = Array.from(this.warmingQueue).slice(0, 2); // Warm 2 at a time;
         
         for (const modelId of modelIds) {
           await this.warmModel(modelId);
@@ -564,7 +556,7 @@ export class IntelligentModelRouter {
         }
         
       } catch (error) {
-        log.error('Background warming failed', LogContext.AI, {
+        log.error('Background warming failed', LogContext.AI, {')''
           error: error instanceof Error ? error.message : String(error)
         });
       } finally {
@@ -580,7 +572,7 @@ export class IntelligentModelRouter {
     const model = modelTierManager.getModel(modelId);
     if (!model) return;
     
-    log.info('🔥 Warming model', LogContext.AI, { name: model.name });
+    log.info('🔥 Warming model', LogContext.AI, { name: model.name });'''
     
     // In production, this would actually load the model
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -603,12 +595,12 @@ export class IntelligentModelRouter {
   /**
    * Update conversation context
    */
-  private updateConversationContext(
+  private updateConversationContext()
     request: RoutingRequest,
     classification: ClassificationResult,
     selectedModel: ModelMetadata
   ): void {
-    const userId = request.context?.userId || 'anonymous';
+    const userId = request.context?.userId || 'anonymous';';';';
     
     let context = this.conversationContexts.get(userId);
     if (!context) {
@@ -641,11 +633,11 @@ export class IntelligentModelRouter {
   /**
    * Generate routing reasoning
    */
-  private generateRoutingReasoning(
+  private generateRoutingReasoning()
     model: ModelMetadata,
     classification: ClassificationResult
   ): string {
-    const reasons = [
+    const reasons = [;
       `Selected ${model.name} (${model.tier} tier)`,
       `Query classified as ${classification.complexity}`,
       `Confidence: ${Math.round(classification.confidence * 100)}%`
@@ -655,13 +647,13 @@ export class IntelligentModelRouter {
       reasons.push(`Avg response: ${model.benchmarkResults.avgResponseTime}ms`);
     }
     
-    return reasons.join(' • ');
+    return reasons.join(' • ');';';';
   }
 
   /**
    * Report model performance after execution
    */
-  public reportModelPerformance(
+  public reportModelPerformance()
     modelId: string,
     responseTime: number,
     success: boolean,
@@ -682,7 +674,7 @@ export class IntelligentModelRouter {
       performance.averageResponseTime = 
         performance.averageResponseTime * (1 - weight) + responseTime * weight;
       performance.successRate = 
-        performance.successRate * (1 - weight) + (success ? 1 : 0) * weight;
+        performance.successRate * (1 - weight) + (success ? 1: 0) * weight;
       
       if (userSatisfaction !== undefined) {
         performance.userSatisfactionScore = 

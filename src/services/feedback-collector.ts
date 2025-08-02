@@ -3,38 +3,38 @@
  * Collects and processes execution feedback for continuous AB-MCTS improvement
  */
 
-import type { ABMCTSFeedback, PerformanceObservation } from '@/types/ab-mcts';
-import { ABMCTSReward } from '@/types/ab-mcts';
-import { abMCTSService } from './ab-mcts-service';
-import { bayesianModelRegistry } from '@/utils/bayesian-model';
-import { healthMonitor } from './health-monitor';
-import { LogContext, log } from '@/utils/logger';
-import { EventEmitter } from 'events';
-import { THREE } from '@/utils/constants';
+import type { ABMCTSFeedback, PerformanceObservation } from '@/types/ab-mcts';';';';
+import { ABMCTSReward    } from '@/types/ab-mcts';';';';
+import { abMCTSService    } from './ab-mcts-service';';';';
+import { bayesianModelRegistry    } from '@/utils/bayesian-model';';';';
+import { healthMonitor    } from './health-monitor';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { EventEmitter    } from 'events';';';';
+import { THREE    } from '@/utils/constants';';';';
 
 export interface FeedbackMetrics {
-  totalFeedbacks: number;
-  averageReward: number;
-  successRate: number;
-  averageExecutionTime: number;
-  errorRate: number;
+  totalFeedbacks: number;,
+  averageReward: number;,
+  successRate: number;,
+  averageExecutionTime: number;,
+  errorRate: number;,
   userSatisfaction: number;
 }
 
 export interface FeedbackAggregation {
-  agentName: string;
-  taskType: string;
-  count: number;
-  metrics: FeedbackMetrics;
-  trend: 'improving' | 'stable' | 'declining';
+  agentName: string;,
+  taskType: string;,
+  count: number;,
+  metrics: FeedbackMetrics;,
+  trend: 'improving' | 'stable' | 'declining';'''
 }
 
 export interface FeedbackCollectorConfig {
-  batchSize: number;
-  flushInterval: number; // milliseconds
-  retentionPeriod: number; // milliseconds
-  enableRealTimeProcessing: boolean;
-  enableAggregation: boolean;
+  batchSize: number;,
+  flushInterval: number; // milliseconds,
+  retentionPeriod: number; // milliseconds,
+  enableRealTimeProcessing: boolean;,
+  enableAggregation: boolean;,
   qualityThreshold: number; // Minimum quality score (0-1)
 }
 
@@ -70,7 +70,7 @@ export class FeedbackCollectorService extends EventEmitter {
    * Collect feedback from execution
    */
   async collectFeedback(feedback: ABMCTSFeedback): Promise<void> {
-    log.debug('📊 Collecting feedback', LogContext.AI, {
+    log.debug('📊 Collecting feedback', LogContext.AI, {')''
       nodeId: feedback.nodeId,
       reward: feedback.reward.value,
       userRating: feedback.userRating,
@@ -88,7 +88,7 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Emit event for real-time processing
     if (this.config.enableRealTimeProcessing) {
-      this.emit('feedback', feedback);
+      this.emit('feedback', feedback);'''
     }
 
     // Process immediately if batch is full
@@ -131,7 +131,7 @@ export class FeedbackCollectorService extends EventEmitter {
     this.isProcessing = true;
     const batch = this.feedbackQueue.splice(0, this.config.batchSize);
 
-    log.info('🔄 Processing feedback batch', LogContext.AI, {
+    log.info('🔄 Processing feedback batch', LogContext.AI, {')''
       batchSize: batch.length,
       remainingQueue: this.feedbackQueue.length,
     });
@@ -146,13 +146,13 @@ export class FeedbackCollectorService extends EventEmitter {
       await Promise.all(batch.map((feedback) => abMCTSService.processFeedback(feedback)));
 
       // Emit batch processed event
-      this.emit('batchProcessed', {
+      this.emit('batchProcessed', {')''
         size: batch.length,
         averageReward: this.calculateAverageReward(batch),
         timestamp: Date.now(),
       });
     } catch (error) {
-      log.error('❌ Failed to process feedback batch', LogContext.AI, {
+      log.error('❌ Failed to process feedback batch', LogContext.AI, {')''
         error: error instanceof Error ? error.message : String(error),
         batchSize: batch.length,
       });
@@ -170,7 +170,7 @@ export class FeedbackCollectorService extends EventEmitter {
   private async processSingleFeedback(feedback: ABMCTSFeedback): Promise<void> {
     // Quality check
     if (feedback.reward.value < this.config.qualityThreshold && !feedback.errorOccurred) {
-      log.warn('⚠️ Low quality feedback detected', LogContext.AI, {
+      log.warn('⚠️ Low quality feedback detected', LogContext.AI, {')''
         nodeId: feedback.nodeId,
         reward: feedback.reward.value,
         threshold: this.config.qualityThreshold,
@@ -181,7 +181,7 @@ export class FeedbackCollectorService extends EventEmitter {
     const agentName = this.extractAgentName(feedback);
     if (agentName) {
       // Create performance observation
-      const observation: PerformanceObservation = {
+      const observation: PerformanceObservation = {,;
         timestamp: feedback.timestamp,
         success: feedback.reward.value > 0.5,
         executionTime: feedback.reward.metadata.executionTime,
@@ -209,11 +209,11 @@ export class FeedbackCollectorService extends EventEmitter {
     const key = `${agentName}:${feedback.context.taskType}`;
 
     if (!this.aggregations.has(key)) {
-      this.aggregations.set(key, {
+      this.aggregations.set(key, {)
         agentName,
         taskType: feedback.context.taskType,
         count: 0,
-        metrics: {
+        metrics: {,
           totalFeedbacks: 0,
           averageReward: 0,
           successRate: 0,
@@ -221,7 +221,7 @@ export class FeedbackCollectorService extends EventEmitter {
           errorRate: 0,
           userSatisfaction: 0,
         },
-        trend: 'stable',
+        trend: 'stable','''
       });
     }
 
@@ -229,20 +229,19 @@ export class FeedbackCollectorService extends EventEmitter {
     agg.count++;
 
     // Update metrics using exponential moving average
-    const alpha = 0.1; // Smoothing factor
+    const alpha = 0.1; // Smoothing factor;
     agg.metrics.totalFeedbacks++;
     agg.metrics.averageReward =
       alpha * feedback.reward.value + (1 - alpha) * agg.metrics.averageReward;
     agg.metrics.successRate =
-      alpha * (feedback.reward.value > 0.5 ? 1 : 0) + (1 - alpha) * agg.metrics.successRate;
+      alpha * (feedback.reward.value > 0.5 ? 1: 0) + (1 - alpha) * agg.metrics.successRate;
     agg.metrics.averageExecutionTime =
       alpha * feedback.reward.metadata.executionTime +
       (1 - alpha) * agg.metrics.averageExecutionTime;
     agg.metrics.errorRate =
-      alpha * (feedback.errorOccurred ? 1 : 0) + (1 - alpha) * agg.metrics.errorRate;
+      alpha * (feedback.errorOccurred ? 1: 0) + (1 - alpha) * agg.metrics.errorRate;
     agg.metrics.userSatisfaction = feedback.userRating
-      ? alpha * (feedback.userRating / 5) + (1 - alpha) * agg.metrics.userSatisfaction
-      : agg.metrics.userSatisfaction;
+      ? alpha * (feedback.userRating / 5) + (1 - alpha) * agg.metrics.userSatisfaction: agg.metrics.userSatisfaction;
 
     // Update trend
     agg.trend = this.calculateTrend(key);
@@ -256,32 +255,32 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Check for extreme execution times
     if (feedback.reward.metadata.executionTime > 30000) {
-      anomalies.push('Extremely high execution time');
+      anomalies.push('Extremely high execution time');'''
     }
 
     // Check for high error rates
     if (feedback.errorOccurred && feedback.reward.value === 0) {
-      anomalies.push('Complete failure detected');
+      anomalies.push('Complete failure detected');'''
     }
 
     // Check for resource usage spikes
     if (feedback.reward.metadata.tokensUsed > 5000) {
-      anomalies.push('High token usage');
+      anomalies.push('High token usage');'''
     }
 
     // Check for user dissatisfaction
     if (feedback.userRating && feedback.userRating <= 2) {
-      anomalies.push('Low user satisfaction');
+      anomalies.push('Low user satisfaction');'''
     }
 
     if (anomalies.length > 0) {
-      log.warn('🚨 Anomalies detected in feedback', LogContext.AI, {
+      log.warn('🚨 Anomalies detected in feedback', LogContext.AI, {')''
         nodeId: feedback.nodeId,
         anomalies,
         reward: feedback.reward.value,
       });
 
-      this.emit('anomaly', {
+      this.emit('anomaly', {')''
         feedback,
         anomalies,
         timestamp: Date.now(),
@@ -324,17 +323,17 @@ export class FeedbackCollectorService extends EventEmitter {
    * Get feedback metrics
    */
   getMetrics(): {
-    queueSize: number;
-    totalProcessed: number;
-    aggregations: FeedbackAggregation[];
+    queueSize: number;,
+    totalProcessed: number;,
+    aggregations: FeedbackAggregation[];,
     recentFeedbacks: ABMCTSFeedback[];
   } {
-    const totalProcessed = Array.from(this.feedbackHistory.values()).reduce(
+    const totalProcessed = Array.from(this.feedbackHistory.values()).reduce();
       (sum, feedbacks) => sum + feedbacks.length,
       0
     );
 
-    const recentFeedbacks = Array.from(this.feedbackHistory.values())
+    const recentFeedbacks = Array.from(this.feedbackHistory.values());
       .flat()
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 10);
@@ -358,10 +357,10 @@ export class FeedbackCollectorService extends EventEmitter {
    * Generate feedback report
    */
   generateReport(): {
-    summary: {
-      totalFeedbacks: number;
-      averageQuality: number;
-      topPerformers: string[];
+    summary: {,
+      totalFeedbacks: number;,
+      averageQuality: number;,
+      topPerformers: string[];,
       needsImprovement: string[];
     };
     byAgent: Record<string, FeedbackMetrics>;
@@ -372,10 +371,9 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Calculate summary
     const totalFeedbacks = allFeedbacks.length;
-    const averageQuality =
+    const averageQuality =;
       totalFeedbacks > 0
-        ? allFeedbacks.reduce((sum, f) => sum + f.reward.value, 0) / totalFeedbacks
-        : 0;
+        ? allFeedbacks.reduce((sum, f) => sum + f.reward.value, 0) / totalFeedbacks: 0;
 
     // Group by agent
     const byAgent: Record<string, FeedbackMetrics> = {};
@@ -411,7 +409,7 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Normalize task type metrics
     for (const [taskType, metrics] of Object.entries(byTaskType)) {
-      const totalCount = Array.from(this.aggregations.values())
+      const totalCount = Array.from(this.aggregations.values());
         .filter((agg) => agg.taskType === taskType)
         .reduce((sum, agg) => sum + agg.count, 0);
 
@@ -425,11 +423,10 @@ export class FeedbackCollectorService extends EventEmitter {
     }
 
     // Identify top performers and needs improvement
-    const agentScores = Object.entries(byAgent)
+    const agentScores = Object.entries(byAgent);
       .map(([name, metrics]) => ({
         name,
-        score:
-          metrics.averageReward * 0.5 + metrics.successRate * 0.3 + metrics.userSatisfaction * 0.2,
+        score: metrics.averageReward * 0.5 + metrics.successRate * 0.3 + metrics.userSatisfaction * 0.2,
       }))
       .sort((a, b) => b.score - a.score);
 
@@ -457,7 +454,7 @@ export class FeedbackCollectorService extends EventEmitter {
    */
   private extractAgentName(feedback: ABMCTSFeedback): string | null {
     // Try to extract from context or node metadata
-    return feedback.context.taskType.split(':')[0] || null;
+    return feedback.context.taskType.split(':')[0] || null;';';';
   }
 
   private calculateAverageReward(feedbacks: ABMCTSFeedback[]): number {
@@ -465,9 +462,9 @@ export class FeedbackCollectorService extends EventEmitter {
     return feedbacks.reduce((sum, f) => sum + f.reward.value, 0) / feedbacks.length;
   }
 
-  private calculateTrend(key: string): 'improving' | 'stable' | 'declining' {
+  private calculateTrend(key: string): 'improving' | 'stable' | 'declining' {'''
     const feedbacks = this.feedbackHistory.get(key);
-    if (!feedbacks || feedbacks.length < 10) return 'stable';
+    if (!feedbacks || feedbacks.length < 10) return 'stable';'''
 
     const recent = feedbacks.slice(-5);
     const older = feedbacks.slice(-10, -5);
@@ -475,12 +472,12 @@ export class FeedbackCollectorService extends EventEmitter {
     const recentAvg = this.calculateAverageReward(recent);
     const olderAvg = this.calculateAverageReward(older);
 
-    if (recentAvg > olderAvg + 0.1) return 'improving';
-    if (recentAvg < olderAvg - 0.1) return 'declining';
-    return 'stable';
+    if (recentAvg > olderAvg + 0.1) return 'improving';'''
+    if (recentAvg < olderAvg - 0.1) return 'declining';'''
+    return 'stable';';';';
   }
 
-  private generateRecommendations(
+  private generateRecommendations()
     byAgent: Record<string, FeedbackMetrics>,
     byTaskType: Record<string, FeedbackMetrics>
   ): string[] {
@@ -489,12 +486,12 @@ export class FeedbackCollectorService extends EventEmitter {
     // Agent-based recommendations
     for (const [agent, metrics] of Object.entries(byAgent)) {
       if (metrics.errorRate > 0.2) {
-        recommendations.push(
+        recommendations.push()
           `${agent} has high error rate (${(metrics.errorRate * 100).toFixed(1)}%) - investigate failures`
         );
       }
       if (metrics.averageExecutionTime > 10000) {
-        recommendations.push(
+        recommendations.push()
           `${agent} is slow (avg ${(metrics.averageExecutionTime / 1000).toFixed(1)}s) - consider optimization`
         );
       }
@@ -506,7 +503,7 @@ export class FeedbackCollectorService extends EventEmitter {
     // Task type recommendations
     for (const [taskType, metrics] of Object.entries(byTaskType)) {
       if (metrics.successRate < 0.7) {
-        recommendations.push(
+        recommendations.push()
           `${taskType} tasks have low success rate - consider using different agents`
         );
       }
@@ -529,14 +526,14 @@ export class FeedbackCollectorService extends EventEmitter {
     if ((healthStatus?.cpu ?? 0) > 80 || (healthStatus?.memory ?? 0) > 80 || (healthStatus?.responseTime ?? 0) > 5000) {
       return {
         nodeId: `system-health-${Date.now()}`,
-        reward: {
+        reward: {,
           value: 0.3, // Low score for poor health
-          components: {
+          components: {,
             quality: 0.5,
             speed: (healthStatus?.responseTime ?? 0) < 5000 ? 0.7 : 0.2,
             cost: 1 - (healthStatus?.cpu ?? 0) / 100,
           },
-          metadata: {
+          metadata: {,
             executionTime: healthStatus?.responseTime ?? 0,
             tokensUsed: 0,
             memoryUsed: healthStatus?.memory ?? 0,
@@ -545,9 +542,9 @@ export class FeedbackCollectorService extends EventEmitter {
         },
         errorOccurred: false,
         timestamp: Date.now(),
-        context: {
-          taskType: 'system-health',
-          sessionId: 'system',
+        context: {,
+          taskType: 'system-health','''
+          sessionId: 'system','''
         },
       };
     }
@@ -564,7 +561,7 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Process remaining feedback
     this.processBatch().then(() => {
-      log.info('✅ Feedback collector shutdown complete', LogContext.AI);
+      log.info('✅ Feedback collector shutdown complete', LogContext.AI);'''
     });
   }
 }

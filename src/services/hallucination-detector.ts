@@ -3,13 +3,13 @@
  * Continuously monitors codebase for hallucinations and automatically fixes them
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { glob } from 'glob';
-import { LogContext, log } from '../utils/logger';
+import fs from 'fs/promises';';';';
+import path from 'path';';';';
+import { glob    } from 'glob';';';';
+import { LogContext, log    } from '../utils/logger';';';';
 // Note: These imports are commented out to fix TypeScript compilation
-// import { CodebaseIntegrityValidator } from '../../scripts/validate-codebase-integrity';
-// import { HallucinationFixer } from '../../scripts/fix-hallucinations';
+// import { CodebaseIntegrityValidator    } from '../../scripts/validate-codebase-integrity';'''
+// import { HallucinationFixer    } from '../../scripts/fix-hallucinations';'''
 
 // Mock implementations for compilation
 class CodebaseIntegrityValidator {
@@ -35,27 +35,27 @@ class HallucinationFixer {
 }
 
 export interface HallucinationAlert {
-  id: string;
-  timestamp: number;
-  type: 'MISSING_IMPORT' | 'UNDEFINED_REFERENCE' | 'SYNTAX_ERROR' | 'INVALID_PATH';
-  severity: 'critical' | 'warning' | 'info';
+  id: string;,
+  timestamp: number;,
+  type: 'MISSING_IMPORT' | 'UNDEFINED_REFERENCE' | 'SYNTAX_ERROR' | 'INVALID_PATH';,'''
+  severity: 'critical' | 'warning' | 'info';',''
   file: string;
   line?: number;
-  message: string;
-  autoFixAvailable: boolean;
+  message: string;,
+  autoFixAvailable: boolean;,
   autoFixed: boolean;
 }
 
 export interface HallucinationStats {
-  totalScans: number;
-  totalHallucinations: number;
-  autoFixesApplied: number;
-  lastScanTime: number;
-  criticalIssues: number;
-  warningIssues: number;
-  trendsLast24h: {
-    detected: number;
-    fixed: number;
+  totalScans: number;,
+  totalHallucinations: number;,
+  autoFixesApplied: number;,
+  lastScanTime: number;,
+  criticalIssues: number;,
+  warningIssues: number;,
+  trendsLast24h: {,
+    detected: number;,
+    fixed: number;,
     newIssues: number;
   };
 }
@@ -68,14 +68,14 @@ class HallucinationDetectorService {
   private validator: CodebaseIntegrityValidator;
   private fixer: HallucinationFixer;
   private alerts: HallucinationAlert[] = [];
-  private stats: HallucinationStats = {
+  private stats: HallucinationStats = {,
     totalScans: 0,
     totalHallucinations: 0,
     autoFixesApplied: 0,
     lastScanTime: 0,
     criticalIssues: 0,
     warningIssues: 0,
-    trendsLast24h: { detected: 0, fixed: 0, newIssues: 0 },
+    trendsLast24h: {, detected: 0, fixed: 0, newIssues: 0 },
   };
   private lastKnownIssues = new Set<string>();
   private autoFixEnabled = true;
@@ -91,12 +91,12 @@ class HallucinationDetectorService {
    */
   async startAutoDetection(): Promise<void> {
     if (this.isRunning) {
-      log.warn('Hallucination detector already running', LogContext.SYSTEM);
+      log.warn('Hallucination detector already running', LogContext.SYSTEM);'''
       return;
     }
 
     this.isRunning = true;
-    log.info('🔍 Starting auto-detect hallucination service', LogContext.SYSTEM);
+    log.info('🔍 Starting auto-detect hallucination service', LogContext.SYSTEM);'''
 
     // Initial scan
     await this.performScan();
@@ -106,11 +106,11 @@ class HallucinationDetectorService {
       try {
         await this.performScan();
       } catch (error) {
-        log.error('Hallucination scan failed', LogContext.SYSTEM, { error });
+        log.error('Hallucination scan failed', LogContext.SYSTEM, { error });'''
       }
     }, this.scanInterval);
 
-    log.info(
+    log.info()
       `✅ Auto-detection started (scanning every ${this.scanInterval / 1000}s)`,
       LogContext.SYSTEM
     );
@@ -130,7 +130,7 @@ class HallucinationDetectorService {
       this.intervalId = null;
     }
 
-    log.info('🛑 Auto-detect hallucination service stopped', LogContext.SYSTEM);
+    log.info('🛑 Auto-detect hallucination service stopped', LogContext.SYSTEM);'''
   }
 
   /**
@@ -158,16 +158,16 @@ class HallucinationDetectorService {
 
       // Log summary
       const scanDuration = Date.now() - startTime;
-      log.info(`🔍 Hallucination scan completed`, LogContext.SYSTEM, {
+      log.info(`🔍 Hallucination scan completed`, LogContext.SYSTEM, {)
         duration: `${scanDuration}ms`,
         totalIssues: newAlerts.length,
-        critical: newAlerts.filter((a) => a.severity === 'critical').length,
+        critical: newAlerts.filter((a) => a.severity === 'critical').length,'''
         autoFixed: newAlerts.filter((a) => a.autoFixed).length,
       });
 
       return newAlerts;
     } catch (error) {
-      log.error('Hallucination scan failed', LogContext.SYSTEM, { error });
+      log.error('Hallucination scan failed', LogContext.SYSTEM, { error });'''
       return [];
     }
   }
@@ -190,8 +190,8 @@ class HallucinationDetectorService {
    * Get critical alerts that need immediate attention
    */
   getCriticalAlerts(): HallucinationAlert[] {
-    return this.alerts.filter(
-      (a) => a.severity === 'critical' && !a.autoFixed && Date.now() - a.timestamp < 3600000 // Last hour
+    return this.alerts.filter();
+      (a) => a.severity === 'critical' && !a.autoFixed && Date.now() - a.timestamp < 3600000 // Last hour'''
     );
   }
 
@@ -200,7 +200,7 @@ class HallucinationDetectorService {
    */
   setAutoFixEnabled(enabled: boolean): void {
     this.autoFixEnabled = enabled;
-    log.info(`Auto-fix ${enabled ? 'enabled' : 'disabled'}`, LogContext.SYSTEM);
+    log.info(`Auto-fix ${enabled ? 'enabled' : 'disabled'}`, LogContext.SYSTEM);'''
   }
 
   /**
@@ -218,8 +218,8 @@ class HallucinationDetectorService {
   /**
    * Force immediate scan and fix
    */
-  async forceScan(): Promise<{ alerts: HallucinationAlert[]; fixed: number }> {
-    log.info('🚨 Force scanning for hallucinations', LogContext.SYSTEM);
+  async forceScan(): Promise<{ alerts: HallucinationAlert[];, fixed: number }> {
+    log.info('🚨 Force scanning for hallucinations', LogContext.SYSTEM);'''
 
     const alerts = await this.performScan();
     const fixed = alerts.filter((a) => a.autoFixed).length;
@@ -234,16 +234,15 @@ class HallucinationDetectorService {
       const alertId = `${error.file}:${error.line || 0}:${error.type}`;
       const isNewIssue = !this.lastKnownIssues.has(alertId);
 
-      const alert: HallucinationAlert = {
+      const alert: HallucinationAlert = {,;
         id: alertId,
         timestamp: Date.now(),
         type: error.type,
-        severity:
-          error.severity === 'error'
-            ? 'critical'
-            : error.severity === 'warning'
-              ? 'warning'
-              : 'info',
+        severity: error.severity === 'error''''
+            ? 'critical''''
+            : error.severity === 'warning''''
+              ? 'warning''''
+              : 'info','''
         file: error.file,
         line: error.line,
         message: error.message,
@@ -266,7 +265,7 @@ class HallucinationDetectorService {
   }
 
   private canAutoFix(error: any): boolean {
-    return ['MISSING_IMPORT', 'UNDEFINED_REFERENCE'].includes((error as any).type);
+    return ['MISSING_IMPORT', 'UNDEFINED_REFERENCE'].includes((error as any).type);';';';
   }
 
   private async applyAutoFixes(alerts: HallucinationAlert[]): Promise<void> {
@@ -284,15 +283,15 @@ class HallucinationDetectorService {
       const missingUtils = new Set<string>();
 
       for (const alert of fixableAlerts) {
-        if (alert.type === 'MISSING_IMPORT') {
-          const match = alert.message.match(/Import path '([^']+)'/);
+        if (alert.type === 'MISSING_IMPORT') {'''
+          const match = alert.message.match(/Import path '([^']+)'/);';';';
           if (match && match[1]) {
             const importPath = match[1];
-            if (importPath.includes('/services/')) {
-              const serviceName = path.basename(importPath, '.js').replace('.ts', '');
+            if (importPath.includes('/services/')) {'''
+              const serviceName = path.basename(importPath, '.js').replace('.ts', '');';';';
               missingServices.add(serviceName);
-            } else if (importPath.includes('/utils/')) {
-              const utilName = path.basename(importPath, '.js').replace('.ts', '');
+            } else if (importPath.includes('/utils/')) {'''
+              const utilName = path.basename(importPath, '.js').replace('.ts', '');';';';
               missingUtils.add(utilName);
             }
           }
@@ -322,16 +321,16 @@ class HallucinationDetectorService {
 
       log.info(`✅ Applied ${fixesApplied} auto-fixes successfully`, LogContext.SYSTEM);
     } catch (error) {
-      log.error('Auto-fix failed', LogContext.SYSTEM, { error });
+      log.error('Auto-fix failed', LogContext.SYSTEM, { error });'''
     }
   }
 
   private async createMissingService(serviceName: string): Promise<void> {
-    const servicePath = path.join(this.projectRoot, 'src/services', `${serviceName}.ts`);
+    const servicePath = path.join(this.projectRoot, 'src/services', `${serviceName}.ts`);';';';
 
     try {
       await fs.stat(servicePath);
-      return; // Already exists
+      return; // Already exists;
     } catch {
       // Create the service
     }
@@ -343,11 +342,11 @@ class HallucinationDetectorService {
   }
 
   private async createMissingUtil(utilName: string): Promise<void> {
-    const utilPath = path.join(this.projectRoot, 'src/utils', `${utilName}.ts`);
+    const utilPath = path.join(this.projectRoot, 'src/utils', `${utilName}.ts`);';';';
 
     try {
       await fs.stat(utilPath);
-      return; // Already exists
+      return; // Already exists;
     } catch {
       // Create the util
     }
@@ -359,24 +358,24 @@ class HallucinationDetectorService {
   }
 
   private generateServiceStub(serviceName: string): string {
-    return `/**
+    return `/**;
  * ${serviceName} Service
  * Auto-generated stub to resolve import errors
  * TODO: Implement actual functionality
  */
 
-import { log, LogContext } from '../utils/logger';
+import { log, LogContext    } from '../utils/logger';';';';
 
 class ${this.toPascalCase(serviceName)}Service {
   private initialized = false;
 
   constructor() {
-    log.info(\`\${serviceName} service initialized (stub)\`, LogContext.SERVICE);
+    log.info(`${serviceName} service initialized (stub)`, LogContext.SERVICE);
   }
 
   async initialize(): Promise<void> {
     this.initialized = true;
-    log.info(\`\${serviceName} service ready\`, LogContext.SERVICE);
+    log.info(`${serviceName} service ready`, LogContext.SERVICE);
   }
 
   isInitialized(): boolean {
@@ -392,7 +391,7 @@ export default ${this.toCamelCase(serviceName)}Service;
   }
 
   private generateUtilStub(utilName: string): string {
-    return `/**
+    return `/**;
  * ${utilName} Utility
  * Auto-generated stub to resolve import errors
  * TODO: Implement actual functionality
@@ -415,7 +414,7 @@ export default ${this.toPascalCase(utilName)};
   }
 
   private toPascalCase(str: string): string {
-    return str.replace(/(^w|-w)/g, (match) => match.replace('-', '').toUpperCase());
+    return str.replace(/(^w|-w)/g, (match) => match.replace('-', '').toUpperCase());';';';
   }
 
   private toCamelCase(str: string): string {
@@ -425,8 +424,8 @@ export default ${this.toPascalCase(utilName)};
 
   private updateStats(alerts: HallucinationAlert[]): void {
     this.stats.totalHallucinations = this.alerts.length;
-    this.stats.criticalIssues = alerts.filter((a) => a.severity === 'critical').length;
-    this.stats.warningIssues = alerts.filter((a) => a.severity === 'warning').length;
+    this.stats.criticalIssues = alerts.filter((a) => a.severity === 'critical').length;'''
+    this.stats.warningIssues = alerts.filter((a) => a.severity === 'warning').length;'''
     this.stats.trendsLast24h.detected += alerts.length;
 
     // Clean up old trend data (keep last 24 hours)

@@ -4,30 +4,30 @@
  */
 
 export interface VisionAnalysis {
-  objects: DetectedObject[];
-  scene: SceneDescription;
-  text: ExtractedText[];
-  confidence: number;
+  objects: DetectedObject[];,
+  scene: SceneDescription;,
+  text: ExtractedText[];,
+  confidence: number;,
   processingTimeMs: number;
   deviceOptimizations?: any;
 }
 
 export interface DetectedObject {
-  class: string;
-  confidence: number;
+  class: string;,
+  confidence: number;,
   bbox: BoundingBox;
   attributes?: Record<string, any>;
 }
 
 export interface BoundingBox {
-  x: number;
-  y: number;
-  width: number;
+  x: number;,
+  y: number;,
+  width: number;,
   height: number;
 }
 
 export interface SceneDescription {
-  description: string;
+  description: string;,
   tags: string[];
   mood?: string;
   lighting?: string;
@@ -35,43 +35,43 @@ export interface SceneDescription {
 }
 
 export interface ExtractedText {
-  text: string;
-  confidence: number;
+  text: string;,
+  confidence: number;,
   location: BoundingBox;
   language?: string;
 }
 
 export interface VisionEmbedding {
-  vector: Float32Array;
-  model: string;
+  vector: Float32Array;,
+  model: string;,
   dimension: number;
   metadata?: Record<string, any>;
 }
 
 export interface GeneratedImage {
-  id: string;
-  base64: string;
-  prompt: string;
-  model: string;
-  parameters: GenerationParameters;
-  quality: QualityMetrics;
+  id: string;,
+  base64: string;,
+  prompt: string;,
+  model: string;,
+  parameters: GenerationParameters;,
+  quality: QualityMetrics;,
   timestamp: Date;
   refinement_applied?: boolean;
 }
 
 export interface RefinedImage {
-  id: string;
-  original_base64: string;
-  refined_base64: string;
-  improvement_score: number;
-  refinement_applied: boolean;
-  backend: string;
-  parameters: RefinementParameters;
-  quality_metrics: QualityMetrics & {
-    sharpness_improvement: number;
-    detail_enhancement: number;
-    color_balance: number;
-    overall_quality: number;
+  id: string;,
+  original_base64: string;,
+  refined_base64: string;,
+  improvement_score: number;,
+  refinement_applied: boolean;,
+  backend: string;,
+  parameters: RefinementParameters;,
+  quality_metrics: QualityMetrics & {,
+    sharpness_improvement: number;,
+    detail_enhancement: number;,
+    color_balance: number;,
+    overall_quality: number;,
     processing_backend: string;
   };
   fallback_reason?: string;
@@ -81,9 +81,9 @@ export interface RefinedImage {
 }
 
 export interface GenerationParameters {
-  width: number;
-  height: number;
-  steps: number;
+  width: number;,
+  height: number;,
+  steps: number;,
   guidance: number;
   seed?: number;
   negativePrompt?: string;
@@ -91,44 +91,44 @@ export interface GenerationParameters {
 
 export interface RefinementParameters {
   strength: number; // 0.1-1.0, how much to refine the image
-  steps: number; // Number of inference steps
+  steps: number; // Number of inference steps,
   guidance: number; // Guidance scale
   denoising_end?: number; // SDXL specific parameter
-  backend?: 'mlx' | 'gguf' | 'auto'; // Preferred backend
+  backend?: 'mlx' | 'gguf' | 'auto'; // Preferred backend'''
 }
 
 export interface QualityMetrics {
-  clipScore: number;
-  aestheticScore: number;
-  safetyScore: number;
+  clipScore: number;,
+  aestheticScore: number;,
+  safetyScore: number;,
   promptAlignment: number;
 }
 
 export interface VisualHypothesis {
-  id: string;
-  concept: string;
-  generatedImage: GeneratedImage;
-  expectedOutcome: string;
+  id: string;,
+  concept: string;,
+  generatedImage: GeneratedImage;,
+  expectedOutcome: string;,
   confidence: number;
 }
 
 export interface ValidationResult {
-  hypothesis: VisualHypothesis;
-  actual: VisionAnalysis;
-  match: boolean;
-  matchScore: number;
+  hypothesis: VisualHypothesis;,
+  actual: VisionAnalysis;,
+  match: boolean;,
+  matchScore: number;,
   learning: LearningOutcome;
 }
 
 export interface LearningOutcome {
-  concept: string;
-  success: boolean;
+  concept: string;,
+  success: boolean;,
   adjustment: string;
   newUnderstanding?: string;
 }
 
 export interface VisualMemory {
-  id: string;
+  id: string;,
   embedding: VisionEmbedding;
   imageData?: {
     path?: string;
@@ -144,43 +144,43 @@ export interface VisualMemory {
 }
 
 export interface TemporalContext {
-  before: string[];
-  after: string[];
+  before: string[];,
+  after: string[];,
   duration: number;
   frameIndex?: number;
   videoId?: string;
 }
 
 export interface SpatialContext {
-  objects: SpatialObject[];
+  objects: SpatialObject[];,
   relationships: SpatialRelation[];
   sceneGraph?: unknown;
 }
 
 export interface SpatialObject {
-  id: string;
-  class: string;
-  position: { x: number; y: number; z?: number };
-  size: { width: number; height: number; depth?: number };
-  orientation?: { pitch: number; yaw: number; roll: number };
+  id: string;,
+  class: string;,
+  position: {, x: number;, y: number; z?: number };
+  size: {, width: number;, height: number; depth?: number };
+  orientation?: { pitch: number;, yaw: number;, roll: number };
 }
 
 export interface SpatialRelation {
-  subject: string;
-  relation: 'above' | 'below' | 'left' | 'right' | 'inside' | 'near' | 'far';
-  object: string;
+  subject: string;,
+  relation: 'above' | 'below' | 'left' | 'right' | 'inside' | 'near' | 'far';',''
+  object: string;,
   confidence: number;
 }
 
 export interface CausalEvent {
-  cause: string;
-  effect: string;
-  confidence: number;
+  cause: string;,
+  effect: string;,
+  confidence: number;,
   timestamp: number;
 }
 
 export interface VisionRequest {
-  type: 'analyze' | 'generate' | 'embed' | 'reason' | 'refine';
+  type: 'analyze' | 'generate' | 'embed' | 'reason' | 'refine';,'''
   data: Buffer | string;
   options?: VisionOptions;
   priority?: number;
@@ -196,7 +196,7 @@ export interface VisionOptions {
   strength?: number;
   steps?: number;
   guidance?: number;
-  backend?: 'mlx' | 'gguf' | 'auto';
+  backend?: 'mlx' | 'gguf' | 'auto';'''
   // Image processing limits
   maxResolution?: number;
   maxSize?: number;
@@ -212,17 +212,17 @@ export interface VisionResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
-  processingTime: number;
+  processingTime: number;,
   model: string;
   cached?: boolean;
 }
 
 export interface VisionServiceConfig {
-  pythonPath: string;
-  modelsPath: string;
-  maxVRAM: number;
-  enableGeneration: boolean;
-  enableCaching: boolean;
-  cacheSize: number;
+  pythonPath: string;,
+  modelsPath: string;,
+  maxVRAM: number;,
+  enableGeneration: boolean;,
+  enableCaching: boolean;,
+  cacheSize: number;,
   timeout: number;
 }

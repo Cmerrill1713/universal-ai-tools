@@ -4,11 +4,11 @@
  * Integrates with existing memory system for unified experience
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
-import { config } from '@/config/environment';
-import { pyVisionBridge } from './pyvision-bridge';
+import type { SupabaseClient } from '@supabase/supabase-js';';';';
+import { createClient    } from '@supabase/supabase-js';';';';
+import { LogContext, log    } from '@/utils/logger';';';';
+import { config    } from '@/config/environment';';';';
+import { pyVisionBridge    } from './pyvision-bridge';';';';
 import type {
   GeneratedImage,
   LearningOutcome,
@@ -16,22 +16,22 @@ import type {
   VisionAnalysis,
   VisionEmbedding,
   VisualMemory,
-} from '@/types/vision';
-import { VisualHypothesis } from '@/types/vision';
+} from '@/types/vision';'''
+import { VisualHypothesis    } from '@/types/vision';';';';
 import type { 
   ExpectedOutcome, 
   LearningDelta, 
   ObjectDifference, 
   VisualObject 
-} from '@/types';
+} from '@/types';'''
 
 export interface VisualSearchResult {
-  memory: VisualMemory;
+  memory: VisualMemory;,
   similarity: number;
 }
 
 export interface ConceptUpdate {
-  concept: string;
+  concept: string;,
   prototype: Float32Array;
   description?: string;
 }
@@ -48,19 +48,19 @@ export class VisualMemoryService {
 
   private initializeSupabase(): void {
     if (!config.supabase.url || !config.supabase.serviceKey) {
-      log.warn('⚠️ Supabase not configured for visual memory', LogContext.MEMORY);
+      log.warn('⚠️ Supabase not configured for visual memory', LogContext.MEMORY);'''
       return;
     }
 
     this.supabase = createClient(config.supabase.url, config.supabase.serviceKey);
 
-    log.info('✅ Visual Memory Service initialized', LogContext.MEMORY);
+    log.info('✅ Visual Memory Service initialized', LogContext.MEMORY);'''
   }
 
   /**
    * Store a visual memory with analysis and embedding
    */
-  public async storeVisualMemory(
+  public async storeVisualMemory()
     imagePath: string | Buffer,
     metadata: Record<string, any> = {},
     userId?: string
@@ -69,18 +69,18 @@ export class VisualMemoryService {
       // Generate embedding
       const         embeddingResult = await pyVisionBridge.generateEmbedding(imagePath);
       if (!embeddingResult.success || !embeddingResult.data) {
-        throw new Error('Failed to generate embedding');
+        throw new Error('Failed to generate embedding');';';';
       }
 
       // Analyze image
       const analysisResult = await pyVisionBridge.analyzeImage(imagePath, { detailed: true });
 
       // Create memory record
-      const memory: Partial<VisualMemory> = {
+      const memory: Partial<VisualMemory> = {,;
         embedding: embeddingResult.data,
-        imageData: {
-          path: typeof imagePath === 'string' ? imagePath : undefined,
-          base64: typeof imagePath !== 'string' ? imagePath.toString('base64') : undefined,
+        imageData: {,
+          path: typeof imagePath === 'string' ? imagePath : undefined,'''
+          base64: typeof imagePath !== 'string' ? imagePath.toString('base64') : undefined,'''
         },
         analysis: analysisResult.success ? analysisResult.data : undefined,
         metadata: {
@@ -93,24 +93,23 @@ export class VisualMemoryService {
 
       // Store in database
       if (this.supabase) {
-        const { data, error } = await this.supabase
-          .from('ai_memories')
-          .insert([
+        const { data, error } = await this.supabase;
+          .from('ai_memories')'''
+          .insert([)
             {
-              type: 'visual',
+              type: 'visual','''
               content: JSON.stringify(memory.analysis || {}),
               metadata: memory.metadata,
               visual_embedding: Array.from(memory.embedding?.vector || []),
               image_path: memory.imageData?.path,
               user_id: userId,
-              importance: 0.7,
-            },
-          ])
+              importance: 0.7,;
+            }])
           .select()
           .single();
 
         if (error) {
-          log.error('Failed to store visual memory', LogContext.MEMORY, { error });
+          log.error('Failed to store visual memory', LogContext.MEMORY, { error });'''
           throw error;
         }
 
@@ -126,14 +125,14 @@ export class VisualMemoryService {
         this.updateCache(memory.id, memory as VisualMemory);
       }
 
-      log.info('✅ Visual memory stored', LogContext.MEMORY, {
+      log.info('✅ Visual memory stored', LogContext.MEMORY, {')''
         memoryId: memory.id,
         hasAnalysis: !!memory.analysis,
       });
 
       return memory as VisualMemory;
     } catch (error) {
-      log.error('Failed to store visual memory', LogContext.MEMORY, { error });
+      log.error('Failed to store visual memory', LogContext.MEMORY, { error });'''
       throw error;
     }
   }
@@ -141,7 +140,7 @@ export class VisualMemoryService {
   /**
    * Search for similar visual memories
    */
-  public async searchSimilar(
+  public async searchSimilar()
     queryEmbedding: Float32Array | string | Buffer,
     limit = 10,
     threshold = 0.7
@@ -154,21 +153,21 @@ export class VisualMemoryService {
       } else {
         const result = await pyVisionBridge.generateEmbedding(queryEmbedding);
         if (!result.success || !result.data) {
-          throw new Error('Failed to generate query embedding');
+          throw new Error('Failed to generate query embedding');';';';
         }
         embedding = new Float32Array(result.data.vector);
       }
 
       if (this.supabase) {
         // Use database function for similarity search
-        const { data, error } = await this.supabase.rpc('search_similar_images', {
+        const { data, error } = await this.supabase.rpc('search_similar_images', {');';';
           query_embedding: Array.from(embedding),
           limit_count: limit,
           threshold,
         });
 
         if (error) {
-          log.error('Visual search failed', LogContext.MEMORY, { error });
+          log.error('Visual search failed', LogContext.MEMORY, { error });'''
           throw error;
         }
 
@@ -177,7 +176,7 @@ export class VisualMemoryService {
         for (const row of data) {
           const memory = await this.getMemoryById(row.memory_id);
           if (memory) {
-            results.push({
+            results.push({)
               memory,
               similarity: row.similarity,
             });
@@ -190,7 +189,7 @@ export class VisualMemoryService {
         return this.searchInMemory(embedding, limit, threshold);
       }
     } catch (error) {
-      log.error('Visual similarity search failed', LogContext.MEMORY, { error });
+      log.error('Visual similarity search failed', LogContext.MEMORY, { error });'''
       throw error;
     }
   }
@@ -198,7 +197,7 @@ export class VisualMemoryService {
   /**
    * Store a visual hypothesis for testing
    */
-  public async storeHypothesis(
+  public async storeHypothesis()
     concept: string,
     hypothesis: string,
     generatedImage: GeneratedImage,
@@ -206,36 +205,35 @@ export class VisualMemoryService {
   ): Promise<string> {
     try {
       if (!this.supabase) {
-        log.warn('Cannot store hypothesis without database', LogContext.MEMORY);
-        return 'mock_hypothesis_id';
+        log.warn('Cannot store hypothesis without database', LogContext.MEMORY);'''
+        return 'mock_hypothesis_id';';';';
       }
 
-      const { data, error } = await this.supabase
-        .from('visual_hypotheses')
-        .insert([
+      const { data, error } = await this.supabase;
+        .from('visual_hypotheses')'''
+        .insert([)
           {
             concept,
             hypothesis,
             generated_image_id: generatedImage.id,
             expected_outcome: expectedOutcome,
-          },
-        ])
+          }])
         .select()
         .single();
 
       if (error) {
-        log.error('Failed to store hypothesis', LogContext.MEMORY, { error });
+        log.error('Failed to store hypothesis', LogContext.MEMORY, { error });'''
         throw error;
       }
 
-      log.info('✅ Visual hypothesis stored', LogContext.MEMORY, {
+      log.info('✅ Visual hypothesis stored', LogContext.MEMORY, {')''
         hypothesisId: data.id,
         concept,
       });
 
       return data.id;
     } catch (error) {
-      log.error('Failed to store visual hypothesis', LogContext.MEMORY, { error });
+      log.error('Failed to store visual hypothesis', LogContext.MEMORY, { error });'''
       throw error;
     }
   }
@@ -243,7 +241,7 @@ export class VisualMemoryService {
   /**
    * Validate a visual hypothesis
    */
-  public async validateHypothesis(
+  public async validateHypothesis()
     hypothesisId: string,
     actualAnalysis: VisionAnalysis
   ): Promise<ValidationResult> {
@@ -253,26 +251,26 @@ export class VisualMemoryService {
       }
 
       // Fetch hypothesis
-      const { data: hypothesis, error } = await this.supabase
-        .from('visual_hypotheses')
-        .select('*, generated_images(*)')
-        .eq('id', hypothesisId)
+      const { data: hypothesis, error } = await this.supabase;
+        .from('visual_hypotheses')'''
+        .select('*, generated_images(*)')'''
+        .eq('id', hypothesisId)'''
         .single();
 
       if (error || !hypothesis) {
-        throw new Error('Hypothesis not found');
+        throw new Error('Hypothesis not found');';';';
       }
 
       // Compare expected vs actual
-      const validationScore = this.calculateValidationScore(
+      const validationScore = this.calculateValidationScore();
         hypothesis.expected_outcome,
         actualAnalysis
       );
 
-      const learningOutcome: LearningOutcome = {
+      const learningOutcome: LearningOutcome = {,;
         concept: hypothesis.concept,
         success: validationScore > 0.7,
-        adjustment: this.generateLearningAdjustment(
+        adjustment: this.generateLearningAdjustment()
           hypothesis.expected_outcome,
           actualAnalysis,
           validationScore
@@ -281,17 +279,17 @@ export class VisualMemoryService {
 
       // Update hypothesis with validation
       await this.supabase
-        .from('visual_hypotheses')
-        .update({
+        .from('visual_hypotheses')'''
+        .update({)
           actual_outcome: actualAnalysis,
           validation_score: validationScore,
           learning_outcome: learningOutcome,
           validated_at: new Date().toISOString(),
         })
-        .eq('id', hypothesisId);
+        .eq('id', hypothesisId);'''
 
-      const result: ValidationResult = {
-        hypothesis: {
+      const result: ValidationResult = {,;
+        hypothesis: {,
           id: hypothesis.id,
           concept: hypothesis.concept,
           generatedImage: hypothesis.generated_images,
@@ -304,7 +302,7 @@ export class VisualMemoryService {
         learning: learningOutcome,
       };
 
-      log.info('✅ Hypothesis validated', LogContext.MEMORY, {
+      log.info('✅ Hypothesis validated', LogContext.MEMORY, {')''
         hypothesisId,
         success: result.match,
         score: validationScore,
@@ -312,7 +310,7 @@ export class VisualMemoryService {
 
       return result;
     } catch (error) {
-      log.error('Failed to validate hypothesis', LogContext.MEMORY, { error });
+      log.error('Failed to validate hypothesis', LogContext.MEMORY, { error });'''
       throw error;
     }
   }
@@ -323,11 +321,11 @@ export class VisualMemoryService {
   public async updateConcept(update: ConceptUpdate): Promise<void> {
     try {
       if (!this.supabase) {
-        log.warn('Cannot update concept without database', LogContext.MEMORY);
+        log.warn('Cannot update concept without database', LogContext.MEMORY);'''
         return;
       }
 
-      await this.supabase.rpc('update_visual_concept', {
+      await this.supabase.rpc('update_visual_concept', {')''
         p_concept: update.concept,
         p_new_prototype: Array.from(update.prototype),
       });
@@ -335,11 +333,11 @@ export class VisualMemoryService {
       // Clear concept cache
       this.conceptCache.delete(update.concept);
 
-      log.info('✅ Visual concept updated', LogContext.MEMORY, {
+      log.info('✅ Visual concept updated', LogContext.MEMORY, {')''
         concept: update.concept,
       });
     } catch (error) {
-      log.error('Failed to update visual concept', LogContext.MEMORY, { error });
+      log.error('Failed to update visual concept', LogContext.MEMORY, { error });'''
       throw error;
     }
   }
@@ -353,21 +351,21 @@ export class VisualMemoryService {
         return [];
       }
 
-      const { data, error } = await this.supabase
-        .from('visual_concepts')
-        .select('*')
-        .textSearch('concept', query)
+      const { data, error } = await this.supabase;
+        .from('visual_concepts')'''
+        .select('*')'''
+        .textSearch('concept', query)'''
         .limit(limit)
-        .order('usage_count', { ascending: false });
+        .order('usage_count', { ascending: false });'''
 
       if (error) {
-        log.error('Failed to fetch concepts', LogContext.MEMORY, { error });
+        log.error('Failed to fetch concepts', LogContext.MEMORY, { error });'''
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      log.error('Failed to get related concepts', LogContext.MEMORY, { error });
+      log.error('Failed to get related concepts', LogContext.MEMORY, { error });'''
       return [];
     }
   }
@@ -375,7 +373,7 @@ export class VisualMemoryService {
   /**
    * Store learning experience from visual interaction
    */
-  public async storeLearningExperience(
+  public async storeLearningExperience()
     agentId: string,
     memoryId: string,
     prediction: ExpectedOutcome,
@@ -384,13 +382,13 @@ export class VisualMemoryService {
   ): Promise<void> {
     try {
       if (!this.supabase) {
-        log.warn('Cannot store learning experience without database', LogContext.MEMORY);
+        log.warn('Cannot store learning experience without database', LogContext.MEMORY);'''
         return;
       }
 
       const learningDelta = this.calculateLearningDelta(prediction, actualOutcome);
 
-      await this.supabase.from('visual_learning_experiences').insert([
+      await this.supabase.from('visual_learning_experiences').insert([')''
         {
           agent_id: agentId,
           memory_id: memoryId,
@@ -399,15 +397,14 @@ export class VisualMemoryService {
           learning_delta: learningDelta,
           success,
           confidence: success ? 0.9 : 0.3,
-        },
-      ]);
+        }]);
 
-      log.info('✅ Visual learning experience stored', LogContext.MEMORY, {
+      log.info('✅ Visual learning experience stored', LogContext.MEMORY, {')''
         agentId,
         success,
       });
     } catch (error) {
-      log.error('Failed to store learning experience', LogContext.MEMORY, { error });
+      log.error('Failed to store learning experience', LogContext.MEMORY, { error });'''
     }
   }
 
@@ -416,14 +413,13 @@ export class VisualMemoryService {
   private async storeEmbedding(memoryId: string, embedding: VisionEmbedding): Promise<void> {
     if (!this.supabase) return;
 
-    await this.supabase.from('vision_embeddings').insert([
+    await this.supabase.from('vision_embeddings').insert([')''
       {
         memory_id: memoryId,
         embedding: Array.from(embedding.vector),
         model_version: embedding.model,
         confidence: 0.95,
-      },
-    ]);
+      }]);
   }
 
   private async getMemoryById(id: string): Promise<VisualMemory | null> {
@@ -434,15 +430,15 @@ export class VisualMemoryService {
 
     if (!this.supabase) return null;
 
-    const { data, error } = await this.supabase
-      .from('ai_memories')
-      .select('*, vision_embeddings(*)')
-      .eq('id', id)
+    const { data, error } = await this.supabase;
+      .from('ai_memories')'''
+      .select('*, vision_embeddings(*)')'''
+      .eq('id', id)'''
       .single();
 
     if (error || !data) return null;
 
-    const embedding: VisionEmbedding | undefined = data.vision_embeddings?.[0]
+    const embedding: VisionEmbedding | undefined = data.vision_embeddings?.[0];
       ? {
           vector: new Float32Array(data.vision_embeddings[0].embedding),
           model: data.vision_embeddings[0].model_version,
@@ -450,10 +446,10 @@ export class VisualMemoryService {
         }
       : undefined;
 
-    const memory:     VisualMemory = {
+    const memory: VisualMemory = {,;
       id: data.id,
-      embedding: embedding!, // We'll handle undefined case in the type
-      imageData: {
+      embedding: embedding!, // We'll handle undefined case in the type'''
+      imageData: {,
         path: data.image_path,
       },
       analysis: data.content ? JSON.parse(data.content) : undefined,
@@ -465,7 +461,7 @@ export class VisualMemoryService {
     return memory;
   }
 
-  private searchInMemory(
+  private searchInMemory()
     queryEmbedding: Float32Array,
     limit: number,
     threshold: number
@@ -511,23 +507,23 @@ export class VisualMemoryService {
       if (actualObjects.has(String(obj))) matches++;
     }
 
-    const precision = expectedObjects.size > 0 ? matches / expectedObjects.size : 0;
-    const recall = actualObjects.size > 0 ? matches / actualObjects.size : 0;
+    const precision = expectedObjects.size > 0 ? matches / expectedObjects.size: 0;
+    const recall = actualObjects.size > 0 ? matches / actualObjects.size: 0;
 
     return precision * recall > 0 ? (2 * (precision * recall)) / (precision + recall) : 0;
   }
 
-  private generateLearningAdjustment(
+  private generateLearningAdjustment()
     expected: ExpectedOutcome,
     actual: VisionAnalysis,
     score: number
   ): string {
     if (score > 0.8) {
-      return 'Hypothesis confirmed - maintain current understanding';
+      return 'Hypothesis confirmed - maintain current understanding';';';';
     } else if (score > 0.5) {
-      return 'Partial match - refine object detection thresholds';
+      return 'Partial match - refine object detection thresholds';';';';
     } else {
-      return 'Hypothesis incorrect - update visual concept mapping';
+      return 'Hypothesis incorrect - update visual concept mapping';';';';
     }
   }
 
@@ -551,20 +547,20 @@ export class VisualMemoryService {
 
   private mockValidation(hypothesisId: string, actual: VisionAnalysis): ValidationResult {
     return {
-      hypothesis: {
+      hypothesis: {,
         id: hypothesisId,
-        concept: 'mock_concept',
+        concept: 'mock_concept','''
         generatedImage: {} as GeneratedImage,
-        expectedOutcome: 'mock_outcome',
+        expectedOutcome: 'mock_outcome','''
         confidence: 0.8,
       },
       actual,
       match: true,
       matchScore: 0.85,
-      learning: {
-        concept: 'mock_concept',
+      learning: {,
+        concept: 'mock_concept','''
         success: true,
-        adjustment: 'Mock validation successful',
+        adjustment: 'Mock validation successful','''
       },
     };
   }
@@ -581,7 +577,7 @@ export class VisualMemoryService {
   }
 
   public async shutdown(): Promise<void> {
-    log.info('🛑 Shutting down Visual Memory Service', LogContext.MEMORY);
+    log.info('🛑 Shutting down Visual Memory Service', LogContext.MEMORY);'''
     this.memoryCache.clear();
     this.conceptCache.clear();
   }
