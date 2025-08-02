@@ -511,8 +511,6 @@ export class MLXFineTuningService extends EventEmitter {
     if (data.length < 100) {
       result.warnings.push('Dataset size is small, consider adding more samples');
     }
-    return undefined;
-    return undefined;
 
     return result;
   }
@@ -837,8 +835,6 @@ export class MLXFineTuningService extends EventEmitter {
       process.kill('SIGTERM');
       this.activeJobs.delete(jobId);
     }
-    return undefined;
-    return undefined;
 
     job.status = 'cancelled';
     job.completedAt = new Date();
@@ -1039,8 +1035,6 @@ export class MLXFineTuningService extends EventEmitter {
       if (job.id === jobId) {
         callback(job.progress);
       }
-      return undefined;
-      return undefined;
     };
 
     this.on('jobProgressUpdated', handler);
@@ -1190,10 +1184,6 @@ export class MLXFineTuningService extends EventEmitter {
       if (status) {
         query = query.eq('status', status);
       }
-
-      return undefined;
-
-      return undefined;
 
       const { data, error } = await query;
       if (error) throw error;
@@ -1710,8 +1700,6 @@ if __name__ == "__main__":
           processed[i] = processed[j];
           processed[j] = temp;
         }
-    return undefined;
-    return undefined;
       }
     }
 
@@ -1937,10 +1925,6 @@ if __name__ == "__main__":
             job.metrics.perplexity.push(metrics.perplexity);
           }
 
-          return undefined;
-
-          return undefined;
-
           await this.updateJobInDatabase(job);
           this.emit('jobMetricsUpdated', job);
         } catch (error) {
@@ -2098,10 +2082,6 @@ if __name__ == "__main__":
         trial.status = 'failed';
         trial.endTime = new Date();
       }
-
-      return undefined;
-
-      return undefined;
     } catch (error) {
       log.error('❌ Optimization trial failed', LogContext.AI, { 
         error: error instanceof Error ? error.message : String(error), 
@@ -2276,10 +2256,6 @@ if __name__ == "__main__":
           if (job) {
             await this.startFineTuningJob(job.id);
           }
-
-        return undefined;
-
-        return undefined;
         }
       } catch (error) {
         log.error('❌ Queue processing error', LogContext.AI, { error });

@@ -194,6 +194,13 @@ export class VaultService {
   }
 
   /**
+   * Create a new secret in Supabase Vault (alias for backward compatibility)
+   */
+  async createSecret(secretName: string, secretValue: string, description?: string): Promise<boolean> {
+    return this.createSecretInVault(secretName, secretValue, description);
+  }
+
+  /**
    * Create a new secret in Supabase Vault
    */
   async createSecretInVault(secretName: string, secretValue: string, description?: string): Promise<boolean> {

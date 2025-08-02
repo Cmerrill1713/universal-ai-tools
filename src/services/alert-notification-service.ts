@@ -305,10 +305,6 @@ export class AlertNotificationService extends EventEmitter {
     if (alert.details) {
       console.log('Details:', JSON.stringify(alert.details, null, TWO));
     }
-
-    return undefined;
-
-    return undefined;
     console.log('---');
   }
 

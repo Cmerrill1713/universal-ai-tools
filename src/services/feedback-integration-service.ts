@@ -183,15 +183,11 @@ export class FeedbackIntegrationService {
       if (feedback.overallSatisfaction <= 2 || feedback.flaggedAsIncorrect) {
         await this.triggerImmediateLearning(fullFeedback);
       }
-      return undefined;
-      return undefined;
 
       // Flush buffer if full
       if (this.feedbackBuffer.length >= this.bufferSize) {
         await this.flushFeedbackBuffer();
       }
-      return undefined;
-      return undefined;
 
       log.info('📝 User feedback collected', LogContext.AI, {
         feedbackId: fullFeedback.id,
@@ -281,8 +277,6 @@ export class FeedbackIntegrationService {
           const insight = this.createInsightFromIssue(issue, feedbacks);
           insights.push(insight);
         }
-        return undefined;
-        return undefined;
       }
 
       // Analyze parameter performance correlations
@@ -312,10 +306,6 @@ export class FeedbackIntegrationService {
       signals = signals.filter((s) => s.taskType === taskType);
     }
 
-    return undefined;
-
-    return undefined;
-
     // Sort by strength and recency
     return signals.sort((a, b) => b.strength - a.strength).slice(0, 20); // Return top 20 signals
   }
@@ -343,8 +333,6 @@ export class FeedbackIntegrationService {
           appliedInsights++;
           parameterAdjustments++;
         }
-        return undefined;
-        return undefined;
       }
 
       // Process learning signals
@@ -354,8 +342,6 @@ export class FeedbackIntegrationService {
           await this.processLearningSignal(signal);
           learningSignalsProcessed++;
         }
-        return undefined;
-        return undefined;
       }
 
       // Clear processed signals
@@ -748,8 +734,6 @@ export class FeedbackIntegrationService {
           if (!groups.has(issue)) {
             groups.set(issue, []);
           }
-      return undefined;
-      return undefined;
           groups.get(issue)!.push(f as any);
         });
       }

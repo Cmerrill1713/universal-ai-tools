@@ -75,8 +75,6 @@ class NetworkHealingService {
       if (this.isRunning) {
         await this.monitorNetworkHealth();
       }
-      return undefined;
-      return undefined;
     }, this.monitoringInterval);
 
     // Start healing cycles
@@ -84,8 +82,6 @@ class NetworkHealingService {
       if (this.isRunning) {
         await this.runHealingCycle();
       }
-      return undefined;
-      return undefined;
     }, this.healingInterval);
 
     // Run initial network scan

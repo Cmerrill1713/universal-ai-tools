@@ -447,10 +447,6 @@ export class TemplateMigrationService {
             await fs.unlink(filePath);
           }
           
-          return undefined;
-          
-          return undefined;
-          
           result.migratedFiles++;
           result.spaceSaved += stats.size;
         }
@@ -482,10 +478,6 @@ export class TemplateMigrationService {
           if (!options.preserveLocal) {
             await fs.unlink(filePath);
           }
-          
-          return undefined;
-          
-          return undefined;
           
           result.migratedFiles++;
           result.spaceSaved += stats.size;

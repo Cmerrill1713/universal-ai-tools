@@ -17,7 +17,10 @@ const mockResponse = (): Partial<Response> => {
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
     locals: {},
-  };
+    sendSuccess: jest.fn(),
+    sendError: jest.fn(),
+    sendPaginatedSuccess: jest.fn(),
+  } as any;
   return res;
 };
 

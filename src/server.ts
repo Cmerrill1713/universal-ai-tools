@@ -72,7 +72,15 @@ class UniversalAIToolsServer {
 
   private createSecureServer(): Server {
     // SSL configuration disabled for now to fix ES module issue
-    const sslConfig = { enabled: false };
+    const sslConfig = { 
+      enabled: false,
+      key: undefined as string | undefined,
+      cert: undefined as string | undefined,
+      ca: undefined as string | undefined,
+      passphrase: undefined as string | undefined,
+      requestCert: undefined as boolean | undefined,
+      rejectUnauthorized: undefined as boolean | undefined
+    };
 
     if (sslConfig.enabled && sslConfig.key && sslConfig.cert) {
       log.info('Creating HTTPS server with SSL/TLS', LogContext.SERVER);
@@ -981,14 +989,13 @@ class UniversalAIToolsServer {
     // List available agents
     this.app.get('/api/v1/agents', (req: Request, res: Response) => {
       if (!this.agentRegistry) {
-        res.status(503).json({
+        return res.status(503).json({
           success: false,
           error: {
             code: 'SERVICE_UNAVAILABLE',
             message: 'Agent registry not available',
           },
         });
-        return;
       }
 
       const agents = this.agentRegistry.getAvailableAgents();
@@ -1400,7 +1407,7 @@ class UniversalAIToolsServer {
             const mockWs = {
               send: (data: string) => socket.emit('message', data),
               close: () => socket.disconnect(),
-              on: (event: string, handler: Function) => socket.on(event, handler),
+              on: (event: string, handler: (...args: any[]) => void) => socket.on(event, handler),
               readyState: 1, // OPEN
             } as any;
 

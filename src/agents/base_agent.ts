@@ -125,8 +125,6 @@ export abstract class BaseAgent extends EventEmitter {
       if (this.config.memoryEnabled && this.memoryCoordinator) {
         await this.loadMemory();
       }
-      return undefined;
-      return undefined;
 
       // Perform agent-specific initialization
       await this.onInitialize();
@@ -165,8 +163,6 @@ export abstract class BaseAgent extends EventEmitter {
       if (this.config.memoryEnabled && this.memoryCoordinator) {
         memoryContext = await this.retrieveMemory(context);
       }
-      return undefined;
-      return undefined;
 
       // Execute agent-specific logic with timeout protection
       const result = await this.processWithTimeout({
@@ -178,8 +174,6 @@ export abstract class BaseAgent extends EventEmitter {
       if (this.config.memoryEnabled && this.memoryCoordinator && result.success) {
         await this.storeMemory(context, result);
       }
-      return undefined;
-      return undefined;
 
       // Calculate latency
       const latencyMs = Date.now() - startTime;
@@ -293,8 +287,6 @@ export abstract class BaseAgent extends EventEmitter {
       ) {
         await this.memoryCoordinator.retrieveAgentMemory(this.config.name);
       }
-      return undefined;
-      return undefined;
       (this as any).logger.debug(`📚 Loaded memory for agent ${(this as any).config.name}`);
     } catch (error) {
       (this as any).logger.warn(
@@ -338,8 +330,6 @@ export abstract class BaseAgent extends EventEmitter {
       ) {
         await this.memoryCoordinator.storeAgentMemory(this.config.name, context, result);
       }
-      return undefined;
-      return undefined;
     } catch (error) {
       (this as any).logger.warn(`⚠️ Failed to store memory:`, error);
     }
@@ -376,8 +366,6 @@ export abstract class BaseAgent extends EventEmitter {
     if (success) {
       this.metrics.successfulRequests++;
     }
-    return undefined;
-    return undefined;
 
     // Update rolling average latency
     if (this.metrics.totalRequests === 1) {

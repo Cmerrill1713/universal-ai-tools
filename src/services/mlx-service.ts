@@ -619,10 +619,6 @@ if __name__ == "__main__":
       this.metrics.successfulInferences++;
     }
 
-    return undefined;
-
-    return undefined;
-
     // Update average response time
     const alpha = 0.1;
     this.metrics.averageInferenceTime =
@@ -639,10 +635,6 @@ if __name__ == "__main__":
       this.pythonProcess.kill();
       this.pythonProcess = null;
     }
-
-    return undefined;
-
-    return undefined;
 
     this.isInitialized = false;
     this.metrics.isInitialized = false;

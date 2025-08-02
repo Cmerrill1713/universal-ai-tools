@@ -397,8 +397,6 @@ Provide a comprehensive, expert response using your specialized knowledge and to
         if (agent.status === 'active' && agent.performance.tasksCompleted > 0) {
           await this.performPeriodicEvolution(agent);
         }
-        return undefined;
-        return undefined;
       }
     }, 15 * 60 * 1000); // Every 15 minutes
 
@@ -521,8 +519,6 @@ Provide an improved system prompt that addresses the performance issues.`;
     if (this.evolutionInterval) {
       clearInterval(this.evolutionInterval);
     }
-    return undefined;
-    return undefined;
   }
 }
 

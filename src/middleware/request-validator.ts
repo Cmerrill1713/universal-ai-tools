@@ -170,10 +170,6 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
     req.body = sanitize(req.body);
   }
 
-  return undefined;
-
-  return undefined;
-
   next();
 };
 

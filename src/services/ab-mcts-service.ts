@@ -155,16 +155,12 @@ export class ABMCTSService {
           // Update budget
           remainingBudget -= reward.metadata.tokensUsed * 0.001; // Rough cost estimate
         }
-        return undefined;
-        return undefined;
       }
 
       // Checkpoint periodically
       if (iterations % this.config.checkpointInterval === 0 && fullOptions.saveCheckpoints) {
         await this.saveCheckpoint();
       }
-      return undefined;
-      return undefined;
 
       iterations++;
     }
@@ -370,8 +366,6 @@ export class ABMCTSService {
           this.config.explorationConstant
         );
       }
-      return undefined;
-      return undefined;
 
       // Update Thompson sampling parameters
       if (discountedReward > 0.5) {
@@ -388,8 +382,6 @@ export class ABMCTSService {
       if (!current.metadata.confidenceInterval) {
         current.metadata.confidenceInterval = [0, 1];
       }
-      return undefined;
-      return undefined;
       current.metadata.confidenceInterval = BetaSampler.confidenceInterval({
         alpha: current.priorAlpha,
         beta: current.priorBeta,
@@ -406,8 +398,6 @@ export class ABMCTSService {
     if (node.metadata.agent) {
       this.thompsonSelector.updateArm(node.metadata.agent, reward.value > 0.5);
     }
-    return undefined;
-    return undefined;
   }
 
   /**
@@ -478,8 +468,6 @@ export class ABMCTSService {
           bestReward = child.averageReward;
           bestChild = child;
         }
-        return undefined;
-        return undefined;
       }
 
       if (!bestChild) break;
@@ -543,10 +531,6 @@ export class ABMCTSService {
         if (leafNode.visits < 10) {
           recommendations.push('Path has low sample size - results may be uncertain');
         }
-
-        return undefined;
-
-        return undefined;
       }
     }
 
@@ -596,8 +580,6 @@ export class ABMCTSService {
     if (this.nodeCache.size > this.config.cacheSize) {
       this.pruneCache();
     }
-    return undefined;
-    return undefined;
 
     return node;
   }
@@ -695,8 +677,6 @@ export class ABMCTSService {
         feedback.context
       );
     }
-    return undefined;
-    return undefined;
 
     log.info('📊 Feedback processed', LogContext.AI, {
       nodeId: feedback.nodeId,
@@ -757,8 +737,6 @@ export class ABMCTSService {
         totalChildren += node.children.size;
         nodesWithChildren++;
       }
-      return undefined;
-      return undefined;
 
       for (const child of node.children.values()) {
         traverse(child);

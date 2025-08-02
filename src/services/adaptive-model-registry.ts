@@ -54,6 +54,13 @@ export interface DeviceContext {
     neuralEngineSupport: boolean;
     mlComputeSupport: boolean;
   };
+  // Additional iOS-specific properties for intelligent parameter service
+  screenSize?: 'small' | 'medium' | 'large';
+  connectionType?: 'WiFi' | 'Cellular' | 'Bluetooth' | 'USB';
+  isLowPowerMode?: boolean;
+  processingCapability?: 'high' | 'medium' | 'low';
+  coreMLAvailable?: boolean;
+  neuralEngineAvailable?: boolean;
 }
 
 export interface TaskContext {
@@ -198,10 +205,10 @@ export class AdaptiveModelRegistry extends EventEmitter {
     );
     
     // Initialize circuit breaker
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = new CircuitBreaker('adaptive-model-registry', {
       failureThreshold: 5,
-      resetTimeout: 60000,
-      monitoringPeriod: 30000
+      timeout: 60000,
+      rollingWindow: 30000
     });
     
     this.initialize();
@@ -245,21 +252,23 @@ export class AdaptiveModelRegistry extends EventEmitter {
   }
 
   private setupEventListeners(): void {
+    // TODO: Enable when services implement EventEmitter interface
     // Listen for intelligent parameter updates
-    this.intelligentParameterService.on('parameters_optimized', (data) => {
-      this.handleParameterOptimization(data);
-    });
+    // this.intelligentParameterService.on('parameters_optimized', (data) => {
+    //   this.handleParameterOptimization(data);
+    // });
 
     // Listen for context storage events
-    this.contextStorage.on('context_updated', (data) => {
-      this.handleContextUpdate(data);
-    });
+    // this.contextStorage.on('context_updated', (data) => {
+    //   this.handleContextUpdate(data);
+    // });
 
     // Listen for circuit breaker state changes
-    this.circuitBreaker.on('stateChange', (state) => {
-      logger.info(`Model Registry Circuit Breaker state: ${state}`);
-      this.emit('circuit_breaker_state_change', { state });
-    });
+    // TODO: Enable when CircuitBreaker implements EventEmitter
+    // this.circuitBreaker.on('stateChange', (state) => {
+    //   logger.info(`Model Registry Circuit Breaker state: ${state}`);
+    //   this.emit('circuit_breaker_state_change', { state });
+    // });
   }
 
   private async loadExistingModels(): Promise<void> {
@@ -436,15 +445,20 @@ export class AdaptiveModelRegistry extends EventEmitter {
   ): Promise<AdaptedPersonalityModel> {
     try {
       // Get intelligent parameters for this specific context
-      const optimizedParams = await this.intelligentParameterService.getOptimalParameters({
+      const optimizedParams = await this.intelligentParameterService.getTaskParameters({
         model: baseModel.modelId,
         taskType: taskContext.type,
         userContext: taskContext.userContext,
         deviceContext: {
           deviceType: deviceContext.deviceType,
           availableMemory: deviceContext.availableMemory,
-          batteryLevel: deviceContext.batteryLevel,
-          thermalState: deviceContext.thermalState
+          batteryLevel: deviceContext.batteryLevel || 100,
+          connectionType: deviceContext.connectionType || (deviceContext.networkType === 'wifi' ? 'WiFi' : deviceContext.networkType === 'cellular' ? 'Cellular' : 'WiFi'),
+          isLowPowerMode: deviceContext.isLowPowerMode || false,
+          processingCapability: deviceContext.processingCapability || "high",
+          coreMLAvailable: deviceContext.coreMLAvailable ?? deviceContext.processingCapabilities.coreMLSupport,
+          neuralEngineAvailable: deviceContext.neuralEngineAvailable ?? deviceContext.processingCapabilities.neuralEngineSupport,
+          screenSize: deviceContext.screenSize || (deviceContext.deviceType === 'iPhone' ? 'medium' : 'large')
         },
         personalityContext: {
           communicationStyle: baseModel.personalityProfile.communicationStyle,
@@ -887,7 +901,30 @@ export class AdaptiveModelRegistry extends EventEmitter {
       modelId: 'default-personality',
       modelPath: '/default/path',
       personalityProfile: this.generateDefaultPersonalityProfile(userId),
-      mobileOptimizations: {},
+      mobileOptimizations: {
+        modelSizeTarget: 'small' as const,
+        quantization: {
+          enabled: false,
+          bits: 8 as const,
+          method: 'dynamic' as const
+        },
+        pruning: {
+          enabled: false,
+          sparsity: 0.0,
+          structured: false
+        },
+        distillation: {
+          enabled: false,
+          teacherModel: '',
+          temperature: 3.0,
+          alpha: 0.7
+        },
+        batteryOptimization: true,
+        memoryConstraints: {
+          maxModelSizeMB: 512,
+          maxRuntimeMemoryMB: 256
+        }
+      },
       deviceTargets: [],
       trainingMetrics: {
         personalityConsistency: 0.5,

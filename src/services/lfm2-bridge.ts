@@ -318,8 +318,6 @@ export class LFM2BridgeService {
         this.isInitialized = true;
         continue;
       }
-      return undefined;
-      return undefined;
 
       try {
         const response = JSON.parse(line);
@@ -423,11 +421,11 @@ Respond with JSON:
       log.warn('⚠️ Failed to parse LFM2 routing response', LogContext.AI);
     }
 
-    // Fallback parsing
+    // Fallback parsing - test LM Studio
     return {
-      targetService: 'ollama' as const,
+      targetService: 'lm-studio' as const,
       confidence: 0.5,
-      reasoning: 'Fallback routing due to parsing error',
+      reasoning: 'Fallback to LM Studio (testing speed)',
       estimatedTokens: 100,
     };
   }
@@ -496,10 +494,6 @@ Respond with JSON:
       this.pythonProcess = null;
     }
 
-    return undefined;
-
-    return undefined;
-
     // Wait a bit before restarting
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -528,10 +522,6 @@ Respond with JSON:
         this.pythonProcess.stdin.end();
       }
 
-    return undefined;
-
-    return undefined;
-
       // Wait for graceful exit
       const exitPromise = new Promise<void>((resolve) => {
         if (this.pythonProcess) {
@@ -548,8 +538,6 @@ Respond with JSON:
             log.warn('⚠️ Force killing LFM2 Python process', LogContext.AI);
             this.pythonProcess.kill('SIGKILL');
           }
-          return undefined;
-          return undefined;
           resolve();
         }, 5000);
       });
@@ -740,8 +728,6 @@ class SafeLFM2Bridge {
     if (this.instance) {
       this.instance.shutdown();
     }
-    return undefined;
-    return undefined;
   }
 
   // Get circuit breaker health status

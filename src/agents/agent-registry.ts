@@ -139,6 +139,27 @@ export class AgentRegistry extends EventEmitter {
     this.emit('agent_registered', { agentName: definition.name, definition });
   }
 
+  // Public methods needed by tests
+  public hasAgent(agentName: string): boolean {
+    return this.agentDefinitions.has(agentName);
+  }
+
+  public listAgents(): string[] {
+    return Array.from(this.agentDefinitions.keys());
+  }
+
+  public getAgentsByCapability(capability: string): AgentDefinition[] {
+    return Array.from(this.agentDefinitions.values()).filter(
+      definition => definition.capabilities.includes(capability)
+    );
+  }
+
+  public getAgentsByCapabilities(capabilities: string[]): AgentDefinition[] {
+    return Array.from(this.agentDefinitions.values()).filter(
+      definition => capabilities.some(cap => definition.capabilities.includes(cap))
+    );
+  }
+
   private createEnhancedAgent(agentName: string, config: AgentConfig): EnhancedBaseAgent | null {
     switch (agentName) {
       case 'planner':
@@ -524,8 +545,6 @@ export class AgentRegistry extends EventEmitter {
       ) {
         toUnload.push(agentName);
       }
-      return undefined;
-      return undefined;
     }
 
     for (const agentName of toUnload) {

@@ -90,8 +90,6 @@ export abstract class EnhancedBaseAgent {
     if (!this.isInitialized) {
       await this.initialize();
     }
-    return undefined;
-    return undefined;
 
     const startTime = Date.now();
 
@@ -236,8 +234,6 @@ export abstract class EnhancedBaseAgent {
           data = parsed;
           reasoning = parsed.reasoning || parsed.explanation || (llmResponse as any).content;
         }
-        return undefined;
-        return undefined;
       } catch {
         // Not JSON, use as plain text
       }
@@ -286,8 +282,6 @@ export abstract class EnhancedBaseAgent {
       const efficiency = response.usage.completion_tokens / response.usage.prompt_tokens;
       if (efficiency > 0.5 && efficiency < 2.0) confidence += 0.05;
     }
-    return undefined;
-    return undefined;
 
     return Math.max(0.1, Math.min(1.0, confidence));
   }
@@ -302,8 +296,6 @@ export abstract class EnhancedBaseAgent {
     if (this.conversationHistory.length > 20) {
       this.conversationHistory = this.conversationHistory.slice(-20);
     }
-    return undefined;
-    return undefined;
   }
 
   protected getTemperature(): number {
@@ -598,8 +590,6 @@ export abstract class EnhancedBaseAgent {
     if (this.executionHistory.length > 100) {
       this.executionHistory = this.executionHistory.slice(-100);
     }
-    return undefined;
-    return undefined;
 
     // Update Beta distribution
     if (feedback.reward.value > 0.5) {

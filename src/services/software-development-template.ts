@@ -696,18 +696,12 @@ export class SoftwareDevelopmentTemplateService extends ProjectTemplateService {
       if (requirements.scalability === 'high' && pattern === 'microservices') {
         suitability += 0.1;
       }
-      return undefined;
-      return undefined;
       if (requirements.teamSize < 5 && pattern === 'monolith') {
         suitability += 0.1;
       }
-      return undefined;
-      return undefined;
       if (requirements.budget === 'limited' && pattern === 'serverless') {
         suitability += 0.1;
       }
-      return undefined;
-      return undefined;
 
       recommendations.push({
         ...recommendation,
@@ -847,22 +841,16 @@ export class SoftwareDevelopmentTemplateService extends ProjectTemplateService {
     if (requirements.teamExperience === 'junior' && tech.learningCurve === 'steep') {
       score -= 0.2;
     }
-    return undefined;
-    return undefined;
 
     // Adjust based on project timeline
     if (requirements.timeline === 'aggressive' && tech.learningCurve === 'steep') {
       score -= 0.15;
     }
-    return undefined;
-    return undefined;
 
     // Adjust based on community support needs
     if (requirements.supportNeeds === 'high' && tech.communitySupport === 'low') {
       score -= 0.1;
     }
-    return undefined;
-    return undefined;
 
     return Math.max(0, Math.min(1, score));
   }

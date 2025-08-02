@@ -684,8 +684,12 @@ export class PersonalityAwareABMCTSOrchestrator extends EventEmitter {
     // For now, return a mock result
     return {
       response: {
-        content: 'Personality-aware response generated',
+        success: true,
+        data: { content: 'Personality-aware response generated' },
+        message: 'Personality-aware response generated successfully',
+        reasoning: 'Generated using personality-aware AB-MCTS orchestration',
         confidence: 0.85,
+        content: 'Personality-aware response generated',
         metadata: {}
       },
       searchResult: {} as any,
@@ -781,8 +785,8 @@ export class PersonalityAwareABMCTSOrchestrator extends EventEmitter {
 
   private cacheExecutionResult(orchestrationId: string, result: PersonalizedOrchestrationResult): void {
     // Cache the result for future analysis
-    const userId = result.response.metadata?.userId;
-    if (userId) {
+    const userId = result.response.metadata?.userId as string;
+    if (userId && typeof userId === 'string') {
       if (!this.executionHistoryCache.has(userId)) {
         this.executionHistoryCache.set(userId, []);
       }

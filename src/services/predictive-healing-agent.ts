@@ -65,8 +65,6 @@ class PredictiveHealingAgent {
       if (this.isRunning) {
         await this.runPredictiveCycle();
       }
-      return undefined;
-      return undefined;
     }, this.predictionInterval);
 
     // Set up learning cycles
@@ -74,8 +72,6 @@ class PredictiveHealingAgent {
       if (this.isRunning) {
         await this.runLearningCycle();
       }
-      return undefined;
-      return undefined;
     }, this.learningInterval);
 
     console.log('✅ Predictive Healing Agent active - ML pattern recognition running');
@@ -206,8 +202,6 @@ class PredictiveHealingAgent {
           result.value.confidence
         );
       }
-      return undefined;
-      return undefined;
     });
   }
 
@@ -295,8 +289,6 @@ class PredictiveHealingAgent {
       if (alert.confidence > 0.7 && alert.severity === 'critical') {
         await this.executePreventiveMeasures(alert);
       }
-      return undefined;
-      return undefined;
     }
 
     // Clean up old alerts
@@ -444,8 +436,6 @@ class PredictiveHealingAgent {
         const successCount = recentFixes.filter((fix) => fix === 'success').length;
         pattern.autoFixSuccess = successCount / recentFixes.length;
       }
-      return undefined;
-      return undefined;
     }
   }
 
@@ -457,8 +447,6 @@ class PredictiveHealingAgent {
         const avgInterval = 168 / pattern.frequency; // 168 hours = 1 week
         pattern.predictedRecurrence = Math.max(1, avgInterval * 0.8);
       }
-      return undefined;
-      return undefined;
     }
   }
 

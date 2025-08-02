@@ -192,10 +192,6 @@ router.post(
             (result.data as any).cognitiveInsights = cognitiveResult.result;
             (result.data as any).orchestrationMetadata = cognitiveResult.metadata;
           }
-          
-          return undefined;
-          
-          return undefined;
         }
 
         return sendSuccess(res, result.data, 200, {

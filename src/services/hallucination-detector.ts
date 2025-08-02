@@ -129,8 +129,6 @@ class HallucinationDetectorService {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    return undefined;
-    return undefined;
 
     log.info('🛑 Auto-detect hallucination service stopped', LogContext.SYSTEM);
   }
@@ -215,10 +213,6 @@ class HallucinationDetectorService {
       this.stopAutoDetection();
       this.startAutoDetection();
     }
-
-    return undefined;
-
-    return undefined;
   }
 
   /**
@@ -262,10 +256,6 @@ class HallucinationDetectorService {
       if (isNewIssue) {
         this.stats.trendsLast24h.newIssues++;
       }
-
-      return undefined;
-
-      return undefined;
     }
 
     // Update known issues

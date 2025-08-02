@@ -63,6 +63,7 @@ interface AutonomousCodeResponse extends CodeAssistantResponse {
   generationId: string;
   modelUsed: string;
   orchestrationUsed: boolean;
+  documentation?: string;
   validationResults: {
     security: {
       passed: boolean;
@@ -106,6 +107,7 @@ interface AutonomousCodeResponse extends CodeAssistantResponse {
     recommendation: string;
     reasoning?: string;
   }>;
+  follow_up_questions?: string[];
 }
 
 export class EnhancedCodeAssistantAgent extends EnhancedBaseAgent {

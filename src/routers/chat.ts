@@ -10,11 +10,12 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { LogContext, log } from '@/utils/logger';
 import { authenticate } from '@/middleware/auth';
-import { validateRequest } from '@/middleware/express-validator';
-import { body, param, query } from 'express-validator';
+import { z } from 'zod';
+import { validateRequest, ApiSchemas, CommonSchemas, createValidatedHandler } from '@/middleware/zod-validation';
 import type AgentRegistry from '@/agents/agent-registry';
 import type { AgentContext } from '@/types';
 import { intelligentAgentSelector } from '@/services/intelligent-agent-selector';
+import { createApiResponse } from '@/utils/api-response';
 
 interface ChatMessage {
   id: string;
@@ -232,6 +233,15 @@ router.post(
  * POST /api/v1/chat
  * Send a message and get AI response
  */
+const ChatRequestSchema = z.object({
+  message: z.string().min(1).max(10000),
+  conversationId: z.string().uuid().optional(),
+  agentName: z.string().optional(),
+  context: z.record(z.any()).optional(),
+  stream: z.boolean().default(false),
+  parameters: CommonSchemas.ModelParams.optional()
+});
+
 router.post(
   '/',
   // Make authentication optional for quick chat
@@ -244,13 +254,7 @@ router.post(
     // Otherwise use normal authentication
     return authenticate(req, res, next);
   },
-  [
-    body('message').isString().withMessage('Message is required'),
-    body('conversationId').optional().isUUID().withMessage('Invalid conversation ID'),
-    body('agentName').optional().isString().withMessage('Agent name must be a string'),
-    body('context').optional().isObject().withMessage('Context must be an object'),
-  ],
-  validateRequest,
+  validateRequest(ChatRequestSchema),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
@@ -474,48 +478,39 @@ router.post(
       conversation.metadata.agentUsage[agentName] =
         (conversation.metadata.agentUsage[agentName] || 0) + 1;
 
-      return res.json({
-        success: true,
-        message: assistantMessage.content, // Add top-level message for backward compatibility
-        conversationId: conversation.id, // Add top-level conversationId for compatibility
-        data: {
-          conversationId: conversation.id,
-          message: assistantMessage,
-          usage: {
-            tokens: assistantMessage.metadata?.tokens || 0,
-            executionTime: `${executionTime}ms`,
-          },
+      return res.json(createApiResponse({
+        conversationId: conversation.id,
+        message: assistantMessage,
+        usage: {
+          tokens: assistantMessage.metadata?.tokens || 0,
+          executionTime: `${executionTime}ms`,
         },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          requestId: agentContext.requestId,
-          agentName: result.metadata?.agentName || agentName,
-          model: result.metadata?.model || result.routingDecision?.targetService || 'unknown',
-          provider: result.metadata?.provider || result.serviceUsed || 'unknown',
-          confidence: result.confidence || 0.5,
-          tokensUsed: result.metadata?.tokens?.total_tokens || assistantMessage.metadata?.tokens || 0,
-          executionTime,
-          serviceUsed: result.serviceUsed,
-          routingDecision: result.routingDecision,
-          lfm2Enabled: true,
-          parameters: result.metadata?.parameters,
-          taskType: result.metadata?.taskType,
-          complexity: result.metadata?.complexity,
-        },
-      });
+      }, true, undefined, {
+        timestamp: new Date().toISOString(),
+        requestId: agentContext.requestId,
+        agentName: result.metadata?.agentName || agentName,
+        model: result.metadata?.model || result.routingDecision?.targetService || 'unknown',
+        provider: result.metadata?.provider || result.serviceUsed || 'unknown',
+        confidence: result.confidence || 0.5,
+        tokensUsed: result.metadata?.tokens?.total_tokens || assistantMessage.metadata?.tokens || 0,
+        executionTime,
+        serviceUsed: result.serviceUsed,
+        routingDecision: result.routingDecision,
+        lfm2Enabled: true,
+        parameters: result.metadata?.parameters,
+        taskType: result.metadata?.taskType,
+        complexity: result.metadata?.complexity,
+      }));
     } catch (error) {
       log.error('Chat processing error', LogContext.API, {
         error: error instanceof Error ? error.message : String(error),
       });
 
-      return res.status(500).json({
-        success: false,
-        error: {
-          code: 'CHAT_ERROR',
-          message: 'Failed to process chat message',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      });
+      return res.status(500).json(createApiResponse(null, false, {
+        code: 'CHAT_ERROR',
+        message: 'Failed to process chat message',
+        details: error instanceof Error ? error.message : String(error),
+      }));
     }
   }
 );

@@ -196,8 +196,6 @@ export class ToolCreationSystem {
       if (context.userId) {
         tool.usage.uniqueUsers.add(context.userId);
       }
-      return undefined;
-      return undefined;
 
       // Execute based on security level
       let result: any;
@@ -524,10 +522,6 @@ function ${specification.name}(params) {
     if (shouldEvolve) {
       await this.evolveTool(tool);
     }
-
-    return undefined;
-
-    return undefined;
   }
 
   /**

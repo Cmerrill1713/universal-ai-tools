@@ -85,7 +85,7 @@ router.post('/',
       const projectOrchestrator = req.app.locals.projectOrchestrator as ProjectOrchestrator;
       const project = await projectOrchestrator.createProject(specification);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         data: {
           project: formatProjectResponse(project)
@@ -101,7 +101,7 @@ router.post('/',
         error: error instanceof Error ? error.message : String(error)
       });
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: {
           code: 'PROJECT_CREATION_FAILED',
@@ -153,7 +153,7 @@ router.get('/',
       const offset = parseInt(req.query.offset as string) || 0;
       const paginatedProjects = projects.slice(offset, offset + limit);
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           projects: paginatedProjects.map(project => formatProjectResponse(project)),
@@ -175,7 +175,7 @@ router.get('/',
         error: error instanceof Error ? error.message : String(error)
       });
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: {
           code: 'PROJECT_LIST_FAILED',
@@ -221,7 +221,7 @@ router.get('/:id',
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           project: formatProjectResponse(project, true) // Include detailed info
@@ -237,7 +237,7 @@ router.get('/:id',
         error: error instanceof Error ? error.message : String(error)
       });
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: {
           code: 'PROJECT_GET_FAILED',
@@ -289,7 +289,7 @@ router.post('/:id/start',
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           project: formatProjectResponse(project),
@@ -306,7 +306,7 @@ router.post('/:id/start',
         error: error instanceof Error ? error.message : String(error)
       });
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: {
           code: 'PROJECT_START_FAILED',
@@ -360,7 +360,7 @@ router.post('/:id/cancel',
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           project: formatProjectResponse(project),
@@ -377,7 +377,7 @@ router.post('/:id/cancel',
         error: error instanceof Error ? error.message : String(error)
       });
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: {
           code: 'PROJECT_CANCEL_FAILED',
@@ -462,7 +462,7 @@ router.get('/templates', async (req: Request, res: Response) => {
       }
     ];
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         templates,
@@ -478,7 +478,7 @@ router.get('/templates', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : String(error)
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATES_GET_FAILED',
@@ -524,7 +524,7 @@ router.get('/parallel/metrics', async (req: Request, res: Response) => {
     const activeProjects = projectOrchestrator.listProjects({ activeOnly: true });
     const totalProjects = projectOrchestrator.listProjects({});
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         parallelExecution: {
@@ -565,7 +565,7 @@ router.get('/parallel/metrics', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : String(error)
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'METRICS_ERROR',
@@ -638,7 +638,7 @@ router.post('/:id/parallel-execute',
       await projectOrchestrator.startProject(req.params.id);
       const updatedProject = projectOrchestrator.getProject(req.params.id);
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           project: formatProjectResponse(updatedProject!, true),
@@ -663,7 +663,7 @@ router.post('/:id/parallel-execute',
         error: error instanceof Error ? error.message : String(error)
       });
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: {
           code: 'PARALLEL_EXECUTION_FAILED',
@@ -732,19 +732,19 @@ router.get('/:id/orchestration-insights',
         agentRecommendations: project.tasks.map(task => ({
           taskId: task.id,
           taskName: task.name,
-          recommendedAgent: this.getRecommendedAgentForTask(task, project),
-          alternativeAgents: this.getAlternativeAgents(task, project),
-          confidence: this.calculateAgentConfidence(task, project),
-          reasoning: this.generateTaskReasoning(task, project)
+          recommendedAgent: getRecommendedAgentForTask(task, project),
+          alternativeAgents: getAlternativeAgents(task, project),
+          confidence: calculateAgentConfidence(task, project),
+          reasoning: generateTaskReasoning(task, project)
         })),
         learningInsights: {
-          similarProjectsAnalyzed: this.getSimilarProjectCount(project.specification.type),
-          patternsLearned: this.getLearnedPatterns(project.specification.type),
+          similarProjectsAnalyzed: getSimilarProjectCount(project.specification.type),
+          patternsLearned: getLearnedPatterns(project.specification.type),
           performanceImprovement: '15-35% faster execution based on learned patterns'
         }
       };
 
-      res.json({
+      return res.json({
         success: true,
         data: insights,
         metadata: {
@@ -760,7 +760,7 @@ router.get('/:id/orchestration-insights',
         error: error instanceof Error ? error.message : String(error)
       });
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: {
           code: 'INSIGHTS_ERROR',
@@ -821,16 +821,9 @@ function generateTaskReasoning(task: any, project: any): string {
     reasoning += 'High priority requires proven reliability. ';
   }
   
-  return undefined;
-  
-  return undefined;
-  
   if (task.requiredCapabilities.length > 2) {
     reasoning += 'Complex task may benefit from multi-agent coordination. ';
   }
-  
-  return undefined;
-  return undefined;
   
   return reasoning;
 }

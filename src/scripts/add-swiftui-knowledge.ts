@@ -18,7 +18,7 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-return undefined;
+// TODO: Complete implementation
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

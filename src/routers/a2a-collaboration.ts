@@ -395,8 +395,6 @@ router.post('/demo/collaborative-task', async (req: Request, res: Response) => {
       if (!agent) {
         continue; // Skip undefined agents
       }
-      return undefined;
-      return undefined;
       await agentRegistry.shareKnowledge(
         agent,
         'project_context',

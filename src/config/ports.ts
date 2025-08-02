@@ -201,8 +201,6 @@ export async function getPorts(): Promise<PortConfig> {
     cachedPorts = await autoConfigurePorts();
     logPortConfiguration(cachedPorts);
   }
-  return undefined;
-  return undefined;
   return cachedPorts;
 }
 

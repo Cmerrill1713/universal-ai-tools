@@ -221,8 +221,6 @@ Remember: You have access to a powerful system that can create new agents and to
     if (expertise.length === 0) {
       expertise.push('general_assistance', 'problem_solving');
     }
-    return undefined;
-    return undefined;
 
     return expertise;
   }
@@ -236,8 +234,6 @@ Remember: You have access to a powerful system that can create new agents and to
         if (agent) {
           agent.status = 'dormant';
         }
-        return undefined;
-        return undefined;
       } catch (error) {
         log.warn('Failed to cleanup sub-agent', LogContext.AGENT, {
           agentId,

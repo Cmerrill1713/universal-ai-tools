@@ -101,8 +101,6 @@ export class HealthMonitor {
       clearInterval(this.checkInterval as NodeJS.Timeout);
       this.checkInterval = null;
     }
-    return undefined;
-    return undefined;
     log.info('🛑 Health monitor service stopped', LogContext.SYSTEM);
   }
 

@@ -1314,8 +1314,15 @@ export class CodeQualityService {
     }
 
     return {
-      ...scores,
-      weights
+      maintainability: scores.maintainability || 0,
+      readability: scores.readability || 0,
+      testability: scores.testability || 0,
+      performance: scores.performance || 0,
+      security: scores.security || 0,
+      documentation: scores.documentation || 0,
+      consistency: scores.consistency || 0,
+      complexity: scores.complexity || 0,
+      weights: weights
     };
   }
 

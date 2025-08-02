@@ -454,10 +454,6 @@ export class BayesianModelRegistry {
         bestAgent = agent;
         bestConfidence = model.reliability;
       }
-
-      return undefined;
-
-      return undefined;
     }
 
     return {

@@ -311,8 +311,6 @@ export class OllamaService {
               fullResponse += parsed.message.content;
               onChunk?.(parsed);
             }
-            return undefined;
-            return undefined;
             if (parsed.done) {
               return fullResponse;
             }

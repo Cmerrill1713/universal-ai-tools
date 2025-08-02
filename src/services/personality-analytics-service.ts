@@ -162,7 +162,7 @@ export class PersonalityAnalyticsService extends EventEmitter {
     this.supabase = createClient(this.config.supabaseUrl, this.config.supabaseKey);
     
     // Initialize circuit breaker for resilience
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = new CircuitBreaker('personality-analytics', {
       failureThreshold: 5,
       resetTimeout: 30000,
       monitoringPeriod: 60000

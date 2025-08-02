@@ -303,12 +303,18 @@ export class LLMRouterService {
       });
 
       // Record metrics
+      const usage = response.usage ? {
+        prompt: response.usage.prompt_tokens || 0,
+        completion: response.usage.completion_tokens || 0,
+        total: response.usage.total_tokens || 0
+      } : { prompt: 0, completion: 0, total: 0 };
+      
       recordLLMUsage(
         response.provider,
         response.model,
         true,
         duration,
-        response.usage
+        usage
       );
 
       return {

@@ -46,8 +46,6 @@ export abstract class BaseAgent {
     if (!this.isInitialized) {
       await this.initialize();
     }
-    return undefined;
-    return undefined;
 
     const startTime = Date.now();
 

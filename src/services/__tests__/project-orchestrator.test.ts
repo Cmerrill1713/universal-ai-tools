@@ -45,7 +45,13 @@ describe('ProjectOrchestrator', () => {
       }
     };
 
-    orchestrator = new ProjectOrchestrator(mockDependencies);
+    orchestrator = new ProjectOrchestrator(
+      mockDependencies.abMctsService,
+      mockDependencies.contextStorage,
+      mockDependencies.alphaEvolve,
+      mockDependencies.llmRouter,
+      mockDependencies.agentRegistry
+    );
   });
 
   describe('createProject', () => {
@@ -107,7 +113,7 @@ describe('ProjectOrchestrator', () => {
         type: ProjectType.AUTOMATION,
         description: 'Active test',
         requirements: ['Automate process'],
-        constraints: { complexity: 'simple', quality: 'draft' },
+        constraints: { complexity: 'simple' as const, quality: 'draft' as const },
         userContext: {},
         expectedDeliverables: ['Script'],
         successCriteria: ['Works']
@@ -118,7 +124,7 @@ describe('ProjectOrchestrator', () => {
         type: ProjectType.CONTENT_CREATION,
         description: 'Content test',
         requirements: ['Write content'],
-        constraints: { complexity: 'moderate', quality: 'production' },
+        constraints: { complexity: 'moderate' as const, quality: 'production' as const },
         userContext: {},
         expectedDeliverables: ['Article'],
         successCriteria: ['Published']
@@ -162,7 +168,7 @@ describe('ProjectOrchestrator', () => {
         type: ProjectType.RESEARCH,
         description: 'Test retrieval',
         requirements: ['Research topic'],
-        constraints: { complexity: 'complex', quality: 'enterprise' },
+        constraints: { complexity: 'complex' as const, quality: 'enterprise' as const },
         userContext: {},
         expectedDeliverables: ['Research paper'],
         successCriteria: ['Comprehensive']
@@ -191,7 +197,7 @@ describe('ProjectOrchestrator', () => {
         type: ProjectType.SOFTWARE_DEVELOPMENT,
         description: 'Test lifecycle',
         requirements: ['Build feature'],
-        constraints: { complexity: 'moderate', quality: 'production' },
+        constraints: { complexity: 'moderate' as const, quality: 'production' as const },
         userContext: {},
         expectedDeliverables: ['Feature'],
         successCriteria: ['Working']
@@ -239,7 +245,7 @@ describe('ProjectOrchestrator', () => {
         type: ProjectType.CUSTOM,
         description: 'Test errors',
         requirements: ['Handle errors'],
-        constraints: { complexity: 'simple', quality: 'draft' },
+        constraints: { complexity: 'simple' as const, quality: 'draft' as const },
         userContext: {},
         expectedDeliverables: ['Error handling'],
         successCriteria: ['Graceful failures']

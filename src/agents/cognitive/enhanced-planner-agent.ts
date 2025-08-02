@@ -143,8 +143,6 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
         if (match[1]) {
           resources.push(match[1]);
         }
-        return undefined;
-        return undefined;
       });
     }
 
@@ -169,10 +167,6 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
         if (hasWellStructuredTasks) {
           confidence += 0.1;
         }
-
-        return undefined;
-
-        return undefined;
 
         // Check for risk assessment
         if (parsed.plan.risks && Array.isArray(parsed.plan.risks)) {

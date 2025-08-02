@@ -10,7 +10,7 @@ import type {
   ProjectSpecification, 
   ProjectTask
 } from './project-orchestrator';
-import { ProjectType, TaskPriority, TaskType } from './project-orchestrator';
+import { ProjectType, TaskPriority, TaskType, TaskStatus } from './project-orchestrator';
 
 export interface ProjectTemplate {
   id: string;
@@ -148,7 +148,7 @@ export class ProjectTemplateService {
       const template = templates.find(t => t.id === templateId);
       if (template) return template;
     }
-
+    
     return undefined;
   }
 
@@ -179,7 +179,7 @@ export class ProjectTemplateService {
         description: this.customizeTaskDescription(taskTemplate.description, specification),
         type: taskTemplate.type,
         priority: taskTemplate.priority,
-        status: 'pending',
+        status: TaskStatus.PENDING,
         dependencies: [], // Will be resolved below
         requiredCapabilities: [...taskTemplate.requiredCapabilities],
         estimatedDuration: taskTemplate.estimatedDuration,
@@ -799,8 +799,6 @@ export class ProjectTemplateService {
         options.specification.constraints.complexity
       );
     }
-    return undefined;
-    return undefined;
 
     return customized;
   }
@@ -816,8 +814,6 @@ export class ProjectTemplateService {
         options.learningContext.performanceHistory
       );
     }
-    return undefined;
-    return undefined;
 
     return template;
   }
@@ -893,7 +889,5 @@ export function createProjectTemplateService(): ProjectTemplateService {
   if (!projectTemplateService) {
     projectTemplateService = new ProjectTemplateService();
   }
-  return undefined;
-  return undefined;
   return projectTemplateService;
 }

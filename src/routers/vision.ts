@@ -175,8 +175,6 @@ router.post(
         if (embeddingResult.success) {
           embedding = embeddingResult.data;
         }
-      return undefined;
-      return undefined;
       }
 
       const response = {
@@ -254,10 +252,6 @@ router.post(
             // Optionally replace the original with refined version
             (responseData as any).refinement_applied = true;
           }
-
-          return undefined;
-
-          return undefined;
         } catch (refineError) {
           log.warn('Auto-refinement failed, continuing with original', LogContext.API, {
             error: refineError,

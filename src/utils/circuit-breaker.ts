@@ -16,6 +16,8 @@ export interface CircuitBreakerOptions {
   failureThreshold?: number; // Number of failures before opening
   successThreshold?: number; // Number of successes to close from half-open
   timeout?: number; // Time in ms before trying half-open
+  resetTimeout?: number; // Alias for timeout (backward compatibility)
+  monitoringPeriod?: number; // Alias for rollingWindow (backward compatibility)
   volumeThreshold?: number; // Minimum requests before evaluating
   errorThresholdPercentage?: number; // Error percentage to open circuit
   rollingWindow?: number; // Time window for metrics in ms
@@ -49,11 +51,19 @@ export class CircuitBreaker<T = any> {
   private lastError?: string;
   private metrics: CircuitBreakerMetrics;
   private requestTimestamps: { time: number; success: boolean; error?: string }[] = [];
+  private eventListeners: Map<string, Function[]> = new Map();
 
   constructor(
     private name: string,
     private options: CircuitBreakerOptions = {}
   ) {
+    // Handle backward compatibility aliases
+    const normalizedOptions = {
+      ...options,
+      timeout: options.timeout || options.resetTimeout || 60000,
+      rollingWindow: options.rollingWindow || options.monitoringPeriod || 60000,
+    };
+
     this.options = {
       failureThreshold: 5,
       successThreshold: 2,
@@ -61,7 +71,7 @@ export class CircuitBreaker<T = any> {
       volumeThreshold: 10,
       errorThresholdPercentage: 50,
       rollingWindow: 60000, // 1 minute
-      ...options,
+      ...normalizedOptions,
     };
 
     this.metrics = {
@@ -161,10 +171,6 @@ export class CircuitBreaker<T = any> {
       if (shouldOpenByCount || shouldOpenByPercentage) {
         this.openCircuit();
       }
-
-      return undefined;
-
-      return undefined;
     }
 
     this.updateMetrics();
@@ -274,6 +280,41 @@ export class CircuitBreaker<T = any> {
     this.failureCount = 0;
     this.successCount = 0;
     log.info(`✅ Circuit breaker manually closed for ${this.name}`, LogContext.SYSTEM);
+    this.emit('closed', { name: this.name, metrics: this.getMetrics() });
+  }
+
+  // EventEmitter-like methods for backward compatibility
+  on(event: string, callback: Function): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, []);
+    }
+    this.eventListeners.get(event)!.push(callback);
+  }
+
+  emit(event: string, ...args: any[]): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(callback => {
+        try {
+          callback(...args);
+        } catch (error) {
+          log.error(`Error in circuit breaker event listener for ${event}`, LogContext.SYSTEM, {
+            error: error instanceof Error ? error.message : String(error),
+            circuitBreakerName: this.name
+          });
+        }
+      });
+    }
+  }
+
+  off(event: string, callback: Function): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      const index = listeners.indexOf(callback);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    }
   }
 }
 

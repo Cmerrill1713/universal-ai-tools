@@ -94,8 +94,6 @@ export function intelligentParametersMiddleware(
           req.body.model
         );
       }
-      return undefined;
-      return undefined;
 
       // Apply manual overrides
       if (overrides.temperature !== undefined) optimizedParams.temperature = overrides.temperature;
@@ -136,8 +134,6 @@ export function intelligentParametersMiddleware(
         req.body.prompt = optimizedParams.userPromptTemplate;
         req.body.enhancedPrompt = true;
       }
-      return undefined;
-      return undefined;
 
       // Store context and parameters for later use
       req.taskContext = taskContext;
@@ -270,10 +266,6 @@ export function optimizeParameters(
     taskContext.complexity = options.complexity;
   }
 
-  return undefined;
-
-  return undefined;
-
   let optimizedParams = intelligentParameterService.getTaskParameters(taskContext);
 
   if (options.model) {
@@ -282,10 +274,6 @@ export function optimizeParameters(
       options.model
     );
   }
-
-  return undefined;
-
-  return undefined;
 
   // Apply overrides
   if (options.overrides) {
@@ -298,8 +286,6 @@ export function optimizeParameters(
     if (options.overrides.systemPrompt !== undefined)
       optimizedParams.systemPrompt = options.overrides.systemPrompt;
   }
-  return undefined;
-  return undefined;
 
   const result: OptimizedParameters & { 
     stop?: string[];

@@ -363,7 +363,7 @@ export class AutonomousCodeService {
       process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || ''
     );
 
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = new CircuitBreaker('autonomous-code-service', {
       failureThreshold: 5,
       timeout: 30000,
       errorThresholdPercentage: 50
@@ -388,7 +388,7 @@ export class AutonomousCodeService {
     const generationId = this.generateRequestId(request);
 
     try {
-      log.info('🤖 Starting autonomous code generation', LogContext.GENERATION, {
+      log.info('🤖 Starting autonomous code generation', LogContext.SERVICE, {
         generationId,
         language: request.language,
         generationType: request.generationType || 'completion',
@@ -400,12 +400,12 @@ export class AutonomousCodeService {
 
       // Phase 1: Context Enrichment and Preparation
       const enrichedContext = await this.enrichGenerationContext(request);
-      log.debug('📚 Context enrichment completed', LogContext.GENERATION, { generationId });
+      log.debug('📚 Context enrichment completed', LogContext.SERVICE, { generationId });
 
       // Phase 2: AB-MCTS Model Selection and Parameter Optimization
       const modelSelection = await this.selectOptimalModel(request, enrichedContext);
       const optimizedParameters = await this.optimizeGenerationParameters(request, modelSelection);
-      log.debug('🎯 Model selection and parameter optimization completed', LogContext.GENERATION, { 
+      log.debug('🎯 Model selection and parameter optimization completed', LogContext.SERVICE, { 
         generationId, 
         selectedModel: modelSelection.model 
       });
@@ -417,7 +417,7 @@ export class AutonomousCodeService {
         modelSelection, 
         optimizedParameters
       );
-      log.debug('⚡ Code generation completed', LogContext.GENERATION, { 
+      log.debug('⚡ Code generation completed', LogContext.SERVICE, { 
         generationId, 
         codeLength: generationResult.code.length 
       });
@@ -428,7 +428,7 @@ export class AutonomousCodeService {
         request, 
         enrichedContext
       );
-      log.debug('✅ Code validation completed', LogContext.GENERATION, { 
+      log.debug('✅ Code validation completed', LogContext.SERVICE, { 
         generationId,
         securityPassed: validationResults.security.passed,
         qualityPassed: validationResults.quality.passed
@@ -440,7 +440,7 @@ export class AutonomousCodeService {
         request, 
         enrichedContext
       );
-      log.debug('📊 Code analysis completed', LogContext.GENERATION, { generationId });
+      log.debug('📊 Code analysis completed', LogContext.SERVICE, { generationId });
 
       // Phase 6: Alternative Generation (if needed)
       const alternatives = await this.generateAlternatives(
@@ -449,7 +449,7 @@ export class AutonomousCodeService {
         validationResults, 
         analysisResults
       );
-      log.debug('🔄 Alternative generation completed', LogContext.GENERATION, { 
+      log.debug('🔄 Alternative generation completed', LogContext.SERVICE, { 
         generationId, 
         alternativesCount: alternatives.length 
       });
@@ -461,7 +461,7 @@ export class AutonomousCodeService {
         validationResults, 
         analysisResults
       );
-      log.debug('🧠 Learning insights extracted', LogContext.GENERATION, { generationId });
+      log.debug('🧠 Learning insights extracted', LogContext.SERVICE, { generationId });
 
       // Compile comprehensive result
       const totalTime = Date.now() - startTime;
@@ -491,7 +491,7 @@ export class AutonomousCodeService {
         recommendedFeedback: this.generateFeedbackRecommendations(analysisResults),
         overallQualityScore: this.calculateOverallQuality(validationResults, analysisResults),
         confidenceScore: this.calculateConfidenceScore(modelSelection, validationResults),
-        recommendationScore: this.calculateRecommendationScore(alternatives, improvements)
+        recommendationScore: this.calculateRecommendationScore(alternatives, this.generateImprovements(validationResults, analysisResults))
       };
 
       // Store generation for learning and analytics
@@ -500,7 +500,7 @@ export class AutonomousCodeService {
       // Update model performance metrics
       await this.updateModelMetrics(result);
 
-      log.info('✅ Autonomous code generation completed successfully', LogContext.GENERATION, {
+      log.info('✅ Autonomous code generation completed successfully', LogContext.SERVICE, {
         generationId,
         totalTimeMs: totalTime,
         codeLength: result.generatedCode.length,
@@ -515,7 +515,7 @@ export class AutonomousCodeService {
     } catch (error) {
       const totalTime = Date.now() - startTime;
       
-      log.error('❌ Autonomous code generation failed', LogContext.GENERATION, {
+      log.error('❌ Autonomous code generation failed', LogContext.SERVICE, {
         generationId,
         error: error instanceof Error ? error.message : String(error),
         totalTimeMs: totalTime
@@ -590,7 +590,7 @@ export class AutonomousCodeService {
         tokenCount: this.estimateTokens(enrichedPrompt.enrichedPrompt)
       };
     } catch (error) {
-      log.warn('⚠️ Context enrichment failed, using basic prompt', LogContext.GENERATION, {
+      log.warn('⚠️ Context enrichment failed, using basic prompt', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
       
@@ -634,7 +634,7 @@ export class AutonomousCodeService {
         alternatives: modelSelection.alternatives || []
       };
     } catch (error) {
-      log.warn('⚠️ AB-MCTS model selection failed, using fallback', LogContext.GENERATION, {
+      log.warn('⚠️ AB-MCTS model selection failed, using fallback', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
       
@@ -675,7 +675,7 @@ export class AutonomousCodeService {
         contextWindow: optimizedParams.contextWindow || 4096
       };
     } catch (error) {
-      log.warn('⚠️ Parameter optimization failed, using defaults', LogContext.GENERATION, {
+      log.warn('⚠️ Parameter optimization failed, using defaults', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
       
@@ -754,7 +754,7 @@ export class AutonomousCodeService {
         ]
       };
     } catch (error) {
-      log.error('❌ Code generation execution failed', LogContext.GENERATION, {
+      log.error('❌ Code generation execution failed', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error),
         model: modelSelection.model
       });
@@ -814,7 +814,7 @@ export class AutonomousCodeService {
         timeMs
       };
     } catch (error) {
-      log.error('❌ Code validation failed', LogContext.GENERATION, {
+      log.error('❌ Code validation failed', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
       
@@ -879,7 +879,7 @@ export class AutonomousCodeService {
         }
       };
     } catch (error) {
-      log.warn('⚠️ Code analysis failed', LogContext.GENERATION, {
+      log.warn('⚠️ Code analysis failed', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
       
@@ -932,7 +932,7 @@ export class AutonomousCodeService {
       
       return alternatives;
     } catch (error) {
-      log.warn('⚠️ Alternative generation failed', LogContext.GENERATION, {
+      log.warn('⚠️ Alternative generation failed', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
       return [];
@@ -983,7 +983,7 @@ export class AutonomousCodeService {
       
       return insights;
     } catch (error) {
-      log.warn('⚠️ Learning insight extraction failed', LogContext.GENERATION, {
+      log.warn('⚠️ Learning insight extraction failed', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
       return [];
@@ -1166,7 +1166,7 @@ export class AutonomousCodeService {
           repository_context: request.repositoryContext
         });
     } catch (error) {
-      log.warn('⚠️ Failed to store generation result', LogContext.GENERATION, {
+      log.warn('⚠️ Failed to store generation result', LogContext.SERVICE, {
         error: error instanceof Error ? error.message : String(error)
       });
     }
@@ -1307,7 +1307,7 @@ export class AutonomousCodeService {
    */
   public clearCache(): void {
     this.generationCache.clear();
-    log.info('🧹 Code generation cache cleared', LogContext.GENERATION);
+    log.info('🧹 Code generation cache cleared', LogContext.SERVICE);
   }
 
   /**

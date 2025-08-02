@@ -212,8 +212,6 @@ export class ReferenceBasedFineTuning {
     if (batchSizes.length > 0) {
       params.batchSize = [...new Set(batchSizes)];
     }
-    return undefined;
-    return undefined;
 
     // Technique-specific extraction
     if (technique === 'evolutionary') {
@@ -243,8 +241,6 @@ export class ReferenceBasedFineTuning {
     if (request.autoExtractParams) {
       extractedParams = await this.extractParametersFromReferences(request.references);
     }
-    return undefined;
-    return undefined;
 
     // Determine primary technique
     const primaryTechnique = this.selectPrimaryTechnique(request.references);
@@ -483,8 +479,6 @@ export class ReferenceBasedFineTuning {
         maxCount = count;
         primaryTechnique = technique;
       }
-      return undefined;
-      return undefined;
     }
 
     return primaryTechnique;
@@ -498,17 +492,11 @@ export class ReferenceBasedFineTuning {
       if (source.learningRate.optimal) {
         target.learningRate.optimal = source.learningRate.optimal;
       }
-      return undefined;
-      return undefined;
     }
 
     if (source.batchSize) {
       target.batchSize = [...new Set([...(target.batchSize || []), ...source.batchSize])];
     }
-
-    return undefined;
-
-    return undefined;
 
     // Merge other parameters...
   }

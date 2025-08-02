@@ -55,13 +55,13 @@ app.post('/api/v1/chat', async (req, res) => {
       responseLength: agentResponse.message.length
     });
 
-    res.json(response);
+    return res.json(response);
   } catch (error) {
     log.error('❌ Chat request failed', LogContext.API, {
       error: error instanceof Error ? error.message : String(error)
     });
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Internal server error'
     });
@@ -97,7 +97,7 @@ app.get('/api/v1/memory/:userId', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: conversationHistory
     });
@@ -106,7 +106,7 @@ app.get('/api/v1/memory/:userId', async (req, res) => {
       error: error instanceof Error ? error.message : String(error)
     });
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to retrieve conversation history'
     });

@@ -202,8 +202,6 @@ export class MCPIntegrationService extends EventEmitter {
         log.info('🔄 Auto-restarting MCP server', LogContext.MCP);
         setTimeout(() => this.start(), 5000);
       }
-      return undefined;
-      return undefined;
     });
 
     this.supabaseMCPProcess.on('error', (error) => {
@@ -372,10 +370,6 @@ export class MCPIntegrationService extends EventEmitter {
       query = query.eq('category', params.category);
     }
 
-    return undefined;
-
-    return undefined;
-
     query = query.ilike('content', `%${params.query}%`);
 
     const { data, error } = await query;
@@ -402,10 +396,6 @@ export class MCPIntegrationService extends EventEmitter {
     if (params.category) {
       query = query.eq('category', params.category);
     }
-
-    return undefined;
-
-    return undefined;
 
     const { data, error } = await query;
     if (error) throw new Error(`Failed to get recent context: ${error.message}`);
@@ -454,17 +444,9 @@ export class MCPIntegrationService extends EventEmitter {
       query = query.eq('pattern_type', params.pattern_type);
     }
 
-    return undefined;
-
-    return undefined;
-
     if (params.error_type) {
       query = query.contains('error_types', [params.error_type]);
     }
-
-    return undefined;
-
-    return undefined;
 
     const { data, error } = await query;
     if (error) throw new Error(`Failed to get code patterns: ${error.message}`);
@@ -563,8 +545,6 @@ export class MCPIntegrationService extends EventEmitter {
             if (this.supabaseMCPProcess && !this.supabaseMCPProcess.killed) {
               this.supabaseMCPProcess.kill('SIGKILL');
             }
-    return undefined;
-    return undefined;
             resolve(undefined);
           }, 5000);
         } else {

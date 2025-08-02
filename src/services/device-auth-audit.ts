@@ -166,10 +166,10 @@ class DeviceAuthAuditService {
    * Log suspicious activity
    */
   async logSuspiciousActivity(
-    userId?: string,
-    deviceId?: string,
     activityType: string,
     details: Record<string, any>,
+    userId?: string,
+    deviceId?: string,
     request?: { ip?: string; userAgent?: string }
   ): Promise<void> {
     await this.logEvent({

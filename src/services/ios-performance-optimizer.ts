@@ -204,7 +204,7 @@ export class iOSPerformanceOptimizer extends EventEmitter {
     super();
     
     // Initialize circuit breaker
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = new CircuitBreaker('ios-performance-optimizer', {
       failureThreshold: 3,
       resetTimeout: 60000,
       monitoringPeriod: 30000

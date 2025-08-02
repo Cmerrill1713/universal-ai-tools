@@ -7,7 +7,7 @@ import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { LogContext, log } from '@/utils/logger';
 import type { AgentRegistry } from '@/agents/agent-registry';
-import type { ABMCTSService } from './ab-mcts-service';
+import type { ABMCTSServiceWithOrchestrator } from './ab-mcts-service';
 import type { ContextStorageService } from './context-storage-service';
 
 export interface ParallelTask {
@@ -63,7 +63,7 @@ export class ParallelAgentOrchestrator extends EventEmitter {
 
   constructor(
     private agentRegistry: AgentRegistry,
-    private abmctsService: ABMCTSService,
+    private abmctsService: ABMCTSServiceWithOrchestrator,
     private contextService: ContextStorageService
   ) {
     super();
@@ -240,8 +240,6 @@ export class ParallelAgentOrchestrator extends EventEmitter {
             if (completedIndex !== -1) {
               executing.splice(completedIndex, 1);
             }
-          return undefined;
-          return undefined;
             
             this.updateAgentWorkload(result.agentUsed, -1);
           } else {
@@ -265,8 +263,6 @@ export class ParallelAgentOrchestrator extends EventEmitter {
         if (completedIndex !== -1) {
           executing.splice(completedIndex, 1);
         }
-      return undefined;
-      return undefined;
         
         this.updateAgentWorkload(result.agentUsed, -1);
       }
@@ -500,8 +496,6 @@ export class ParallelAgentOrchestrator extends EventEmitter {
       workload.currentTasks = Math.max(0, workload.currentTasks + delta);
       workload.isAvailable = workload.currentTasks < workload.maxCapacity;
     }
-    return undefined;
-    return undefined;
   }
 
   /**
@@ -530,8 +524,6 @@ export class ParallelAgentOrchestrator extends EventEmitter {
       workload.performance.qualityScore = 
         workload.performance.qualityScore * (1 - alpha) + qualityUpdate * alpha;
     }
-    return undefined;
-    return undefined;
   }
 
   /**
@@ -579,7 +571,7 @@ export let parallelAgentOrchestrator: ParallelAgentOrchestrator | null = null;
 
 export function createParallelAgentOrchestrator(
   agentRegistry: AgentRegistry,
-  abmctsService: ABMCTSService,
+  abmctsService: ABMCTSServiceWithOrchestrator,
   contextService: ContextStorageService
 ): ParallelAgentOrchestrator {
   parallelAgentOrchestrator = new ParallelAgentOrchestrator(

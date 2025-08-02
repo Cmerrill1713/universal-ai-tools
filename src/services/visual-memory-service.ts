@@ -125,8 +125,6 @@ export class VisualMemoryService {
       if (memory.id) {
         this.updateCache(memory.id, memory as VisualMemory);
       }
-      return undefined;
-      return undefined;
 
       log.info('✅ Visual memory stored', LogContext.MEMORY, {
         memoryId: memory.id,
@@ -578,8 +576,6 @@ export class VisualMemoryService {
       if (firstKey !== undefined) {
         this.memoryCache.delete(firstKey);
       }
-    return undefined;
-    return undefined;
     }
     this.memoryCache.set(id, memory);
   }

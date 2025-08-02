@@ -150,22 +150,16 @@ export class HuggingFaceIngestionService {
       if (includeModels) {
         await this.ingestModels(modelLimit, popularOnly, stats);
       }
-      return undefined;
-      return undefined;
 
       // 2. Ingest Datasets
       if (includeDatasets) {
         await this.ingestDatasets(datasetLimit, popularOnly, stats);
       }
-      return undefined;
-      return undefined;
 
       // 3. Ingest Papers
       if (includePapers) {
         await this.ingestPapers(paperLimit, stats);
       }
-      return undefined;
-      return undefined;
 
       stats.endTime = new Date();
       const duration = (stats.endTime.getTime() - stats.startTime.getTime()) / 1000;

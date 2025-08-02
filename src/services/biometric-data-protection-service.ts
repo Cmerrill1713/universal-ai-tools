@@ -199,7 +199,7 @@ export class BiometricDataProtectionService extends EventEmitter {
     );
     
     // Initialize circuit breaker
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = new CircuitBreaker('biometric-data-protection', {
       failureThreshold: 3,
       resetTimeout: 60000,
       monitoringPeriod: 30000
@@ -946,13 +946,14 @@ export class BiometricDataProtectionService extends EventEmitter {
       const { data, error } = await this.supabase
         .from('encrypted_biometric_data')
         .delete()
-        .lt('retention_until', new Date().toISOString());
+        .lt('retention_until', new Date().toISOString())
+        .select('id'); // Add select to get deleted records
 
       if (error) {
         throw error;
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         logger.info(`Cleaned up ${data.length} expired biometric records`);
         this.emit('data_cleanup_completed', { recordsDeleted: data.length });
       }

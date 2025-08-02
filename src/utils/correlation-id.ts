@@ -241,10 +241,7 @@ export function extractCorrelationId(source: any): string | undefined {
   // From context metadata
   if (source.metadata?.correlationId) {
     return source.metadata.correlationId;
-  }
-
-  return undefined;
-}
+  }}
 
 /**
  * Format log with correlation ID

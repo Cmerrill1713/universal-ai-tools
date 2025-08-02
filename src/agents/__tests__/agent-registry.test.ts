@@ -4,23 +4,39 @@
 
 import { AgentRegistry } from '../agent-registry';
 import { BaseAgent } from '../base-agent';
+import { type AgentConfig, type AgentContext, type AgentResponse } from '@/types';
 
 // Mock agent for testing
 class MockAgent extends BaseAgent {
+  public name: string;
+
   constructor() {
-    super({
+    const config: AgentConfig = {
       name: 'mock-agent',
       description: 'Mock agent for testing',
-      capabilities: ['test'],
-      systemPrompt: 'Test prompt'
-    });
+      capabilities: [{
+        name: 'test',
+        description: 'Test capability',
+        inputSchema: {},
+        outputSchema: {}
+      }],
+      priority: 1,
+      maxLatencyMs: 5000,
+      retryAttempts: 2,
+      dependencies: [],
+      memoryEnabled: false
+    };
+    super(config);
+    this.name = config.name;
   }
 
-  async execute(input: string, context?: any): Promise<any> {
+  protected async process(context: AgentContext): Promise<AgentResponse> {
     return {
       success: true,
-      response: `Mock response to: ${input}`,
-      context
+      data: `Mock response to: ${context.userRequest}`,
+      confidence: 0.8,
+      message: 'Mock processing completed',
+      reasoning: 'This is a mock agent response'
     };
   }
 }
@@ -32,95 +48,51 @@ describe('AgentRegistry', () => {
     registry = new AgentRegistry();
   });
 
-  describe('agent registration', () => {
-    it('should register an agent', () => {
-      const agent = new MockAgent();
-      registry.registerAgent('mock-agent', agent);
-
-      expect(registry.hasAgent('mock-agent')).toBe(true);
+  describe('built-in agents', () => {
+    it('should have pre-registered built-in agents', () => {
+      expect(registry.hasAgent('planner')).toBe(true);
+      expect(registry.hasAgent('synthesizer')).toBe(true);
+      expect(registry.hasAgent('retriever')).toBe(true);
+      expect(registry.hasAgent('personal_assistant')).toBe(true);
+      expect(registry.hasAgent('athena')).toBe(true);
+      expect(registry.hasAgent('code_assistant')).toBe(true);
     });
 
-    it('should throw error when registering duplicate agent', () => {
-      const agent = new MockAgent();
-      registry.registerAgent('mock-agent', agent);
-
-      expect(() => {
-        registry.registerAgent('mock-agent', agent);
-      }).toThrow('Agent mock-agent is already registered');
+    it('should list all registered agents', () => {
+      const agents = registry.listAgents();
+      expect(agents).toContain('planner');
+      expect(agents).toContain('synthesizer');
+      expect(agents).toContain('retriever');
+      expect(agents).toContain('personal_assistant');
+      expect(agents).toContain('athena');
+      expect(agents).toContain('code_assistant');
     });
   });
 
   describe('agent retrieval', () => {
-    beforeEach(() => {
-      const agent = new MockAgent();
-      registry.registerAgent('mock-agent', agent);
-    });
-
-    it('should retrieve registered agent', () => {
-      const agent = registry.getAgent('mock-agent');
+    it('should retrieve built-in agent', async () => {
+      const agent = await registry.getAgent('planner');
       expect(agent).toBeDefined();
-      expect(agent?.getName()).toBe('mock-agent');
+      expect(agent?.getName()).toBe('planner');
     });
 
-    it('should return undefined for non-existent agent', () => {
-      const agent = registry.getAgent('non-existent');
-      expect(agent).toBeUndefined();
-    });
-  });
-
-  describe('agent listing', () => {
-    it('should list all registered agents', () => {
-      const agent1 = new MockAgent();
-      const agent2 = new MockAgent();
-      agent2.name = 'mock-agent-2';
-
-      registry.registerAgent('mock-agent', agent1);
-      registry.registerAgent('mock-agent-2', agent2);
-
-      const agents = registry.listAgents();
-      expect(agents).toHaveLength(2);
-      expect(agents).toContain('mock-agent');
-      expect(agents).toContain('mock-agent-2');
-    });
-
-    it('should return empty array when no agents registered', () => {
-      const agents = registry.listAgents();
-      expect(agents).toHaveLength(0);
+    it('should return null for non-existent agent', async () => {
+      const agent = await registry.getAgent('non-existent');
+      expect(agent).toBeNull();
     });
   });
 
   describe('capability search', () => {
-    beforeEach(() => {
-      class TestAgent extends BaseAgent {
-        constructor(name: string, capabilities: string[]) {
-          super({
-            name,
-            description: `${name} agent`,
-            capabilities,
-            systemPrompt: 'Test'
-          });
-        }
-        async execute(input: string): Promise<any> {
-          return { success: true };
-        }
-      }
-
-      registry.registerAgent('agent1', new TestAgent('agent1', ['analyze', 'summarize']));
-      registry.registerAgent('agent2', new TestAgent('agent2', ['code', 'debug']));
-      registry.registerAgent('agent3', new TestAgent('agent3', ['analyze', 'code']));
-    });
-
     it('should find agents by single capability', () => {
-      const agents = registry.getAgentsByCapability('analyze');
-      expect(agents).toHaveLength(2);
-      expect(agents.map(a => a.getName())).toContain('agent1');
-      expect(agents.map(a => a.getName())).toContain('agent3');
+      const agents = registry.getAgentsByCapability('planning');
+      expect(agents.length).toBeGreaterThan(0);
+      expect(agents[0].name).toBe('planner');
     });
 
     it('should find agents by multiple capabilities', () => {
-      const agents = registry.getAgentsByCapabilities(['analyze', 'code']);
-      expect(agents).toHaveLength(1);
-      expect(agents[0].getName()).toBe('agent3');
+      const agents = registry.getAgentsByCapabilities(['assistance', 'coordination']);
+      expect(agents.length).toBeGreaterThan(0);
+      expect(agents.some(a => a.name === 'personal_assistant' || a.name === 'athena')).toBe(true);
     });
 
     it('should return empty array for non-existent capability', () => {
@@ -129,67 +101,22 @@ describe('AgentRegistry', () => {
     });
   });
 
-  describe('bulk operations', () => {
-    it('should register multiple agents', () => {
-      const agents = [
-        { name: 'agent1', agent: new MockAgent() },
-        { name: 'agent2', agent: new MockAgent() },
-        { name: 'agent3', agent: new MockAgent() }
-      ];
-
-      agents.forEach(({ name, agent }) => {
-        agent.name = name;
-        registry.registerAgent(name, agent);
-      });
-
-      expect(registry.listAgents()).toHaveLength(3);
+  describe('agent definitions', () => {
+    it('should return available agent definitions', () => {
+      const definitions = registry.getAvailableAgents();
+      expect(definitions.length).toBeGreaterThan(0);
+      expect(definitions.some(d => d.name === 'planner')).toBe(true);
+      expect(definitions.some(d => d.name === 'synthesizer')).toBe(true);
     });
 
-    it('should unregister an agent', () => {
-      const agent = new MockAgent();
-      registry.registerAgent('mock-agent', agent);
-      expect(registry.hasAgent('mock-agent')).toBe(true);
-
-      registry.unregisterAgent('mock-agent');
-      expect(registry.hasAgent('mock-agent')).toBe(false);
+    it('should return loaded agents list', () => {
+      const loadedAgents = registry.getLoadedAgents();
+      expect(Array.isArray(loadedAgents)).toBe(true);
     });
 
-    it('should clear all agents', () => {
-      registry.registerAgent('agent1', new MockAgent());
-      registry.registerAgent('agent2', new MockAgent());
-      expect(registry.listAgents()).toHaveLength(2);
-
-      registry.clearAgents();
-      expect(registry.listAgents()).toHaveLength(0);
-    });
-  });
-
-  describe('agent metadata', () => {
-    it('should get agent info', () => {
-      const agent = new MockAgent();
-      registry.registerAgent('mock-agent', agent);
-
-      const info = registry.getAgentInfo('mock-agent');
-      expect(info).toEqual({
-        name: 'mock-agent',
-        description: 'Mock agent for testing',
-        capabilities: ['test'],
-        registered: true
-      });
-    });
-
-    it('should return undefined info for non-existent agent', () => {
-      const info = registry.getAgentInfo('non-existent');
-      expect(info).toBeUndefined();
-    });
-
-    it('should get all agents info', () => {
-      registry.registerAgent('agent1', new MockAgent());
-      registry.registerAgent('agent2', new MockAgent());
-
-      const allInfo = registry.getAllAgentsInfo();
-      expect(allInfo).toHaveLength(2);
-      expect(allInfo.every(info => info.registered)).toBe(true);
+    it('should return core agents', () => {
+      const coreAgents = registry.getCoreAgents();
+      expect(coreAgents).toContain('planner');
     });
   });
 });

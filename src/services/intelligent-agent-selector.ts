@@ -6,7 +6,7 @@
 
 import { AgentRegistry } from '../agents/agent-registry';
 import { athenaAgent } from '../agents/athena-agent';
-import type { AgentContext, AgentResponse } from '../types';
+import type { AgentContext, AgentResponse, ServiceRouteIntegrationData } from '../types';
 import type { MobileDeviceContext } from './mobile-dspy-orchestrator';
 import { TaskType, intelligentParameterService } from './intelligent-parameter-service';
 import { lfm2Bridge } from './lfm2-bridge';
@@ -124,11 +124,30 @@ export class IntelligentAgentSelector extends EventEmitter {
         hasHistory: !!(request.conversationHistory?.length),
       });
 
-      // Step 1: Use LFM2 for ultra-fast task classification (100-500ms)
-      const routingDecision = await lfm2Bridge.routingDecision(request.userInput, {
+      // Step 1: Use LFM2 for ultra-fast task classification (100-500ms) with timeout
+      const routingDecisionPromise = lfm2Bridge.routingDecision(request.userInput, {
         conversationHistory: request.conversationHistory,
         deviceContext: request.deviceContext,
         userPreferences: request.userPreferences
+      });
+      
+      // Add 2-second timeout for LFM2 routing (should be much faster)
+      const routingDecision = await Promise.race([
+        routingDecisionPromise,
+        new Promise<any>((_, reject) => {
+          setTimeout(() => reject(new Error('LFM2 routing timeout after 2s')), 2000);
+        })
+      ]).catch(error => {
+        log.warn('⚠️ LFM2 routing failed, using fallback logic', LogContext.AI, {
+          error: error.message
+        });
+        // Fast fallback routing decision - test LM Studio speed
+        return {
+          targetService: 'lm-studio',
+          confidence: 0.3,
+          reasoning: 'Fallback to LM Studio (testing speed)',
+          estimatedTokens: 100
+        };
       });
       
       log.info('🚀 LFM2 routing decision', LogContext.AI, {
@@ -201,34 +220,46 @@ export class IntelligentAgentSelector extends EventEmitter {
         userId: context.userId
       });
       
-      // Add 5-second timeout for LFM2 routing
+      // Add 2-second timeout for LFM2 routing with LM Studio fallback
       const routingDecision = await Promise.race([
         routingDecisionPromise,
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('LFM2 routing timeout')), 5000);
+          setTimeout(() => reject(new Error('LFM2 routing timeout')), 2000);
         })
-      ]);
+      ]).catch(error => {
+        log.warn('⚠️ LFM2 routing failed in executeWithOptimalAgent', LogContext.AI, {
+          error: error.message
+        });
+        // Test LM Studio as fallback
+        return {
+          targetService: 'lm-studio',
+          confidence: 0.3,
+          reasoning: 'Fallback to LM Studio (testing speed)',
+          estimatedTokens: 100
+        };
+      });
 
+      const decision = routingDecision as ServiceRouteIntegrationData;
       log.info('🎯 LFM2 routing decision made', LogContext.AI, {
-        targetService: routingDecision.targetService,
-        confidence: routingDecision.confidence,
-        estimatedTokens: routingDecision.estimatedTokens
+        targetService: decision.targetService,
+        confidence: decision.confidence,
+        estimatedTokens: decision.estimatedTokens
       });
 
       // Step 2: Execute with selected service
       const result = await this.executeWithService(
-        routingDecision.targetService,
+        decision.targetService,
         userRequest,
         context
       );
 
       // Step 3: Update performance metrics
-      this.updateServiceMetrics(routingDecision.targetService, Date.now() - startTime, result.success);
+      this.updateServiceMetrics(decision.targetService, Date.now() - startTime, result.success);
 
       return {
         ...result,
-        serviceUsed: routingDecision.targetService,
-        routingDecision
+        serviceUsed: decision.targetService,
+        routingDecision: decision
       };
 
     } catch (error) {
@@ -658,8 +689,6 @@ export class IntelligentAgentSelector extends EventEmitter {
     if (agentMetrics) {
       recommendation.confidence *= agentMetrics.successRate;
     }
-    return undefined;
-    return undefined;
     
     // Battery impact assessment
     recommendation.batteryImpact = this.assessBatteryImpact(
@@ -680,8 +709,6 @@ export class IntelligentAgentSelector extends EventEmitter {
       recommendation.batteryImpact = 'low';
       recommendation.reasoning += ' (Overridden for critical battery level)';
     }
-    return undefined;
-    return undefined;
     
     return recommendation;
   }
@@ -822,8 +849,6 @@ export class IntelligentAgentSelector extends EventEmitter {
     if (complexity === 'complex' && impact !== 'high') {
       impact = impact === 'low' ? 'medium' : 'high';
     }
-    return undefined;
-    return undefined;
     
     return impact as 'low' | 'medium' | 'high';
   }
@@ -871,8 +896,6 @@ export class IntelligentAgentSelector extends EventEmitter {
     if (deviceConstraints.batteryLevel < 20) {
       baseTime *= 0.7; // Faster, simpler processing
     }
-    return undefined;
-    return undefined;
     
     return Math.round(baseTime);
   }
@@ -884,8 +907,6 @@ export class IntelligentAgentSelector extends EventEmitter {
     if (primaryAgent !== 'personal_assistant') {
       fallbacks.push('personal_assistant');
     }
-    return undefined;
-    return undefined;
     
     // Add domain-specific fallbacks
     if (classification.domain.includes('coding') && primaryAgent !== 'code_assistant') {
@@ -1027,8 +1048,6 @@ export class IntelligentAgentSelector extends EventEmitter {
       if (impact === 'low' && (service === 'ollama' || service === 'lm-studio')) {
         impact = 'medium'; // Local models still use some battery
       }
-    return undefined;
-    return undefined;
     }
     
     return impact;
@@ -1104,16 +1123,9 @@ export class IntelligentAgentSelector extends EventEmitter {
       metrics.userSatisfaction = alpha * userSatisfaction + (1 - alpha) * metrics.userSatisfaction;
     }
     
-    return undefined;
-    
-    return undefined;
-    
     if (batteryEfficiency !== undefined) {
       metrics.batteryEfficiency = alpha * batteryEfficiency + (1 - alpha) * metrics.batteryEfficiency;
     }
-    
-    return undefined;
-    return undefined;
     
     this.performanceMetrics.set(agentName, metrics);
   }

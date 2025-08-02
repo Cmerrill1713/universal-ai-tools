@@ -161,8 +161,6 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
         if (match[1]) {
           resources.push(match[1]);
         }
-        return undefined;
-        return undefined;
       });
     }
 

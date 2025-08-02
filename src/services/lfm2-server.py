@@ -29,14 +29,14 @@ class LFM2Server:
         self.request_count = 0
         self.total_time = 0
         self.model_path = "/Users/christianmerrill/Desktop/universal-ai-tools/models/agents/LFM2-1.2B-bf16"
-        # Use mock implementation to save memory - set to False to load real model
+        # Use real LFM2 model for production routing - optimized for speed
         self.use_mock = False
         
         # Memory optimization settings
         self.last_used = time.time()
         self.idle_timeout = 300  # 5 minutes
         self.batch_size = 1
-        self.max_sequence_length = 512  # Limit sequence length for memory
+        self.max_sequence_length = 128  # Very short for fast routing decisions
         
         # Setup logging
         logging.basicConfig(
@@ -200,13 +200,13 @@ class LFM2Server:
                     self.logger.debug(f"Truncated prompt to {self.max_sequence_length} chars")
                 
                 # Generate response using MLX with memory limits
-                # MLX-LM uses 'temperature' parameter in generate
+                # MLX-LM v0.26+ uses 'temp' parameter in generate
                 response = generate(
                     self.model,
                     self.tokenizer,
                     prompt=prompt,
-                    max_tokens=min(max_tokens, 256),  # Limit max tokens for memory
-                    temperature=temperature,  # Corrected parameter name
+                    max_tokens=min(max_tokens, 50),  # Very short responses for routing
+                    temp=temperature,  # MLX-LM uses 'temp' not 'temperature'
                     verbose=False
                 )
                 
@@ -230,7 +230,39 @@ class LFM2Server:
                 self.logger.error(f"MLX generation error: {e}")
                 # Fall through to mock
         
-        # Mock response for testing
+        # Smart mock response based on task type
+        if data.get('type') == 'routing':
+            # Intelligent routing decision based on simple keyword analysis
+            prompt_lower = prompt.lower()
+            
+            # Simple but fast routing logic
+            if any(word in prompt_lower for word in ['code', 'programming', 'debug', 'function', 'bug']):
+                service = 'ollama'
+                confidence = 0.85
+            elif any(word in prompt_lower for word in ['creative', 'write', 'story', 'generate']):
+                service = 'openai'
+                confidence = 0.9
+            elif any(word in prompt_lower for word in ['simple', 'quick', 'what', 'explain']):
+                service = 'lfm2'
+                confidence = 0.95
+            else:
+                service = 'ollama'
+                confidence = 0.7
+                
+            routing_response = {
+                "targetService": service,
+                "confidence": confidence,
+                "reasoning": f"Fast routing based on keywords in: {prompt[:30]}...",
+                "estimatedTokens": min(max_tokens, 100)
+            }
+            
+            return {
+                'success': True,
+                'text': str(routing_response).replace("'", '"'),  # JSON-like format
+                'model': 'lfm2-mock-router'
+            }
+        
+        # Default mock response
         return {
             'success': True,
             'text': f"[Mock LFM2] Processed: {prompt[:50]}...",

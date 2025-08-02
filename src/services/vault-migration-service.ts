@@ -193,8 +193,6 @@ export class VaultMigrationService {
     if (secret.envVarName) {
       secretValue = process.env[secret.envVarName] || '';
     }
-    return undefined;
-    return undefined;
 
     // Handle required secrets that are missing
     if (secret.required && !secretValue) {

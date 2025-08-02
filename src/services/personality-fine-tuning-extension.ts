@@ -153,7 +153,7 @@ export class PersonalityFineTuningExtension extends EventEmitter {
     );
     
     // Initialize circuit breaker
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = new CircuitBreaker('personality-fine-tuning', {
       failureThreshold: 3,
       resetTimeout: 60000,
       monitoringPeriod: 30000

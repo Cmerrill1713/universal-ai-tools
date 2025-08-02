@@ -118,10 +118,6 @@ class MCPAssistedTSFixer {
             const patterns = (result as any).patterns || [];
             allPatterns.push(...patterns);
           }
-
-          return undefined;
-
-          return undefined;
         } catch (error) {
           log.debug(`No patterns found for ${errorType}`, LogContext.MCP);
         }
@@ -220,8 +216,6 @@ class MCPAssistedTSFixer {
               await this.saveSuccessfulPattern(pattern, error);
               break; // Only apply one pattern per error
             }
-            return undefined;
-            return undefined;
           }
         }
       }

@@ -34,7 +34,7 @@ export class SimplePersonalAssistant extends SimpleBaseAgent {
           `Hi there! I'm here to assist you with whatever you need. What can I do for you?`,
           `Hey! Great to hear from you. I'm ready to help with questions, tasks, or anything else you need.`
         ];
-        return greetings[Math.floor(Math.random() * greetings.length)];
+        return greetings[Math.floor(Math.random() * greetings.length)] || 'Hi there! How can I help you today?';
       }
     }
     
@@ -137,7 +137,7 @@ I'm continuously learning and improving to provide you with better assistance. I
         `My pleasure! Feel free to ask if you have any other questions or need help with anything else.`,
         `Glad I could help! I'm here whenever you need assistance with tasks, questions, or planning.`
       ];
-      return thanks[Math.floor(Math.random() * thanks.length)];
+      return thanks[Math.floor(Math.random() * thanks.length)] || 'You\'re welcome! Happy to help!';
     }
     
     // Goodbye responses
@@ -147,7 +147,7 @@ I'm continuously learning and improving to provide you with better assistance. I
         `See you later! I'll be here whenever you need help with anything.`,
         `Take care! Don't hesitate to reach out if you need help with any tasks or questions.`
       ];
-      return goodbyes[Math.floor(Math.random() * goodbyes.length)];
+      return goodbyes[Math.floor(Math.random() * goodbyes.length)] || 'Goodbye! Have a great day!';
     }
     
     // Default intelligent response for any other message

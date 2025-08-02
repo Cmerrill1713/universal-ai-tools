@@ -158,7 +158,7 @@ export class PersonalityContextInjectionExtension extends EventEmitter {
     );
     
     // Initialize circuit breaker
-    this.circuitBreaker = new CircuitBreaker({
+    this.circuitBreaker = new CircuitBreaker('personality-context-injection', {
       failureThreshold: 3,
       resetTimeout: 30000,
       monitoringPeriod: 15000
@@ -379,7 +379,7 @@ export class PersonalityContextInjectionExtension extends EventEmitter {
     };
   }
 
-  private getTemporalContext(personalityModel: AdaptedPersonalityProfile): TemporalContext {
+  private getTemporalContext(personalityModel: AdaptedPersonalityModel): TemporalContext {
     const now = new Date();
     const hour = now.getHours();
     const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });

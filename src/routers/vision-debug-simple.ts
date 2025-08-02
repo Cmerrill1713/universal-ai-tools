@@ -163,8 +163,6 @@ router.post('/start', async (req: Request, res: Response) => {
     if (!visionDebugger) {
             visionDebugger = new VisionBrowserDebugger();
     }
-    return undefined;
-    return undefined;
 
     await visionDebugger.start();
 
@@ -192,8 +190,6 @@ router.post('/stop', (req: Request, res: Response) => {
     if (visionDebugger) {
       visionDebugger.stop();
     }
-    return undefined;
-    return undefined;
 
     res.json({
       success: true,

@@ -68,8 +68,6 @@ class AdvancedHealingSystem {
     if (this.networkHealingService) {
       await this.networkHealingService.start();
     }
-    return undefined;
-    return undefined;
 
     // Run initial comprehensive diagnostic
     await this.runComprehensiveDiagnostic();
@@ -79,8 +77,6 @@ class AdvancedHealingSystem {
       if (this.isRunning) {
         await this.runHealingCycle();
       }
-      return undefined;
-      return undefined;
     }, this.healingInterval);
 
     // Start periodic diagnostics
@@ -88,8 +84,6 @@ class AdvancedHealingSystem {
       if (this.isRunning) {
         await this.runComprehensiveDiagnostic();
       }
-      return undefined;
-      return undefined;
     }, this.diagnosticInterval);
 
     console.log('✅ Advanced Healing System active - AI diagnostics running');
@@ -148,8 +142,6 @@ class AdvancedHealingSystem {
       if (result.status === 'fulfilled' && result.value) {
         this.addHealingTask(result.value);
       }
-      return undefined;
-      return undefined;
     });
   }
 
@@ -291,8 +283,6 @@ class AdvancedHealingSystem {
       if (result.status === 'fulfilled' && result.value) {
         this.addHealingTask(result.value);
       }
-      return undefined;
-      return undefined;
     });
   }
 
@@ -311,8 +301,6 @@ class AdvancedHealingSystem {
           // Arbitrary threshold
           circularCount++;
         }
-        return undefined;
-        return undefined;
       }
 
       if (circularCount > 0) {
@@ -356,8 +344,6 @@ class AdvancedHealingSystem {
           // Files over 500 lines
           complexFiles++;
         }
-        return undefined;
-        return undefined;
       }
 
       if (complexFiles > 0) {
@@ -739,8 +725,6 @@ class AdvancedHealingSystem {
     if (this.networkHealingService) {
       this.networkHealingService.stop();
     }
-    return undefined;
-    return undefined;
 
     console.log('🛑 Advanced Healing System stopped');
   }

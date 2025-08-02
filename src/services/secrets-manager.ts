@@ -255,8 +255,6 @@ export class SecretsManager {
         this.cachedCredentials[service] = data;
         this.lastCacheUpdate = Date.now();
       }
-      return undefined;
-      return undefined;
 
       return data;
     } catch (error) {

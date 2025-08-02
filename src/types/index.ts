@@ -3,7 +3,7 @@ export interface AgentConfig {
   name: string;
   description: string;
   priority: number;
-  capabilities: AgentCapability[];
+  capabilities: AgentCapabilityDetail[];
   maxLatencyMs: number;
   retryAttempts: number;
   dependencies: string[];
@@ -12,7 +12,30 @@ export interface AgentConfig {
   allowedTools?: string[];
 }
 
-export interface AgentCapability {
+// Agent capabilities as string enum for easier testing and usage
+export enum AgentCapabilities {
+  PLANNING = 'planning',
+  TASK_DECOMPOSITION = 'task_decomposition',
+  STRATEGY = 'strategy',
+  SYNTHESIS = 'synthesis',
+  CONSENSUS = 'consensus',
+  ANALYSIS = 'analysis',
+  INFORMATION_RETRIEVAL = 'information_retrieval',
+  CONTEXT_GATHERING = 'context_gathering',
+  SEARCH = 'search',
+  ASSISTANCE = 'assistance',
+  COORDINATION = 'coordination',
+  TASK_MANAGEMENT = 'task_management',
+  AGENT_SPAWNING = 'agent_spawning',
+  TOOL_CREATION = 'tool_creation',
+  CODE_GENERATION = 'code_generation',
+  CODE_ANALYSIS = 'code_analysis',
+  REFACTORING = 'refactoring'
+}
+
+export type AgentCapability = AgentCapabilities | string;
+
+export interface AgentCapabilityDetail {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
@@ -104,7 +127,7 @@ export interface AgentDefinition {
   className: string;
   modulePath: string;
   dependencies: string[];
-  capabilities: string[];
+  capabilities: AgentCapability[];
   memoryEnabled: boolean;
   maxLatencyMs: number;
   retryAttempts: number;
@@ -451,16 +474,13 @@ export interface FeedbackItem {
 }
 
 // Module declarations for tree-sitter libraries
-declare module 'tree-sitter' {
+// Removed duplicate tree-sitter declarations - using tree-sitter.d.ts instead
+/* declare module 'tree-sitter' {
   export default class Parser {
     setLanguage(language: any): void;
     parse(input: string | Buffer | ((index: number, position?: Point) => string)): Tree;
   }
   
-  export interface Point {
-    row: number;
-    column: number;
-  }
   
   export interface Language {
     // Language implementation details
@@ -506,6 +526,244 @@ declare module 'tree-sitter' {
   export class Language {
     static load(path: string): Language;
   }
-}
+*/ // End of commented out tree-sitter declarations
 
 // Tree-sitter language declarations moved to src/types/tree-sitter.d.ts
+
+// Enhanced Service Interface Definitions for TypeScript Error Resolution
+
+// VaultService Interface
+export interface VaultServiceInterface {
+  getSecret(secretName: string, fallbackEnvVar?: string): Promise<string | null>;
+  createSecret(secretName: string, secretValue: string, description?: string): Promise<boolean>; // Alias for createSecretInVault
+  createSecretInVault(secretName: string, secretValue: string, description?: string): Promise<boolean>;
+  updateSecretInVault(secretName: string, secretValue: string): Promise<boolean>;
+  deleteSecretFromVault(secretName: string): Promise<boolean>;
+  listVaultSecrets(): Promise<string[]>;
+  getOpenAIApiKey(): Promise<string | null>;
+  getAnthropicApiKey(): Promise<string | null>;
+  getHuggingFaceApiKey(): Promise<string | null>;
+  getJwtSecret(): Promise<string>;
+  getDeviceAuthSecret(): Promise<string>;
+  getValidApiKeys(): Promise<string[]>;
+  getSupabaseServiceKey(): Promise<string | null>;
+  getRedisPassword(): Promise<string | null>;
+  getWebhookSecret(): Promise<string | null>;
+  getDatabaseEncryptionKey(): Promise<string | null>;
+  clearCache(): void;
+  getCacheStats(): { size: number; entries: string[] };
+  testVaultConnectivity(): Promise<{ connected: boolean; error?: string }>;
+}
+
+// Enhanced CircuitBreaker Interface with EventEmitter capabilities
+export interface CircuitBreakerInterface {
+  execute<R>(operation: () => Promise<R>, fallback?: () => Promise<R>): Promise<R>;
+  getState(): string;
+  getMetrics(): any;
+  reset(): void;
+  trip(): void;
+  close(): void;
+  // EventEmitter-like methods
+  on(event: string, callback: Function): void;
+  emit(event: string, ...args: any[]): void;
+  off(event: string, callback: Function): void;
+}
+
+// Context Injection Service Interface
+export interface ContextInjectionServiceInterface {
+  injectContext(context: any): Promise<any>;
+  getContext(userId: string): Promise<any>;
+  updateContext(userId: string, context: any): Promise<void>;
+  // EventEmitter-like methods for consistency
+  on(event: string, callback: Function): void;
+  emit(event: string, ...args: any[]): void;
+  off(event: string, callback: Function): void;
+}
+
+// AB-MCTS Service Interface
+export interface ABMCTSServiceInterface {
+  orchestrate(task: any, options?: any): Promise<any>;
+  search(query: any, options?: any): Promise<any>;
+  getStats(): Promise<any>;
+  reset(): Promise<void>;
+}
+
+// iOS Device Context (missing from adaptive-model-registry errors)
+export interface iOSDeviceContext {
+  deviceType: "iPhone" | "iPad" | "AppleWatch" | "Mac";
+  availableMemory: number;
+  batteryLevel: number;
+  connectionType: "WiFi" | "Cellular" | "Bluetooth" | "USB";
+  isLowPowerMode: boolean;
+  processingCapability: "high" | "medium" | "low";
+  coreMLAvailable: boolean;
+  neuralEngineAvailable: boolean;
+}
+
+// Mobile Optimization Config
+export interface MobileOptimizationConfig {
+  enableBatteryOptimization?: boolean;
+  batteryOptimization?: boolean; // Alias for backward compatibility
+  maxConcurrentOperations?: number;
+  reducedQualityMode?: boolean;
+  backgroundProcessingEnabled?: boolean;
+  adaptivePerformance?: boolean;
+}
+
+// Quality Breakdown for code-quality-service
+export interface QualityBreakdown {
+  maintainability: number;
+  readability: number;
+  testability: number;
+  performance: number;
+  security: number;
+  documentation: number;
+  consistency: number;
+  complexity: number;
+}
+
+// Vision Options and Response interfaces
+export interface VisionOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+  format?: 'jpeg' | 'png' | 'webp';
+  enableFaceDetection?: boolean;
+  enableObjectDetection?: boolean;
+  enableSceneAnalysis?: boolean;
+  confidenceThreshold?: number;
+}
+
+export interface VisionAnalysis {
+  objects?: any[];
+  faces?: any[];
+  scene?: string;
+  qualityScore?: number;
+  aestheticScore?: number;
+  tags?: string[];
+}
+
+export interface VisionResponse<T = VisionAnalysis> {
+  success: boolean;
+  data: T;
+  confidence: number;
+  processingTime: number;
+  qualityMetrics?: {
+    sharpness: number;
+    brightness: number;
+    contrast: number;
+    colorfulness: number;
+  };
+  objects?: any[];
+  faces?: any[];
+  scene?: string;
+  error?: string;
+}
+
+// Photo Metadata interface
+export interface PhotoMetadata {
+  id: string;
+  filename: string;
+  path: string;
+  size: number;
+  createdAt: Date;
+  modifiedAt: Date;
+  width?: number;
+  height?: number;
+  format?: string;
+  aiAnalysis?: {
+    objects: any[];
+    faces: any[];
+    scene: string;
+    qualityScore: number;
+    aestheticScore: number;
+    tags: string[];
+  };
+  enhancementSuggestions?: Array<{
+    type: 'brightness' | 'contrast' | 'sharpness' | 'color_correction' | 'noise_reduction';
+    confidence: number;
+    parameters: Record<string, number>;
+  }>;
+  duplicateGroup?: string;
+  tags?: string[];
+  location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  };
+  people?: string[];
+  events?: string[];
+  collections?: string[];
+}
+
+// Project Context interface
+export interface ProjectContext {
+  projectId: string;
+  name: string;
+  description?: string;
+  type: 'web' | 'mobile' | 'desktop' | 'api' | 'library' | 'other';
+  technologies: string[];
+  framework?: string;
+  language: string;
+  version?: string;
+  dependencies?: Record<string, string>;
+  structure?: {
+    sourceDir: string;
+    testDir?: string;
+    buildDir?: string;
+    configFiles: string[];
+  };
+  settings?: Record<string, any>;
+  metadata?: Record<string, any>;
+}
+
+// User Personality Profile interface
+export interface UserPersonalityProfile {
+  userId: string;
+  communicationStyle: 'formal' | 'casual' | 'friendly' | 'professional';
+  technicality: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  verbosity: 'concise' | 'moderate' | 'detailed' | 'comprehensive';
+  preferences: {
+    codeExamples: boolean;
+    explanations: boolean;
+    stepByStep: boolean;
+    backgroundInfo: boolean;
+  };
+  domains: string[];
+  learningStyle: 'visual' | 'textual' | 'hands-on' | 'conceptual';
+  responseFormat: 'structured' | 'conversational' | 'bullet-points' | 'narrative';
+}
+
+// Adapted Personality Model
+export interface AdaptedPersonalityModel {
+  baseProfile: UserPersonalityProfile;
+  contextualAdaptations: Record<string, any>;
+  learningHistory: Array<{
+    context: string;
+    adaptation: any;
+    effectiveness: number;
+    timestamp: Date;
+  }>;
+  confidenceScore: number;
+}
+
+// Service Route Integration Data
+export interface ServiceRouteIntegrationData {
+  targetService: string;
+  confidence: number;
+  estimatedTokens: number;
+  routingDecision: 'local' | 'external' | 'hybrid';
+  fallbackOptions: string[];
+  estimatedLatency: number;
+  costEstimate?: number;
+}
+
+// Agent Response Enhancement
+export interface EnhancedAgentResponse extends AgentResponse {
+  processingTime?: number;
+  tokensUsed?: number;
+  modelUsed?: string;
+  routingPath?: string[];
+  fallbacksUsed?: string[];
+  contextInjected?: boolean;
+}

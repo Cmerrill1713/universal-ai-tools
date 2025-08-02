@@ -107,10 +107,6 @@ async function checkSupabaseData(): Promise<void> {
               for (const item of contextData) {
                 categoryCounts.set(item.category, (categoryCounts.get(item.category) || 0) + 1);
               }
-
-            return undefined;
-
-            return undefined;
               
               for (const [category, count] of categoryCounts.entries()) {
                 console.log(`  - ${category}: ${count} entries`);

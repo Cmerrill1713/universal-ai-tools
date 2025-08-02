@@ -4,7 +4,8 @@
  * PERFORMANCE OPTIMIZED: 36x speedup with error recovery and multi-language support
  */
 
-import Parser, { SyntaxNode, Tree, Language } from 'tree-sitter';
+import type { SyntaxNode} from 'tree-sitter';
+import Parser, { Language, Tree } from 'tree-sitter';
 import TypeScript from 'tree-sitter-typescript';
 import JavaScript from 'tree-sitter-javascript';
 import Python from 'tree-sitter-python';
@@ -724,9 +725,7 @@ export class ASTParser {
     return [];
   }
 
-  private extractReturnType(node: SyntaxNode, language: string): string | undefined {
-    return undefined;
-  }
+  private extractReturnType(node: SyntaxNode, language: string): string | undefined {  }
 
   private calculateNodeComplexity(node: SyntaxNode): number {
     return this.calculateCyclomaticComplexity(node);
@@ -736,9 +735,7 @@ export class ASTParser {
     return [];
   }
 
-  private extractDocumentation(node: SyntaxNode, code: string): string | undefined {
-    return undefined;
-  }
+  private extractDocumentation(node: SyntaxNode, code: string): string | undefined {  }
 
   private extractClassName(node: SyntaxNode, language: string): string {
     return node.children.find(child => child.type === 'identifier')?.text || 'AnonymousClass';

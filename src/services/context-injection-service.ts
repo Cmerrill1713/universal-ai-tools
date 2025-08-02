@@ -98,6 +98,7 @@ export class ContextInjectionService {
   private supabase;
   private maxContextTokens = 4000; // Reserve tokens for context
   private contextCache = new Map<string, { context: EnrichedContext; expiry: number; hitCount: number }>();
+  private eventListeners: Map<string, Function[]> = new Map();
   private cacheExpiryMs = 5 * 60 * 1000; // 5 minutes
   
   // SECURITY: Pattern matching for prompt injection and sensitive data
@@ -870,8 +871,9 @@ export class ContextInjectionService {
         }, {} as Record<string, any[]>);
 
         Object.entries(patternsByType).forEach(([type, typePatterns]) => {
-          context.push(`  ${type}: ${typePatterns.length} patterns available`);
-          typePatterns.slice(0, 3).forEach(pattern => {
+          const patterns = typePatterns as any[];
+          context.push(`  ${type}: ${patterns.length} patterns available`);
+          patterns.slice(0, 3).forEach(pattern => {
             context.push(`    - ${pattern.pattern_name} (quality: ${pattern.quality_score.toFixed(2)}, usage: ${pattern.usage_frequency})`);
             if (pattern.pattern_signature) {
               context.push(`      Signature: ${pattern.pattern_signature.substring(0, 100)}${pattern.pattern_signature.length > 100 ? '...' : ''}`);
@@ -1156,6 +1158,39 @@ export class ContextInjectionService {
       size: totalEntries,
       hitRate: totalEntries > 0 ? totalHits / totalEntries : 0,
     };
+  }
+
+  // EventEmitter-like methods for backward compatibility
+  on(event: string, callback: Function): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, []);
+    }
+    this.eventListeners.get(event)!.push(callback);
+  }
+
+  emit(event: string, ...args: any[]): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(callback => {
+        try {
+          callback(...args);
+        } catch (error) {
+          log.error(`Error in context injection service event listener for ${event}`, LogContext.CONTEXT_INJECTION, {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      });
+    }
+  }
+
+  off(event: string, callback: Function): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      const index = listeners.indexOf(callback);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    }
   }
 }
 

@@ -427,8 +427,6 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
       );
       score += dependencyBonus * 0.15;
     }
-    return undefined;
-    return undefined;
 
     return Math.min(1.0, Math.max(0.0, score));
   }
@@ -700,8 +698,6 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     if (patterns) {
       baseTime = patterns.averageTime;
     }
-    return undefined;
-    return undefined;
 
     // Adjust based on task complexity
     const complexityMultiplier = {
@@ -743,10 +739,6 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
       reasoning += `High priority task requires reliable agent with strong track record. `;
     }
     
-    return undefined;
-    
-    return undefined;
-    
     return reasoning;
   }
 
@@ -767,8 +759,6 @@ export class ProjectAwareABMCTSService extends ABMCTSService {
     if (decisions.length > maxDecisions) {
       decisions.splice(0, decisions.length - maxDecisions);
     }
-    return undefined;
-    return undefined;
     
     this.projectDecisions.set(projectId, decisions);
   }

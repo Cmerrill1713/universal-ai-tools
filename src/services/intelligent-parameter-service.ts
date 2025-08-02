@@ -644,8 +644,6 @@ export class IntelligentParameterService {
         if (deviceContext.screenSize === 'small') {
           adjusted.maxTokens = Math.round(adjusted.maxTokens * 0.8);
         }
-        return undefined;
-        return undefined;
         break;
       case 'iPad':
         // Can handle longer content
@@ -677,8 +675,6 @@ export class IntelligentParameterService {
       adjusted.contextLength = Math.round(adjusted.contextLength * 0.7);
       adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.1); // More efficient
     }
-    return undefined;
-    return undefined;
 
     // Connection type adjustments
     if (deviceContext.connectionType === 'cellular') {
@@ -695,8 +691,6 @@ export class IntelligentParameterService {
       adjusted.contextLength = Math.min(adjusted.contextLength, 2048);
       adjusted.maxTokens = Math.min(adjusted.maxTokens, 512);
     }
-    return undefined;
-    return undefined;
 
     return adjusted;
   }
@@ -731,8 +725,6 @@ export class IntelligentParameterService {
           // Lower confidence = more conservative
           adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.05);
         }
-        return undefined;
-        return undefined;
         break;
       case 'unauthenticated':
         // Limited capabilities
@@ -755,8 +747,6 @@ export class IntelligentParameterService {
       // Slightly more conservative
       adjusted.temperature = Math.max(0.1, adjusted.temperature - 0.05);
     }
-    return undefined;
-    return undefined;
 
     return adjusted;
   }
@@ -1165,8 +1155,6 @@ export class IntelligentParameterService {
       if (deviceContext.deviceType === 'AppleWatch' && baseContext.type === TaskType.CASUAL_CHAT) {
         finalTaskType = TaskType.MOBILE_UX; // Watch interactions need special UX considerations
       }
-    return undefined;
-    return undefined;
       if (biometricContext?.authenticationState === 'unauthenticated' && 
           this.containsKeywords(userInput.toLowerCase(), ['secure', 'login', 'authenticate'])) {
         finalTaskType = TaskType.BIOMETRIC_GUIDANCE;

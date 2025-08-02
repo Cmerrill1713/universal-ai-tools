@@ -231,8 +231,6 @@ class AthenaWebSocketService extends EventEmitter {
     if (client.ws.readyState === WebSocket.OPEN) {
       client.ws.send(JSON.stringify(data));
     }
-    return undefined;
-    return undefined;
   }
 
   /**
@@ -322,15 +320,10 @@ class AthenaWebSocketService extends EventEmitter {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
     }
-    return undefined;
-    return undefined;
     
     if (this.statusUpdateInterval) {
       clearInterval(this.statusUpdateInterval);
     }
-    
-    return undefined;
-    return undefined;
 
     this.clients.forEach(client => {
       client.ws.close();

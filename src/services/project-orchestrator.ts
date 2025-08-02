@@ -386,20 +386,12 @@ export class ProjectOrchestrator extends EventEmitter {
       if (filter.status) {
         projects = projects.filter(p => p.status === filter.status);
       }
-
-    return undefined;
-
-    return undefined;
       if (filter.type) {
         projects = projects.filter(p => p.specification.type === filter.type);
       }
-      return undefined;
-      return undefined;
       if (filter.activeOnly) {
         projects = projects.filter(p => this.activeProjects.has(p.id));
       }
-      return undefined;
-      return undefined;
     }
 
     return projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

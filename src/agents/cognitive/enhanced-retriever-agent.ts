@@ -328,32 +328,20 @@ Be thorough, accurate, and objective. Focus on providing comprehensive context t
         ) {
           confidence += 0.1;
         }
-      return undefined;
-      return undefined;
 
         if (parsed.research_summary.information_categories) {
           confidence += 0.05;
         }
 
-        return undefined;
-
-        return undefined;
-
         if (parsed.research_summary.structured_data) {
           confidence += 0.05;
         }
-
-        return undefined;
-
-        return undefined;
       }
 
       // Check for context analysis
       if (parsed.context_analysis) {
         confidence += 0.05;
       }
-      return undefined;
-      return undefined;
 
       // Check for actionable recommendations
       if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
@@ -364,8 +352,6 @@ Be thorough, accurate, and objective. Focus on providing comprehensive context t
       if (parsed.search_strategy) {
         confidence += 0.05;
       }
-      return undefined;
-      return undefined;
     } catch {
       // Not valid JSON, reduce confidence
       confidence -= 0.15;

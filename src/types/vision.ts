@@ -9,6 +9,7 @@ export interface VisionAnalysis {
   text: ExtractedText[];
   confidence: number;
   processingTimeMs: number;
+  deviceOptimizations?: any;
 }
 
 export interface DetectedObject {
@@ -75,6 +76,8 @@ export interface RefinedImage {
   };
   fallback_reason?: string;
   timestamp: number;
+  mlxOptimized?: boolean;
+  deviceOptimizations?: any;
 }
 
 export interface GenerationParameters {
@@ -197,6 +200,12 @@ export interface VisionOptions {
   // Image processing limits
   maxResolution?: number;
   maxSize?: number;
+  // Additional properties for mobile optimization
+  quality?: string | number;
+  useCache?: boolean;
+  compression?: string;
+  useAppleSilicon?: boolean;
+  outputFormat?: string;
 }
 
 export interface VisionResponse<T = any> {
