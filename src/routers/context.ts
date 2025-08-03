@@ -4,8 +4,8 @@
  */
 
 import { Router } from 'express';
-import { LogContext, log } from '@/utils/logger';
-import { contextStorageService } from '@/services/context-storage-service';
+import { LogContext, log } from '../utils/logger';
+import { contextStorageService } from '../services/context-storage-service';
 
 const router = Router();
 

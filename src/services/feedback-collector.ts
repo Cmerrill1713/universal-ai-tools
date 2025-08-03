@@ -3,14 +3,14 @@
  * Collects and processes execution feedback for continuous AB-MCTS improvement
  */
 
-import type { ABMCTSFeedback, PerformanceObservation } from '@/types/ab-mcts';
-import { ABMCTSReward } from '@/types/ab-mcts';
+import type { ABMCTSFeedback, PerformanceObservation } from '../types/ab-mcts';
+import { ABMCTSReward } from '../types/ab-mcts';
 import { abMCTSService } from './ab-mcts-service';
-import { bayesianModelRegistry } from '@/utils/bayesian-model';
+import { bayesianModelRegistry } from '../utils/bayesian-model';
 import { healthMonitor } from './health-monitor';
-import { LogContext, log } from '@/utils/logger';
+import { LogContext, log } from '../utils/logger';
 import { EventEmitter } from 'events';
-import { THREE } from '@/utils/constants';
+import { THREE } from '../utils/constants';
 
 export interface FeedbackMetrics {
   totalFeedbacks: number;
@@ -352,6 +352,19 @@ export class FeedbackCollectorService extends EventEmitter {
    */
   getAggregatedMetrics(agentName: string, taskType: string): FeedbackAggregation | null {
     return this.aggregations.get(`${agentName}:${taskType}`) || null;
+  }
+
+  /**
+   * Get recent feedback for learning purposes
+   */
+  getRecentFeedback(limit = 50, minTimestamp?: number): ABMCTSFeedback[] {
+    const cutoff = minTimestamp || (Date.now() - (60 * 60 * 1000)); // Last hour by default
+    
+    return Array.from(this.feedbackHistory.values())
+      .flat()
+      .filter(feedback => feedback.timestamp > cutoff)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, limit);
   }
 
   /**

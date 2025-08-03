@@ -5,8 +5,8 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
-import { config } from '@/config/environment';
+import { LogContext, log } from '../utils/logger';
+import { config } from '../config/environment';
 
 interface ContextEntry {
   id?: string;
