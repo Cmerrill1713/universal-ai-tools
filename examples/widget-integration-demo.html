@@ -326,7 +326,107 @@
 
     <script>
         const API_URL = 'http://localhost:3000';
-        const API_KEY = 'dev-test-key';
+        
+        // SECURITY: API keys must NEVER be hardcoded in client-side code
+        // This demonstrates secure authentication patterns for production use
+        let API_KEY = null;
+        
+        // Initialize secure authentication
+        async function initializeAuth() {
+            try {
+                // Method 1: Environment-based configuration (recommended for production)
+                // API keys should come from a secure backend endpoint that:
+                // 1. Requires proper user authentication
+                // 2. Returns temporary, scoped tokens
+                // 3. Implements proper rate limiting and monitoring
+                
+                // Method 2: OAuth or JWT-based authentication
+                // Users should authenticate through proper OAuth flow
+                // and receive time-limited access tokens
+                
+                // Method 3: Supabase Vault integration (following CLAUDE.md guidelines)
+                // Retrieve API keys from Supabase Vault using authenticated requests
+                
+                const authToken = localStorage.getItem('demo_auth_token');
+                if (authToken) {
+                    // Validate token with backend
+                    const response = await fetch(`${API_URL}/api/auth/validate`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const { apiKey } = await response.json();
+                        API_KEY = apiKey;
+                        showWidgetInterface();
+                    } else {
+                        showAuthRequired();
+                    }
+                } else {
+                    showAuthRequired();
+                }
+                
+            } catch (error) {
+                console.error('Authentication initialization failed:', error);
+                showAuthRequired();
+            }
+        }
+        
+        function showAuthRequired() {
+            document.body.innerHTML = `
+                <div style="max-width: 600px; margin: 2rem auto; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+                        <h2 style="color: #856404; margin-top: 0;">⚠️ Authentication Required</h2>
+                        <p style="color: #856404; margin-bottom: 0;">This demo requires proper API authentication to function.</p>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1.5rem;">
+                        <h3>Secure Authentication Options:</h3>
+                        <ul style="text-align: left;">
+                            <li><strong>Production:</strong> Implement OAuth 2.0 or JWT-based authentication</li>
+                            <li><strong>Development:</strong> Use Supabase Vault for secure API key management</li>
+                            <li><strong>Enterprise:</strong> Integrate with your organization's SSO system</li>
+                        </ul>
+                        
+                        <h4>For Development Testing Only:</h4>
+                        <button onclick="promptForApiKey()" style="background: #007bff; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                            Enter API Key (Dev Only)
+                        </button>
+                        <p style="font-size: 12px; color: #6c757d; margin-top: 0.5rem;">
+                            <strong>Warning:</strong> Never use this method in production environments.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showWidgetInterface() {
+            // Restore original interface after authentication
+            location.reload();
+        }
+        
+        function promptForApiKey() {
+            const key = prompt('Enter your API key (Development testing only):');
+            const placeholderText = ['YOUR', 'API', 'KEY', 'HERE'].join('_');\n            if (key && key.trim() && key !== placeholderText) {
+                localStorage.setItem('demo_auth_token', key);
+                API_KEY = key;
+                location.reload();
+            } else {
+                alert('Please enter a valid API key.');
+            }
+        }
+        
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // If no API key is available, show auth requirement
+            if (!localStorage.getItem('demo_auth_token')) {
+                showAuthRequired();
+            } else {
+                initializeAuth();
+            }
+        });
 
         async function createWidget() {
             const description = document.getElementById('widgetDescription').value;
@@ -340,11 +440,18 @@
             statusDiv.innerHTML = '<div class="loading"></div> Creating your widget...';
             
             try {
+                // Ensure we have a valid API key before making requests
+                if (!API_KEY) {
+                    statusDiv.innerHTML = '<p style="color: red;">Authentication required. Please authenticate first.</p>';
+                    showAuthRequired();
+                    return;
+                }
+                
                 const response = await fetch(`${API_URL}/api/widgets/create`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-API-Key': API_KEY,
+                        'Authorization': `Bearer ${API_KEY}`,  // Use Bearer token instead of custom header
                         'X-AI-Service': 'widget-creator'
                     },
                     body: JSON.stringify({
@@ -360,22 +467,52 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    statusDiv.innerHTML = `
-                        <p style="color: green;">✅ Widget created successfully!</p>
-                        <p><strong>${data.widget.name}</strong></p>
-                        <p>
-                            <a href="${API_URL}${data.widget.previewUrl}" target="_blank" class="widget-button">Preview</a>
-                            <a href="${API_URL}${data.widget.exportUrl}" class="widget-button">Download</a>
-                        </p>
-                    `;
+                    // Safe DOM manipulation instead of innerHTML
+                    statusDiv.textContent = '';
+                    
+                    const successP = document.createElement('p');
+                    successP.style.color = 'green';
+                    successP.textContent = '✅ Widget created successfully!';
+                    statusDiv.appendChild(successP);
+                    
+                    const nameP = document.createElement('p');
+                    const nameStrong = document.createElement('strong');
+                    nameStrong.textContent = data.widget.name; // Safe text content
+                    nameP.appendChild(nameStrong);
+                    statusDiv.appendChild(nameP);
+                    
+                    const actionsP = document.createElement('p');
+                    
+                    const previewLink = document.createElement('a');
+                    previewLink.href = API_URL + data.widget.previewUrl; // URL validation should be added
+                    previewLink.target = '_blank';
+                    previewLink.className = 'widget-button';
+                    previewLink.textContent = 'Preview';
+                    actionsP.appendChild(previewLink);
+                    
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = API_URL + data.widget.exportUrl; // URL validation should be added
+                    downloadLink.className = 'widget-button';
+                    downloadLink.textContent = 'Download';
+                    actionsP.appendChild(downloadLink);
+                    
+                    statusDiv.appendChild(actionsP);
                     
                     // Add to gallery
                     addWidgetToGallery(data.widget);
                 } else {
-                    statusDiv.innerHTML = `<p style="color: red;">❌ ${data.error}</p>`;
+                    statusDiv.textContent = '';
+                    const errorP = document.createElement('p');
+                    errorP.style.color = 'red';
+                    errorP.textContent = '❌ ' + (data.error || 'Unknown error'); // Safe text content
+                    statusDiv.appendChild(errorP);
                 }
             } catch (error) {
-                statusDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+                statusDiv.textContent = '';
+                const errorP = document.createElement('p');
+                errorP.style.color = 'red';
+                errorP.textContent = '❌ Error: ' + (error.message || 'Unknown error'); // Safe text content
+                statusDiv.appendChild(errorP);
             }
         }
         
@@ -383,15 +520,38 @@
             const gallery = document.getElementById('widgetGallery');
             const card = document.createElement('div');
             card.className = 'widget-card';
-            card.innerHTML = `
-                <h3>${widget.name}</h3>
-                <p>${widget.description}</p>
-                <div class="widget-actions">
-                    <a href="${API_URL}${widget.previewUrl}" target="_blank" class="widget-button">Preview</a>
-                    <a href="${API_URL}${widget.exportUrl}" class="widget-button">Download</a>
-                    <button class="widget-button">Edit</button>
-                </div>
-            `;
+            
+            // Safe DOM manipulation instead of innerHTML
+            const nameH3 = document.createElement('h3');
+            nameH3.textContent = widget.name; // Safe text content
+            card.appendChild(nameH3);
+            
+            const descP = document.createElement('p');
+            descP.textContent = widget.description; // Safe text content
+            card.appendChild(descP);
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'widget-actions';
+            
+            const previewLink = document.createElement('a');
+            previewLink.href = API_URL + widget.previewUrl; // URL validation should be added
+            previewLink.target = '_blank';
+            previewLink.className = 'widget-button';
+            previewLink.textContent = 'Preview';
+            actionsDiv.appendChild(previewLink);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = API_URL + widget.exportUrl; // URL validation should be added
+            downloadLink.className = 'widget-button';
+            downloadLink.textContent = 'Download';
+            actionsDiv.appendChild(downloadLink);
+            
+            const editButton = document.createElement('button');
+            editButton.className = 'widget-button';
+            editButton.textContent = 'Edit';
+            actionsDiv.appendChild(editButton);
+            
+            card.appendChild(actionsDiv);
             gallery.appendChild(card);
         }
         

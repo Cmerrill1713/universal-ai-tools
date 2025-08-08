@@ -26,19 +26,17 @@ export const UntitledUIShowcase: React.FC = () => {
     <div className="p-8 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">Untitled UI Showcase</h1>
-        <p className="text-gray-600 mb-8">A collection of beautiful, consistent icons from Untitled UI</p>
-        
+        <p className="text-gray-600 mb-8">
+          A collection of beautiful, consistent icons from Untitled UI
+        </p>
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
           {showcaseIcons.map(({ name, Icon }) => (
             <div
               key={name}
               className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col items-center"
             >
-              <Icon 
-                size={iconSize} 
-                color={iconColor}
-                className="mb-3"
-              />
+              <Icon size={iconSize} color={iconColor} className="mb-3" />
               <span className="text-sm font-medium text-gray-700">{name}</span>
             </div>
           ))}

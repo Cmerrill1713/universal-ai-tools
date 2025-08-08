@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  universal-ai-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile.personal
+    container_name: universal-ai-tools-personal
+    ports:
+      - "9999:9999"
+    environment:
+      # Server config
+      NODE_ENV: production
+      PORT: 9999
+      
+      # Connect to host services
+      REDIS_URL: redis://host.docker.internal:6379
+      OLLAMA_URL: http://host.docker.internal:11434
+      LM_STUDIO_URL: http://host.docker.internal:1234
+      
+      # Supabase (use your existing local instance)
+      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      
+      # Disable MLX in container (not accessible)
+      ENABLE_MLX: false
+      
+      # Other services
+      JWT_SECRET: ${JWT_SECRET}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      
+    volumes:
+      # Mount your Desktop for file access
+      - /Users/christianmerrill/Desktop:/Users/christianmerrill/Desktop
+      # Mount logs directory for screenshots
+      - ./logs:/app/logs
+      # Mount tmp for screenshot capture attempts
+      - /tmp:/tmp
+      
+    extra_hosts:
+      # Allow container to access host services
+      - "host.docker.internal:host-gateway"
+      
+    networks:
+      - ai-tools-network
+      
+    depends_on:
+      - redis
+      
+    restart: unless-stopped
+    
+  redis:
+    image: redis:7-alpine
+    container_name: universal-ai-tools-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ai-tools-network
+    restart: unless-stopped
+
+networks:
+  ai-tools-network:
+    driver: bridge
+
+volumes:
+  redis-data:

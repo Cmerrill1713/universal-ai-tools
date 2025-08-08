@@ -17,7 +17,7 @@ import { LogContext, log } from '../utils/logger';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
-const   router = Router();
+const router = Router();
 
 // Request validation schemas
 const orchestrateSchema = z.object({
@@ -94,7 +94,7 @@ router.post('/orchestrate', async (req: Request, res: Response, next: NextFuncti
       verboseLogging: options.verboseLogging ?? false,
       fallbackStrategy: options.fallbackStrategy ?? 'greedy',
     };
-    const       result = await abMCTSOrchestrator.orchestrate(agentContext, executionOptions);
+    const result = await abMCTSOrchestrator.orchestrate(agentContext, executionOptions);
 
     // Return response
     sendSuccess(
@@ -130,7 +130,7 @@ router.post('/orchestrate', async (req: Request, res: Response, next: NextFuncti
  */
 router.post('/orchestrate/batch', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const       validation = batchOrchestrationSchema.safeParse(req.body);
+    const validation = batchOrchestrationSchema.safeParse(req.body);
     if (!validation.success) {
       return sendError(res, 'VALIDATION_ERROR', 'Invalid request', 400, validation.error.errors);
     }
@@ -166,7 +166,7 @@ router.post('/orchestrate/batch', async (req: Request, res: Response, next: Next
       verboseLogging: options.verboseLogging ?? false,
       fallbackStrategy: options.fallbackStrategy ?? 'greedy',
     };
-    const       results = await abMCTSOrchestrator.orchestrateParallel(contexts, executionOptions);
+    const results = await abMCTSOrchestrator.orchestrateParallel(contexts, executionOptions);
 
     // Return aggregated response
     sendSuccess(
@@ -242,7 +242,7 @@ router.post('/feedback', async (req: Request, res: Response, next: NextFunction)
 router.get('/metrics', async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get orchestrator statistics
-    const       orchestratorStats = abMCTSOrchestrator.getStatistics();
+    const orchestratorStats = abMCTSOrchestrator.getStatistics();
 
     // Get feedback metrics
     const feedbackMetrics = feedbackCollector.getMetrics();
@@ -331,7 +331,7 @@ router.get(
     try {
       const { orchestrationId } = req.params;
 
-      const         visualization = await abMCTSOrchestrator.getVisualization(orchestrationId!);
+      const visualization = await abMCTSOrchestrator.getVisualization(orchestrationId!);
 
       if (!visualization) {
         return sendError(res, 'NOT_FOUND', 'Orchestration not found');
@@ -396,7 +396,7 @@ router.post('/reset', async (req: Request, res: Response, next: NextFunction) =>
  */
 router.get('/health', async (req: Request, res: Response) => {
   try {
-    const       stats = abMCTSOrchestrator.getStatistics();
+    const stats = abMCTSOrchestrator.getStatistics();
     const systemStats = stats as SystemStats;
     const healthy = systemStats.circuitBreakerState !== 'OPEN' && systemStats.successRate > 0.5;
 
@@ -475,7 +475,7 @@ router.post('/auto-pilot/stop', async (req: Request, res: Response, next: NextFu
  */
 router.get('/auto-pilot/status', async (req: Request, res: Response) => {
   try {
-    const       isActive = abMCTSAutoPilot.isActive();
+    const isActive = abMCTSAutoPilot.isActive();
     const metrics = abMCTSAutoPilot.getMetrics();
     const queueStatus = abMCTSAutoPilot.getQueueStatus();
 
@@ -546,7 +546,9 @@ router.get('/auto-pilot/metrics', async (req: Request, res: Response) => {
           metrics.successfulRequests / metrics.totalRequests < 0.8
             ? 'Consider adjusting auto-learn threshold'
             : null,
-          (queueStatus as any).queued > 10 ? 'High queue size - consider increasing batch size' : null,
+          (queueStatus as any).queued > 10
+            ? 'High queue size - consider increasing batch size'
+            : null,
           metrics.averageResponseTime > 5000
             ? 'High response times - check system resources'
             : null,

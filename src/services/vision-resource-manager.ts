@@ -40,7 +40,7 @@ class Semaphore {
   private waiting: Array<() => void> = [];
 
   constructor(permits: number) {
-    this.permits =       permits;
+    this.permits = permits;
   }
 
   async acquire(): Promise<void> {

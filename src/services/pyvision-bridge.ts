@@ -41,8 +41,7 @@ interface PendingRequest {
 }
 
 export class PyVisionBridge {
-  private pythonProcess:
-    | ChildProcess     | null = null;
+  private pythonProcess: ChildProcess | null = null;
   private isInitialized = false;
   private pendingRequests: Map<string, PendingRequest> = new Map();
   private requestQueue: VisionRequest[] = [];
@@ -335,7 +334,7 @@ export class PyVisionBridge {
       return this.generateMockResponse(request);
     }
 
-    const       requestId = this.generateRequestId();
+    const requestId = this.generateRequestId();
     const startTime = Date.now();
 
     return new Promise((resolve, reject) => {
@@ -377,7 +376,8 @@ export class PyVisionBridge {
     for (const line of lines) {
       if (line.trim() === 'INITIALIZED') {
         log.info('🚀 PyVision server initialized successfully', LogContext.AI);
-        this.isInitialized = true;         continue;
+        this.isInitialized = true;
+        continue;
       }
 
       if (line.trim() === '') {
@@ -517,7 +517,7 @@ Please provide a detailed answer based on the visual analysis above.`;
   }
 
   private getCacheKey(type: string, data: string | Buffer, options: unknown): string {
-    const       dataKey = data instanceof Buffer ? data.toString('base64').substring(0, 50) : data;
+    const dataKey = data instanceof Buffer ? data.toString('base64').substring(0, 50) : data;
     return `${type}_${dataKey}_${JSON.stringify(options)}`;
   }
 
@@ -555,7 +555,7 @@ Please provide a detailed answer based on the visual analysis above.`;
 
     if (this.pythonProcess) {
       this.pythonProcess.kill();
-      this.pythonProcess =         null;
+      this.pythonProcess = null;
     }
 
     // Clear pending requests
@@ -659,7 +659,10 @@ class SafePyVisionBridge {
     }
   }
 
-  async analyzeImage(imagePath: string | Buffer, options?: VisionOptions): Promise<VisionResponse<VisionAnalysis>> {
+  async analyzeImage(
+    imagePath: string | Buffer,
+    options?: VisionOptions
+  ): Promise<VisionResponse<VisionAnalysis>> {
     return this.execute(async () => {
       const result = await this.instance?.analyzeImage(imagePath, options);
       if (!result) throw new Error('PyVision not available');
@@ -677,7 +680,10 @@ class SafePyVisionBridge {
   }
   // TODO: Add error handling with try-catch
 
-  async generateImage(prompt: string, parameters?: Partial<GenerationParameters>): Promise<VisionResponse<GeneratedImage>> {
+  async generateImage(
+    prompt: string,
+    parameters?: Partial<GenerationParameters>
+  ): Promise<VisionResponse<GeneratedImage>> {
     return this.execute(async () => {
       const result = await this.instance?.generateImage(prompt, parameters);
       if (!result) throw new Error('PyVision not available');
@@ -686,7 +692,10 @@ class SafePyVisionBridge {
   }
   // TODO: Add error handling with try-catch
 
-  async reason(imagePath: string | Buffer, question: string): Promise<VisionResponse<{ answer: string; confidence: number; reasoning: string; }>> {
+  async reason(
+    imagePath: string | Buffer,
+    question: string
+  ): Promise<VisionResponse<{ answer: string; confidence: number; reasoning: string }>> {
     return this.execute(async () => {
       const result = await this.instance?.reason(imagePath, question);
       if (!result) throw new Error('PyVision not available');
@@ -695,7 +704,10 @@ class SafePyVisionBridge {
   }
   // TODO: Add error handling with try-catch
 
-  async refineImage(imagePath: string | Buffer, parameters?: Partial<RefinementParameters>): Promise<VisionResponse<RefinedImage>> {
+  async refineImage(
+    imagePath: string | Buffer,
+    parameters?: Partial<RefinementParameters>
+  ): Promise<VisionResponse<RefinedImage>> {
     return this.execute(async () => {
       const result = await this.instance?.refineImage(imagePath, parameters);
       if (!result) throw new Error('PyVision not available');
@@ -704,7 +716,10 @@ class SafePyVisionBridge {
   }
   // TODO: Add error handling with try-catch
 
-  async analyzeBatch(imagePaths: string[], options?: VisionOptions): Promise<VisionResponse<VisionAnalysis>[]> {
+  async analyzeBatch(
+    imagePaths: string[],
+    options?: VisionOptions
+  ): Promise<VisionResponse<VisionAnalysis>[]> {
     return this.execute(async () => {
       const result = await this.instance?.analyzeBatch(imagePaths, options);
       if (!result) throw new Error('PyVision not available');

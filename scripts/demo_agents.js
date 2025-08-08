@@ -5,10 +5,7 @@ const { execSync } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 
-const supabase = createClient(
-  'http://127.0.0.1:54321',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 async function demonstrateAgents() {
   console.log('🤖 Personal AI Agents Demonstration\n');
@@ -48,7 +45,7 @@ async function demoCalendarAgent() {
     const request = 'Schedule a team meeting next Monday at 2pm for 1 hour';
 
     const prompt = `Parse this calendar request: "${request}"
-    
+
 Extract:
 - Event title
 - Date and time

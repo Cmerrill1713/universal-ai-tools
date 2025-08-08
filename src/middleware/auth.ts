@@ -182,4 +182,7 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
   next();
 };
 
+// Export authenticateRequest for backward compatibility
+export const authenticateRequest = authenticate;
+
 export default authenticate;

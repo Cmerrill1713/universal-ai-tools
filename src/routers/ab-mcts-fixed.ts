@@ -16,7 +16,7 @@ import { LogContext, log } from '../utils/logger';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
-const   router = Router();
+const router = Router();
 
 // Request validation schemas
 const orchestrateSchema = z.object({
@@ -115,7 +115,7 @@ router.post('/orchestrate', async (req: Request, res: Response, next: NextFuncti
  */
 router.post('/orchestrate/batch', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const       validation = batchOrchestrationSchema.safeParse(req.body);
+    const validation = batchOrchestrationSchema.safeParse(req.body);
     if (!validation.success) {
       return sendError(res, 'VALIDATION_ERROR', 'Invalid request', 400, validation.error.errors);
     }
@@ -177,7 +177,7 @@ router.post('/orchestrate/batch', async (req: Request, res: Response, next: Next
  */
 router.post('/feedback', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const       validation = feedbackSchema.safeParse(req.body);
+    const validation = feedbackSchema.safeParse(req.body);
     if (!validation.success) {
       return sendError(res, 'VALIDATION_ERROR', 'Invalid feedback', 400, validation.error.errors);
     }
@@ -252,7 +252,7 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
  */
 router.get('/models', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const       taskType = (req.query.taskType as string) || 'general';
+    const taskType = (req.query.taskType as string) || 'general';
 
     // Get model rankings
     const rankings = bayesianModelRegistry.getRankings(taskType);
@@ -314,7 +314,7 @@ router.get(
  */
 router.get('/report', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const       report = feedbackCollector.generateReport();
+    const report = feedbackCollector.generateReport();
 
     sendSuccess(res, report);
   } catch (error) {

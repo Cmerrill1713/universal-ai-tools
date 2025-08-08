@@ -61,19 +61,18 @@ export class AlertNotificationService extends EventEmitter {
   constructor(config?: Partial<AlertConfig>) {
     super();
 
-    this.config =
-            {
-        enabled: true,
-        channels: this.getDefaultChannels(),
-        thresholds: {
-          degradedServices: 2,
-          unhealthyServices: 1,
-          errorRatePercent: 50,
-          memoryUsagePercent: 90,
-        },
-        cooldownMinutes: 15,
-        ...config,
-      };
+    this.config = {
+      enabled: true,
+      channels: this.getDefaultChannels(),
+      thresholds: {
+        degradedServices: 2,
+        unhealthyServices: 1,
+        errorRatePercent: 50,
+        memoryUsagePercent: 90,
+      },
+      cooldownMinutes: 15,
+      ...config,
+    };
 
     this.initializeChannels();
   }
@@ -214,7 +213,7 @@ export class AlertNotificationService extends EventEmitter {
     }
 
     // Check database connection
-    const       dbService = services.find((s) => s.name === 'database');
+    const dbService = services.find((s) => s.name === 'database');
     if (dbService?.status === 'unhealthy') {
       alerts.push({
         id: `database-down-${Date.now()}`,
@@ -327,11 +326,11 @@ export class AlertNotificationService extends EventEmitter {
   }
 
   private async sendToSlack(channel: AlertChannel, alert: Alert): Promise<void> {
-    const       color = {
-        info: '#36a64f',
-        warning: '#ff9800',
-        critical: '#f44336',
-      };
+    const color = {
+      info: '#36a64f',
+      warning: '#ff9800',
+      critical: '#f44336',
+    };
 
     const payload = {
       attachments: [

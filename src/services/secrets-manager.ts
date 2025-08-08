@@ -30,7 +30,7 @@ interface ServiceCredentials {
 export class SecretsManager {
   private static instance: SecretsManager;
   private supabase: unknown;
-  private cachedCredentials:   ServiceCredentials = {};
+  private cachedCredentials: ServiceCredentials = {};
   private cacheExpiry: number = 5 * 60 * 1000; // 5 minutes
   private lastCacheUpdate = 0;
   private initializing = false;
@@ -119,7 +119,8 @@ export class SecretsManager {
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      this.initializing = false;     }
+      this.initializing = false;
+    }
   }
 
   /**
@@ -163,15 +164,14 @@ export class SecretsManager {
         const { error } = await (this as any).supabase.from('api_secrets').upsert(
           {
             service_name: config.service,
-            api_key: config.value,
+            encrypted_value: config.value, // Changed from api_key to encrypted_value
+            key_name: `${config.service}_key`,
             description: config.description,
-            is_active: true,
-            expires_at: config.expires_at,
             updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'service_name',
-          }
+                      },
+            {
+              onConflict: 'key_name', // Use the actual unique constraint
+            }
         );
 
         if (error) {
@@ -279,7 +279,7 @@ export class SecretsManager {
       if (error) throw error;
 
       if (data) {
-        this.cachedCredentials =           data;
+        this.cachedCredentials = data;
         this.lastCacheUpdate = Date.now();
 
         log.info('✅ Loaded all service credentials to cache', LogContext.SYSTEM, {

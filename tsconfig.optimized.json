@@ -1,0 +1,56 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "sourceMap": false,
+    "declaration": false,
+    "removeComments": true,
+    "importHelpers": true,
+    "downlevelIteration": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    },
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "lib": ["ES2020", "DOM"],
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "include": [
+    "src/server-optimized.ts",
+    "src/services/resource-manager.ts",
+    "src/services/memory-optimized-router.ts",
+    "src/services/lightweight-cache-service.ts",
+    "src/services/connection-pool-manager.ts",
+    "src/services/lazy-loader-service.ts",
+    "src/services/background-task-optimizer.ts",
+    "src/services/event-stream-service.ts",
+    "src/config/**/*",
+    "src/utils/**/*",
+    "src/types/**/*",
+    "src/middleware/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "examples",
+    "docs",
+    "scripts",
+    "backup-*"
+  ]
+}

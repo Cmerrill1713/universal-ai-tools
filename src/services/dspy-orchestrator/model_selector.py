@@ -9,10 +9,11 @@ import re
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import dspy
-from llm_discovery import LLMDiscovery
+
+from .llm_discovery import LLMDiscovery
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class ModelProfile:
     provider: str
     size_category: str  # small, medium, large, xlarge
     estimated_params: float  # in billions
-    capabilities: List[ModelCapability]
+    capabilities: list[ModelCapability]
     speed_score: float  # 0-1, higher is faster
     quality_score: float  # 0-1, higher is better
     cost_score: float  # 0-1, lower is cheaper (1 = free)
@@ -161,14 +162,14 @@ class ModelSelector:
     }
 
     def __init__(self):
-        self.available_models: Dict[str, ModelProfile] = {}
-        self.performance_cache: Dict[str, float] = {}
-        self.current_model: Optional[Tuple[Any, ModelProfile]] = None
+        self.available_models: dict[str, ModelProfile] = {}
+        self.performance_cache: dict[str, float] = {}
+        self.current_model: Optional[tuple[Any, ModelProfile]] = None
         self.discovery = LLMDiscovery()
 
     def analyze_task(
-        self, task: str, context: Dict[str, Any] = None
-    ) -> Tuple[TaskComplexity, List[ModelCapability]]:
+        self, task: str, context: Optional[dict[str, Any]] = None
+    ) -> tuple[TaskComplexity, list[ModelCapability]]:
         """Analyze task to determine complexity and required capabilities"""
         context = context or {}
 
@@ -256,9 +257,10 @@ class ModelSelector:
 
     def benchmark_model(self, model_name: str, provider: str, lm: Any) -> float:
         """Benchmark a model's response time"""
+        _ = provider  # Provider parameter reserved for future use
         try:
             start = time.time()
-            response = lm("Complete this: The sky is")
+            lm("Complete this: The sky is")
             end = time.time()
             response_time = (end - start) * 1000  # ms
             logger.debug(f"Benchmarked {model_name}: {response_time:.0f}ms")
@@ -267,7 +269,7 @@ class ModelSelector:
             logger.debug(f"Benchmark failed for {model_name}: {e}")
             return 10000  # High penalty for failed models
 
-    def discover_and_profile_models(self) -> Dict[str, ModelProfile]:
+    def discover_and_profile_models(self) -> dict[str, ModelProfile]:
         """Discover all available models and create profiles"""
         logger.info("🔍 Discovering and profiling available models...")
 
@@ -294,10 +296,10 @@ class ModelSelector:
     def select_model_for_task(
         self,
         task: str,
-        context: Dict[str, Any] = None,
+        context: Optional[dict[str, Any]] = None,
         max_response_time_ms: Optional[float] = None,
         prefer_quality: bool = False,
-    ) -> Optional[Tuple[Any, ModelProfile]]:
+    ) -> Optional[tuple[Any, ModelProfile]]:
         """Select the best model for a given task"""
 
         # Analyze task requirements
@@ -383,11 +385,11 @@ class ModelSelector:
                     lm = dspy.LM(
                         f"openai/{model_name}",
                         api_base=f"{base_url}/v1",
-                        api_key="lm-studio" if "Studio" in provider else "",
+                        api_key=os.getenv("LM_STUDIO_API_KEY", "") if "Studio" in provider else "",
                     )
 
                 # Quick test
-                test_response = lm("Hi")
+                lm("Hi")
 
                 # Benchmark if needed
                 if key not in self.performance_cache:
@@ -418,7 +420,7 @@ class ModelSelector:
 
     def escalate_to_larger_model(
         self, min_quality_score: float = 0.8
-    ) -> Optional[Tuple[Any, ModelProfile]]:
+    ) -> Optional[tuple[Any, ModelProfile]]:
         """Escalate to a larger model when needed"""
         logger.info(f"📈 Escalating to larger model (min quality: {min_quality_score})")
 
@@ -445,7 +447,7 @@ class ModelSelector:
         better_models.sort(reverse=True, key=lambda x: x[0])
 
         # Try the best available
-        for quality, key, profile in better_models:
+        for _quality, key, _profile in better_models:
             provider, model_name = key.split(":", 1)
             result = self.select_model_for_task(
                 "Complex task requiring high quality",
@@ -457,7 +459,7 @@ class ModelSelector:
 
         return None
 
-    def get_model_info(self) -> Dict[str, Any]:
+    def get_model_info(self) -> dict[str, Any]:
         """Get information about currently selected model"""
         if not self.current_model:
             return {"status": "No model selected"}
@@ -480,7 +482,9 @@ model_selector = ModelSelector()
 
 
 # Integration with DSPy server
-def auto_select_model(task: str = None, context: Dict = None) -> Optional[Tuple[Any, str, str]]:
+def auto_select_model(
+    task: Optional[str] = None, context: Optional[dict[str, Any]] = None
+) -> Optional[tuple[Any, str, str]]:
     """Automatically select best model for the task"""
     if not task:
         task = "General purpose task"

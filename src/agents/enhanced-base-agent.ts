@@ -6,7 +6,11 @@
 import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
 import { LogContext, log } from '@/utils/logger';
 import { type LLMMessage, llmRouter } from '@/services/llm-router-service';
-import { type ValidatedAgentResponse, createValidatedResponse, validators } from '@/utils/validation';
+import {
+  type ValidatedAgentResponse,
+  createValidatedResponse,
+  validators,
+} from '@/utils/validation';
 import { z } from 'zod';
 import type { ABMCTSFeedback, ABMCTSReward } from '@/types/ab-mcts';
 import { bayesianModelRegistry } from '@/utils/bayesian-model';
@@ -104,7 +108,7 @@ export abstract class EnhancedBaseAgent {
       this.validateContext(context);
 
       // Build messages for LLM
-      const         messages = this.buildMessages(context);
+      const messages = this.buildMessages(context);
 
       // Call LLM router with internal model name and MCP context
       const llmResponse = await llmRouter.generateResponse(this.getInternalModelName(), messages, {
@@ -179,7 +183,7 @@ export abstract class EnhancedBaseAgent {
     ];
 
     // Add relevant conversation history (last 5 exchanges)
-    const       recentHistory = this.conversationHistory.slice(-10);
+    const recentHistory = this.conversationHistory.slice(-10);
     messages.push(...recentHistory);
 
     // Add current user request with context
@@ -259,7 +263,11 @@ export abstract class EnhancedBaseAgent {
     let confidence = 0.7; // Base confidence
 
     // Adjust based on provider reliability
-    const response = llmResponse as { provider?: string; content?: string; usage?: { completion_tokens: number; prompt_tokens: number } };
+    const response = llmResponse as {
+      provider?: string;
+      content?: string;
+      usage?: { completion_tokens: number; prompt_tokens: number };
+    };
     switch (response.provider) {
       case 'anthropic':
         confidence += 0.1;
@@ -415,14 +423,14 @@ export abstract class EnhancedBaseAgent {
   ): Promise<ValidatedAgentResponse<T>> {
     try {
       // Validate input context
-      const         contextValidator = validators.custom(
-          z.object({
-            userRequest: z.string().min(1),
-            requestId: z.string().min(1),
-            userId: z.string().optional(),
-            metadata: z.record(z.unknown()).optional(),
-          })
-        );
+      const contextValidator = validators.custom(
+        z.object({
+          userRequest: z.string().min(1),
+          requestId: z.string().min(1),
+          userId: z.string().optional(),
+          metadata: z.record(z.unknown()).optional(),
+        })
+      );
 
       const contextValidation = contextValidator.validate(context);
       if (!contextValidation.success) {
@@ -491,11 +499,7 @@ export abstract class EnhancedBaseAgent {
       batchSize: contexts.length,
     });
 
-    for (
-      let         i = 0;
-      i < contexts.length;
-      i++
-    ) {
+    for (let i = 0; i < contexts.length; i++) {
       const context = contexts[i];
       try {
         const result = await this.executeValidated(context!, dataSchema);
@@ -535,8 +539,7 @@ export abstract class EnhancedBaseAgent {
 
   // Clear conversation history
   public clearConversationHistory(): void {
-    this.conversationHistory =
-            [];
+    this.conversationHistory = [];
     log.info(`🔄 Conversation history cleared: ${this.config.name}`, LogContext.AGENT);
   }
 
@@ -726,12 +729,13 @@ export abstract class EnhancedBaseAgent {
     const executionCount = this.executionHistory.length;
 
     // Calculate average reward
-    const averageReward =       executionCount > 0
+    const averageReward =
+      executionCount > 0
         ? this.executionHistory.reduce((sum, h) => sum + h.reward.value, 0) / executionCount
         : 0;
 
     // Determine trend
-    const       recentTrend = this.calculateTrend();
+    const recentTrend = this.calculateTrend();
 
     return {
       successRate,
@@ -793,9 +797,7 @@ export abstract class EnhancedBaseAgent {
    * Calculate variance for a set of values
    */
   private calculateVariance(values: number[]): number {
-    if (
-      values.length === 0     )
-      return 0;
+    if (values.length === 0) return 0;
 
     const mean = values.reduce((a, b) => a + b) / values.length;
     const squaredDiffs = values.map((v) => Math.pow(v - mean, TWO));
@@ -934,7 +936,6 @@ export abstract class EnhancedBaseAgent {
         success: agentResponse.success,
         confidence: agentResponse.confidence,
       });
-
     } catch (error) {
       log.warn('⚠️ Failed to save context to MCP', LogContext.MCP, {
         agentName: this.config.name,
@@ -949,13 +950,33 @@ export abstract class EnhancedBaseAgent {
    */
   private isCodeRelated(userRequest: string): boolean {
     const codeKeywords = [
-      'code', 'function', 'class', 'method', 'variable', 'debug', 'fix', 'error',
-      'implement', 'refactor', 'optimize', 'bug', 'syntax', 'typescript', 'javascript',
-      'react', 'node', 'api', 'database', 'sql', 'query', 'import', 'export'
+      'code',
+      'function',
+      'class',
+      'method',
+      'variable',
+      'debug',
+      'fix',
+      'error',
+      'implement',
+      'refactor',
+      'optimize',
+      'bug',
+      'syntax',
+      'typescript',
+      'javascript',
+      'react',
+      'node',
+      'api',
+      'database',
+      'sql',
+      'query',
+      'import',
+      'export',
     ];
 
     const lowercaseRequest = userRequest.toLowerCase();
-    return codeKeywords.some(keyword => lowercaseRequest.includes(keyword));
+    return codeKeywords.some((keyword) => lowercaseRequest.includes(keyword));
   }
 
   /**
@@ -963,14 +984,26 @@ export abstract class EnhancedBaseAgent {
    */
   private extractPatternType(userRequest: string): string {
     const request = userRequest.toLowerCase();
-    
+
     if (request.includes('fix') || request.includes('debug') || request.includes('error')) {
       return 'error_fix';
-    } else if (request.includes('implement') || request.includes('create') || request.includes('build')) {
+    } else if (
+      request.includes('implement') ||
+      request.includes('create') ||
+      request.includes('build')
+    ) {
       return 'implementation';
-    } else if (request.includes('refactor') || request.includes('optimize') || request.includes('improve')) {
+    } else if (
+      request.includes('refactor') ||
+      request.includes('optimize') ||
+      request.includes('improve')
+    ) {
       return 'optimization';
-    } else if (request.includes('explain') || request.includes('understand') || request.includes('how')) {
+    } else if (
+      request.includes('explain') ||
+      request.includes('understand') ||
+      request.includes('how')
+    ) {
       return 'explanation';
     } else {
       return 'general_code';

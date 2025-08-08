@@ -15,8 +15,7 @@ export interface TreeStorageOptions {
 }
 
 export class ABMCTSTreeStorage {
-  private redis:
-    | Redis     | null = null;
+  private redis: Redis | null = null;
   private readonly prefix = 'ab-mcts:tree:';
   private readonly resultPrefix = 'ab-mcts:result:';
   private readonly defaultTTL = 3600; // 1 hour
@@ -52,10 +51,7 @@ export class ABMCTSTreeStorage {
   /**
    * Save a tree node and its children recursively
    */
-  async saveNode(
-    node: ABMCTSNode,
-    options:     TreeStorageOptions = {}
-  ): Promise<void> {
+  async saveNode(node: ABMCTSNode, options: TreeStorageOptions = {}): Promise<void> {
     if (!this.redis) {
       log.debug('Redis not available, skipping tree save', LogContext.CACHE);
       return;
@@ -112,10 +108,7 @@ export class ABMCTSTreeStorage {
   /**
    * Load a tree node and reconstruct its structure
    */
-  async loadNode(
-    nodeId: string,
-    options:     TreeStorageOptions = {}
-  ): Promise<ABMCTSNode | null> {
+  async loadNode(nodeId: string, options: TreeStorageOptions = {}): Promise<ABMCTSNode | null> {
     if (!this.redis) {
       return null;
     }
@@ -174,7 +167,7 @@ export class ABMCTSTreeStorage {
   async saveSearchResult(
     searchId: string,
     result: ABMCTSSearchResult,
-    options:     TreeStorageOptions = {}
+    options: TreeStorageOptions = {}
   ): Promise<void> {
     if (!this.redis) {
       return;
@@ -224,7 +217,7 @@ export class ABMCTSTreeStorage {
     }
 
     try {
-      const         key = `${this.resultPrefix}${searchId}`;
+      const key = `${this.resultPrefix}${searchId}`;
       const data = await this.redis.get(key);
 
       if (!data) {
@@ -305,7 +298,7 @@ export class ABMCTSTreeStorage {
     }
 
     try {
-      const         node = await this.loadNode(nodeId);
+      const node = await this.loadNode(nodeId);
       if (!node) {
         return null;
       }

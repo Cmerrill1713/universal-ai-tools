@@ -153,8 +153,11 @@ export class ParameterAnalyticsService {
         log.error('Supabase client not initialized', LogContext.AI);
         return [];
       }
-      
-      let query = (this.supabase as any).from('parameter_executions').select('*').eq('task_type', taskType);
+
+      let query = (this.supabase as any)
+        .from('parameter_executions')
+        .select('*')
+        .eq('task_type', taskType);
 
       if (timeRange) {
         query = query
@@ -182,7 +185,7 @@ export class ParameterAnalyticsService {
   public async getOptimizationInsights(taskType?: TaskType): Promise<OptimizationInsight[]> {
     try {
       const insights: OptimizationInsight[] = [];
-      const         taskTypes = taskType ? [taskType] : Object.values(TaskType);
+      const taskTypes = taskType ? [taskType] : Object.values(TaskType);
 
       for (const type of taskTypes) {
         const effectiveness = await this.getParameterEffectiveness(type);
@@ -227,9 +230,9 @@ export class ParameterAnalyticsService {
       const totalExecutions = executions?.length || 0;
       const successfulExecutions = executions?.filter((e: any) => e.success).length || 0;
       const successRate = totalExecutions > 0 ? successfulExecutions / totalExecutions : 0;
-      const avgResponseTime = totalExecutions > 0
-          ? executions.reduce((sum: number, e: any) => sum + e.execution_time, 0) /
-            totalExecutions
+      const avgResponseTime =
+        totalExecutions > 0
+          ? executions.reduce((sum: number, e: any) => sum + e.execution_time, 0) / totalExecutions
           : 0;
 
       const topPerformingTasks = this.calculateTopPerformingTasks(executions || []);
@@ -337,7 +340,7 @@ export class ParameterAnalyticsService {
     }>;
   }> {
     try {
-      const         effectiveness = await this.getParameterEffectiveness(taskType);
+      const effectiveness = await this.getParameterEffectiveness(taskType);
 
       // Filter by context
       const relevantData = effectiveness.filter((e) => {
@@ -441,7 +444,8 @@ export class ParameterAnalyticsService {
       existing.successRate =
         (existing.successRate * (existing.totalExecutions - 1) + (execution.success ? 1 : 0)) /
         existing.totalExecutions;
-      existing.avgExecutionTime =         (existing.avgExecutionTime * (existing.totalExecutions - 1) + execution.executionTime) /
+      existing.avgExecutionTime =
+        (existing.avgExecutionTime * (existing.totalExecutions - 1) + execution.executionTime) /
         existing.totalExecutions;
       existing.lastUpdated = new Date();
     } else {
@@ -510,11 +514,11 @@ export class ParameterAnalyticsService {
   ): OptimizationInsight | null {
     if (effectiveness.length < TWO) return null;
 
-    const       bestPerforming = effectiveness.reduce((best, current) =>
-        this.calculatePerformanceScore(current) > this.calculatePerformanceScore(best)
-          ? current
-          : best
-      );
+    const bestPerforming = effectiveness.reduce((best, current) =>
+      this.calculatePerformanceScore(current) > this.calculatePerformanceScore(best)
+        ? current
+        : best
+    );
 
     const worstPerforming = effectiveness.reduce((worst, current) =>
       this.calculatePerformanceScore(current) < this.calculatePerformanceScore(worst)
@@ -522,10 +526,11 @@ export class ParameterAnalyticsService {
         : worst
     );
 
-    const improvementPercent =         ((this.calculatePerformanceScore(bestPerforming) -
-          this.calculatePerformanceScore(worstPerforming)) /
-          this.calculatePerformanceScore(worstPerforming)) *
-        100;
+    const improvementPercent =
+      ((this.calculatePerformanceScore(bestPerforming) -
+        this.calculatePerformanceScore(worstPerforming)) /
+        this.calculatePerformanceScore(worstPerforming)) *
+      100;
 
     if (improvementPercent < 10) return null; // Not significant enough
 
@@ -554,23 +559,24 @@ export class ParameterAnalyticsService {
     );
   }
 
-  private calculateTrend(
-    executions: unknown[],
-    field: string,
-    inverted = false
-  ): number {
+  private calculateTrend(executions: unknown[], field: string, inverted = false): number {
     if (executions.length < 5) return 0;
 
     const sorted = executions.sort(
-      (a: any, b: any) => new Date((a as any).timestamp).getTime() - new Date((b as any).timestamp).getTime()
+      (a: any, b: any) =>
+        new Date((a as any).timestamp).getTime() - new Date((b as any).timestamp).getTime()
     );
     const half = Math.floor(sorted.length / TWO);
 
     const firstHalf = sorted.slice(0, half);
     const secondHalf = sorted.slice(-half);
 
-    const firstAvg = firstHalf.reduce((sum: number, e) => sum + this.getNestedValue(e, field), 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum: number, e) => sum + this.getNestedValue(e, field), 0) / secondHalf.length;
+    const firstAvg =
+      firstHalf.reduce((sum: number, e) => sum + this.getNestedValue(e, field), 0) /
+      firstHalf.length;
+    const secondAvg =
+      secondHalf.reduce((sum: number, e) => sum + this.getNestedValue(e, field), 0) /
+      secondHalf.length;
 
     const trend = (secondAvg - firstAvg) / firstAvg;
     return inverted ? -trend : trend;
@@ -609,15 +615,15 @@ export class ParameterAnalyticsService {
     executions: unknown[]
   ): Array<{ taskType: TaskType; score: number }> {
     const taskGroups = executions.reduce(
-        (groups: any, exec: any) => {
-          if (!groups[exec.task_type]) {
-            groups[exec.task_type] = [];
-          }
-          groups[exec.task_type].push(exec);
-          return groups;
-        },
-        {} as Record<string, any[]>
-      );
+      (groups: any, exec: any) => {
+        if (!groups[exec.task_type]) {
+          groups[exec.task_type] = [];
+        }
+        groups[exec.task_type].push(exec);
+        return groups;
+      },
+      {} as Record<string, any[]>
+    );
 
     return Object.entries(taskGroups as Record<string, any[]>)
       .map(([taskType, execs]) => ({
@@ -681,10 +687,10 @@ export class ParameterAnalyticsService {
     best: ParameterEffectiveness,
     alternative: ParameterEffectiveness
   ): string {
-    const       speedDiff = (
-        ((alternative.avgExecutionTime - best.avgExecutionTime) / best.avgExecutionTime) *
-        100
-      ).toFixed(1);
+    const speedDiff = (
+      ((alternative.avgExecutionTime - best.avgExecutionTime) / best.avgExecutionTime) *
+      100
+    ).toFixed(1);
     const qualityDiff = (
       ((alternative.avgResponseQuality - best.avgResponseQuality) / best.avgResponseQuality) *
       100

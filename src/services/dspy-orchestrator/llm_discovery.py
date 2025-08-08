@@ -5,7 +5,7 @@ Automatically discovers available models from various LLM providers
 
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import httpx
 
@@ -16,7 +16,7 @@ class LLMDiscovery:
     """Discovers available models from various LLM providers"""
 
     @staticmethod
-    def discover_ollama_models(base_url: str = "http://localhost:11434") -> List[str]:
+    def discover_ollama_models(base_url: str = "http://localhost:11434") -> list[str]:
         """Discover available Ollama models"""
         try:
             response = httpx.get(f"{base_url}/api/tags", timeout=5.0)
@@ -28,14 +28,14 @@ class LLMDiscovery:
                     name = model.get("name", "")
                     if name:
                         models.append(name)
-                logger.info(f"Found {len(models)} Ollama models at {base_url}")
+                logger.info("Found %d Ollama models at %s", len(models), base_url)
                 return models
         except Exception as e:
-            logger.debug(f"Failed to discover Ollama models at {base_url}: {e}")
+            logger.debug("Failed to discover Ollama models at %s: %s", base_url, e)
         return []
 
     @staticmethod
-    def discover_openai_models(base_url: str, api_key: str = "") -> List[str]:
+    def discover_openai_models(base_url: str, api_key: str = "") -> list[str]:
         """Discover available models from OpenAI-compatible endpoints (LM Studio, etc)"""
         try:
             headers = {}
@@ -50,10 +50,10 @@ class LLMDiscovery:
                     model_id = model.get("id", "")
                     if model_id:
                         models.append(model_id)
-                logger.info(f"Found {len(models)} models at {base_url}")
+                logger.info("Found %d models at %s", len(models), base_url)
                 return models
         except Exception as e:
-            logger.debug(f"Failed to discover models at {base_url}: {e}")
+            logger.debug("Failed to discover models at %s: %s", base_url, e)
         return []
 
     @staticmethod
@@ -66,18 +66,18 @@ class LLMDiscovery:
                 lm = dspy.LM(f"ollama_chat/{model_name}", api_base=base_url, api_key="")
             else:  # OpenAI-compatible
                 lm = dspy.LM(
-                    f"openai/{model_name}", api_base=f"{base_url}/v1", api_key=api_key or "dummy"
+                    f"openai/{model_name}", api_base=f"{base_url}/v1", api_key=api_key or ""
                 )
 
             # Quick test
-            response = lm("Hi")
+            lm("Hi")
             return True
         except Exception as e:
-            logger.debug(f"Model {model_name} test failed: {e}")
+            logger.debug("Model %s test failed: %s", model_name, e)
             return False
 
     @classmethod
-    def discover_and_configure(cls) -> Optional[Tuple[object, str, str]]:
+    def discover_and_configure(cls) -> Optional[tuple[object, str, str]]:
         """
         Discover all available models and configure DSPy with the first working one
         Returns: (configured_lm, provider_name, model_name) or None
@@ -89,12 +89,12 @@ class LLMDiscovery:
         if openai_api_key and not openai_api_key.startswith("your-"):
             try:
                 lm = dspy.LM("openai/gpt-4o-mini", api_key=openai_api_key)
-                test = lm("Test")
+                lm("Test")
                 dspy.configure(lm=lm)
                 logger.info("✅ DSPy configured with OpenAI GPT-4o-mini")
                 return lm, "OpenAI", "gpt-4o-mini"
             except Exception as e:
-                logger.debug(f"OpenAI configuration failed: {e}")
+                logger.debug("OpenAI configuration failed: %s", e)
 
         # Try Ollama (stock location)
         ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -104,7 +104,7 @@ class LLMDiscovery:
             if cls.test_model(model, "ollama", ollama_url):
                 lm = dspy.LM(f"ollama_chat/{model}", api_base=ollama_url, api_key="")
                 dspy.configure(lm=lm)
-                logger.info(f"✅ DSPy configured with Ollama {model} at {ollama_url}")
+                logger.info("✅ DSPy configured with Ollama %s at %s", model, ollama_url)
                 return lm, "Ollama", model
 
         # Try Ollama Docker proxy
@@ -116,7 +116,7 @@ class LLMDiscovery:
                         f"ollama_chat/{model}", api_base="http://localhost:8080", api_key=""
                     )
                     dspy.configure(lm=lm)
-                    logger.info(f"✅ DSPy configured with Ollama {model} via proxy")
+                    logger.info("✅ DSPy configured with Ollama %s via proxy", model)
                     return lm, "Ollama Proxy", model
 
         # Try Remote LM Studio
@@ -125,9 +125,13 @@ class LLMDiscovery:
 
         for model in remote_models:
             if cls.test_model(model, "openai", remote_url, "lm-studio"):
-                lm = dspy.LM(f"openai/{model}", api_base=f"{remote_url}/v1", api_key="lm-studio")
+                lm = dspy.LM(
+                    f"openai/{model}",
+                    api_base=f"{remote_url}/v1",
+                    api_key=os.getenv("LM_STUDIO_API_KEY", ""),
+                )
                 dspy.configure(lm=lm)
-                logger.info(f"✅ DSPy configured with LM Studio {model} at {remote_url}")
+                logger.info("✅ DSPy configured with LM Studio %s at %s", model, remote_url)
                 return lm, "LM Studio Remote", model
 
         # Try Local LM Studio
@@ -136,9 +140,13 @@ class LLMDiscovery:
 
         for model in local_models:
             if cls.test_model(model, "openai", local_lm_url, "lm-studio"):
-                lm = dspy.LM(f"openai/{model}", api_base=f"{local_lm_url}/v1", api_key="lm-studio")
+                lm = dspy.LM(
+                    f"openai/{model}",
+                    api_base=f"{local_lm_url}/v1",
+                    api_key=os.getenv("LM_STUDIO_API_KEY", ""),
+                )
                 dspy.configure(lm=lm)
-                logger.info(f"✅ DSPy configured with LM Studio {model} at {local_lm_url}")
+                logger.info("✅ DSPy configured with LM Studio %s at %s", model, local_lm_url)
                 return lm, "LM Studio Local", model
 
         # Development fallback
@@ -153,7 +161,15 @@ class LLMDiscovery:
         return None
 
     @classmethod
-    def get_all_available_models(cls) -> Dict[str, List[str]]:
+    def auto_discover(cls) -> Optional[tuple[object, str, str]]:
+        """
+        Alias for discover_and_configure for backward compatibility
+        Returns: (configured_lm, provider_name, model_name) or None
+        """
+        return cls.discover_and_configure()
+
+    @classmethod
+    def get_all_available_models(cls) -> dict[str, list[str]]:
         """Get all available models from all providers"""
         available = {}
 

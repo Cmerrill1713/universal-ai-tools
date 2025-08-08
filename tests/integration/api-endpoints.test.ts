@@ -18,8 +18,8 @@ import { setupServer } from '../../src/server';
 
 // Mock external dependencies
 jest.mock('@supabase/supabase-js');
-jest.mock('../../src/services/ollama-assistant');
-jest.mock('../../src/services/dspy-service');
+jest.mock('../../src/services/ollama-service');
+jest.mock('../../src/services/dspy-orchestrator/orchestrator');
 jest.mock('../../src/services/redis-service');
 
 const mockSupabase = {

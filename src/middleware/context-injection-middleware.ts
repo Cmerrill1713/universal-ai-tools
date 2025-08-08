@@ -45,21 +45,17 @@ const SECURITY_PATTERNS = {
     /execute\s+code/gi,
     /run\s+command/gi,
   ],
-  sensitiveData: [
-    /api[_-]?key/gi,
-    /secret/gi,
-    /password/gi,
-    /token/gi,
-    /credential/gi,
-    /auth/gi,
-  ],
+  sensitiveData: [/api[_-]?key/gi, /secret/gi, /password/gi, /token/gi, /credential/gi, /auth/gi],
 };
 
-const contextCache = new Map<string, {
-  context: any[];
-  expiry: number;
-  hitCount: number;
-}>();
+const contextCache = new Map<
+  string,
+  {
+    context: any[];
+    expiry: number;
+    hitCount: number;
+  }
+>();
 
 const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -71,7 +67,13 @@ export function contextInjectionMiddleware(options: ContextInjectionOptions = {}
     enabled: true,
     maxContextTokens: 4000,
     cacheContext: true,
-    contextTypes: ['project_overview', 'code_patterns', 'error_analysis', 'conversation_history', 'architecture_patterns'],
+    contextTypes: [
+      'project_overview',
+      'code_patterns',
+      'error_analysis',
+      'conversation_history',
+      'architecture_patterns',
+    ],
     securityLevel: 'strict' as const,
     fallbackOnError: true,
     ...options,
@@ -111,7 +113,7 @@ export function contextInjectionMiddleware(options: ContextInjectionOptions = {}
       // Fetch fresh context if not cached
       if (!cached) {
         relevantContext = await fetchRelevantContext(req, config);
-        
+
         // Cache the context
         if (config.cacheContext && relevantContext.length > 0) {
           contextCache.set(cacheKey, {
@@ -133,7 +135,7 @@ export function contextInjectionMiddleware(options: ContextInjectionOptions = {}
         req.mcpContext = {
           relevantContext: secureContext,
           contextTokens,
-          contextSources: secureContext.map(ctx => ctx.source || 'unknown'),
+          contextSources: secureContext.map((ctx) => ctx.source || 'unknown'),
           cached,
         };
 
@@ -184,10 +186,12 @@ function isLLMRequest(req: Request): boolean {
     '/api/v1/huggingface',
   ];
 
-  return llmPaths.some(path => req.path.startsWith(path)) ||
-         req.body?.messages ||
-         req.body?.prompt ||
-         req.body?.userRequest;
+  return (
+    llmPaths.some((path) => req.path.startsWith(path)) ||
+    req.body?.messages ||
+    req.body?.prompt ||
+    req.body?.userRequest
+  );
 }
 
 /**
@@ -218,17 +222,20 @@ async function fetchRelevantContext(req: Request, config: ContextInjectionOption
   // Get architecture recommendations for the request
   if (config.contextTypes?.includes('architecture_patterns')) {
     contextPromises.push(
-      architectureAdvisor.getTaskRecommendations(userInput, {
-        limit: 2,
-        minSuccessRate: 0.6
-      }).then(recommendations => ({
-        type: 'architecture_recommendations',
-        content: recommendations,
-        source: 'architecture_advisor'
-      })).catch(error => {
-        log.warn('Failed to get architecture recommendations', LogContext.SERVICE, { error });
-        return null;
-      })
+      architectureAdvisor
+        .getTaskRecommendations(userInput, {
+          limit: 2,
+          minSuccessRate: 0.6,
+        })
+        .then((recommendations: any) => ({
+          type: 'architecture_recommendations',
+          content: recommendations,
+          source: 'architecture_advisor',
+        }))
+        .catch((error: any) => {
+          log.warn('Failed to get architecture recommendations', LogContext.SERVICE, { error });
+          return null;
+        })
     );
   }
 
@@ -309,12 +316,15 @@ function extractUserInput(req: Request): string {
 /**
  * Apply security filtering to context
  */
-function applySecurityFiltering(context: any[], securityLevel: 'strict' | 'moderate' | 'relaxed'): any[] {
+function applySecurityFiltering(
+  context: any[],
+  securityLevel: 'strict' | 'moderate' | 'relaxed'
+): any[] {
   if (securityLevel === 'relaxed') return context;
 
-  return context.filter(item => {
+  return context.filter((item) => {
     const content = item.content || '';
-    
+
     // Check for prompt injection patterns
     for (const pattern of SECURITY_PATTERNS.promptInjection) {
       if (pattern.test(content)) {
@@ -348,7 +358,7 @@ function applySecurityFiltering(context: any[], securityLevel: 'strict' | 'moder
  */
 function estimateContextTokens(context: any[]): number {
   let totalTokens = 0;
-  
+
   for (const item of context) {
     const content = item.content || '';
     // Rough estimation: 1 token per 4 characters
@@ -373,7 +383,7 @@ function enhanceMessagesWithContext(req: ContextualRequest, context: any[]): voi
   if (req.body?.messages && Array.isArray(req.body.messages)) {
     // Add context to system message or create one
     const systemMessage = req.body.messages.find((msg: any) => msg.role === 'system');
-    
+
     if (systemMessage) {
       systemMessage.content = `${systemMessage.content}\n\n## Relevant Project Context:\n${contextSummary}`;
     } else {
@@ -394,13 +404,15 @@ function enhanceMessagesWithContext(req: ContextualRequest, context: any[]): voi
  * Format context items for injection
  */
 function formatContextForInjection(context: any[]): string {
-  const formatted = context.map(item => {
-    const source = item.source || item.category || 'unknown';
-    const content = item.content || '';
-    return `**[${source}]**: ${content}`;
-  }).join('\n\n');
+  const formatted = context
+    .map((item) => {
+      const source = item.source || item.category || 'unknown';
+      const content = item.content || '';
+      return `**[${source}]**: ${content}`;
+    })
+    .join('\n\n');
 
-  return formatted.length > 2000 ? `${formatted.slice(0, 2000)  }...` : formatted;
+  return formatted.length > 2000 ? `${formatted.slice(0, 2000)}...` : formatted;
 }
 
 /**

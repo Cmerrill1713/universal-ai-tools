@@ -47,7 +47,7 @@ class OptimizationExamples:
                     2. Automatic hyperparameter tuning
                     3. Continuous learning from successful operations
                     4. Performance metrics tracking with confidence scores
-                    
+
                     Best practices:
                     - Start with diverse training examples
                     - Use at least 10 iterations for initial optimization

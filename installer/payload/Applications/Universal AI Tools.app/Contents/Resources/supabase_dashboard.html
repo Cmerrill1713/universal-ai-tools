@@ -17,44 +17,44 @@
             --sb-gray-900: #0f172a;
             --sb-dark-bg: #1a1a1a;
         }
-        
+
         .sb-btn {
             @apply px-4 py-2 rounded-md font-medium transition-colors;
         }
-        
+
         .sb-btn-primary {
             background: linear-gradient(135deg, var(--sb-green) 0%, var(--sb-green-dark) 100%);
             @apply text-white hover:shadow-lg;
         }
-        
+
         .sb-card {
             @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
         }
-        
+
         .sb-sidebar {
             @apply bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700;
         }
-        
+
         .sb-header {
             @apply bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700;
         }
-        
+
         .sb-table {
             @apply w-full text-sm text-left text-gray-500 dark:text-gray-400;
         }
-        
+
         .sb-table th {
             @apply px-6 py-3 bg-gray-50 dark:bg-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider;
         }
-        
+
         .sb-table td {
             @apply px-6 py-4 whitespace-nowrap border-b border-gray-200 dark:border-gray-700;
         }
-        
+
         .status-indicator {
             @apply inline-block w-2 h-2 rounded-full mr-2;
         }
-        
+
         .status-healthy { @apply bg-green-500; }
         .status-warning { @apply bg-yellow-500; }
         .status-error { @apply bg-red-500; }
@@ -69,7 +69,7 @@
                     <div class="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg mr-3"></div>
                     <h1 class="text-lg font-bold">Universal AI Tools</h1>
                 </div>
-                
+
                 <nav class="space-y-2">
                     <a href="#dashboard" class="nav-link active" onclick="showSection('dashboard')">
                         <span class="icon">📊</span> Dashboard
@@ -134,7 +134,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="sb-card p-6">
                             <div class="flex items-center">
                                 <div class="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
@@ -146,7 +146,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="sb-card p-6">
                             <div class="flex items-center">
                                 <div class="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
@@ -158,7 +158,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="sb-card p-6">
                             <div class="flex items-center">
                                 <div class="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
@@ -241,7 +241,7 @@
                         </div>
                         <div class="p-6">
                             <div class="mb-4">
-                                <input type="text" id="search-query" placeholder="Search memories..." 
+                                <input type="text" id="search-query" placeholder="Search memories..."
                                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
                             </div>
                             <button onclick="performSearch()" class="sb-btn sb-btn-primary mb-4">
@@ -308,8 +308,8 @@
     <script>
         // Initialize Supabase client
         const supabase = window.supabase.createClient(
-            'http://127.0.0.1:54321',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+            (window.localStorage.getItem('SUPABASE_URL') || ''),
+            (window.localStorage.getItem('SUPABASE_ANON_KEY') || '')
         );
 
         // Navigation
@@ -318,14 +318,14 @@
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.add('hidden');
             });
-            
+
             // Show selected section
             document.getElementById(sectionName + '-section').classList.remove('hidden');
-            
+
             // Update page title
-            document.getElementById('page-title').textContent = 
+            document.getElementById('page-title').textContent =
                 sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
-            
+
             // Update active nav link
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
@@ -340,14 +340,14 @@
                 const { data: memories, error } = await supabase
                     .from('ai_memories')
                     .select('id', { count: 'exact' });
-                
+
                 if (!error) {
                     document.getElementById('total-memories').textContent = memories?.length || 0;
                 }
-                
+
                 // Load recent memories for table
                 await loadRecentMemories();
-                
+
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
             }
@@ -361,7 +361,7 @@
                     .select('*')
                     .order('created_at', { ascending: false })
                     .limit(10);
-                
+
                 if (!error && memories) {
                     const tbody = document.getElementById('memories-table-body');
                     tbody.innerHTML = memories.map(memory => `
@@ -384,11 +384,11 @@
         async function performSearch() {
             const query = document.getElementById('search-query').value;
             const resultsDiv = document.getElementById('search-results');
-            
+
             if (!query.trim()) return;
-            
+
             resultsDiv.innerHTML = '<p>Searching...</p>';
-            
+
             try {
                 // This would typically call your search endpoint
                 // For now, showing a placeholder
@@ -411,7 +411,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadDashboardData();
-            
+
             // Add nav link styling
             const style = document.createElement('style');
             style.textContent = `

@@ -131,7 +131,7 @@ router.get(
   mlxGeneralLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const         startTime = Date.now();
+      const startTime = Date.now();
 
       log.info('🍎 MLX health check requested', LogContext.API, {
         ip: req.ip,
@@ -183,21 +183,20 @@ router.get(
         arch: process.arch,
       };
 
-      const         response = {
-          service: metrics,
-          system: systemInfo,
-          fineTuningJobs: {
-            total: fineTuningJobs.size,
-            running: Array.from(fineTuningJobs.values()).filter((job) => job.status === 'running')
-              .length,
-            completed: Array.from(fineTuningJobs.values()).filter(
-              (job) => job.status === 'completed'
-            ).length,
-            failed: Array.from(fineTuningJobs.values()).filter((job) => job.status === 'failed')
-              .length,
-          },
-          timestamp: new Date().toISOString(),
-        };
+      const response = {
+        service: metrics,
+        system: systemInfo,
+        fineTuningJobs: {
+          total: fineTuningJobs.size,
+          running: Array.from(fineTuningJobs.values()).filter((job) => job.status === 'running')
+            .length,
+          completed: Array.from(fineTuningJobs.values()).filter((job) => job.status === 'completed')
+            .length,
+          failed: Array.from(fineTuningJobs.values()).filter((job) => job.status === 'failed')
+            .length,
+        },
+        timestamp: new Date().toISOString(),
+      };
 
       sendSuccess(res, response);
     } catch (error) {
@@ -292,7 +291,7 @@ router.post(
         },
       };
 
-      const         startTime = Date.now();
+      const startTime = Date.now();
 
       log.info('🧠 MLX inference requested with intelligent parameters', LogContext.API, {
         userId: req.user?.id,
@@ -309,7 +308,7 @@ router.post(
       }
 
       // Run inference
-      const         result = await mlxService.runInference(inferenceRequest);
+      const result = await mlxService.runInference(inferenceRequest);
       const executionTime = Date.now() - startTime;
 
       if (!result.success) {
@@ -353,7 +352,7 @@ router.post(
   validateRequest(fineTuningSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const fineTuningRequest:       FineTuningRequest = req.body;
+      const fineTuningRequest: FineTuningRequest = req.body;
       const jobId = `mlx_ft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       log.info('🎯 MLX fine-tuning job requested', LogContext.AI, {
@@ -417,7 +416,7 @@ router.post(
             }
           );
         } catch (error) {
-          const             jobEntry = fineTuningJobs.get(jobId);
+          const jobEntry = fineTuningJobs.get(jobId);
           if (jobEntry) {
             jobEntry.status = 'failed';
             jobEntry.error = error instanceof Error ? error.message : String(error);
@@ -514,10 +513,7 @@ router.post(
   validateRequest(downloadModelSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const {
-        modelName,         source = 'huggingface',
-        url,
-      } = req.body;
+      const { modelName, source = 'huggingface', url } = req.body;
 
       log.info('📥 Model download requested', LogContext.API, {
         userId: req.user?.id,
@@ -533,7 +529,7 @@ router.post(
       // 3. Store it in the models directory
       // 4. Update the models registry
 
-      const         downloadId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const downloadId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const modelsPath = join(process.cwd(), 'models');
 
       // Simulate download process

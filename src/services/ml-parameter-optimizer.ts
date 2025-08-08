@@ -2,18 +2,20 @@
  * ML-Based Parameter Optimizer
  * Uses machine learning to optimize LLM parameters based on historical performance data
  * Implements reinforcement learning with Thompson Sampling and Bayesian optimization
+ * Integrated with Autonomous Action Loop Service for automatic parameter optimization
  */
 
-import { LogContext, log } from '../utils/logger';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config/environment';
+import { BayesianModel } from '../utils/bayesian-model';
+import { TWO } from '../utils/constants';
+import { LogContext, log } from '../utils/logger';
+import { ThompsonSelector } from '../utils/thompson-sampling';
+import { autonomousActionLoopService } from './autonomous-action-loop-service';
 import type { TaskContext, TaskParameters, UserPreferences } from './intelligent-parameter-service';
 import { TaskType } from './intelligent-parameter-service';
 import type { OptimizationInsight } from './parameter-analytics-service';
-import { ParameterEffectiveness, parameterAnalyticsService } from './parameter-analytics-service';
-import { BayesianModel } from '../utils/bayesian-model';
-import { BetaSampler, NormalGammaSampler, ThompsonSelector } from '../utils/thompson-sampling';
-import { TWO } from '../utils/constants';
+import { parameterAnalyticsService } from './parameter-analytics-service';
 
 export interface OptimizationExperiment {
   id: string;
@@ -314,9 +316,9 @@ export class MLParameterOptimizer {
   public async getOptimizationInsights(taskType?: TaskType): Promise<OptimizationInsight[]> {
     try {
       const insights: OptimizationInsight[] = [];
-      const         taskTypes = taskType
-          ? [taskType]
-          : Array.from(this.experiments.keys()).map((key) => key.split('_')[0] as TaskType);
+      const taskTypes = taskType
+        ? [taskType]
+        : Array.from(this.experiments.keys()).map((key) => key.split('_')[0] as TaskType);
 
       for (const type of taskTypes) {
         const experiment = this.experiments.get(`${type}_experiment`);
@@ -324,6 +326,11 @@ export class MLParameterOptimizer {
           const insight = await this.generateTaskTypeInsight(experiment);
           if (insight) {
             insights.push(insight);
+
+            // Queue autonomous action if insight has high confidence and significant improvement
+            if (insight.confidence > 0.8 && insight.supportingData?.improvementPercent > 15) {
+              await this.queueMLOptimizationAction(insight, experiment);
+            }
           }
         }
       }
@@ -333,6 +340,132 @@ export class MLParameterOptimizer {
       log.error('❌ Failed to get optimization insights', LogContext.AI, { error });
       return [];
     }
+  }
+
+  /**
+   * Queue autonomous action for ML optimization insight
+   */
+  private async queueMLOptimizationAction(
+    insight: OptimizationInsight,
+    experiment: OptimizationExperiment
+  ): Promise<void> {
+    try {
+      const bestTrial = experiment.trials.reduce((best, current) =>
+        current.score > best.score ? current : best
+      );
+
+      // Determine risk level based on parameter changes and confidence
+      const riskLevel = this.assessParameterChangeRisk(
+        experiment.bestParameters,
+        bestTrial.parameters
+      );
+
+      // Create autonomous action
+      const action = {
+        id: `ml_opt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'parameter_adjustment' as const,
+        priority: insight.impact === 'high' ? ('high' as const) : ('medium' as const),
+
+        target: {
+          service: 'intelligent_parameter_service',
+          component: 'task_parameters',
+          taskType: experiment.taskType,
+          property: 'default_parameters',
+        },
+
+        change: {
+          from: experiment.bestParameters,
+          to: bestTrial.parameters,
+          rationale: insight.insight,
+        },
+
+        assessment: {
+          riskLevel,
+          confidenceScore: insight.confidence,
+          expectedImpact: insight.supportingData?.improvementPercent
+            ? insight.supportingData.improvementPercent / 100
+            : 0.15,
+          implementationComplexity: 'simple' as const,
+          reversibilityScore: 0.9, // Parameter changes are highly reversible
+        },
+
+        evidence: {
+          sources: [`ml-optimization-${experiment.taskType}`],
+          supportingData: [insight],
+          historicalPerformance: {
+            experimentId: experiment.id,
+            trialCount: experiment.trials.length,
+            bestTrialScore: bestTrial.score,
+            averageScore:
+              experiment.trials.reduce((sum, t) => sum + t.score, 0) / experiment.trials.length,
+          },
+          userImpact: {
+            affectedUsers: insight.supportingData?.sampleSize || 0,
+            potentialBenefit: `${insight.supportingData?.improvementPercent || 0}% performance improvement`,
+          },
+        },
+
+        execution: {
+          method: 'gradual_rollout' as const,
+          rollbackTriggers: [
+            { metric: 'performance_score', threshold: -0.05, operator: 'lt' as const },
+            { metric: 'error_rate', threshold: 0.05, operator: 'gt' as const },
+          ],
+          monitoringPeriod: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+          successCriteria: [
+            {
+              metric: 'performance_score',
+              improvementTarget: insight.supportingData?.improvementPercent
+                ? insight.supportingData.improvementPercent / 100
+                : 0.1,
+            },
+          ],
+        },
+        createdAt: new Date(),
+        status: 'pending' as const,
+      };
+
+      await autonomousActionLoopService.queueAction(action);
+
+      log.info('🤖 Queued autonomous ML optimization action', LogContext.AI, {
+        actionId: action.id,
+        taskType: experiment.taskType,
+        confidence: insight.confidence,
+        expectedImprovement: insight.supportingData?.improvementPercent,
+        riskLevel,
+      });
+    } catch (error) {
+      log.error('❌ Failed to queue ML optimization action', LogContext.AI, { error });
+    }
+  }
+
+  /**
+   * Assess risk level for parameter changes
+   */
+  private assessParameterChangeRisk(
+    currentParams: TaskParameters,
+    newParams: TaskParameters
+  ): 'low' | 'medium' | 'high' {
+    // Calculate relative changes in parameters
+    const tempChange = Math.abs(
+      (newParams.temperature || 0.5) - (currentParams.temperature || 0.5)
+    );
+    const tokenChange =
+      Math.abs((newParams.maxTokens || 1024) - (currentParams.maxTokens || 1024)) / 1024;
+    const topPChange = Math.abs((newParams.topP || 0.9) - (currentParams.topP || 0.9));
+
+    // High risk: Large parameter changes that could significantly affect behavior
+    if (tempChange > 0.3 || tokenChange > 0.5 || topPChange > 0.3) {
+      return 'high';
+    }
+
+    // Medium risk: Moderate parameter changes
+    if (tempChange > 0.1 || tokenChange > 0.2 || topPChange > 0.1) {
+      return 'medium';
+    }
+
+    // Low risk: Small parameter adjustments
+    return 'low';
   }
 
   /**
@@ -469,7 +602,7 @@ export class MLParameterOptimizer {
     userPreferences?: UserPreferences
   ): ModelPerformancePrediction {
     // Fallback to rule-based optimization when ML data is insufficient
-    const       baseParameters = this.getInitialParameters(taskType);
+    const baseParameters = this.getInitialParameters(taskType);
 
     // Apply context-based adjustments
     if (context.complexity === 'complex') {
@@ -575,11 +708,12 @@ export class MLParameterOptimizer {
   }
 
   private async generateOptimizationInsights(experiment: OptimizationExperiment): Promise<void> {
-    const       bestTrial = experiment.trials.reduce((best, current) =>
-        current.score > best.score ? current : best
-      );
+    const bestTrial = experiment.trials.reduce((best, current) =>
+      current.score > best.score ? current : best
+    );
 
-    const averageScore =       experiment.trials.reduce((sum, trial) => sum + trial.score, 0) / experiment.trials.length;
+    const averageScore =
+      experiment.trials.reduce((sum, trial) => sum + trial.score, 0) / experiment.trials.length;
     const improvement = ((bestTrial.score - averageScore) / averageScore) * 100;
 
     if (improvement > 10) {
@@ -607,11 +741,12 @@ export class MLParameterOptimizer {
   ): Promise<OptimizationInsight | null> {
     if (experiment.trials.length < 10) return null;
 
-    const       bestTrial = experiment.trials.reduce((best, current) =>
-        current.score > best.score ? current : best
-      );
+    const bestTrial = experiment.trials.reduce((best, current) =>
+      current.score > best.score ? current : best
+    );
 
-    const averageScore =       experiment.trials.reduce((sum, trial) => sum + trial.score, 0) / experiment.trials.length;
+    const averageScore =
+      experiment.trials.reduce((sum, trial) => sum + trial.score, 0) / experiment.trials.length;
     const improvement = ((bestTrial.score - averageScore) / averageScore) * 100;
 
     if (improvement < 5) return null; // Not significant enough
@@ -755,11 +890,32 @@ export class MLParameterOptimizer {
     for (const [key, experiment] of this.experiments.entries()) {
       if (experiment.trials.length >= 5) {
         // Check if we should generate new insights
-        const hoursSinceLastUpdate =           (Date.now() - experiment.lastUpdate.getTime()) / (1000 * 60 * 60);
+        const hoursSinceLastUpdate =
+          (Date.now() - experiment.lastUpdate.getTime()) / (1000 * 60 * 60);
 
         if (hoursSinceLastUpdate >= 6) {
           // Every 6 hours
           await this.generateOptimizationInsights(experiment);
+
+          // Also check for high-confidence insights that should trigger autonomous actions
+          const insight = await this.generateTaskTypeInsight(experiment);
+          if (
+            insight &&
+            insight.confidence > 0.8 &&
+            insight.supportingData?.improvementPercent > 15
+          ) {
+            log.info(
+              '🤖 Periodic optimization found high-confidence insight, queueing autonomous action',
+              LogContext.AI,
+              {
+                taskType: experiment.taskType,
+                confidence: insight.confidence,
+                improvement: insight.supportingData?.improvementPercent,
+              }
+            );
+
+            await this.queueMLOptimizationAction(insight, experiment);
+          }
         }
       }
     }

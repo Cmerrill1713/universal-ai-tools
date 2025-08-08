@@ -306,11 +306,80 @@
     </div>
 
     <script>
-        // Initialize Supabase client
-        const supabase = window.supabase.createClient(
-            'http://127.0.0.1:54321',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-        );
+        // SECURITY: Initialize Supabase client with secure authentication
+        // API keys should never be hardcoded in client-side code
+        // This dashboard requires proper authentication setup
+        let supabase = null;
+        
+        // Initialize Supabase with environment-based configuration
+        async function initializeSupabase() {
+            try {
+                // In production, these values should come from a secure configuration endpoint
+                // that requires proper authentication and returns environment-specific values
+                const supabaseUrl = localStorage.getItem('supabase_url') || 'http://127.0.0.1:54321';
+                const authToken = localStorage.getItem('supabase_auth_token');
+                
+                if (!authToken) {
+                    showAuthRequired();
+                    return;
+                }
+                
+                supabase = window.supabase.createClient(supabaseUrl, authToken);
+                
+                // Validate token by attempting a simple query
+                const { error } = await supabase.auth.getUser();
+                if (error) {
+                    console.error('Authentication failed:', error);
+                    showAuthRequired();
+                    return;
+                }
+                
+                hideAuthRequired();
+                loadDashboardData();
+                
+            } catch (error) {
+                console.error('Failed to initialize Supabase:', error);
+                showAuthRequired();
+            }
+        }
+        
+        function showAuthRequired() {
+            document.body.innerHTML = `
+                <div style="padding: 2rem; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <h2 style="color: #e53e3e;">Authentication Required</h2>
+                    <p>This dashboard requires valid Supabase authentication credentials.</p>
+                    <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin: 1rem 0; text-align: left;">
+                        <h4>Setup Instructions:</h4>
+                        <ol>
+                            <li>Obtain a valid Supabase authentication token through proper channels</li>
+                            <li>Store the token securely (not in code or version control)</li>
+                            <li>Configure your environment with proper authentication</li>
+                        </ol>
+                        <p><strong>Security Note:</strong> Never hardcode API keys or tokens in client-side applications.</p>
+                    </div>
+                    <button onclick="promptForAuth()" style="background: #3182ce; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Enter Credentials (Development Only)</button>
+                </div>
+            `;
+        }
+        
+        function hideAuthRequired() {
+            // Dashboard content will be shown after successful authentication
+        }
+        
+        function promptForAuth() {
+            const token = prompt('Enter your Supabase anon key (Development Only - Do not use in production):');
+            if (token) {
+                localStorage.setItem('supabase_auth_token', token);
+                location.reload();
+            }
+        }
+        
+        function loadDashboardData() {
+            // Dashboard functionality will be loaded here after authentication
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeSupabase);
 
         // Navigation
         function showSection(sectionName) {
@@ -364,23 +433,54 @@
                 
                 if (!error && memories) {
                     const tbody = document.getElementById('memories-table-body');
-                    tbody.innerHTML = memories.map(memory => `
-                        <tr>
-                            <td class="font-mono text-xs">${memory.id.substring(0, 8)}...</td>
-                            <td class="max-w-xs truncate">${memory.content}</td>
-                            <td>${memory.service_id}</td>
-                            <td>${memory.memory_type}</td>
-                            <td>${(memory.importance_score * 100).toFixed(0)}%</td>
-                            <td>${new Date(memory.created_at).toLocaleDateString()}</td>
-                        </tr>
-                    `).join('');
+                    // SECURITY: Clear existing content and build DOM safely to prevent XSS
+                    tbody.innerHTML = '';
+                    
+                    memories.forEach(memory => {
+                        const row = document.createElement('tr');
+                        
+                        const idCell = document.createElement('td');
+                        idCell.className = 'font-mono text-xs';
+                        idCell.textContent = memory.id.substring(0, 8) + '...';
+                        
+                        const contentCell = document.createElement('td');
+                        contentCell.className = 'max-w-xs truncate';
+                        contentCell.textContent = memory.content; // Safe text content
+                        
+                        const serviceCell = document.createElement('td');
+                        serviceCell.textContent = memory.service_id;
+                        
+                        const typeCell = document.createElement('td');
+                        typeCell.textContent = memory.memory_type;
+                        
+                        const scoreCell = document.createElement('td');
+                        scoreCell.textContent = (memory.importance_score * 100).toFixed(0) + '%';
+                        
+                        const dateCell = document.createElement('td');
+                        dateCell.textContent = new Date(memory.created_at).toLocaleDateString();
+                        
+                        row.appendChild(idCell);
+                        row.appendChild(contentCell);
+                        row.appendChild(serviceCell);
+                        row.appendChild(typeCell);
+                        row.appendChild(scoreCell);
+                        row.appendChild(dateCell);
+                        tbody.appendChild(row);
+                    });
                 }
             } catch (error) {
                 console.error('Error loading memories:', error);
             }
         }
 
-        // Perform search
+        // SECURITY: HTML sanitization function to prevent XSS attacks
+        function sanitizeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+        
+        // Perform search with XSS protection
         async function performSearch() {
             const query = document.getElementById('search-query').value;
             const resultsDiv = document.getElementById('search-results');
@@ -390,14 +490,28 @@
             resultsDiv.innerHTML = '<p>Searching...</p>';
             
             try {
+                // SECURITY: Sanitize user input to prevent XSS
+                const sanitizedQuery = sanitizeHTML(query.trim());
+                
                 // This would typically call your search endpoint
-                // For now, showing a placeholder
-                resultsDiv.innerHTML = `
-                    <div class="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
-                        <p class="font-medium">Search for: "${query}"</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Semantic search integration would be implemented here</p>
-                    </div>
-                `;
+                // For now, showing a placeholder with sanitized input
+                const searchResult = document.createElement('div');
+                searchResult.className = 'p-4 bg-blue-50 dark:bg-blue-900 rounded-lg';
+                
+                const searchTitle = document.createElement('p');
+                searchTitle.className = 'font-medium';
+                searchTitle.textContent = `Search for: ${query.trim()}`; // Using textContent for safety
+                
+                const searchNote = document.createElement('p');
+                searchNote.className = 'text-sm text-gray-600 dark:text-gray-400';
+                searchNote.textContent = 'Semantic search integration would be implemented here';
+                
+                searchResult.appendChild(searchTitle);
+                searchResult.appendChild(searchNote);
+                
+                resultsDiv.innerHTML = '';
+                resultsDiv.appendChild(searchResult);
+                
             } catch (error) {
                 resultsDiv.innerHTML = '<p class="text-red-500">Search failed</p>';
             }

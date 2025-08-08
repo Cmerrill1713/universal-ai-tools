@@ -88,14 +88,36 @@ export function sendError(
   res.status(statusCode).json(response);
 }
 
+// Export apiResponse for backward compatibility
+export const apiResponse = apiResponseMiddleware;
+
+// Export ApiError class for error handling
+export class ApiError extends Error {
+  constructor(
+    public code: keyof ErrorCode,
+    message: string,
+    public statusCode: number = 400,
+    public details?: unknown
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 // Middleware to add API response helpers to Express response
 export function apiResponseMiddleware(req: unknown, res: unknown, next: unknown): void {
   const expressRes = res as any;
-  expressRes.sendSuccess = (data?: unknown, statusCode?: number, metadata?: Record<string, unknown>) =>
-    sendSuccess(expressRes, data, statusCode, metadata);
+  expressRes.sendSuccess = (
+    data?: unknown,
+    statusCode?: number,
+    metadata?: Record<string, unknown>
+  ) => sendSuccess(expressRes, data, statusCode, metadata);
 
-  expressRes.sendPaginatedSuccess = (data: unknown[], pagination: PaginationMeta, statusCode?: number) =>
-    sendPaginatedSuccess(expressRes, data, pagination, statusCode);
+  expressRes.sendPaginatedSuccess = (
+    data: unknown[],
+    pagination: PaginationMeta,
+    statusCode?: number
+  ) => sendPaginatedSuccess(expressRes, data, pagination, statusCode);
 
   expressRes.sendError = (
     code: keyof ErrorCode,

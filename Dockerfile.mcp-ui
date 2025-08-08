@@ -1,0 +1,212 @@
+# Simple UI for MCP Server monitoring
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Create a simple monitoring UI
+RUN mkdir -p public
+
+# Create a simple HTML interface
+COPY <<EOF ./public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Server Monitor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ddd;
+        }
+        .status-indicator.online {
+            background: #4caf50;
+        }
+        .tools-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .tool-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        .tool-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .tool-description {
+            color: #666;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MCP Server Monitor</h1>
+        
+        <div class="card">
+            <h2>Server Status</h2>
+            <div class="status">
+                <div class="status-indicator" id="status-indicator"></div>
+                <span id="status-text">Checking...</span>
+            </div>
+            <div id="server-info" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="card">
+            <h2>Available Tools</h2>
+            <button onclick="loadTools()">Refresh Tools</button>
+            <div id="tools-list" class="tools-list"></div>
+        </div>
+
+        <div class="card">
+            <h2>Test Tool Execution</h2>
+            <select id="method-select">
+                <option value="get_recent_context">Get Recent Context</option>
+                <option value="search_context">Search Context</option>
+                <option value="save_context">Save Context</option>
+            </select>
+            <button onclick="testMethod()">Execute</button>
+            <pre id="test-result"></pre>
+        </div>
+    </div>
+
+    <script>
+        const MCP_SERVER_URL = window.location.protocol + '//' + window.location.hostname + ':3456';
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(MCP_SERVER_URL + '/health');
+                const data = await response.json();
+                
+                document.getElementById('status-indicator').className = 'status-indicator online';
+                document.getElementById('status-text').textContent = 'Online';
+                document.getElementById('server-info').innerHTML = \`
+                    <div>Version: \${data.version}</div>
+                    <div>Uptime: \${Math.floor(data.uptime)}s</div>
+                \`;
+            } catch (error) {
+                document.getElementById('status-indicator').className = 'status-indicator';
+                document.getElementById('status-text').textContent = 'Offline';
+                document.getElementById('server-info').innerHTML = '<div style="color: red;">Error: ' + error.message + '</div>';
+            }
+        }
+
+        async function loadTools() {
+            try {
+                const response = await fetch(MCP_SERVER_URL + '/api/mcp/tools');
+                const data = await response.json();
+                
+                const toolsList = document.getElementById('tools-list');
+                toolsList.innerHTML = data.tools.map(tool => \`
+                    <div class="tool-card">
+                        <div class="tool-name">\${tool.name}</div>
+                        <div class="tool-description">\${tool.description}</div>
+                    </div>
+                \`).join('');
+            } catch (error) {
+                document.getElementById('tools-list').innerHTML = '<div style="color: red;">Error loading tools: ' + error.message + '</div>';
+            }
+        }
+
+        async function testMethod() {
+            const method = document.getElementById('method-select').value;
+            let params = {};
+            
+            if (method === 'search_context') {
+                params = { query: 'test', limit: 5 };
+            } else if (method === 'save_context') {
+                params = { content: 'Test content from UI', category: 'ui_test' };
+            } else if (method === 'get_recent_context') {
+                params = { limit: 5 };
+            }
+            
+            try {
+                const response = await fetch(MCP_SERVER_URL + '/api/mcp/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method, params })
+                });
+                const data = await response.json();
+                document.getElementById('test-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('test-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Initial load
+        checkStatus();
+        loadTools();
+        
+        // Auto-refresh status every 5 seconds
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+</html>
+EOF
+
+# Create a simple server
+COPY <<EOF ./server.js
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static('public'));
+
+app.listen(PORT, () => {
+    console.log(\`MCP UI running on port \${PORT}\`);
+});
+EOF
+
+# Install express
+RUN npm init -y && npm install express
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]

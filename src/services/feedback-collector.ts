@@ -358,11 +358,11 @@ export class FeedbackCollectorService extends EventEmitter {
    * Get recent feedback for learning purposes
    */
   getRecentFeedback(limit = 50, minTimestamp?: number): ABMCTSFeedback[] {
-    const cutoff = minTimestamp || (Date.now() - (60 * 60 * 1000)); // Last hour by default
-    
+    const cutoff = minTimestamp || Date.now() - 60 * 60 * 1000; // Last hour by default
+
     return Array.from(this.feedbackHistory.values())
       .flat()
-      .filter(feedback => feedback.timestamp > cutoff)
+      .filter((feedback) => feedback.timestamp > cutoff)
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, limit);
   }
@@ -539,7 +539,11 @@ export class FeedbackCollectorService extends EventEmitter {
 
   private createSystemHealthFeedback(healthStatus: any): ABMCTSFeedback | null {
     // Create feedback based on system health
-    if ((healthStatus?.cpu ?? 0) > 80 || (healthStatus?.memory ?? 0) > 80 || (healthStatus?.responseTime ?? 0) > 5000) {
+    if (
+      (healthStatus?.cpu ?? 0) > 80 ||
+      (healthStatus?.memory ?? 0) > 80 ||
+      (healthStatus?.responseTime ?? 0) > 5000
+    ) {
       return {
         nodeId: `system-health-${Date.now()}`,
         reward: {

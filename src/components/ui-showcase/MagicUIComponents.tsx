@@ -12,7 +12,8 @@ export const MagicButton: React.FC<{
   const variants = {
     primary: 'bg-blue-600 hover:bg-blue-700 text-white',
     secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800',
-    gradient: 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white',
+    gradient:
+      'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white',
   };
 
   return (
@@ -134,7 +135,7 @@ export const MagicUIShowcase: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <ParticleBackground />
-      
+
       <div className="relative z-10 max-w-6xl mx-auto">
         <StaggerContainer className="space-y-8">
           <StaggerItem>

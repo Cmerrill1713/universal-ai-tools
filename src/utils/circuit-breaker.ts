@@ -179,7 +179,7 @@ export class CircuitBreaker<T = any> {
   }
 
   private recordRequest(success: boolean, error?: string): void {
-    const       now = Date.now();
+    const now = Date.now();
     this.requestTimestamps.push({ time: now, success, error });
 
     // Clean old timestamps outside rolling window

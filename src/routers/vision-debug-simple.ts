@@ -6,7 +6,7 @@
 import express from 'express';
 import { VisionBrowserDebugger } from '../services/vision-browser-debugger';
 
-const   router = express.Router();
+const router = express.Router();
 
 // Initialize the vision debugger service
 let visionDebugger: VisionBrowserDebugger;
@@ -25,7 +25,7 @@ try {
  */
 router.get('/health', (req, res) => {
   try {
-    const status = visionDebugger ? visionDebugger.getStatus() as any : null;
+    const status = visionDebugger ? (visionDebugger.getStatus() as any) : null;
 
     res.json({
       success: true,
@@ -68,7 +68,7 @@ router.get('/status', (req, res) => {
       });
     }
 
-    const       status = visionDebugger.getStatus();
+    const status = visionDebugger.getStatus();
 
     return res.json({
       success: true,
@@ -158,7 +158,7 @@ router.post('/capture-now', async (req, res) => {
 router.post('/start', async (req, res) => {
   try {
     if (!visionDebugger) {
-            visionDebugger = new VisionBrowserDebugger();
+      visionDebugger = new VisionBrowserDebugger();
     }
 
     await visionDebugger.start();

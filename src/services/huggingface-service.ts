@@ -137,7 +137,7 @@ export class HuggingFaceService {
    */
   public async generateText(request: TextGenerationRequest): Promise<any> {
     return this.circuitBreaker.execute(async () => {
-      const         startTime = Date.now();
+      const startTime = Date.now();
 
       try {
         const model = request.model || this.defaultModels.textGeneration;
@@ -195,10 +195,10 @@ export class HuggingFaceService {
           inputType: Array.isArray(request.inputs) ? 'batch' : 'single',
         });
 
-        const           result = await this.hf.featureExtraction({
-            model,
-            inputs: request.inputs,
-          });
+        const result = await this.hf.featureExtraction({
+          model,
+          inputs: request.inputs,
+        });
 
         this.updateMetrics(startTime, true);
 
@@ -229,7 +229,7 @@ export class HuggingFaceService {
    */
   public async answerQuestion(request: QuestionAnsweringRequest): Promise<any> {
     return this.circuitBreaker.execute(async () => {
-      const         startTime = Date.now();
+      const startTime = Date.now();
 
       try {
         const model = request.model || this.defaultModels.questionAnswering;
@@ -367,9 +367,9 @@ export class HuggingFaceService {
       log.info('📋 Listing HuggingFace models', LogContext.AI, { task });
 
       // Return default models for now - could be extended to use HF Hub API
-      const         models = task
-          ? { [task]: this.defaultModels[task as keyof typeof this.defaultModels] }
-          : this.defaultModels;
+      const models = task
+        ? { [task]: this.defaultModels[task as keyof typeof this.defaultModels] }
+        : this.defaultModels;
 
       return {
         success: true,
@@ -404,7 +404,7 @@ export class HuggingFaceService {
    * Update internal metrics
    */
   private updateMetrics(startTime: number, success: boolean): void {
-    const       duration = Date.now() - startTime;
+    const duration = Date.now() - startTime;
 
     this.metrics.totalRequests++;
     this.metrics.lastRequestTime = Date.now();

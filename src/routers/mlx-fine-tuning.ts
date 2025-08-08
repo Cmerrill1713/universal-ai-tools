@@ -6,9 +6,11 @@
 import type { NextFunction, Request, Response } from 'express';
 import { Router } from 'express';
 import multer from 'multer';
-import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { join, resolve } from 'path';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { createSecurePath, sanitizeFilename, validateFile, validatePath, validatePathBoundary } from '../utils/path-security';
 import { LogContext, log } from '../utils/logger';
 import { sendError, sendSuccess } from '../utils/api-response';
 import { mlxFineTuningService } from '../services/mlx-fine-tuning-service';
@@ -19,16 +21,47 @@ import type {
   ValidationConfig,
 } from '../services/mlx-fine-tuning-service';
 
-const   router = Router();
+const router = Router();
 
 // ============================================================================
 // Middleware Setup
 // ============================================================================
 
-// Configure multer for dataset uploads
-const uploadsPath = join(process.cwd(), 'uploads', 'datasets');
+// Security: Define allowed base directories for MLX operations
+const ALLOWED_MLX_DIRS = [
+  resolve(process.cwd(), 'models'),
+  resolve(process.cwd(), 'uploads'),
+  resolve(process.cwd(), 'uploads/datasets'),
+  resolve(process.cwd(), 'data'),
+  resolve(process.cwd(), 'outputs'),
+  resolve(process.env.MLX_MODELS_PATH || join(process.cwd(), 'models')),
+];
+
+/**
+ * Security: Enhanced path validation for MLX file operations
+ * @deprecated - Use validatePath from path-security utils instead
+ */
+function validateMLXPath(filePath: string): boolean {
+  return validatePath(filePath, {
+    maxLength: 1000,
+    allowedDirectories: ALLOWED_MLX_DIRS,
+    allowSubdirectories: true,
+    additionalAllowedChars: ' :'
+  });
+}
+
+// Security: Configure secure dataset uploads
+const uploadsPath = ALLOWED_MLX_DIRS.find(dir => dir.includes('uploads/datasets')) || 
+                   join(process.cwd(), 'uploads', 'datasets');
+
+// Security: Ensure upload directory exists and is secure
 if (!existsSync(uploadsPath)) {
-  mkdirSync(uploadsPath, { recursive: true });
+  mkdirSync(uploadsPath, { recursive: true, mode: 0o755 });
+}
+
+// Security: Validate upload directory is in allowed list
+if (!ALLOWED_MLX_DIRS.some(dir => resolve(dir) === resolve(uploadsPath))) {
+  ALLOWED_MLX_DIRS.push(resolve(uploadsPath));
 }
 
 const upload = multer({
@@ -36,16 +69,47 @@ const upload = multer({
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB limit
     files: 1,
+    fieldSize: 1024, // Limit field size to prevent DoS
+    parts: 10, // Limit number of parts
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.json', '.jsonl', '.csv'];
-    const ext = file.originalname.toLowerCase().split('.').pop();
-
-    if (allowedTypes.includes(`.${ext}`)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JSON, JSONL, and CSV files are allowed.'));
+    const allowedTypes = ['.json', '.jsonl', '.csv', '.txt', '.tsv'];
+    const allowedMimeTypes = [
+      'application/json',
+      'application/x-jsonlines',
+      'text/csv',
+      'text/plain',
+      'application/csv',
+      'text/x-csv'
+    ];
+    
+    // Security: Validate MIME type
+    if (!allowedMimeTypes.some(mime => file.mimetype.includes(mime))) {
+      return cb(new Error(`Invalid MIME type: ${file.mimetype}. Only JSON, JSONL, CSV, and TXT files are allowed.`));
     }
+    
+    // Security: Validate file extension
+    const ext = `.${  file.originalname.toLowerCase().split('.').pop()}`;
+    if (!allowedTypes.includes(ext)) {
+      return cb(new Error(`Invalid file extension: ${ext}. Only ${allowedTypes.join(', ')} files are allowed.`));
+    }
+    
+    // Security: Validate and sanitize filename
+    if (!validatePath(file.originalname, {
+      maxLength: 255,
+      allowedExtensions: allowedTypes,
+      additionalAllowedChars: ' -'
+    })) {
+      return cb(new Error('Invalid filename format'));
+    }
+    
+    // Security: Sanitize filename to prevent injection
+    file.originalname = sanitizeFilename(file.originalname, {
+      maxLength: 200,
+      allowedExtensions: allowedTypes
+    });
+    
+    cb(null, true);
   },
 });
 
@@ -93,15 +157,44 @@ router.post('/datasets', upload.single('dataset'), async (req: Request, res: Res
       }
     }
 
+    // Security: Validate uploaded file path and properties
+    const uploadedPath = req.file.path;
+    
+    if (!validateFile(uploadedPath, {
+      maxFileSize: 100 * 1024 * 1024,
+      allowedExtensions: ['.json', '.jsonl', '.csv', '.txt', '.tsv'],
+      allowedDirectories: ALLOWED_MLX_DIRS,
+      mustExist: true
+    })) {
+      // Clean up invalid file
+      try {
+        fs.unlinkSync(uploadedPath);
+      } catch (cleanupError) {
+        console.warn(`Failed to cleanup invalid uploaded file: ${uploadedPath}`);
+      }
+      return sendError(res, 'VALIDATION_ERROR', 'Invalid uploaded file');
+    }
+
+    // Security: Verify file path boundary
+    if (!validatePathBoundary(uploadedPath, ALLOWED_MLX_DIRS)) {
+      try {
+        fs.unlinkSync(uploadedPath);
+      } catch (cleanupError) {
+        console.warn(`Failed to cleanup file outside boundary: ${uploadedPath}`);
+      }
+      return sendError(res, 'VALIDATION_ERROR', 'File path outside allowed boundaries');
+    }
+
     log.info('📤 Uploading dataset', LogContext.API, {
       name,
       originalName: req.file.originalname,
       size: req.file.size,
       userId,
+      secureValidation: true,
     });
 
     const dataset = await mlxFineTuningService.loadDataset(
-      req.file.path,
+      uploadedPath,
       name,
       userId,
       preprocessingConfig
@@ -165,15 +258,43 @@ router.post('/jobs', async (req: Request, res: Response) => {
       );
     }
 
-    // Validate base model path exists
-    if (!existsSync(base_model_path)) {
-      return sendError(res, 'VALIDATION_ERROR', 'Base model path does not exist');
+    // Security: Enhanced validation for base model path
+    if (!validateFile(base_model_path, {
+      maxFileSize: 50 * 1024 * 1024 * 1024, // 50GB for large models
+      allowedDirectories: ALLOWED_MLX_DIRS,
+      allowSubdirectories: true,
+      mustExist: true
+    })) {
+      return sendError(res, 'VALIDATION_ERROR', 'Invalid base model path or file does not exist');
     }
 
-    // Validate dataset path exists
-    if (!existsSync(dataset_path)) {
-      return sendError(res, 'VALIDATION_ERROR', 'Dataset path does not exist');
+    // Security: Enhanced validation for dataset path
+    if (!validateFile(dataset_path, {
+      maxFileSize: 1024 * 1024 * 1024, // 1GB for datasets
+      allowedExtensions: ['.json', '.jsonl', '.csv', '.txt', '.tsv'],
+      allowedDirectories: ALLOWED_MLX_DIRS,
+      allowSubdirectories: true,
+      mustExist: true
+    })) {
+      return sendError(res, 'VALIDATION_ERROR', 'Invalid dataset path or file does not exist');
     }
+
+    // Security: Verify paths are within allowed boundaries
+    if (!validatePathBoundary(base_model_path, ALLOWED_MLX_DIRS)) {
+      return sendError(res, 'VALIDATION_ERROR', 'Base model path outside allowed directories');
+    }
+    
+    if (!validatePathBoundary(dataset_path, ALLOWED_MLX_DIRS)) {
+      return sendError(res, 'VALIDATION_ERROR', 'Dataset path outside allowed directories');
+    }
+
+    // Security: Log secure path validation success
+    log.info('🔒 MLX paths validated successfully', LogContext.API, {
+      baseModelPath: base_model_path,
+      datasetPath: dataset_path,
+      userId,
+      secureValidation: true
+    });
 
     log.info('🎯 Creating fine-tuning job', LogContext.API, {
       jobName: job_name,
@@ -304,7 +425,7 @@ router.get('/jobs', async (req: Request, res: Response) => {
     const { userId } = req as any;
     const { status } = req.query;
 
-    const       jobs = await mlxFineTuningService.listJobs(userId, status as any);
+    const jobs = await mlxFineTuningService.listJobs(userId, status as any);
 
     sendSuccess(res, jobs);
   } catch (error) {
@@ -465,10 +586,7 @@ router.post('/experiments', async (req: Request, res: Response) => {
 router.post('/jobs/:jobId/evaluate', async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params as { jobId: string };
-    const {
-            evaluation_type = 'final',
-      evaluation_config,
-    } = req.body;
+    const { evaluation_type = 'final', evaluation_config } = req.body;
 
     log.info('📊 Evaluating model', LogContext.API, { jobId, evaluationType: evaluation_type });
 
@@ -512,6 +630,27 @@ router.post('/jobs/:jobId/export', async (req: Request, res: Response) => {
     const { jobId } = req.params as { jobId: string };
     const { export_format = 'mlx', export_path } = req.body;
 
+    // Security: Validate export format
+    const allowedFormats = ['mlx', 'gguf', 'safetensors', 'pytorch', 'tensorflow'];
+    if (!allowedFormats.includes(export_format)) {
+      return sendError(res, 'VALIDATION_ERROR', `Invalid export format. Allowed: ${allowedFormats.join(', ')}`);
+    }
+
+    // Security: Validate export path if provided
+    if (export_path) {
+      if (!validatePath(export_path, {
+        maxLength: 1000,
+        allowedDirectories: ALLOWED_MLX_DIRS,
+        allowSubdirectories: true
+      })) {
+        return sendError(res, 'VALIDATION_ERROR', 'Invalid export path');
+      }
+      
+      if (!validatePathBoundary(export_path, ALLOWED_MLX_DIRS)) {
+        return sendError(res, 'VALIDATION_ERROR', 'Export path outside allowed directories');
+      }
+    }
+
     log.info('📦 Exporting model', LogContext.API, { jobId, format: export_format });
 
     const exportPath = await mlxFineTuningService.exportModel(
@@ -542,7 +681,7 @@ router.post('/jobs/:jobId/deploy', async (req: Request, res: Response) => {
 
     log.info('🚀 Deploying model', LogContext.API, { jobId, deploymentName: deployment_name });
 
-    const       deploymentId = await mlxFineTuningService.deployModel(jobId, deployment_name);
+    const deploymentId = await mlxFineTuningService.deployModel(jobId, deployment_name);
 
     sendSuccess(res, { deployment_id: deploymentId });
   } catch (error) {
@@ -592,7 +731,7 @@ router.put('/jobs/:jobId/priority', async (req: Request, res: Response) => {
     sendSuccess(res, null);
   } catch (error) {
     log.error('❌ Failed to set job priority', LogContext.API, { error });
-    sendError(res, 'INTERNAL_ERROR', 'Failed to set job priority');
+    return sendError(res, 'INTERNAL_ERROR', 'Failed to set job priority');
   }
 });
 

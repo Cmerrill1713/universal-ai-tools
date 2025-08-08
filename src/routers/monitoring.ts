@@ -13,7 +13,7 @@ import { multiTierLLM } from '@/services/multi-tier-llm-service';
 import { healthMonitor } from '@/services/health-monitor';
 import os from 'os';
 
-const   router = Router();
+const router = Router();
 
 // System resource metrics
 function getSystemMetrics() {
@@ -109,7 +109,8 @@ router.get('/health/detailed', async (req, res) => {
     }
 
     // Calculate health check duration
-    metrics.healthCheckDuration = Date.now() - startTime;     res.json(metrics);
+    metrics.healthCheckDuration = Date.now() - startTime;
+    res.json(metrics);
   } catch (error) {
     log.error('❌ Health check failed', LogContext.SERVER, {
       error: error instanceof Error ? error.message : String(error),
@@ -125,7 +126,7 @@ router.get('/health/detailed', async (req, res) => {
 
 // Circuit breaker management endpoints
 router.get('/circuit-breakers', (req, res) => {
-  const     status = getCircuitBreakerStatus();
+  const status = getCircuitBreakerStatus();
   res.json({
     circuitBreakers: status,
     summary: {
@@ -335,10 +336,10 @@ router.get('/diagnostics', async (req, res) => {
   };
 
   // Model checks
-  const     modelChecks = {
-      ollama: false,
-      lfm2: false,
-    };
+  const modelChecks = {
+    ollama: false,
+    lfm2: false,
+  };
 
   try {
     await ollamaService.getAvailableModels();
@@ -370,7 +371,7 @@ router.get('/diagnostics', async (req, res) => {
   };
 
   // Overall status
-  const     allHealthy = Object.values(diagnostics.checks).every((check) => check.status === 'healthy');
+  const allHealthy = Object.values(diagnostics.checks).every((check) => check.status === 'healthy');
 
   res.status(allHealthy ? 200 : 503).json({
     ...diagnostics,

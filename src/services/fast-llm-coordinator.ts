@@ -40,11 +40,13 @@ export class FastLLMCoordinator {
   private async initializeFastModels(): Promise<void> {
     try {
       // Check if LFM2 model is available
-      const _lfm2Path =         '/Users/christianmerrill/Desktop/universal-ai-tools/models/agents/LFM2-1.2B-bf16';
+      const _lfm2Path =
+        '/Users/christianmerrill/Desktop/universal-ai-tools/models/agents/LFM2-1.2B-bf16';
       this.lfm2Available = true; // Assume available based on file system check
 
       // Check if Kokoro TTS is available
-      const _kokoroPath =         '/Users/christianmerrill/Desktop/universal-ai-tools/models/tts/Kokoro-82M';
+      const _kokoroPath =
+        '/Users/christianmerrill/Desktop/universal-ai-tools/models/tts/Kokoro-82M';
       this.kokoroAvailable = true; // Assume available based on file system check
 
       log.info('✅ Fast models initialized', LogContext.AI, {
@@ -154,7 +156,7 @@ ROUTING RULES:
           decision.targetService === 'openai' ? 'code-assistant' : 'planner-pro',
           [{ role: 'user', content: userRequest }]
         );
-                tokensUsed = (response as any).usage?.total_tokens || 0;
+        tokensUsed = (response as any).usage?.total_tokens || 0;
         break;
 
       default:
@@ -199,7 +201,7 @@ ROUTING RULES:
       log.warn('⚠️ LFM2 routing failed, using fallback logic', LogContext.AI, { error });
 
       // Fallback to simple heuristics
-      const         complexity = this.estimateComplexity(prompt);
+      const complexity = this.estimateComplexity(prompt);
 
       let targetService: FastRoutingDecision['targetService'] = 'lfm2';
       if (complexity === 'complex') targetService = 'anthropic';

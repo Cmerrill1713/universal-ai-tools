@@ -100,7 +100,7 @@ Always provide production-ready code with proper error handling, validation, and
   }
 
   protected getAdditionalContext(context: AgentContext): string | null {
-    let       additionalContext = '';
+    let additionalContext = '';
 
     // Detect programming language
     const language = this.detectProgrammingLanguage(context.userRequest);

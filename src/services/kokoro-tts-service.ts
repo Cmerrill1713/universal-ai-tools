@@ -36,8 +36,7 @@ export interface VoiceInfo {
 }
 
 export class KokoroTTSService {
-  private pythonProcess:
-    | ChildProcess     | null = null;
+  private pythonProcess: ChildProcess | null = null;
   private isInitialized = false;
   private kokoroPath: string;
   private availableVoices: VoiceInfo[] = [];
@@ -183,7 +182,8 @@ export class KokoroTTSService {
     }
 
     const startTime = Date.now();
-    const outputPath =       request.outputPath ||
+    const outputPath =
+      request.outputPath ||
       join(
         this.outputDirectory,
         `kokoro_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.wav`
@@ -237,7 +237,7 @@ export class KokoroTTSService {
     voicePreference?: string
   ): Promise<TTSResponse> {
     // Select voice based on agent personality
-    const       voice = voicePreference || this.getAgentVoice(agentName);
+    const voice = voicePreference || this.getAgentVoice(agentName);
 
     // Optimize text for speech (remove markdown, technical formatting)
     const speechText = this.optimizeTextForSpeech(response);

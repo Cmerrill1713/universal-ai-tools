@@ -14,7 +14,7 @@ import { parameterAnalyticsService } from '../services/parameter-analytics-servi
 import AgentRegistry from '../agents/agent-registry';
 import os from 'os';
 
-const   router = Router();
+const router = Router();
 
 /**
  * Get system resource metrics
@@ -26,7 +26,8 @@ const getSystemResources = () => {
   const cpus = os.cpus();
 
   // Calculate CPU usage
-  const cpuUsage =     cpus.reduce((acc, cpu) => {
+  const cpuUsage =
+    cpus.reduce((acc, cpu) => {
       const total = Object.values(cpu.times).reduce((a, b) => a + b, 0);
       const { idle } = cpu.times;
       return acc + ((total - idle) / total) * 100;
@@ -70,7 +71,8 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
     const performanceData = await parameterAnalyticsService.getRecentPerformance(60); // Last 60 minutes
 
     // Calculate average response time from recent data
-    const avgResponseTime =       performanceData.length > 0
+    const avgResponseTime =
+      performanceData.length > 0
         ? Math.round(
             performanceData.reduce((sum, p) => sum + (p.executionTime || 0), 0) /
               performanceData.length
@@ -79,43 +81,44 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
 
     // Calculate success rate
     const successCount = performanceData.filter((p) => p.success).length;
-    const successRate =       performanceData.length > 0
+    const successRate =
+      performanceData.length > 0
         ? Math.round((successCount / performanceData.length) * 100 * 10) / 10
         : 100;
 
-    const       metrics = {
-        system: resources,
-        orchestrator: {
-          activeSearches: orchestratorStats.activeSearches,
-          cachedResults: orchestratorStats.cachedResults,
-          circuitBreakerState: orchestratorStats.circuitBreakerState,
-          successRate: Math.round(orchestratorStats.successRate * 100 * 10) / 10,
-        },
-        agents: {
-          loaded: loadedAgents.length,
-          available: availableAgents.length,
-          active: orchestratorStats.activeSearches,
-          registry: loadedAgents,
-        },
-        performance: {
-          avgResponseTime,
-          successRate,
-          totalRequests: performanceData.length,
-          queuedTasks,
-          recentRequests: performanceData.slice(-10).map((p) => ({
-            timestamp: p.timestamp,
-            executionTime: p.executionTime,
-            success: p.success,
-            agent: p.agent,
-            confidence: p.confidence,
-          })),
-        },
-        feedback: {
-          totalProcessed: feedbackMetrics.totalProcessed,
-          queueSize: feedbackMetrics.queueSize,
-          aggregations: feedbackMetrics.aggregations.length,
-        },
-      };
+    const metrics = {
+      system: resources,
+      orchestrator: {
+        activeSearches: orchestratorStats.activeSearches,
+        cachedResults: orchestratorStats.cachedResults,
+        circuitBreakerState: orchestratorStats.circuitBreakerState,
+        successRate: Math.round(orchestratorStats.successRate * 100 * 10) / 10,
+      },
+      agents: {
+        loaded: loadedAgents.length,
+        available: availableAgents.length,
+        active: orchestratorStats.activeSearches,
+        registry: loadedAgents,
+      },
+      performance: {
+        avgResponseTime,
+        successRate,
+        totalRequests: performanceData.length,
+        queuedTasks,
+        recentRequests: performanceData.slice(-10).map((p) => ({
+          timestamp: p.timestamp,
+          executionTime: p.executionTime,
+          success: p.success,
+          agent: p.agent,
+          confidence: p.confidence,
+        })),
+      },
+      feedback: {
+        totalProcessed: feedbackMetrics.totalProcessed,
+        queueSize: feedbackMetrics.queueSize,
+        aggregations: feedbackMetrics.aggregations.length,
+      },
+    };
 
     sendSuccess(res, metrics, 200, { message: 'System metrics retrieved successfully' });
   } catch (error) {
@@ -135,7 +138,8 @@ router.get('/performance', async (req: Request, res: Response, next: NextFunctio
     const { timeRange = '1h' } = req.query;
 
     // Convert time range to minutes
-    const minutes =       {
+    const minutes =
+      {
         '1h': 60,
         '6h': 360,
         '24h': 1440,
@@ -149,7 +153,7 @@ router.get('/performance', async (req: Request, res: Response, next: NextFunctio
     const interval = minutes > 1440 ? 60 : minutes > 360 ? 15 : 5; // 1h, 15m, or 5m intervals
     const grouped: unknown[] = [];
 
-    const       now = Date.now();
+    const now = Date.now();
     for (let i = 0; i < minutes / interval; i++) {
       const startTime = now - (i + 1) * interval * 60000;
       const endTime = now - i * interval * 60000;
@@ -160,8 +164,10 @@ router.get('/performance', async (req: Request, res: Response, next: NextFunctio
 
       if (intervalData.length > 0) {
         const successCount = intervalData.filter((p) => p.success).length;
-        const avgTime =           intervalData.reduce((sum, p) => sum + (p.executionTime || 0), 0) / intervalData.length;
-        const avgConfidence =           intervalData.reduce((sum, p) => sum + (p.confidence || 0), 0) / intervalData.length;
+        const avgTime =
+          intervalData.reduce((sum, p) => sum + (p.executionTime || 0), 0) / intervalData.length;
+        const avgConfidence =
+          intervalData.reduce((sum, p) => sum + (p.confidence || 0), 0) / intervalData.length;
 
         grouped.push({
           time: new Date(endTime).toLocaleTimeString('en-US', {
@@ -216,15 +222,16 @@ router.get('/agents/performance', async (req: Request, res: Response, next: Next
         }
 
         // Get agent's performance metrics
-        const metrics = 'getPerformanceMetrics' in agent && typeof agent.getPerformanceMetrics === 'function'
-          ? agent.getPerformanceMetrics()
-          : {
-              totalCalls: 0,
-              successRate: 1,
-              averageExecutionTime: 0,
-              averageConfidence: 0.8,
-              lastUsed: null
-            };
+        const metrics =
+          'getPerformanceMetrics' in agent && typeof agent.getPerformanceMetrics === 'function'
+            ? agent.getPerformanceMetrics()
+            : {
+                totalCalls: 0,
+                successRate: 1,
+                averageExecutionTime: 0,
+                averageConfidence: 0.8,
+                lastUsed: null,
+              };
 
         return {
           name: agentName,
@@ -254,11 +261,12 @@ router.get('/agents/performance', async (req: Request, res: Response, next: Next
  */
 router.get('/health', async (req: Request, res: Response) => {
   try {
-    const       resources = getSystemResources();
+    const resources = getSystemResources();
     const orchestratorStats = abMCTSOrchestrator.getStatistics();
 
     // Determine health status
-    const isHealthy =       resources.cpu < 90 &&
+    const isHealthy =
+      resources.cpu < 90 &&
       resources.memory < 90 &&
       orchestratorStats.circuitBreakerState !== 'OPEN';
 

@@ -16,7 +16,15 @@ import {
 } from '../middleware/intelligent-parameters';
 
 interface HuggingFaceRequest {
-  type: 'generate' | 'classify' | 'summarize' | 'translate' | 'analyze' | 'embeddings' | 'qa' | 'sentiment';
+  type:
+    | 'generate'
+    | 'classify'
+    | 'summarize'
+    | 'translate'
+    | 'analyze'
+    | 'embeddings'
+    | 'qa'
+    | 'sentiment';
   inputs?: string | string[];
   text?: string;
   question?: string;
@@ -26,7 +34,7 @@ interface HuggingFaceRequest {
   [key: string]: any;
 }
 
-const   router = Router();
+const router = Router();
 
 // Apply rate limiting to HuggingFace endpoints
 router.use(createRateLimiter());
@@ -159,13 +167,11 @@ router.post(
         ...parameters,
       };
 
-      const         result = await huggingFaceService.generateText({
-          inputs: req.body.enhancedPrompt
-            ? req.body.prompt.replace('{user_input}', inputs)
-            : inputs,
-          parameters: optimizedParameters,
-          model,
-        });
+      const result = await huggingFaceService.generateText({
+        inputs: req.body.enhancedPrompt ? req.body.prompt.replace('{user_input}', inputs) : inputs,
+        parameters: optimizedParameters,
+        model,
+      });
 
       return res.json(result);
     } catch (error) {
@@ -205,10 +211,10 @@ router.post('/embeddings', async (req, res) => {
       inputType: Array.isArray(inputs) ? 'batch' : 'single',
     });
 
-    const       result = await huggingFaceService.generateEmbeddings({
-        inputs,
-        model,
-      });
+    const result = await huggingFaceService.generateEmbeddings({
+      inputs,
+      model,
+    });
 
     return res.json(result);
   } catch (error) {
@@ -295,11 +301,11 @@ router.post('/summarize', async (req, res) => {
       inputLength: inputs.length,
     });
 
-    const       result = await huggingFaceService.summarizeText({
-        inputs,
-        parameters,
-        model,
-      });
+    const result = await huggingFaceService.summarizeText({
+      inputs,
+      parameters,
+      model,
+    });
 
     return res.json(result);
   } catch (error) {
@@ -365,9 +371,7 @@ router.post('/batch', async (req, res) => {
 
     const { requests } = req.body;
 
-    if (
-      !Array.isArray(requests) ||
-      requests.length === 0     ) {
+    if (!Array.isArray(requests) || requests.length === 0) {
       return res.status(400).json({
         success: false,
         error: 'Missing required field: requests (must be array)',
@@ -394,7 +398,7 @@ router.post('/batch', async (req, res) => {
             return await huggingFaceService.generateText({
               inputs: params.inputs,
               parameters: params.parameters,
-              model: params.model
+              model: params.model,
             });
           case 'embeddings':
             if (!params.inputs) {
@@ -402,7 +406,7 @@ router.post('/batch', async (req, res) => {
             }
             return await huggingFaceService.generateEmbeddings({
               inputs: params.inputs,
-              model: params.model
+              model: params.model,
             });
           case 'qa':
             if (!params.question || !params.context) {
@@ -411,7 +415,7 @@ router.post('/batch', async (req, res) => {
             return await huggingFaceService.answerQuestion({
               question: params.question,
               context: params.context,
-              model: params.model
+              model: params.model,
             });
           case 'summarize':
             if (!params.inputs || typeof params.inputs !== 'string') {
@@ -420,7 +424,7 @@ router.post('/batch', async (req, res) => {
             return await huggingFaceService.summarizeText({
               inputs: params.inputs,
               parameters: params.parameters,
-              model: params.model
+              model: params.model,
             });
           case 'sentiment':
             if (!params.text || typeof params.text !== 'string') {

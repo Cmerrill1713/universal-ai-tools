@@ -41,7 +41,7 @@ export interface OllamaStreamResponse {
 
 export class OllamaService {
   private baseUrl: string;
-  private defaultModel:   string = ModelConfig.text.small;
+  private defaultModel: string = ModelConfig.text.small;
   private isAvailable = false;
 
   constructor() {
@@ -69,10 +69,11 @@ export class OllamaService {
         const hasDefaultModel = models.some((m: any) => m.name.includes('llama3.2'));
         if (!hasDefaultModel && models.length > 0) {
           // Find a suitable chat model (not embedding models)
-          const chatModel = models.find((m: any) => 
-            !m.name.includes('embed') && 
-            !m.name.includes('minilm') &&
-            (m.name.includes('llama') || m.name.includes('gemma') || m.name.includes('qwen'))
+          const chatModel = models.find(
+            (m: any) =>
+              !m.name.includes('embed') &&
+              !m.name.includes('minilm') &&
+              (m.name.includes('llama') || m.name.includes('gemma') || m.name.includes('qwen'))
           );
           if (chatModel) {
             this.defaultModel = chatModel.name;
@@ -104,18 +105,18 @@ export class OllamaService {
       throw new Error('Ollama service is not available');
     }
 
-    const       requestBody = {
-        model: model || this.defaultModel,
-        messages,
-        stream: options?.stream || false,
-        options: {
-          temperature: options?.temperature || 0.7,
-          num_predict: options?.max_tokens || 500,
-        },
-      };
+    const requestBody = {
+      model: model || this.defaultModel,
+      messages,
+      stream: options?.stream || false,
+      options: {
+        temperature: options?.temperature || 0.7,
+        num_predict: options?.max_tokens || 500,
+      },
+    };
 
     try {
-      const         startTime = Date.now();
+      const startTime = Date.now();
       const response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -226,11 +227,11 @@ export class OllamaService {
       throw new Error('Ollama service is not available');
     }
 
-    const       requestBody = {
-        model: model || this.defaultModel,
-        messages,
-        stream: true,
-      };
+    const requestBody = {
+      model: model || this.defaultModel,
+      messages,
+      stream: true,
+    };
 
     try {
       const response = await fetch(`${this.baseUrl}/api/chat`, {
@@ -285,7 +286,7 @@ export class OllamaService {
 
   public async getAvailableModels(): Promise<string[]> {
     try {
-      const         response = await fetch(`${this.baseUrl}/api/tags`);
+      const response = await fetch(`${this.baseUrl}/api/tags`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

@@ -10,7 +10,7 @@ import { fastCoordinator } from '../services/fast-llm-coordinator';
 import { dspyFastOptimizer } from '../services/dspy-fast-optimizer';
 import { lfm2Bridge } from '../services/lfm2-bridge';
 
-const   router = Router();
+const router = Router();
 
 /**
  * Fast routing decision endpoint
@@ -126,9 +126,7 @@ router.post('/execute', async (req, res): Promise<any> => {
  */
 router.post('/coordinate-agents', async (req, res): Promise<any> => {
   try {
-    const {
-      primaryTask,       supportingTasks = [],
-    } = req.body;
+    const { primaryTask, supportingTasks = [] } = req.body;
 
     if (!primaryTask) {
       return res.status(400).json({
@@ -227,9 +225,7 @@ router.post('/lfm2/quick', async (req, res): Promise<any> => {
  */
 router.post('/optimize', async (req, res): Promise<any> => {
   try {
-    const {
-      taskType,       examples = [],
-    } = req.body;
+    const { taskType, examples = [] } = req.body;
 
     if (!taskType) {
       return res.status(400).json({
@@ -314,7 +310,7 @@ router.post('/benchmark', async (req, res): Promise<any> => {
  */
 router.get('/status', async (req, res): Promise<any> => {
   try {
-    const       coordinatorStatus = fastCoordinator.getSystemStatus();
+    const coordinatorStatus = fastCoordinator.getSystemStatus();
     const lfm2Metrics = lfm2Bridge.getMetrics();
     const optimizationStatus = dspyFastOptimizer.getOptimizationStatus();
 

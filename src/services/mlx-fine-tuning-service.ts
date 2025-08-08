@@ -311,7 +311,7 @@ export class MLXFineTuningService extends EventEmitter {
         throw new Error(`Dataset file not found: ${datasetPath}`);
       }
 
-      const         format = this.detectDatasetFormat(datasetPath);
+      const format = this.detectDatasetFormat(datasetPath);
       const rawData = await this.readDatasetFile(datasetPath, format);
 
       // Validate dataset
@@ -636,7 +636,7 @@ export class MLXFineTuningService extends EventEmitter {
       throw new Error(`Cannot resume job ${jobId} with status ${job?.status}`);
     }
 
-    const       process = this.activeJobs.get(jobId);
+    const process = this.activeJobs.get(jobId);
     if (process) {
       process.kill('SIGCONT'); // Resume the process
       job.status = 'training';
@@ -888,7 +888,8 @@ export class MLXFineTuningService extends EventEmitter {
         throw new Error(`Cannot export model for job ${jobId} with status ${job?.status}`);
       }
 
-      const outputPath =         exportPath || join(this.modelsPath, 'exports', `${job.outputModelName}.${exportFormat}`);
+      const outputPath =
+        exportPath || join(this.modelsPath, 'exports', `${job.outputModelName}.${exportFormat}`);
 
       log.info('📦 Exporting model', LogContext.AI, { jobId, format: exportFormat, outputPath });
 
@@ -1055,7 +1056,10 @@ export class MLXFineTuningService extends EventEmitter {
       await this.removeJobFromQueue(jobId);
 
       // Delete from database (cascades to related tables)
-      const { error } = await (this.supabase as SupabaseClient).from('mlx_fine_tuning_jobs').delete().eq('id', jobId);
+      const { error } = await (this.supabase as SupabaseClient)
+        .from('mlx_fine_tuning_jobs')
+        .delete()
+        .eq('id', jobId);
 
       if (error) throw error;
 
@@ -1088,7 +1092,7 @@ export class MLXFineTuningService extends EventEmitter {
     lastError?: string;
   }> {
     try {
-      const         activeJobsCount = this.activeJobs.size;
+      const activeJobsCount = this.activeJobs.size;
       const queuedJobsCount = this.jobQueue.filter((item) => item.status === 'queued').length;
 
       // Get total job count from database
@@ -1132,13 +1136,13 @@ export class MLXFineTuningService extends EventEmitter {
   // ============================================================================
 
   private ensureDirectories(): void {
-    const       dirs = [
-        this.modelsPath,
-        this.datasetsPath,
-        this.tempPath,
-        join(this.modelsPath, 'exports'),
-        join(this.modelsPath, 'deployed'),
-      ];
+    const dirs = [
+      this.modelsPath,
+      this.datasetsPath,
+      this.tempPath,
+      join(this.modelsPath, 'exports'),
+      join(this.modelsPath, 'deployed'),
+    ];
 
     for (const dir of dirs) {
       if (!existsSync(dir)) {
@@ -1190,7 +1194,7 @@ export class MLXFineTuningService extends EventEmitter {
   }
 
   private async preprocessDataset(data: unknown[], config: PreprocessingConfig): Promise<any[]> {
-    let       processed = [...data] as Array<{input: string; output: string; [key: string]: any}>;
+    let processed = [...data] as Array<{ input: string; output: string; [key: string]: any }>;
 
     // Remove duplicates
     if (config.removeDuplicates) {
@@ -1470,7 +1474,7 @@ if __name__ == "__main__":
       const learningRates = Array.isArray(paramSpace.learningRate)
         ? paramSpace.learningRate
         : [paramSpace.learningRate.min, paramSpace.learningRate.max];
-      const         batchSizes = paramSpace.batchSize;
+      const batchSizes = paramSpace.batchSize;
       const epochs = Array.isArray(paramSpace.epochs)
         ? paramSpace.epochs
         : [paramSpace.epochs.min, paramSpace.epochs.max];
@@ -1501,7 +1505,7 @@ if __name__ == "__main__":
           : paramSpace.learningRate.min +
             Math.random() * (paramSpace.learningRate.max - paramSpace.learningRate.min);
 
-        const           bs = paramSpace.batchSize[Math.floor(Math.random() * paramSpace.batchSize.length)];
+        const bs = paramSpace.batchSize[Math.floor(Math.random() * paramSpace.batchSize.length)];
 
         const epochs = Array.isArray(paramSpace.epochs)
           ? paramSpace.epochs[Math.floor(Math.random() * paramSpace.epochs.length)]
@@ -1578,7 +1582,8 @@ if __name__ == "__main__":
               finalMetrics.validationAccuracy?.[finalMetrics.validationAccuracy.length - 1] || 0,
           };
 
-          trial.status = 'completed';           trial.endTime = new Date();
+          trial.status = 'completed';
+          trial.endTime = new Date();
         } else if (currentJob?.status === 'failed') {
           trial.status = 'failed';
           trial.endTime = new Date();
@@ -1595,9 +1600,9 @@ if __name__ == "__main__":
         trial.endTime = new Date();
       }
     } catch (error) {
-      log.error('❌ Optimization trial failed', LogContext.AI, { 
-        error: error instanceof Error ? error.message : String(error), 
-        trialId 
+      log.error('❌ Optimization trial failed', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error),
+        trialId,
       });
       trial.status = 'failed';
       trial.endTime = new Date();
@@ -1680,7 +1685,7 @@ if __name__ == "__main__":
       ];
     }
 
-    const       format = this.detectDatasetFormat(datasetPath);
+    const format = this.detectDatasetFormat(datasetPath);
     return this.readDatasetFile(datasetPath, format);
   }
 
@@ -1986,22 +1991,23 @@ if __name__ == "__main__":
   }
 
   private async saveExperimentToDatabase(experiment: HyperparameterOptimization): Promise<void> {
-    const { error } = await (this.supabase as SupabaseClient).from('mlx_hyperparameter_experiments').insert({
-      id: experiment.id,
-      experiment_name: experiment.experimentName,
-      base_job_id: experiment.baseJobId,
-      user_id: experiment.userId,
-      optimization_method: experiment.optimizationMethod,
-      parameter_space: experiment.parameterSpace,
-      status: experiment.status,
-      total_trials: experiment.trials.length,
-      completed_trials: experiment.trials.filter(
-        (t) => t.status === 'completed'       ).length,
-      best_trial_id: experiment.bestTrial?.id,
-      best_metrics: experiment.bestTrial?.metrics || {},
-      trials: experiment.trials,
-      completed_at: experiment.completedAt,
-    });
+    const { error } = await (this.supabase as SupabaseClient)
+      .from('mlx_hyperparameter_experiments')
+      .insert({
+        id: experiment.id,
+        experiment_name: experiment.experimentName,
+        base_job_id: experiment.baseJobId,
+        user_id: experiment.userId,
+        optimization_method: experiment.optimizationMethod,
+        parameter_space: experiment.parameterSpace,
+        status: experiment.status,
+        total_trials: experiment.trials.length,
+        completed_trials: experiment.trials.filter((t) => t.status === 'completed').length,
+        best_trial_id: experiment.bestTrial?.id,
+        best_metrics: experiment.bestTrial?.metrics || {},
+        trials: experiment.trials,
+        completed_at: experiment.completedAt,
+      });
 
     if (error) throw error;
   }
@@ -2012,8 +2018,7 @@ if __name__ == "__main__":
       .update({
         status: experiment.status,
         total_trials: experiment.trials.length,
-        completed_trials: experiment.trials.filter(
-          (t) => t.status === 'completed'         ).length,
+        completed_trials: experiment.trials.filter((t) => t.status === 'completed').length,
         best_trial_id: experiment.bestTrial?.id,
         best_metrics: experiment.bestTrial?.metrics || {},
         trials: experiment.trials,

@@ -432,7 +432,9 @@ export class LLMRouterService {
       usage: {
         prompt_tokens: (message as any).usage?.input_tokens || 0,
         completion_tokens: (message as any).usage?.output_tokens || 0,
-        total_tokens: ((message as any).usage?.input_tokens || 0) + ((message as any).usage?.output_tokens || 0),
+        total_tokens:
+          ((message as any).usage?.input_tokens || 0) +
+          ((message as any).usage?.output_tokens || 0),
       },
     };
   }
@@ -446,18 +448,18 @@ export class LLMRouterService {
   ): Promise<LLMResponse> {
     const ollamaClient = client as any;
     const response = await fetch(`${ollamaClient.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          messages,
-          stream: false,
-          options: {
-            temperature,
-            num_predict: maxTokens,
-          },
-        }),
-      });
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream: false,
+        options: {
+          temperature,
+          num_predict: maxTokens,
+        },
+      }),
+    });
 
     if (!response.ok) {
       throw new Error(`Ollama API error: ${response.status}`);
@@ -529,7 +531,8 @@ export class LLMRouterService {
       if (!userInput) return messages;
 
       const contextPromises = [];
-      const { contextTypes = ['project_overview', 'code_patterns'], maxContextTokens = 3000 } = options;
+      const { contextTypes = ['project_overview', 'code_patterns'], maxContextTokens = 3000 } =
+        options;
 
       // Fetch different types of context based on configuration
       for (const contextType of contextTypes) {
@@ -572,7 +575,7 @@ export class LLMRouterService {
 
       for (const result of contextResults) {
         if (result && typeof result === 'object' && 'results' in result) {
-          const {results} = result;
+          const { results } = result;
           if (Array.isArray(results)) {
             relevantContext.push(...results);
           }
@@ -585,9 +588,10 @@ export class LLMRouterService {
 
       // Estimate context tokens and filter if necessary
       const contextTokens = this.estimateContextTokens(relevantContext);
-      const filteredContext = contextTokens > maxContextTokens 
-        ? this.filterContextByRelevance(relevantContext, maxContextTokens)
-        : relevantContext;
+      const filteredContext =
+        contextTokens > maxContextTokens
+          ? this.filterContextByRelevance(relevantContext, maxContextTokens)
+          : relevantContext;
 
       // Format context for injection
       const contextSummary = this.formatContextForInjection(filteredContext);
@@ -597,7 +601,7 @@ export class LLMRouterService {
 
       // Add context to system message or create one
       const systemMessage = enhancedMessages.find((msg: LLMMessage) => msg.role === 'system');
-      
+
       if (systemMessage) {
         systemMessage.content = `${systemMessage.content}\n\n## Relevant Project Context:\n${contextSummary}`;
       } else {
@@ -615,10 +619,14 @@ export class LLMRouterService {
 
       return enhancedMessages;
     } catch (error) {
-      log.warn('⚠️ Failed to enhance messages with MCP context, using original messages', LogContext.MCP, {
-        error: error instanceof Error ? error.message : String(error),
-        requestId: options.requestId,
-      });
+      log.warn(
+        '⚠️ Failed to enhance messages with MCP context, using original messages',
+        LogContext.MCP,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          requestId: options.requestId,
+        }
+      );
       return messages;
     }
   }
@@ -628,9 +636,9 @@ export class LLMRouterService {
    */
   private extractUserInputFromMessages(messages: LLMMessage[]): string {
     // Find the last user message
-    const userMessages = messages.filter(msg => msg.role === 'user');
+    const userMessages = messages.filter((msg) => msg.role === 'user');
     if (userMessages.length === 0) return '';
-    
+
     return userMessages[userMessages.length - 1]?.content || '';
   }
 
@@ -639,7 +647,7 @@ export class LLMRouterService {
    */
   private estimateContextTokens(context: any[]): number {
     let totalTokens = 0;
-    
+
     for (const item of context) {
       const content = item.content || '';
       // Rough estimation: 1 token per 4 characters
@@ -680,13 +688,15 @@ export class LLMRouterService {
    * Format context items for injection
    */
   private formatContextForInjection(context: any[]): string {
-    const formatted = context.map(item => {
-      const source = item.source || item.category || 'unknown';
-      const content = item.content || '';
-      return `**[${source}]**: ${content}`;
-    }).join('\n\n');
+    const formatted = context
+      .map((item) => {
+        const source = item.source || item.category || 'unknown';
+        const content = item.content || '';
+        return `**[${source}]**: ${content}`;
+      })
+      .join('\n\n');
 
-    return formatted.length > 2000 ? `${formatted.slice(0, 2000)  }...` : formatted;
+    return formatted.length > 2000 ? `${formatted.slice(0, 2000)}...` : formatted;
   }
 }
 

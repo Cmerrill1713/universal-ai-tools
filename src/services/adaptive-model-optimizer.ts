@@ -3,11 +3,11 @@
  * Uses healing system insights to automatically fine-tune MLX models
  */
 
+import { THREE } from '@/utils/constants';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { THREE } from '@/utils/constants';
 
 interface HealingPattern {
   id: string;
@@ -226,27 +226,86 @@ class AdaptiveModelOptimizer {
     }
   }
 
+  private async executeSecureCommand(
+    command: string,
+    args: string[] = [],
+    options: any = {}
+  ): Promise<string> {
+    // Security: Execute commands safely using spawn instead of execSync
+    return new Promise((resolve, reject) => {
+      console.log(`🔒 Optimizer executing secure command: ${command} ${args.join(' ')}`);
+
+      const child = spawn(command, args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: options.timeout || 30000,
+        cwd: options.cwd || process.cwd(),
+        ...options,
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout?.on('data', (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      child.stderr?.on('data', (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      child.on('close', (code) => {
+        console.log(`🔒 Optimizer command completed with code: ${code}`);
+        if (code === 0) {
+          resolve(stdout);
+        } else {
+          reject(new Error(`Command failed with code ${code}: ${stderr}`));
+        }
+      });
+
+      child.on('error', (error) => {
+        console.log(`🔒 Optimizer command execution error: ${error}`);
+        reject(error);
+      });
+    });
+  }
+
   async discoverAvailableModels(): Promise<
     Array<{ name: string; type: 'ollama' | 'huggingface' | 'local' }>
   > {
     const models: Array<{ name: string; type: 'ollama' | 'huggingface' | 'local' }> = [];
 
-    // Discover Ollama models
+    // Discover Ollama models using secure command execution
     try {
-      const ollamaResult = execSync('ollama list', { encoding: 'utf8', timeout: 10000 });
+      console.log('🔒 Discovering Ollama models using secure command execution');
+      const ollamaResult = await this.executeSecureCommand('ollama', ['list'], { timeout: 10000 });
       const ollamaModels = ollamaResult
         .split('\n')
         .slice(1) // Skip header
         .filter((line) => line.trim())
-        .map((line) => line.split(/s+/)[0])
-        .filter((name): name is string => !!name && !name.includes(':'));
+        .map((line) => {
+          const parts = line.split(/\s+/);
+          return parts[0]; // Model name is first column
+        })
+        .filter((name): name is string => {
+          // Security: Validate model names to prevent injection
+          return (
+            !!name &&
+            name.length > 0 &&
+            name.length < 100 &&
+            /^[a-zA-Z0-9\-_.:\/]+$/.test(name) &&
+            !name.includes('..') &&
+            !name.includes(';') &&
+            !name.includes('|')
+          );
+        });
 
-      models.push(...ollamaModels.filter(name => name).map((name) => ({ name, type: 'ollama' as const })));
+      console.log(`🔒 Found ${ollamaModels.length} valid Ollama models`);
+      models.push(...ollamaModels.map((name) => ({ name, type: 'ollama' as const })));
     } catch (error) {
-      console.log('📝 Ollama not available for model discovery');
+      console.log('🔒 Ollama not available for model discovery:', error);
     }
 
-    // Add popular HuggingFace models for fine-tuning
+    // Add popular HuggingFace models for fine-tuning (pre-validated safe list)
     const popularHFModels = [
       'microsoft/DialoGPT-medium',
       'microsoft/CodeBERT-base',
@@ -254,6 +313,7 @@ class AdaptiveModelOptimizer {
     ];
     models.push(...popularHFModels.map((name) => ({ name, type: 'huggingface' as const })));
 
+    console.log(`🔒 Total discovered models: ${models.length}`);
     return models;
   }
 
@@ -379,23 +439,85 @@ class AdaptiveModelOptimizer {
     }
   }
 
+  private validateModelName(modelName: string): boolean {
+    // Security: Validate model name to prevent command injection
+    return /^[a-zA-Z0-9\-_./:]+$/.test(modelName) && modelName.length > 0 && modelName.length < 200;
+  }
+
+  private validatePath(filePath: string): boolean {
+    // Security: Validate file path to prevent path traversal
+    const normalizedPath = path.normalize(filePath);
+    return !normalizedPath.includes('..') && normalizedPath.length < 500;
+  }
+
   async convertOllamaToMLX(task: ModelOptimizationTask): Promise<ModelConversionResult> {
     const startTime = Date.now();
     const targetPath = path.join(this.mlxModelsPath, task.targetModel);
 
     try {
-      // Use Ollama's API to export the model
-      console.log(`📦 Exporting Ollama model: ${task.sourceModel}`);
+      // Security: Validate model name to prevent command injection
+      if (!this.validateModelName(task.sourceModel)) {
+        console.log(`🔒 Invalid model name rejected: ${task.sourceModel}`);
+        throw new Error(`Invalid model name: ${task.sourceModel}`);
+      }
+
+      // Security: Validate target path to prevent path traversal
+      if (!this.validatePath(targetPath)) {
+        console.log(`🔒 Invalid target path rejected: ${targetPath}`);
+        throw new Error(`Invalid target path: ${targetPath}`);
+      }
+
+      // Use Ollama's API to export the model using secure command execution
+      console.log(`🔒 Exporting Ollama model securely: ${task.sourceModel}`);
 
       // First check if model exists in Ollama
-      execSync(`ollama show ${task.sourceModel}`, { stdio: 'pipe', timeout: 10000 });
+      console.log(`🔒 Verifying Ollama model exists: ${task.sourceModel}`);
+      await this.executeSecureCommand('ollama', ['show', task.sourceModel], { timeout: 10000 });
 
       // Export to GGUF format, then convert to MLX
-      const tempPath = `/tmp/${task.sourceModel}.gguf`;
-      execSync(`ollama save ${task.sourceModel} > ${tempPath}`, { timeout: 60000 });
+      const tempFileName = task.sourceModel.replace(/[^a-zA-Z0-9\-_.]/g, '_');
+      const tempPath = `/tmp/${tempFileName}.gguf`;
+
+      // Security: Validate temp path
+      if (!this.validatePath(tempPath)) {
+        console.log(`🔒 Invalid temp path rejected: ${tempPath}`);
+        throw new Error(`Invalid temp path: ${tempPath}`);
+      }
+
+      console.log(`🔒 Exporting Ollama model to GGUF: ${tempPath}`);
+
+      // Create a script to handle the redirection securely
+      const exportScript = `#!/bin/bash
+set -e
+set -o pipefail
+ollama save "${task.sourceModel}" > "${tempPath}"
+`;
+      const scriptPath = '/tmp/ollama_export.sh';
+
+      // Write the script securely
+      require('fs').writeFileSync(scriptPath, exportScript, { mode: 0o755 });
+
+      try {
+        await this.executeSecureCommand('bash', [scriptPath], { timeout: 60000 });
+      } finally {
+        // Clean up script file
+        try {
+          require('fs').unlinkSync(scriptPath);
+        } catch (cleanupError) {
+          console.log(`🔒 Script cleanup failed: ${cleanupError}`);
+        }
+      }
 
       // Convert GGUF to MLX format
+      console.log(`🔒 Converting GGUF to MLX format`);
       await this.convertGGUFToMLX(tempPath, targetPath);
+
+      // Clean up temporary file
+      try {
+        require('fs').unlinkSync(tempPath);
+      } catch (cleanupError) {
+        console.log(`🔒 Temp file cleanup failed: ${cleanupError}`);
+      }
 
       return {
         success: true,
@@ -405,7 +527,7 @@ class AdaptiveModelOptimizer {
         optimizations: ['Ollama to MLX conversion'],
       };
     } catch (error) {
-      console.log(`Failed to convert Ollama model ${task.sourceModel}: ${error}`);
+      console.log(`🔒 Failed to convert Ollama model ${task.sourceModel}: ${error}`);
       throw error;
     }
   }
@@ -415,30 +537,108 @@ class AdaptiveModelOptimizer {
     const targetPath = path.join(this.mlxModelsPath, task.targetModel);
 
     try {
-      console.log(`🤗 Downloading HuggingFace model: ${task.sourceModel}`);
+      // Security: Validate model name to prevent command injection
+      if (!this.validateModelName(task.sourceModel)) {
+        console.log(`🔒 Invalid model name rejected: ${task.sourceModel}`);
+        throw new Error(`Invalid model name: ${task.sourceModel}`);
+      }
 
-      // Use MLX's built-in conversion tools
-      execSync(
-        `python -c "
+      // Security: Validate target path to prevent path traversal
+      if (!this.validatePath(targetPath)) {
+        console.log(`🔒 Invalid target path rejected: ${targetPath}`);
+        throw new Error(`Invalid target path: ${targetPath}`);
+      }
+
+      console.log(`🔒 Downloading HuggingFace model securely: ${task.sourceModel}`);
+
+      // Create a safe Python script file with enhanced security validation
+      const scriptContent = `#!/usr/bin/env python3
 import mlx.core as mx
 from transformers import AutoTokenizer, AutoModel
 import os
+import sys
+import re
 
-model_name = '${task.sourceModel}'
-target_path = '${targetPath}'
+# Enhanced security validation
+def validate_model_name(name):
+    if not name or not isinstance(name, str):
+        return False
+    if len(name) > 200 or len(name) < 3:
+        return False
+    # Only allow alphanumeric, hyphens, underscores, slashes for HF model names
+    if not re.match(r'^[a-zA-Z0-9/_.-]+$', name):
+        return False
+    if '..' in name or name.startswith('/') or name.startswith('.'):
+        return False
+    return True
 
-# Download and convert
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModel.from_pretrained(model_name)
+def validate_path(path):
+    if not path or not isinstance(path, str):
+        return False
+    if len(path) > 500:
+        return False
+    if '..' in path or path.startswith('~'):
+        return False
+    return True
 
-# Save in MLX format
-os.makedirs(target_path, exist_ok=True)
-tokenizer.save_pretrained(target_path)
-# Additional MLX-specific conversion would go here
-print(f'Converted {model_name} to {target_path}')
-"`,
-        { timeout: 300000 }
-      ); // 5 minutes timeout
+# Validate inputs with enhanced security
+if len(sys.argv) != 3:
+    print("Error: Requires exactly 2 arguments")
+    sys.exit(1)
+
+model_name = sys.argv[1]
+target_path = sys.argv[2]
+
+if not validate_model_name(model_name):
+    print(f"Error: Invalid model name: {model_name}")
+    sys.exit(1)
+
+if not validate_path(target_path):
+    print(f"Error: Invalid target path: {target_path}")
+    sys.exit(1)
+
+print(f"🔒 Validated inputs: model={model_name}, target={target_path}")
+
+try:
+    # Download and convert with error handling
+    print(f"🔒 Loading tokenizer for {model_name}")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    print(f"🔒 Loading model for {model_name}")
+    model = AutoModel.from_pretrained(model_name)
+
+    # Save in MLX format
+    print(f"🔒 Creating target directory: {target_path}")
+    os.makedirs(target_path, exist_ok=True)
+
+    print(f"🔒 Saving tokenizer to {target_path}")
+    tokenizer.save_pretrained(target_path)
+
+    # Additional MLX-specific conversion would go here
+    print(f"🔒 Successfully converted {model_name} to {target_path}")
+except Exception as e:
+    print(f"🔒 Error during conversion: {e}")
+    sys.exit(1)
+`;
+
+      // Write script to temporary file with secure permissions
+      const scriptPath = '/tmp/hf_convert.py';
+      require('fs').writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
+
+      try {
+        // Execute with validated arguments using secure command execution
+        console.log(`🔒 Executing HuggingFace conversion script`);
+        await this.executeSecureCommand('python3', [scriptPath, task.sourceModel, targetPath], {
+          timeout: 300000, // 5 minutes timeout
+        });
+      } finally {
+        // Clean up script file
+        try {
+          require('fs').unlinkSync(scriptPath);
+        } catch (cleanupError) {
+          console.log(`🔒 Script cleanup failed: ${cleanupError}`);
+        }
+      }
 
       return {
         success: true,
@@ -448,7 +648,7 @@ print(f'Converted {model_name} to {target_path}')
         optimizations: ['HuggingFace to MLX conversion'],
       };
     } catch (error) {
-      console.log(`Failed to convert HuggingFace model ${task.sourceModel}: ${error}`);
+      console.log(`🔒 Failed to convert HuggingFace model ${task.sourceModel}: ${error}`);
       throw error;
     }
   }
@@ -465,79 +665,255 @@ print(f'Converted {model_name} to {target_path}')
   }
 
   async convertGGUFToMLX(ggufPath: string, mlxPath: string): Promise<void> {
-    // This would use MLX's conversion utilities
-    execSync(
-      `python -c "
-# MLX GGUF conversion
+    // Security: Validate paths to prevent command injection
+    if (!this.validatePath(ggufPath) || !this.validatePath(mlxPath)) {
+      throw new Error('Invalid paths for GGUF to MLX conversion');
+    }
+
+    console.log(`🔒 Converting GGUF to MLX using secure script execution`);
+
+    // Create a safe Python script for GGUF conversion
+    const conversionScript = `#!/usr/bin/env python3
 import mlx.core as mx
-# Conversion logic would go here
-print('GGUF to MLX conversion completed')
-"`,
-      { timeout: 120000 }
-    );
+import os
+import sys
+
+def validate_path(path):
+    if not path or not isinstance(path, str):
+        return False
+    if len(path) > 500:
+        return False
+    if '..' in path or path.startswith('~'):
+        return False
+    return True
+
+if len(sys.argv) != 3:
+    print("Error: Requires exactly 2 arguments")
+    sys.exit(1)
+
+gguf_path = sys.argv[1]
+mlx_path = sys.argv[2]
+
+if not validate_path(gguf_path) or not validate_path(mlx_path):
+    print("Error: Invalid paths provided")
+    sys.exit(1)
+
+print(f"🔒 Converting GGUF file: {gguf_path}")
+print(f"🔒 Target MLX path: {mlx_path}")
+
+try:
+    # MLX GGUF conversion logic would go here
+    # This is a placeholder for actual MLX conversion
+    print('🔒 GGUF to MLX conversion completed successfully')
+except Exception as e:
+    print(f"🔒 GGUF conversion error: {e}")
+    sys.exit(1)
+`;
+
+    const scriptPath = '/tmp/gguf_convert.py';
+    require('fs').writeFileSync(scriptPath, conversionScript, { mode: 0o755 });
+
+    try {
+      await this.executeSecureCommand('python3', [scriptPath, ggufPath, mlxPath], {
+        timeout: 120000, // 2 minutes timeout
+      });
+    } finally {
+      // Clean up script file
+      try {
+        require('fs').unlinkSync(scriptPath);
+      } catch (cleanupError) {
+        console.log(`🔒 GGUF conversion script cleanup failed: ${cleanupError}`);
+      }
+    }
   }
 
   async fineTuneWithHealingData(task: ModelOptimizationTask, modelPath: string): Promise<string> {
-    console.log(`🎯 Fine-tuning with ${task.trainingData.length} healing examples...`);
+    // Security: Validate paths to prevent command injection
+    if (!this.validatePath(modelPath)) {
+      throw new Error('Invalid model path for fine-tuning');
+    }
+
+    console.log(
+      `🔒 Fine-tuning with ${task.trainingData.length} healing examples using secure execution...`
+    );
 
     const fineTunedPath = `${modelPath}-finetuned`;
 
+    // Security: Validate fine-tuned path
+    if (!this.validatePath(fineTunedPath)) {
+      throw new Error('Invalid fine-tuned model path');
+    }
+
     try {
-      // Prepare training data file
-      const trainingFile = path.join('/tmp', `${task.id}-training.jsonl`);
-      const trainingLines = task.trainingData.map((data) =>
-        JSON.stringify({
-          prompt: data.input,
-          completion: data.output,
-          category: data.category,
-        })
-      );
+      // Prepare training data file with validation
+      const sanitizedTaskId = task.id.replace(/[^a-zA-Z0-9\-_]/g, '_');
+      const trainingFile = path.join('/tmp', `${sanitizedTaskId}-training.jsonl`);
+
+      // Security: Validate training file path
+      if (!this.validatePath(trainingFile)) {
+        throw new Error('Invalid training file path');
+      }
+
+      const trainingLines = task.trainingData.map((data) => {
+        // Security: Sanitize training data to prevent injection
+        const sanitizedData = {
+          prompt: String(data.input).replace(/[^\w\s\-_.,:;!?()]/g, ''),
+          completion: String(data.output).replace(/[^\w\s\-_.,:;!?()]/g, ''),
+          category: String(data.category).replace(/[^\w\-_]/g, ''),
+        };
+        return JSON.stringify(sanitizedData);
+      });
 
       fs.writeFileSync(trainingFile, trainingLines.join('\n'));
 
-      // Run MLX fine-tuning
-      execSync(
-        `python -c "
+      // Create secure Python script for fine-tuning
+      const fineTuningScript = `#!/usr/bin/env python3
 import mlx.core as mx
-# MLX fine-tuning with healing data
-model_path = '${modelPath}'
-training_file = '${trainingFile}'
-output_path = '${fineTunedPath}'
+import os
+import sys
+import json
 
-print(f'Fine-tuning {model_path} with healing patterns...')
-# Fine-tuning logic would use MLX's training capabilities
-print(f'Fine-tuned model saved to {output_path}')
-"`,
-        { timeout: 600000 }
-      ); // 10 minutes timeout
+def validate_path(path):
+    if not path or not isinstance(path, str):
+        return False
+    if len(path) > 500:
+        return False
+    if '..' in path or path.startswith('~'):
+        return False
+    return True
+
+if len(sys.argv) != 4:
+    print("Error: Requires exactly 3 arguments")
+    sys.exit(1)
+
+model_path = sys.argv[1]
+training_file = sys.argv[2]
+output_path = sys.argv[3]
+
+# Validate all paths
+if not all(validate_path(p) for p in [model_path, training_file, output_path]):
+    print("Error: Invalid paths provided")
+    sys.exit(1)
+
+print(f"🔒 Fine-tuning model: {model_path}")
+print(f"🔒 Using training data: {training_file}")
+print(f"🔒 Output path: {output_path}")
+
+try:
+    # MLX fine-tuning with healing data
+    # This would use MLX's training capabilities
+    print(f'🔒 Fine-tuning {model_path} with healing patterns...')
+
+    # Placeholder for actual MLX fine-tuning logic
+    print(f'🔒 Fine-tuned model saved to {output_path}')
+
+except Exception as e:
+    print(f"🔒 Fine-tuning error: {e}")
+    sys.exit(1)
+`;
+
+      const scriptPath = '/tmp/fine_tune.py';
+      fs.writeFileSync(scriptPath, fineTuningScript, { mode: 0o755 });
+
+      try {
+        // Run MLX fine-tuning using secure command execution
+        await this.executeSecureCommand(
+          'python3',
+          [scriptPath, modelPath, trainingFile, fineTunedPath],
+          {
+            timeout: 600000, // 10 minutes timeout
+          }
+        );
+      } finally {
+        // Clean up files
+        try {
+          fs.unlinkSync(scriptPath);
+          fs.unlinkSync(trainingFile);
+        } catch (cleanupError) {
+          console.log(`🔒 Fine-tuning cleanup failed: ${cleanupError}`);
+        }
+      }
 
       return fineTunedPath;
     } catch (error) {
-      console.log(`Fine-tuning failed: ${error}`);
+      console.log(`🔒 Fine-tuning failed: ${error}`);
       throw error;
     }
   }
 
   async validateOptimizedModel(modelPath: string): Promise<void> {
-    console.log(`🔍 Validating optimized model: ${modelPath}`);
+    // Security: Validate model path to prevent command injection
+    if (!this.validatePath(modelPath)) {
+      throw new Error('Invalid model path for validation');
+    }
+
+    console.log(`🔒 Validating optimized model using secure execution: ${modelPath}`);
 
     try {
-      // Basic validation - check if model loads and responds
-      execSync(
-        `python -c "
+      // Create secure Python script for model validation
+      const validationScript = `#!/usr/bin/env python3
 import mlx.core as mx
-model_path = '${modelPath}'
+import os
+import sys
 
-print(f'Validating model at {model_path}...')
-# Validation logic would test model performance
-print('Model validation completed successfully')
-"`,
-        { timeout: 60000 }
-      );
+def validate_path(path):
+    if not path or not isinstance(path, str):
+        return False
+    if len(path) > 500:
+        return False
+    if '..' in path or path.startswith('~'):
+        return False
+    return True
 
-      console.log(`✅ Model validation passed: ${modelPath}`);
+if len(sys.argv) != 2:
+    print("Error: Requires exactly 1 argument")
+    sys.exit(1)
+
+model_path = sys.argv[1]
+
+if not validate_path(model_path):
+    print("Error: Invalid model path provided")
+    sys.exit(1)
+
+print(f'🔒 Validating model at {model_path}...')
+
+try:
+    # Basic validation - check if model loads and responds
+    # This would test model performance and functionality
+    if os.path.exists(model_path):
+        print(f'🔒 Model path exists: {model_path}')
+        # Additional MLX-specific validation would go here
+        print('🔒 Model validation completed successfully')
+    else:
+        print(f'🔒 Model path does not exist: {model_path}')
+        sys.exit(1)
+
+except Exception as e:
+    print(f"🔒 Model validation error: {e}")
+    sys.exit(1)
+`;
+
+      const scriptPath = '/tmp/validate_model.py';
+      fs.writeFileSync(scriptPath, validationScript, { mode: 0o755 });
+
+      try {
+        // Basic validation using secure command execution
+        await this.executeSecureCommand('python3', [scriptPath, modelPath], {
+          timeout: 60000, // 1 minute timeout
+        });
+
+        console.log(`🔒 Model validation passed: ${modelPath}`);
+      } finally {
+        // Clean up script file
+        try {
+          fs.unlinkSync(scriptPath);
+        } catch (cleanupError) {
+          console.log(`🔒 Validation script cleanup failed: ${cleanupError}`);
+        }
+      }
     } catch (error) {
-      console.log(`⚠️ Model validation failed: ${error}`);
+      console.log(`🔒 Model validation failed: ${error}`);
+      throw error;
     }
   }
 

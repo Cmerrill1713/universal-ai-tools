@@ -37,7 +37,7 @@ export interface UserPreferences {
 
 export enum TaskType {
   // Code Tasks
-    CODE_GENERATION = 'code_generation',
+  CODE_GENERATION = 'code_generation',
   CODE_REVIEW = 'code_review',
   CODE_DEBUGGING = 'code_debugging',
   CODE_EXPLANATION = 'code_explanation',

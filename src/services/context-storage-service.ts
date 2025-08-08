@@ -11,7 +11,13 @@ import { config } from '../config/environment';
 interface ContextEntry {
   id?: string;
   content: string;
-  category: 'conversation' | 'project_info' | 'error_analysis' | 'code_patterns' | 'test_results' | 'architecture_patterns';
+  category:
+    | 'conversation'
+    | 'project_info'
+    | 'error_analysis'
+    | 'code_patterns'
+    | 'test_results'
+    | 'architecture_patterns';
   source: string;
   userId: string;
   projectPath?: string;
@@ -62,7 +68,7 @@ export class ContextStorageService {
         log.error('Failed to store context to Supabase', LogContext.DATABASE, {
           error: error.message,
           category: context.category,
-          source: context.source
+          source: context.source,
         });
         return null;
       }
@@ -71,13 +77,13 @@ export class ContextStorageService {
         contextId: data.id,
         category: context.category,
         source: context.source,
-        contentLength: context.content.length
+        contentLength: context.content.length,
       });
 
       return data.id;
     } catch (error) {
       log.error('Error storing context to Supabase', LogContext.DATABASE, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return null;
     }
@@ -116,7 +122,7 @@ export class ContextStorageService {
           error: error.message,
           userId,
           category,
-          projectPath
+          projectPath,
         });
         return [];
       }
@@ -125,13 +131,13 @@ export class ContextStorageService {
         resultsCount: data?.length || 0,
         userId,
         category,
-        projectPath
+        projectPath,
       });
 
       return data || [];
     } catch (error) {
       log.error('Error retrieving context from Supabase', LogContext.DATABASE, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return [];
     }
@@ -143,13 +149,13 @@ export class ContextStorageService {
   async updateContext(contextId: string, updates: Partial<ContextEntry>): Promise<boolean> {
     try {
       const updateData: any = {};
-      
+
       if (updates.content) updateData.content = updates.content;
       if (updates.category) updateData.category = updates.category;
       if (updates.source) updateData.source = updates.source;
       if (updates.metadata) updateData.metadata = updates.metadata;
       if (updates.projectPath) updateData.project_path = updates.projectPath;
-      
+
       updateData.updated_at = new Date().toISOString();
 
       const { error } = await this.supabase
@@ -160,19 +166,19 @@ export class ContextStorageService {
       if (error) {
         log.error('Failed to update context in Supabase', LogContext.DATABASE, {
           error: error.message,
-          contextId
+          contextId,
         });
         return false;
       }
 
       log.info('✅ Context updated in Supabase', LogContext.DATABASE, {
-        contextId
+        contextId,
       });
 
       return true;
     } catch (error) {
       log.error('Error updating context in Supabase', LogContext.DATABASE, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return false;
     }
@@ -207,7 +213,7 @@ export class ContextStorageService {
           error: error.message,
           searchQuery,
           userId,
-          category
+          category,
         });
         return [];
       }
@@ -216,13 +222,13 @@ export class ContextStorageService {
         resultsCount: data?.length || 0,
         searchQuery,
         userId,
-        category
+        category,
       });
 
       return data || [];
     } catch (error) {
       log.error('Error searching context in Supabase', LogContext.DATABASE, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return [];
     }
@@ -246,8 +252,8 @@ export class ContextStorageService {
       metadata: {
         timestamp: new Date().toISOString(),
         testType: 'automated',
-        resultType: typeof testResults
-      }
+        resultType: typeof testResults,
+      },
     });
   }
 
@@ -268,8 +274,8 @@ export class ContextStorageService {
       projectPath,
       metadata: {
         timestamp: new Date().toISOString(),
-        conversationType: 'user_assistant'
-      }
+        conversationType: 'user_assistant',
+      },
     });
   }
 
@@ -292,7 +298,7 @@ export class ContextStorageService {
         log.error('Failed to cleanup old context', LogContext.DATABASE, {
           error: error.message,
           userId,
-          daysOld
+          daysOld,
         });
         return 0;
       }
@@ -301,13 +307,13 @@ export class ContextStorageService {
       log.info('🧹 Cleaned up old context entries', LogContext.DATABASE, {
         deletedCount,
         userId,
-        daysOld
+        daysOld,
       });
 
       return deletedCount;
     } catch (error) {
       log.error('Error cleaning up old context', LogContext.DATABASE, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
       return 0;
     }
@@ -336,18 +342,18 @@ export class ContextStorageService {
         totalEntries: data?.length || 0,
         entriesByCategory: {} as Record<string, number>,
         oldestEntry: null as string | null,
-        newestEntry: null as string | null
+        newestEntry: null as string | null,
       };
 
       if (data && data.length > 0) {
         // Count by category
-        data.forEach(entry => {
-          stats.entriesByCategory[entry.category] = 
+        data.forEach((entry) => {
+          stats.entriesByCategory[entry.category] =
             (stats.entriesByCategory[entry.category] || 0) + 1;
         });
 
         // Find oldest and newest entries
-        const dates = data.map(entry => entry.created_at).sort();
+        const dates = data.map((entry) => entry.created_at).sort();
         stats.oldestEntry = dates[0];
         stats.newestEntry = dates[dates.length - 1];
       }
@@ -355,14 +361,14 @@ export class ContextStorageService {
       return stats;
     } catch (error) {
       log.error('Error getting context stats', LogContext.DATABASE, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
-      
+
       return {
         totalEntries: 0,
         entriesByCategory: {},
         oldestEntry: null,
-        newestEntry: null
+        newestEntry: null,
       };
     }
   }

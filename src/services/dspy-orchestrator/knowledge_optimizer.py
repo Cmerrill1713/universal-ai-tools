@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 from dspy import ChainOfThought, InputField, Module, OutputField, Signature
@@ -61,7 +61,7 @@ class OptimizedKnowledgeExtractor(Module):
         self.extract = ChainOfThought(KnowledgeExtractionSignature)
         self.performance_history = []
 
-    def forward(self, raw_content: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def forward(self, raw_content: str, context: dict[str, Any]) -> dict[str, Any]:
         """Extract knowledge with performance tracking."""
         start_time = datetime.now()
 
@@ -71,7 +71,7 @@ class OptimizedKnowledgeExtractor(Module):
             # Parse structured knowledge
             try:
                 structured_data = json.loads(result.structured_knowledge)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 structured_data = {"raw": result.structured_knowledge}
 
             # Parse lists
@@ -101,7 +101,7 @@ class OptimizedKnowledgeExtractor(Module):
                 "error": str(e),
             }
 
-    def _parse_list(self, text: str) -> List[str]:
+    def _parse_list(self, text: str) -> list[str]:
         """Parse a text representation of a list."""
         if not text:
             return []
@@ -110,13 +110,13 @@ class OptimizedKnowledgeExtractor(Module):
         if text.startswith("[") and text.endswith("]"):
             try:
                 return json.loads(text)
-            except:
+            except (json.JSONDecodeError, ValueError, Exception):
                 pass
         # Parse comma or newline separated
         items = [item.strip() for item in text.replace("\n", ",").split(",")]
         return [item for item in items if item]
 
-    def _track_performance(self, result: Dict[str, Any]):
+    def _track_performance(self, result: dict[str, Any]):
         """Track extraction performance for optimization."""
         self.performance_history.append(
             {
@@ -145,7 +145,7 @@ class OptimizedKnowledgeSearcher(Module):
             "successful_searches": 0,
         }
 
-    def forward(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def forward(self, query: str, context: dict[str, Any]) -> dict[str, Any]:
         """Search knowledge with semantic understanding."""
         self.search_metrics["total_searches"] += 1
 
@@ -155,7 +155,7 @@ class OptimizedKnowledgeSearcher(Module):
             # Parse relevant items
             try:
                 relevant_items = json.loads(result.relevant_items)
-            except:
+            except (json.JSONDecodeError, ValueError, Exception):
                 relevant_items = []
 
             confidence = float(result.confidence)
@@ -195,8 +195,8 @@ class OptimizedKnowledgeEvolver(Module):
         self.evolution_history = []
 
     def forward(
-        self, existing: Dict[str, Any], new_info: Dict[str, Any], context: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
+        self, existing: dict[str, Any], new_info: dict[str, Any], context: dict[str, Any] = None
+    ) -> dict[str, Any]:
         """Evolve knowledge with new information."""
         context = context or {}
 
@@ -210,7 +210,7 @@ class OptimizedKnowledgeEvolver(Module):
             # Parse evolved knowledge
             try:
                 evolved_knowledge = json.loads(result.evolved_knowledge)
-            except:
+            except (json.JSONDecodeError, ValueError, Exception):
                 evolved_knowledge = existing  # Fallback to existing if parsing fails
 
             evolution_result = {
@@ -234,7 +234,7 @@ class OptimizedKnowledgeEvolver(Module):
                 "error": str(e),
             }
 
-    def _track_evolution(self, result: Dict[str, Any]):
+    def _track_evolution(self, result: dict[str, Any]):
         """Track evolution history for pattern learning."""
         self.evolution_history.append(
             {
@@ -257,7 +257,7 @@ class OptimizedKnowledgeValidator(Module):
         self.validate = ChainOfThought(KnowledgeValidationSignature)
         self.validation_stats = {"total_validations": 0, "valid_items": 0, "average_score": 0.0}
 
-    def forward(self, knowledge: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def forward(self, knowledge: dict[str, Any], context: dict[str, Any] = None) -> dict[str, Any]:
         """Validate knowledge item."""
         context = context or {}
         self.validation_stats["total_validations"] += 1
@@ -302,7 +302,7 @@ class OptimizedKnowledgeValidator(Module):
                 "error": str(e),
             }
 
-    def _parse_list(self, text: str) -> List[str]:
+    def _parse_list(self, text: str) -> list[str]:
         """Parse text representation of a list."""
         if not text:
             return []
@@ -310,7 +310,7 @@ class OptimizedKnowledgeValidator(Module):
         if text.startswith("[") and text.endswith("]"):
             try:
                 return json.loads(text)
-            except:
+            except (json.JSONDecodeError, ValueError, Exception):
                 pass
         items = [item.strip() for item in text.replace("\n", ",").split(",")]
         return [item for item in items if item]
@@ -333,8 +333,8 @@ class KnowledgeOptimizer:
         self.best_performance = 0.0
 
     def optimize_with_examples(
-        self, examples: List[Dict[str, Any]], num_iterations: int = 10
-    ) -> Dict[str, Any]:
+        self, examples: list[dict[str, Any]], num_iterations: int = 10
+    ) -> dict[str, Any]:
         """Optimize modules using MIPROv2 with provided examples."""
 
         # Initialize MIPROv2 optimizer
@@ -397,7 +397,7 @@ class KnowledgeOptimizer:
             logger.error(f"Optimization failed: {e}")
             return {"success": False, "error": str(e), "results": optimization_results}
 
-    def _prepare_training_data(self, examples: List[Dict[str, Any]]) -> Dict[str, List]:
+    def _prepare_training_data(self, examples: list[dict[str, Any]]) -> dict[str, list]:
         """Prepare training data for different modules."""
         trainset = {"extraction": [], "search": [], "evolution": [], "validation": []}
 
@@ -413,8 +413,9 @@ class KnowledgeOptimizer:
 
         return trainset
 
-    def _default_metric(self, example, prediction, trace=None) -> float:
+    def _default_metric(self, _example, prediction, _trace=None) -> float:
         """Default metric function for optimization."""
+        _ = _example, _trace  # Reserved for future use
         # Simple confidence-based metric
         confidence_scores = []
 
@@ -431,7 +432,7 @@ class KnowledgeOptimizer:
             return np.mean(confidence_scores)
         return 0.5  # Default middle score
 
-    def _track_optimization(self, results: Dict[str, Any]):
+    def _track_optimization(self, results: dict[str, Any]):
         """Track optimization history."""
         self.optimization_history.append(
             {
@@ -485,7 +486,7 @@ class KnowledgeOptimizer:
 
         return 0.0
 
-    def get_performance_metrics(self) -> Dict[str, Any]:
+    def get_performance_metrics(self) -> dict[str, Any]:
         """Get current performance metrics."""
         return {
             "extractor": {

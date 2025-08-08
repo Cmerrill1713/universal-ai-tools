@@ -32,8 +32,7 @@ import { THREE } from '../utils/constants';
  */
 export class ABMCTSService {
   private config: ABMCTSConfig;
-  private root:
-    | ABMCTSNode     | null = null;
+  private root: ABMCTSNode | null = null;
   private nodeCache: Map<string, ABMCTSNode> = new Map();
   private thompsonSelector: ThompsonSelector;
   private adaptiveExplorer: AdaptiveExplorer;
@@ -344,8 +343,7 @@ export class ABMCTSService {
    * Backpropagation phase - update statistics up the tree
    */
   private backpropagate(node: ABMCTSNode, reward: ABMCTSReward): void {
-    let current:
-      | ABMCTSNode       | undefined = node;
+    let current: ABMCTSNode | undefined = node;
     let depth = 0;
 
     while (current) {
@@ -412,7 +410,8 @@ export class ABMCTSService {
     const bestPath = this.getBestPath(this.root!);
 
     // Find best action (first step in best path)
-    const bestAction =       bestPath.length > 1
+    const bestAction =
+      bestPath.length > 1
         ? {
             agentName: bestPath[1]?.metadata?.agent || 'unknown',
             agentType: 'cognitive' as const,
@@ -551,7 +550,7 @@ export class ABMCTSService {
     parent: ABMCTSNode | null,
     action?: ABMCTSAction
   ): ABMCTSNode {
-    const node:     ABMCTSNode = {
+    const node: ABMCTSNode = {
       id: uuidv4(),
       state,
       visits: 0,
@@ -593,7 +592,7 @@ export class ABMCTSService {
   ): Promise<AgentResponse> {
     // In real implementation, this would call the actual agent
     // For now, simulate based on historical performance
-    const       model = bayesianModelRegistry.getModel(agentName, this.getTaskType(context));
+    const model = bayesianModelRegistry.getModel(agentName, this.getTaskType(context));
 
     const prediction = model.predict(context.metadata || {});
 
@@ -652,7 +651,7 @@ export class ABMCTSService {
    */
   async processFeedback(feedback: ABMCTSFeedback): Promise<void> {
     // Find node
-    const       node = this.nodeCache.get(feedback.nodeId);
+    const node = this.nodeCache.get(feedback.nodeId);
     if (!node) {
       log.warn('Node not found for feedback', LogContext.AI, { nodeId: feedback.nodeId });
       return;

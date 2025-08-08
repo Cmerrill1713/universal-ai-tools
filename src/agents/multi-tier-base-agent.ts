@@ -17,7 +17,8 @@ export abstract class MultiTierBaseAgent extends BaseAgent {
 
   constructor(config: AgentConfig) {
     super(config);
-    this.voiceEnabled = process.env.ENABLE_VOICE_COMMANDS === 'true';   }
+    this.voiceEnabled = process.env.ENABLE_VOICE_COMMANDS === 'true';
+  }
 
   /**
    * Execute using multi-tier LLM system

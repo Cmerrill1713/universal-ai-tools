@@ -232,7 +232,7 @@ export class ABMCTSOrchestrator {
     }
 
     // Get the agent from the best action
-    const       selectedAgentName = searchResult.bestAction.agentName;
+    const selectedAgentName = searchResult.bestAction.agentName;
     const selectedAgent = availableAgents.find((a) => a.getName() === selectedAgentName);
 
     if (!selectedAgent) {

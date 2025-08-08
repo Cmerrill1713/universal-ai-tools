@@ -1,0 +1,39 @@
+{
+  "name": "@universal/ai-tools-optimized",
+  "version": "2.0.0-optimized",
+  "description": "Universal AI Tools - Optimized for Low-Resource Environments",
+  "main": "dist/server-optimized.js",
+  "type": "module",
+  "scripts": {
+    "start:optimized": "NODE_OPTIONS='--max-old-space-size=384 --max-semi-space-size=8 --optimize-for-size' node dist/server-optimized.js",
+    "dev:optimized": "NODE_OPTIONS='--max-old-space-size=384 --expose-gc' tsx src/server-optimized.ts",
+    "build:optimized": "npm run clean && tsc -p tsconfig.optimized.json",
+    "docker:build": "docker build -f Dockerfile.optimized -t universal-ai-tools:optimized .",
+    "docker:run": "docker-compose -f docker-compose.low-resource.yml up -d",
+    "docker:stop": "docker-compose -f docker-compose.low-resource.yml down",
+    "docker:logs": "docker-compose -f docker-compose.low-resource.yml logs -f",
+    "monitor:resources": "tsx scripts/monitor-resources.ts",
+    "test:load": "tsx scripts/test-low-resource-load.ts",
+    "optimize:memory": "tsx scripts/optimize-memory.ts",
+    "clean": "rimraf dist",
+    "setup:low-resource": "npm run build:optimized && npm run docker:build",
+    "health:check": "curl -f http://localhost:9999/api/v1/health || echo 'Service not running'"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "os": ["linux", "darwin"],
+  "cpu": ["x64", "arm64"],
+  "keywords": [
+    "ai",
+    "low-resource",
+    "optimized",
+    "memory-efficient",
+    "container",
+    "docker",
+    "microservices"
+  ],
+  "author": "Universal AI Tools Team",
+  "license": "MIT"
+}

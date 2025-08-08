@@ -248,12 +248,12 @@ export class MultiTierLLMService {
     log.info('🚀 Starting parallel execution', LogContext.AI, { requests: requests.length });
 
     // Sort by priority and classify all requests quickly using LFM2
-    const       sortedRequests = requests
-        .map((req, index) => ({ ...req, index }))
-        .sort((a, b) => {
-          const priorityOrder = { high: 3, medium: 2, low: 1 };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
-        });
+    const sortedRequests = requests
+      .map((req, index) => ({ ...req, index }))
+      .sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      });
 
     // Execute in parallel with controlled concurrency
     const results = await this.executeWithConcurrencyControl(sortedRequests);
@@ -472,12 +472,12 @@ Respond with JSON:
     success: boolean,
     tokens: number
   ): void {
-    const       existing = this.modelPerformance.get(model) || {
-        avgResponseTime: responseTime,
-        successRate: success ? 1 : 0,
-        tokenThroughput: tokens / (responseTime / 1000),
-        lastUsed: Date.now(),
-      };
+    const existing = this.modelPerformance.get(model) || {
+      avgResponseTime: responseTime,
+      successRate: success ? 1 : 0,
+      tokenThroughput: tokens / (responseTime / 1000),
+      lastUsed: Date.now(),
+    };
 
     // Exponential moving average
     const alpha = 0.2;

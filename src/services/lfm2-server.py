@@ -130,19 +130,35 @@ class LFM2Server:
                     prompt = self.tokenizer.apply_chat_template(
                         messages, add_generation_prompt=True
                     )
+                    
+                    # Ensure prompt is a string after template application
+                    if isinstance(prompt, list):
+                        prompt = prompt[0] if prompt else ""
+                    if not isinstance(prompt, str):
+                        prompt = str(prompt) if prompt else ""
                 
                 # Generate response using MLX
+                # Note: MLX generate() only accepts model, tokenizer, prompt, verbose, and formatter
+                # Temperature and max_tokens are not supported in this version
                 response = generate(
                     self.model,
                     self.tokenizer,
                     prompt=prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
                     verbose=False
                 )
                 
                 # Extract just the generated part
-                if prompt in response:
+                # Handle both string and list responses from MLX
+                if isinstance(response, list):
+                    response = response[0] if response else ""
+                
+                # Ensure response is a string before string operations
+                if not isinstance(response, str):
+                    response = str(response) if response else ""
+                
+                # Now response is guaranteed to be a string
+                # Ensure prompt is also a string before comparison
+                if isinstance(prompt, str) and prompt in response:
                     response = response[len(prompt):].strip()
                 
                 return {
@@ -176,11 +192,24 @@ class LFM2Server:
         })
         
         if completion_result['success']:
-            # Extract category from response
-            category = completion_result['text'].strip().lower()
+            # Extract category from response - ensure it's always a string
+            category = completion_result['text']
+            
+            # Handle list response from MLX
+            if isinstance(category, list):
+                category = category[0] if category else ""
+            
+            # Ensure category is always a string for all operations
+            if not isinstance(category, str):
+                category = str(category) if category else ""
+            
+            # Clean up the category string
+            category = category.strip().lower()
+            
             # Match to closest category
             for cat in categories:
-                if cat.lower() in category:
+                # Now category is guaranteed to be a string
+                if category and cat.lower() in category:
                     category = cat
                     break
             else:

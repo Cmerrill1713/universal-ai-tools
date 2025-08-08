@@ -4,14 +4,15 @@
  * with parameter optimization for continuous improvement
  */
 
-import { LogContext, log } from '../utils/logger';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config/environment';
+import { THREE, TWO } from '../utils/constants';
+import { LogContext, log } from '../utils/logger';
+import { autonomousActionLoopService } from './autonomous-action-loop-service';
 import type { TaskParameters } from './intelligent-parameter-service';
 import { TaskType } from './intelligent-parameter-service';
-import { parameterAnalyticsService } from './parameter-analytics-service';
 import { mlParameterOptimizer } from './ml-parameter-optimizer';
-import { THREE, TWO } from '../utils/constants';
+import { parameterAnalyticsService } from './parameter-analytics-service';
 
 export interface UserFeedback {
   id: string;
@@ -283,6 +284,10 @@ export class FeedbackIntegrationService {
       const parameterInsights = await this.analyzeParameterPerformanceCorrelations();
       insights.push(...parameterInsights);
 
+      // Generate autonomous improvement insights from high-performing patterns
+      const improvementInsights = await this.generateImprovementInsights();
+      insights.push(...improvementInsights);
+
       // Sort by priority and confidence
       return insights.sort((a, b) => {
         const priorityWeight = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -300,7 +305,7 @@ export class FeedbackIntegrationService {
    * Get learning signals for parameter optimization
    */
   public getLearningSignals(taskType?: TaskType): LearningSignal[] {
-    let       signals = this.learningSignals;
+    let signals = this.learningSignals;
 
     if (taskType) {
       signals = signals.filter((s) => s.taskType === taskType);
@@ -317,18 +322,24 @@ export class FeedbackIntegrationService {
     appliedInsights: number;
     parameterAdjustments: number;
     learningSignalsProcessed: number;
+    autonomousActionsQueued: number;
   }> {
     try {
       let appliedInsights = 0;
       let parameterAdjustments = 0;
       let learningSignalsProcessed = 0;
+      let autonomousActionsQueued = 0;
 
       // Get recent insights
       const insights = await this.generateFeedbackInsights();
 
       for (const insight of insights) {
         if (insight.type === 'parameter_adjustment' && insight.confidence > 0.7) {
-          // Apply parameter learning
+          // Queue high-confidence insights for autonomous implementation
+          await this.queueAutonomousAction(insight);
+          autonomousActionsQueued++;
+
+          // Apply parameter learning (traditional path)
           await this.applyParameterLearning(insight);
           appliedInsights++;
           parameterAdjustments++;
@@ -339,6 +350,10 @@ export class FeedbackIntegrationService {
       const signals = this.getLearningSignals();
       for (const signal of signals) {
         if (signal.strength > 0.6) {
+          // Queue strong learning signals as autonomous actions
+          await this.queueLearningSignalAction(signal);
+          autonomousActionsQueued++;
+
           await this.processLearningSignal(signal);
           learningSignalsProcessed++;
         }
@@ -347,20 +362,27 @@ export class FeedbackIntegrationService {
       // Clear processed signals
       this.learningSignals = this.learningSignals.filter((s) => s.strength <= 0.6);
 
-      log.info('🧠 Applied feedback learning', LogContext.AI, {
+      log.info('🧠 Applied feedback learning with autonomous actions', LogContext.AI, {
         appliedInsights,
         parameterAdjustments,
         learningSignalsProcessed,
+        autonomousActionsQueued,
       });
 
       return {
         appliedInsights,
         parameterAdjustments,
         learningSignalsProcessed,
+        autonomousActionsQueued,
       };
     } catch (error) {
       log.error('Error applying feedback learning', LogContext.AI, { error });
-      return { appliedInsights: 0, parameterAdjustments: 0, learningSignalsProcessed: 0 };
+      return {
+        appliedInsights: 0,
+        parameterAdjustments: 0,
+        learningSignalsProcessed: 0,
+        autonomousActionsQueued: 0,
+      };
     }
   }
 
@@ -392,7 +414,8 @@ export class FeedbackIntegrationService {
 
       // Calculate metrics
       const totalFeedbacks = feedbacks.length;
-      const averageSatisfaction = totalFeedbacks > 0
+      const averageSatisfaction =
+        totalFeedbacks > 0
           ? feedbacks.reduce((sum: number, f: any) => sum + f.overall_satisfaction, 0) /
             totalFeedbacks
           : 0;
@@ -500,11 +523,12 @@ export class FeedbackIntegrationService {
   private async triggerImmediateLearning(feedback: UserFeedback): Promise<void> {
     try {
       // Calculate performance score based on feedback
-      const performanceScore =           (feedback.qualityRating * 0.3 +
-            feedback.accuracyRating * 0.3 +
-            feedback.usefulnessRating * 0.2 +
-            feedback.overallSatisfaction * 0.2) /
-          5; // Normalize to 0-1
+      const performanceScore =
+        (feedback.qualityRating * 0.3 +
+          feedback.accuracyRating * 0.3 +
+          feedback.usefulnessRating * 0.2 +
+          feedback.overallSatisfaction * 0.2) /
+        5; // Normalize to 0-1
 
       // Trigger ML learning
       await mlParameterOptimizer.learnFromExecution(
@@ -726,7 +750,7 @@ export class FeedbackIntegrationService {
   }
 
   private groupFeedbackByIssues(feedbacks: unknown[]): Map<string, any[]> {
-    const       groups = new Map<string, any[]>();
+    const groups = new Map<string, any[]>();
 
     feedbacks.forEach((f: any) => {
       if (f.reported_issues && f.reported_issues.length > 0) {
@@ -799,22 +823,288 @@ export class FeedbackIntegrationService {
     return `feedback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  /**
+   * Queue an autonomous action from a feedback insight
+   */
+  private async queueAutonomousAction(insight: FeedbackInsight): Promise<void> {
+    try {
+      // Convert feedback insight to autonomous action format
+      const autonomousAction = {
+        id: `feedback_action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'parameter_adjustment' as const,
+        priority: insight.priority,
+        target: {
+          service: insight.taskType ? `intelligent_parameter_service` : 'system',
+          component: insight.taskType || 'configuration',
+          property: insight.recommendation.toLowerCase().replace(/\s+/g, '_'),
+        },
+        change: {
+          from: null, // Will be populated during implementation
+          to: insight.recommendation,
+          rationale: insight.insight,
+        },
+        assessment: {
+          riskLevel: this.mapPriorityToRisk(insight.priority),
+          confidenceScore: insight.confidence,
+          expectedImpact: insight.estimatedImprovement,
+          implementationComplexity: 'simple' as const,
+          reversibilityScore: 0.9,
+        },
+        evidence: {
+          sources: ['feedback_integration_service'],
+          supportingData: [insight],
+          historicalPerformance: {
+            feedbackVolume: insight.metrics.feedbackVolume,
+            severityScore: insight.metrics.severityScore,
+            urgencyScore: insight.metrics.urgencyScore,
+          },
+          userImpact: {
+            affectedUsers: insight.affectedUsers,
+            potentialBenefit: `${insight.estimatedImprovement}% improvement in user satisfaction`,
+          },
+        },
+        execution: {
+          method: 'immediate' as const,
+          rollbackTriggers: [
+            {
+              metric: 'error_rate',
+              threshold: 0.05,
+              operator: 'gt' as const,
+            },
+          ],
+          monitoringPeriod: 300000, // 5 minutes
+          successCriteria: [
+            {
+              metric: 'user_satisfaction',
+              improvementTarget: 0.1,
+            },
+          ],
+        },
+        createdAt: new Date(),
+        status: 'pending' as const,
+      };
+
+      await autonomousActionLoopService.queueAction(autonomousAction);
+
+      log.info('🎯 Queued autonomous action from feedback insight', LogContext.AI, {
+        actionId: autonomousAction.id,
+        insightType: insight.type,
+        confidence: insight.confidence,
+        priority: insight.priority,
+      });
+    } catch (error) {
+      log.error('Failed to queue autonomous action from insight', LogContext.AI, {
+        error,
+        insight,
+      });
+    }
+  }
+
+  /**
+   * Queue an autonomous action from a learning signal
+   */
+  private async queueLearningSignalAction(signal: LearningSignal): Promise<void> {
+    try {
+      const autonomousAction = {
+        id: `signal_action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'parameter_adjustment' as const,
+        priority: (signal.strength > 0.8 ? 'high' : signal.strength > 0.7 ? 'medium' : 'low') as
+          | 'critical'
+          | 'high'
+          | 'medium'
+          | 'low',
+        target: {
+          service: 'intelligent_parameter_service',
+          component: signal.taskType,
+          property: signal.parameterAffected,
+        },
+        change: {
+          from: null, // Will be populated during implementation
+          to: signal.recommendedAction,
+          rationale: signal.signal,
+        },
+        assessment: {
+          riskLevel: (signal.strength > 0.8 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
+          confidenceScore: signal.strength,
+          expectedImpact: signal.strength * 0.1, // Convert strength to expected improvement
+          implementationComplexity: 'simple' as const,
+          reversibilityScore: 0.9,
+        },
+        evidence: {
+          sources: ['learning_signal'],
+          supportingData: [signal],
+          historicalPerformance: {
+            signal: signal.signal,
+            strength: signal.strength,
+            taskType: signal.taskType,
+          },
+          userImpact: {
+            affectedUsers: 1, // Single signal impact
+            potentialBenefit: `Expected ${signal.recommendedAction} of ${signal.parameterAffected} for ${signal.taskType}`,
+          },
+        },
+        execution: {
+          method: 'immediate' as const,
+          rollbackTriggers: [
+            {
+              metric: 'error_rate',
+              threshold: 0.05,
+              operator: 'gt' as const,
+            },
+          ],
+          monitoringPeriod: 300000, // 5 minutes
+          successCriteria: [
+            {
+              metric: 'performance',
+              improvementTarget: 0.05,
+            },
+          ],
+        },
+        createdAt: new Date(),
+        status: 'pending' as const,
+      };
+
+      await autonomousActionLoopService.queueAction(autonomousAction);
+
+      log.info('📡 Queued autonomous action from learning signal', LogContext.AI, {
+        actionId: autonomousAction.id,
+        signal: signal.signal,
+        strength: signal.strength,
+        taskType: signal.taskType,
+      });
+    } catch (error) {
+      log.error('Failed to queue autonomous action from learning signal', LogContext.AI, {
+        error,
+        signal,
+      });
+    }
+  }
+
+  /**
+   * Generate improvement insights from high-performing patterns
+   */
+  private async generateImprovementInsights(): Promise<FeedbackInsight[]> {
+    try {
+      const insights: FeedbackInsight[] = [];
+
+      // Analyze high-performing feedback patterns
+      const { data: highPerformingFeedback, error } = await this.supabase
+        .from('user_feedback')
+        .select('*')
+        .gte('overall_satisfaction', 4)
+        .gte('timestamp', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
+        .order('overall_satisfaction', { ascending: false })
+        .limit(50);
+
+      if (error || !highPerformingFeedback || highPerformingFeedback.length < 5) {
+        return insights;
+      }
+
+      // Group by task type to identify patterns
+      const taskTypeGroups = new Map<string, any[]>();
+      highPerformingFeedback.forEach((feedback: any) => {
+        const taskType = feedback.task_type;
+        if (!taskTypeGroups.has(taskType)) {
+          taskTypeGroups.set(taskType, []);
+        }
+        taskTypeGroups.get(taskType)!.push(feedback);
+      });
+
+      // Generate insights for task types with consistent high performance
+      for (const [taskType, feedbacks] of taskTypeGroups.entries()) {
+        if (feedbacks.length >= 3) {
+          const avgSatisfaction =
+            feedbacks.reduce((sum, f) => sum + f.overall_satisfaction, 0) / feedbacks.length;
+
+          if (avgSatisfaction >= 4.5) {
+            // This task type is performing exceptionally well - opportunity to apply patterns to other tasks
+            insights.push({
+              type: 'improvement_opportunity',
+              priority: 'medium',
+              insight: `Task type ${taskType} shows exceptional performance with ${avgSatisfaction.toFixed(1)}/5 satisfaction`,
+              recommendation: `Apply successful patterns from ${taskType} to similar task types`,
+              impact: `Could improve satisfaction across ${taskTypeGroups.size - 1} other task types`,
+              confidence: Math.min(feedbacks.length / 10, 0.9), // Higher confidence with more samples
+              supportingFeedbacks: feedbacks.map((f) => f.id),
+              affectedUsers: new Set(feedbacks.map((f) => f.user_id || f.session_id)).size,
+              estimatedImprovement: (avgSatisfaction - 3.5) * 0.2, // Potential improvement
+              actionItems: [
+                {
+                  action: `Analyze high-performing parameters for ${taskType}`,
+                  owner: 'autonomous_system',
+                  estimatedEffort: 'low',
+                  timeline: '1-2 days',
+                },
+              ],
+              metrics: {
+                feedbackVolume: feedbacks.length,
+                severityScore: 5 - avgSatisfaction, // Lower is better for positive insights
+                urgencyScore: feedbacks.length / 10, // More samples = higher urgency to replicate
+              },
+            });
+          }
+        }
+      }
+
+      return insights;
+    } catch (error) {
+      log.error('Error generating improvement insights', LogContext.AI, { error });
+      return [];
+    }
+  }
+
+  /**
+   * Map insight priority to risk level for autonomous actions
+   */
+  private mapPriorityToRisk(
+    priority: 'critical' | 'high' | 'medium' | 'low'
+  ): 'low' | 'medium' | 'high' {
+    const riskMapping = {
+      low: 'low',
+      medium: 'low',
+      high: 'medium',
+      critical: 'high',
+    } as const;
+    return riskMapping[priority];
+  }
+
+  /**
+   * Estimate execution duration for autonomous action
+   */
+  private estimateExecutionDuration(insight: FeedbackInsight): string {
+    const effortMapping = {
+      low: '5-15 minutes',
+      medium: '15-45 minutes',
+      high: '45-120 minutes',
+    };
+
+    const effort = insight.actionItems[0]?.estimatedEffort || 'medium';
+    return effortMapping[effort as keyof typeof effortMapping] || '15-45 minutes';
+  }
+
   private startPeriodicProcessing(): void {
     // Flush feedback buffer periodically
     setInterval(() => {
       this.flushFeedbackBuffer();
     }, this.flushInterval);
 
-    // Apply learning periodically (every 30 minutes)
+    // Apply learning periodically (every 15 minutes for more responsive autonomous actions)
     setInterval(
       async () => {
         try {
-          await this.applyFeedbackLearning();
+          const results = await this.applyFeedbackLearning();
+
+          if (results.autonomousActionsQueued > 0) {
+            log.info('🤖 Queued autonomous actions from feedback learning', LogContext.AI, {
+              actionsQueued: results.autonomousActionsQueued,
+              totalLearningResults: results,
+            });
+          }
         } catch (error) {
           log.error('Periodic feedback learning failed', LogContext.AI, { error });
         }
       },
-      30 * 60 * 1000
+      15 * 60 * 1000 // Reduced from 30 to 15 minutes for more responsive autonomous learning
     );
   }
 }

@@ -32,8 +32,7 @@ export interface SystemHealth {
 
 export class HealthMonitor {
   private services: Map<string, ServiceHealth> = new Map();
-  private checkInterval:
-    | NodeJS.Timer     | null = null;
+  private checkInterval: NodeJS.Timer | null = null;
   private readonly CHECK_INTERVAL = 30000; // 30 seconds
   private readonly TIMEOUT = 5000; // 5 seconds per check
 
@@ -179,7 +178,8 @@ export class HealthMonitor {
       };
     } catch (error) {
       // Redis might be using in-memory fallback
-      service.status = 'degraded';       service.responseTime = Date.now() - start;
+      service.status = 'degraded';
+      service.responseTime = Date.now() - start;
       service.error = 'Using in-memory cache (Redis unavailable)';
       service.details = {
         connected: false,
@@ -214,11 +214,10 @@ export class HealthMonitor {
       service.status = 'unhealthy';
       service.responseTime = Date.now() - start;
       service.error = error instanceof Error ? error.message : String(error);
-      service.details =
-                {
-          url: process.env.OLLAMA_URL || 'http://localhost:11434',
-          modelsAvailable: 0,
-        };
+      service.details = {
+        url: process.env.OLLAMA_URL || 'http://localhost:11434',
+        modelsAvailable: 0,
+      };
     }
 
     service.lastCheck = new Date();

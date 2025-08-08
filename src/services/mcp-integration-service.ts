@@ -559,7 +559,7 @@ export class MCPIntegrationService extends EventEmitter {
    */
   getStatus(): { status: string; connected: boolean; health: MCPHealthStatus; uptime?: number } {
     const uptime = this.startTime > 0 ? Date.now() - this.startTime : undefined;
-    
+
     return {
       status: this.isConnected ? 'connected' : 'disconnected',
       connected: this.isConnected,

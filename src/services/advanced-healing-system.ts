@@ -132,7 +132,11 @@ class AdvancedHealingSystem {
 
   async diagnosePerformanceIssues(): Promise<void> {
     // Check for performance anti-patterns
-    const       issues = [this.checkForMemoryLeaks(), this.checkForSlowQueries(), this.checkForLargeFiles()];
+    const issues = [
+      this.checkForMemoryLeaks(),
+      this.checkForSlowQueries(),
+      this.checkForLargeFiles(),
+    ];
 
     const results = await Promise.allSettled(issues);
     results.forEach((result, index) => {
@@ -269,11 +273,11 @@ class AdvancedHealingSystem {
 
   async diagnoseArchitecturalIssues(): Promise<void> {
     // Check for architectural problems
-    const       issues = [
-        this.checkCircularDependencies(),
-        this.checkCodeDuplication(),
-        this.checkComplexity(),
-      ];
+    const issues = [
+      this.checkCircularDependencies(),
+      this.checkCodeDuplication(),
+      this.checkComplexity(),
+    ];
 
     const results = await Promise.allSettled(issues);
     results.forEach((result) => {

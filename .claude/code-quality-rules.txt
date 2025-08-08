@@ -1,0 +1,44 @@
+# Universal AI Tools - Code Quality Rules
+# These rules will be converted to Claude Code hooks using /project:rule2hook
+
+# TypeScript & JavaScript Quality
+Format TypeScript files with prettier after editing
+Run ESLint fix on TypeScript files after modification
+Check TypeScript compilation errors before committing
+Validate syntax in TypeScript files after changes
+
+# Security & Safety
+Prevent constructor corruption patterns in all files
+Block invalid optional chaining assignments 
+Run Gitleaks security scan before git operations
+Check for exposed API keys or secrets in code
+
+# Build & Testing
+Run type checking after TypeScript changes
+Execute tests when test files are modified
+Build project after significant source changes
+Validate package.json when dependencies change
+
+# Git & Version Control
+Show git status summary when tasks complete
+Auto-format commit messages to follow conventional commits
+Check for uncommitted changes before major operations
+Prevent commits with syntax errors
+
+# Performance & Optimization
+Monitor bundle size after build changes
+Check for unused imports in TypeScript files
+Validate environment variable usage
+Ensure proper error handling patterns
+
+# Development Workflow
+Log all bash commands to development history
+Show file change summary at task completion
+Validate MLX model paths when modified
+Check Supabase connection after database changes
+
+# Custom Project Rules
+Validate HRM integration files syntax
+Check for proper agent registration patterns
+Ensure router exports are correctly formatted
+Validate service initialization sequences

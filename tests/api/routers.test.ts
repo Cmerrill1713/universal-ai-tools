@@ -8,9 +8,9 @@ import express from 'express';
 import request from 'supertest';
 
 // Mock dependencies
-jest.mock('../../src/services/supabase_service.ts');
-jest.mock('../../src/services/dspy-service.ts');
-jest.mock('../../src/middleware/auth.ts');
+jest.mock('../../src/services/supabase-client');
+jest.mock('../../src/services/dspy-orchestrator/orchestrator');
+jest.mock('../../src/middleware/auth');
 
 describe('API Router Tests', () => {
   let app: express.Application;

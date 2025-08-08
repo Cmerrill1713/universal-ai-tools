@@ -3,10 +3,9 @@ LFM2-1.2B Direct Integration Adapter for DSPy
 Uses the local safetensors model directly with Conv1d shape fix
 """
 
+import json
 import logging
 import os
-from typing import List, Dict, Any
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -14,8 +13,8 @@ logger = logging.getLogger(__name__)
 try:
     import torch
     import torch.nn as nn
-    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
     from safetensors import safe_open
+    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
     TRANSFORMERS_AVAILABLE = True
     logger.info("✅ All required dependencies available for LFM2 adapter")
@@ -24,24 +23,24 @@ except ImportError as e:
     logger.warning(f"Transformers not available: {e}. Install with: pip install transformers torch safetensors")
 
 
-def fix_conv1d_state_dict(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def fix_conv1d_state_dict(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """
     Fix Conv1d weight shapes in LFM2 state_dict.
-    The saved weights have shape [out_channels, kernel_size, in_channels] 
+    The saved weights have shape [out_channels, kernel_size, in_channels]
     but PyTorch expects [out_channels, in_channels, kernel_size]
-    
+
     Specifically:
     - Saved: [2048, 3, 1] (2048 out_channels, 3 kernel_size, 1 in_channel)
     - Expected: [2048, 1, 3] (2048 out_channels, 1 in_channel, 3 kernel_size)
     """
     fixed_state_dict = {}
-    
+
     for name, tensor in state_dict.items():
         if "conv" in name.lower() and "weight" in name and len(tensor.shape) == 3:
             # Check if this is likely a Conv1d weight that needs fixing
             original_shape = tensor.shape
             logger.info(f"Found Conv1d weight '{name}' with shape {original_shape}")
-            
+
             # For LFM2, we know the pattern: [2048, 3, 1] -> [2048, 1, 3]
             # This means we need to swap the last two dimensions
             if original_shape == torch.Size([2048, 3, 1]):
@@ -60,7 +59,7 @@ def fix_conv1d_state_dict(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torc
                     fixed_state_dict[name] = tensor
         else:
             fixed_state_dict[name] = tensor
-    
+
     return fixed_state_dict
 
 
@@ -69,44 +68,44 @@ def load_lfm2_with_conv1d_fix(model_path: str, device: str = "auto") -> PreTrain
     Load LFM2 model with Conv1d shape fixes applied
     """
     logger.info(f"Loading LFM2 model with Conv1d fixes from {model_path}")
-    
+
     # Load config first
     from transformers import AutoConfig
     config = AutoConfig.from_pretrained(model_path)
-    
+
     # Load the model architecture first (without weights)
     model = AutoModelForCausalLM.from_config(
         config,
         torch_dtype=torch.float16 if device in ["cuda", "mps"] else torch.float32,
     )
-    
+
     # Load the state dict manually and fix Conv1d shapes
     model_file = os.path.join(model_path, "model.safetensors")
-    
+
     if os.path.exists(model_file):
         logger.info("Loading weights from safetensors file")
         state_dict = {}
         with safe_open(model_file, framework="pt", device="cpu") as f:
-            for name in f.keys():
+            for name in f:
                 state_dict[name] = f.get_tensor(name)
     else:
         # Fallback to index file if available
         index_file = os.path.join(model_path, "model.safetensors.index.json")
         if os.path.exists(index_file):
             logger.info("Loading weights from indexed safetensors files")
-            with open(index_file, 'r') as f:
+            with open(index_file) as f:
                 index = json.load(f)
-            
+
             state_dict = {}
             weight_map = index.get("weight_map", {})
-            
+
             # Group weights by file
             files_to_load = {}
             for param_name, file_name in weight_map.items():
                 if file_name not in files_to_load:
                     files_to_load[file_name] = []
                 files_to_load[file_name].append(param_name)
-            
+
             # Load weights from each file
             for file_name, param_names in files_to_load.items():
                 file_path = os.path.join(model_path, file_name)
@@ -115,19 +114,19 @@ def load_lfm2_with_conv1d_fix(model_path: str, device: str = "auto") -> PreTrain
                         state_dict[param_name] = f.get_tensor(param_name)
         else:
             raise FileNotFoundError(f"Could not find model weights in {model_path}")
-    
+
     # Fix Conv1d shapes
     logger.info("Applying Conv1d shape fixes to state dict")
     fixed_state_dict = fix_conv1d_state_dict(state_dict)
-    
+
     # Load the fixed state dict into the model
     missing_keys, unexpected_keys = model.load_state_dict(fixed_state_dict, strict=False)
-    
+
     if missing_keys:
         logger.warning(f"Missing keys when loading model: {missing_keys[:5]}...")  # Show first 5
     if unexpected_keys:
         logger.warning(f"Unexpected keys when loading model: {unexpected_keys[:5]}...")  # Show first 5
-    
+
     logger.info("✅ LFM2 model loaded successfully with Conv1d fixes")
     return model
 
@@ -176,7 +175,7 @@ class LFM2Adapter:
 
             # Load model with Conv1d fixes
             self.model = load_lfm2_with_conv1d_fix(self.model_path, self.device)
-            
+
             # Move to device
             if self.device == "mps":
                 self.model = self.model.to(self.device)
@@ -254,7 +253,7 @@ class LFM2Adapter:
             logger.error(f"Generation failed: {e}")
             return f"Error: {str(e)}"
 
-    def __call__(self, prompt: str, **kwargs) -> List[str]:
+    def __call__(self, prompt: str, **kwargs) -> list[str]:
         """Make the adapter callable for DSPy compatibility"""
         response = self.generate(prompt, **kwargs)
         return [response]  # DSPy expects a list
@@ -273,12 +272,12 @@ def create_lfm2_lm():
             self.adapter.load()
             self.kwargs = {"temperature": 0.7, "max_tokens": 256, "model": self.model_name}
 
-        def basic_request(self, prompt: str, **kwargs) -> List[str]:
+        def basic_request(self, prompt: str, **kwargs) -> list[str]:
             """Basic request interface for DSPy"""
             merged_kwargs = {**self.kwargs, **kwargs}
             return self.adapter(prompt, **merged_kwargs)
 
-        def __call__(self, prompt: str, **kwargs) -> List[str]:
+        def __call__(self, prompt: str, **kwargs) -> list[str]:
             """Call interface"""
             return self.basic_request(prompt, **kwargs)
 

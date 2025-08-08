@@ -3,31 +3,29 @@
  * Main server with Express, TypeScript, and comprehensive error handling
  */
 
-import express from 'express';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import cors from 'cors';
+import express from 'express';
 import helmet from 'helmet';
 import type { Server } from 'http';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
 
 // Configuration and utilities
 import { config, validateConfig } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
 import { apiResponseMiddleware } from '@/utils/api-response';
-import { getPorts, logPortConfiguration } from '@/config/ports';
-import type { EmbeddingResult } from './types';
+import { LogContext, log } from '@/utils/logger';
 
 // Middleware
+import { intelligentParametersMiddleware } from '@/middleware/intelligent-parameters';
 import { createRateLimiter } from '@/middleware/rate-limiter-enhanced';
-import {
-  intelligentParametersMiddleware,
-  optimizeParameters,
-} from '@/middleware/intelligent-parameters';
 
 // Agent system
 import AgentRegistry from '@/agents/agent-registry';
+
+// Health monitoring and self-healing
+import { healthMonitor } from '@/services/health-monitor-service';
 
 // MCP Integration
 import { mcpIntegrationService } from '@/services/mcp-integration-service';
@@ -38,7 +36,6 @@ import { contextStorageService } from '@/services/context-storage-service';
 // Context injection middleware temporarily disabled
 
 // Types
-import type { ServiceConfig } from '@/types';
 
 class UniversalAIToolsServer {
   private app: express.Application;
@@ -66,6 +63,13 @@ class UniversalAIToolsServer {
   private initializeAgentRegistry(): void {
     try {
       this.agentRegistry = new AgentRegistry();
+
+      // Make agent registry globally available for chat router
+      (global as any).agentRegistry = this.agentRegistry;
+
+      // Connect health monitor to agent registry
+      healthMonitor.setAgentRegistry(this.agentRegistry);
+
       log.info('✅ Agent Registry initialized', LogContext.AGENT);
     } catch (error) {
       log.error('❌ Failed to initialize Agent Registry', LogContext.AGENT, {
@@ -154,6 +158,9 @@ class UniversalAIToolsServer {
   }
 
   private setupMiddleware(): void {
+    // Security: Disable Express.js powered-by header to prevent information exposure
+    this.app.disable('x-powered-by');
+
     // Security middleware
     this.app.use(
       helmet({
@@ -198,6 +205,9 @@ class UniversalAIToolsServer {
     // Body parsing middleware
     this.app.use(express.json({ limit: '50mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+    // Static file serving
+    this.app.use(express.static('public'));
 
     // Rate limiting middleware - Apply globally
     this.app.use(createRateLimiter());
@@ -254,6 +264,16 @@ class UniversalAIToolsServer {
           mlxHealth = false;
         }
 
+        // Check Redis health
+        let redisHealth = false;
+        try {
+          const { redisService } = await import('./services/redis-service');
+          redisHealth = await redisService.ping();
+        } catch (error) {
+          // Redis service not available
+          redisHealth = false;
+        }
+
         const health = {
           status: 'ok',
           timestamp: new Date().toISOString(),
@@ -263,7 +283,7 @@ class UniversalAIToolsServer {
             supabase: !!this.supabase,
             websocket: !!this.io,
             agentRegistry: !!this.agentRegistry,
-            redis: false, // Will be updated when Redis is added
+            redis: redisHealth,
             mlx: mlxHealth,
           },
           agents: this.agentRegistry
@@ -288,7 +308,7 @@ class UniversalAIToolsServer {
             supabase: !!this.supabase,
             websocket: !!this.io,
             agentRegistry: !!this.agentRegistry,
-            redis: false,
+            redis: false, // Fallback to false if async check fails
             mlx: false,
           },
           agents: this.agentRegistry
@@ -458,10 +478,27 @@ class UniversalAIToolsServer {
     // Vision API endpoints
     this.setupVisionRoutes();
 
-    // A2A Communication mesh endpoints (temporarily disabled until import fixed)
-    // TODO: Fix import issue with a2a-collaboration router
-    // const a2aRouter = (await import('./routers/a2a-collaboration')).default;
-    // this.app.use('/api/v1/a2a', a2aRouter);
+    // A2A Communication mesh endpoints
+    try {
+      const a2aRouter = (await import('./routers/a2a-collaboration')).default;
+      this.app.use('/api/v1/a2a', a2aRouter);
+      log.info('✅ A2A collaboration router loaded', LogContext.API);
+    } catch (error) {
+      log.error('❌ Failed to load A2A collaboration router', LogContext.API, { error });
+    }
+
+    // Optimized collaboration endpoints (MAC-SPGG)
+    try {
+      const optimizedCollaborationRouter = (await import('./routers/optimized-collaboration'))
+        .default;
+      this.app.use('/api/v1/collaboration', optimizedCollaborationRouter);
+      log.info('✅ Optimized collaboration router loaded', LogContext.API);
+    } catch (error) {
+      log.error('❌ Failed to load optimized collaboration router', LogContext.API, { error });
+    }
+
+    // Health monitoring endpoints
+    this.setupHealthRoutes();
 
     // Multi-tier LLM test endpoint
     this.app.post('/api/v1/multi-tier/execute', async (req, res) => {
@@ -1293,7 +1330,7 @@ class UniversalAIToolsServer {
         });
 
       // Initialize Athena WebSocket service
-      import('./services/athena-websocket')
+      import('./services/athena-websocket.js')
         .then(({ athenaWebSocket, handleAthenaWebSocket }) => {
           // Handle Athena WebSocket connections
           this.io?.of('/athena').on('connection', (socket) => {
@@ -1301,7 +1338,7 @@ class UniversalAIToolsServer {
             const mockWs = {
               send: (data: string) => socket.emit('message', data),
               close: () => socket.disconnect(),
-              on: (event: string, handler: Function) => socket.on(event, handler),
+              on: (event: string, handler: (...args: any[]) => void) => socket.on(event, handler),
               readyState: 1, // OPEN
             } as any;
 
@@ -1344,6 +1381,111 @@ class UniversalAIToolsServer {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  private setupHealthRoutes(): void {
+    // GET /api/v1/health - Current health status
+    this.app.get('/api/v1/health', async (req, res) => {
+      try {
+        const health = healthMonitor.getCurrentHealth();
+        const summary = healthMonitor.getHealthSummary();
+        const issues = healthMonitor.getActiveIssues();
+
+        res.json({
+          success: true,
+          data: {
+            status:
+              summary.overallHealth > 0.7
+                ? 'healthy'
+                : summary.overallHealth > 0.4
+                  ? 'degraded'
+                  : 'unhealthy',
+            health: health || { systemHealth: 0, timestamp: new Date() },
+            summary,
+            issues: issues.map((issue) => ({
+              id: issue.id,
+              severity: issue.severity,
+              component: issue.component,
+              description: issue.description,
+              autoFixable: issue.autoFixable,
+            })),
+          },
+          metadata: {
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+          },
+        });
+      } catch (error) {
+        log.error('Health check failed', LogContext.API, { error });
+        res.status(500).json({
+          success: false,
+          error: 'Health check failed',
+        });
+      }
+    });
+
+    // GET /api/v1/health/history - Health history
+    this.app.get('/api/v1/health/history', async (req, res) => {
+      try {
+        const limit = parseInt(req.query.limit as string) || 20;
+        const history = healthMonitor.getHealthHistory(limit);
+
+        res.json({
+          success: true,
+          data: {
+            history,
+            count: history.length,
+          },
+        });
+      } catch (error) {
+        log.error('Health history retrieval failed', LogContext.API, { error });
+        res.status(500).json({
+          success: false,
+          error: 'Health history retrieval failed',
+        });
+      }
+    });
+
+    // POST /api/v1/health/check - Force health check
+    this.app.post('/api/v1/health/check', async (req, res) => {
+      try {
+        const health = await healthMonitor.forceHealthCheck();
+
+        res.json({
+          success: true,
+          data: health,
+          message: 'Health check completed',
+        });
+      } catch (error) {
+        log.error('Forced health check failed', LogContext.API, { error });
+        res.status(500).json({
+          success: false,
+          error: 'Health check failed',
+        });
+      }
+    });
+
+    // POST /api/v1/health/heal - Force self-healing
+    this.app.post('/api/v1/health/heal', async (req, res) => {
+      try {
+        await healthMonitor.forceSelfHealing();
+        const summary = healthMonitor.getHealthSummary();
+
+        res.json({
+          success: true,
+          data: summary,
+          message: 'Self-healing completed',
+        });
+      } catch (error) {
+        log.error('Forced self-healing failed', LogContext.API, { error });
+        res.status(500).json({
+          success: false,
+          error: 'Self-healing failed',
+        });
+      }
+    });
+
+    log.info('✅ Health monitoring endpoints configured', LogContext.API);
   }
 
   private async setupErrorHandling(): Promise<void> {
@@ -1421,6 +1563,9 @@ class UniversalAIToolsServer {
       if (this.agentRegistry) {
         await this.agentRegistry.shutdown();
       }
+
+      // Shutdown health monitor
+      await healthMonitor.shutdown();
 
       // Shutdown MCP service
       try {
@@ -1564,7 +1709,7 @@ class UniversalAIToolsServer {
     // Load mobile orchestration routes
     try {
       log.info('📱 Loading mobile orchestration router...', LogContext.SERVER);
-      const mobileOrchestrationModule = await import('./routers/mobile-orchestration');
+      const mobileOrchestrationModule = await import('./routers/mobile-orchestration.js');
       this.app.use('/api/v1/mobile-orchestration', mobileOrchestrationModule.default);
       log.info('✅ Mobile orchestration routes loaded', LogContext.SERVER);
     } catch (error) {
@@ -1856,6 +2001,55 @@ class UniversalAIToolsServer {
       log.info('✅ Speech router mounted at /api/speech', LogContext.SERVER);
     } catch (error) {
       log.error('❌ Failed to load speech router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // HRM router removed for Apple Silicon environment (CUDA/flash_attn not supported)
+
+    // Load External APIs router
+    try {
+      log.info('🌐 Loading External APIs router...', LogContext.SERVER);
+      const externalAPIsModule = await import('./routers/external-apis');
+      log.info('✅ External APIs module imported successfully', LogContext.SERVER, {
+        hasDefault: !!externalAPIsModule.default,
+        moduleType: typeof externalAPIsModule.default,
+      });
+      this.app.use('/api/v1/external-apis', externalAPIsModule.default);
+      log.info('✅ External APIs routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load External APIs router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load Self-Optimization router
+    try {
+      log.info('🔄 Loading Self-Optimization router...', LogContext.SERVER);
+      const selfOptimizationModule = await import('./routers/self-optimization');
+      log.info('✅ Self-Optimization module imported successfully', LogContext.SERVER, {
+        hasDefault: !!selfOptimizationModule.default,
+        moduleType: typeof selfOptimizationModule.default,
+      });
+      this.app.use('/api/v1/self-optimization', selfOptimizationModule.default);
+      log.info('✅ Self-Optimization routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load Self-Optimization router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load Autonomous Actions router
+    try {
+      log.info('🤖 Loading autonomous actions router...', LogContext.SERVER);
+      const autonomousActionsModule = await import('./routers/autonomous-actions');
+      this.app.use('/api/v1/autonomous-actions', autonomousActionsModule.default);
+      log.info(
+        '✅ Autonomous actions router mounted at /api/v1/autonomous-actions',
+        LogContext.SERVER
+      );
+    } catch (error) {
+      log.error('❌ Failed to load autonomous actions router', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }

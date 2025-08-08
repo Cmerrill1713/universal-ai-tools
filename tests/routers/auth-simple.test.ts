@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 
-// Set up test environment
+// Set up test environment with safe test values
 process.env.NODE_ENV = 'test';
 process.env.SUPABASE_URL = 'https://test.supabase.co';
-process.env.SUPABASE_ANON_KEY = 'test-key';
-process.env.JWT_SECRET = 'test-secret';
+process.env.SUPABASE_ANON_KEY = 'test-anon-key-not-for-production';
+process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only-not-secure';
 
 describe('Auth Router - Simplified Tests', () => {
   let app: express.Application;

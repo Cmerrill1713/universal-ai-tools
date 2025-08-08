@@ -91,7 +91,7 @@ Be genuinely helpful, efficient, and memorable. Focus on making the user's life 
   }
 
   protected getAdditionalContext(context: AgentContext): string | null {
-    let       additionalContext = '';
+    let additionalContext = '';
 
     // Analyze the user's communication style
     const communicationStyle = this.analyzeCommunicationStyle(context.userRequest);

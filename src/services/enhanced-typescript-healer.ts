@@ -44,7 +44,7 @@ class EnhancedTypeScriptHealer {
       pattern: /^(import.*froms+['"][^'"]+['"];?)\n(import.*froms+['"][^'"]+['"];?)/gm,
       replacement: (match, import1, import2) => {
         // Simple deduplication - more complex logic could merge imports
-        const           lines = match.split('\n');
+        const lines = match.split('\n');
         const unique = [...new Set(lines)];
         return unique.join('\n');
       },
@@ -128,7 +128,7 @@ class EnhancedTypeScriptHealer {
       pattern: /(w+s*=s*)([^?]+?s*[^:]+s*:s*[^?]+?s*[^:]+s*:s*[^;]+);/g,
       replacement: (match, assignment, ternary) => {
         // Break down nested ternary into multiple lines
-        const           parts = ternary.split('?');
+        const parts = ternary.split('?');
         if (parts.length >= 2) {
           return `// TODO: Refactor nested ternary\n${match}`;
         }

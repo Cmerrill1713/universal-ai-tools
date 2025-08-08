@@ -5,10 +5,10 @@
  */
 
 import { Router } from 'express';
-import { AgentRegistry } from '@/agents/agent-registry';
+import AgentRegistry from '@/agents/agent-registry';
 
 // Create singleton instance
-const   agentRegistry = new AgentRegistry();
+const agentRegistry = new AgentRegistry();
 import { a2aMesh } from '@/services/a2a-communication-mesh';
 import { LogContext, log } from '@/utils/logger';
 
@@ -142,9 +142,9 @@ router.get('/agents/optimal', async (req, res) => {
       return;
     }
 
-    const       capabilityList = Array.isArray(capabilities)
-        ? (capabilities as string[])
-        : (capabilities as string).split(',').map((c) => c.trim());
+    const capabilityList = Array.isArray(capabilities)
+      ? (capabilities as string[])
+      : (capabilities as string).split(',').map((c) => c.trim());
 
     const optimalAgent = agentRegistry.findOptimalAgent(capabilityList);
 
@@ -194,9 +194,7 @@ router.get('/agents/optimal', async (req, res) => {
  */
 router.get('/agents/team', async (req, res) => {
   try {
-    const {
-      capabilities,       size = 3,
-    } = req.query;
+    const { capabilities, size = 3 } = req.query;
 
     if (!capabilities) {
       res.status(400).json({
@@ -252,7 +250,7 @@ router.get('/agents/team', async (req, res) => {
  */
 router.get('/mesh/status', async (req, res) => {
   try {
-    const       meshStatus = agentRegistry.getMeshStatus();
+    const meshStatus = agentRegistry.getMeshStatus();
     const agentConnections = a2aMesh.getAgentConnections();
     const collaborationHistory = a2aMesh.getCollaborationHistory();
 
@@ -263,7 +261,8 @@ router.get('/mesh/status', async (req, res) => {
 
     const totalCapabilities = new Set(agentConnections.flatMap((conn) => conn.capabilities)).size;
 
-    const averageTrustLevel =       agentConnections.length > 0
+    const averageTrustLevel =
+      agentConnections.length > 0
         ? agentConnections.reduce((sum, conn) => sum + conn.trustLevel, 0) / agentConnections.length
         : 0;
 
@@ -312,7 +311,7 @@ router.post('/message/send', async (req, res) => {
     const {
       from,
       to,
-            type = 'request',
+      type = 'request',
       payload,
       priority = 'medium',
       requiresResponse = false,

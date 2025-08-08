@@ -53,7 +53,7 @@ export class HuggingFaceToLMStudioAdapter {
     };
     model?: string;
   }): Promise<any> {
-    const lmStudioRequest:     LMStudioRequest = {
+    const lmStudioRequest: LMStudioRequest = {
       model: request.model || ModelConfig.lmStudio.models.textGeneration,
       messages: [{ role: 'user', content: request.inputs }],
       temperature: request.parameters?.temperature || 0.7,
@@ -127,7 +127,7 @@ export class HuggingFaceToLMStudioAdapter {
     };
     model?: string;
   }): Promise<any> {
-    const       prompt = `Please summarize the following text concisely:\n\n${request.inputs}\n\nSummary:`;
+    const prompt = `Please summarize the following text concisely:\n\n${request.inputs}\n\nSummary:`;
 
     const lmStudioRequest: LMStudioRequest = {
       model: request.model || ModelConfig.lmStudio.models.summarization,
@@ -165,7 +165,7 @@ export class HuggingFaceToLMStudioAdapter {
    * Sentiment analysis - uses chat completion with specific prompt
    */
   async analyzeSentiment(text: string, model?: string): Promise<any> {
-    const       prompt = `Analyze the sentiment of the following text and respond with only one word: POSITIVE, NEGATIVE, or NEUTRAL.\n\nText: "${text}"\n\nSentiment:`;
+    const prompt = `Analyze the sentiment of the following text and respond with only one word: POSITIVE, NEGATIVE, or NEUTRAL.\n\nText: "${text}"\n\nSentiment:`;
 
     const lmStudioRequest: LMStudioRequest = {
       model: model || ModelConfig.lmStudio.models.sentiment,
@@ -215,7 +215,7 @@ export class HuggingFaceToLMStudioAdapter {
     context: string;
     model?: string;
   }): Promise<any> {
-    const       prompt = `Based on the following context, answer the question.\n\nContext: ${request.context}\n\nQuestion: ${request.question}\n\nAnswer:`;
+    const prompt = `Based on the following context, answer the question.\n\nContext: ${request.context}\n\nQuestion: ${request.question}\n\nAnswer:`;
 
     const lmStudioRequest: LMStudioRequest = {
       model: request.model || ModelConfig.lmStudio.models.textGeneration,
@@ -301,10 +301,10 @@ export class HuggingFaceToLMStudioAdapter {
    */
   async listModels(): Promise<string[]> {
     try {
-      const         response = await fetch(`${this.baseUrl}/v1/models`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
+      const response = await fetch(`${this.baseUrl}/v1/models`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to list models: ${response.statusText}`);

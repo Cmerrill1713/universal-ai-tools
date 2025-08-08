@@ -238,7 +238,9 @@ class SupabaseMCPServer {
               args as unknown as { query: string; category?: string; limit?: number }
             );
           case 'get_recent_context':
-            return await this.getRecentContext(args as unknown as { category?: string; limit?: number });
+            return await this.getRecentContext(
+              args as unknown as { category?: string; limit?: number }
+            );
           case 'save_code_pattern':
             return await this.saveCodePattern(args as unknown as CodePattern);
           case 'get_code_patterns':

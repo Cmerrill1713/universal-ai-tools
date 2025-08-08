@@ -1,9 +1,221 @@
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import dspy
-from internal_llm_relay import enhance_dspy_with_relay, get_best_available_lm
+
+from .internal_llm_relay import enhance_dspy_with_relay, get_best_available_lm
+
+
+# Define Signature classes for all DSPy modules
+class UserIntentSignature(dspy.Signature):
+    """Analyze user intent from request."""
+
+    request = dspy.InputField(desc="User request to analyze")
+    intent = dspy.OutputField(desc="Core intent of the request")
+    assumptions = dspy.OutputField(desc="Implicit assumptions made")
+    constraints = dspy.OutputField(desc="Identified constraints")
+
+
+class DevilAdvocateSignature(dspy.Signature):
+    """Challenge assumptions and identify risks."""
+
+    intent = dspy.InputField(desc="User intent")
+    assumptions = dspy.InputField(desc="Assumptions made")
+    challenges = dspy.OutputField(desc="Challenges identified")
+    risks = dspy.OutputField(desc="Potential risks")
+    alternatives = dspy.OutputField(desc="Alternative approaches")
+
+
+class EthicsCheckSignature(dspy.Signature):
+    """Check ethical implications."""
+
+    intent = dspy.InputField(desc="User intent")
+    plan = dspy.InputField(desc="Proposed plan")
+    ethical_concerns = dspy.OutputField(desc="Ethical concerns identified")
+    recommendations = dspy.OutputField(desc="Ethical recommendations")
+
+
+class PlannerSignature(dspy.Signature):
+    """Create detailed plan from intent."""
+
+    intent = dspy.InputField(desc="User intent")
+    constraints = dspy.InputField(desc="Identified constraints")
+    detailed_plan = dspy.OutputField(desc="Detailed plan")
+    steps = dspy.OutputField(desc="Specific steps")
+    dependencies = dspy.OutputField(desc="Dependencies between steps")
+
+
+class ResourceManagerSignature(dspy.Signature):
+    """Identify required resources."""
+
+    plan = dspy.InputField(desc="Proposed plan")
+    required_resources = dspy.OutputField(desc="Resources needed")
+    availability = dspy.OutputField(desc="Resource availability")
+    alternatives = dspy.OutputField(desc="Alternative resources")
+
+
+class SynthesizerSignature(dspy.Signature):
+    """Synthesize integrated approach."""
+
+    plan = dspy.InputField(desc="Proposed plan")
+    resources = dspy.InputField(desc="Available resources")
+    challenges = dspy.InputField(desc="Identified challenges")
+    integrated_approach = dspy.OutputField(desc="Integrated approach")
+
+
+class ExecutorSignature(dspy.Signature):
+    """Execute the integrated approach."""
+
+    integrated_approach = dspy.InputField(desc="Integrated approach to execute")
+    execution_steps = dspy.OutputField(desc="Steps for execution")
+    commands = dspy.OutputField(desc="Commands to run")
+
+
+class ReflectorSignature(dspy.Signature):
+    """Reflect on execution results."""
+
+    execution_result = dspy.InputField(desc="Results from execution")
+    learnings = dspy.OutputField(desc="Key learnings")
+    improvements = dspy.OutputField(desc="Suggested improvements")
+    next_steps = dspy.OutputField(desc="Next steps to take")
+
+
+class ValidatorSignature(dspy.Signature):
+    """Validate results against intent."""
+
+    result = dspy.InputField(desc="Execution result")
+    intent = dspy.InputField(desc="Original intent")
+    quality_score = dspy.OutputField(desc="Quality score (0-1)")
+    validation_status = dspy.OutputField(desc="Validation status")
+
+
+class ReporterSignature(dspy.Signature):
+    """Generate final report."""
+
+    all_outputs = dspy.InputField(desc="All outputs from the process")
+    final_report = dspy.OutputField(desc="Final report")
+    key_insights = dspy.OutputField(desc="Key insights")
+
+
+# Additional Signature classes for AdaptiveOrchestrator
+class ComplexityAnalyzerSignature(dspy.Signature):
+    """Analyze request complexity."""
+
+    request = dspy.InputField(desc="Request to analyze")
+    complexity_score = dspy.OutputField(desc="Complexity score (0-1)")
+    reasoning = dspy.OutputField(desc="Reasoning for score")
+
+
+class ModeSelectorSignature(dspy.Signature):
+    """Select processing mode based on complexity."""
+
+    request = dspy.InputField(desc="Request to process")
+    complexity = dspy.InputField(desc="Complexity score")
+    mode = dspy.OutputField(desc="Processing mode")
+    justification = dspy.OutputField(desc="Justification for mode")
+
+
+class SimpleHandlerSignature(dspy.Signature):
+    """Handle simple requests."""
+
+    request = dspy.InputField(desc="Simple request")
+    response = dspy.OutputField(desc="Response")
+
+
+class StandardOrchestratorSignature(dspy.Signature):
+    """Standard orchestration for requests."""
+
+    request = dspy.InputField(desc="Request to orchestrate")
+    plan = dspy.OutputField(desc="Execution plan")
+    execution = dspy.OutputField(desc="Execution details")
+    result = dspy.OutputField(desc="Final result")
+
+
+class MLXOptimizerSignature(dspy.Signature):
+    """Optimize approach for MLX."""
+
+    request = dspy.InputField(desc="Request to optimize")
+    device_info = dspy.InputField(desc="Device information")
+    optimized_approach = dspy.OutputField(desc="Optimized approach")
+
+
+# Signature classes for TaskCoordinator
+class TaskAnalyzerSignature(dspy.Signature):
+    """Analyze and break down tasks."""
+
+    task = dspy.InputField(desc="Task to analyze")
+    subtasks = dspy.OutputField(desc="List of subtasks")
+    dependencies = dspy.OutputField(desc="Dependencies between subtasks")
+    priority = dspy.OutputField(desc="Priority order")
+
+
+class AgentMatcherSignature(dspy.Signature):
+    """Match subtasks to agents."""
+
+    subtask = dspy.InputField(desc="Subtask to match")
+    available_agents = dspy.InputField(desc="Available agents")
+    best_agent = dspy.OutputField(desc="Best agent for task")
+    confidence = dspy.OutputField(desc="Confidence score")
+
+
+class CoordinationPlannerSignature(dspy.Signature):
+    """Plan agent coordination."""
+
+    subtasks = dspy.InputField(desc="List of subtasks")
+    agents = dspy.InputField(desc="Assigned agents")
+    coordination_plan = dspy.OutputField(desc="Coordination plan")
+
+
+class ConsensusBuilderSignature(dspy.Signature):
+    """Build consensus from agent results."""
+
+    agent_results = dspy.InputField(desc="Results from agents")
+    consensus = dspy.OutputField(desc="Consensus result")
+    confidence = dspy.OutputField(desc="Confidence in consensus")
+
+
+# Signature classes for KnowledgeOrchestrator
+class QueryOptimizerSignature(dspy.Signature):
+    """Optimize search queries."""
+
+    query = dspy.InputField(desc="Search query")
+    optimized_query = dspy.OutputField(desc="Optimized query")
+    search_strategy = dspy.OutputField(desc="Search strategy")
+
+
+class RelevanceScorerSignature(dspy.Signature):
+    """Score result relevance."""
+
+    result = dspy.InputField(desc="Search result")
+    query = dspy.InputField(desc="Original query")
+    relevance_score = dspy.OutputField(desc="Relevance score (0-1)")
+
+
+class KnowledgeExtractorSignature(dspy.Signature):
+    """Extract knowledge from content."""
+
+    content = dspy.InputField(desc="Content to extract from")
+    facts = dspy.OutputField(desc="Extracted facts")
+    relationships = dspy.OutputField(desc="Identified relationships")
+    insights = dspy.OutputField(desc="Key insights")
+
+
+class KnowledgeValidatorSignature(dspy.Signature):
+    """Validate knowledge accuracy."""
+
+    knowledge = dspy.InputField(desc="Knowledge to validate")
+    source = dspy.InputField(desc="Source of knowledge")
+    validity_score = dspy.OutputField(desc="Validity score (0-1)")
+    concerns = dspy.OutputField(desc="Validation concerns")
+
+
+class KnowledgeEvolverSignature(dspy.Signature):
+    """Evolve knowledge with new information."""
+
+    old_knowledge = dspy.InputField(desc="Existing knowledge")
+    new_info = dspy.InputField(desc="New information")
+    evolved_knowledge = dspy.OutputField(desc="Evolved knowledge")
 
 
 class CognitiveReasoningChain(dspy.Module):
@@ -11,7 +223,7 @@ class CognitiveReasoningChain(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        
+
         # Ensure LLM is configured with internal relay support
         if not dspy.settings.lm:
             lm = get_best_available_lm()
@@ -22,22 +234,18 @@ class CognitiveReasoningChain(dspy.Module):
             enhance_dspy_with_relay()
 
         # Define cognitive agent signatures
-        self.user_intent = dspy.ChainOfThought("request -> intent, assumptions, constraints")
-        self.devil_advocate = dspy.Predict("intent, assumptions -> challenges, risks, alternatives")
-        self.ethics_check = dspy.Predict("intent, plan -> ethical_concerns, recommendations")
-        self.planner = dspy.ChainOfThought(
-            "intent, constraints -> detailed_plan, steps, dependencies"
-        )
-        self.resource_manager = dspy.Predict(
-            "plan -> required_resources, availability, alternatives"
-        )
-        self.synthesizer = dspy.ChainOfThought("plan, resources, challenges -> integrated_approach")
-        self.executor = dspy.ReAct("integrated_approach -> execution_steps, commands")
-        self.reflector = dspy.Predict("execution_result -> learnings, improvements, next_steps")
-        self.validator = dspy.Assess("result, intent -> quality_score, validation_status")
-        self.reporter = dspy.ChainOfThought("all_outputs -> final_report, key_insights")
+        self.user_intent = dspy.ChainOfThought(UserIntentSignature)
+        self.devil_advocate = dspy.Predict(DevilAdvocateSignature)
+        self.ethics_check = dspy.Predict(EthicsCheckSignature)
+        self.planner = dspy.ChainOfThought(PlannerSignature)
+        self.resource_manager = dspy.Predict(ResourceManagerSignature)
+        self.synthesizer = dspy.ChainOfThought(SynthesizerSignature)
+        self.executor = dspy.Predict(ExecutorSignature)  # Changed from ReAct to Predict
+        self.reflector = dspy.Predict(ReflectorSignature)
+        self.validator = dspy.Predict(ValidatorSignature)  # Changed from Assess to Predict
+        self.reporter = dspy.ChainOfThought(ReporterSignature)
 
-    def forward(self, request: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def forward(self, request: str, context: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Execute full cognitive reasoning chain."""
         context = context or {}
 
@@ -50,7 +258,8 @@ class CognitiveReasoningChain(dspy.Module):
         )
 
         ethics = self.ethics_check(
-            intent=intent_result.intent, plan="initial_plan"  # Placeholder for now
+            intent=intent_result.intent,
+            plan="initial_plan",  # Placeholder for now
         )
 
         # Phase 3: Planning
@@ -119,18 +328,18 @@ class AdaptiveOrchestrator(dspy.Module):
         super().__init__()
 
         # Mode selection
-        self.complexity_analyzer = dspy.Predict("request -> complexity_score, reasoning")
-        self.mode_selector = dspy.ChainOfThought("request, complexity -> mode, justification")
+        self.complexity_analyzer = dspy.Predict(ComplexityAnalyzerSignature)
+        self.mode_selector = dspy.ChainOfThought(ModeSelectorSignature)
 
         # Different orchestration modes
-        self.simple_handler = dspy.Predict("request -> response")
-        self.standard_orchestrator = dspy.ChainOfThought("request -> plan, execution, result")
+        self.simple_handler = dspy.Predict(SimpleHandlerSignature)
+        self.standard_orchestrator = dspy.ChainOfThought(StandardOrchestratorSignature)
         self.cognitive_chain = CognitiveReasoningChain()
 
         # MLX optimization (simulated)
-        self.mlx_optimizer = dspy.Predict("request, device_info -> optimized_approach")
+        self.mlx_optimizer = dspy.Predict(MLXOptimizerSignature)
 
-    def forward(self, request: str, preferred_mode: Optional[str] = None) -> Dict[str, Any]:
+    def forward(self, request: str, preferred_mode: Optional[str] = None) -> dict[str, Any]:
         """Adaptively orchestrate based on request complexity."""
 
         # Analyze complexity
@@ -169,12 +378,12 @@ class TaskCoordinator(dspy.Module):
     def __init__(self):
         super().__init__()
 
-        self.task_analyzer = dspy.ChainOfThought("task -> subtasks, dependencies, priority")
-        self.agent_matcher = dspy.Predict("subtask, available_agents -> best_agent, confidence")
-        self.coordination_planner = dspy.ReAct("subtasks, agents -> coordination_plan")
-        self.consensus_builder = dspy.ChainOfThought("agent_results -> consensus, confidence")
+        self.task_analyzer = dspy.ChainOfThought(TaskAnalyzerSignature)
+        self.agent_matcher = dspy.Predict(AgentMatcherSignature)
+        self.coordination_planner = dspy.Predict(CoordinationPlannerSignature)
+        self.consensus_builder = dspy.ChainOfThought(ConsensusBuilderSignature)
 
-    def forward(self, task: str, available_agents: List[str]) -> Dict[str, Any]:
+    def forward(self, task: str, available_agents: list[str]) -> dict[str, Any]:
         """Coordinate task execution across agents."""
 
         # Break down task
@@ -226,16 +435,15 @@ class KnowledgeOrchestrator(dspy.Module):
     def __init__(self):
         super().__init__()
 
-        self.query_optimizer = dspy.ChainOfThought("query -> optimized_query, search_strategy")
-        self.relevance_scorer = dspy.Assess("result, query -> relevance_score")
-        self.knowledge_extractor = dspy.ProgramOfThought(
-            "content -> facts, relationships, insights"
-        )
-        self.knowledge_validator = dspy.Predict("knowledge, source -> validity_score, concerns")
-        self.knowledge_evolver = dspy.ChainOfThought("old_knowledge, new_info -> evolved_knowledge")
+        self.query_optimizer = dspy.ChainOfThought(QueryOptimizerSignature)
+        self.relevance_scorer = dspy.Predict(RelevanceScorerSignature)
+        self.knowledge_extractor = dspy.ChainOfThought(KnowledgeExtractorSignature)
+        self.knowledge_validator = dspy.Predict(KnowledgeValidatorSignature)
+        self.knowledge_evolver = dspy.ChainOfThought(KnowledgeEvolverSignature)
 
-    def search(self, query: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def search(self, query: str, context: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Search and retrieve knowledge."""
+        _ = context  # Context parameter reserved for future use
         optimized = self.query_optimizer(query=query)
 
         # Simulate search results
@@ -257,7 +465,7 @@ class KnowledgeOrchestrator(dspy.Module):
             "results": sorted(scored_results, key=lambda x: x["relevance"], reverse=True),
         }
 
-    def extract(self, content: str) -> Dict[str, Any]:
+    def extract(self, content: str) -> dict[str, Any]:
         """Extract structured knowledge from content."""
         extraction = self.knowledge_extractor(content=content)
         validation = self.knowledge_validator(knowledge=extraction.facts, source=content[:100])
@@ -270,7 +478,7 @@ class KnowledgeOrchestrator(dspy.Module):
             "concerns": validation.concerns,
         }
 
-    def evolve(self, existing_knowledge: str, new_information: str) -> Dict[str, Any]:
+    def evolve(self, existing_knowledge: str, new_information: str) -> dict[str, Any]:
         """Evolve knowledge with new information."""
         evolution = self.knowledge_evolver(
             old_knowledge=existing_knowledge, new_info=new_information
@@ -281,7 +489,8 @@ class KnowledgeOrchestrator(dspy.Module):
             "changes": self._extract_changes(existing_knowledge, evolution.evolved_knowledge),
         }
 
-    def _extract_changes(self, old: str, new: str) -> List[str]:
+    def _extract_changes(self, old: str, new: str) -> list[str]:
         """Extract what changed between old and new knowledge."""
+        _ = old, new  # Parameters reserved for future implementation
         # Simplified change detection
         return ["Updated information", "Added new insights", "Refined understanding"]

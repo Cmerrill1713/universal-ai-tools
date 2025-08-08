@@ -11,7 +11,7 @@ import { secretsManager } from '../services/secrets-manager';
 import { supabaseClient } from '../services/supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-const   router = Router();
+const router = Router();
 
 /**
  * @route GET /api/v1/secrets/services
@@ -58,7 +58,8 @@ router.get('/services', async (req: Request, res: Response, next: NextFunction) 
       res,
       {
         services: servicesWithStatus,
-        secrets: secrets?.map((s: unknown) => ({ ...(s as Record<string, any>), has_key: true })) || [],
+        secrets:
+          secrets?.map((s: unknown) => ({ ...(s as Record<string, any>), has_key: true })) || [],
         missing_services: missing,
       },
       200,
@@ -86,13 +87,13 @@ router.post('/store', async (req: Request, res: Response, next: NextFunction) =>
     }
 
     // Store in Vault
-    const       success = await secretsManager.storeSecret({
-        name: `${service_name}_key`,
-        value: api_key,
-        description: description || `API key for ${service_name}`,
-        service: service_name,
-        expires_at: expires_at ? new Date(expires_at) : undefined,
-      });
+    const success = await secretsManager.storeSecret({
+      name: `${service_name}_key`,
+      value: api_key,
+      description: description || `API key for ${service_name}`,
+      service: service_name,
+      expires_at: expires_at ? new Date(expires_at) : undefined,
+    });
 
     if (!success) {
       return sendError(res, 'INTERNAL_ERROR', 'Failed to store API key');
@@ -160,7 +161,7 @@ router.post('/migrate', async (req: Request, res: Response, next: NextFunction) 
   try {
     await secretsManager.initializeFromEnv();
 
-    const       missing = await secretsManager.getMissingCredentials();
+    const missing = await secretsManager.getMissingCredentials();
     const services = await secretsManager.getAvailableServices();
 
     const migrated: string[] = [];

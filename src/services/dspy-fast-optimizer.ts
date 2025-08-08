@@ -131,7 +131,7 @@ export class DSPyFastOptimizer {
 
     // Add to training examples if feedback is poor
     if (!userFeedback.satisfied || userFeedback.accuracy < 0.7) {
-      const         examples = this.trainingExamples.get(taskType) || [];
+      const examples = this.trainingExamples.get(taskType) || [];
       examples.push({
         input: userRequest,
         expectedOutput: userFeedback.suggestions || 'Better response needed',
@@ -361,7 +361,8 @@ Create an optimized prompt that generates higher quality responses for this task
     topPerformingTasks: string[];
   } {
     const optimizations = Array.from(this.optimizations.values());
-    const avgGain =       optimizations.reduce((sum, opt) => sum + opt.performanceGain, 0) / optimizations.length || 0;
+    const avgGain =
+      optimizations.reduce((sum, opt) => sum + opt.performanceGain, 0) / optimizations.length || 0;
 
     const topTasks = optimizations
       .sort((a, b) => b.performanceGain - a.performanceGain)

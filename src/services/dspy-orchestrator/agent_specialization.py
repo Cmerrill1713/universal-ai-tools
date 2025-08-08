@@ -6,11 +6,95 @@ Creates specialized agents for different tasks using MiPro2 optimization
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import dspy
 
 logger = logging.getLogger(__name__)
+
+
+# Define Signature classes for DSPy modules
+class CodeGenerationSignature(dspy.Signature):
+    """Generate code for a given task."""
+
+    context = dspy.InputField(desc="Context for code generation")
+    task = dspy.InputField(desc="Programming task to accomplish")
+    code = dspy.OutputField(desc="Generated code")
+    explanation = dspy.OutputField(desc="Explanation of the code")
+
+
+class CodeOptimizationSignature(dspy.Signature):
+    """Optimize existing code."""
+
+    code = dspy.InputField(desc="Code to optimize")
+    requirements = dspy.InputField(desc="Optimization requirements")
+    improved_code = dspy.OutputField(desc="Optimized code")
+    changes = dspy.OutputField(desc="Changes made")
+
+
+class CodeReviewSignature(dspy.Signature):
+    """Review code for issues and improvements."""
+
+    code = dspy.InputField(desc="Code to review")
+    context = dspy.InputField(desc="Context for the review")
+    issues = dspy.OutputField(desc="Issues found")
+    suggestions = dspy.OutputField(desc="Improvement suggestions")
+    score = dspy.OutputField(desc="Quality score")
+
+
+class SecurityCheckSignature(dspy.Signature):
+    """Check code for security issues."""
+
+    code = dspy.InputField(desc="Code to check")
+    security_issues = dspy.OutputField(desc="Security issues found")
+    severity = dspy.OutputField(desc="Severity level")
+
+
+class ChallengeProposalSignature(dspy.Signature):
+    """Challenge a proposal with critical thinking."""
+
+    proposal = dspy.InputField(desc="Proposal to challenge")
+    context = dspy.InputField(desc="Context for the challenge")
+    concerns = dspy.OutputField(desc="Concerns raised")
+    alternatives = dspy.OutputField(desc="Alternative approaches")
+    questions = dspy.OutputField(desc="Critical questions")
+
+
+class UIComponentSignature(dspy.Signature):
+    """Generate UI component code."""
+
+    requirements = dspy.InputField(desc="UI requirements")
+    context = dspy.InputField(desc="Context for UI generation")
+    component_code = dspy.OutputField(desc="Component code")
+    styling = dspy.OutputField(desc="CSS/styling code")
+    integration_notes = dspy.OutputField(desc="Integration notes")
+
+
+class RiskAnalysisSignature(dspy.Signature):
+    """Analyze risks in a proposal."""
+
+    proposal = dspy.InputField(desc="Proposal to analyze")
+    risks = dspy.OutputField(desc="Identified risks")
+    mitigations = dspy.OutputField(desc="Risk mitigation strategies")
+
+
+class UIDesignSignature(dspy.Signature):
+    """Design UI components."""
+
+    requirements = dspy.InputField(desc="UI requirements")
+    context = dspy.InputField(desc="Design context")
+    component_code = dspy.OutputField(desc="Component code")
+    styling = dspy.OutputField(desc="CSS/styling code")
+    explanation = dspy.OutputField(desc="Design explanation")
+
+
+class UXOptimizationSignature(dspy.Signature):
+    """Optimize UX for components."""
+
+    component = dspy.InputField(desc="Component to optimize")
+    user_needs = dspy.InputField(desc="User needs and requirements")
+    improvements = dspy.OutputField(desc="UX improvements")
+    accessibility = dspy.OutputField(desc="Accessibility enhancements")
 
 
 class CodingAgent(dspy.Module):
@@ -18,10 +102,10 @@ class CodingAgent(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        self.generate = dspy.ChainOfThought("context, task -> code, explanation")
-        self.optimize = dspy.Predict("code, requirements -> improved_code, changes")
+        self.generate = dspy.ChainOfThought(CodeGenerationSignature)
+        self.optimize = dspy.Predict(CodeOptimizationSignature)
 
-    def forward(self, context: str, task: str) -> Dict[str, Any]:
+    def forward(self, context: str, task: str) -> dict[str, Any]:
         """Generate code for the given task"""
 
         # Generate initial code
@@ -59,10 +143,10 @@ class ValidationAgent(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        self.review = dspy.ChainOfThought("code, context -> issues, suggestions, score")
-        self.security_check = dspy.Predict("code -> security_issues, severity")
+        self.review = dspy.ChainOfThought(CodeReviewSignature)
+        self.security_check = dspy.Predict(SecurityCheckSignature)
 
-    def forward(self, code: str, context: str = "") -> Dict[str, Any]:
+    def forward(self, code: str, context: str = "") -> dict[str, Any]:
         """Validate and review code"""
 
         # Perform code review
@@ -95,12 +179,10 @@ class DevilsAdvocateAgent(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        self.challenge = dspy.ChainOfThought(
-            "proposal, context -> concerns, alternatives, questions"
-        )
-        self.risk_analysis = dspy.Predict("proposal -> risks, mitigations")
+        self.challenge = dspy.ChainOfThought(ChallengeProposalSignature)
+        self.risk_analysis = dspy.Predict(RiskAnalysisSignature)
 
-    def forward(self, proposal: str, context: str = "") -> Dict[str, Any]:
+    def forward(self, proposal: str, context: str = "") -> dict[str, Any]:
         """Challenge the proposal and provide alternative perspectives"""
 
         challenge_result = self.challenge(proposal=proposal, context=context)
@@ -126,12 +208,10 @@ class UIDesignAgent(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        self.design = dspy.ChainOfThought(
-            "requirements, context -> component_code, styling, explanation"
-        )
-        self.optimize_ux = dspy.Predict("component, user_needs -> improvements, accessibility")
+        self.design = dspy.ChainOfThought(UIDesignSignature)
+        self.optimize_ux = dspy.Predict(UXOptimizationSignature)
 
-    def forward(self, requirements: str, context: str = "") -> Dict[str, Any]:
+    def forward(self, requirements: str, context: str = "") -> dict[str, Any]:
         """Generate UI components and design solutions"""
 
         design_result = self.design(requirements=requirements, context=context)
@@ -170,7 +250,7 @@ class AgentOrchestrator:
         self.training_data = []
         self.optimization_enabled = True
 
-    def add_training_example(self, input_data: Dict, expected_output: Dict, quality_score: float):
+    def add_training_example(self, input_data: dict, expected_output: dict, quality_score: float):
         """Add training example for MiPro2 optimization"""
         self.training_data.append(
             {
@@ -212,9 +292,9 @@ class AgentOrchestrator:
                 for agent_name, agent in agents:
                     try:
                         # Apply MiPro optimization
-                        from dspy.teleprompt import MIPRO
+                        from dspy.teleprompt import MIPROv2
 
-                        mipro = MIPRO(
+                        mipro = MIPROv2(
                             metric=self._quality_metric, num_candidates=5, init_temperature=1.0
                         )
 
@@ -240,8 +320,9 @@ class AgentOrchestrator:
         except Exception as e:
             logger.error(f"MiPro2 optimization error: {e}")
 
-    def _quality_metric(self, example, prediction, trace=None):
+    def _quality_metric(self, _example, prediction, _trace=None):
         """Quality metric for MiPro2 optimization"""
+        _ = _example, _trace  # Reserved for future use
         try:
             # Simple quality metric based on output completeness and structure
             if hasattr(prediction, "agent_type") and prediction.agent_type:
@@ -261,12 +342,12 @@ class AgentOrchestrator:
 
                 return min(base_score, 1.0)
             return 0.1
-        except:
+        except Exception:
             return 0.1
 
     def coordinate_agents(
         self, task: str, task_type: str = "general", context: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Coordinate multiple agents to complete a complex task"""
 
         results = {

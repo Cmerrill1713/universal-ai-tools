@@ -5,7 +5,7 @@ struct AuthenticationView: View {
     @EnvironmentObject var authManager: DeviceAuthenticationManager
     @State private var showingRegistration = false
     @State private var showingError = false
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 30) {
@@ -14,43 +14,43 @@ struct AuthenticationView: View {
                     Image(systemName: "lock.shield")
                         .font(.system(size: 80))
                         .foregroundColor(.blue)
-                    
+
                     Text("Universal AI Tools")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                    
+
                     Text("Secure Authentication")
                         .font(.title2)
                         .foregroundColor(.secondary)
                 }
                 .padding(.top, 40)
-                
+
                 Spacer()
-                
+
                 // Animated Authentication Status
                 AnimatedAuthenticationStatusView()
                     .environmentObject(authManager)
-                
+
                 // Registration/Authentication Controls
                 VStack(spacing: 20) {
                     switch authManager.registrationState {
                     case .unregistered:
                         RegisterDeviceButton(authManager: authManager)
-                        
+
                     case .registering:
                         ProgressView("Registering device...")
                             .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                        
+
                     case .registered:
                         AuthenticationControls(authManager: authManager)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 // Device Information
                 DeviceInfoCard(authManager: authManager)
-                
+
                 Spacer()
             }
             .padding()
@@ -71,7 +71,7 @@ struct AuthenticationView: View {
 
 struct AuthenticationStatusCard: View {
     @ObservedObject var authManager: DeviceAuthenticationManager
-    
+
     var body: some View {
         VStack(spacing: 16) {
             // Status Icon with Animation
@@ -79,31 +79,31 @@ struct AuthenticationStatusCard: View {
                 Circle()
                     .fill(statusColor.opacity(0.2))
                     .frame(width: 100, height: 100)
-                
+
                 Circle()
                     .stroke(statusColor, lineWidth: 4)
                     .frame(width: 100, height: 100)
                     .scaleEffect(authManager.authenticationState == .authenticating ? 1.1 : 1.0)
-                    .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), 
+                    .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true),
                               value: authManager.authenticationState == .authenticating)
-                
+
                 Image(systemName: statusIcon)
                     .font(.system(size: 40))
                     .foregroundColor(statusColor)
             }
-            
+
             // Status Text
             VStack(spacing: 4) {
                 Text(statusTitle)
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+
                 Text(statusDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
-            
+
             // Proximity Indicator
             if authManager.registrationState == .registered {
                 ProximityIndicator(proximityState: authManager.proximityState)
@@ -114,7 +114,7 @@ struct AuthenticationStatusCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 4)
     }
-    
+
     private var statusColor: Color {
         switch authManager.authenticationState {
         case .unauthenticated:
@@ -127,7 +127,7 @@ struct AuthenticationStatusCard: View {
             return .red
         }
     }
-    
+
     private var statusIcon: String {
         switch authManager.authenticationState {
         case .unauthenticated:
@@ -140,7 +140,7 @@ struct AuthenticationStatusCard: View {
             return "lock.fill"
         }
     }
-    
+
     private var statusTitle: String {
         switch authManager.authenticationState {
         case .unauthenticated:
@@ -153,7 +153,7 @@ struct AuthenticationStatusCard: View {
             return "Locked"
         }
     }
-    
+
     private var statusDescription: String {
         switch authManager.authenticationState {
         case .unauthenticated:
@@ -170,13 +170,13 @@ struct AuthenticationStatusCard: View {
 
 struct ProximityIndicator: View {
     let proximityState: ProximityState
-    
+
     var body: some View {
         HStack(spacing: 8) {
             Circle()
                 .fill(proximityColor)
                 .frame(width: 8, height: 8)
-            
+
             Text(proximityText)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -186,7 +186,7 @@ struct ProximityIndicator: View {
         .background(proximityColor.opacity(0.1))
         .clipShape(Capsule())
     }
-    
+
     private var proximityColor: Color {
         switch proximityState {
         case .immediate:
@@ -199,7 +199,7 @@ struct ProximityIndicator: View {
             return .gray
         }
     }
-    
+
     private var proximityText: String {
         switch proximityState {
         case .immediate:
@@ -216,18 +216,18 @@ struct ProximityIndicator: View {
 
 struct RegisterDeviceButton: View {
     @ObservedObject var authManager: DeviceAuthenticationManager
-    
+
     var body: some View {
         VStack(spacing: 16) {
             Text("Device Registration Required")
                 .font(.headline)
                 .multilineTextAlignment(.center)
-            
+
             Text("Register this device to enable secure authentication with Universal AI Tools")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button(action: {
                 Task {
                     await authManager.registerDevice()
@@ -251,7 +251,8 @@ struct RegisterDeviceButton: View {
 
 struct AuthenticationControls: View {
     @ObservedObject var authManager: DeviceAuthenticationManager
-    
+    @State private var isProximityEnabled: Bool = true
+
     var body: some View {
         VStack(spacing: 16) {
             // Primary Authentication Button
@@ -272,11 +273,11 @@ struct AuthenticationControls: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .disabled(authManager.authenticationState == .authenticating)
-            
+
             // Proximity Detection Toggle
             if authManager.registrationState == .registered {
-                Toggle("Proximity Detection", isOn: .constant(true))
-                    .onChange(of: true) { enabled in
+                Toggle("Proximity Detection", isOn: $isProximityEnabled)
+                    .onChange(of: isProximityEnabled) { enabled in
                         if enabled {
                             authManager.startProximityDetection()
                         } else {
@@ -285,7 +286,7 @@ struct AuthenticationControls: View {
                     }
                     .padding(.horizontal)
             }
-            
+
             // Quick Actions
             if authManager.authenticationState == .authenticated {
                 HStack(spacing: 16) {
@@ -294,7 +295,7 @@ struct AuthenticationControls: View {
                     }
                     .font(.caption)
                     .foregroundColor(.blue)
-                    
+
                     Button("Settings") {
                         // Navigate to settings
                     }
@@ -305,11 +306,11 @@ struct AuthenticationControls: View {
         }
         .padding()
     }
-    
+
     private var biometricType: String {
         let context = LAContext()
         var error: NSError?
-        
+
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             switch context.biometryType {
             case .faceID:
@@ -320,14 +321,14 @@ struct AuthenticationControls: View {
                 return "Biometrics"
             }
         }
-        
+
         return "Passcode"
     }
-    
+
     private var biometricIcon: String {
         let context = LAContext()
         var error: NSError?
-        
+
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             switch context.biometryType {
             case .faceID:
@@ -338,14 +339,14 @@ struct AuthenticationControls: View {
                 return "lock.shield"
             }
         }
-        
+
         return "lock.shield"
     }
 }
 
 struct DeviceInfoCard: View {
     @ObservedObject var authManager: DeviceAuthenticationManager
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -355,7 +356,7 @@ struct DeviceInfoCard: View {
                     .font(.headline)
                 Spacer()
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 InfoRow(title: "Device", value: UIDevice.current.name)
                 InfoRow(title: "Model", value: UIDevice.current.model)
@@ -372,7 +373,7 @@ struct DeviceInfoCard: View {
 struct InfoRow: View {
     let title: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(title)

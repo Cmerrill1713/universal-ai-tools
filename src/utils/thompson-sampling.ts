@@ -18,7 +18,7 @@ export class BetaSampler {
    */
   static sample(alpha: number, beta: number): number {
     // Use Gamma distribution method: Beta(a,b) = Gamma(a,1) / (Gamma(a,1) + Gamma(b,1))
-    const       x = this.sampleGamma(alpha, 1);
+    const x = this.sampleGamma(alpha, 1);
     const y = this.sampleGamma(beta, 1);
     return x / (x + y);
   }
@@ -193,7 +193,8 @@ export class NormalGammaSampler {
     const newPrecision = precision + observationPrecision;
     const newMean = (precision * mean + observationPrecision * observation) / newPrecision;
     const newShape = shape + 0.5;
-    const newRate =       rate + (0.5 * observationPrecision * (observation - mean) ** 2 * precision) / newPrecision;
+    const newRate =
+      rate + (0.5 * observationPrecision * (observation - mean) ** 2 * precision) / newPrecision;
 
     return {
       mean: newMean,
@@ -427,7 +428,8 @@ export class AdaptiveExplorer {
       const ucbScore = ucbScores.get(action) || 0;
 
       // Weighted combination with temperature scaling
-      const combinedScore =         (this.thompsonWeight * thompsonScore + this.ucbWeight * ucbScore) * temperature;
+      const combinedScore =
+        (this.thompsonWeight * thompsonScore + this.ucbWeight * ucbScore) * temperature;
 
       if (combinedScore > bestScore) {
         bestScore = combinedScore;

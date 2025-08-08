@@ -5,7 +5,6 @@ Optimized for Apple Silicon using MLX
 
 import logging
 import os
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -50,18 +49,18 @@ class MLXLFM2Adapter:
         except Exception as e:
             error_msg = str(e).lower()
             logger.error(f"Failed to load MLX LFM2 model: {e}")
-            
+
             # Check for specific Conv1d shape mismatch errors
             if "conv1d" in error_msg and "shape" in error_msg:
                 logger.info("🔧 Detected Conv1d shape mismatch - this may be fixed in newer MLX versions")
                 logger.info("💡 Try updating MLX-LM: pip install --upgrade mlx-lm")
                 logger.info("📋 Or use the regular PyTorch adapter instead")
-            
+
             # Check for missing MLX model support
             if "unsupported" in error_msg or "not found" in error_msg:
                 logger.info("🔧 MLX may not support this model architecture yet")
                 logger.info("📋 Consider using the PyTorch adapter as a fallback")
-            
+
             raise RuntimeError(f"MLX LFM2 loading failed: {e}. Try using the PyTorch adapter instead.")
 
     def generate(
@@ -78,11 +77,21 @@ class MLXLFM2Adapter:
                 formatted_prompt = self.tokenizer.apply_chat_template(
                     messages, tokenize=False, add_generation_prompt=True
                 )
+                
+                # Ensure formatted_prompt is a string after template application
+                if isinstance(formatted_prompt, list):
+                    formatted_prompt = formatted_prompt[0] if formatted_prompt else ""
+                if not isinstance(formatted_prompt, str):
+                    formatted_prompt = str(formatted_prompt) if formatted_prompt else ""
             else:
                 formatted_prompt = prompt
+                # Ensure original prompt is also a string
+                if not isinstance(formatted_prompt, str):
+                    formatted_prompt = str(formatted_prompt) if formatted_prompt else ""
 
-            # Generate using MLX (it doesn't support temperature/top_p in this version)
-            # MLX uses its own sampling which is quite good by default
+            # Generate using MLX 
+            # Note: MLX generate() only accepts model, tokenizer, prompt, verbose, and formatter
+            # Temperature and max_tokens are not supported in this version
             response = generate(
                 self.model,
                 self.tokenizer,
@@ -90,8 +99,17 @@ class MLXLFM2Adapter:
                 verbose=False
             )
 
-            # Clean up response
-            if response.startswith(formatted_prompt):
+            # Handle both string and list responses from MLX
+            if isinstance(response, list):
+                response = response[0] if response else ""
+            
+            # Ensure response is a string before string operations
+            if not isinstance(response, str):
+                response = str(response) if response else ""
+
+            # Clean up response - now response is guaranteed to be a string
+            # Ensure formatted_prompt is also a string before comparison
+            if isinstance(formatted_prompt, str) and response.startswith(formatted_prompt):
                 response = response[len(formatted_prompt) :].strip()
 
             return response
@@ -100,7 +118,7 @@ class MLXLFM2Adapter:
             logger.error(f"MLX generation failed: {e}")
             return f"Error: {str(e)}"
 
-    def __call__(self, prompt: str, **kwargs) -> List[str]:
+    def __call__(self, prompt: str, **kwargs) -> list[str]:
         """Make the adapter callable for DSPy compatibility"""
         response = self.generate(prompt, **kwargs)
         return [response]
@@ -119,12 +137,12 @@ def create_mlx_lfm2_lm():
             self.adapter.load()
             self.kwargs = {"temperature": 0.7, "max_tokens": 256, "model": self.model_name}
 
-        def basic_request(self, prompt: str, **kwargs) -> List[str]:
+        def basic_request(self, prompt: str, **kwargs) -> list[str]:
             """Basic request interface for DSPy"""
             merged_kwargs = {**self.kwargs, **kwargs}
             return self.adapter(prompt, **merged_kwargs)
 
-        def __call__(self, prompt: str, **kwargs) -> List[str]:
+        def __call__(self, prompt: str, **kwargs) -> list[str]:
             """Call interface"""
             return self.basic_request(prompt, **kwargs)
 

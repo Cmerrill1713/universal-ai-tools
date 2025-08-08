@@ -28,12 +28,12 @@ interface RateLimitInfo {
 }
 
 // Environment-based configuration
-const   rateLimitDefaults = {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10), // 1 minute default
-    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // 100 requests per window
-    standardHeaders: process.env.RATE_LIMIT_STANDARD_HEADERS !== 'false',
-    legacyHeaders: process.env.RATE_LIMIT_LEGACY_HEADERS !== 'false',
-  };
+const rateLimitDefaults = {
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10), // 1 minute default
+  maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // 100 requests per window
+  standardHeaders: process.env.RATE_LIMIT_STANDARD_HEADERS !== 'false',
+  legacyHeaders: process.env.RATE_LIMIT_LEGACY_HEADERS !== 'false',
+};
 
 // Endpoint-specific configurations
 const endpointConfigs: Record<string, RateLimitConfig> = {
@@ -121,7 +121,7 @@ class RateLimiter {
   }
 
   private getKey(req: Request, keyPrefix?: string): string {
-    const       ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const userId = (req as any).user?.id;
     const prefix = keyPrefix || 'rate-limit';
 

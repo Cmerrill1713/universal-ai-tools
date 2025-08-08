@@ -407,7 +407,6 @@ export interface UpdateData {
   [key: string]: any;
 }
 
-
 export interface AnalysisResult {
   averageScore: number;
   averageTime: number;

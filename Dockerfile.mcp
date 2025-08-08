@@ -1,0 +1,62 @@
+FROM node:20-alpine AS base
+
+# Install dependencies for building native modules
+RUN apk add --no-cache python3 make g++ git
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy source code
+COPY src/mcp ./src/mcp
+COPY src/utils ./src/utils
+COPY src/types ./src/types
+
+# Create standalone MCP server entry point
+RUN mkdir -p src/standalone
+
+# Build the MCP server
+FROM base AS builder
+RUN npm ci && \
+    npm run build || echo "Build step skipped"
+
+# Production stage
+FROM node:20-alpine AS production
+
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy from builder
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/package*.json ./
+COPY --from=base /app/tsconfig.json ./
+COPY --from=base /app/src ./src
+
+# Create directories
+RUN mkdir -p logs data
+
+# Copy the standalone MCP server
+COPY src/mcp/standalone-mcp-server.ts ./src/mcp/
+
+# Install additional dependencies for standalone server
+RUN npm install express cors ws uuid
+
+# Compile TypeScript
+RUN npx tsc src/mcp/standalone-mcp-server.ts --outDir dist || \
+    echo "Using tsx runtime"
+
+EXPOSE 3456
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3456/health || exit 1
+
+# Run the server
+CMD ["npx", "tsx", "src/mcp/standalone-mcp-server.ts"]

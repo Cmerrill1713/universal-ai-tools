@@ -3,10 +3,9 @@
  * Automatically detects and fixes network connectivity issues including connection refused errors
  */
 
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync, spawn } from 'child_process';
-import { promisify } from 'util';
 
 interface NetworkIssue {
   id: string;
@@ -168,42 +167,119 @@ class NetworkHealingService {
     }
   }
 
+  private validatePort(port: number): boolean {
+    // Security: Validate port number to prevent command injection
+    return Number.isInteger(port) && port > 0 && port <= 65535;
+  }
+
+  private async executeSecureCommand(
+    command: string,
+    args: string[] = [],
+    options: any = {}
+  ): Promise<string> {
+    // Security: Execute commands safely using spawn instead of execSync
+    return new Promise((resolve, reject) => {
+      console.log(`🔒 Executing secure command: ${command} ${args.join(' ')}`);
+
+      const child = spawn(command, args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: options.timeout || 30000,
+        cwd: options.cwd || process.cwd(),
+        ...options,
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      child.on('close', (code) => {
+        console.log(`🔒 Command completed with code: ${code}`);
+        if (code === 0) {
+          resolve(stdout);
+        } else {
+          reject(new Error(`Command failed with code ${code}: ${stderr}`));
+        }
+      });
+
+      child.on('error', (error) => {
+        console.log(`🔒 Command execution error: ${error}`);
+        reject(error);
+      });
+    });
+  }
+
   async checkPort(port: number): Promise<boolean> {
     try {
+      // Security: Validate port number to prevent command injection
+      if (!this.validatePort(port)) {
+        console.log(`🔒 Invalid port number: ${port}`);
+        return false;
+      }
+
+      console.log(`🔒 Checking port ${port} using secure command execution`);
+
       if (process.platform === 'win32') {
-        const result = execSync(`netstat -an | findstr :${port}`, {
-          encoding: 'utf8',
-          timeout: 5000,
-        });
-        return result.includes('LISTENING');
+        try {
+          const result = await this.executeSecureCommand('netstat', ['-an'], { timeout: 5000 });
+          return result.includes(`:${port}`) && result.includes('LISTENING');
+        } catch (error) {
+          console.log(`🔒 Windows port check failed: ${error}`);
+          return false;
+        }
       } else {
-        const result = execSync(`lsof -i :${port} || netstat -ln | grep :${port}`, {
-          encoding: 'utf8',
-          timeout: 5000,
-        });
-        return result.trim().length > 0;
+        // Try lsof first, then netstat as fallback
+        try {
+          const result = await this.executeSecureCommand('lsof', ['-i', `:${port}`], {
+            timeout: 5000,
+          });
+          return result.trim().length > 0;
+        } catch (lsofError) {
+          try {
+            const result = await this.executeSecureCommand('netstat', ['-ln'], { timeout: 5000 });
+            return result.includes(`:${port}`);
+          } catch (netstatError) {
+            console.log(`🔒 Unix port check failed: lsof: ${lsofError}, netstat: ${netstatError}`);
+            return false;
+          }
+        }
       }
     } catch (error) {
+      console.log(`🔒 Port check failed for port ${port}: ${error}`);
       return false;
     }
   }
 
   async checkProcessHealth(): Promise<void> {
     try {
-      // Check for hung Node.js processes
-      const nodeProcesses = execSync('ps aux | grep -E "(node|npm|tsx)" | grep -v grep || true', {
-        encoding: 'utf8',
-        timeout: 5000,
-      });
+      console.log('🔒 Checking process health using secure command execution');
 
-      // Look for processes that might be consuming too many resources
-      if (nodeProcesses) {
-        const lines = nodeProcesses.split('\n').filter((line) => line.trim());
-        for (const line of lines) {
+      // Check for hung Node.js processes using secure command execution
+      try {
+        const psResult = await this.executeSecureCommand('ps', ['aux'], { timeout: 5000 });
+        const grepResult = psResult
+          .split('\n')
+          .filter(
+            (line) =>
+              (line.includes('node') || line.includes('npm') || line.includes('tsx')) &&
+              !line.includes('grep')
+          );
+
+        // Look for processes that might be consuming too many resources
+        for (const line of grepResult) {
           const parts = line.split(/\s+/);
           if (parts.length >= 3 && parts[2]) {
             const cpuUsage = parseFloat(parts[2]);
-            if (cpuUsage > 80) {
+            if (!isNaN(cpuUsage) && cpuUsage > 80) {
+              console.log(
+                `🔒 High CPU usage detected: ${cpuUsage}% in process: ${parts.slice(10).join(' ')}`
+              );
               this.recordNetworkIssue({
                 id: `high-cpu-${Date.now()}`,
                 type: 'timeout',
@@ -218,9 +294,11 @@ class NetworkHealingService {
             }
           }
         }
+      } catch (error) {
+        console.log('🔒 Process health check failed (ps command):', error);
       }
     } catch (error) {
-      console.log('Process health check failed:', error);
+      console.log('🔒 Process health check failed:', error);
     }
   }
 
@@ -406,53 +484,136 @@ class NetworkHealingService {
     return strategies;
   }
 
+  private validateServiceName(serviceName: string): boolean {
+    // Security: Validate service name to prevent command injection
+    const allowedServices = [
+      'backend-server',
+      'frontend-dev',
+      'redis',
+      'ollama',
+      'supabase',
+      'lm-studio',
+      'vision-service',
+    ];
+    return allowedServices.includes(serviceName) && /^[a-zA-Z0-9\-_]+$/.test(serviceName);
+  }
+
   async restartService(serviceName: string): Promise<boolean> {
     try {
-      console.log(`🔄 Restarting ${serviceName} service...`);
+      // Security: Validate service name to prevent command injection
+      if (!this.validateServiceName(serviceName)) {
+        console.log(`🔒 Invalid service name rejected: ${serviceName}`);
+        return false;
+      }
+
+      console.log(`🔄 Restarting ${serviceName} service using secure commands...`);
 
       switch (serviceName) {
         case 'backend-server':
-          // Kill existing server processes
-          execSync('pkill -f "tsx.*server" || pkill -f "node.*server" || true', { timeout: 5000 });
-          await this.sleep(2000);
+          try {
+            // Kill existing server processes using secure commands
+            console.log('🔒 Killing existing backend server processes');
+            await this.executeSecureCommand('pkill', ['-f', 'tsx.*server'], {
+              timeout: 5000,
+            }).catch(() => {
+              console.log('🔒 No tsx server processes found');
+            });
+            await this.executeSecureCommand('pkill', ['-f', 'node.*server'], {
+              timeout: 5000,
+            }).catch(() => {
+              console.log('🔒 No node server processes found');
+            });
+            await this.sleep(2000);
 
-          // Start server in background
-          execSync(
-            'cd /Users/christianmerrill/Desktop/universal-ai-tools && npm run dev > logs/server.log 2>&1 &',
-            {
-              timeout: 10000,
-            }
-          );
+            // Start server in background using secure spawn
+            console.log('🔒 Starting backend server');
+            const serverProcess = spawn('npm', ['run', 'dev'], {
+              cwd: process.cwd(),
+              detached: true,
+              stdio: ['ignore', 'ignore', 'ignore'],
+            });
+            serverProcess.unref();
+          } catch (error) {
+            console.log(`🔒 Backend server restart failed: ${error}`);
+            return false;
+          }
           break;
 
         case 'frontend-dev':
-          execSync('pkill -f "vite" || pkill -f "npm.*dev" || true', { timeout: 5000 });
-          await this.sleep(2000);
-          execSync(
-            'cd /Users/christianmerrill/Desktop/universal-ai-tools/ui && npm run dev > ../logs/frontend.log 2>&1 &',
-            {
-              timeout: 10000,
-            }
-          );
+          try {
+            console.log('🔒 Killing existing frontend processes');
+            await this.executeSecureCommand('pkill', ['-f', 'vite'], { timeout: 5000 }).catch(
+              () => {
+                console.log('🔒 No vite processes found');
+              }
+            );
+            await this.executeSecureCommand('pkill', ['-f', 'npm.*dev'], { timeout: 5000 }).catch(
+              () => {
+                console.log('🔒 No npm dev processes found');
+              }
+            );
+            await this.sleep(2000);
+
+            console.log('🔒 Starting frontend dev server');
+            const frontendProcess = spawn('npm', ['run', 'dev'], {
+              cwd: path.join(process.cwd(), 'ui'),
+              detached: true,
+              stdio: ['ignore', 'ignore', 'ignore'],
+            });
+            frontendProcess.unref();
+          } catch (error) {
+            console.log(`🔒 Frontend restart failed: ${error}`);
+            return false;
+          }
           break;
 
         case 'redis':
-          execSync('brew services restart redis || sudo systemctl restart redis || true', {
-            timeout: 10000,
-          });
+          try {
+            console.log('🔒 Restarting Redis service');
+            // Try brew services first, then systemctl
+            try {
+              await this.executeSecureCommand('brew', ['services', 'restart', 'redis'], {
+                timeout: 10000,
+              });
+            } catch (brewError) {
+              try {
+                await this.executeSecureCommand('sudo', ['systemctl', 'restart', 'redis'], {
+                  timeout: 10000,
+                });
+              } catch (systemctlError) {
+                console.log(
+                  `🔒 Redis restart failed: brew: ${brewError}, systemctl: ${systemctlError}`
+                );
+                return false;
+              }
+            }
+          } catch (error) {
+            console.log(`🔒 Redis restart failed: ${error}`);
+            return false;
+          }
           break;
 
         case 'ollama':
-          execSync('pkill ollama || true', { timeout: 5000 });
-          await this.sleep(1000);
-          spawn('ollama', ['serve'], { 
-            detached: true, 
-            stdio: ['ignore', 'ignore', 'ignore'] 
-          }).unref();
+          try {
+            console.log('🔒 Restarting Ollama service');
+            await this.executeSecureCommand('pkill', ['ollama'], { timeout: 5000 }).catch(() => {
+              console.log('🔒 No ollama processes found');
+            });
+            await this.sleep(1000);
+
+            const ollamaProcess = spawn('ollama', ['serve'], {
+              detached: true,
+              stdio: ['ignore', 'ignore', 'ignore'],
+            });
+            ollamaProcess.unref();
+          } catch (error) {
+            console.log(`🔒 Ollama restart failed: ${error}`);
+            return false;
+          }
           break;
 
         default:
-          console.log(`No specific restart logic for ${serviceName}`);
+          console.log(`🔒 No specific restart logic for ${serviceName}`);
           return false;
       }
 
@@ -462,12 +623,16 @@ class NetworkHealingService {
       // Verify service is running
       const serviceConfig = this.coreServices.find((s) => s.name === serviceName);
       if (serviceConfig) {
-        return await this.checkPort(serviceConfig.port);
+        const isRunning = await this.checkPort(serviceConfig.port);
+        console.log(
+          `🔒 Service ${serviceName} restart ${isRunning ? 'successful' : 'failed'} - port ${serviceConfig.port} ${isRunning ? 'listening' : 'not listening'}`
+        );
+        return isRunning;
       }
 
       return true;
     } catch (error) {
-      console.log(`Failed to restart ${serviceName}: ${error}`);
+      console.log(`🔒 Failed to restart ${serviceName}: ${error}`);
       return false;
     }
   }
@@ -490,55 +655,135 @@ class NetworkHealingService {
 
   async killPortProcess(port: number): Promise<boolean> {
     try {
-      console.log(`💀 Killing process on port ${port}...`);
+      // Security: Validate port number to prevent command injection
+      if (!this.validatePort(port)) {
+        console.log(`🔒 Invalid port number for kill operation: ${port}`);
+        return false;
+      }
+
+      console.log(`🔒 Killing process on port ${port} using secure commands...`);
 
       if (process.platform === 'win32') {
-        const result = execSync(`netstat -ano | findstr :${port}`, {
-          encoding: 'utf8',
-          timeout: 5000,
-        });
-        const lines = result.split('\n');
-        for (const line of lines) {
-          const parts = line.trim().split(/\s+/);
-          if (parts.length >= 5) {
-            const pid = parts[4];
-            execSync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
+        try {
+          const result = await this.executeSecureCommand('netstat', ['-ano'], { timeout: 5000 });
+          const lines = result.split('\n');
+          const portsToKill = [];
+
+          for (const line of lines) {
+            if (line.includes(`:${port}`)) {
+              const parts = line.trim().split(/\s+/);
+              if (parts.length >= 5) {
+                const pid = parts[4];
+                // Security: Validate PID is numeric before using in command
+                if (pid && /^\d+$/.test(pid) && this.validatePid(pid)) {
+                  portsToKill.push(pid);
+                }
+              }
+            }
           }
+
+          for (const pid of portsToKill) {
+            try {
+              console.log(`🔒 Killing Windows process PID: ${pid}`);
+              await this.executeSecureCommand('taskkill', ['/PID', pid, '/F'], { timeout: 5000 });
+            } catch (killError) {
+              console.log(`🔒 Failed to kill PID ${pid}: ${killError}`);
+            }
+          }
+        } catch (error) {
+          console.log(`🔒 Windows port kill failed: ${error}`);
+          return false;
         }
       } else {
-        execSync(`lsof -ti:${port} | xargs kill -9 || true`, { timeout: 5000 });
+        try {
+          // Use lsof to find processes on the port, then kill them individually
+          const result = await this.executeSecureCommand('lsof', ['-ti', `:${port}`], {
+            timeout: 5000,
+          });
+          const pids = result.split('\n').filter((pid) => pid.trim() && /^\d+$/.test(pid.trim()));
+
+          for (const pid of pids) {
+            if (this.validatePid(pid.trim())) {
+              try {
+                console.log(`🔒 Killing Unix process PID: ${pid.trim()}`);
+                await this.executeSecureCommand('kill', ['-9', pid.trim()], { timeout: 3000 });
+              } catch (killError) {
+                console.log(`🔒 Failed to kill PID ${pid}: ${killError}`);
+              }
+            }
+          }
+        } catch (lsofError) {
+          console.log(`🔒 Unix port kill failed (lsof): ${lsofError}`);
+          return false;
+        }
       }
 
       await this.sleep(2000);
 
       // Verify port is free
       const isPortFree = !(await this.checkPort(port));
+      console.log(`🔒 Port ${port} is ${isPortFree ? 'now free' : 'still in use'}`);
       return isPortFree;
     } catch (error) {
-      console.log(`Failed to kill process on port ${port}: ${error}`);
+      console.log(`🔒 Failed to kill process on port ${port}: ${error}`);
       return false;
     }
   }
 
   async resetNetworkConfiguration(): Promise<boolean> {
     try {
-      console.log('🔄 Resetting network configuration...');
+      console.log('🔒 Resetting network configuration using secure commands...');
 
       if (process.platform === 'darwin') {
-        // macOS network reset
-        execSync('sudo dscacheutil -flushcache', { timeout: 5000 });
-        execSync('sudo killall -HUP mDNSResponder', { timeout: 5000 });
+        try {
+          // macOS network reset
+          console.log('🔒 Flushing DNS cache on macOS');
+          await this.executeSecureCommand('sudo', ['dscacheutil', '-flushcache'], {
+            timeout: 5000,
+          });
+
+          console.log('🔒 Restarting mDNSResponder on macOS');
+          await this.executeSecureCommand('sudo', ['killall', '-HUP', 'mDNSResponder'], {
+            timeout: 5000,
+          });
+        } catch (error) {
+          console.log(`🔒 macOS network reset failed: ${error}`);
+          return false;
+        }
       } else if (process.platform === 'linux') {
-        // Linux network reset
-        execSync(
-          'sudo systemctl restart systemd-resolved || sudo service networking restart || true',
-          { timeout: 10000 }
-        );
+        try {
+          // Linux network reset
+          console.log('🔒 Restarting network services on Linux');
+          try {
+            await this.executeSecureCommand('sudo', ['systemctl', 'restart', 'systemd-resolved'], {
+              timeout: 10000,
+            });
+          } catch (systemdError) {
+            console.log('🔒 systemd-resolved restart failed, trying networking service');
+            try {
+              await this.executeSecureCommand('sudo', ['service', 'networking', 'restart'], {
+                timeout: 10000,
+              });
+            } catch (networkingError) {
+              console.log(
+                `🔒 Both network restart methods failed: systemd: ${systemdError}, service: ${networkingError}`
+              );
+              return false;
+            }
+          }
+        } catch (error) {
+          console.log(`🔒 Linux network reset failed: ${error}`);
+          return false;
+        }
+      } else {
+        console.log(`🔒 Network reset not supported on platform: ${process.platform}`);
+        return false;
       }
 
+      console.log('🔒 Network configuration reset completed');
       return true;
     } catch (error) {
-      console.log(`Network reset failed: ${error}`);
+      console.log(`🔒 Network reset failed: ${error}`);
       return false;
     }
   }
@@ -559,44 +804,103 @@ class NetworkHealingService {
     }
   }
 
+  private validatePid(pid: string): boolean {
+    // Security: Validate PID is numeric and reasonable range
+    return /^\d+$/.test(pid) && parseInt(pid) > 0 && parseInt(pid) <= 4194304;
+  }
+
   async restartHighCpuProcesses(): Promise<boolean> {
     try {
-      console.log('🔄 Restarting high CPU processes...');
+      console.log('🔒 Restarting high CPU processes using secure commands...');
 
-      const processes = execSync("ps aux | awk '$3 > 50 {print $2}' | tail -n +2", {
-        encoding: 'utf8',
-        timeout: 5000,
-      });
+      try {
+        const psResult = await this.executeSecureCommand('ps', ['aux'], { timeout: 5000 });
+        const highCpuProcesses = [];
 
-      const pids = processes.split('\n').filter((pid) => pid.trim());
-      for (const pid of pids.slice(0, 3)) {
-        // Limit to 3 processes
-        try {
-          execSync(`kill -TERM ${pid}`, { timeout: 3000 });
-        } catch (error) {
-          // Process might have already terminated
+        // Parse ps output and find high CPU processes
+        const lines = psResult.split('\n').slice(1); // Skip header
+        for (const line of lines) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 3) {
+            const cpuUsage = parseFloat(parts[2] || '0');
+            const pid = parts[1] || '';
+
+            if (!isNaN(cpuUsage) && cpuUsage > 50 && this.validatePid(pid)) {
+              highCpuProcesses.push({ pid, cpu: cpuUsage, command: parts.slice(10).join(' ') });
+            }
+          }
         }
-      }
 
-      return true;
+        // Limit to 3 processes for safety
+        const processesToKill = highCpuProcesses.slice(0, 3);
+        console.log(
+          `🔒 Found ${highCpuProcesses.length} high CPU processes, killing top ${processesToKill.length}`
+        );
+
+        for (const proc of processesToKill) {
+          try {
+            console.log(
+              `🔒 Terminating high CPU process PID: ${proc.pid} (${proc.cpu}% CPU) - ${proc.command}`
+            );
+            await this.executeSecureCommand('kill', ['-TERM', proc.pid || ''], { timeout: 3000 });
+
+            // Give process time to terminate gracefully
+            await this.sleep(1000);
+
+            // Check if still running, force kill if necessary
+            try {
+              await this.executeSecureCommand('kill', ['-0', proc.pid || ''], { timeout: 1000 });
+              console.log(`🔒 Process ${proc.pid} still running, force killing`);
+              await this.executeSecureCommand('kill', ['-9', proc.pid || ''], { timeout: 3000 });
+            } catch (checkError) {
+              // Process already terminated, which is good
+              console.log(`🔒 Process ${proc.pid} terminated successfully`);
+            }
+          } catch (error) {
+            console.log(`🔒 Failed to kill process ${proc.pid}: ${error}`);
+          }
+        }
+
+        return true;
+      } catch (psError) {
+        console.log(`🔒 Failed to get process list: ${psError}`);
+        return false;
+      }
     } catch (error) {
-      console.log(`Failed to restart high CPU processes: ${error}`);
+      console.log(`🔒 Failed to restart high CPU processes: ${error}`);
       return false;
     }
   }
 
   async genericNetworkFix(): Promise<boolean> {
     try {
-      console.log('🛠️ Applying generic network fixes...');
+      console.log('🔒 Applying generic network fixes using secure commands...');
 
       // Clear DNS cache and reset connections
       if (process.platform === 'darwin') {
-        execSync('sudo dscacheutil -flushcache', { timeout: 5000 });
+        try {
+          console.log('🔒 Flushing DNS cache for generic network fix');
+          await this.executeSecureCommand('sudo', ['dscacheutil', '-flushcache'], {
+            timeout: 5000,
+          });
+        } catch (error) {
+          console.log(`🔒 DNS cache flush failed: ${error}`);
+          return false;
+        }
+      } else if (process.platform === 'linux') {
+        try {
+          console.log('🔒 Flushing DNS cache on Linux');
+          await this.executeSecureCommand('sudo', ['systemctl', 'flush-dns'], { timeout: 5000 });
+        } catch (error) {
+          console.log(`🔒 Linux DNS flush failed: ${error}`);
+          // Don't return false as this is not critical
+        }
       }
 
+      console.log('🔒 Generic network fix completed');
       return true;
     } catch (error) {
-      console.log(`Generic network fix failed: ${error}`);
+      console.log(`🔒 Generic network fix failed: ${error}`);
       return false;
     }
   }

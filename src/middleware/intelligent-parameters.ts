@@ -28,9 +28,7 @@ export interface ParameterOverrides {
 /**
  * Middleware to automatically detect task type and optimize parameters
  */
-export function intelligentParametersMiddleware(
-  overrides:   ParameterOverrides = {}
-) {
+export function intelligentParametersMiddleware(overrides: ParameterOverrides = {}) {
   return (req: IntelligentRequest, res: Response, next: NextFunction) => {
     try {
       // Skip if parameters are forced to be manual
@@ -43,7 +41,8 @@ export function intelligentParametersMiddleware(
       req.originalBody = { ...req.body };
 
       // Extract user input from various possible fields
-      const userInput =         req.body.prompt ||
+      const userInput =
+        req.body.prompt ||
         req.body.message ||
         req.body.userRequest ||
         req.body.query ||
@@ -287,7 +286,7 @@ export function optimizeParameters(
       optimizedParams.systemPrompt = options.overrides.systemPrompt;
   }
 
-  const result: OptimizedParameters & { 
+  const result: OptimizedParameters & {
     stop?: string[];
     system?: string;
     userPromptTemplate?: string;

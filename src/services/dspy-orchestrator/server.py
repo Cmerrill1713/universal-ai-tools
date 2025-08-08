@@ -1,14 +1,23 @@
 import asyncio
 import json
 import logging
-
-# ChainOfThought, ReAct, ProgramOfThought are accessed via dspy module
 import os
-from typing import Any, Dict, List
+from typing import Any, Optional
 
 import dspy
 import websockets
 from dspy.teleprompt import MIPROv2
+
+from .internal_llm_relay import get_best_available_lm
+from .knowledge_optimizer import (
+    KnowledgeOptimizer,
+    OptimizedKnowledgeEvolver,
+    OptimizedKnowledgeExtractor,
+    OptimizedKnowledgeSearcher,
+    OptimizedKnowledgeValidator,
+)
+from .llm_discovery import LLMDiscovery
+from .model_selector import model_selector
 
 # Configure logging first
 logging.basicConfig(
@@ -16,30 +25,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from knowledge_optimizer import (
-    KnowledgeOptimizer,
-    OptimizedKnowledgeEvolver,
-    OptimizedKnowledgeExtractor,
-    OptimizedKnowledgeSearcher,
-    OptimizedKnowledgeValidator,
-)
-from llm_discovery import LLMDiscovery
-from model_selector import model_selector
-from internal_llm_relay import get_best_available_lm, enhance_dspy_with_relay
-
 # Try to import MLX LFM2 adapter and agent specialization if available
 try:
-    from agent_specialization import agent_orchestrator
+    from .agent_specialization import agent_orchestrator
 
     AGENT_SPECIALIZATION_AVAILABLE = True
     logger.info("🤖 Agent specialization system loaded")
 except ImportError as e:
     AGENT_SPECIALIZATION_AVAILABLE = False
-    logger.warning(f"Agent specialization not available: {e}")
+    logger.warning("Agent specialization not available: %s", e)
 
 # Try to import MLX LFM2 adapter if available
 try:
-    from mlx_lfm2_adapter import MLX_AVAILABLE, add_mlx_lfm2_to_discovery
+    from .mlx_lfm2_adapter import MLX_AVAILABLE, add_mlx_lfm2_to_discovery
 
     if MLX_AVAILABLE:
         # Only try if MLX models are supported
@@ -47,7 +45,7 @@ try:
             add_mlx_lfm2_to_discovery()
             logger.info("🌊 MLX LFM2 adapter loaded and added to discovery")
         except Exception as e:
-            logger.debug(f"MLX LFM2 not available: {e}")
+            logger.debug("MLX LFM2 not available: %s", e)
 except ImportError:
     logger.debug("MLX LFM2 adapter not available")
 
@@ -62,8 +60,8 @@ try:
     else:
         raise Exception("Internal relay not available")
 except Exception as e:
-    logger.debug(f"Internal relay not available: {e}")
-    
+    logger.debug("Internal relay not available: %s", e)
+
     # Fall back to standard discovery
     # Show all available models for debugging
     available_models = LLMDiscovery.get_all_available_models()
@@ -79,9 +77,11 @@ except Exception as e:
 
     if initial_result:
         lm, profile = initial_result
-        logger.info(f"🚀 DSPy ready with {profile.provider} using {profile.name}")
-        logger.info(f"   Model profile: {profile.size_category} (~{profile.estimated_params}B params)")
-        logger.info(f"   Capabilities: {[c.value for c in profile.capabilities]}")
+        logger.info("🚀 DSPy ready with %s using %s", profile.provider, profile.name)
+        logger.info(
+            "   Model profile: %s (~%sB params)", profile.size_category, profile.estimated_params
+        )
+        logger.info("   Capabilities: %s", [c.value for c in profile.capabilities])
     else:
         if os.environ.get("NODE_ENV") == "development":
             logger.warning("⚠️ No LLMs found, using development mock mode")
@@ -89,9 +89,9 @@ except Exception as e:
             config_result = LLMDiscovery.discover_and_configure()
         else:
             logger.error("❌ No valid LLM configuration found")
-            raise Exception(
+            raise RuntimeError(
                 "DSPy requires at least one working LLM. Please ensure Ollama, LM Studio, or OpenAI API is available."
-            )
+            ) from None
 
 
 class IntentAnalyzer(dspy.Signature):
@@ -149,7 +149,7 @@ class UniversalOrchestrator(dspy.Module):
         self.optimized_evolver = OptimizedKnowledgeEvolver()
         self.optimized_validator = OptimizedKnowledgeValidator()
 
-    def forward(self, request: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    def forward(self, request: str, context: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Main orchestration flow."""
         context = context or {}
 
@@ -192,8 +192,11 @@ class UniversalOrchestrator(dspy.Module):
             "agent_responses": agent_responses,
         }
 
-    def _simulate_agent_execution(self, task: str, agents: str, complexity: str) -> List[Dict]:
+    def _simulate_agent_execution(
+        self, task: str, agents: str, complexity: str
+    ) -> list[dict[str, Any]]:
         """Simulate agent execution for demo purposes."""
+        _ = agents, complexity  # Parameters reserved for future use
         # In production, this would actually call the TypeScript agents
         return [
             {
@@ -216,8 +219,9 @@ class DSPyServer:
 
     async def handle_request(self, websocket, path=None):
         """Handle incoming WebSocket connections."""
+        _ = path  # Path parameter reserved for future use
         self.clients.add(websocket)
-        logger.info(f"Client connected. Total clients: {len(self.clients)}")
+        logger.info("Client connected. Total clients: %d", len(self.clients))
 
         try:
             async for message in websocket:
@@ -233,7 +237,7 @@ class DSPyServer:
                     }
                     await websocket.send(json.dumps(error_response))
                 except Exception as e:
-                    logger.error(f"Error processing request: {e}")
+                    logger.error("Error processing request: %s", e)
                     error_response = {
                         "requestId": request.get("requestId", "unknown"),
                         "success": False,
@@ -242,15 +246,15 @@ class DSPyServer:
                     await websocket.send(json.dumps(error_response))
         finally:
             self.clients.remove(websocket)
-            logger.info(f"Client disconnected. Total clients: {len(self.clients)}")
+            logger.info("Client disconnected. Total clients: %d", len(self.clients))
 
-    async def process_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    async def process_request(self, request: dict[str, Any]) -> dict[str, Any]:
         """Process incoming DSPy requests with intelligent model selection."""
         request_id = request.get("requestId")
         method = request.get("method")
         params = request.get("params", {})
 
-        logger.info(f"Processing request: {method}")
+        logger.info("Processing request: %s", method)
 
         # Auto-select model based on the request
         user_request = params.get("userRequest", "")
@@ -275,7 +279,7 @@ class DSPyServer:
 
         if model_result:
             lm, profile = model_result
-            logger.info(f"🎯 Using {profile.name} for {method} request")
+            logger.info("🎯 Using %s for %s request", profile.name, method)
 
         try:
             if method == "orchestrate":
@@ -374,11 +378,14 @@ class DSPyServer:
                 }
 
         except Exception as e:
-            logger.error(f"Error in {method}: {e}")
+            logger.error("Error in %s: %s", method, e)
             return {"requestId": request_id, "success": False, "error": str(e)}
 
-    def _coordinate_agents(self, task: str, agents: List[str], context: Dict) -> Dict:
+    def _coordinate_agents(
+        self, task: str, agents: list[str], context: dict[str, Any]
+    ) -> dict[str, Any]:
         """Coordinate multiple agents for a task."""
+        _ = context  # Context parameter reserved for future use
         agent_selector = self.orchestrator.agent_selector
         result = agent_selector(task=task, available_agents=str(agents))
         return {
@@ -386,7 +393,7 @@ class DSPyServer:
             "coordination_plan": result.coordination_plan,
         }
 
-    def _manage_knowledge_optimized(self, operation: str, data: Dict) -> Dict:
+    def _manage_knowledge_optimized(self, operation: str, data: dict[str, Any]) -> dict[str, Any]:
         """Manage knowledge operations with MIPROv2 optimization."""
         if operation == "extract":
             # Use optimized extractor
@@ -466,12 +473,12 @@ class DSPyServer:
         else:
             return {"error": f"Unknown operation: {operation}"}
 
-    def _optimize_prompts_miprov2(self, examples: List[Dict]) -> Dict:
+    def _optimize_prompts_miprov2(self, examples: list[dict[str, Any]]) -> dict[str, Any]:
         """Optimize prompts using MIPROv2."""
         try:
             # Use MIPROv2 for prompt optimization
             optimizer = MIPROv2(
-                metric=lambda ex, pred, trace: self._evaluate_prompt_quality(ex, pred),
+                metric=lambda ex, pred, _: self._evaluate_prompt_quality(ex, pred),
                 num_iterations=5,
                 temperature_range=(0.7, 1.0),
             )
@@ -504,6 +511,7 @@ class DSPyServer:
 
     def _evaluate_prompt_quality(self, example, prediction) -> float:
         """Evaluate prompt quality for MIPROv2 optimization."""
+        _ = example  # Example parameter reserved for future use
         # Simple evaluation based on output fields
         score = 0.0
 
@@ -522,7 +530,9 @@ class DSPyServer:
 
         return score
 
-    def _optimize_knowledge_modules(self, examples: List[Dict], iterations: int) -> Dict:
+    def _optimize_knowledge_modules(
+        self, examples: list[dict[str, Any]], iterations: int
+    ) -> dict[str, Any]:
         """Optimize all knowledge modules using MIPROv2."""
         try:
             result = self.orchestrator.knowledge_optimizer.optimize_with_examples(
@@ -538,7 +548,7 @@ class DSPyServer:
             logger.error(f"Knowledge module optimization failed: {e}")
             return {"success": False, "error": str(e)}
 
-    def _store_optimization_example(self, example: Dict):
+    def _store_optimization_example(self, example: dict[str, Any]) -> None:
         """Store examples for continuous learning."""
         self.optimization_examples.append(example)
 
@@ -546,7 +556,7 @@ class DSPyServer:
         if len(self.optimization_examples) >= self.optimization_threshold:
             self._perform_continuous_learning()
 
-    def _perform_continuous_learning(self):
+    def _perform_continuous_learning(self) -> None:
         """Perform continuous learning with collected examples."""
         logger.info(
             f"Performing continuous learning with {len(self.optimization_examples)} examples"

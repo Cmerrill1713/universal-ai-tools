@@ -1,11 +1,11 @@
-import { EventEmitter } from 'events';
+import { config } from '@/config/environment';
+import { a2aMesh } from '@/services/a2a-communication-mesh';
 import { AgentCategory, type AgentConfig, type AgentDefinition } from '@/types';
+import { LogContext, log } from '@/utils/logger';
+import { createClient } from '@supabase/supabase-js';
+import { EventEmitter } from 'events';
 import type { BaseAgent } from './base-agent';
 import type { EnhancedBaseAgent } from './enhanced-base-agent';
-import { LogContext, log } from '@/utils/logger';
-import { a2aMesh } from '@/services/a2a-communication-mesh';
-import { createClient } from '@supabase/supabase-js';
-import { config } from '@/config/environment';
 
 // Enhanced agent imports
 import { EnhancedPlannerAgent } from './cognitive/enhanced-planner-agent';
@@ -13,6 +13,7 @@ import { EnhancedRetrieverAgent } from './cognitive/enhanced-retriever-agent';
 import { EnhancedSynthesizerAgent } from './cognitive/enhanced-synthesizer-agent';
 import { EnhancedPersonalAssistantAgent } from './personal/enhanced-personal-assistant-agent';
 import { EnhancedCodeAssistantAgent } from './specialized/enhanced-code-assistant-agent';
+// HRM agent removed for Apple Silicon environment (CUDA/flash_attn not supported)
 
 export interface AgentLoadingLock {
   [agentName: string]: Promise<BaseAgent | null>;
@@ -28,13 +29,18 @@ export class AgentRegistry extends EventEmitter {
   constructor() {
     super();
     // Initialize Supabase client
+    // SECURITY: Use environment variables or Supabase Vault for API keys in production
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+    if (!supabaseAnonKey) {
+      throw new Error('SUPABASE_ANON_KEY environment variable is required');
+    }
+
     this.supabase = createClient(
-        config.database.url.includes('supabase')
-          ? config.database.url
-          : process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
-        process.env.SUPABASE_ANON_KEY ||
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-      );
+      config.database.url.includes('supabase')
+        ? config.database.url
+        : process.env.SUPABASE_URL || 'http://127.0.0.1:54321',
+      supabaseAnonKey
+    );
     this.registerBuiltInAgents();
     log.info(
       `Agent Registry initialized with ${this.agentDefinitions.size} agent definitions`,
@@ -115,6 +121,8 @@ export class AgentRegistry extends EventEmitter {
       retryAttempts: 2,
     });
 
+    // HRM registration removed
+
     log.info(`Registered ${this.agentDefinitions.size} built-in agents`, LogContext.AGENT);
   }
 
@@ -139,6 +147,9 @@ export class AgentRegistry extends EventEmitter {
 
       case 'code_assistant':
         return new EnhancedCodeAssistantAgent(config);
+
+      // case 'hrm': // removed
+      //   return new HRMSapientAgent(config);
 
       default:
         return null;
@@ -537,6 +548,5 @@ export class AgentRegistry extends EventEmitter {
     log.info('Agent Registry shutdown completed', LogContext.AGENT);
   }
 }
-
 
 export default AgentRegistry;

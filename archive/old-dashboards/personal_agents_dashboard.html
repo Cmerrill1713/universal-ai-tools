@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:*;">
     <title>Personal Agents - Universal AI Tools</title>
     <style>
         * {
@@ -306,6 +307,13 @@
     <script>
         let agentsAvailable = false;
         
+        // Security: HTML sanitization function to prevent XSS
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+        
         // Agent configurations
         const agentConfigs = {
             personal_assistant: { icon: '🤖', color: '#667eea' },
@@ -387,20 +395,20 @@
             
             card.innerHTML = `
                 <div class="agent-header">
-                    <div class="agent-icon" style="background: ${config.color}">
-                        ${config.icon}
+                    <div class="agent-icon" style="background: ${sanitizeHTML(config.color)}">
+                        ${sanitizeHTML(config.icon)}
                     </div>
                     <div>
-                        <div class="agent-title">${agent.name}</div>
+                        <div class="agent-title">${sanitizeHTML(agent.name)}</div>
                     </div>
                 </div>
-                <div class="agent-description">${agent.description}</div>
+                <div class="agent-description">${sanitizeHTML(agent.description)}</div>
                 <div class="capabilities">
-                    ${agent.capabilities.map(cap => `<span class="capability-tag">${cap.replace(/_/g, ' ')}</span>`).join('')}
+                    ${agent.capabilities.map(cap => `<span class="capability-tag">${sanitizeHTML(cap.replace(/_/g, ' '))}</span>`).join('')}
                 </div>
                 <div class="agent-actions">
-                    <button class="btn btn-primary" onclick="selectAgent('${agent.id}')">Use Agent</button>
-                    <button class="btn btn-secondary" onclick="viewCapabilities('${agent.id}')">Details</button>
+                    <button class="btn btn-primary" onclick="selectAgent('${sanitizeHTML(agent.id)}')">Use Agent</button>
+                    <button class="btn btn-secondary" onclick="viewCapabilities('${sanitizeHTML(agent.id)}')">Details</button>
                 </div>
             `;
             

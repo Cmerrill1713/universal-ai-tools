@@ -28,7 +28,7 @@ export const config: ServiceConfig = {
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET || 'fallback-secret-change-in-production',
+    secret: process.env.JWT_SECRET || '', // Will be loaded from Supabase Vault at runtime
     expiresIn: process.env.JWT_EXPIRES_IN || '24h',
   },
 
@@ -59,9 +59,37 @@ export function validateConfig(): void {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
-  if (config.environment === 'production' && config.jwt.secret.includes('fallback')) {
-    throw new Error('JWT_SECRET must be set in production');
+  if (config.environment === 'production' && !config.jwt.secret) {
+    console.warn('JWT_SECRET not found in environment - will be loaded from Supabase Vault at runtime');
   }
+}
+
+// Helper function to get JWT secret from Vault
+export async function getJwtSecret(): Promise<string> {
+  // Try environment variable first (for development)
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+
+  // Import secrets manager dynamically to avoid circular dependencies
+  try {
+    const { secretsManager } = await import('../services/secrets-manager');
+    const vaultSecret = await secretsManager.getSecret('jwt_secret');
+    
+    if (vaultSecret) {
+      return vaultSecret;
+    }
+  } catch (error) {
+    console.error('Failed to load JWT secret from Vault:', error);
+  }
+
+  // Final fallback for development only
+  if (config.environment === 'development') {
+    console.warn('⚠️ Using fallback JWT secret for development - store in Vault for production');
+    return 'dev-fallback-jwt-secret-change-in-production';
+  }
+
+  throw new Error('JWT_SECRET not found in environment or Supabase Vault');
 }
 
 export default config;

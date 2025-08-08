@@ -1,0 +1,90 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\".ts\"* ]] || [[ \"$CLAUDE_TOOL_PARAMS\" == *\".tsx\"* ]]; then echo '🎨 Formatting TypeScript files...' && npm run format > /dev/null 2>&1 || true; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\".ts\"* ]] || [[ \"$CLAUDE_TOOL_PARAMS\" == *\".tsx\"* ]]; then echo '🔍 Running ESLint fix...' && npm run lint:fix > /dev/null 2>&1 || true; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\"src/\"* ]]; then echo '🔧 Running syntax validation...' && npx tsx scripts/validate-syntax.ts --quiet 2>/dev/null || true; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\"src/\"* ]] && [[ \"$CLAUDE_TOOL_PARAMS\" == *\".ts\"* ]]; then echo '🛡️ Running security pattern scan...' && (grep -E '(execSync|exec|eval|Function|require\\(.*\\$|process\\.env\\[|innerHTML|dangerouslySetInnerHTML)' \"$CLAUDE_TOOL_PARAMS\" > /dev/null 2>&1 && echo '⚠️ Security: Potentially dangerous patterns detected in modified file' || true); fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\"src/\"* ]]; then echo '🔒 Running secret detection scan...' && gitleaks detect --source . --verbose --no-banner --log-level error 2>/dev/null || echo '⚠️ Potential secrets detected - review changes carefully'; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\"function Object() { [native code] }\"* ]]; then echo '⚠️ Warning: Preventing constructor corruption pattern in file edit'; exit 1; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\"?.\"*\"=\"* ]]; then echo '⚠️ Warning: Preventing invalid optional chaining assignment'; exit 1; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$CLAUDE_TOOL_PARAMS\" == *\"git push\"* ]] || [[ \"$CLAUDE_TOOL_PARAMS\" == *\"git commit\"* ]]; then echo '🔒 Running security scan before git operation...' && gitleaks detect --verbose --no-banner 2>/dev/null || { echo '⚠️ Security scan found potential secrets! Review before proceeding.'; exit 1; }; fi"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if git diff --quiet 2>/dev/null; then echo '✅ Task completed - no file changes detected'; else echo '✅ Task completed - Files modified:' && git diff --stat --color=never 2>/dev/null | head -5 || echo 'Unable to show git diff'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

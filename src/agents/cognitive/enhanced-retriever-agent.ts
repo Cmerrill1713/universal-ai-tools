@@ -188,7 +188,7 @@ Be thorough, accurate, and objective. Focus on providing comprehensive context t
   }
 
   protected getAdditionalContext(context: AgentContext): string | null {
-    let       additionalContext = '';
+    let additionalContext = '';
 
     // Extract search intent and scope
     const searchIntent = this.extractSearchIntent(context.userRequest);

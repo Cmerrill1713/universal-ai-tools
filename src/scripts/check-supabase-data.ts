@@ -48,97 +48,95 @@ async function checkSupabaseData(): Promise<void> {
             log.info('📡 Attempting to connect to local Supabase...', LogContext.MCP);
             const supabase = createClient(localUrl, localKey);
 
-          // Check if we can connect
-          const { data: healthCheck, error: healthError } = await supabase
-            .from('ai_memories')
-            .select('count(*)')
-            .limit(1);
+            // Check if we can connect
+            const { data: healthCheck, error: healthError } = await supabase
+              .from('ai_memories')
+              .select('count(*)')
+              .limit(1);
 
-          if (healthError) {
-            console.log('❌ Local Supabase connection failed:', healthError.message);
-            return;
-          }
+            if (healthError) {
+              console.log('❌ Local Supabase connection failed:', healthError.message);
+              return;
+            }
 
-          console.log('✅ Connected to local Supabase!');
+            console.log('✅ Connected to local Supabase!');
 
-          // Check available tables
-          const tables = [
-            'ai_memories',
-            'mcp_context',
-            'mcp_code_patterns',
-            'mcp_task_progress',
-            'mcp_error_analysis',
-            'api_secrets',
-          ];
+            // Check available tables
+            const tables = [
+              'ai_memories',
+              'mcp_context',
+              'mcp_code_patterns',
+              'mcp_task_progress',
+              'mcp_error_analysis',
+              'api_secrets',
+            ];
 
-          console.log('\n📊 Checking tables:');
+            console.log('\n📊 Checking tables:');
 
-          for (const tableName of tables) {
-            try {
-              const { data, error, count } = await supabase
-                .from(tableName)
-                .select('*', { count: 'exact' })
-                .limit(5);
+            for (const tableName of tables) {
+              try {
+                const { data, error, count } = await supabase
+                  .from(tableName)
+                  .select('*', { count: 'exact' })
+                  .limit(5);
 
-              if (error) {
-                console.log(`  ❌ ${tableName}: ${error.message}`);
-              } else {
-                console.log(`  ✅ ${tableName}: ${count || 0} records`);
+                if (error) {
+                  console.log(`  ❌ ${tableName}: ${error.message}`);
+                } else {
+                  console.log(`  ✅ ${tableName}: ${count || 0} records`);
 
-                if (data && data.length > 0) {
-                  console.log(`     Sample data keys: ${Object.keys(data[0]).join(', ')}`);
+                  if (data && data.length > 0) {
+                    console.log(`     Sample data keys: ${Object.keys(data[0]).join(', ')}`);
+                  }
                 }
+              } catch (error) {
+                console.log(`  ❌ ${tableName}: ${error}`);
+              }
+            }
+
+            // Check specific MCP context data
+            console.log('\n🧠 MCP Context Categories:');
+            try {
+              const { data: contextData } = await supabase.from('mcp_context').select('category');
+
+              if (contextData && contextData.length > 0) {
+                // Count categories manually
+                const categoryCounts = new Map<string, number>();
+                for (const item of contextData) {
+                  categoryCounts.set(item.category, (categoryCounts.get(item.category) || 0) + 1);
+                }
+
+                for (const [category, count] of categoryCounts.entries()) {
+                  console.log(`  - ${category}: ${count} entries`);
+                }
+              } else {
+                console.log('  No MCP context data found');
               }
             } catch (error) {
-              console.log(`  ❌ ${tableName}: ${error}`);
+              console.log('  Could not check MCP context categories');
             }
-          }
 
-          // Check specific MCP context data
-          console.log('\n🧠 MCP Context Categories:');
-          try {
-            const { data: contextData } = await supabase
-              .from('mcp_context')
-              .select('category');
+            // Check ai_memories content
+            console.log('\n📚 AI Memories:');
+            try {
+              const { data: memories } = await supabase
+                .from('ai_memories')
+                .select('content, metadata')
+                .limit(3);
 
-            if (contextData && contextData.length > 0) {
-              // Count categories manually
-              const categoryCounts = new Map<string, number>();
-              for (const item of contextData) {
-                categoryCounts.set(item.category, (categoryCounts.get(item.category) || 0) + 1);
+              if (memories && memories.length > 0) {
+                for (let i = 0; i < memories.length; i++) {
+                  const memory = memories[i];
+                  console.log(`  Memory ${i + 1}:`);
+                  console.log(`    Content: ${memory?.content?.substring(0, 100)}...`);
+                  console.log(`    Metadata: ${JSON.stringify(memory?.metadata)}`);
+                }
+              } else {
+                console.log('  No AI memories found');
               }
-              
-              for (const [category, count] of categoryCounts.entries()) {
-                console.log(`  - ${category}: ${count} entries`);
-              }
-            } else {
-              console.log('  No MCP context data found');
+            } catch (error) {
+              console.log('  Could not check AI memories');
             }
-          } catch (error) {
-            console.log('  Could not check MCP context categories');
-          }
-
-          // Check ai_memories content
-          console.log('\n📚 AI Memories:');
-          try {
-            const { data: memories } = await supabase
-              .from('ai_memories')
-              .select('content, metadata')
-              .limit(3);
-
-            if (memories && memories.length > 0) {
-              for (let i = 0; i < memories.length; i++) {
-                const memory = memories[i];
-                console.log(`  Memory ${i + 1}:`);
-                console.log(`    Content: ${memory?.content?.substring(0, 100)}...`);
-                console.log(`    Metadata: ${JSON.stringify(memory?.metadata)}`);
-              }
-            } else {
-              console.log('  No AI memories found');
-            }
-          } catch (error) {
-            console.log('  Could not check AI memories');
-          }
           } else {
             console.log('❌ Could not parse Supabase credentials from .env.local');
           }

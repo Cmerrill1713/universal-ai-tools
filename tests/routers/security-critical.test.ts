@@ -11,11 +11,11 @@ import backupRouter from '../../src/routers/backup';
 import securityReportsRouter from '../../src/routers/security-reports';
 import enhancedSupabaseRouter from '../../src/routers/enhanced-supabase';
 
-// Mock environment first
+// Mock environment first with safe test values
 process.env.NODE_ENV = 'test';
 process.env.SUPABASE_URL = 'https://test.supabase.co';
-process.env.SUPABASE_ANON_KEY = 'test-key';
-process.env.JWT_SECRET = 'test-secret';
+process.env.SUPABASE_ANON_KEY = 'test-anon-key-not-for-production';
+process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only-not-secure';
 
 // Mock dependencies
 jest.mock('@supabase/supabase-js');

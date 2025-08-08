@@ -73,8 +73,7 @@ interface PendingRequest {
 
 export class MLXService {
   private config: MLXConfig;
-  private pythonProcess:
-    | ChildProcess     | null = null;
+  private pythonProcess: ChildProcess | null = null;
   private isInitialized = false;
   private pendingRequests: Map<string, PendingRequest> = new Map();
   private metrics: MLXMetrics;
@@ -174,7 +173,7 @@ export class MLXService {
 
   private async startMLXBridge(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const         scriptPath = join(__dirname, 'mlx-bridge.py');
+      const scriptPath = join(__dirname, 'mlx-bridge.py');
 
       // Create MLX bridge script if it doesn't exist
       if (!existsSync(scriptPath)) {

@@ -14,6 +14,7 @@ import { validateRequest } from '@/middleware/express-validator';
 import { body, param, query } from 'express-validator';
 import crypto from 'crypto';
 import { deviceAuthWebSocket } from '@/services/device-auth-websocket';
+import { getJwtSecret } from '@/config/environment';
 
 interface RegisteredDevice {
   id: string;
@@ -57,8 +58,8 @@ const deviceChallenges: Map<string, DeviceChallenge> = new Map();
 const proximitySessions: Map<string, ProximitySession> = new Map();
 
 // Helper function to generate device auth token
-function generateDeviceAuthToken(device: RegisteredDevice): string {
-  const secret = process.env.JWT_SECRET || 'universal-ai-tools-secret';
+async function generateDeviceAuthToken(device: RegisteredDevice): Promise<string> {
+  const secret = await getJwtSecret();
   return jwt.sign(
     {
       deviceId: device.id,
@@ -66,7 +67,7 @@ function generateDeviceAuthToken(device: RegisteredDevice): string {
       deviceType: device.deviceType,
       trusted: device.trusted,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+      exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
     },
     secret
   );
@@ -144,7 +145,14 @@ router.post(
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const { deviceId, deviceName, deviceType, publicKey, userId = 'default-user', metadata = {} } = req.body;
+      const {
+        deviceId,
+        deviceName,
+        deviceType,
+        publicKey,
+        userId = 'default-user',
+        metadata = {},
+      } = req.body;
 
       // Check if device already registered
       const existingDevice = Array.from(registeredDevices.values()).find(
@@ -163,7 +171,7 @@ router.post(
           data: {
             deviceId: existingDevice.id,
             message: 'Device updated successfully',
-            authToken: generateDeviceAuthToken(existingDevice),
+            authToken: await generateDeviceAuthToken(existingDevice),
           },
         });
       }
@@ -208,7 +216,7 @@ router.post(
         data: {
           deviceId: device.id,
           message: 'Device registered successfully',
-          authToken: generateDeviceAuthToken(device),
+          authToken: await generateDeviceAuthToken(device),
           requiresTrust: false,
         },
         metadata: {
@@ -393,7 +401,7 @@ router.post(
       const device = Array.from(registeredDevices.values()).find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        // Only create temporary device for test devices with specific prefix  
+        // Only create temporary device for test devices with specific prefix
         if (deviceId.startsWith('TEST-DEVICE-') || deviceId.startsWith('test-device-')) {
           const tempDevice = {
             id: uuidv4(),
@@ -405,10 +413,10 @@ router.post(
             createdAt: new Date().toISOString(),
             lastSeen: new Date().toISOString(),
             trusted: true,
-            metadata: {}
+            metadata: {},
           };
           registeredDevices.set(tempDevice.id, tempDevice);
-          
+
           // Generate challenge for temp device
           const challenge: DeviceChallenge = {
             id: uuidv4(),
@@ -562,7 +570,7 @@ router.post(
           deviceType: device.deviceType,
           trusted: device.trusted,
         },
-        process.env.JWT_SECRET || 'device-auth-secret',
+        await getJwtSecret(),
         {
           expiresIn: '24h',
           issuer: 'universal-ai-tools',

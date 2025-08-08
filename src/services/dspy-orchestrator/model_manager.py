@@ -9,7 +9,7 @@ import os
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -34,7 +34,7 @@ class ModelInfo:
     size_gb: Optional[float] = None
     is_downloaded: bool = False
     provider: Optional[str] = None
-    capabilities: Optional[List[str]] = None
+    capabilities: Optional[list[str]] = None
     description: Optional[str] = None
 
 
@@ -51,9 +51,9 @@ class ModelManager:
 
     def __init__(self):
         self.ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-        self.available_models: Dict[str, ModelInfo] = {}
+        self.available_models: dict[str, ModelInfo] = {}
 
-    async def list_all_models(self, include_remote: bool = True) -> Dict[str, List[ModelInfo]]:
+    async def list_all_models(self, include_remote: bool = True) -> dict[str, list[ModelInfo]]:
         """List all models (downloaded and available for download)"""
         models = {
             "ollama": await self.list_ollama_models(include_remote),
@@ -62,7 +62,7 @@ class ModelManager:
         }
         return models
 
-    async def list_ollama_models(self, include_remote: bool = True) -> List[ModelInfo]:
+    async def list_ollama_models(self, include_remote: bool = True) -> list[ModelInfo]:
         """List Ollama models (local and remote)"""
         models = []
 
@@ -120,7 +120,7 @@ class ModelManager:
 
         return models
 
-    async def list_liquid_models(self) -> List[ModelInfo]:
+    async def list_liquid_models(self) -> list[ModelInfo]:
         """List available Liquid models"""
         models = []
 
@@ -148,7 +148,7 @@ class ModelManager:
 
         return models
 
-    async def list_mlx_models(self) -> List[ModelInfo]:
+    async def list_mlx_models(self) -> list[ModelInfo]:
         """List MLX-optimized models for Apple Silicon"""
         models = []
 
@@ -307,7 +307,7 @@ class ModelManager:
 
         return None
 
-    def _infer_capabilities(self, model_name: str) -> List[str]:
+    def _infer_capabilities(self, model_name: str) -> list[str]:
         """Infer model capabilities from name"""
         capabilities = ["text_generation"]
 
@@ -329,7 +329,7 @@ class ModelManager:
         return capabilities
 
     async def recommend_model(
-        self, task_type: str, constraints: Dict[str, Any] = None
+        self, task_type: str, constraints: dict[str, Any] = None
     ) -> Optional[str]:
         """Recommend a model based on task and constraints"""
         constraints = constraints or {}
@@ -341,7 +341,7 @@ class ModelManager:
         candidates = []
 
         # Flatten all models
-        for provider, models in all_models.items():
+        for _provider, models in all_models.items():
             for model in models:
                 if require_local and not model.is_downloaded:
                     continue

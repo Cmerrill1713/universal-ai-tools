@@ -8,9 +8,10 @@ const app = express();
 const port = process.env.AI_TOOLS_PORT || 9999;
 
 // Supabase client
+// Note: This is an archived server file. In production, use proper environment variables or Supabase Vault.
 const supabase = createClient(
   process.env.SUPABASE_URL || 'http://localhost:54321',
-  process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+  process.env.SUPABASE_SERVICE_KEY || '[SERVICE_KEY_REMOVED_FOR_SECURITY]'
 );
 
 // Middleware

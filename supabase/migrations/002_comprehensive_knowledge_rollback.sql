@@ -18,21 +18,33 @@ BEGIN
     DROP POLICY IF EXISTS "Users can create their own documents" ON documents;
     DROP POLICY IF EXISTS "Users can update their own documents" ON documents;
     DROP POLICY IF EXISTS "Users can delete their own documents" ON documents;
-    
+
     -- Conversation policies
     DROP POLICY IF EXISTS "Users can view their own conversations" ON conversation_threads;
     DROP POLICY IF EXISTS "Users can create their own conversations" ON conversation_threads;
-    
+
     -- Model inference policies
     DROP POLICY IF EXISTS "Users can view their own inferences" ON model_inferences;
 EXCEPTION
     WHEN undefined_table THEN NULL;
 END $$;
 
--- Drop triggers
-DROP TRIGGER IF EXISTS update_knowledge_search_vector ON knowledge_sources;
-DROP TRIGGER IF EXISTS update_documents_search_vector ON documents;
-DROP TRIGGER IF EXISTS update_messages_search_vector ON conversation_messages;
+-- Drop triggers (only if tables exist)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'knowledge_sources') THEN
+        DROP TRIGGER IF EXISTS update_knowledge_search_vector ON knowledge_sources;
+    END IF;
+END $$;;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents') THEN
+        DROP TRIGGER IF EXISTS update_documents_search_vector ON documents;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'conversation_messages') THEN
+        DROP TRIGGER IF EXISTS update_messages_search_vector ON conversation_messages;
+    END IF;
+END $$;
 
 -- Drop functions
 DROP FUNCTION IF EXISTS hybrid_search(TEXT, vector, TEXT[], INTEGER, REAL);

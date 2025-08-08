@@ -181,16 +181,16 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
       'infrastructure',
     ];
 
-    const       mediumKeywords = [
-        'api',
-        'database',
-        'integration',
-        'authentication',
-        'dashboard',
-        'mobile',
-        'web application',
-        'system',
-      ];
+    const mediumKeywords = [
+      'api',
+      'database',
+      'integration',
+      'authentication',
+      'dashboard',
+      'mobile',
+      'web application',
+      'system',
+    ];
 
     const expertKeywords = [
       'migration',
@@ -248,7 +248,7 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
 
   private extractPlanFromText(response: string): unknown {
     // Extract plan elements from unstructured text
-    const       lines = response.split('\n').filter((line) => line.trim());
+    const lines = response.split('\n').filter((line) => line.trim());
     const plan = {
       title: this.extractTitle(lines),
       overview: this.extractOverview(lines),
@@ -293,7 +293,7 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
 
   private extractPhases(lines: string[]): unknown[] {
     const phases: unknown[] = [];
-    let currentPhase:     unknown = null;
+    let currentPhase: unknown = null;
 
     for (const line of lines) {
       // Check for phase indicators
@@ -342,12 +342,12 @@ Be thorough but practical. Focus on actionable plans that can be implemented imm
   }
 
   private extractRisks(lines: string[]): unknown[] {
-    const       riskLines = lines.filter(
-        (line) =>
-          line.toLowerCase().includes('risk') ||
-          line.toLowerCase().includes('challenge') ||
-          line.toLowerCase().includes('issue')
-      );
+    const riskLines = lines.filter(
+      (line) =>
+        line.toLowerCase().includes('risk') ||
+        line.toLowerCase().includes('challenge') ||
+        line.toLowerCase().includes('issue')
+    );
 
     return riskLines.map((line) => ({
       description: line.trim(),

@@ -39,9 +39,12 @@ interface EnrichedContext {
 export class ContextInjectionService {
   private supabase;
   private maxContextTokens = 4000; // Reserve tokens for context
-  private contextCache = new Map<string, { context: EnrichedContext; expiry: number; hitCount: number }>();
+  private contextCache = new Map<
+    string,
+    { context: EnrichedContext; expiry: number; hitCount: number }
+  >();
   private cacheExpiryMs = 5 * 60 * 1000; // 5 minutes
-  
+
   // SECURITY: Pattern matching for prompt injection and sensitive data
   private securityFilters = {
     promptInjectionPatterns: [
@@ -88,7 +91,7 @@ export class ContextInjectionService {
     try {
       // SECURITY: First sanitize and validate input
       const { sanitizedRequest, securityWarnings } = this.sanitizeAndValidateInput(userRequest);
-      
+
       log.info('🔍 Enriching request with project context', LogContext.CONTEXT_INJECTION, {
         requestLength: sanitizedRequest.length,
         originalLength: userRequest.length,
@@ -103,7 +106,7 @@ export class ContextInjectionService {
 
       if (!enrichedContext) {
         enrichedContext = await this.buildEnrichedContext(sanitizedRequest, projectContext);
-        
+
         // Add architecture patterns if requested
         if (projectContext.includeArchitecturePatterns) {
           enrichedContext.architecturePatterns = await this.getArchitecturePatterns(
@@ -111,7 +114,7 @@ export class ContextInjectionService {
             projectContext
           );
         }
-        
+
         this.cacheContext(cacheKey, enrichedContext);
       }
 
@@ -152,9 +155,9 @@ export class ContextInjectionService {
   /**
    * SECURITY: Sanitize input and detect potential injection attacks
    */
-  private sanitizeAndValidateInput(input: string): { 
-    sanitizedRequest: string; 
-    securityWarnings: string[] 
+  private sanitizeAndValidateInput(input: string): {
+    sanitizedRequest: string;
+    securityWarnings: string[];
   } {
     const warnings: string[] = [];
     let sanitized = input;
@@ -179,7 +182,7 @@ export class ContextInjectionService {
     // Additional validation
     if (input.length > 10000) {
       warnings.push('Input length exceeds safe limits');
-      sanitized = `${sanitized.substring(0, 10000)  }[TRUNCATED]`;
+      sanitized = `${sanitized.substring(0, 10000)}[TRUNCATED]`;
     }
 
     // Log security events
@@ -196,11 +199,11 @@ export class ContextInjectionService {
 
   /**
    * SECURITY: Filter sensitive content from context
-   */  
+   */
   private filterSensitiveContent(content: string): string {
     let filtered = content;
-    
-    this.securityFilters.sensitiveDataPatterns.forEach(pattern => {
+
+    this.securityFilters.sensitiveDataPatterns.forEach((pattern) => {
       filtered = filtered.replace(pattern, '[REDACTED]');
     });
 
@@ -214,12 +217,7 @@ export class ContextInjectionService {
     userRequest: string,
     projectContext: ProjectContext
   ): Promise<EnrichedContext> {
-    const [
-      relevantKnowledge,
-      projectInfo,
-      recentConversations,
-      codeContext,
-    ] = await Promise.all([
+    const [relevantKnowledge, projectInfo, recentConversations, codeContext] = await Promise.all([
       this.getRelevantKnowledge(userRequest, projectContext),
       this.getProjectInfo(projectContext),
       this.getRecentConversations(projectContext),
@@ -227,12 +225,14 @@ export class ContextInjectionService {
     ]);
 
     // Calculate total token usage (rough estimate)
-    const totalContextTokens = this.estimateTokens([
-      ...relevantKnowledge.map(k => k.content),
-      projectInfo,
-      ...recentConversations,
-      ...codeContext,
-    ].join(' '));
+    const totalContextTokens = this.estimateTokens(
+      [
+        ...relevantKnowledge.map((k) => k.content),
+        projectInfo,
+        ...recentConversations,
+        ...codeContext,
+      ].join(' ')
+    );
 
     return {
       relevantKnowledge,
@@ -253,23 +253,29 @@ export class ContextInjectionService {
     try {
       // SECURITY: Ensure user ID is present for data isolation
       if (!projectContext.userId) {
-        log.warn('⚠️ No user ID provided - skipping knowledge retrieval for security', LogContext.CONTEXT_INJECTION);
+        log.warn(
+          '⚠️ No user ID provided - skipping knowledge retrieval for security',
+          LogContext.CONTEXT_INJECTION
+        );
         return [];
       }
 
       // First, generate embedding for the user request
-      const embeddingResponse = await fetch('http://127.0.0.1:54321/functions/v1/ollama-embeddings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          text: userRequest,
-          model: 'all-minilm:latest',
-          userId: projectContext.userId,
-        }),
-      });
+      const embeddingResponse = await fetch(
+        'http://127.0.0.1:54321/functions/v1/ollama-embeddings',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            text: userRequest,
+            model: 'all-minilm:latest',
+            userId: projectContext.userId,
+          }),
+        }
+      );
 
       if (!embeddingResponse.ok) {
         throw new Error(`Embedding generation failed: ${embeddingResponse.status}`);
@@ -287,16 +293,21 @@ export class ContextInjectionService {
       });
 
       if (error) {
-        log.warn('⚠️ Hybrid search failed, falling back to user-filtered text search', LogContext.CONTEXT_INJECTION, {
-          error: error.message,
-        });
+        log.warn(
+          '⚠️ Hybrid search failed, falling back to user-filtered text search',
+          LogContext.CONTEXT_INJECTION,
+          {
+            error: error.message,
+          }
+        );
         return await this.getSecureTextSearchResults(userRequest, projectContext.userId);
       }
 
       // SECURITY: Additional filtering to ensure only user's data is returned
-      const userFilteredResults = searchResults?.filter((result: any) => 
-        !result.user_id || result.user_id === projectContext.userId
-      ) || [];
+      const userFilteredResults =
+        searchResults?.filter(
+          (result: any) => !result.user_id || result.user_id === projectContext.userId
+        ) || [];
 
       return userFilteredResults.map((result: any) => ({
         id: result.id,
@@ -321,8 +332,14 @@ export class ContextInjectionService {
   /**
    * SECURITY: Secure text search with user filtering
    */
-  private async getSecureTextSearchResults(userRequest: string, userId: string): Promise<ContextChunk[]> {
-    const searchTerms = userRequest.toLowerCase().split(' ').filter(term => term.length > 3);
+  private async getSecureTextSearchResults(
+    userRequest: string,
+    userId: string
+  ): Promise<ContextChunk[]> {
+    const searchTerms = userRequest
+      .toLowerCase()
+      .split(' ')
+      .filter((term) => term.length > 3);
     const query = searchTerms.join(' | '); // PostgreSQL full-text search syntax
 
     const { data, error } = await this.supabase
@@ -334,14 +351,16 @@ export class ContextInjectionService {
 
     if (error) return [];
 
-    return data?.map(item => ({
-      id: item.id,
-      content: this.filterSensitiveContent(item.content),
-      source: item.source || 'knowledge_sources',
-      relevanceScore: 0.5,
-      type: 'knowledge' as const,
-      metadata: item.metadata || {},
-    })) || [];
+    return (
+      data?.map((item) => ({
+        id: item.id,
+        content: this.filterSensitiveContent(item.content),
+        source: item.source || 'knowledge_sources',
+        relevanceScore: 0.5,
+        type: 'knowledge' as const,
+        metadata: item.metadata || {},
+      })) || []
+    );
   }
 
   /**
@@ -359,7 +378,9 @@ export class ContextInjectionService {
           .limit(3);
 
         if (!error && projectData && projectData.length > 0) {
-          return projectData.map(doc => `${doc.name}:\n${this.filterSensitiveContent(doc.content)}`).join('\n\n');
+          return projectData
+            .map((doc) => `${doc.name}:\n${this.filterSensitiveContent(doc.content)}`)
+            .join('\n\n');
         }
       }
 
@@ -393,9 +414,12 @@ export class ContextInjectionService {
 
       if (error) return [];
 
-      return conversations?.map(msg => 
-        `${msg.role}: ${this.filterSensitiveContent(msg.content.substring(0, 200))}${msg.content.length > 200 ? '...' : ''}`
-      ) || [];
+      return (
+        conversations?.map(
+          (msg) =>
+            `${msg.role}: ${this.filterSensitiveContent(msg.content.substring(0, 200))}${msg.content.length > 200 ? '...' : ''}`
+        ) || []
+      );
     } catch (error) {
       return [];
     }
@@ -411,7 +435,7 @@ export class ContextInjectionService {
     try {
       // Look for code-related documents
       const codeKeywords = ['function', 'class', 'import', 'export', 'const', 'let', 'var'];
-      const hasCodeRequest = codeKeywords.some(keyword => 
+      const hasCodeRequest = codeKeywords.some((keyword) =>
         userRequest.toLowerCase().includes(keyword)
       );
 
@@ -420,14 +444,22 @@ export class ContextInjectionService {
       const { data: codeFiles, error } = await this.supabase
         .from('documents')
         .select('content, name, path')
-        .in('content_type', ['text/typescript', 'text/javascript', 'text/python', 'application/json'])
+        .in('content_type', [
+          'text/typescript',
+          'text/javascript',
+          'text/python',
+          'application/json',
+        ])
         .limit(5);
 
       if (error) return [];
 
-      return codeFiles?.map(file => 
-        `${file.name} (${file.path}):\n${this.filterSensitiveContent(file.content.substring(0, 500))}${file.content.length > 500 ? '...' : ''}`
-      ) || [];
+      return (
+        codeFiles?.map(
+          (file) =>
+            `${file.name} (${file.path}):\n${this.filterSensitiveContent(file.content.substring(0, 500))}${file.content.length > 500 ? '...' : ''}`
+        ) || []
+      );
     } catch (error) {
       return [];
     }
@@ -459,8 +491,8 @@ export class ContextInjectionService {
         prompt += `${index + 1}. ${pattern.name} (${pattern.framework}):\n`;
         prompt += `   - Type: ${pattern.patternType}\n`;
         prompt += `   - Description: ${pattern.description}\n`;
-        prompt += `   - Success Rate: ${(pattern.successRate * 100).toFixed(0)}%\n`;
-        prompt += `   - Best For: ${pattern.useCases.slice(0, 2).join(', ')}\n`;
+        prompt += `   - Success Rate: ${((pattern.successRate || 0) * 100).toFixed(0)}%\n`;
+        prompt += `   - Best For: ${(pattern.useCases || []).slice(0, 2).join(', ')}\n`;
         if (pattern.implementation) {
           prompt += `   - Implementation Available: Yes\n`;
         }
@@ -471,7 +503,7 @@ export class ContextInjectionService {
     // Add recent conversation context
     if (context.recentConversations.length > 0) {
       prompt += `## RECENT CONVERSATION HISTORY:\n`;
-      context.recentConversations.slice(0, 3).forEach(conv => {
+      context.recentConversations.slice(0, 3).forEach((conv) => {
         prompt += `${conv}\n`;
       });
       prompt += `\n`;
@@ -480,7 +512,7 @@ export class ContextInjectionService {
     // Add code context if available
     if (context.codeContext.length > 0) {
       prompt += `## RELEVANT CODE CONTEXT:\n`;
-      context.codeContext.forEach(code => {
+      context.codeContext.forEach((code) => {
         prompt += `${code}\n\n`;
       });
     }
@@ -502,11 +534,11 @@ export class ContextInjectionService {
    */
   private buildFallbackPrompt(userRequest: string, projectContext: ProjectContext): string {
     let prompt = `CONTEXT: You are working on a project`;
-    
+
     if (projectContext.workingDirectory) {
       prompt += ` in directory: ${projectContext.workingDirectory}`;
     }
-    
+
     if (projectContext.currentProject) {
       prompt += `, project: ${projectContext.currentProject}`;
     }
@@ -557,7 +589,8 @@ export class ContextInjectionService {
   private determineContentType(result: any): 'document' | 'code' | 'conversation' | 'knowledge' {
     if (result.table_name === 'conversation_messages') return 'conversation';
     if (result.table_name === 'documents') return 'document';
-    if (result.content_type?.includes('javascript') || result.content_type?.includes('typescript')) return 'code';
+    if (result.content_type?.includes('javascript') || result.content_type?.includes('typescript'))
+      return 'code';
     return 'knowledge';
   }
 
@@ -566,7 +599,7 @@ export class ContextInjectionService {
   }
 
   private extractSources(context: EnrichedContext): string[] {
-    return [...new Set(context.relevantKnowledge.map(k => k.source))];
+    return [...new Set(context.relevantKnowledge.map((k) => k.source))];
   }
 
   /**
@@ -590,14 +623,17 @@ export class ContextInjectionService {
       };
 
       // Get relevant patterns from architecture advisor
-      const recommendations = await architectureAdvisor.getRelevantPatterns(matchingContext, {
-        threshold: 0.6,
-        limit: 3,
-        includeRelated: false,
-      });
+      const recommendations = await architectureAdvisor.getRelevantPatterns(
+        JSON.stringify(matchingContext),
+        {
+          threshold: 0.6,
+          limit: 3,
+          includeRelated: false,
+        }
+      );
 
       // Extract just the patterns
-      const patterns = recommendations.map(rec => rec.pattern);
+      const patterns = recommendations.map((rec: any) => rec.pattern);
 
       log.info('✅ Found architecture patterns', LogContext.CONTEXT_INJECTION, {
         patternCount: patterns.length,
@@ -617,16 +653,23 @@ export class ContextInjectionService {
    * Assess task complexity from request
    */
   private assessTaskComplexity(request: string): 'simple' | 'medium' | 'complex' {
-    const complexKeywords = ['integrate', 'orchestrate', 'distributed', 'multi-agent', 'workflow', 'architecture'];
+    const complexKeywords = [
+      'integrate',
+      'orchestrate',
+      'distributed',
+      'multi-agent',
+      'workflow',
+      'architecture',
+    ];
     const simpleKeywords = ['simple', 'basic', 'single', 'straightforward'];
-    
+
     const reqLower = request.toLowerCase();
-    const complexCount = complexKeywords.filter(k => reqLower.includes(k)).length;
-    const simpleCount = simpleKeywords.filter(k => reqLower.includes(k)).length;
-    
+    const complexCount = complexKeywords.filter((k) => reqLower.includes(k)).length;
+    const simpleCount = simpleKeywords.filter((k) => reqLower.includes(k)).length;
+
     if (complexCount > 2 || request.length > 500) return 'complex';
     if (simpleCount > 1 || request.length < 100) return 'simple';
-    
+
     return 'medium';
   }
 
@@ -642,7 +685,10 @@ export class ContextInjectionService {
    * Get cache statistics
    */
   public getCacheStats(): { size: number; hitRate: number } {
-    const totalHits = Array.from(this.contextCache.values()).reduce((sum, entry) => sum + entry.hitCount, 0);
+    const totalHits = Array.from(this.contextCache.values()).reduce(
+      (sum, entry) => sum + entry.hitCount,
+      0
+    );
     const totalEntries = this.contextCache.size;
     return {
       size: totalEntries,

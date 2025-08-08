@@ -342,7 +342,7 @@ export class ReferenceBasedFineTuning {
         splitRatio: 0.2,
         validationMetrics: ['loss', 'accuracy'],
         earlyStopping: true,
-        patience: 3
+        patience: 3,
       }
     );
   }
@@ -379,7 +379,7 @@ export class ReferenceBasedFineTuning {
         splitRatio: 0.2,
         validationMetrics: ['loss', 'perplexity'],
         earlyStopping: true,
-        patience: 5
+        patience: 5,
       }
     );
   }
@@ -415,7 +415,7 @@ export class ReferenceBasedFineTuning {
         splitRatio: 0.1,
         validationMetrics: ['loss', 'preference_accuracy'],
         earlyStopping: true,
-        patience: 2
+        patience: 2,
       }
     );
   }
@@ -665,7 +665,7 @@ export class ReferenceBasedFineTuning {
   private selectElite(population: any[], fitness: number[], ratio: number): any[] {
     const sorted = population
       .map((ind, idx) => ({ individual: ind, fitness: fitness[idx] }))
-      .filter(item => item.fitness !== undefined)
+      .filter((item) => item.fitness !== undefined)
       .sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
 
     const eliteCount = Math.ceil(population.length * ratio);

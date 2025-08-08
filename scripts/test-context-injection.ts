@@ -6,34 +6,37 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'http://127.0.0.1:54321';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function seedTestKnowledge() {
   console.log('🌱 Seeding test knowledge for context injection demo...');
-  
+
   const testUserId = '11111111-1111-1111-1111-111111111111';
-  
+
   // Seed some test knowledge
   const knowledgeItems = [
     {
-      content: 'Universal AI Tools is a next-generation AI platform with MLX fine-tuning, intelligent parameter automation, and distributed learning systems.',
+      content:
+        'Universal AI Tools is a next-generation AI platform with MLX fine-tuning, intelligent parameter automation, and distributed learning systems.',
       source: 'project-overview',
       type: 'project_info',
       tags: ['platform', 'mlx', 'ai'],
       user_id: testUserId,
     },
     {
-      content: 'The system uses Supabase for all data storage, including knowledge management, conversation history, and model analytics. No external dependencies required.',
+      content:
+        'The system uses Supabase for all data storage, including knowledge management, conversation history, and model analytics. No external dependencies required.',
       source: 'architecture-docs',
       type: 'technical',
       tags: ['supabase', 'architecture', 'database'],
       user_id: testUserId,
     },
     {
-      content: 'All LLM calls now automatically include relevant project context through the context injection service. This ensures every AI interaction has access to project knowledge.',
+      content:
+        'All LLM calls now automatically include relevant project context through the context injection service. This ensures every AI interaction has access to project knowledge.',
       source: 'context-injection-docs',
       type: 'feature',
       tags: ['context', 'llm', 'automation'],
@@ -45,7 +48,8 @@ async function seedTestKnowledge() {
     {
       name: 'CLAUDE.md',
       path: '/Users/christianmerrill/Desktop/universal-ai-tools/CLAUDE.md',
-      content: 'Universal AI Tools project instructions for Claude Code. This is a production-ready AI platform with advanced service-oriented architecture.',
+      content:
+        'Universal AI Tools project instructions for Claude Code. This is a production-ready AI platform with advanced service-oriented architecture.',
       content_type: 'text/markdown',
       tags: ['documentation', 'instructions'],
       user_id: testUserId,
@@ -53,7 +57,8 @@ async function seedTestKnowledge() {
     {
       name: 'package.json',
       path: '/Users/christianmerrill/Desktop/universal-ai-tools/package.json',
-      content: '{"name": "universal-ai-tools", "version": "1.0.0", "description": "Next-generation AI platform", "scripts": {"dev": "tsx src/server.ts"}}',
+      content:
+        '{"name": "universal-ai-tools", "version": "1.0.0", "description": "Next-generation AI platform", "scripts": {"dev": "tsx src/server.ts"}}',
       content_type: 'application/json',
       tags: ['config', 'nodejs'],
       user_id: testUserId,
@@ -86,7 +91,7 @@ async function seedTestKnowledge() {
 
 async function testContextInjection() {
   console.log('🧪 Testing context injection with Ollama chat...');
-  
+
   const testCases = [
     {
       name: 'Simple question about the project',
@@ -115,13 +120,13 @@ async function testContextInjection() {
   for (const testCase of testCases) {
     console.log(`\n🔍 Testing: ${testCase.name}`);
     console.log(`Question: "${testCase.message}"`);
-    
+
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/ollama-chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           model: 'llama3.2:3b',
@@ -139,11 +144,13 @@ async function testContextInjection() {
       }
 
       const result = await response.json();
-      
+
       console.log(`✅ Response received (${result.latencyMs}ms)`);
       console.log(`📊 Context: ${result.contextSummary || 'No context summary'}`);
-      console.log(`💬 Answer: ${result.response.substring(0, 200)}${result.response.length > 200 ? '...' : ''}`);
-      
+      console.log(
+        `💬 Answer: ${result.response.substring(0, 200)}${result.response.length > 200 ? '...' : ''}`
+      );
+
       results.push({
         testCase: testCase.name,
         success: true,
@@ -151,7 +158,6 @@ async function testContextInjection() {
         contextSummary: result.contextSummary,
         responseLength: result.response.length,
       });
-
     } catch (error) {
       console.error(`❌ Test failed:`, error);
       results.push({
@@ -167,7 +173,7 @@ async function testContextInjection() {
 
 async function testDirectContextService() {
   console.log('\n🔧 Testing context injection service directly...');
-  
+
   // This would require importing the service, but for Edge Functions we'll test via API
   console.log('ℹ️  Direct service testing would require Node.js environment');
   console.log('ℹ️  Testing through Edge Functions instead (more realistic)');
@@ -175,13 +181,13 @@ async function testDirectContextService() {
 
 async function testWithoutContextInjection() {
   console.log('\n🚫 Testing WITHOUT context injection for comparison...');
-  
+
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/ollama-chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({
         model: 'llama3.2:3b',
@@ -197,18 +203,19 @@ async function testWithoutContextInjection() {
     }
 
     const result = await response.json();
-    
+
     console.log(`✅ Response without context (${result.latencyMs}ms)`);
     console.log(`📊 Context: ${result.contextSummary || 'No context used'}`);
-    console.log(`💬 Answer: ${result.response.substring(0, 200)}${result.response.length > 200 ? '...' : ''}`);
-    
+    console.log(
+      `💬 Answer: ${result.response.substring(0, 200)}${result.response.length > 200 ? '...' : ''}`
+    );
+
     return {
       success: true,
       latency: result.latencyMs,
       responseLength: result.response.length,
       response: result.response,
     };
-
   } catch (error) {
     console.error(`❌ Test without context failed:`, error);
     return {
@@ -220,7 +227,7 @@ async function testWithoutContextInjection() {
 
 async function checkKnowledgeBase() {
   console.log('🔍 Checking knowledge base content...');
-  
+
   try {
     const { data: knowledge, error: knowledgeError } = await supabase
       .from('knowledge_sources')
@@ -245,7 +252,6 @@ async function checkKnowledgeBase() {
     }
 
     return { knowledge: knowledge?.length || 0, documents: documents?.length || 0 };
-
   } catch (error) {
     console.error('❌ Failed to check knowledge base:', error);
     return { knowledge: 0, documents: 0 };
@@ -254,10 +260,10 @@ async function checkKnowledgeBase() {
 
 async function runAllTests() {
   console.log('🧪 Starting Context Injection System Tests\\n');
-  
+
   // Check initial state
   const knowledgeStats = await checkKnowledgeBase();
-  
+
   // Seed test data if needed
   if (knowledgeStats.knowledge === 0) {
     const seeded = await seedTestKnowledge();
@@ -269,19 +275,19 @@ async function runAllTests() {
 
   // Test context injection
   const contextResults = await testContextInjection();
-  
+
   // Test without context for comparison
   const noContextResult = await testWithoutContextInjection();
-  
+
   // Test direct service (placeholder)
   await testDirectContextService();
 
   // Print summary
   console.log('\\n📊 Test Results Summary:');
   console.log('========================');
-  
+
   console.log(`\\n🔍 Context Injection Tests:`);
-  contextResults.forEach(result => {
+  contextResults.forEach((result) => {
     const status = result.success ? '✅' : '❌';
     console.log(`${status} ${result.testCase}`);
     if (result.success) {
@@ -290,20 +296,22 @@ async function runAllTests() {
       console.log(`   Error: ${result.error}`);
     }
   });
-  
+
   console.log(`\\n🚫 Without Context Test:`);
   const noContextStatus = noContextResult.success ? '✅' : '❌';
   console.log(`${noContextStatus} Basic response without context`);
   if (noContextResult.success) {
-    console.log(`   Latency: ${noContextResult.latency}ms | Response length: ${noContextResult.responseLength} chars`);
+    console.log(
+      `   Latency: ${noContextResult.latency}ms | Response length: ${noContextResult.responseLength} chars`
+    );
   }
 
-  const successCount = contextResults.filter(r => r.success).length;
+  const successCount = contextResults.filter((r) => r.success).length;
   const totalTests = contextResults.length + 1; // +1 for no-context test
   const overallSuccessCount = successCount + (noContextResult.success ? 1 : 0);
 
   console.log(`\\n📈 Overall: ${overallSuccessCount}/${totalTests} tests passed`);
-  
+
   if (overallSuccessCount === totalTests) {
     console.log('🎉 All tests passed! Context injection system is working correctly.');
     console.log('');

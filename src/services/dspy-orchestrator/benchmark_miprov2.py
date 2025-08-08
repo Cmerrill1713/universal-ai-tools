@@ -8,7 +8,7 @@ import asyncio
 import json
 import logging
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import dspy
 import numpy as np
@@ -20,15 +20,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configure DSPy
-dspy.settings.configure(lm=dspy.OpenAI(model="gpt-4", max_tokens=1000))
+# Configure DSPy with LM
+# Note: In production, use get_best_available_lm() from llm_discovery
+# For now, configure with a default LM
+try:
+    from .llm_discovery import LLMDiscovery
+    lm, provider, model = LLMDiscovery.auto_discover()
+    dspy.configure(lm=lm)
+except Exception:
+    # Fallback to OpenAI-compatible endpoint if available
+    import os
+    if os.environ.get("OPENAI_API_KEY"):
+        lm = dspy.LM("openai/gpt-4", api_key=os.environ["OPENAI_API_KEY"])
+        dspy.configure(lm=lm)
+    else:
+        # Use a mock LM for testing
+        lm = dspy.LM("openai/gpt-3.5-turbo", api_base="http://localhost:1234/v1", api_key="test")
+        dspy.configure(lm=lm)
 
 
 class BenchmarkDataset:
     """Generate benchmark examples for optimization."""
 
     @staticmethod
-    def generate_extraction_examples(n: int = 50) -> List[Dict[str, Any]]:
+    def generate_extraction_examples(n: int = 50) -> list[dict[str, Any]]:
         """Generate knowledge extraction examples."""
         examples = []
 
@@ -66,7 +81,7 @@ class BenchmarkDataset:
         return examples
 
     @staticmethod
-    def generate_search_examples(n: int = 30) -> List[Dict[str, Any]]:
+    def generate_search_examples(n: int = 30) -> list[dict[str, Any]]:
         """Generate knowledge search examples."""
         examples = []
 
@@ -101,7 +116,7 @@ class BenchmarkDataset:
         return examples
 
     @staticmethod
-    def generate_validation_examples(n: int = 20) -> List[Dict[str, Any]]:
+    def generate_validation_examples(n: int = 20) -> list[dict[str, Any]]:
         """Generate knowledge validation examples."""
         examples = []
 
@@ -171,7 +186,7 @@ class MIPROv2Benchmark:
         optimization_start = time.time()
 
         all_examples = extraction_examples + search_examples + validation_examples
-        optimization_result = self.optimizer.optimize_with_examples(
+        self.optimizer.optimize_with_examples(
             examples=all_examples, num_iterations=10
         )
 
@@ -196,10 +211,10 @@ class MIPROv2Benchmark:
 
     async def _benchmark_modules(
         self,
-        extraction_examples: List[Dict],
-        search_examples: List[Dict],
-        validation_examples: List[Dict],
-    ) -> Dict[str, Any]:
+        extraction_examples: list[dict],
+        search_examples: list[dict],
+        validation_examples: list[dict],
+    ) -> dict[str, Any]:
         """Benchmark all modules."""
         results = {}
 

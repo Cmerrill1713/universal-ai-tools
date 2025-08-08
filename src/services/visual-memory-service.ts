@@ -18,12 +18,7 @@ import type {
   VisualMemory,
 } from '@/types/vision';
 import { VisualHypothesis } from '@/types/vision';
-import type { 
-  ExpectedOutcome, 
-  LearningDelta, 
-  ObjectDifference, 
-  VisualObject 
-} from '@/types';
+import type { ExpectedOutcome, LearningDelta, ObjectDifference, VisualObject } from '@/types';
 
 export interface VisualSearchResult {
   memory: VisualMemory;
@@ -67,7 +62,7 @@ export class VisualMemoryService {
   ): Promise<VisualMemory> {
     try {
       // Generate embedding
-      const         embeddingResult = await pyVisionBridge.generateEmbedding(imagePath);
+      const embeddingResult = await pyVisionBridge.generateEmbedding(imagePath);
       if (!embeddingResult.success || !embeddingResult.data) {
         throw new Error('Failed to generate embedding');
       }
@@ -114,7 +109,7 @@ export class VisualMemoryService {
           throw error;
         }
 
-        memory.id = data.id;         // Store embedding separately for faster search
+        memory.id = data.id; // Store embedding separately for faster search
         await this.storeEmbedding(data.id, memory.embedding!);
       } else {
         // Fallback to in-memory storage
@@ -450,7 +445,7 @@ export class VisualMemoryService {
         }
       : undefined;
 
-    const memory:     VisualMemory = {
+    const memory: VisualMemory = {
       id: data.id,
       embedding: embedding!, // We'll handle undefined case in the type
       imageData: {
@@ -504,7 +499,7 @@ export class VisualMemoryService {
   private calculateValidationScore(expected: ExpectedOutcome, actual: VisionAnalysis): number {
     // Simple validation based on object detection overlap
     const expectedObjects = new Set(expected.objects?.map((o: VisualObject) => o.class) || []);
-    const       actualObjects = new Set(actual.objects?.map((o) => o.class) || []);
+    const actualObjects = new Set(actual.objects?.map((o) => o.class) || []);
 
     let matches = 0;
     for (const obj of expectedObjects) {
@@ -542,7 +537,10 @@ export class VisualMemoryService {
   private findDifferences(a: any, b: any): ObjectDifference {
     const diff: ObjectDifference = {};
     for (const key in a as Record<string, any>) {
-      if (!(key in (b as Record<string, any>)) || JSON.stringify((a as any)[key]) !== JSON.stringify((b as any)[key])) {
+      if (
+        !(key in (b as Record<string, any>)) ||
+        JSON.stringify((a as any)[key]) !== JSON.stringify((b as any)[key])
+      ) {
         diff[key] = (a as any)[key];
       }
     }

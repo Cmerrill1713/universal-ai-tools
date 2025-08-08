@@ -5,12 +5,12 @@
  * Tests the complete Apple device authentication system
  */
 
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { log, LogContext } from '../src/utils/logger';
 
 const API_BASE = 'http://localhost:9999/api/v1';
-const JWT_SECRET = process.env.JWT_SECRET || 'device-auth-secret';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 interface DeviceConfig {
   deviceId: string;
@@ -29,13 +29,13 @@ async function generateTestJWT(userId: string = 'christian'): Promise<string> {
     userId,
     email: 'christian@universal-ai-tools.com',
     isAdmin: true,
-    permissions: ['*']
+    permissions: ['*'],
   };
 
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: '1h',
     issuer: 'universal-ai-tools',
-    subject: userId
+    subject: userId,
   });
 }
 
@@ -44,16 +44,16 @@ async function makeRequest(endpoint: string, options: RequestInit = {}): Promise
     const response = await fetch(`${API_BASE}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers
+        ...options.headers,
       },
-      ...options
+      ...options,
     });
 
     const data = await response.json();
-    
+
     log.info(`API Request: ${options.method || 'GET'} ${endpoint}`, LogContext.API, {
       status: response.status,
-      success: data.success || false
+      success: data.success || false,
     });
 
     return { response, data };
@@ -68,20 +68,20 @@ async function registerDevice(token: string, device: DeviceConfig): Promise<stri
     const { response, data } = await makeRequest('/device-auth/register', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(device)
+      body: JSON.stringify(device),
     });
 
     if (data.success) {
       log.info(`✅ Device registered: ${device.deviceName}`, LogContext.AUTH, {
         deviceId: data.data.deviceId,
-        deviceType: device.deviceType
+        deviceType: device.deviceType,
       });
       return data.data.deviceId;
     } else {
       log.error(`❌ Device registration failed: ${device.deviceName}`, LogContext.AUTH, {
-        error: data.error
+        error: data.error,
       });
       return null;
     }
@@ -91,25 +91,27 @@ async function registerDevice(token: string, device: DeviceConfig): Promise<stri
   }
 }
 
-async function requestChallenge(deviceId: string): Promise<{ challengeId: string; challenge: string } | null> {
+async function requestChallenge(
+  deviceId: string
+): Promise<{ challengeId: string; challenge: string } | null> {
   try {
     const { response, data } = await makeRequest('/device-auth/challenge', {
       method: 'POST',
-      body: JSON.stringify({ deviceId })
+      body: JSON.stringify({ deviceId }),
     });
 
     if (data.success) {
       log.info(`✅ Challenge received for device`, LogContext.AUTH, {
         challengeId: data.data.challengeId,
-        expiresAt: data.data.expiresAt
+        expiresAt: data.data.expiresAt,
       });
       return {
         challengeId: data.data.challengeId,
-        challenge: data.data.challenge
+        challenge: data.data.challenge,
       };
     } else {
       log.error(`❌ Challenge request failed`, LogContext.AUTH, {
-        error: data.error
+        error: data.error,
       });
       return null;
     }
@@ -119,27 +121,31 @@ async function requestChallenge(deviceId: string): Promise<{ challengeId: string
   }
 }
 
-async function verifyChallenge(challengeId: string, signature: string, proximity?: any): Promise<string | null> {
+async function verifyChallenge(
+  challengeId: string,
+  signature: string,
+  proximity?: any
+): Promise<string | null> {
   try {
     const { response, data } = await makeRequest('/device-auth/verify', {
       method: 'POST',
       body: JSON.stringify({
         challengeId,
         signature,
-        proximity
-      })
+        proximity,
+      }),
     });
 
     if (data.success) {
       log.info(`✅ Device authenticated successfully`, LogContext.AUTH, {
         deviceId: data.data.deviceId,
         userId: data.data.userId,
-        expiresIn: data.data.expiresIn
+        expiresIn: data.data.expiresIn,
       });
       return data.data.token;
     } else {
       log.error(`❌ Device verification failed`, LogContext.AUTH, {
-        error: data.error
+        error: data.error,
       });
       return null;
     }
@@ -166,8 +172,8 @@ async function testCompleteFlow(): Promise<void> {
       metadata: {
         osVersion: '17.0',
         appVersion: '1.0.0',
-        capabilities: ['bluetooth', 'biometric', 'proximity']
-      }
+        capabilities: ['bluetooth', 'biometric', 'proximity'],
+      },
     },
     {
       deviceId: 'AppleWatch-CM-2024',
@@ -177,14 +183,14 @@ async function testCompleteFlow(): Promise<void> {
       metadata: {
         osVersion: '10.0',
         appVersion: '1.0.0',
-        capabilities: ['bluetooth', 'biometric', 'proximity', 'health']
-      }
-    }
+        capabilities: ['bluetooth', 'biometric', 'proximity', 'health'],
+      },
+    },
   ];
 
   // Register devices
   const registeredDevices: { [key: string]: string } = {};
-  
+
   for (const device of devices) {
     const deviceId = await registerDevice(userToken, device);
     if (deviceId) {
@@ -207,7 +213,7 @@ async function testCompleteFlow(): Promise<void> {
       .digest('hex');
 
     // Simulate proximity data (iPhone close, Apple Watch immediate)
-    const proximity = originalDeviceId.includes('iPhone') 
+    const proximity = originalDeviceId.includes('iPhone')
       ? { rssi: -45, proximity: 'near' }
       : { rssi: -35, proximity: 'immediate' };
 
@@ -216,20 +222,20 @@ async function testCompleteFlow(): Promise<void> {
     if (deviceToken) {
       log.info(`✅ Device token received`, LogContext.AUTH, {
         device: originalDeviceId,
-        tokenLength: deviceToken.length
+        tokenLength: deviceToken.length,
       });
 
       // Test using the device token for API access
       const { response, data } = await makeRequest('/device-auth/devices', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${deviceToken}`
-        }
+          Authorization: `Bearer ${deviceToken}`,
+        },
       });
 
       if (data.success) {
         log.info(`✅ Device token works for API access`, LogContext.AUTH, {
-          devicesCount: data.data.devices.length
+          devicesCount: data.data.devices.length,
         });
       }
     }
@@ -244,4 +250,4 @@ testCompleteFlow().catch((error) => {
   process.exit(1);
 });
 
-export { testCompleteFlow, generateTestJWT, registerDevice };
+export { generateTestJWT, registerDevice, testCompleteFlow };

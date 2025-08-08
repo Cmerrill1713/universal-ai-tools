@@ -36,8 +36,7 @@ export interface LFM2Metrics {
 }
 
 export class LFM2BridgeService {
-  private pythonProcess:
-    | ChildProcess     | null = null;
+  private pythonProcess: ChildProcess | null = null;
   private isInitialized = false;
   private requestQueue: Array<{
     id: string;
@@ -244,8 +243,10 @@ export class LFM2BridgeService {
       // Send request to Python process with correct format
       const pythonRequest = {
         type:
-          request.taskType === 'routing' || request.taskType === 'coordination'
-            ? request.taskType
+          request.taskType === 'coordination'
+            ? 'coordination'
+            : request.taskType === 'classification'
+            ? 'classification'
             : 'completion',
         requestId,
         prompt: request.prompt,
@@ -570,12 +571,12 @@ class SafeLFM2Bridge {
         }
 
         // Use Ollama as primary fallback
-        const           messages = [
-            ...(request.systemPrompt
-              ? [{ role: 'system' as const, content: request.systemPrompt }]
-              : []),
-            { role: 'user' as const, content: request.prompt },
-          ];
+        const messages = [
+          ...(request.systemPrompt
+            ? [{ role: 'system' as const, content: request.systemPrompt }]
+            : []),
+          { role: 'user' as const, content: request.prompt },
+        ];
 
         const response = await ollamaService.generateResponse(
           [{ role: 'user', content: request.prompt }],

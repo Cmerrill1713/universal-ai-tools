@@ -25,8 +25,7 @@ export interface DSPyResponse {
 }
 
 export class DSPyBridge extends EventEmitter {
-  private ws:
-    | WebSocket     | null = null;
+  private ws: WebSocket | null = null;
   private pythonProcess: ChildProcess | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;

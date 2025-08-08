@@ -23,7 +23,7 @@ router.post('/huggingface', async (req, res) => {
       modelLimit = 100,
       datasetLimit = 50,
       paperLimit = 25,
-      popularOnly = true
+      popularOnly = true,
     } = req.body;
 
     log.info('🤗 Starting Hugging Face ingestion via API', LogContext.AI, {
@@ -33,7 +33,7 @@ router.post('/huggingface', async (req, res) => {
       modelLimit,
       datasetLimit,
       paperLimit,
-      popularOnly
+      popularOnly,
     });
 
     // Start ingestion (this may take several minutes)
@@ -44,7 +44,7 @@ router.post('/huggingface', async (req, res) => {
       modelLimit,
       datasetLimit,
       paperLimit,
-      popularOnly
+      popularOnly,
     });
 
     // Return comprehensive results
@@ -52,25 +52,25 @@ router.post('/huggingface', async (req, res) => {
       success: true,
       message: 'Hugging Face ingestion completed',
       stats,
-      duration: stats.endTime && stats.startTime 
-        ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-        : 'Unknown',
+      duration:
+        stats.endTime && stats.startTime
+          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+          : 'Unknown',
       recommendations: [
         'Use GET /api/v1/knowledge-ingestion/stats to monitor ingestion progress',
         'Consider running incremental updates daily',
-        'Check ingestion errors if any occurred'
-      ]
+        'Check ingestion errors if any occurred',
+      ],
     });
-
   } catch (error) {
     log.error('❌ Hugging Face ingestion failed via API', LogContext.AI, {
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     });
 
     res.status(500).json({
       success: false,
       error: 'Hugging Face ingestion failed',
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -90,7 +90,7 @@ router.post('/huggingface/models', async (req, res) => {
       includeDatasets: false,
       includePapers: false,
       modelLimit: limit,
-      popularOnly
+      popularOnly,
     });
 
     res.json({
@@ -98,23 +98,23 @@ router.post('/huggingface/models', async (req, res) => {
       message: 'Hugging Face models ingestion completed',
       modelsProcessed: stats.modelsProcessed,
       errors: stats.errors,
-      duration: stats.endTime && stats.startTime 
-        ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-        : 'Unknown'
+      duration:
+        stats.endTime && stats.startTime
+          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+          : 'Unknown',
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Models ingestion failed',
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
 /**
  * POST /api/v1/knowledge-ingestion/huggingface/datasets
- * Ingest only Hugging Face datasets  
+ * Ingest only Hugging Face datasets
  */
 router.post('/huggingface/datasets', async (req, res) => {
   try {
@@ -127,7 +127,7 @@ router.post('/huggingface/datasets', async (req, res) => {
       includeDatasets: true,
       includePapers: false,
       datasetLimit: limit,
-      popularOnly
+      popularOnly,
     });
 
     res.json({
@@ -135,16 +135,16 @@ router.post('/huggingface/datasets', async (req, res) => {
       message: 'Hugging Face datasets ingestion completed',
       datasetsProcessed: stats.datasetsProcessed,
       errors: stats.errors,
-      duration: stats.endTime && stats.startTime 
-        ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-        : 'Unknown'
+      duration:
+        stats.endTime && stats.startTime
+          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+          : 'Unknown',
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Datasets ingestion failed',
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -163,7 +163,7 @@ router.post('/huggingface/papers', async (req, res) => {
       includeModels: false,
       includeDatasets: false,
       includePapers: true,
-      paperLimit: limit
+      paperLimit: limit,
     });
 
     res.json({
@@ -171,16 +171,16 @@ router.post('/huggingface/papers', async (req, res) => {
       message: 'Hugging Face papers ingestion completed',
       papersProcessed: stats.papersProcessed,
       errors: stats.errors,
-      duration: stats.endTime && stats.startTime 
-        ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-        : 'Unknown'
+      duration:
+        stats.endTime && stats.startTime
+          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+          : 'Unknown',
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Papers ingestion failed',
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -198,19 +198,18 @@ router.get('/stats', async (req, res) => {
       data: stats,
       recommendations: [
         stats.totalModels === 0 ? 'Run initial model ingestion' : 'Models loaded ✅',
-        stats.totalDatasets === 0 ? 'Run initial dataset ingestion' : 'Datasets loaded ✅', 
+        stats.totalDatasets === 0 ? 'Run initial dataset ingestion' : 'Datasets loaded ✅',
         stats.totalPapers === 0 ? 'Run initial papers ingestion' : 'Papers loaded ✅',
-        stats.lastIngestion 
+        stats.lastIngestion
           ? `Last update: ${stats.lastIngestion.toLocaleDateString()}`
-          : 'No previous ingestion found'
-      ]
+          : 'No previous ingestion found',
+      ],
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Failed to get ingestion stats',
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -231,21 +230,20 @@ router.post('/test', async (req, res) => {
       modelLimit: 5,
       datasetLimit: 3,
       paperLimit: 2,
-      popularOnly: true
+      popularOnly: true,
     });
 
     res.json({
       success: true,
       message: 'Test ingestion completed successfully',
       stats,
-      note: 'This was a test run with minimal data'
+      note: 'This was a test run with minimal data',
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Test ingestion failed',
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -262,7 +260,7 @@ router.delete('/clear', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Confirmation required',
-        message: 'Send {"confirm": "DELETE_ALL_HUGGINGFACE_DATA"} to confirm deletion'
+        message: 'Send {"confirm": "DELETE_ALL_HUGGINGFACE_DATA"} to confirm deletion',
       });
     }
 
@@ -273,14 +271,13 @@ router.delete('/clear', async (req, res) => {
     return res.json({
       success: true,
       message: 'Hugging Face data clearing initiated',
-      note: 'Clear functionality needs to be implemented in the service'
+      note: 'Clear functionality needs to be implemented in the service',
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
       error: 'Failed to clear data',
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     });
   }
 });

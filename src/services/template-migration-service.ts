@@ -42,7 +42,7 @@ export class TemplateMigrationService {
       success: true,
       migratedFiles: 0,
       spaceSaved: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -52,14 +52,17 @@ export class TemplateMigrationService {
       const templatePaths = [
         'PRPs/templates/',
         'context-engineering-intro/PRPs/templates/',
-        'context-engineering-intro/use-cases/'
+        'context-engineering-intro/use-cases/',
       ];
 
       for (const templatePath of templatePaths) {
         const fullPath = path.join(this.rootPath, templatePath);
-        
+
         try {
-          const exists = await fs.access(fullPath).then(() => true).catch(() => false);
+          const exists = await fs
+            .access(fullPath)
+            .then(() => true)
+            .catch(() => false);
           if (!exists) continue;
 
           await this.migrateDirectory(fullPath, 'prp-templates', result);
@@ -71,12 +74,13 @@ export class TemplateMigrationService {
       log.info('✅ PRP template migration completed', LogContext.DATABASE, {
         migratedFiles: result.migratedFiles,
         spaceSaved: `${(result.spaceSaved / 1024).toFixed(2)}KB`,
-        errors: result.errors.length
+        errors: result.errors.length,
       });
-
     } catch (error) {
       result.success = false;
-      result.errors.push(`Migration failed: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Migration failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     return result;
@@ -90,22 +94,22 @@ export class TemplateMigrationService {
       success: true,
       migratedFiles: 0,
       spaceSaved: 0,
-      errors: []
+      errors: [],
     };
 
     try {
       log.info('🏢 Starting enterprise template migration', LogContext.DATABASE);
 
-      const enterprisePaths = [
-        'src/templates/',
-        'enterprise-dev-toolkit/templates/'
-      ];
+      const enterprisePaths = ['src/templates/', 'enterprise-dev-toolkit/templates/'];
 
       for (const templatePath of enterprisePaths) {
         const fullPath = path.join(this.rootPath, templatePath);
-        
+
         try {
-          const exists = await fs.access(fullPath).then(() => true).catch(() => false);
+          const exists = await fs
+            .access(fullPath)
+            .then(() => true)
+            .catch(() => false);
           if (!exists) continue;
 
           await this.migrateDirectory(fullPath, 'enterprise-templates', result);
@@ -117,12 +121,13 @@ export class TemplateMigrationService {
       log.info('✅ Enterprise template migration completed', LogContext.DATABASE, {
         migratedFiles: result.migratedFiles,
         spaceSaved: `${(result.spaceSaved / 1024).toFixed(2)}KB`,
-        errors: result.errors.length
+        errors: result.errors.length,
       });
-
     } catch (error) {
       result.success = false;
-      result.errors.push(`Migration failed: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Migration failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     return result;
@@ -136,7 +141,7 @@ export class TemplateMigrationService {
       success: true,
       migratedFiles: 0,
       spaceSaved: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -154,12 +159,13 @@ export class TemplateMigrationService {
       log.info('✅ Large asset archival completed', LogContext.DATABASE, {
         migratedFiles: result.migratedFiles,
         spaceSaved: `${(result.spaceSaved / 1024 / 1024).toFixed(2)}MB`,
-        errors: result.errors.length
+        errors: result.errors.length,
       });
-
     } catch (error) {
       result.success = false;
-      result.errors.push(`Archival failed: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Archival failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     return result;
@@ -173,7 +179,7 @@ export class TemplateMigrationService {
       success: true,
       migratedFiles: 0,
       spaceSaved: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -184,7 +190,7 @@ export class TemplateMigrationService {
         'syntax-fix-backup-*/',
         'syntax-backups/',
         'backups/*/',
-        '*.backup'
+        '*.backup',
       ];
 
       for (const pattern of backupPatterns) {
@@ -198,12 +204,13 @@ export class TemplateMigrationService {
       log.info('✅ Backup directory cleanup completed', LogContext.DATABASE, {
         removedFiles: result.migratedFiles,
         spaceSaved: `${(result.spaceSaved / 1024 / 1024).toFixed(2)}MB`,
-        errors: result.errors.length
+        errors: result.errors.length,
       });
-
     } catch (error) {
       result.success = false;
-      result.errors.push(`Cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Cleanup failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     return result;
@@ -217,22 +224,25 @@ export class TemplateMigrationService {
       success: true,
       migratedFiles: 0,
       spaceSaved: 0,
-      errors: []
+      errors: [],
     };
 
     try {
       log.info('⚡ Starting Claude command migration', LogContext.DATABASE);
 
       const commandPath = path.join(this.rootPath, '.claude/commands/');
-      const exists = await fs.access(commandPath).then(() => true).catch(() => false);
-      
+      const exists = await fs
+        .access(commandPath)
+        .then(() => true)
+        .catch(() => false);
+
       if (!exists) {
         log.warn('Claude commands directory not found', LogContext.DATABASE);
         return result;
       }
 
       const files = await fs.readdir(commandPath);
-      
+
       for (const file of files) {
         if (!file.endsWith('.md')) continue;
 
@@ -242,35 +252,34 @@ export class TemplateMigrationService {
           const stats = await fs.stat(filePath);
 
           const commandName = path.basename(file, '.md');
-          
+
           // Extract description and parameters from content
           const lines = content.split('\n');
-          const title = lines.find(line => line.startsWith('# '))?.replace('# ', '') || commandName;
-          const description = lines.find(line => line.includes('$ARGUMENTS'))?.trim() || 'Claude command';
+          const title =
+            lines.find((line) => line.startsWith('# '))?.replace('# ', '') || commandName;
+          const description =
+            lines.find((line) => line.includes('$ARGUMENTS'))?.trim() || 'Claude command';
 
           // Store in database
-          const { error } = await this.supabase
-            .from('claude_commands')
-            .upsert({
-              command_name: commandName,
-              command_description: description,
-              command_content: content,
-              category: 'prp',
-              parameters: ['$ARGUMENTS'],
-              version: 1,
-              is_active: true
-            });
+          const { error } = await this.supabase.from('claude_commands').upsert({
+            command_name: commandName,
+            command_description: description,
+            command_content: content,
+            category: 'prp',
+            parameters: ['$ARGUMENTS'],
+            version: 1,
+            is_active: true,
+          });
 
           if (error) {
             result.errors.push(`Failed to store command ${commandName}: ${error.message}`);
           } else {
             result.migratedFiles++;
             result.spaceSaved += stats.size;
-            
+
             // Archive original file
             await this.archiveFile(filePath, 'system-assets', `claude-commands/${file}`);
           }
-
         } catch (error) {
           result.errors.push(`Failed to migrate ${file}: ${error}`);
         }
@@ -279,12 +288,13 @@ export class TemplateMigrationService {
       log.info('✅ Claude command migration completed', LogContext.DATABASE, {
         migratedFiles: result.migratedFiles,
         spaceSaved: `${(result.spaceSaved / 1024).toFixed(2)}KB`,
-        errors: result.errors.length
+        errors: result.errors.length,
       });
-
     } catch (error) {
       result.success = false;
-      result.errors.push(`Command migration failed: ${error instanceof Error ? error.message : String(error)}`);
+      result.errors.push(
+        `Command migration failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     return result;
@@ -301,7 +311,7 @@ export class TemplateMigrationService {
     const stats = {
       totalPotentialSavings: 0,
       largestDirectories: [] as Array<{ path: string; size: number }>,
-      recommendedActions: [] as string[]
+      recommendedActions: [] as string[],
     };
 
     try {
@@ -312,15 +322,16 @@ export class TemplateMigrationService {
         'src.backup.*/',
         'syntax-fix-backup-*/',
         'docs/',
-        'node_modules/' // For reference only
+        'node_modules/', // For reference only
       ];
 
       for (const scanPath of scanPaths) {
         try {
           const fullPath = path.join(this.rootPath, scanPath);
           const size = await this.getDirectorySize(fullPath);
-          
-          if (size > 1024 * 1024) { // > 1MB
+
+          if (size > 1024 * 1024) {
+            // > 1MB
             stats.largestDirectories.push({ path: scanPath, size });
             stats.totalPotentialSavings += size;
           }
@@ -333,27 +344,26 @@ export class TemplateMigrationService {
       stats.largestDirectories.sort((a, b) => b.size - a.size);
 
       // Generate recommendations
-      if (stats.largestDirectories.some(d => d.path.includes('screenshots'))) {
+      if (stats.largestDirectories.some((d) => d.path.includes('screenshots'))) {
         stats.recommendedActions.push('Archive debug screenshots older than 7 days');
       }
-      
-      if (stats.largestDirectories.some(d => d.path.includes('logs'))) {
+
+      if (stats.largestDirectories.some((d) => d.path.includes('logs'))) {
         stats.recommendedActions.push('Archive log files older than 30 days');
       }
-      
-      if (stats.largestDirectories.some(d => d.path.includes('backup'))) {
+
+      if (stats.largestDirectories.some((d) => d.path.includes('backup'))) {
         stats.recommendedActions.push('Remove old backup directories after verification');
       }
 
       log.info('📊 Migration statistics generated', LogContext.DATABASE, {
         totalPotentialSavings: `${(stats.totalPotentialSavings / 1024 / 1024).toFixed(2)}MB`,
         largestDirectoriesCount: stats.largestDirectories.length,
-        recommendationsCount: stats.recommendedActions.length
+        recommendationsCount: stats.recommendedActions.length,
       });
-
     } catch (error) {
       log.error('Failed to generate migration stats', LogContext.DATABASE, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
 
@@ -362,15 +372,19 @@ export class TemplateMigrationService {
 
   // Private helper methods
 
-  private async migrateDirectory(dirPath: string, bucket: string, result: MigrationResult): Promise<void> {
+  private async migrateDirectory(
+    dirPath: string,
+    bucket: string,
+    result: MigrationResult
+  ): Promise<void> {
     const files = await fs.readdir(dirPath, { recursive: true });
-    
+
     for (const file of files) {
       if (typeof file !== 'string') continue;
-      
+
       const filePath = path.join(dirPath, file);
       const stats = await fs.stat(filePath);
-      
+
       if (stats.isFile()) {
         try {
           await this.migrateFile(filePath, bucket, file);
@@ -392,7 +406,7 @@ export class TemplateMigrationService {
       .from(bucket)
       .upload(storagePath, content, {
         contentType: this.getContentType(filePath),
-        upsert: true
+        upsert: true,
       });
 
     if (uploadError) {
@@ -407,30 +421,34 @@ export class TemplateMigrationService {
       p_asset_type: this.getAssetType(filePath),
       p_file_size: content.length,
       p_archived_reason: 'migration',
-      p_retention_days: 365
+      p_retention_days: 365,
     });
   }
 
   private async archiveFile(filePath: string, bucket: string, storagePath: string): Promise<void> {
     const content = await fs.readFile(filePath);
-    
-    const { error } = await this.supabase.storage
-      .from(bucket)
-      .upload(storagePath, content, {
-        contentType: this.getContentType(filePath),
-        upsert: true
-      });
+
+    const { error } = await this.supabase.storage.from(bucket).upload(storagePath, content, {
+      contentType: this.getContentType(filePath),
+      upsert: true,
+    });
 
     if (error) {
       throw new Error(`Archive upload failed: ${error.message}`);
     }
   }
 
-  private async archiveScreenshots(result: MigrationResult, options: AssetMigrationOptions): Promise<void> {
+  private async archiveScreenshots(
+    result: MigrationResult,
+    options: AssetMigrationOptions
+  ): Promise<void> {
     const screenshotPath = path.join(this.rootPath, 'logs/screenshots/');
-    
+
     try {
-      const exists = await fs.access(screenshotPath).then(() => true).catch(() => false);
+      const exists = await fs
+        .access(screenshotPath)
+        .then(() => true)
+        .catch(() => false);
       if (!exists) return;
 
       const files = await fs.readdir(screenshotPath);
@@ -442,11 +460,11 @@ export class TemplateMigrationService {
 
         if (stats.mtime.getTime() < ageLimit) {
           await this.archiveFile(filePath, 'debug-screenshots', `archived/${file}`);
-          
+
           if (!options.preserveLocal) {
             await fs.unlink(filePath);
           }
-          
+
           result.migratedFiles++;
           result.spaceSaved += stats.size;
         }
@@ -456,11 +474,17 @@ export class TemplateMigrationService {
     }
   }
 
-  private async archiveOldLogs(result: MigrationResult, options: AssetMigrationOptions): Promise<void> {
+  private async archiveOldLogs(
+    result: MigrationResult,
+    options: AssetMigrationOptions
+  ): Promise<void> {
     const logsPath = path.join(this.rootPath, 'logs/');
-    
+
     try {
-      const exists = await fs.access(logsPath).then(() => true).catch(() => false);
+      const exists = await fs
+        .access(logsPath)
+        .then(() => true)
+        .catch(() => false);
       if (!exists) return;
 
       const files = await fs.readdir(logsPath);
@@ -468,17 +492,17 @@ export class TemplateMigrationService {
 
       for (const file of files) {
         if (file === 'screenshots') continue; // Skip screenshots directory
-        
+
         const filePath = path.join(logsPath, file);
         const stats = await fs.stat(filePath);
 
         if (stats.isFile() && stats.mtime.getTime() < ageLimit) {
           await this.archiveFile(filePath, 'archived-logs', `old-logs/${file}`);
-          
+
           if (!options.preserveLocal) {
             await fs.unlink(filePath);
           }
-          
+
           result.migratedFiles++;
           result.spaceSaved += stats.size;
         }
@@ -488,28 +512,30 @@ export class TemplateMigrationService {
     }
   }
 
-  private async archiveBackupDirectories(result: MigrationResult, options: AssetMigrationOptions): Promise<void> {
-    const backupPaths = [
-      'src.backup.*',
-      'syntax-fix-backup-*',
-      'syntax-backups'
-    ];
+  private async archiveBackupDirectories(
+    result: MigrationResult,
+    options: AssetMigrationOptions
+  ): Promise<void> {
+    const backupPaths = ['src.backup.*', 'syntax-fix-backup-*', 'syntax-backups'];
 
     for (const pattern of backupPaths) {
       try {
         // This would need glob implementation for pattern matching
         // For now, just check specific known backup directories
         const backupPath = path.join(this.rootPath, pattern.replace('*', ''));
-        const exists = await fs.access(backupPath).then(() => true).catch(() => false);
-        
+        const exists = await fs
+          .access(backupPath)
+          .then(() => true)
+          .catch(() => false);
+
         if (exists) {
           const size = await this.getDirectorySize(backupPath);
           result.spaceSaved += size;
           result.migratedFiles += 1;
-          
+
           // Would archive directory contents here
           log.info(`Found backup directory: ${pattern}`, LogContext.DATABASE, {
-            size: `${(size / 1024 / 1024).toFixed(2)}MB`
+            size: `${(size / 1024 / 1024).toFixed(2)}MB`,
           });
         }
       } catch (error) {
@@ -530,7 +556,7 @@ export class TemplateMigrationService {
 
       for (const file of files) {
         if (typeof file !== 'string') continue;
-        
+
         try {
           const filePath = path.join(dirPath, file);
           const stats = await fs.stat(filePath);
@@ -541,7 +567,7 @@ export class TemplateMigrationService {
           // Skip files that can't be accessed
         }
       }
-      
+
       return totalSize;
     } catch (error) {
       return 0;
@@ -559,9 +585,9 @@ export class TemplateMigrationService {
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.txt': 'text/plain',
-      '.log': 'text/plain'
+      '.log': 'text/plain',
     };
-    
+
     return contentTypes[ext] || 'application/octet-stream';
   }
 

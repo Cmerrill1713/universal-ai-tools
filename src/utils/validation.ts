@@ -43,15 +43,15 @@ export type ValidatedAgentResponse<T = unknown> = z.infer<typeof AgentResponseSc
 };
 
 // Task classification schema for multi-tier routing
-export const   TaskClassificationSchema = z.object({
-    complexity: z.enum(['simple', 'medium', 'complex', 'expert']),
-    domain: z.enum(['general', 'code', 'reasoning', 'creative', 'multimodal']),
-    urgency: z.enum(['low', 'medium', 'high', 'critical']),
-    estimatedTokens: z.number().positive(),
-    requiresAccuracy: z.boolean(),
-    requiresSpeed: z.boolean(),
-    confidence: z.number().min(0).max(1).optional(),
-  });
+export const TaskClassificationSchema = z.object({
+  complexity: z.enum(['simple', 'medium', 'complex', 'expert']),
+  domain: z.enum(['general', 'code', 'reasoning', 'creative', 'multimodal']),
+  urgency: z.enum(['low', 'medium', 'high', 'critical']),
+  estimatedTokens: z.number().positive(),
+  requiresAccuracy: z.boolean(),
+  requiresSpeed: z.boolean(),
+  confidence: z.number().min(0).max(1).optional(),
+});
 
 // Agent capability schema
 export const AgentCapabilitySchema = z.object({

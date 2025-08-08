@@ -43,12 +43,8 @@ export const SpectrumShowcase: React.FC = () => {
             <Content key="forms">
               <View padding="size-300">
                 <Flex direction="column" gap="size-300" maxWidth="size-3000">
-                  <TextField
-                    label="Name"
-                    placeholder="Enter your name"
-                    width="100%"
-                  />
-                  
+                  <TextField label="Name" placeholder="Enter your name" width="100%" />
+
                   <Slider
                     label="Volume"
                     minValue={0}
@@ -57,11 +53,11 @@ export const SpectrumShowcase: React.FC = () => {
                     onChange={setSliderValue}
                     width="100%"
                   />
-                  
+
                   <Switch isSelected={switchValue} onChange={setSwitchValue}>
                     Enable notifications
                   </Switch>
-                  
+
                   <CheckboxGroup
                     label="Preferences"
                     value={checkboxValues}
@@ -71,7 +67,7 @@ export const SpectrumShowcase: React.FC = () => {
                     <Checkbox value="option2">Option 2</Checkbox>
                     <Checkbox value="option3">Option 3</Checkbox>
                   </CheckboxGroup>
-                  
+
                   <RadioGroup label="Theme" defaultValue="light">
                     <Radio value="light">Light</Radio>
                     <Radio value="dark">Dark</Radio>

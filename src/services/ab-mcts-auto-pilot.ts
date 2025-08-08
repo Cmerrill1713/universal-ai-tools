@@ -11,7 +11,13 @@ import { mlParameterOptimizer } from './ml-parameter-optimizer';
 import { multiTierLLM } from './multi-tier-llm-service';
 import type { ABMCTSExecutionOptions, ABMCTSFeedback, AgentContext } from '@/types/ab-mcts';
 import { LogContext, log } from '@/utils/logger';
-import type { AnalysisResult, AutoPilotResult, FeedbackItem, PerformanceAnalysisData, UpdateData } from '@/types';
+import type {
+  AnalysisResult,
+  AutoPilotResult,
+  FeedbackItem,
+  PerformanceAnalysisData,
+  UpdateData,
+} from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { THREE, TWO } from '@/utils/constants';
@@ -312,7 +318,7 @@ export class ABMCTSAutoPilot extends EventEmitter {
           components: {
             quality: overallScore,
             speed: timeScore,
-            cost: 1 - (tokensUsed / 10000), // Normalize token cost
+            cost: 1 - tokensUsed / 10000, // Normalize token cost
           },
           metadata: {
             executionTime: responseTime,
@@ -453,7 +459,10 @@ export class ABMCTSAutoPilot extends EventEmitter {
       });
 
       // Use multi-tier LLM directly as fallback
-      const { classification, plan: executionPlan } = await multiTierLLM.classifyAndPlan(task.userRequest, task.context);
+      const { classification, plan: executionPlan } = await multiTierLLM.classifyAndPlan(
+        task.userRequest,
+        task.context
+      );
       const result = await multiTierLLM.execute(JSON.stringify(executionPlan), classification);
 
       this.emit('taskFallback', {
@@ -533,12 +542,15 @@ export class ABMCTSAutoPilot extends EventEmitter {
   private calculateTrends(feedback: FeedbackItem[]): AnalysisResult {
     // Sort by timestamp
     const sorted = feedback.sort(
-      (a: FeedbackItem, b: FeedbackItem) => (a.metadata?.timestamp || 0) - (b.metadata?.timestamp || 0)
+      (a: FeedbackItem, b: FeedbackItem) =>
+        (a.metadata?.timestamp || 0) - (b.metadata?.timestamp || 0)
     );
 
     // Calculate trend over time
-    const recentAvg = (sorted as any).slice(-10).reduce((a: number, b: any) => a + (b.score || 0), 0) / 10;
-    const olderAvg = (sorted as any).slice(0, 10).reduce((a: number, b: any) => a + (b.score || 0), 0) / 10;
+    const recentAvg =
+      (sorted as any).slice(-10).reduce((a: number, b: any) => a + (b.score || 0), 0) / 10;
+    const olderAvg =
+      (sorted as any).slice(0, 10).reduce((a: number, b: any) => a + (b.score || 0), 0) / 10;
 
     return {
       improving: recentAvg > olderAvg,

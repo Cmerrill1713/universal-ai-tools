@@ -15,7 +15,7 @@ import { createRateLimiter } from '../middleware/rate-limiter-enhanced';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 
-const   router = Router();
+const router = Router();
 
 // Configure multer for image uploads
 const storage = multer.memoryStorage();
@@ -240,12 +240,12 @@ router.post(
             refineParams: refine,
           });
 
-          const             refinement = await pyVisionBridge.refineImage(result.data.base64, {
-              strength: refine.strength || 0.3,
-              steps: refine.steps || 20,
-              guidance: refine.guidance || 7.5,
-              backend: refine.backend || 'auto',
-            });
+          const refinement = await pyVisionBridge.refineImage(result.data.base64, {
+            strength: refine.strength || 0.3,
+            steps: refine.steps || 20,
+            guidance: refine.guidance || 7.5,
+            backend: refine.backend || 'auto',
+          });
 
           if (refinement.success) {
             refinementResult = refinement.data;
@@ -306,7 +306,7 @@ router.post(
       });
 
       // Refine image
-      const         result = await pyVisionBridge.refineImage(imageData, parameters);
+      const result = await pyVisionBridge.refineImage(imageData, parameters);
 
       if (!result.success) {
         return sendError(res, 'REFINEMENT_ERROR', result.error || 'Refinement failed', 500);
@@ -408,7 +408,7 @@ router.post(
       });
 
       // Perform visual reasoning
-      const         result = await pyVisionBridge.reason(imageData, question);
+      const result = await pyVisionBridge.reason(imageData, question);
 
       if (!result.success) {
         return sendError(res, 'ANALYSIS_ERROR', result.error || 'Reasoning failed', 500);

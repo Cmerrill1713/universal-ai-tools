@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:54321;">
     <title>Universal AI Tools - Local Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -307,10 +308,18 @@
 
     <script>
         // Initialize Supabase client
+        // Note: This is an archived dashboard file. In production, retrieve keys from secure vault.
         const supabase = window.supabase.createClient(
             'http://127.0.0.1:54321',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+            '[SUPABASE_ANON_KEY_REMOVED_FOR_SECURITY]'
         );
+
+        // Security: HTML sanitization function to prevent XSS
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
 
         // Navigation
         function showSection(sectionName) {
@@ -366,10 +375,10 @@
                     const tbody = document.getElementById('memories-table-body');
                     tbody.innerHTML = memories.map(memory => `
                         <tr>
-                            <td class="font-mono text-xs">${memory.id.substring(0, 8)}...</td>
-                            <td class="max-w-xs truncate">${memory.content}</td>
-                            <td>${memory.service_id}</td>
-                            <td>${memory.memory_type}</td>
+                            <td class="font-mono text-xs">${sanitizeHTML(memory.id.substring(0, 8))}...</td>
+                            <td class="max-w-xs truncate">${sanitizeHTML(memory.content)}</td>
+                            <td>${sanitizeHTML(memory.service_id)}</td>
+                            <td>${sanitizeHTML(memory.memory_type)}</td>
                             <td>${(memory.importance_score * 100).toFixed(0)}%</td>
                             <td>${new Date(memory.created_at).toLocaleDateString()}</td>
                         </tr>

@@ -237,7 +237,7 @@ class PredictiveHealingAgent {
     confidence: number;
   } | null> {
     try {
-      const         result = execSync("ps aux | awk 'NR>1{sum+=$4} END{print sum}'", { encoding: 'utf8' });
+      const result = execSync("ps aux | awk 'NR>1{sum+=$4} END{print sum}'", { encoding: 'utf8' });
       const memoryUsage = parseFloat(result.trim());
 
       if (memoryUsage > 80) {

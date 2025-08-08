@@ -1,7 +1,7 @@
 import winston from 'winston';
 
 export enum LogContext {
-    SERVER = 'server',
+  SERVER = 'server',
   API = 'api',
   AGENT = 'agent',
   MEMORY = 'memory',
@@ -17,6 +17,7 @@ export enum LogContext {
   MCP = 'mcp',
   SERVICE = 'service',
   CONTEXT_INJECTION = 'context_injection',
+  SYNTAX_FIXING = 'syntax_fixing',
 }
 
 const logLevel = process.env.LOG_LEVEL || 'info';
