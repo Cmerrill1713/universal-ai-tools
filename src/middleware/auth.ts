@@ -71,30 +71,17 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       if (isPublicEndpoint(req.path)) {
         return next();
       }
-
-      // Development mode fallback
-      if (process.env.NODE_ENV === 'development' && process.env.SKIP_AUTH === 'true') {
-        req.user = {
-          id: 'dev-user',
-          email: 'dev@localhost',
-          isAdmin: true,
-          permissions: ['*'],
-        };
-        return next();
-      }
-
       return sendError(res, 'AUTHENTICATION_ERROR', 'No token provided', 401);
     }
 
     // Get JWT secret from vault with fallback
     let jwtSecret = await secretsManager.getSecret('jwt_secret');
     if (!jwtSecret) {
-      // Fallback to environment variable for development
-      jwtSecret = process.env.JWT_SECRET || 'device-auth-secret';
-      if (process.env.NODE_ENV === 'production') {
-        log.error('JWT secret not found in vault', LogContext.API);
-        return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);
-      }
+      jwtSecret = process.env.JWT_SECRET || '';
+    }
+    if (!jwtSecret) {
+      log.error('JWT secret not configured', LogContext.API);
+      return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);
     }
 
     // Verify JWT token

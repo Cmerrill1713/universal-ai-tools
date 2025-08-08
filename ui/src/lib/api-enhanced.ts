@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9999';
-const API_KEY = import.meta.env.VITE_API_KEY || 'test-api-key-123';
+const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 interface ChatResponse {
   message: string;
@@ -30,73 +30,67 @@ class EnhancedAPI {
   private headers = {
     'Content-Type': 'application/json',
     'X-API-Key': API_KEY,
-    'X-AI-Service': import.meta.env.VITE_AI_SERVICE || 'universal-ai-ui'
+    'X-AI-Service': import.meta.env.VITE_AI_SERVICE || 'universal-ai-ui',
   };
-  
+
   // Session management
   private conversationId: string | null = null;
   private sessionId: string | null = null;
-  
+
   constructor() {
     // Load session from localStorage
     this.conversationId = localStorage.getItem('conversationId');
     this.sessionId = localStorage.getItem('sessionId');
-    
+
     // Generate new session ID if not exists
     if (!this.sessionId) {
       this.sessionId = this.generateId();
       localStorage.setItem('sessionId', this.sessionId);
     }
   }
-  
+
   private generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
-  
-  private async request<T>(
-    endpoint: string, 
-    options: RequestInit = {}
-  ): Promise<T> {
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_URL}${endpoint}`;
-    
+
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
           ...this.headers,
-          ...options.headers
-        }
+          ...options.headers,
+        },
       });
-      
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(error.error || `Request failed: ${response.statusText}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);
       throw error;
     }
   }
-  
+
   // Health check
   async health(): Promise<HealthResponse> {
     return this.request<HealthResponse>('/health');
   }
-  
+
   // Chat endpoints
-  async sendMessage(
-    message: string, 
-    conversationId?: string
-  ): Promise<ChatResponse> {
+  async sendMessage(message: string, conversationId?: string): Promise<ChatResponse> {
     const response = await this.request<any>('/api/v1/chat', {
       method: 'POST',
       body: JSON.stringify({
         message,
         conversationId: conversationId || this.conversationId,
-        sessionId: this.sessionId
-      })
+        sessionId: this.sessionId,
+      }),
     });
 
     // Handle the actual API response structure
@@ -116,96 +110,86 @@ class EnhancedAPI {
           confidence: response.data.message?.metadata?.confidence,
           tokensUsed: response.data.usage?.tokens,
           executionTime: response.metadata?.executionTime || response.data.usage?.executionTime,
-          agent: response.data.message?.metadata?.agentName || response.metadata?.agentName
-        }
+          agent: response.data.message?.metadata?.agentName || response.metadata?.agentName,
+        },
       };
     } else {
       throw new Error(response.error?.message || 'Chat request failed');
     }
   }
-  
+
   async getChatHistory(conversationId?: string) {
     const id = conversationId || this.conversationId;
     if (!id) {
       return { success: false, messages: [] };
     }
-    
+
     return this.request(`/api/v1/chat/history/${id}`);
   }
-  
+
   // Agent endpoints
   async getAgents() {
     return this.request('/api/v1/agents');
   }
-  
+
   async executeAgent(agentId: string, task: any) {
     return this.request(`/api/v1/agents/${agentId}/execute`, {
       method: 'POST',
-      body: JSON.stringify({ task })
+      body: JSON.stringify({ task }),
     });
   }
-  
+
   // Task execution
-  async executeTask(taskData: {
-    type: string;
-    params: any;
-    agents?: string[];
-  }) {
+  async executeTask(taskData: { type: string; params: any; agents?: string[] }) {
     return this.request('/api/v1/ab-mcts/execute', {
       method: 'POST',
-      body: JSON.stringify(taskData)
+      body: JSON.stringify(taskData),
     });
   }
-  
+
   async getTaskStatus(taskId: string) {
     return this.request(`/api/v1/ab-mcts/status/${taskId}`);
   }
-  
+
   // Vision endpoints
   async processImage(imageData: string | File) {
     const formData = new FormData();
-    
+
     if (typeof imageData === 'string') {
       formData.append('image', imageData);
     } else {
       formData.append('image', imageData);
     }
-    
+
     return this.request('/api/v1/vision/process', {
       method: 'POST',
       headers: {
         'X-API-Key': API_KEY,
-        'X-AI-Service': import.meta.env.VITE_AI_SERVICE || 'universal-ai-ui'
+        'X-AI-Service': import.meta.env.VITE_AI_SERVICE || 'universal-ai-ui',
       },
-      body: formData
+      body: formData,
     });
   }
-  
+
   // MLX endpoints
   async getMLXModels() {
     return this.request('/api/v1/mlx/models');
   }
-  
-  async fineTuneModel(config: {
-    baseModel: string;
-    trainingData: any;
-    parameters: any;
-  }) {
+
+  async fineTuneModel(config: { baseModel: string; trainingData: any; parameters: any }) {
     return this.request('/api/v1/mlx/fine-tune', {
       method: 'POST',
-      body: JSON.stringify(config)
+      body: JSON.stringify(config),
     });
   }
-  
+
   // Monitoring endpoints
   async getPerformanceMetrics() {
     return this.request('/api/v1/monitoring/metrics');
   }
-  
+
   async getAgentPerformance(agentId?: string) {
-    const endpoint = agentId 
-      ? `/api/v1/monitoring/agents/${agentId}`
-      : '/api/v1/monitoring/agents';
+    const endpoint = agentId ? `/api/v1/monitoring/agents/${agentId}` : '/api/v1/monitoring/agents';
     return this.request(endpoint);
   }
 
@@ -219,7 +203,7 @@ class EnhancedAPI {
 
   async resetCircuitBreaker(name: string) {
     return this.request(`/api/v1/monitoring/circuit-breakers/${name}/reset`, {
-      method: 'POST'
+      method: 'POST',
     });
   }
 
@@ -239,16 +223,16 @@ class EnhancedAPI {
       method: 'POST',
       headers: {
         'X-API-Key': API_KEY,
-        'X-AI-Service': this.headers['X-AI-Service']
+        'X-AI-Service': this.headers['X-AI-Service'],
       },
-      body: formData
+      body: formData,
     });
   }
 
   async generateImage(prompt: string, options?: any) {
     return this.request('/api/v1/vision/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt, options })
+      body: JSON.stringify({ prompt, options }),
     });
   }
 
@@ -263,9 +247,9 @@ class EnhancedAPI {
       method: 'POST',
       headers: {
         'X-API-Key': API_KEY,
-        'X-AI-Service': this.headers['X-AI-Service']
+        'X-AI-Service': this.headers['X-AI-Service'],
       },
-      body: formData
+      body: formData,
     });
   }
 
@@ -281,7 +265,7 @@ class EnhancedAPI {
   async orchestrateTask(userRequest: string, options?: any) {
     return this.request('/api/v1/ab-mcts/orchestrate', {
       method: 'POST',
-      body: JSON.stringify({ userRequest, options })
+      body: JSON.stringify({ userRequest, options }),
     });
   }
 
@@ -292,7 +276,7 @@ class EnhancedAPI {
   async submitFeedback(orchestrationId: string, rating: number, comment?: string) {
     return this.request('/api/v1/ab-mcts/feedback', {
       method: 'POST',
-      body: JSON.stringify({ orchestrationId, rating, comment })
+      body: JSON.stringify({ orchestrationId, rating, comment }),
     });
   }
 
@@ -304,14 +288,14 @@ class EnhancedAPI {
   async mlxInference(modelPath: string, prompt: string, parameters?: any) {
     return this.request('/api/v1/mlx/inference', {
       method: 'POST',
-      body: JSON.stringify({ modelPath, prompt, parameters })
+      body: JSON.stringify({ modelPath, prompt, parameters }),
     });
   }
 
   async mlxFineTune(config: any) {
     return this.request('/api/v1/mlx/fine-tune', {
       method: 'POST',
-      body: JSON.stringify(config)
+      body: JSON.stringify(config),
     });
   }
 
@@ -335,7 +319,7 @@ class EnhancedAPI {
   async huggingFaceInference(model: string, inputs: any, parameters?: any) {
     return this.request('/api/v1/huggingface/inference', {
       method: 'POST',
-      body: JSON.stringify({ model, inputs, parameters })
+      body: JSON.stringify({ model, inputs, parameters }),
     });
   }
 
@@ -347,59 +331,61 @@ class EnhancedAPI {
   async getRoutingDecision(request: any) {
     return this.request('/api/v1/fast-coordinator/routing-decision', {
       method: 'POST',
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
     });
   }
 
   async executeCoordinated(request: any) {
     return this.request('/api/v1/fast-coordinator/execute', {
       method: 'POST',
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
     });
   }
 
   async coordinateAgents(request: any) {
     return this.request('/api/v1/fast-coordinator/coordinate-agents', {
       method: 'POST',
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
     });
   }
 
   async optimizeParameters(request: any) {
     return this.request('/api/v1/fast-coordinator/optimize', {
       method: 'POST',
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
     });
   }
 
   async getCoordinatorStatus() {
     return this.request('/api/v1/fast-coordinator/status');
   }
-  
+
   // WebSocket connection for real-time updates
   createWebSocket(path: string = '/ws'): WebSocket {
     const wsUrl = API_URL.replace(/^http/, 'ws') + path;
     const ws = new WebSocket(wsUrl);
-    
+
     ws.onopen = () => {
       // Send authentication
-      ws.send(JSON.stringify({
-        type: 'auth',
-        apiKey: API_KEY,
-        sessionId: this.sessionId
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'auth',
+          apiKey: API_KEY,
+          sessionId: this.sessionId,
+        })
+      );
     };
-    
+
     return ws;
   }
-  
+
   // Utility methods
   startNewConversation() {
     this.conversationId = this.generateId();
     localStorage.setItem('conversationId', this.conversationId);
     return this.conversationId;
   }
-  
+
   clearSession() {
     this.conversationId = null;
     this.sessionId = null;

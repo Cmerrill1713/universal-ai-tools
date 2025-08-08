@@ -74,7 +74,12 @@ export class DeviceAuthWebSocketService {
       }
 
       const token = authHeader.replace('Bearer ', '');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'device-auth-secret') as any;
+      const jwtSecret = process.env.JWT_SECRET || '';
+      if (!jwtSecret) {
+        callback(false, 500, 'Server auth misconfiguration');
+        return;
+      }
+      const decoded = jwt.verify(token, jwtSecret) as any;
 
       // Store user info in request for later use
       (info.req as any).userId = decoded.userId;
