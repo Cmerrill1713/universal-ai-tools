@@ -65,14 +65,12 @@ const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 export function contextInjectionMiddleware(options: ContextInjectionOptions = {}) {
   const config = {
     enabled: true,
-    maxContextTokens: 4000,
+    maxContextTokens: 1000, // Reduced from 4000
     cacheContext: true,
     contextTypes: [
-      'project_overview',
-      'code_patterns',
-      'error_analysis',
-      'conversation_history',
-      'architecture_patterns',
+      'code_patterns',      // Most relevant for current work
+      'error_analysis',     // Only if there are errors
+      // Removed: 'project_overview', 'conversation_history', 'architecture_patterns'
     ],
     securityLevel: 'strict' as const,
     fallbackOnError: true,
@@ -255,7 +253,7 @@ async function fetchRelevantContext(req: Request, config: ContextInjectionOption
       mcpIntegrationService.sendMessage('search_context', {
         query: userInput,
         category: 'code_patterns',
-        limit: 5,
+        limit: 2, // Reduced from 5
       })
     );
   }
@@ -265,7 +263,7 @@ async function fetchRelevantContext(req: Request, config: ContextInjectionOption
       mcpIntegrationService.sendMessage('search_context', {
         query: userInput,
         category: 'error_analysis',
-        limit: 3,
+        limit: 1, // Reduced from 3
       })
     );
   }
@@ -420,8 +418,8 @@ function formatContextForInjection(context: any[]): string {
  */
 export function chatContextMiddleware() {
   return contextInjectionMiddleware({
-    contextTypes: ['conversation_history', 'project_overview'],
-    maxContextTokens: 2000,
+    contextTypes: ['error_analysis'], // Only errors for chat
+    maxContextTokens: 500, // Very limited for chat
   });
 }
 
@@ -430,8 +428,8 @@ export function chatContextMiddleware() {
  */
 export function agentContextMiddleware() {
   return contextInjectionMiddleware({
-    contextTypes: ['project_overview', 'code_patterns', 'error_analysis', 'architecture_patterns'],
-    maxContextTokens: 3000,
+    contextTypes: ['code_patterns', 'error_analysis'], // Reduced from 4 to 2 types
+    maxContextTokens: 800, // Reduced from 3000
   });
 }
 
@@ -441,7 +439,7 @@ export function agentContextMiddleware() {
 export function codeContextMiddleware() {
   return contextInjectionMiddleware({
     contextTypes: ['code_patterns', 'error_analysis'],
-    maxContextTokens: 4000,
+    maxContextTokens: 1200, // Reduced from 4000
     securityLevel: 'moderate',
   });
 }

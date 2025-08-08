@@ -3,23 +3,27 @@
  * Shared client instance for all services
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/environment';
-import { LogContext, log } from '../utils/logger';
+import { config } from '@/config/environment';
+import { LogContext, log } from '@/utils/logger';
+import { type SupabaseClient, createClient } from '@supabase/supabase-js';
 
-let supabaseClient: unknown = null;
+let cachedClient: SupabaseClient | null = null;
 
-try {
-  if (config.supabase.url && config.supabase.serviceKey) {
-    supabaseClient = createClient(config.supabase.url, config.supabase.serviceKey);
-    log.info('✅ Supabase client initialized', LogContext.DATABASE);
-  } else {
-    log.warn('⚠️ Supabase configuration missing', LogContext.DATABASE);
+export function getSupabaseClient(): SupabaseClient | null {
+  try {
+    if (cachedClient) return cachedClient;
+
+    if (!config?.supabase?.url || !config?.supabase?.serviceKey) {
+      log.warn('Supabase config missing; error logging disabled', LogContext.DATABASE);
+      return null;
+    }
+
+    cachedClient = createClient(config.supabase.url, config.supabase.serviceKey);
+    return cachedClient;
+  } catch (error) {
+    log.error('Failed to initialize Supabase client', LogContext.DATABASE, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
   }
-} catch (error) {
-  log.error('❌ Failed to initialize Supabase client', LogContext.DATABASE, {
-    error: error instanceof Error ? error.message : String(error),
-  });
 }
-
-export { supabaseClient };

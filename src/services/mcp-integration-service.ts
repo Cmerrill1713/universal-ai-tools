@@ -454,15 +454,40 @@ export class MCPIntegrationService extends EventEmitter {
     }
 
     try {
-      // Simple check - try to select from one of the tables
-      const { error } = await this.supabase.from('mcp_context').select('count(*)').limit(1);
+      // Head-only check; if RLS blocks select we don't treat as missing
+      const { error } = await this.supabase
+        .from('mcp_context')
+        .select('id', { head: true, count: 'exact' })
+        .limit(1);
 
-      if (error) {
-        log.warn('⚠️ MCP tables do not exist, they need to be created', LogContext.MCP);
-        // In a real implementation, you'd run the SQL migration here
-        // For now, just log the warning
-      } else {
+      if (!error) {
         log.info('✅ MCP database tables verified', LogContext.MCP);
+        return;
+      }
+
+      const message = (error as any)?.message || String(error);
+      const code = (error as any)?.code || '';
+      const looksMissing =
+        /does not exist|relation .* does not exist|42P01/i.test(message) || code === '42P01';
+      const looksRls =
+        /permission denied|RLS|policy|42501|Unauthorized|401|403/i.test(message) ||
+        code === '42501';
+
+      if (looksMissing) {
+        log.warn('⚠️ MCP tables do not exist, they need to be created', LogContext.MCP);
+      } else if (looksRls) {
+        log.info(
+          'ℹ️ MCP tables reachable but RLS/permissions block head-select; proceeding',
+          LogContext.MCP,
+          {
+            code,
+          }
+        );
+      } else {
+        log.info('ℹ️ MCP table check encountered a non-fatal error; proceeding', LogContext.MCP, {
+          code,
+          message,
+        });
       }
     } catch (error) {
       log.warn('⚠️ Could not verify MCP tables', LogContext.MCP, {

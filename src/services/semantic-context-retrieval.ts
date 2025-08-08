@@ -581,7 +581,10 @@ export class SemanticContextRetrievalService {
       // Truncate content if too long (embeddings have limits)
       const truncatedContent = content.length > 2000 ? `${content.substring(0, 2000)}...` : content;
 
-      const response = await fetch('http://localhost:11434/api/embeddings', {
+      if (!globalThis.fetch) {
+        return this.generateFallbackEmbedding(content);
+      }
+      const response = await globalThis.fetch('http://localhost:11434/api/embeddings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

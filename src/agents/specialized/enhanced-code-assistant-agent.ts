@@ -5,6 +5,7 @@
 
 import { EnhancedBaseAgent } from '../enhanced-base-agent';
 import type { AgentContext, CodeAssistantResponse, CodeBlock } from '@/types';
+import { safeCalculate } from '@/services/tools/calculator';
 
 export class EnhancedCodeAssistantAgent extends EnhancedBaseAgent {
   protected buildSystemPrompt(): string {
@@ -130,6 +131,19 @@ Always provide production-ready code with proper error handling, validation, and
     if (context.workingDirectory) {
       additionalContext += `Project directory: ${context.workingDirectory}\n`;
     }
+
+    // Lightweight tool use: calculator for simple math expressions
+    try {
+      const mathMatch = context.userRequest.match(/(?:^|\b)([-+*/%.() 0-9]{3,})(?:$|\b)/);
+      if (mathMatch && mathMatch[1] && /[0-9]/.test(mathMatch[1])) {
+        const calc = safeCalculate(mathMatch[1]);
+        if (typeof calc === 'number' && Number.isFinite(calc)) {
+          additionalContext += `Precomputed calculation: ${mathMatch[1]} = ${calc}\n`;
+        }
+      }
+    } catch {}
+
+    // Note: deeper filesystem introspection is performed via dedicated tools when needed
 
     return additionalContext || null;
   }

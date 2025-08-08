@@ -17,7 +17,7 @@ import type {
   VisionEmbedding,
   VisualMemory,
 } from '@/types/vision';
-import { VisualHypothesis } from '@/types/vision';
+// VisualHypothesis is not used here
 import type { ExpectedOutcome, LearningDelta, ObjectDifference, VisualObject } from '@/types';
 
 export interface VisualSearchResult {

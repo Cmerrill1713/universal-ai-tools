@@ -271,9 +271,21 @@ export class AgentRegistry extends EventEmitter {
     // Mark agent as used
     this.agentUsage.set(agentName, new Date());
 
-    // Process the request
-    const result = await agent.execute(context as any);
-    return result;
+    // Process the request with learning-enabled execution if supported
+    const enhanced = agent as any;
+    if (typeof enhanced.executeWithFeedback === 'function') {
+      try {
+        const { response, feedback } = await enhanced.executeWithFeedback(context as any);
+        // Optional: emit event for learning telemetry
+        this.emit('agent_feedback', { agentName, feedback });
+        return response;
+      } catch {
+        // Fallback to regular execution on error
+        return await agent.execute(context as any);
+      }
+    }
+
+    return await agent.execute(context as any);
   }
 
   public async processParallelRequests(

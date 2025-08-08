@@ -57,8 +57,8 @@ describe('Knowledge Router - Simplified Tests', () => {
       }
 
       // Sanitize input (basic XSS prevention)
-      const sanitizedTitle = title.replace(/<script.*?>.*?</script>/gi, '');
-      const sanitizedContent = content.replace(/<script.*?>.*?</script>/gi, '');
+      const sanitizedTitle = title.replace(/<script.*?>.*?<\/script>/gi, '');
+      const sanitizedContent = content.replace(/<script.*?>.*?<\/script>/gi, '');
 
       const newKnowledge = {
         id: `knowledge-${Date.now()}`,
@@ -329,7 +329,7 @@ describe('Knowledge Router - Simplified Tests', () => {
         .set('Authorization', 'Bearer valid-token')
         .send({
           query: 'test',
-          limit: MILLISECONDS_IN_SECOND, // Exceeds max
+          limit: 1000000, // Exceeds max
         });
 
       expect(response.status).toBe(200);

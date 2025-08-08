@@ -4,9 +4,11 @@
  * Replaces mock agents with actual AI capabilities
  */
 
-import { config } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
-import { ModelConfig } from '@/config/models';
+import { config } from '../config/environment.js';
+import { LogContext, log } from '../utils/logger.js';
+import { isAllowedHost, normalizeHttpUrl } from '@/utils/url-security';
+const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
+import { ModelConfig } from '../config/models.js';
 
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant';
@@ -45,13 +47,27 @@ export class OllamaService {
   private isAvailable = false;
 
   constructor() {
-    this.baseUrl = config.llm.ollamaUrl || 'http://localhost:11434';
+    // Normalize and validate base URL
+    const base = config.llm.ollamaUrl || 'http://localhost:11434';
+    try {
+      const normalized = normalizeHttpUrl(base);
+      if (!normalized) throw new Error('Unsupported protocol');
+      if (!isAllowedHost(normalized, 'ALLOWED_LLM_HOSTS')) {
+        throw new Error('Host not allowed');
+      }
+      this.baseUrl = normalized;
+    } catch (e) {
+      log.error('Invalid OLLAMA_URL, falling back to localhost:11434', LogContext.AI, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      this.baseUrl = 'http://localhost:11434';
+    }
     this.checkAvailability();
   }
 
   private async checkAvailability(): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`, {
+      const response = await fetchApi(`${this.baseUrl}/api/tags`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -66,19 +82,15 @@ export class OllamaService {
 
         // Check if default model is available
         const models = data.models || [];
-        const hasDefaultModel = models.some((m: any) => m.name.includes('llama3.2'));
-        if (!hasDefaultModel && models.length > 0) {
-          // Find a suitable chat model (not embedding models)
-          const chatModel = models.find(
-            (m: any) =>
-              !m.name.includes('embed') &&
-              !m.name.includes('minilm') &&
-              (m.name.includes('llama') || m.name.includes('gemma') || m.name.includes('qwen'))
-          );
-          if (chatModel) {
-            this.defaultModel = chatModel.name;
-            log.info(`Using available chat model: ${this.defaultModel}`, LogContext.AI);
-          }
+        const preferred =
+          models.find((m: any) => m.name.includes('llama3.2')) ||
+          models.find((m: any) => m.name.includes('qwen2.5')) ||
+          models.find((m: any) => m.name.includes('gemma')) ||
+          models.find((m: any) => !m.name.includes('embed') && !m.name.includes('minilm')) ||
+          models[0];
+        if (preferred?.name) {
+          this.defaultModel = preferred.name;
+          log.info(`Using available chat model: ${this.defaultModel}`, LogContext.AI);
         }
       } else {
         throw new Error(`HTTP ${response.status}`);
@@ -102,7 +114,11 @@ export class OllamaService {
     }
   ): Promise<OllamaResponse> {
     if (!this.isAvailable) {
-      throw new Error('Ollama service is not available');
+      await this.checkAvailability();
+      if (!this.isAvailable) {
+        // Attempt a best-effort call anyway; Ollama may be starting but responsive
+        log.warn('Ollama marked unavailable; attempting request anyway', LogContext.AI);
+      }
     }
 
     const requestBody = {
@@ -117,7 +133,7 @@ export class OllamaService {
 
     try {
       const startTime = Date.now();
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
+      const response = await fetchApi(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -186,7 +202,7 @@ export class OllamaService {
 
     try {
       const startTime = Date.now();
-      const response = await fetch(`${this.baseUrl}/api/generate`, {
+      const response = await fetchApi(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -234,7 +250,7 @@ export class OllamaService {
     };
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
+      const response = await fetchApi(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -286,7 +302,7 @@ export class OllamaService {
 
   public async getAvailableModels(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
+      const response = await fetchApi(`${this.baseUrl}/api/tags`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -313,7 +329,7 @@ export class OllamaService {
     try {
       log.info(`🔄 Pulling Ollama model: ${modelName}`, LogContext.AI);
 
-      const response = await fetch(`${this.baseUrl}/api/pull`, {
+      const response = await fetchApi(`${this.baseUrl}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName }),

@@ -40,7 +40,7 @@ export interface CircuitBreakerMetrics {
   };
 }
 
-export class CircuitBreaker<T = any> {
+export class CircuitBreaker<T = unknown> {
   private state: CircuitState = CircuitState.CLOSED;
   private failureCount = 0;
   private successCount = 0;

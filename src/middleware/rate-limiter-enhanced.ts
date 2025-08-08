@@ -28,9 +28,12 @@ interface RateLimitInfo {
 }
 
 // Environment-based configuration
-const rateLimitDefaults = {
+const rateLimitDefaults: RateLimitConfig = {
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10), // 1 minute default
   maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // 100 requests per window
+  keyPrefix: 'rate-limit',
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
   standardHeaders: process.env.RATE_LIMIT_STANDARD_HEADERS !== 'false',
   legacyHeaders: process.env.RATE_LIMIT_LEGACY_HEADERS !== 'false',
 };
@@ -66,6 +69,22 @@ const endpointConfigs: Record<string, RateLimitConfig> = {
     windowMs: 60 * MILLISECONDS_IN_SECOND, // 1 minute
     maxRequests: 40, // 40 knowledge queries per minute
     keyPrefix: 'knowledge',
+  },
+  // Broader patterns (prefix match)
+  '/api/v1/assistant/': {
+    windowMs: 60 * MILLISECONDS_IN_SECOND,
+    maxRequests: 60,
+    keyPrefix: 'assistant',
+  },
+  '/api/v1/agents/': {
+    windowMs: 60 * MILLISECONDS_IN_SECOND,
+    maxRequests: 30,
+    keyPrefix: 'agents',
+  },
+  '/api/v1/external-apis/': {
+    windowMs: 60 * MILLISECONDS_IN_SECOND,
+    maxRequests: 60,
+    keyPrefix: 'external',
   },
 };
 
@@ -243,10 +262,23 @@ class RateLimiter {
       try {
         // Get endpoint-specific config or use defaults
         const endpoint = req.path;
-        const baseConfig = endpointConfigs[endpoint] || rateLimitDefaults;
+        // Exact match, else choose the longest prefix match
+        let baseConfig = endpointConfigs[endpoint];
+        if (!baseConfig) {
+          let bestKey = '';
+          for (const key of Object.keys(endpointConfigs)) {
+            if (endpoint.startsWith(key) && key.length > bestKey.length) {
+              bestKey = key;
+            }
+          }
+          baseConfig = bestKey ? endpointConfigs[bestKey] : rateLimitDefaults;
+        }
+        const ensuredBase = baseConfig || rateLimitDefaults;
         const config: RateLimitConfig = {
-          ...baseConfig,
+          ...ensuredBase,
           ...customConfig,
+          windowMs: (customConfig?.windowMs ?? ensuredBase.windowMs) as number,
+          maxRequests: (customConfig?.maxRequests ?? ensuredBase.maxRequests) as number,
         };
 
         const key = this.getKey(req, config.keyPrefix);

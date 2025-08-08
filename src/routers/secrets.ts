@@ -3,13 +3,13 @@
  * Provides endpoints for managing API keys through Supabase Vault
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { NextFunction, Request, Response } from 'express';
 import { Router } from 'express';
+import { secretsManager } from '../services/secrets-manager';
+import { getSupabaseClient } from '../services/supabase-client';
 import { sendError, sendSuccess } from '../utils/api-response';
 import { LogContext, log } from '../utils/logger';
-import { secretsManager } from '../services/secrets-manager';
-import { supabaseClient } from '../services/supabase-client';
-import type { SupabaseClient } from '@supabase/supabase-js';
 
 const router = Router();
 
@@ -21,7 +21,9 @@ const router = Router();
 router.get('/services', async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get all service configurations
-    const { data: services, error: servicesError } = await (supabaseClient as SupabaseClient)
+    const supabase = getSupabaseClient() as SupabaseClient | null;
+    if (!supabase) return sendError(res, 'INTERNAL_ERROR', 'Database unavailable', 503);
+    const { data: services, error: servicesError } = await supabase
       .from('service_configurations')
       .select('*')
       .eq('is_active', true)
@@ -30,7 +32,9 @@ router.get('/services', async (req: Request, res: Response, next: NextFunction) 
     if (servicesError) throw servicesError;
 
     // Get all secrets (without actual keys)
-    const { data: secrets, error: secretsError } = await (supabaseClient as SupabaseClient)
+    const supabase2 = getSupabaseClient() as SupabaseClient | null;
+    if (!supabase2) return sendError(res, 'INTERNAL_ERROR', 'Database unavailable', 503);
+    const { data: secrets, error: secretsError } = await supabase2
       .from('api_secrets')
       .select('service_name, description, is_active, expires_at, rate_limit, metadata')
       .eq('is_active', true);
@@ -122,7 +126,9 @@ router.delete('/delete/:service', async (req: Request, res: Response, next: Next
     }
 
     // Delete from api_secrets table
-    const { error: deleteError } = await (supabaseClient as SupabaseClient)
+    const supabase3 = getSupabaseClient() as SupabaseClient | null;
+    if (!supabase3) return sendError(res, 'INTERNAL_ERROR', 'Database unavailable', 503);
+    const { error: deleteError } = await supabase3
       .from('api_secrets')
       .delete()
       .eq('service_name', service);
@@ -131,7 +137,9 @@ router.delete('/delete/:service', async (req: Request, res: Response, next: Next
 
     // Also try to delete from Vault
     try {
-      const { error: vaultError } = await (supabaseClient as SupabaseClient).rpc('delete_secret', {
+      const supabase4 = getSupabaseClient() as SupabaseClient | null;
+      if (!supabase4) return sendError(res, 'INTERNAL_ERROR', 'Database unavailable', 503);
+      const { error: vaultError } = await supabase4.rpc('delete_secret', {
         secret_name: `${service}_key`,
       });
 
@@ -200,7 +208,9 @@ router.post('/migrate', async (req: Request, res: Response, next: NextFunction) 
 router.get('/health', async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Try to list secret names (without values)
-    const { data, error } = await (supabaseClient as SupabaseClient).rpc('list_secret_names');
+    const supabase5 = getSupabaseClient() as SupabaseClient | null;
+    if (!supabase5) return sendError(res, 'INTERNAL_ERROR', 'Database unavailable', 503);
+    const { data, error } = await supabase5.rpc('list_secret_names');
 
     const isHealthy = !error;
     const secretCount = data?.length || 0;

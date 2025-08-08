@@ -3,7 +3,8 @@
  * Handles dynamic integration of external APIs for local-first system
  */
 
-import { LogContext, log } from '../utils/logger';
+import { LogContext, log } from '../utils/logger.js';
+const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
 
 interface ExternalAPIConfig {
   id: string;
@@ -25,6 +26,7 @@ interface APIRequest {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   data?: any;
   headers?: Record<string, string>;
+  timeoutMs?: number;
 }
 
 interface APIResponse {
@@ -58,6 +60,16 @@ class ExternalAPIManager {
       // Validate the API configuration
       if (!config.id || !config.name || !config.baseUrl) {
         throw new Error('Missing required API configuration fields');
+      }
+
+      // Validate base URL scheme
+      try {
+        const u = new URL(config.baseUrl);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+          throw new Error('Unsupported baseUrl scheme');
+        }
+      } catch (e) {
+        throw new Error(`Invalid baseUrl: ${e instanceof Error ? e.message : String(e)}`);
       }
 
       // Test the API connection if enabled
@@ -123,8 +135,26 @@ class ExternalAPIManager {
     }
 
     try {
-      const url = `${api.baseUrl}${request.endpoint}`;
-      const headers = {
+      // Build target URL safely using WHATWG URL
+      let target: URL;
+      try {
+        target = new URL(request.endpoint, api.baseUrl);
+      } catch {
+        return { success: false, error: 'Invalid endpoint URL', statusCode: 400 };
+      }
+      if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+        return { success: false, error: 'Unsupported protocol', statusCode: 400 };
+      }
+      // Basic SSRF protection: ensure endpoint stays within base URL host
+      try {
+        const base = new URL(api.baseUrl);
+        if (base.hostname !== target.hostname) {
+          return { success: false, error: 'Cross-host request blocked', statusCode: 400 };
+        }
+      } catch {
+        return { success: false, error: 'Invalid URL', statusCode: 400 };
+      }
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...api.headers,
         ...request.headers,
@@ -134,13 +164,23 @@ class ExternalAPIManager {
         headers['Authorization'] = `Bearer ${api.apiKey}`;
       }
 
-      const response = await fetch(url, {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? 15000);
+      const response = await fetchApi(target.toString(), {
         method: request.method,
         headers,
         body: request.data ? JSON.stringify(request.data) : undefined,
+        // Local safety defaults
+        redirect: 'follow',
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
-      const responseData = await response.json().catch(() => null);
+      // Safely parse response depending on content-type
+      const ct = response.headers.get('content-type') || '';
+      const responseData = ct.includes('application/json')
+        ? await response.json().catch(() => null)
+        : await response.text().catch(() => null);
 
       // Record the request for rate limiting
       this.recordRequest(apiId);
@@ -149,15 +189,14 @@ class ExternalAPIManager {
         success: response.ok,
         data: responseData,
         statusCode: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
+        headers: Object.fromEntries(Array.from(response.headers as any)),
       };
 
       if (!response.ok) {
         result.error = responseData?.error || `HTTP ${response.status}`;
       }
 
-      log.info('External API request completed', {
-        context: 'external-api',
+      log.info('External API request completed', LogContext.API, {
         apiId,
         endpoint: request.endpoint,
         statusCode: response.status,
@@ -166,8 +205,7 @@ class ExternalAPIManager {
 
       return result;
     } catch (error) {
-      log.error('External API request failed', {
-        context: 'external-api',
+      log.error('External API request failed', LogContext.API, {
         apiId,
         endpoint: request.endpoint,
         error: error instanceof Error ? error.message : String(error),
@@ -217,8 +255,7 @@ class ExternalAPIManager {
     this.requestHistory.delete(apiId);
 
     if (removed) {
-      log.info('External API removed', {
-        context: 'external-api',
+      log.info('External API removed', LogContext.API, {
         apiId,
       });
     }
@@ -239,8 +276,7 @@ class ExternalAPIManager {
       // Test connection before enabling
       const testResponse = await this.testConnection(api);
       if (!testResponse.success) {
-        log.warn('Cannot enable API - connection test failed', {
-          context: 'external-api',
+        log.warn('Cannot enable API - connection test failed', LogContext.API, {
           apiId,
           error: testResponse.error,
         });
@@ -249,8 +285,7 @@ class ExternalAPIManager {
     }
 
     api.enabled = enabled;
-    log.info('API status changed', {
-      context: 'external-api',
+    log.info('API status changed', LogContext.API, {
       apiId,
       enabled,
     });

@@ -3,13 +3,12 @@
  * Main server with Express, TypeScript, and comprehensive error handling
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
+import { type SupabaseClient, createClient } from '@supabase/supabase-js';
 import cors from 'cors';
+let compressionMiddleware: any = null;
 import express from 'express';
 import helmet from 'helmet';
-import type { Server } from 'http';
-import { createServer } from 'http';
+import { type Server, createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 
 // Configuration and utilities
@@ -120,7 +119,7 @@ class UniversalAIToolsServer {
           category: 'project_info',
           source: 'server_startup',
           userId: 'system',
-          projectPath: '/Users/christianmerrill/Desktop/universal-ai-tools',
+          projectPath: process.cwd(),
           metadata: {
             startup_time: new Date().toISOString(),
             features_enabled: ['context_injection', 'supabase_storage', 'agent_registry'],
@@ -157,54 +156,106 @@ class UniversalAIToolsServer {
     }
   }
 
-  private setupMiddleware(): void {
+  private async setupMiddleware(): Promise<void> {
     // Security: Disable Express.js powered-by header to prevent information exposure
     this.app.disable('x-powered-by');
+    // Trust proxy for accurate client IPs behind proxies (safe for local too)
+    this.app.set('trust proxy', 1);
 
-    // Security middleware
+    // Security middleware (tight CSP in production; more relaxed in development)
     this.app.use(
       helmet({
         contentSecurityPolicy: {
           directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc:
+              process.env.NODE_ENV === 'production' ? ["'self'"] : ["'self'", "'unsafe-inline'"],
+            styleSrc:
+              process.env.NODE_ENV === 'production' ? ["'self'"] : ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", 'data:', 'https:'],
+            connectSrc: ["'self'"],
+            frameAncestors: ["'none'"], // prevent clickjacking
+            formAction: ["'self'"],
+            baseUri: ["'self'"],
+            objectSrc: ["'none'"],
           },
         },
+        crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production',
+        crossOriginOpenerPolicy: { policy: 'same-origin' },
+        crossOriginResourcePolicy: { policy: 'same-origin' },
+        referrerPolicy: { policy: 'no-referrer' },
+        hidePoweredBy: true,
+        noSniff: true,
+        dnsPrefetchControl: { allow: false },
+        frameguard: { action: 'deny' },
+        hsts: false, // enable only when serving via HTTPS
       })
     );
 
-    // CORS middleware
-    this.app.use(
-      cors({
-        origin: (origin, callback) => {
-          // Allow requests with no origin (like mobile apps or curl requests)
-          if (!origin) return callback(null, true);
+    // Compression (optional)
+    try {
+      const mod = await import('compression');
+      const c = (mod as any).default || (mod as any);
+      compressionMiddleware = c();
+      this.app.use(compressionMiddleware);
+    } catch {
+      // compression not installed; skip in dev
+    }
 
-          const allowedOrigins = [
-            'http://localhost:5173',
-            'http://localhost:3000',
-            process.env.FRONTEND_URL,
-          ].filter(Boolean);
+    // CORS middleware (centralized config)
+    (async () => {
+      try {
+        const { corsMiddleware } = await import('./middleware/cors-config');
+        this.app.use(corsMiddleware);
+      } catch {
+        // Fallback permissive CORS only in development
+        this.app.use(
+          cors({
+            origin: (origin, callback) => callback(null, process.env.NODE_ENV !== 'production'),
+            credentials: true,
+          })
+        );
+      }
+    })();
 
-          if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-          } else {
-            callback(null, false);
-          }
-        },
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-AI-Service'],
-        exposedHeaders: ['X-Request-Id'],
-        maxAge: 86400, // 24 hours
-      })
-    );
+    // Block TRACE/TRACK/CONNECT probing methods
+    this.app.use((req, res, next) => {
+      const m = req.method.toUpperCase();
+      if (m === 'TRACE' || m === 'TRACK' || m === 'CONNECT') {
+        return res.status(405).end();
+      }
+      return next();
+    });
 
-    // Body parsing middleware
-    this.app.use(express.json({ limit: '50mb' }));
-    this.app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+    // Optional IP filter (allow/deny lists via env)
+    try {
+      const { ipFilterMiddleware } = await import('./middleware/ip-filter');
+      const allowList = (process.env.IP_ALLOWLIST || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      this.app.use(ipFilterMiddleware(allowList));
+    } catch {
+      // ignore if unavailable
+    }
+
+    // Request hardening & parsing
+    try {
+      const {
+        requestIdMiddleware,
+        enforceJsonMiddleware,
+        limitQueryMiddleware,
+        jsonDepthGuardMiddleware,
+      } = await import('./middleware/request-guard');
+      this.app.use(requestIdMiddleware());
+      this.app.use(limitQueryMiddleware());
+      this.app.use(enforceJsonMiddleware());
+      this.app.use(jsonDepthGuardMiddleware());
+    } catch {
+      // guards unavailable
+    }
+    this.app.use(express.json({ limit: '10mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Static file serving
     this.app.use(express.static('public'));
@@ -214,6 +265,14 @@ class UniversalAIToolsServer {
 
     // API response middleware
     this.app.use(apiResponseMiddleware);
+
+    // Extra security headers
+    try {
+      const { securityHeadersMiddleware } = await import('./middleware/security-headers');
+      this.app.use(securityHeadersMiddleware());
+    } catch {
+      // ignore
+    }
 
     // Request logging middleware
     this.app.use((req, res, next) => {
@@ -234,17 +293,18 @@ class UniversalAIToolsServer {
       next();
     });
 
-    // Handle preflight requests
-    this.app.options('*', (req, res) => {
-      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-      res.header(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, X-API-Key, X-AI-Service'
-      );
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.sendStatus(204);
-    });
+    // Preflight handled by cors; keep minimal fallback
+    this.app.options('*', cors());
+
+    // Metrics middleware (prom-client)
+    (async () => {
+      try {
+        const { metricsMiddleware } = await import('./middleware/metrics');
+        this.app.use(metricsMiddleware());
+      } catch {
+        // noop if metrics not available
+      }
+    })();
 
     log.info('✅ Middleware setup completed', LogContext.SERVER);
   }
@@ -285,6 +345,8 @@ class UniversalAIToolsServer {
             agentRegistry: !!this.agentRegistry,
             redis: redisHealth,
             mlx: mlxHealth,
+            ollama: false,
+            lmStudio: false,
           },
           agents: this.agentRegistry
             ? {
@@ -296,6 +358,15 @@ class UniversalAIToolsServer {
           uptime: process.uptime(),
         };
 
+        try {
+          // Basic checks for LLM endpoints
+          const { ollamaService } = await import('./services/ollama-service');
+          (health as any).services.ollama = ollamaService.isServiceAvailable();
+        } catch {}
+        try {
+          const { fastCoordinator } = await import('./services/fast-llm-coordinator');
+          (health as any).services.lmStudio = await fastCoordinator.checkLmStudioHealth();
+        } catch {}
         res.json(health);
       } catch (error) {
         // Fallback to synchronous health check if async fails
@@ -322,6 +393,19 @@ class UniversalAIToolsServer {
         };
 
         res.json(health);
+      }
+    });
+
+    // Prometheus metrics endpoint (text/plain)
+    this.app.get('/metrics', async (req, res) => {
+      try {
+        const { getMetricsText } = await import('./middleware/metrics');
+        const metrics = await getMetricsText();
+        res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+        res.send(metrics);
+      } catch (error) {
+        // Fallback JSON if registry not available
+        res.json({ success: true, data: { message: 'metrics disabled' } });
       }
     });
 
@@ -375,6 +459,102 @@ class UniversalAIToolsServer {
       }
     });
 
+    // Ollama models endpoint
+    this.app.get('/api/v1/ollama/models', async (req, res) => {
+      try {
+        const { ollamaService } = await import('./services/ollama-service');
+        const models = await ollamaService.getAvailableModels();
+
+        res.json({
+          success: true,
+          models: models || [],
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: {
+            code: 'OLLAMA_ERROR',
+            message: 'Failed to get Ollama models',
+            details: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    });
+
+    // Vision models endpoint
+    this.app.get('/api/v1/vision/models', async (req, res) => {
+      try {
+        const { visionResourceManager } = await import('./services/vision-resource-manager');
+        const models = visionResourceManager.getLoadedModels();
+
+        res.json({
+          success: true,
+          models: models || [],
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: {
+            code: 'VISION_ERROR',
+            message: 'Failed to get vision models',
+            details: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    });
+
+    // Agents list endpoint
+    this.app.get('/api/v1/agents', async (req, res) => {
+      try {
+        const agents = this.agentRegistry ? this.agentRegistry.getAvailableAgents() : [];
+
+        res.json({
+          success: true,
+          agents: agents || [],
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: {
+            code: 'AGENTS_ERROR',
+            message: 'Failed to get agents',
+            details: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    });
+
+    // Autonomous action rollback endpoint
+    this.app.post('/api/v1/autonomous-actions/:actionId/rollback', async (req, res) => {
+      try {
+        const { actionId } = req.params;
+        const { reason = 'Performance degradation detected' } = req.body;
+
+        const { autonomousActionRollbackService } = await import(
+          './services/autonomous-action-rollback-service'
+        );
+        const result = await autonomousActionRollbackService.executeRollback(actionId, reason);
+
+        res.json({
+          success: result.success,
+          data: result,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error: {
+            code: 'ROLLBACK_ERROR',
+            message: 'Failed to execute rollback',
+            details: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    });
+
     // Simple monitoring endpoints for client compatibility
     this.app.get('/metrics', (req, res) => {
       res.json({
@@ -404,6 +584,44 @@ class UniversalAIToolsServer {
           timestamp: new Date().toISOString(),
         },
       });
+    });
+
+    // LLM system snapshot (Ollama + LM Studio)
+    this.app.get('/api/v1/system/llm', async (req, res) => {
+      try {
+        const snapshot: any = {
+          timestamp: new Date().toISOString(),
+          environment: config.environment,
+          services: {
+            ollama: { available: false, defaultModel: null },
+            lmStudio: { available: false },
+          },
+          allowedHosts: [],
+        };
+
+        try {
+          const { getAllowedHostsFromEnv } = await import('./utils/url-security');
+          snapshot.allowedHosts = Array.from(getAllowedHostsFromEnv('ALLOWED_LLM_HOSTS'));
+        } catch {}
+
+        try {
+          const { ollamaService } = await import('./services/ollama-service');
+          snapshot.services.ollama.available = ollamaService.isServiceAvailable();
+          snapshot.services.ollama.defaultModel = ollamaService.getDefaultModel?.();
+        } catch {}
+
+        try {
+          const { fastCoordinator } = await import('./services/fast-llm-coordinator');
+          snapshot.services.lmStudio.available = await fastCoordinator.checkLmStudioHealth();
+        } catch {}
+
+        return res.json({ success: true, data: snapshot });
+      } catch (error) {
+        return res.status(500).json({
+          success: false,
+          error: { code: 'LLM_SNAPSHOT_ERROR', message: 'Failed to get LLM snapshot' },
+        });
+      }
     });
 
     // Common AI Assistant endpoint aliases
@@ -738,27 +956,23 @@ class UniversalAIToolsServer {
           try {
             // First create a memory record
             const { data: memoryData, error: memoryError } = await this.supabase
-              .from('memories')
+              .from('ai_memories')
               .insert({
-                source_type: 'service',
-                source_id: '00000000-0000-0000-0000-000000000001', // Static service UUID for vision
-                content: `Visual content: ${imagePath ? `image at ${imagePath}` : 'base64 image'}`,
-                content_type: 'image',
-                visual_embedding: (embeddingResult as any).data?.vector,
-                image_metadata: {
-                  model: (embeddingResult as any).model,
-                  dimension: (embeddingResult as any).data?.dimension,
-                  processingTime: (embeddingResult as any).processingTime,
-                  timestamp: new Date().toISOString(),
-                },
-                image_path: imagePath || null,
-                is_generated: false,
-                source: 'vision-embedding-api',
+                service_id: '00000000-0000-0000-0000-000000000001',
                 memory_type: 'visual',
-                importance: 0.8,
+                content: imagePath ? `image at ${imagePath}` : 'base64 image',
                 metadata: {
-                  type: 'vision_embedding',
-                  model: (embeddingResult as any).model,
+                  content_type: 'image',
+                  source: 'vision-embedding-api',
+                  is_generated: false,
+                  importance: 0.8,
+                  image_path: imagePath || null,
+                  image_metadata: {
+                    model: (embeddingResult as any).model,
+                    dimension: (embeddingResult as any).data?.dimension,
+                    processingTime: (embeddingResult as any).processingTime,
+                    timestamp: new Date().toISOString(),
+                  },
                 },
               })
               .select('id')
@@ -1695,6 +1909,17 @@ class UniversalAIToolsServer {
       });
     }
 
+    // Load errors routes (Supabase-backed error history)
+    try {
+      const errorsModule = await import('./routers/errors');
+      this.app.use('/api/v1/errors', errorsModule.default);
+      log.info('✅ Errors routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Errors routes failed to load', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Load device authentication routes
     try {
       const deviceAuthModule = await import('./routers/device-auth');
@@ -2050,6 +2275,39 @@ class UniversalAIToolsServer {
       );
     } catch (error) {
       log.error('❌ Failed to load autonomous actions router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load metrics/feedback routes
+    try {
+      const metricsRouter = (await import('./routers/metrics')).default;
+      this.app.use('/api/v1/agents/metrics', metricsRouter);
+      log.info('✅ Metrics/feedback routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Metrics routes failed to load', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load verified facts routes
+    try {
+      const factsRouter = (await import('./routers/verified-facts')).default;
+      this.app.use('/api/v1/verified-facts', factsRouter);
+      log.info('✅ Verified facts routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Verified facts routes failed to load', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Start verified facts background validator (best-effort)
+    try {
+      const { startFactsValidator } = await import('./services/verified-facts-validator');
+      startFactsValidator();
+      log.info('✅ Verified facts validator started', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Verified facts validator not started', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }

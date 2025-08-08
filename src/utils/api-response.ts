@@ -96,7 +96,7 @@ export class ApiError extends Error {
   constructor(
     public code: keyof ErrorCode,
     message: string,
-    public statusCode: number = 400,
+    public statusCode = 400,
     public details?: unknown
   ) {
     super(message);

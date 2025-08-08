@@ -12,6 +12,7 @@ import * as path from 'path';
 import { VisionBrowserDebugger } from '../services/vision-browser-debugger';
 import {
   createSecurePath,
+  safeUnlink,
   sanitizeFilename,
   validateFile,
   validatePath,
@@ -167,6 +168,14 @@ router.post(
       const { prompt, focus = 'all' } = req.body;
       const screenshotPath = req.file.path;
 
+      // Security: verify uploaded file path stays within allowed boundaries
+      if (!validatePathBoundary(screenshotPath, ALLOWED_SCREENSHOT_DIRS)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid upload path',
+        });
+      }
+
       // Analyze the uploaded screenshot
       const analysis = await visionDebugger.analyzeScreenshot(screenshotPath);
 
@@ -184,7 +193,7 @@ router.post(
       }
 
       // Clean up uploaded file
-      fs.unlinkSync(screenshotPath);
+      safeUnlink(screenshotPath, ALLOWED_SCREENSHOT_DIRS);
 
       return res.json({
         success: true,
@@ -584,9 +593,10 @@ router.delete(
 
             if (stats.birthtime < cutoffDate) {
               totalSize += stats.size;
-              fs.unlinkSync(filePath);
-              deletedCount++;
-              console.log(`🔒 Cleanup: Deleted old screenshot: ${file}`);
+              if (safeUnlink(filePath, ALLOWED_SCREENSHOT_DIRS)) {
+                deletedCount++;
+                console.log(`🔒 Cleanup: Deleted old screenshot: ${file}`);
+              }
             }
           } catch (error) {
             console.warn(`🔒 Cleanup: Error processing ${file}: ${error}`);

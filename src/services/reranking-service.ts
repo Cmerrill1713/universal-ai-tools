@@ -147,10 +147,19 @@ export class RerankingService {
     candidates: RerankCandidate[]
   ): Promise<RerankResult[]> {
     try {
-      // Get API key from Supabase vault
-      const { data: secret } = await this.supabase.rpc('vault.read_secret', {
-        secret_name: 'huggingface_api_key',
-      });
+      // Get API key from Supabase vault with fallback to shim
+      let secret: any = null;
+      try {
+        const res = await this.supabase.rpc('vault.read_secret', {
+          secret_name: 'huggingface_api_key',
+        });
+        secret = res.data;
+      } catch {
+        const res = await this.supabase.rpc('vault_shim_read_secret', {
+          secret_name: 'huggingface_api_key',
+        });
+        secret = res.data;
+      }
 
       if (!secret?.decrypted_secret && !process.env.HUGGINGFACE_API_KEY) {
         throw new Error('HuggingFace API key not found');
@@ -201,9 +210,18 @@ export class RerankingService {
       // For OpenAI, we'll use embeddings similarity as a proxy for reranking
       // This is not as good as true cross-encoder but works as fallback
 
-      const { data: secret } = await this.supabase.rpc('vault.read_secret', {
-        secret_name: 'openai_api_key',
-      });
+      let secret: any = null;
+      try {
+        const res = await this.supabase.rpc('vault.read_secret', {
+          secret_name: 'openai_api_key',
+        });
+        secret = res.data;
+      } catch {
+        const res = await this.supabase.rpc('vault_shim_read_secret', {
+          secret_name: 'openai_api_key',
+        });
+        secret = res.data;
+      }
 
       if (!secret?.decrypted_secret && !process.env.OPENAI_API_KEY) {
         throw new Error('OpenAI API key not found');

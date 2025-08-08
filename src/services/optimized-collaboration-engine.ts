@@ -216,8 +216,8 @@ export class OptimizedCollaborationEngine extends EventEmitter {
    * Calculate weighted consensus based on contributions
    */
   private async calculateWeightedConsensus(session: CollaborationSession): Promise<unknown> {
-    const decisions = session.decisions;
-    const contributions = session.game.contributions;
+    const {decisions} = session;
+    const {contributions} = session.game;
 
     // Weight decisions by contribution level
     const weightedDecisions = decisions.map((decision) => ({
@@ -265,9 +265,9 @@ export class OptimizedCollaborationEngine extends EventEmitter {
    * Calculate consensus confidence
    */
   private calculateConsensusConfidence(session: CollaborationSession): number {
-    const decisions = session.decisions;
-    const totalContribution = session.game.totalContribution;
-    const optimalContribution = session.game.optimalContribution;
+    const {decisions} = session;
+    const {totalContribution} = session.game;
+    const {optimalContribution} = session.game;
 
     // Base confidence from average decision confidence
     const avgConfidence = decisions.reduce((sum, d) => sum + d.confidence, 0) / decisions.length;
@@ -305,8 +305,8 @@ export class OptimizedCollaborationEngine extends EventEmitter {
    * Apply incentives based on contribution levels
    */
   private async applyIncentives(session: CollaborationSession): Promise<void> {
-    const game = session.game;
-    const participants = session.participants;
+    const {game} = session;
+    const {participants} = session;
 
     for (const participant of participants) {
       const contribution = game.contributions.get(participant) || 0;

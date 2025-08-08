@@ -21,14 +21,17 @@ if (process.env.PRODUCTION_URL) {
 
 export const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or postman)
-    if (!origin) return callback(null, true);
+    // Allow requests with no origin only in development (mobile apps, Postman)
+    if (!origin) {
+      if (process.env.NODE_ENV !== 'production') return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    }
 
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       // In development, allow all origins
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV !== 'production') {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -44,6 +47,7 @@ export const corsOptions: cors.CorsOptions = {
     'X-AI-Service',
     'X-Session-ID',
     'X-Conversation-ID',
+    'X-Request-Id',
   ],
   exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'X-Current-Page', 'X-Per-Page'],
   maxAge: 86400, // 24 hours

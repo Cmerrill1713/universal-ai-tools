@@ -126,6 +126,13 @@ export interface ServiceConfig {
     anthropicApiKey?: string;
     ollamaUrl?: string;
   };
+  lfm2?: {
+    maxConcurrency: number;
+    maxTokens: number;
+    maxPromptChars: number;
+    timeoutMs: number;
+    maxPending: number;
+  };
   vision: {
     enableSdxlRefiner: boolean;
     sdxlRefinerPath: string;

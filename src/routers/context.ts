@@ -18,7 +18,7 @@ import { enhancedContextManager } from '../services/enhanced-context-manager';
 import { semanticContextRetrievalService } from '../services/semantic-context-retrieval';
 import { contextAnalyticsService } from '../services/context-analytics-service';
 import { autoContextMiddleware } from '../middleware/auto-context-middleware';
-import { sendSuccess, sendError } from '../utils/api-response';
+import { sendError, sendSuccess } from '../utils/api-response';
 
 const router = Router();
 

@@ -14,6 +14,7 @@ import { sendError, sendSuccess } from '../utils/api-response';
 import { createRateLimiter } from '../middleware/rate-limiter-enhanced';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
+import { uploadGuard } from '../middleware/upload-guard';
 
 const router = Router();
 
@@ -134,6 +135,7 @@ router.post(
   '/analyze',
   visionRateLimiter,
   upload.single('image'),
+  uploadGuard({ maxSize: 10 * 1024 * 1024 }),
   async (req: Request, res: Response, next: NextFunction) => {
     // Validate request
     try {
@@ -283,6 +285,7 @@ router.post(
   refinementRateLimiter,
   validateRequest(refineSchema),
   upload.single('image'),
+  uploadGuard({ maxSize: 10 * 1024 * 1024 }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { parameters } = req.body;
@@ -337,6 +340,7 @@ router.post(
   visionRateLimiter,
   validateRequest(embeddingSchema),
   upload.single('image'),
+  uploadGuard({ maxSize: 10 * 1024 * 1024 }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get image data from request
@@ -386,6 +390,7 @@ router.post(
   visionRateLimiter,
   validateRequest(reasonSchema),
   upload.single('image'),
+  uploadGuard({ maxSize: 10 * 1024 * 1024 }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { question } = req.body;
@@ -437,6 +442,17 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const files = req.files as Express.Multer.File[];
+      // Validate all files
+      if (files) {
+        for (const f of files) {
+          (req as any).file = f;
+          const guard = uploadGuard({ maxSize: 10 * 1024 * 1024 });
+          await new Promise<void>((resolve, reject) =>
+            guard(req as any, res as any, (err?: unknown) => (err ? reject(err) : resolve()))
+          );
+        }
+        (req as any).file = undefined;
+      }
 
       if (!files || files.length === 0) {
         return sendError(res, 'VALIDATION_ERROR', 'No images provided', 400);

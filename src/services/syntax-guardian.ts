@@ -24,12 +24,12 @@ class SyntaxGuardian {
     console.log('🛡️ Syntax Guardian initialized');
   }
 
-  async start() {
+  async start(): Promise<void> {
     if (this.isRunning) {
       console.log('⚠️ Syntax Guardian is already running');
       return;
     }
-    // TODO: Add error handling with try-catch
+    // Error handling in checkSyntax/attemptAutoFix
 
     this.isRunning = true;
     console.log('🔍 Starting Syntax Guardian monitoring...');
@@ -50,16 +50,17 @@ class SyntaxGuardian {
       console.log('🔍 Running syntax check...');
 
       // Run TypeScript compiler check
-      const _result = execSync('npx tsc --noEmit --skipLibCheck', {
+      execSync('npx tsc --noEmit --skipLibCheck', {
         cwd: process.cwd(),
         encoding: 'utf8',
         timeout: 30000,
       });
 
       console.log('✅ No syntax errors found');
-    } catch (error: any) {
-      if ((error as any).stdout || (error as any).stderr) {
-        const output = (error as any).stdout || (error as any).stderr;
+    } catch (error) {
+      const e = error as { stdout?: string; stderr?: string };
+      if (e.stdout || e.stderr) {
+        const output = e.stdout || e.stderr || '';
         console.log('⚠️ Syntax issues detected, attempting auto-fix...');
 
         // Try to auto-fix common issues
@@ -68,7 +69,7 @@ class SyntaxGuardian {
     }
   }
 
-  async attemptAutoFix(errorOutput: string): Promise<void> {
+  async attemptAutoFix(_errorOutput: string): Promise<void> {
     try {
       console.log('🔧 Attempting auto-fix...');
 

@@ -5,9 +5,9 @@
 
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { LogContext, log } from '../utils/logger';
-import { sendError } from '../utils/api-response';
 import { secretsManager } from '../services/secrets-manager';
+import { sendError } from '../utils/api-response';
+import { LogContext, log } from '../utils/logger';
 
 // Extend Request interface to include user and device info
 declare global {
@@ -43,6 +43,19 @@ interface JwtPayload {
  */
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Check temporary lockout before any heavy work
+    if (await isIpLockedOut(req)) {
+      const retry = await getLockoutRetryAfter(req);
+      if (retry > 0) {
+        res.setHeader('Retry-After', String(retry));
+      }
+      return sendError(
+        res,
+        'AUTHENTICATION_ERROR',
+        'Too many failed attempts. Try again later.',
+        429
+      );
+    }
     // Extract token from Authorization header or API key
     const authHeader = req.headers.authorization;
     const apiKey = req.headers['x-api-key'] as string;
@@ -97,6 +110,9 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       trusted: decoded.trusted || false,
     };
 
+    // Successful auth: reset failure counters
+    await recordAuthSuccess(req);
+
     // Log device authentication
     if (decoded.deviceId) {
       log.info('Device authenticated', LogContext.API, {
@@ -111,12 +127,18 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       log.warn('Invalid JWT token', LogContext.API, { error: error.message });
+      await slowDownOnAuthFailure(req);
+      await recordAuthFailure(req);
       return sendError(res, 'AUTHENTICATION_ERROR', 'Invalid token', 401);
     } else if (error instanceof jwt.TokenExpiredError) {
       log.warn('Expired JWT token', LogContext.API);
+      await slowDownOnAuthFailure(req);
+      await recordAuthFailure(req);
       return sendError(res, 'AUTHENTICATION_ERROR', 'Token expired', 401);
     } else {
       log.error('Authentication failed', LogContext.API, { error });
+      await slowDownOnAuthFailure(req);
+      await recordAuthFailure(req);
       return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication failed', 401);
     }
   }
@@ -129,8 +151,10 @@ function isPublicEndpoint(path: string): boolean {
   const publicPaths = [
     '/api/health',
     '/api/status',
-    '/api/v1/chat',
-    '/api/v1/memory',
+    // In production, require auth for chat/memory
+    ...(process.env.NODE_ENV === 'production'
+      ? []
+      : ['/api/v1/chat', '/api/v1/memory', '/api/v1/agents']),
     '/api/v1/device-auth/challenge',
     '/docs',
     '/api-docs',
@@ -138,6 +162,130 @@ function isPublicEndpoint(path: string): boolean {
 
   return publicPaths.some((publicPath) => path.startsWith(publicPath));
 }
+
+/**
+ * Slow down repeated auth failures per IP without storing PII
+ */
+async function slowDownOnAuthFailure(req: Request): Promise<void> {
+  try {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const count = await getFailureCount(ip);
+    // Exponential-ish backoff with jitter, capped for local use
+    const base = 100;
+    const factor = Math.min(count, 10) * 100;
+    const jitter = Math.floor(Math.random() * 200);
+    await new Promise((r) => setTimeout(r, base + factor + jitter));
+    // Optionally, integrate with redisService for per-IP counters later
+  } catch {
+    // ignore
+  }
+}
+
+// ---------- Auth failure tracking (Redis-backed with in-memory fallback) ----------
+
+const FAILURE_WINDOW_SEC = 15 * 60; // 15 minutes
+const LOCKOUT_THRESHOLD = 10; // failures in window
+const LOCKOUT_TTL_SEC = 5 * 60; // 5 minutes
+
+function getClientIp(req: Request): string {
+  return (req.ip || (req.connection as any)?.remoteAddress || 'unknown').toString();
+}
+
+async function getRedisService(): Promise<any | null> {
+  try {
+    const { redisService } = await import('../services/redis-service');
+    return redisService;
+  } catch {
+    return null;
+  }
+}
+
+async function getFailureCount(ip: string): Promise<number> {
+  try {
+    const redis = await getRedisService();
+    const key = `auth:fail:${ip}`;
+    if (redis && redis.isConnected()) {
+      const val = await redis.get(key);
+      return typeof val === 'number' ? val : Number(val?.count || val) || 0;
+    }
+    return Number((authFailures.get(ip)?.count as number) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+async function recordAuthFailure(req: Request): Promise<void> {
+  const ip = getClientIp(req);
+  const redis = await getRedisService();
+  const failKey = `auth:fail:${ip}`;
+  const lockKey = `auth:lock:${ip}`;
+
+  if (redis && redis.isConnected()) {
+    const cur = await redis.get(failKey);
+    const count = (typeof cur === 'number' ? cur : Number(cur?.count || cur) || 0) + 1;
+    await redis.set(failKey, { count, ts: Date.now() }, FAILURE_WINDOW_SEC);
+    if (count >= LOCKOUT_THRESHOLD) {
+      await redis.set(lockKey, { until: Date.now() + LOCKOUT_TTL_SEC * 1000 }, LOCKOUT_TTL_SEC);
+    }
+    return;
+  }
+
+  // Fallback in-memory
+  const current = authFailures.get(ip) || { count: 0, ts: Date.now() };
+  const updated = { count: current.count + 1, ts: Date.now() } as { count: number; ts: number };
+  authFailures.set(ip, updated);
+  setTimeout(() => authFailures.delete(ip), FAILURE_WINDOW_SEC * 1000);
+  if (updated.count >= LOCKOUT_THRESHOLD) {
+    authLockouts.set(ip, { until: Date.now() + LOCKOUT_TTL_SEC * 1000 });
+    setTimeout(() => authLockouts.delete(ip), LOCKOUT_TTL_SEC * 1000);
+  }
+}
+
+async function recordAuthSuccess(req: Request): Promise<void> {
+  const ip = getClientIp(req);
+  const redis = await getRedisService();
+  const failKey = `auth:fail:${ip}`;
+  const lockKey = `auth:lock:${ip}`;
+  if (redis && redis.isConnected()) {
+    await redis.del(failKey);
+    await redis.del(lockKey);
+    return;
+  }
+  authFailures.delete(ip);
+  authLockouts.delete(ip);
+}
+
+async function isIpLockedOut(req: Request): Promise<boolean> {
+  const ip = getClientIp(req);
+  const redis = await getRedisService();
+  const lockKey = `auth:lock:${ip}`;
+  if (redis && redis.isConnected()) {
+    const val = await redis.get(lockKey);
+    if (!val) return false;
+    const until = typeof val === 'number' ? val : Number(val?.until || 0);
+    return until ? Date.now() < until : true;
+  }
+  const entry = authLockouts.get(ip);
+  return entry ? Date.now() < entry.until : false;
+}
+
+async function getLockoutRetryAfter(req: Request): Promise<number> {
+  const ip = getClientIp(req);
+  const redis = await getRedisService();
+  const lockKey = `auth:lock:${ip}`;
+  if (redis && redis.isConnected()) {
+    const val = await redis.get(lockKey);
+    const until = typeof val === 'number' ? val : Number(val?.until || 0);
+    if (!until) return 0;
+    return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+  }
+  const entry = authLockouts.get(ip);
+  if (!entry) return 0;
+  return Math.max(0, Math.ceil((entry.until - Date.now()) / 1000));
+}
+
+const authFailures = new Map<string, { count: number; ts: number }>();
+const authLockouts = new Map<string, { until: number }>();
 
 /**
  * Validate API key against stored keys
@@ -148,12 +296,23 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
       return false;
     }
 
-    // Check against stored API keys in secrets manager
-    const validKeys = await secretsManager.getAvailableServices();
-    // TODO: Implement proper API key validation against database
+    // Validate against Vault-backed service configuration
+    const { secretsManager } = await import('../services/secrets-manager');
+    const services = await secretsManager.getAvailableServices();
+    if (!services || services.length === 0) {
+      return false;
+    }
 
-    return true; // Temporary - accept any valid-looking key
+    // Optional: check a dedicated API key service entry if present
+    const apiServiceCfg = await secretsManager.getServiceConfig('api_gateway');
+    if (apiServiceCfg?.api_key && typeof apiServiceCfg.api_key === 'string') {
+      return apiKey === apiServiceCfg.api_key;
+    }
+
+    // Otherwise, deny by default (no dev bypass in production)
+    return process.env.NODE_ENV !== 'production';
   } catch (error) {
+    const { LogContext, log } = await import('../utils/logger');
     log.error('API key validation failed', LogContext.API, { error });
     return false;
   }

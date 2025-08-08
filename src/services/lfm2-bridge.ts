@@ -6,6 +6,7 @@
 
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
+import path from 'path';
 import { LogContext, log } from '@/utils/logger';
 import { ollamaService } from '@/services/ollama-service';
 import { CircuitBreaker, CircuitBreakerRegistry } from '@/utils/circuit-breaker';
@@ -58,6 +59,12 @@ export class LFM2BridgeService {
     successRate: 1.0,
     tokenThroughput: 0,
   };
+  private MAX_PENDING = parseInt(process.env.LFM2_MAX_PENDING || '50', 10);
+  private REQUEST_TIMEOUT_MS = parseInt(process.env.LFM2_TIMEOUT_MS || '10000', 10);
+  private MAX_CONCURRENCY = parseInt(process.env.LFM2_MAX_CONCURRENCY || '2', 10);
+  private MAX_TOKENS = parseInt(process.env.LFM2_MAX_TOKENS || '512', 10);
+  private MAX_PROMPT_CHARS = parseInt(process.env.LFM2_MAX_PROMPT_CHARS || '4000', 10);
+  private activeCount = 0;
 
   constructor() {
     this.initializeLFM2();
@@ -67,12 +74,14 @@ export class LFM2BridgeService {
     try {
       log.info('🚀 Initializing LFM2-1.2B bridge service', LogContext.AI);
 
-      // Create Python bridge server
-      const pythonScript = `/Users/christianmerrill/Desktop/universal-ai-tools/src/services/lfm2-server.py`;
+      const pythonBin = process.env.LFM2_PYTHON_BIN || 'python3';
+      const scriptFromEnv = process.env.LFM2_PYTHON_SCRIPT;
+      const defaultScript = path.join(__dirname, 'lfm2-server.py');
+      const pythonScript = scriptFromEnv || defaultScript;
 
-      this.pythonProcess = spawn('python3', [pythonScript], {
+      this.pythonProcess = spawn(pythonBin, [pythonScript], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, PYTHONPATH: '/Users/christianmerrill/Desktop/universal-ai-tools' },
+        env: { ...process.env },
       });
 
       if (!this.pythonProcess.stdout || !this.pythonProcess.stderr || !this.pythonProcess.stdin) {
@@ -234,39 +243,75 @@ export class LFM2BridgeService {
       return this.generateMockResponse(request);
     }
 
+    // Backpressure: cap pending requests
+    if (this.pendingRequests.size >= this.MAX_PENDING) {
+      log.warn('⚠️ LFM2 pending request limit reached, rejecting quickly', LogContext.AI, {
+        maxPending: this.MAX_PENDING,
+      });
+      return {
+        content: "I'm currently handling a lot of requests. Please try again in a moment.",
+        tokens: 10,
+        executionTime: 1,
+        model: 'lfm2-overload-fallback',
+        confidence: 0.3,
+      };
+    }
+
     const requestId = this.generateRequestId();
     const startTime = Date.now();
 
-    return new Promise((resolve, reject) => {
-      this.pendingRequests.set(requestId, { resolve, reject, startTime });
+    // Clamp prompt and token sizes to avoid excessive memory
+    const clampedPrompt = (request.prompt || '').slice(0, this.MAX_PROMPT_CHARS);
+    const clampedTokens = Math.max(
+      1,
+      Math.min(request.maxTokens || request.maxLength || 512, this.MAX_TOKENS)
+    );
 
-      // Send request to Python process with correct format
-      const pythonRequest = {
-        type:
-          request.taskType === 'coordination'
-            ? 'coordination'
-            : request.taskType === 'classification'
-            ? 'classification'
-            : 'completion',
-        requestId,
-        prompt: request.prompt,
-        maxTokens: request.maxTokens || request.maxLength || 512,
-        temperature: request.temperature || 0.7,
+    return new Promise((resolve, reject) => {
+      const exec = () => {
+        this.activeCount += 1;
+        this.pendingRequests.set(requestId, { resolve, reject, startTime });
+
+        const pythonRequest = {
+          type:
+            request.taskType === 'coordination'
+              ? 'coordination'
+              : request.taskType === 'classification'
+                ? 'classification'
+                : 'completion',
+          requestId,
+          prompt: clampedPrompt,
+          maxTokens: clampedTokens,
+          temperature: request.temperature || 0.7,
+        };
+
+        if (this.pythonProcess && this.pythonProcess.stdin) {
+          this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}\n`);
+        } else {
+          this.pendingRequests.delete(requestId);
+          this.activeCount = Math.max(0, this.activeCount - 1);
+          reject(new Error('Python process not available'));
+          this.dequeueNext();
+          return;
+        }
+
+        // Timeout after configured window
+        setTimeout(() => {
+          if (this.pendingRequests.has(requestId)) {
+            this.pendingRequests.delete(requestId);
+            this.activeCount = Math.max(0, this.activeCount - 1);
+            reject(new Error('LFM2 request timeout'));
+            this.dequeueNext();
+          }
+        }, this.REQUEST_TIMEOUT_MS);
       };
 
-      if (this.pythonProcess && this.pythonProcess.stdin) {
-        this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}\n`);
+      if (this.activeCount < this.MAX_CONCURRENCY) {
+        exec();
       } else {
-        reject(new Error('Python process not available'));
+        // Queue it
+        this.requestQueue.push({ id: requestId, request, resolve, reject });
       }
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        if (this.pendingRequests.has(requestId)) {
-          this.pendingRequests.delete(requestId);
-          reject(new Error('LFM2 request timeout'));
-        }
-      }, 10000);
     });
   }
 
@@ -324,11 +369,59 @@ export class LFM2BridgeService {
           } else {
             reject(new Error(response.error || 'LFM2 processing failed'));
           }
+
+          // Decrement concurrency and process next in queue
+          this.activeCount = Math.max(0, this.activeCount - 1);
+          this.dequeueNext();
         }
       } catch (error) {
         log.error('❌ Failed to parse LFM2 response', LogContext.AI, { error, data: line });
       }
     }
+  }
+
+  private dequeueNext(): void {
+    if (this.activeCount >= this.MAX_CONCURRENCY) return;
+    const next = this.requestQueue.shift();
+    if (!next) return;
+    // Re-submit the request by calling generate again with the same handlers
+    // We replicate minimal logic to avoid double-clamping
+    const { id, request, resolve, reject } = next;
+    const startTime = Date.now();
+    this.pendingRequests.set(id, { resolve, reject, startTime });
+    this.activeCount += 1;
+    const pythonRequest = {
+      type:
+        request.taskType === 'coordination'
+          ? 'coordination'
+          : request.taskType === 'classification'
+            ? 'classification'
+            : 'completion',
+      requestId: id,
+      prompt: (request.prompt || '').slice(0, this.MAX_PROMPT_CHARS),
+      maxTokens: Math.max(
+        1,
+        Math.min(request.maxTokens || request.maxLength || 512, this.MAX_TOKENS)
+      ),
+      temperature: request.temperature || 0.7,
+    };
+    if (this.pythonProcess && this.pythonProcess.stdin) {
+      this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}\n`);
+    } else {
+      this.pendingRequests.delete(id);
+      this.activeCount = Math.max(0, this.activeCount - 1);
+      reject(new Error('Python process not available'));
+      this.dequeueNext();
+      return;
+    }
+    setTimeout(() => {
+      if (this.pendingRequests.has(id)) {
+        this.pendingRequests.delete(id);
+        this.activeCount = Math.max(0, this.activeCount - 1);
+        reject(new Error('LFM2 request timeout'));
+        this.dequeueNext();
+      }
+    }, this.REQUEST_TIMEOUT_MS);
   }
 
   private createRoutingPrompt(userRequest: string, context: Record<string, any>): string {
@@ -499,6 +592,27 @@ Respond with JSON:
     }
 
     this.isInitialized = false;
+  }
+
+  public updateLimits(
+    options: Partial<{
+      maxPending: number;
+      timeoutMs: number;
+      maxConcurrency: number;
+      maxTokens: number;
+      maxPromptChars: number;
+    }>
+  ): void {
+    if (typeof options.maxPending === 'number' && options.maxPending > 0)
+      this.MAX_PENDING = options.maxPending;
+    if (typeof options.timeoutMs === 'number' && options.timeoutMs >= 1000)
+      this.REQUEST_TIMEOUT_MS = options.timeoutMs;
+    if (typeof options.maxConcurrency === 'number' && options.maxConcurrency >= 1)
+      this.MAX_CONCURRENCY = options.maxConcurrency;
+    if (typeof options.maxTokens === 'number' && options.maxTokens >= 1)
+      this.MAX_TOKENS = options.maxTokens;
+    if (typeof options.maxPromptChars === 'number' && options.maxPromptChars >= 500)
+      this.MAX_PROMPT_CHARS = options.maxPromptChars;
   }
 }
 
@@ -673,6 +787,30 @@ class SafeLFM2Bridge {
   shutdown() {
     if (this.instance) {
       this.instance.shutdown();
+    }
+  }
+
+  // Allow external components (health monitor) to request a restart
+  async restart(): Promise<void> {
+    if (this.instance) {
+      await this.instance.shutdown();
+      // Small delay to ensure process exit
+      await new Promise((r) => setTimeout(r, 500));
+      await (this.instance as any).initializeLFM2?.();
+    }
+  }
+
+  setLimits(
+    options: Partial<{
+      maxPending: number;
+      timeoutMs: number;
+      maxConcurrency: number;
+      maxTokens: number;
+      maxPromptChars: number;
+    }>
+  ): void {
+    if (this.instance && (this.instance as any).updateLimits) {
+      (this.instance as any).updateLimits(options);
     }
   }
 

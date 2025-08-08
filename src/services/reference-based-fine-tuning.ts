@@ -148,7 +148,8 @@ export class ReferenceBasedFineTuning {
         });
 
         // Fetch and analyze the content
-        const response = await fetch(ref.url);
+        if (!globalThis.fetch) continue;
+        const response = await globalThis.fetch(ref.url);
         const content = await response.text();
         const extractedParams = await this.analyzeResearchContent(content, ref.technique);
 
@@ -203,7 +204,7 @@ export class ReferenceBasedFineTuning {
     for (const pattern of batchPatterns) {
       const matches = content.matchAll(pattern);
       for (const match of matches) {
-        const size = parseInt(match[1]!);
+        const size = parseInt(match[1]!, 10);
         if (!isNaN(size)) {
           batchSizes.push(size);
         }
@@ -440,7 +441,8 @@ export class ReferenceBasedFineTuning {
     const researchRefs: ResearchReference[] = [];
     for (const url of references) {
       try {
-        const response = await fetch(url);
+        if (!globalThis.fetch) throw new Error('Fetch not available');
+        const response = await globalThis.fetch(url);
         const content = await response.text();
         const ref = await this.createResearchReference(url, content);
         researchRefs.push(ref);
@@ -503,7 +505,7 @@ export class ReferenceBasedFineTuning {
 
   private extractNumber(content: string, pattern: RegExp): number | null {
     const match = content.match(pattern);
-    return match ? parseInt(match[1]!) : null;
+    return match ? parseInt(match[1]!, 10) : null;
   }
 
   private extractEvolutionaryParams(content: string): EvolutionaryParameters {

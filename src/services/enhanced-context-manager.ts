@@ -68,11 +68,30 @@ interface ContextRetrievalOptions {
 export class EnhancedContextManager {
   private supabase: SupabaseClient;
   private activeContexts = new Map<string, ConversationContext>();
-  private readonly MAX_ACTIVE_CONTEXTS = 50;
-  private readonly DEFAULT_TOKEN_LIMIT = 8000; // Conservative limit for context
-  private readonly COMPRESSION_TRIGGER = 6000; // Start compression at this token count
-  private readonly PERSISTENCE_TRIGGER = 4000; // Persist to DB at this token count
-  private readonly CLEANUP_INTERVAL = 15 * 60 * 1000; // 15 minutes
+  private readonly MAX_ACTIVE_CONTEXTS = parseInt(process.env.CTX_MAX_ACTIVE || '50', 10);
+  private readonly DEFAULT_TOKEN_LIMIT = parseInt(process.env.CTX_MAX_TOKENS || '32000', 10); // Increased from 8000 to 32000
+  private readonly COMPRESSION_TRIGGER = parseInt(
+    process.env.CTX_COMPRESSION_TRIGGER ||
+      Math.floor((this.DEFAULT_TOKEN_LIMIT * 3) / 4).toString(),
+    10
+  ); // 75% of limit
+  private readonly PERSISTENCE_TRIGGER = parseInt(
+    process.env.CTX_PERSISTENCE_TRIGGER || Math.floor(this.DEFAULT_TOKEN_LIMIT / 2).toString(),
+    10
+  ); // 50% of limit
+  private readonly CLEANUP_INTERVAL = parseInt(
+    process.env.CTX_CLEANUP_INTERVAL_MS || (30 * 60 * 1000).toString(),
+    10
+  ); // 30 minutes
+
+  // Per-session context limits to prevent global issues
+  private readonly MAX_TOKENS_PER_SESSION = parseInt(process.env.SESSION_MAX_TOKENS || '64000', 10); // 64k tokens per session
+  private readonly MAX_MESSAGES_PER_SESSION = parseInt(
+    process.env.SESSION_MAX_MESSAGES || '1000',
+    10
+  ); // 1000 messages per session
+  private readonly SESSION_ISOLATION_ENABLED =
+    (process.env.SESSION_ISOLATION_ENABLED || 'true') === 'true'; // Enable session isolation
 
   // Context compression settings
   private readonly IMPORTANCE_WEIGHTS = {
@@ -113,6 +132,43 @@ export class EnhancedContextManager {
       // Calculate message tokens and importance
       const tokens = this.estimateTokens(message.content);
       const importance = this.calculateMessageImportance(message);
+
+      // Check per-session limits to prevent global context issues
+      if (this.SESSION_ISOLATION_ENABLED) {
+        const sessionTokens = context.totalTokens + tokens;
+        const sessionMessages = context.messages.length + 1;
+
+        if (sessionTokens > this.MAX_TOKENS_PER_SESSION) {
+          // Compress this session's context before adding new message
+          await this.compressContext(context);
+          log.info(
+            '🔧 Session context compressed due to token limit',
+            LogContext.CONTEXT_INJECTION,
+            {
+              contextId,
+              sessionTokens,
+              maxTokens: this.MAX_TOKENS_PER_SESSION,
+            }
+          );
+        }
+
+        if (sessionMessages > this.MAX_MESSAGES_PER_SESSION) {
+          // Remove oldest messages to stay under limit
+          const messagesToRemove = sessionMessages - this.MAX_MESSAGES_PER_SESSION;
+          context.messages = context.messages.slice(messagesToRemove);
+          context.totalTokens = context.messages.reduce((sum, msg) => sum + msg.tokens, 0);
+          log.info(
+            '🔧 Session context trimmed due to message limit',
+            LogContext.CONTEXT_INJECTION,
+            {
+              contextId,
+              sessionMessages,
+              maxMessages: this.MAX_MESSAGES_PER_SESSION,
+              removedMessages: messagesToRemove,
+            }
+          );
+        }
+      }
 
       const fullMessage: ConversationMessage = {
         ...message,
@@ -805,13 +861,24 @@ Discussion Topics: ${this.extractTopics(messages).join(', ')}`;
   private async performBackgroundCleanup(): Promise<void> {
     try {
       const now = Date.now();
-      const staleThreshold = 30 * 60 * 1000; // 30 minutes
+      const staleThreshold = 2 * 60 * 60 * 1000; // 2 hours (increased from 1 hour)
       const contextsToCleanup: string[] = [];
 
-      // Find stale contexts
+      // Find stale contexts - only clean up truly inactive ones
       this.activeContexts.forEach((context, contextId) => {
-        if (now - context.lastAccessed.getTime() > staleThreshold) {
+        const timeSinceLastAccess = now - context.lastAccessed.getTime();
+        const isStale = timeSinceLastAccess > staleThreshold;
+        const isLowActivity = context.messages.length < 5 && context.totalTokens < 500; // More lenient
+
+        // Only cleanup if both stale AND low activity to avoid affecting active sessions
+        if (isStale && isLowActivity) {
           contextsToCleanup.push(contextId);
+          log.debug('🧹 Marking context for cleanup', LogContext.CONTEXT_INJECTION, {
+            contextId,
+            timeSinceLastAccess: `${Math.round(timeSinceLastAccess / 1000 / 60)  } minutes`,
+            messageCount: context.messages.length,
+            totalTokens: context.totalTokens,
+          });
         }
       });
 
@@ -824,20 +891,25 @@ Discussion Topics: ${this.extractTopics(messages).join(', ')}`;
         }
       }
 
-      // Ensure we don't exceed max active contexts
-      if (this.activeContexts.size > this.MAX_ACTIVE_CONTEXTS) {
+      // Ensure we don't exceed max active contexts - much more lenient now
+      if (this.activeContexts.size > this.MAX_ACTIVE_CONTEXTS * 3) {
+        // Allow 300% more contexts
         const sortedByAccess = Array.from(this.activeContexts.entries()).sort(
           ([, a], [, b]) => a.lastAccessed.getTime() - b.lastAccessed.getTime()
         );
 
-        const toRemove = sortedByAccess.slice(
-          0,
-          this.activeContexts.size - this.MAX_ACTIVE_CONTEXTS
-        );
+        // Only remove the oldest 10% of contexts to be much less aggressive
+        const toRemove = sortedByAccess.slice(0, Math.floor(this.activeContexts.size * 0.1));
         for (const [contextId, context] of toRemove) {
           await this.persistContextToDatabase(context);
           this.activeContexts.delete(contextId);
         }
+
+        log.info('🧹 Removed oldest contexts due to limit', LogContext.CONTEXT_INJECTION, {
+          removedCount: toRemove.length,
+          activeContexts: this.activeContexts.size,
+          maxAllowed: this.MAX_ACTIVE_CONTEXTS * 3,
+        });
       }
 
       if (contextsToCleanup.length > 0) {

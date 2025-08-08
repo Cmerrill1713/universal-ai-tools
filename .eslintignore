@@ -1,0 +1,22 @@
+dist/
+build/
+coverage/
+node_modules/
+ui/**
+archive/**
+backups/**
+claude-flow/**
+serena/**
+installer/**
+mcp-servers/**
+public/**
+examples/**
+venv/**
+worktrees/**
+temp/**
+uploads/**
+"iOS Working App"/**
+macOS-App/**
+"Universal AI Tools Native"/**
+tests/**
+

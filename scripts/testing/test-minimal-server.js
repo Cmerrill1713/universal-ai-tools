@@ -39,7 +39,7 @@ app.get('/test/services', async (req, res) => {
 
       if (supabaseUrl && supabaseKey) {
         const supabase = createClient(supabaseUrl, supabaseKey);
-        const { error } = await supabase.from('memories').select('count').limit(1);
+        const { error } = await supabase.from('ai_memories').select('count').limit(1);
         results.services.supabase = error ? 'error: ' + error.message : 'connected';
       } else {
         results.services.supabase = 'missing credentials';

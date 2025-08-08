@@ -5,10 +5,10 @@
  */
 
 import { Router } from 'express';
-import { LogContext, log } from '../utils/logger';
-import { fastCoordinator } from '../services/fast-llm-coordinator';
 import { dspyFastOptimizer } from '../services/dspy-fast-optimizer';
+import { fastCoordinator } from '../services/fast-llm-coordinator';
 import { lfm2Bridge } from '../services/lfm2-bridge';
+import { LogContext, log } from '../utils/logger';
 
 const router = Router();
 
@@ -370,6 +370,34 @@ router.post('/auto-tune', async (req, res): Promise<any> => {
     res.status(500).json({
       success: false,
       error: 'Auto-tune failed',
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.get('/health', async (req, res): Promise<any> => {
+  try {
+    const lfm2 = lfm2Bridge.getMetrics();
+    const circuit = lfm2Bridge.getCircuitBreakerMetrics();
+
+    return res.json({
+      success: true,
+      data: {
+        lfm2,
+        circuitBreaker: circuit,
+        pythonProcessAlive: lfm2Bridge.isAvailable(),
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        env: process.env.NODE_ENV || 'development',
+      },
+    });
+  } catch (error) {
+    log.error('❌ Fast coordinator health failed', LogContext.AI, { error });
+    return res.status(500).json({
+      success: false,
+      error: 'Health check failed',
       details: error instanceof Error ? error.message : String(error),
     });
   }

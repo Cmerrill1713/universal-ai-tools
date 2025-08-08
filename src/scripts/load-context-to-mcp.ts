@@ -66,7 +66,7 @@ class ContextLoader {
 
 Key Components:
 - MLX Fine-Tuning Framework: Custom model training and optimization
-- Intelligent Parameter Automation: Self-optimizing AI systems with ML-based parameter selection  
+- Intelligent Parameter Automation: Self-optimizing AI systems with ML-based parameter selection
 - AB-MCTS Orchestration: Probabilistic learning and advanced coordination
 - Multi-Tier LLM Architecture: Efficient model routing (LFM2, Ollama, External APIs)
 - PyVision Integration: Advanced image processing with SDXL refiner support
@@ -101,21 +101,45 @@ Production Infrastructure:
         metadata: { importance: 'high', source: 'CLAUDE.md' },
       },
       {
-        content: `Never store API keys in environment variables or code! Universal AI Tools uses Supabase Vault for secure secrets management.
+        content: `Never store API keys in environment variables or code! Universal AI Tools uses Supabase Vault for secure secrets management (with a local shim fallback when Vault is unavailable).
 
 Critical Pattern: Use Supabase Vault for ALL API Keys
 
 Storing Secrets:
-await supabase.rpc('vault.create_secret', {
-  secret: apiKey,
-  name: 'openai_api_key', 
-  description: 'OpenAI API key for production'
-});
+try {
+  await supabase.rpc('vault.create_secret', {
+    secret: apiKey,
+    name: 'openai_api_key',
+    description: 'OpenAI API key for production'
+  });
+} catch (e) {
+  try {
+    await supabase.rpc('vault_shim_create_secret', {
+      secret: apiKey,
+      name: 'openai_api_key'
+    });
+  } catch {
+    // final fallback: do nothing (avoid crashing docs example)
+  }
+}
 
 Retrieving Secrets:
-const { data: secret } = await supabase.rpc('vault.read_secret', {
-  secret_name: 'openai_api_key'
-});
+let secret;
+try {
+  const res = await supabase.rpc('vault.read_secret', {
+    secret_name: 'openai_api_key'
+  });
+  secret = res.data;
+} catch (e) {
+  try {
+    const res = await supabase.rpc('vault_shim_read_secret', {
+      secret_name: 'openai_api_key'
+    });
+    secret = res.data;
+  } catch {
+    secret = { decrypted_secret: null };
+  }
+}
 const apiKey = secret.decrypted_secret;
 
 Best Practices:
@@ -307,7 +331,7 @@ Historical Lessons:
       {
         content: `MCP Pattern Learning System:
 - Save successful fixes as patterns for future reference
-- Use error frequency tracking to prioritize common issues  
+- Use error frequency tracking to prioritize common issues
 - Validate new fixes against historical successful patterns
 - Maintain context of what works vs what causes regressions
 
@@ -364,7 +388,7 @@ Next Priorities:
       {
         content: `Tools and Commands Available:
 - npm run type-check: Check TypeScript errors
-- npm run lint:fix: Auto-fix linting issues  
+- npm run lint:fix: Auto-fix linting issues
 - npm run format: Format code with Prettier
 - npm test: Run test suite
 - npm run dev: Start development server

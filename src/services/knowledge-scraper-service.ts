@@ -76,6 +76,14 @@ export class KnowledgeScraperService {
     },
   ];
 
+  private readonly allowedHosts = new Set<string>([
+    'developer.mozilla.org',
+    'api.stackexchange.com',
+    'paperswithcode.com',
+    'huggingface.co',
+    'devdocs.io',
+  ]);
+
   private limiters: Map<string, RateLimiter> = new Map();
 
   constructor() {
@@ -143,12 +151,40 @@ export class KnowledgeScraperService {
           },
           headers: {
             'User-Agent': 'Universal-AI-Tools/1.0',
+            Accept: 'application/json',
           },
+          timeout: 15000,
+          maxRedirects: 3,
+          validateStatus: (status) => status >= 200 && status < 400,
         });
         data = response.data;
       } else if (source.type === 'web') {
-        const response = await axios.get(source.url);
-        data = response.data;
+        // Basic SSRF protection: only fetch known hosts
+        try {
+          const u = new URL(source.url);
+          if (!this.allowedHosts.has(u.hostname)) {
+            throw new Error('Host not allowed for scraping');
+          }
+        } catch (e) {
+          throw new Error('Invalid URL for scraping');
+        }
+        const response = await axios.get(source.url, {
+          headers: {
+            'User-Agent': 'Universal-AI-Tools/1.0',
+            Accept: 'text/html',
+          },
+          timeout: 15000,
+          maxRedirects: 3,
+          validateStatus: (status) => status >= 200 && status < 400,
+        });
+        const html = String(response.data || '');
+        // Basic sanitization to avoid executing scripts or dangerous URLs during parsing
+        const sanitized = html
+          .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+          .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+          .replace(/on\w+\s*=\s*'[^']*'/gi, '')
+          .replace(/javascript:/gi, '');
+        data = sanitized;
       }
 
       // Parse entries

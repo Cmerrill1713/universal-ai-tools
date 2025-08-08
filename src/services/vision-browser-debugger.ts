@@ -3,11 +3,11 @@
  * Uses computer vision to analyze browser dev tools and automatically debug issues
  */
 
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync, spawn } from 'child_process';
-import { promisify } from 'util';
 import type { VisionDebugData } from '../types/index.js';
+import { validatePath, validatePathBoundary } from '../utils/path-security';
 
 interface ScreenshotAnalysis {
   id: string;
@@ -63,8 +63,12 @@ interface DebugSuggestion {
 
 class VisionBrowserDebugger {
   private isRunning = false;
-  private screenshotInterval = 30000; // 30 seconds
+  private screenshotInterval = 300000; // 5 minutes (increased from 30 seconds)
   private screenshotsPath = 'logs/screenshots';
+  private allowedScreenshotRoots = [
+    path.resolve(process.cwd(), 'logs/screenshots'),
+    path.resolve(process.cwd(), 'logs/screenshots/uploads'),
+  ];
   private analysisResults: ScreenshotAnalysis[] = [];
   private visionServiceUrl =
     process.env.VISION_SERVICE_URL || 'http://localhost:9999/api/v1/vision';
@@ -79,11 +83,13 @@ class VisionBrowserDebugger {
     const normalizedPath = path.normalize(filePath);
     const absolutePath = path.resolve(normalizedPath);
     const projectRoot = process.cwd();
-    
-    return !normalizedPath.includes('..') && 
-           normalizedPath.length < 500 && 
-           /^[a-zA-Z0-9\-_./\\:\s]+$/.test(normalizedPath) &&
-           absolutePath.startsWith(projectRoot); // Ensure path is within project directory
+
+    return (
+      !normalizedPath.includes('..') &&
+      normalizedPath.length < 500 &&
+      /^[a-zA-Z0-9\-_./\\:\s]+$/.test(normalizedPath) &&
+      absolutePath.startsWith(projectRoot)
+    ); // Ensure path is within project directory
   }
 
   private validateCommand(command: string): boolean {
@@ -92,19 +98,19 @@ class VisionBrowserDebugger {
       console.log('🔒 Command validation failed: empty or invalid command');
       return false;
     }
-    
+
     // Check length to prevent buffer overflow attacks
     if (command.length > 500) {
       console.log(`🔒 Command validation failed: command too long (${command.length} chars)`);
       return false;
     }
-    
+
     // Strict character whitelist - only allow safe characters
     if (!/^[a-zA-Z0-9\s\-_.:/\\]+$/.test(command)) {
       console.log(`🔒 Command validation failed: invalid characters in command: ${command}`);
       return false;
     }
-    
+
     // Block dangerous shell operators and characters
     const dangerousPatterns = [
       { pattern: /[;&|`$(){}[\]<>]/, name: 'Shell operators' },
@@ -117,14 +123,16 @@ class VisionBrowserDebugger {
       { pattern: /\${.*}/, name: 'Variable substitution' },
       { pattern: /`.*`/, name: 'Command substitution' },
     ];
-    
+
     for (const dangerous of dangerousPatterns) {
       if (dangerous.pattern.test(command)) {
-        console.log(`🔒 Command validation failed: ${dangerous.name} detected in command: ${command}`);
+        console.log(
+          `🔒 Command validation failed: ${dangerous.name} detected in command: ${command}`
+        );
         return false;
       }
     }
-    
+
     return true;
   }
 
@@ -137,7 +145,7 @@ class VisionBrowserDebugger {
     'npm run test',
     'npm audit fix',
     'npx prettier --write .',
-    'npx eslint --fix .'
+    'npx eslint --fix .',
   ]);
 
   private validateAutoFixCommand(command: string): boolean {
@@ -156,27 +164,31 @@ class VisionBrowserDebugger {
     }
   }
 
-  private async executeSecureCommand(command: string, args: string[] = [], options: any = {}): Promise<string> {
+  private async executeSecureCommand(
+    command: string,
+    args: string[] = [],
+    options: any = {}
+  ): Promise<string> {
     // Security: Execute commands safely using spawn instead of execSync
     return new Promise((resolve, reject) => {
       const child = spawn(command, args, {
         stdio: ['ignore', 'pipe', 'pipe'],
         timeout: options.timeout || 30000,
         cwd: options.cwd || process.cwd(),
-        ...options
+        ...options,
       });
-      
+
       let stdout = '';
       let stderr = '';
-      
+
       child.stdout?.on('data', (data) => {
         stdout += data.toString();
       });
-      
+
       child.stderr?.on('data', (data) => {
         stderr += data.toString();
       });
-      
+
       child.on('close', (code) => {
         if (code === 0) {
           resolve(stdout);
@@ -184,7 +196,7 @@ class VisionBrowserDebugger {
           reject(new Error(`Command failed with code ${code}: ${stderr}`));
         }
       });
-      
+
       child.on('error', (error) => {
         reject(error);
       });
@@ -255,14 +267,20 @@ class VisionBrowserDebugger {
       try {
         if (process.platform === 'darwin') {
           // macOS - capture specific window or full screen using secure execution
-          await this.executeSecureCommand('screencapture', ['-x', screenshotPath], { timeout: 10000 });
+          await this.executeSecureCommand('screencapture', ['-x', screenshotPath], {
+            timeout: 10000,
+          });
         } else if (process.platform === 'linux') {
           // Linux - use gnome-screenshot first, fallback to import
           try {
-            await this.executeSecureCommand('gnome-screenshot', ['-f', screenshotPath], { timeout: 10000 });
-          } catch (gnomeError) {
+            await this.executeSecureCommand('gnome-screenshot', ['-f', screenshotPath], {
+              timeout: 10000,
+            });
+          } catch (_gnomeError) {
             // Fallback to import command
-            await this.executeSecureCommand('import', ['-window', 'root', screenshotPath], { timeout: 10000 });
+            await this.executeSecureCommand('import', ['-window', 'root', screenshotPath], {
+              timeout: 10000,
+            });
           }
         } else if (process.platform === 'win32') {
           // Windows - use a more secure PowerShell approach
@@ -275,9 +293,9 @@ class VisionBrowserDebugger {
             '$graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)',
             `$bitmap.Save('${screenshotPath.replace(/'/g, "''")}', [System.Drawing.Imaging.ImageFormat]::Png)`,
             '$graphics.Dispose()',
-            '$bitmap.Dispose()'
+            '$bitmap.Dispose()',
           ].join('; ');
-          
+
           await this.executeSecureCommand('powershell', ['-Command', psScript], { timeout: 10000 });
         } else {
           console.log(`❌ Unsupported platform for screenshot capture: ${process.platform}`);
@@ -351,12 +369,24 @@ class VisionBrowserDebugger {
 
   async callVisionService(imagePath: string): Promise<any> {
     try {
-      // First, try the main vision service
-      const imageBuffer = fs.readFileSync(imagePath);
+      // First, validate the path and try the main vision service
+      const isValidPath =
+        validatePath(imagePath, {
+          allowedDirectories: this.allowedScreenshotRoots,
+          allowSubdirectories: true,
+          maxLength: 500,
+        }) && validatePathBoundary(imagePath, this.allowedScreenshotRoots);
+
+      if (!isValidPath) {
+        throw new Error('Invalid image path');
+      }
+
+      const imageBuffer = fs.readFileSync(path.resolve(imagePath));
       const imageBase64 = imageBuffer.toString('base64');
 
       // Call our vision service with analyze endpoint (reason endpoint doesn't exist)
-      const response = await fetch(`${this.visionServiceUrl}/analyze`, {
+      if (!globalThis.fetch) throw new Error('Fetch not available');
+      const response = await globalThis.fetch(`${this.visionServiceUrl}/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -689,67 +719,57 @@ class VisionBrowserDebugger {
       console.log(`🔧 Auto-fixing: ${suggestion.issue}`);
       console.log(`🔒 Security: Validating auto-fix command: ${suggestion.fixCommand}`);
 
-      if (suggestion.fixCommand) {
-        // Security: Use whitelist validation for auto-fix commands
-        if (!this.validateAutoFixCommand(suggestion.fixCommand)) {
-          console.log(`🔒 SECURITY ALERT: Auto-fix command rejected - not in whitelist: ${suggestion.fixCommand}`);
-          console.log(`🔒 Allowed commands: ${Array.from(this.ALLOWED_AUTO_FIX_COMMANDS).join(', ')}`);
-          throw new Error(`Auto-fix command not in whitelist: ${suggestion.fixCommand}`);
-        }
-
-        // Security: Additional command validation
-        if (!this.validateCommand(suggestion.fixCommand)) {
-          console.log(`🔒 SECURITY ALERT: Auto-fix command failed security validation: ${suggestion.fixCommand}`);
-          throw new Error(`Auto-fix command failed security validation: ${suggestion.fixCommand}`);
-        }
-
-        // Parse command and arguments securely
-        const commandParts = suggestion.fixCommand.trim().split(/\s+/);
-        const command = commandParts[0];
-        const args = commandParts.slice(1);
-
-        // Additional validation for command extraction
-        if (!command || command.trim().length === 0) {
-          console.log(`🔒 SECURITY ALERT: Invalid command extracted from: ${suggestion.fixCommand}`);
-          throw new Error(`Invalid command extracted from: ${suggestion.fixCommand}`);
-        }
-
-        // Security: Validate command is in PATH or is a known safe command
-        const allowedCommands = ['npm', 'npx', 'node', 'python', 'python3'];
-        if (!allowedCommands.includes(command)) {
-          console.log(`🔒 SECURITY ALERT: Command not in allowed commands list: ${command}`);
-          throw new Error(`Command not in allowed commands list: ${command}`);
-        }
-
-        // Security: Log command execution attempt
-        console.log(`🔒 Executing whitelisted command: ${command} with args: ${args.join(' ')}`);
-        console.log(`🔒 Working directory: ${process.cwd()}`);
-        console.log(`🔒 Suggestion ID: ${suggestion.id}, Category: ${suggestion.category}`);
-
-        try {
-          // Use secure command execution instead of execSync
-          const startTime = Date.now();
-          const output = await this.executeSecureCommand(command, args, {
-            cwd: process.cwd(),
-            timeout: 60000, // 1 minute timeout
-          });
-          const executionTime = Date.now() - startTime;
-
-          console.log(`✅ Auto-fix completed successfully: ${suggestion.solution}`);
-          console.log(`🔒 Command execution time: ${executionTime}ms`);
-          if (output.trim()) {
-            console.log(`📄 Command output (first 200 chars): ${output.trim().substring(0, 200)}`);
-          }
-        } catch (execError) {
-          console.log(`🔒 SECURITY ALERT: Auto-fix command execution failed: ${execError}`);
-          throw new Error(`Auto-fix command execution failed: ${execError}`);
-        }
-      } else {
+      if (
+        !suggestion.fixCommand ||
+        typeof suggestion.fixCommand !== 'string' ||
+        !suggestion.fixCommand.trim()
+      ) {
         throw new Error('No fix command provided for auto-fix suggestion');
       }
+
+      // Whitelist validation
+      if (!this.validateAutoFixCommand(suggestion.fixCommand as string)) {
+        console.log(
+          `🔒 SECURITY ALERT: Auto-fix command rejected - not in whitelist: ${suggestion.fixCommand}`
+        );
+        throw new Error(`Auto-fix command not in whitelist: ${suggestion.fixCommand}`);
+      }
+
+      // Command shape validation
+      if (!this.validateCommand(suggestion.fixCommand as string)) {
+        throw new Error(`Auto-fix command failed security validation: ${suggestion.fixCommand}`);
+      }
+
+      // Parse command and args
+      const commandParts = (suggestion.fixCommand as string).trim().split(/\s+/);
+      if (commandParts.length === 0 || !commandParts[0]) {
+        throw new Error('Invalid auto-fix command');
+      }
+      const command: string = commandParts[0] as string;
+      const args: string[] = commandParts.slice(1);
+
+      const allowedCommands = ['npm', 'npx', 'node'];
+      if (!allowedCommands.includes(command)) {
+        console.log(`🔒 SECURITY ALERT: Command not in allowed commands list: ${command}`);
+        throw new Error(`Command not allowed: ${command}`);
+      }
+
+      const startTime = Date.now();
+      const output = await this.executeSecureCommand(command, args, {
+        cwd: process.cwd(),
+        timeout: 60000,
+      });
+      const executionTime = Date.now() - startTime;
+
+      console.log(`✅ Auto-fix completed successfully in ${executionTime}ms`);
+      if (output && output.trim()) {
+        console.log(`📄 Command output (first 200 chars): ${output.trim().slice(0, 200)}`);
+      }
     } catch (error) {
-      console.log(`❌ Auto-fix failed for: ${suggestion.issue} - ${error}`);
-      throw error; // Re-throw to let caller handle the error appropriately
+      console.log(
+        `❌ Auto-fix failed for: ${suggestion.issue} - ${error instanceof Error ? error.message : String(error)}`
+      );
+      throw error instanceof Error ? error : new Error(String(error));
     }
   }
 

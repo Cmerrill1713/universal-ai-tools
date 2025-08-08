@@ -34,7 +34,7 @@ describe('Auth Router - Simplified Tests', () => {
       }
 
       // Sanitize username to prevent XSS
-      const sanitizedUsername = username.replace(/<script.*?>.*?</script>/gi, '');
+      const sanitizedUsername = username.replace(/<script.*?>.*?<\/script>/gi, '');
 
       // Mock successful registration
       res.status(201).json({

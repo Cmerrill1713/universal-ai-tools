@@ -50,15 +50,15 @@ export class HealthMonitorService extends EventEmitter {
 
     this.isMonitoring = true;
 
-    // Health check every 30 seconds
+    // Health check every 2 minutes (increased from 30 seconds)
     this.monitoringInterval = setInterval(() => {
       this.performHealthCheck();
-    }, 30000);
+    }, 120000);
 
-    // Self-healing check every 60 seconds
+    // Self-healing check every 5 minutes (increased from 60 seconds)
     this.healingInterval = setInterval(() => {
       this.performSelfHealing();
-    }, 60000);
+    }, 300000);
 
     log.info('🏥 Health monitoring started', LogContext.SYSTEM);
   }
@@ -150,11 +150,11 @@ export class HealthMonitorService extends EventEmitter {
   private detectIssues(metrics: HealthMetrics): void {
     const issues: HealthIssue[] = [];
 
-    // High memory usage
-    if (metrics.memoryUsage > 0.8) {
+    // High memory usage - increased threshold from 0.8 to 0.85
+    if (metrics.memoryUsage > 0.85) {
       issues.push({
         id: 'high_memory_usage',
-        severity: metrics.memoryUsage > 0.9 ? 'critical' : 'high',
+        severity: metrics.memoryUsage > 0.95 ? 'critical' : 'high', // Increased from 0.9 to 0.95
         component: 'system',
         description: `High memory usage: ${Math.round(metrics.memoryUsage * 100)}%`,
         autoFixable: true,
@@ -274,6 +274,19 @@ export class HealthMonitorService extends EventEmitter {
     // Clear old health history
     if (this.healthHistory.length > 50) {
       this.healthHistory = this.healthHistory.slice(-50);
+    }
+
+    // Best-effort nudge to LFM2 bridge to restart if exists
+    try {
+      const { lfm2Bridge } = await import('@/services/lfm2-bridge');
+      // If memory has been high across two latest measurements, restart LFM2
+      const latest = this.healthHistory.slice(-2);
+      if (latest.length === 2 && latest.every((m) => m.memoryUsage > 0.85)) {
+        await (lfm2Bridge as any).restart?.();
+        log.info('🔄 Requested LFM2 restart due to sustained high memory', LogContext.AI);
+      }
+    } catch {
+      // ignore in dev
     }
   }
 

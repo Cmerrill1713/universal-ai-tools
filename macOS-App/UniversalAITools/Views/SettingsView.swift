@@ -82,9 +82,12 @@ struct GeneralSettingsView: View {
 
 struct ConnectionSettingsView: View {
     @EnvironmentObject var apiService: APIService
-    @State private var backendURL = "http://localhost:9999"
+    @State private var backendURL = UserDefaults.standard.string(forKey: "BackendURL") ?? "http://localhost:9999"
+    @State private var frontendURL = UserDefaults.standard.string(forKey: "FrontendURL") ?? "http://localhost:5173"
     @State private var autoReconnect = true
     @State private var connectionTimeout = 30.0
+    @State private var statusText = "Checking…"
+    @State private var statusColor = Color.secondary
 
     var body: some View {
         VStack(spacing: 20) {
@@ -98,7 +101,17 @@ struct ConnectionSettingsView: View {
                     Spacer()
                     TextField("URL", text: $backendURL)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 200)
+                        .frame(width: 280)
+                        .onSubmit { saveBackend() }
+                }
+
+                HStack {
+                    Text("Frontend URL:")
+                    Spacer()
+                    TextField("URL", text: $frontendURL)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 280)
+                        .onSubmit { saveFrontend() }
                 }
 
                 Toggle("Auto Reconnect", isOn: $autoReconnect)
@@ -115,8 +128,19 @@ struct ConnectionSettingsView: View {
                 HStack {
                     Text("Status:")
                     Spacer()
-                    Text("Connected")
-                        .foregroundColor(.green)
+                    Text(statusText)
+                        .foregroundColor(statusColor)
+                }
+
+                HStack(spacing: 12) {
+                    Button("Save & Test") {
+                        saveBackend()
+                        saveFrontend()
+                        Task { await probeHealth() }
+                    }
+                    Button("Retry Connect") {
+                        Task { await apiService.connectToBackend(); await probeHealth() }
+                    }
                 }
             }
             .padding()
@@ -126,6 +150,31 @@ struct ConnectionSettingsView: View {
             Spacer()
         }
         .padding()
+        .task { await probeHealth() }
+    }
+
+    private func saveBackend() {
+        UserDefaults.standard.set(backendURL, forKey: "BackendURL")
+        apiService.setBackendURL(backendURL)
+    }
+
+    private func saveFrontend() {
+        UserDefaults.standard.set(frontendURL, forKey: "FrontendURL")
+    }
+
+    private func probeHealth() async {
+        do {
+            let healthy = try await apiService.performHealthProbe()
+            await MainActor.run {
+                statusText = healthy ? "Connected" : "Offline"
+                statusColor = healthy ? .green : .red
+            }
+        } catch {
+            await MainActor.run {
+                statusText = "Error"
+                statusColor = .orange
+            }
+        }
     }
 }
 

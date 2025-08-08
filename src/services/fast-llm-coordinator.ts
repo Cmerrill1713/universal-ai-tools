@@ -5,6 +5,8 @@
  */
 
 import { LogContext, log } from '@/utils/logger';
+import { isAllowedHost, normalizeHttpUrl } from '@/utils/url-security';
+const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
 import { llmRouter } from './llm-router-service';
 import { ollamaService } from './ollama-service';
 import { TWO } from '@/utils/constants';
@@ -31,9 +33,23 @@ export class FastLLMCoordinator {
   private lfm2Available = false;
   private kokoroAvailable = false;
   private lmStudioUrl: string;
+  private lmStudioAvailable = false;
 
   constructor() {
-    this.lmStudioUrl = process.env.LM_STUDIO_URL || 'http://localhost:1234';
+    const base = process.env.LM_STUDIO_URL || 'http://localhost:1234';
+    try {
+      const normalized = normalizeHttpUrl(base);
+      if (!normalized) throw new Error('Unsupported protocol');
+      if (!isAllowedHost(normalized, 'ALLOWED_LLM_HOSTS')) {
+        throw new Error('Host not allowed');
+      }
+      this.lmStudioUrl = normalized;
+    } catch (e) {
+      log.warn('Invalid LM_STUDIO_URL, using http://localhost:1234', LogContext.AI, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      this.lmStudioUrl = 'http://localhost:1234';
+    }
     this.initializeFastModels();
   }
 
@@ -49,6 +65,9 @@ export class FastLLMCoordinator {
         '/Users/christianmerrill/Desktop/universal-ai-tools/models/tts/Kokoro-82M';
       this.kokoroAvailable = true; // Assume available based on file system check
 
+      // Check LM Studio availability
+      await this.checkLmStudioHealth();
+
       log.info('✅ Fast models initialized', LogContext.AI, {
         lfm2: this.lfm2Available,
         kokoro: this.kokoroAvailable,
@@ -57,6 +76,27 @@ export class FastLLMCoordinator {
     } catch (error) {
       log.error('❌ Failed to initialize fast models', LogContext.AI, { error });
     }
+  }
+
+  public async checkLmStudioHealth(): Promise<boolean> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const resp = await fetchApi(`${this.lmStudioUrl}/v1/models`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      this.lmStudioAvailable = resp.ok;
+      return this.lmStudioAvailable;
+    } catch {
+      this.lmStudioAvailable = false;
+      return false;
+    }
+  }
+
+  public isLmStudioAvailable(): boolean {
+    return this.lmStudioAvailable;
   }
 
   /**
@@ -78,7 +118,7 @@ CONTEXT: ${JSON.stringify(context)}
 Respond with JSON only:
 {
   "shouldUseLocal": boolean,
-  "targetService": "lfm2|ollama|lm-studio|openai|anthropic", 
+  "targetService": "lfm2|ollama|lm-studio|openai|anthropic",
   "reasoning": "brief explanation",
   "complexity": "simple|medium|complex",
   "estimatedTokens": number,
@@ -87,7 +127,7 @@ Respond with JSON only:
 
 ROUTING RULES:
 - lfm2: Simple questions, quick responses, <100 tokens
-- ollama: Medium complexity, general purpose, <1000 tokens  
+- ollama: Medium complexity, general purpose, <1000 tokens
 - lm-studio: Code generation, technical tasks, <2000 tokens
 - openai: Complex reasoning, creative tasks, >1000 tokens
 - anthropic: Analysis, research, long-form content`;
@@ -255,7 +295,9 @@ ROUTING RULES:
 
   private async executeLMStudio(userRequest: string): Promise<any> {
     try {
-      const response = await fetch(`${this.lmStudioUrl}/v1/chat/completions`, {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const response = await fetchApi(`${this.lmStudioUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -263,18 +305,22 @@ ROUTING RULES:
           temperature: 0.7,
           max_tokens: 1000,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`LM Studio error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const ct = response.headers.get('content-type') || '';
+      const data = ct.includes('application/json') ? await response.json() : await response.text();
       return {
-        content: data.choices[0]?.message?.content || '',
+        content:
+          (data as any).choices?.[0]?.message?.content || (typeof data === 'string' ? data : ''),
         model: 'lm-studio',
         provider: 'lm-studio',
-        usage: data.usage,
+        usage: (data as any).usage,
       };
     } catch (error) {
       log.warn('⚠️ LM Studio unavailable, falling back to Ollama', LogContext.AI);
@@ -428,7 +474,7 @@ ROUTING RULES:
       },
       services: {
         ollama: ollamaService.isServiceAvailable(),
-        lmStudio: true, // Would check actual availability
+        lmStudio: this.isLmStudioAvailable(),
       },
       performance: {
         averageRoutingTime: 50, // Would track actual metrics

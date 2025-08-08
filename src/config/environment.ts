@@ -33,16 +33,22 @@ export const config: ServiceConfig = {
   },
 
   llm: {
-    openaiApiKey: process.env.OPENAI_API_KEY,
-    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    openaiApiKey: process.env.OPENAI_API_KEY || '',
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
     ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
+  },
+
+  lfm2: {
+    maxConcurrency: parseInt(process.env.LFM2_MAX_CONCURRENCY || '2', 10),
+    maxTokens: parseInt(process.env.LFM2_MAX_TOKENS || '512', 10),
+    maxPromptChars: parseInt(process.env.LFM2_MAX_PROMPT_CHARS || '4000', 10),
+    timeoutMs: parseInt(process.env.LFM2_TIMEOUT_MS || '10000', 10),
+    maxPending: parseInt(process.env.LFM2_MAX_PENDING || '50', 10),
   },
 
   vision: {
     enableSdxlRefiner: process.env.ENABLE_SDXL_REFINER === 'true',
-    sdxlRefinerPath:
-      process.env.SDXL_REFINER_PATH ||
-      '/Users/christianmerrill/Downloads/stable-diffusion-xl-refiner-1.0-Q4_1.gguf',
+    sdxlRefinerPath: process.env.SDXL_REFINER_PATH || '',
     preferredBackend: (process.env.VISION_BACKEND as 'mlx' | 'gguf' | 'auto') || 'auto',
     maxVram: parseInt(process.env.VISION_MAX_VRAM || '20', 10),
     enableCaching: process.env.VISION_ENABLE_CACHING !== 'false',
@@ -60,7 +66,9 @@ export function validateConfig(): void {
   }
 
   if (config.environment === 'production' && !config.jwt.secret) {
-    console.warn('JWT_SECRET not found in environment - will be loaded from Supabase Vault at runtime');
+    console.warn(
+      'JWT_SECRET not found in environment - will be loaded from Supabase Vault at runtime'
+    );
   }
 }
 
@@ -75,7 +83,7 @@ export async function getJwtSecret(): Promise<string> {
   try {
     const { secretsManager } = await import('../services/secrets-manager');
     const vaultSecret = await secretsManager.getSecret('jwt_secret');
-    
+
     if (vaultSecret) {
       return vaultSecret;
     }

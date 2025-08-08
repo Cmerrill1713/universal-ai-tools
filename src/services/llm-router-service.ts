@@ -163,10 +163,10 @@ export class LLMRouterService {
       {
         internalName: 'local-general',
         provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
+        externalModel: 'llama3.2:1b',
         capabilities: ['general_purpose', 'offline'],
-        maxTokens: 2000,
-        temperature: 0.6,
+        maxTokens: 1024,
+        temperature: 0.5,
         priority: 3,
       },
     ];
@@ -324,6 +324,21 @@ export class LLMRouterService {
   ): Promise<LLMResponse> {
     let client = this.providerClients.get(modelConfig.provider);
     let actualConfig = modelConfig;
+
+    // In development, prefer local Ollama to avoid cloud API keys
+    const isDev = (process.env.NODE_ENV || 'development') === 'development';
+    if (isDev && this.providerClients.has(LLMProvider.OLLAMA)) {
+      client = this.providerClients.get(LLMProvider.OLLAMA);
+      actualConfig = {
+        ...modelConfig,
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:3b',
+      };
+      log.debug('DEV mode: forcing Ollama provider', LogContext.AI, {
+        internalModel: modelConfig.internalName,
+        externalModel: actualConfig.externalModel,
+      });
+    }
 
     // If the primary provider is not available, try Ollama as fallback
     if (!client && this.providerClients.has(LLMProvider.OLLAMA)) {

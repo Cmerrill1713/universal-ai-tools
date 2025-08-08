@@ -14,10 +14,10 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
-import { LogContext, log } from '../utils/logger';
+import { contextInjectionService } from '../services/context-injection-service';
 import { enhancedContextManager } from '../services/enhanced-context-manager';
 import { semanticContextRetrievalService } from '../services/semantic-context-retrieval';
-import { contextInjectionService } from '../services/context-injection-service';
+import { LogContext, log } from '../utils/logger';
 
 interface ContextMiddlewareOptions {
   enableAutoTracking?: boolean;
@@ -75,14 +75,14 @@ export class AutoContextMiddleware {
   private readonly CLEANUP_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
   constructor(private options: ContextMiddlewareOptions = {}) {
-    // Set default options
+    // Set default options - aligned with enhanced context manager
     this.options = {
       enableAutoTracking: true,
       enableContextInjection: true,
       enableTokenLimitMonitoring: true,
-      maxContextTokens: 8000,
-      compressionThreshold: 6000,
-      persistenceThreshold: 4000,
+      maxContextTokens: 32000, // Aligned with enhanced context manager
+      compressionThreshold: 24000, // 75% of max tokens
+      persistenceThreshold: 16000, // 50% of max tokens
       excludeRoutes: ['/health', '/metrics', '/static'],
       includeRoutes: ['/api/v1/agents', '/api/v1/orchestration', '/api/v1/fast-coordinator'],
       ...this.options,
@@ -190,14 +190,16 @@ export class AutoContextMiddleware {
       }
 
       // Extract project context
-      const projectPath = req.headers['x-project-path'] as string ||
-                         req.body?.projectPath ||
-                         req.query.projectPath as string;
+      const projectPath =
+        (req.headers['x-project-path'] as string) ||
+        req.body?.projectPath ||
+        (req.query.projectPath as string);
 
-      const workingDirectory = req.headers['x-working-directory'] as string ||
-                              req.body?.workingDirectory ||
-                              req.query.workingDirectory as string ||
-                              process.cwd();
+      const workingDirectory =
+        (req.headers['x-working-directory'] as string) ||
+        req.body?.workingDirectory ||
+        (req.query.workingDirectory as string) ||
+        process.cwd();
 
       return {
         sessionId,
@@ -286,16 +288,13 @@ export class AutoContextMiddleware {
       });
 
       // Use existing context injection service for enrichment
-      const enrichmentResult = await contextInjectionService.enrichWithContext(
-        userRequest,
-        {
-          userId: req.contextInfo.userId,
-          sessionId: req.contextInfo.sessionId,
-          workingDirectory: req.contextInfo.workingDirectory,
-          currentProject: req.contextInfo.projectPath,
-          includeArchitecturePatterns: true,
-        }
-      );
+      const enrichmentResult = await contextInjectionService.enrichWithContext(userRequest, {
+        userId: req.contextInfo.userId,
+        sessionId: req.contextInfo.sessionId,
+        workingDirectory: req.contextInfo.workingDirectory,
+        currentProject: req.contextInfo.projectPath,
+        includeArchitecturePatterns: true,
+      });
 
       // Store original body and create enhanced body
       req.originalBody = { ...req.body };
@@ -371,8 +370,10 @@ export class AutoContextMiddleware {
           session.totalTokens = result.tokenCount;
 
           // Check if compression is needed
-          if (this.options.enableTokenLimitMonitoring &&
-              result.tokenCount > (this.options.compressionThreshold || 6000)) {
+          if (
+            this.options.enableTokenLimitMonitoring &&
+            result.tokenCount > (this.options.compressionThreshold || 6000)
+          ) {
             log.info('🗜️ Context compression recommended', LogContext.CONTEXT_INJECTION, {
               sessionId: contextInfo.sessionId,
               currentTokens: result.tokenCount,
@@ -401,7 +402,7 @@ export class AutoContextMiddleware {
    */
   private extractUserRequest(req: Request): string | null {
     try {
-      const {body} = req;
+      const { body } = req;
 
       // Common patterns for extracting user input
       if (typeof body === 'string') return body;
@@ -465,7 +466,7 @@ export class AutoContextMiddleware {
    */
   private updateRequestWithEnrichedContent(req: EnhancedRequest, enrichedPrompt: string): void {
     try {
-      const {body} = req;
+      const { body } = req;
 
       // Update based on request structure
       if (body?.prompt) {
@@ -516,7 +517,7 @@ export class AutoContextMiddleware {
    */
   private isLLMRequest(req: Request): boolean {
     const path = req.path.toLowerCase();
-    const {body} = req;
+    const { body } = req;
 
     // Check if this is an agent or LLM endpoint
     const llmEndpoints = [
@@ -530,13 +531,18 @@ export class AutoContextMiddleware {
       '/generate',
     ];
 
-    const isLLMEndpoint = llmEndpoints.some(endpoint => path.includes(endpoint));
+    const isLLMEndpoint = llmEndpoints.some((endpoint) => path.includes(endpoint));
 
     // Check if request body suggests LLM interaction
-    const hasLLMContent = body && (
-      body.prompt || body.message || body.query || body.task ||
-      body.instruction || body.messages || body.userRequest
-    );
+    const hasLLMContent =
+      body &&
+      (body.prompt ||
+        body.message ||
+        body.query ||
+        body.task ||
+        body.instruction ||
+        body.messages ||
+        body.userRequest);
 
     return isLLMEndpoint && hasLLMContent;
   }
@@ -549,13 +555,13 @@ export class AutoContextMiddleware {
     const includeRoutes = this.options.includeRoutes || [];
 
     // Skip if explicitly excluded
-    if (excludeRoutes.some(route => path.startsWith(route))) {
+    if (excludeRoutes.some((route) => path.startsWith(route))) {
       return true;
     }
 
     // If include routes specified, only process those
     if (includeRoutes.length > 0) {
-      return !includeRoutes.some(route => path.startsWith(route));
+      return !includeRoutes.some((route) => path.startsWith(route));
     }
 
     return false;
@@ -605,7 +611,7 @@ export class AutoContextMiddleware {
     let totalTokens = 0;
     let totalCompression = 0;
 
-    this.sessions.forEach(session => {
+    this.sessions.forEach((session) => {
       totalMessages += session.messageCount;
       totalTokens += session.totalTokens;
       totalCompression += session.compressionLevel;

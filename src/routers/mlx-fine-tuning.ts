@@ -10,7 +10,7 @@ import { join, resolve } from 'path';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { createSecurePath, sanitizeFilename, validateFile, validatePath, validatePathBoundary } from '../utils/path-security';
+import { createSecurePath, safeUnlink, sanitizeFilename, validateFile, validatePath, validatePathBoundary } from '../utils/path-security';
 import { LogContext, log } from '../utils/logger';
 import { sendError, sendSuccess } from '../utils/api-response';
 import { mlxFineTuningService } from '../services/mlx-fine-tuning-service';
@@ -51,7 +51,7 @@ function validateMLXPath(filePath: string): boolean {
 }
 
 // Security: Configure secure dataset uploads
-const uploadsPath = ALLOWED_MLX_DIRS.find(dir => dir.includes('uploads/datasets')) || 
+const uploadsPath = ALLOWED_MLX_DIRS.find(dir => dir.includes('uploads/datasets')) ||
                    join(process.cwd(), 'uploads', 'datasets');
 
 // Security: Ensure upload directory exists and is secure
@@ -82,18 +82,18 @@ const upload = multer({
       'application/csv',
       'text/x-csv'
     ];
-    
+
     // Security: Validate MIME type
     if (!allowedMimeTypes.some(mime => file.mimetype.includes(mime))) {
       return cb(new Error(`Invalid MIME type: ${file.mimetype}. Only JSON, JSONL, CSV, and TXT files are allowed.`));
     }
-    
+
     // Security: Validate file extension
     const ext = `.${  file.originalname.toLowerCase().split('.').pop()}`;
     if (!allowedTypes.includes(ext)) {
       return cb(new Error(`Invalid file extension: ${ext}. Only ${allowedTypes.join(', ')} files are allowed.`));
     }
-    
+
     // Security: Validate and sanitize filename
     if (!validatePath(file.originalname, {
       maxLength: 255,
@@ -102,13 +102,13 @@ const upload = multer({
     })) {
       return cb(new Error('Invalid filename format'));
     }
-    
+
     // Security: Sanitize filename to prevent injection
     file.originalname = sanitizeFilename(file.originalname, {
       maxLength: 200,
       allowedExtensions: allowedTypes
     });
-    
+
     cb(null, true);
   },
 });
@@ -159,7 +159,7 @@ router.post('/datasets', upload.single('dataset'), async (req: Request, res: Res
 
     // Security: Validate uploaded file path and properties
     const uploadedPath = req.file.path;
-    
+
     if (!validateFile(uploadedPath, {
       maxFileSize: 100 * 1024 * 1024,
       allowedExtensions: ['.json', '.jsonl', '.csv', '.txt', '.tsv'],
@@ -168,7 +168,7 @@ router.post('/datasets', upload.single('dataset'), async (req: Request, res: Res
     })) {
       // Clean up invalid file
       try {
-        fs.unlinkSync(uploadedPath);
+        safeUnlink(uploadedPath, ALLOWED_MLX_DIRS);
       } catch (cleanupError) {
         console.warn(`Failed to cleanup invalid uploaded file: ${uploadedPath}`);
       }
@@ -178,7 +178,7 @@ router.post('/datasets', upload.single('dataset'), async (req: Request, res: Res
     // Security: Verify file path boundary
     if (!validatePathBoundary(uploadedPath, ALLOWED_MLX_DIRS)) {
       try {
-        fs.unlinkSync(uploadedPath);
+        safeUnlink(uploadedPath, ALLOWED_MLX_DIRS);
       } catch (cleanupError) {
         console.warn(`Failed to cleanup file outside boundary: ${uploadedPath}`);
       }
@@ -283,7 +283,7 @@ router.post('/jobs', async (req: Request, res: Response) => {
     if (!validatePathBoundary(base_model_path, ALLOWED_MLX_DIRS)) {
       return sendError(res, 'VALIDATION_ERROR', 'Base model path outside allowed directories');
     }
-    
+
     if (!validatePathBoundary(dataset_path, ALLOWED_MLX_DIRS)) {
       return sendError(res, 'VALIDATION_ERROR', 'Dataset path outside allowed directories');
     }
@@ -645,7 +645,7 @@ router.post('/jobs/:jobId/export', async (req: Request, res: Response) => {
       })) {
         return sendError(res, 'VALIDATION_ERROR', 'Invalid export path');
       }
-      
+
       if (!validatePathBoundary(export_path, ALLOWED_MLX_DIRS)) {
         return sendError(res, 'VALIDATION_ERROR', 'Export path outside allowed directories');
       }

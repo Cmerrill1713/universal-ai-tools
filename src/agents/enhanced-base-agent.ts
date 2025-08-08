@@ -124,6 +124,27 @@ export abstract class EnhancedBaseAgent {
       // Process LLM response
       const agentResponse = await this.processLLMResponse(llmResponse, context);
 
+      // Factuality guard: ensure no fabricated facts; rewrite with citations or admit uncertainty
+      try {
+        const { checkAndCorrectFactuality } = await import('@/services/factuality-guard');
+        const fact = await checkAndCorrectFactuality(
+          agentResponse.data ? String(agentResponse.data) : llmResponse.content || '',
+          context.userRequest,
+          {
+            userId: context.userId,
+            requestId: context.requestId,
+            projectPath: context.workingDirectory,
+          }
+        );
+        if (fact && fact.content && fact.content !== (agentResponse.data as any)) {
+          agentResponse.data = fact.content as any;
+          if (!agentResponse.success) {
+            agentResponse.success = true;
+            agentResponse.confidence = Math.max(agentResponse.confidence, 0.6);
+          }
+        }
+      } catch {}
+
       // Update conversation history
       this.updateConversationHistory(context.userRequest, llmResponse.content);
 

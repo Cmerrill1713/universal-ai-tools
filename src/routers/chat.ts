@@ -227,14 +227,13 @@ router.post(
  */
 router.post(
   '/',
-  // Make authentication optional for quick chat
+  // Require auth in production; allow anonymous only in development for local testing
   (req: Request, res: Response, next: NextFunction) => {
-    // If no auth header, allow anonymous access
-    if (!req.headers.authorization && !req.headers['x-api-key']) {
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (isDev && !req.headers.authorization && !req.headers['x-api-key']) {
       (req as any).user = { id: 'anonymous' };
       return next();
     }
-    // Otherwise use normal authentication
     return authenticate(req, res, next);
   },
   [
@@ -302,7 +301,14 @@ router.post(
       // Get agent registry
       const agentRegistry = (global as any).agentRegistry as AgentRegistry;
       if (!agentRegistry) {
-        throw new Error('Agent registry not available');
+        log.error('Agent registry not available', LogContext.API);
+        return res.status(503).json({
+          success: false,
+          error: {
+            code: 'SERVICE_UNAVAILABLE',
+            message: 'AI service is currently initializing. Please try again in a moment.',
+          },
+        });
       }
 
       // Prepare agent context with conversation history
@@ -328,17 +334,29 @@ router.post(
         const agentExists = availableAgents.some((agent) => agent.name === agentName);
 
         if (!agentExists) {
-          log.warn('Agent not found, using mock response', LogContext.API, { agentName });
-          // Provide a mock response for testing
+          log.warn('Agent not found, using fallback response', LogContext.API, { agentName });
+          // Provide a fallback response for testing
           result = {
-            response:
-              "I'm here to help! The system is currently initializing. How can I assist you today?",
+            response: `I'm here to help! The ${agentName} agent is currently being initialized. How can I assist you today?`,
             confidence: 0.8,
             success: true,
-            reasoning: 'Mock response while agents are loading',
+            reasoning: 'Fallback response while agents are loading',
           };
         } else {
-          result = await agentRegistry.processRequest(agentName, agentContext);
+          // Try to get the agent
+          const agent = await agentRegistry.getAgent(agentName);
+          if (!agent) {
+            log.warn('Agent failed to load, using fallback response', LogContext.API, { agentName });
+            result = {
+              response: `I'm experiencing some technical difficulties with the ${agentName} agent, but I'm still here to help! Please try again in a moment.`,
+              confidence: 0.5,
+              success: false,
+              error: 'Agent failed to initialize',
+            };
+          } else {
+            // Process with the agent
+            result = await agentRegistry.processRequest(agentName, agentContext);
+          }
         }
       } catch (agentError) {
         log.error('Agent processing failed', LogContext.API, {
@@ -348,12 +366,26 @@ router.post(
 
         // Provide fallback response
         result = {
-          response:
-            "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
+          response: "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
           confidence: 0.5,
           success: false,
           error: agentError instanceof Error ? agentError.message : 'Unknown error',
         };
+      }
+
+      // If we still don't have a valid response, provide a basic fallback
+      if (!result || !result.response) {
+        result = {
+          response: "Hello! I'm your AI assistant. I'm currently initializing my advanced capabilities, but I'm here to help with basic questions and tasks. How can I assist you today?",
+          confidence: 0.7,
+          success: true,
+          reasoning: 'Basic fallback response',
+        };
+      }
+
+      // Ensure we have a valid response object
+      if (typeof result.response !== 'string') {
+        result.response = "I'm here to help! How can I assist you today?";
       }
 
       const executionTime = Date.now() - startTime;

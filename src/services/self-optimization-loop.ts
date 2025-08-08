@@ -3,7 +3,8 @@
  * Continuously monitors and optimizes system performance
  */
 
-import { FSWatcher, watch } from 'fs';
+import type { FSWatcher} from 'fs';
+import { watch } from 'fs';
 import { LogContext, log } from '../utils/logger';
 
 interface OptimizationMetrics {
@@ -155,7 +156,6 @@ class SelfOptimizationLoop {
       // Store a wrapper to close all when disabling
       // We keep just one reference; on close, we will close all
       this.watcher = {
-        // @ts-expect-error: minimal wrapper to track multiple watchers
         close: () => {
           for (const w of watchers) {
             try {
@@ -257,7 +257,7 @@ class SelfOptimizationLoop {
     const cpuUsage =
       os.cpus().reduce((acc, cpu) => {
         const total = Object.values(cpu.times).reduce((sum, time) => sum + time, 0);
-        const idle = cpu.times.idle;
+        const {idle} = cpu.times;
         return acc + ((total - idle) / total) * 100;
       }, 0) / os.cpus().length;
 

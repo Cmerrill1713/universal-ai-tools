@@ -4,8 +4,8 @@
  */
 
 import { Router } from 'express';
-import externalAPIManager from '../services/external-api-manager';
-import { LogContext, log } from '../utils/logger';
+import externalAPIManager from '../services/external-api-manager.js';
+import { LogContext, log } from '../utils/logger.js';
 
 const router = Router();
 
@@ -52,7 +52,7 @@ router.get('/:id', async (req, res) => {
     const rateLimitStatus = externalAPIManager.getRateLimitStatus(id);
     const requestHistory = externalAPIManager.getRequestHistory(id);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         ...api,
@@ -66,7 +66,7 @@ router.get('/:id', async (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get external API',
     });
@@ -94,13 +94,13 @@ router.post('/', async (req, res) => {
         name: config.name,
       });
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'API registered successfully',
         data: { id: config.id },
       });
     } else {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: 'Failed to register API',
       });
@@ -110,7 +110,7 @@ router.post('/', async (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to register external API',
     });
@@ -208,12 +208,12 @@ router.post('/:id/toggle', async (req, res) => {
         enabled,
       });
 
-      res.json({
+      return res.json({
         success: true,
         message: `API ${enabled ? 'enabled' : 'disabled'} successfully`,
       });
     } else {
-      res.status(404).json({
+      return res.status(404).json({
         success: false,
         error: `API with ID '${id}' not found`,
       });
@@ -224,7 +224,7 @@ router.post('/:id/toggle', async (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to toggle external API',
     });
@@ -260,14 +260,14 @@ router.post('/:id/request', async (req, res) => {
     });
 
     // Return the same status code as the external API
-    res.status(response.statusCode).json(response);
+    return res.status(response.statusCode).json(response);
   } catch (error) {
     log.error('Failed to make external API request', LogContext.API, {
       apiId: req.params.id,
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to make external API request',
     });
@@ -310,26 +310,24 @@ router.get('/capability/:capability', async (req, res) => {
     const { capability } = req.params;
     const apis = externalAPIManager.getAPIsWithCapability(capability);
 
-    log.info('External APIs filtered by capability', {
-      context: 'external-api',
+    log.info('External APIs filtered by capability', LogContext.API, {
       capability,
       count: apis.length,
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: apis,
       count: apis.length,
       capability,
     });
   } catch (error) {
-    log.error('Failed to get APIs by capability', {
-      context: 'external-api',
+    log.error('Failed to get APIs by capability', LogContext.API, {
       capability: req.params.capability,
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get APIs by capability',
     });
@@ -352,7 +350,7 @@ router.get('/:id/status', async (req, res) => {
     const rateLimitStatus = externalAPIManager.getRateLimitStatus(id);
     const requestHistory = externalAPIManager.getRequestHistory(id);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id: api.id,
@@ -365,13 +363,12 @@ router.get('/:id/status', async (req, res) => {
       },
     });
   } catch (error) {
-    log.error('Failed to get API status', {
-      context: 'external-api',
+    log.error('Failed to get API status', LogContext.API, {
       apiId: req.params.id,
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get API status',
     });

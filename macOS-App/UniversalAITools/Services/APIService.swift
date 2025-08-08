@@ -67,6 +67,11 @@ class APIService: ObservableObject {
         // Save to keychain
         KeychainService.shared.saveToken(authResponse.token)
 
+        // Reconnect backend with new auth token
+        Task { [weak self] in
+            await self?.connectToBackend()
+        }
+
         return true
     }
 
@@ -91,18 +96,31 @@ class APIService: ObservableObject {
     }
 
     private func checkHealth() async throws -> Bool {
-        let endpoint = "\(baseURL)/health"
-        guard let url = URL(string: endpoint) else {
-            throw APIError.invalidURL
+        // Try rich health, then fallback
+        let candidates = [
+            "\(baseURL)/api/v1/fast-coordinator/health",
+            "\(baseURL)/api/v1/status",
+            "\(baseURL)/health",
+        ]
+
+        for endpoint in candidates {
+            guard let url = URL(string: endpoint) else { continue }
+            do {
+                let (_, response) = try await session.data(from: url)
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    return true
+                }
+            } catch {
+                // try next
+                continue
+            }
         }
+        return false
+    }
 
-        let (_, response) = try await session.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        return httpResponse.statusCode == 200
+    // Public probe for SettingsView
+    func performHealthProbe() async throws -> Bool {
+        return try await checkHealth()
     }
 
     private func connectWebSocket() {
