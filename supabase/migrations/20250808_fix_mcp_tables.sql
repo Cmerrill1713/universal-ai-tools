@@ -1,10 +1,7 @@
 -- Fix MCP tables that are missing
 -- This migration ensures the MCP tables are properly created
 
--- Drop existing tables if they exist (to avoid conflicts)
-DROP TABLE IF EXISTS mcp_sessions CASCADE;
-DROP TABLE IF EXISTS mcp_messages CASCADE;
-DROP TABLE IF EXISTS mcp_tools CASCADE;
+-- Avoid destructive drops; ensure tables exist instead
 
 -- Create MCP sessions table
 CREATE TABLE IF NOT EXISTS mcp_sessions (

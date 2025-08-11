@@ -12,9 +12,10 @@
  * - Integration with existing context-storage-service
  */
 
-import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+import { createClient,type SupabaseClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
-import { LogContext, log } from '../utils/logger';
+import { log,LogContext } from '../utils/logger';
 import { contextStorageService } from './context-storage-service';
 
 interface ConversationContext {

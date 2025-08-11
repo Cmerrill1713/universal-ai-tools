@@ -5,9 +5,10 @@
 
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+
 import { secretsManager } from '../services/secrets-manager';
 import { sendError } from '../utils/api-response';
-import { LogContext, log } from '../utils/logger';
+import { log, LogContext } from '../utils/logger';
 
 // Extend Request interface to include user and device info
 declare global {
@@ -43,6 +44,8 @@ interface JwtPayload {
  */
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // No development authentication bypasses. Tests must provide auth or hit public endpoints.
+
     // Check temporary lockout before any heavy work
     if (await isIpLockedOut(req)) {
       const retry = await getLockoutRetryAfter(req);
@@ -80,18 +83,17 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
 
     if (!token) {
+      const fullPath = `${(req as any).baseUrl || ''}${req.path || ''}`;
       // Check if this is a public endpoint
-      if (isPublicEndpoint(req.path)) {
+      if (isPublicEndpoint(req.path, fullPath)) {
         return next();
       }
       return sendError(res, 'AUTHENTICATION_ERROR', 'No token provided', 401);
     }
 
-    // Get JWT secret from vault with fallback
-    let jwtSecret = await secretsManager.getSecret('jwt_secret');
-    if (!jwtSecret) {
-      jwtSecret = process.env.JWT_SECRET || '';
-    }
+    // Get JWT secret
+    let jwtSecret: string | null = null;
+    jwtSecret = (await secretsManager.getSecret('jwt_secret')) || process.env.JWT_SECRET || '';
     if (!jwtSecret) {
       log.error('JWT secret not configured', LogContext.API);
       return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);
@@ -147,20 +149,25 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 /**
  * Check if endpoint is public (doesn't require authentication)
  */
-function isPublicEndpoint(path: string): boolean {
+function isPublicEndpoint(path: string, fullPath?: string): boolean {
   const publicPaths = [
+    '/health',
     '/api/health',
-    '/api/status',
-    // In production, require auth for chat/memory
-    ...(process.env.NODE_ENV === 'production'
-      ? []
-      : ['/api/v1/chat', '/api/v1/memory', '/api/v1/agents']),
+    '/api/v1/health',
+    '/status',
+    '/metrics',
+    '/api/v1/status',
+    '/api/v1/ollama/models',
+    '/api/v1/vision/models',
+    '/api/v1/agents/registry',
     '/api/v1/device-auth/challenge',
     '/docs',
     '/api-docs',
+    '/graphql', // health query only; resolvers should enforce auth for sensitive ops
   ];
 
-  return publicPaths.some((publicPath) => path.startsWith(publicPath));
+  const candidates = [path, fullPath].filter(Boolean) as string[];
+  return publicPaths.some((publicPath) => candidates.some((p) => p.startsWith(publicPath)));
 }
 
 /**
@@ -309,8 +316,8 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
       return apiKey === apiServiceCfg.api_key;
     }
 
-    // Otherwise, deny by default (no dev bypass in production)
-    return process.env.NODE_ENV !== 'production';
+    // Otherwise, deny by default (no dev/test bypass)
+    return false;
   } catch (error) {
     const { LogContext, log } = await import('../utils/logger');
     log.error('API key validation failed', LogContext.API, { error });

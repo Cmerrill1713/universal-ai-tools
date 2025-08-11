@@ -3,72 +3,72 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var apiService: APIService
-    
+
     @State private var searchText = ""
     @State private var showQuickChat = false
     @State private var quickMessage = ""
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with connection status
             headerSection
-            
+
             Divider()
-            
+
             // Quick Actions
             quickActionsSection
-            
+
             Divider()
-            
+
             // Active Agents
             if !appState.activeAgents.isEmpty {
                 activeAgentsSection
                 Divider()
             }
-            
+
             // Recent Chats
             recentChatsSection
-            
+
             Divider()
-            
+
             // Quick Chat Input
             if showQuickChat {
                 quickChatSection
                 Divider()
             }
-            
+
             // Footer Actions
             footerSection
         }
         .frame(width: 300)
         .background(Color(NSColor.windowBackgroundColor))
     }
-    
+
     // MARK: - Header Section
-    
+
     private var headerSection: some View {
         HStack {
             Image(systemName: "brain")
                 .font(.title2)
                 .foregroundColor(.accentColor)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text("Universal AI Tools")
                     .font(.headline)
-                
+
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(apiService.isConnected ? Color.green : Color.red)
+                        .fill(appState.backendConnected ? Color.green : Color.red)
                         .frame(width: 6, height: 6)
-                    
-                    Text(apiService.isConnected ? "Connected" : "Disconnected")
+
+                    Text(appState.backendConnected ? "Connected" : "Disconnected")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
-            
+
             // Settings Button
             Button(action: openSettings) {
                 Image(systemName: "gearshape")
@@ -78,9 +78,9 @@ struct MenuBarView: View {
         }
         .padding()
     }
-    
+
     // MARK: - Quick Actions
-    
+
     private var quickActionsSection: some View {
         VStack(spacing: 8) {
             HStack {
@@ -89,33 +89,33 @@ struct MenuBarView: View {
                     .onSubmit {
                         performQuickSearch()
                     }
-                
+
                 Button(action: performQuickSearch) {
                     Image(systemName: "magnifyingglass")
                 }
                 .buttonStyle(BorderlessButtonStyle())
             }
-            
+
             HStack(spacing: 8) {
-                QuickActionButton(
+                MenuQuickActionButton(
                     icon: "message",
                     title: "Chat",
                     action: { showQuickChat.toggle() }
                 )
-                
-                QuickActionButton(
+
+                MenuQuickActionButton(
                     icon: "cpu",
                     title: "Agents",
                     action: openAgentsPanel
                 )
-                
-                QuickActionButton(
+
+                MenuQuickActionButton(
                     icon: "doc.text",
                     title: "Context",
                     action: openContextManager
                 )
-                
-                QuickActionButton(
+
+                MenuQuickActionButton(
                     icon: "chart.line.uptrend.xyaxis",
                     title: "Monitor",
                     action: openMonitoring
@@ -125,20 +125,20 @@ struct MenuBarView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
     }
-    
+
     // MARK: - Active Agents
-    
+
     private var activeAgentsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Active Agents")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
-            
+
             ForEach(appState.activeAgents.prefix(3)) { agent in
                 ActiveAgentRow(agent: agent)
             }
-            
+
             if appState.activeAgents.count > 3 {
                 Button(action: openAgentsPanel) {
                     Text("View all \(appState.activeAgents.count) agents →")
@@ -151,18 +151,18 @@ struct MenuBarView: View {
         }
         .padding(.vertical, 8)
     }
-    
+
     // MARK: - Recent Chats
-    
+
     private var recentChatsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Recent Chats")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 Button(action: startNewChat) {
                     Image(systemName: "plus")
                         .font(.caption)
@@ -170,7 +170,7 @@ struct MenuBarView: View {
                 .buttonStyle(BorderlessButtonStyle())
             }
             .padding(.horizontal)
-            
+
             ScrollView {
                 VStack(spacing: 4) {
                     ForEach(appState.recentChats.prefix(5)) { chat in
@@ -184,23 +184,23 @@ struct MenuBarView: View {
         }
         .padding(.vertical, 8)
     }
-    
+
     // MARK: - Quick Chat
-    
+
     private var quickChatSection: some View {
         VStack(spacing: 8) {
             Text("Quick Chat")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             HStack {
                 TextField("Type a message...", text: $quickMessage)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .onSubmit {
                         sendQuickMessage()
                     }
-                
+
                 Button(action: sendQuickMessage) {
                     Image(systemName: "arrow.up.circle.fill")
                         .foregroundColor(quickMessage.isEmpty ? .gray : .accentColor)
@@ -208,7 +208,7 @@ struct MenuBarView: View {
                 .buttonStyle(BorderlessButtonStyle())
                 .disabled(quickMessage.isEmpty)
             }
-            
+
             // Quick response area
             if let lastResponse = appState.lastQuickResponse {
                 ScrollView {
@@ -225,9 +225,9 @@ struct MenuBarView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
     }
-    
+
     // MARK: - Footer
-    
+
     private var footerSection: some View {
         HStack {
             Button(action: openMainWindow) {
@@ -235,9 +235,9 @@ struct MenuBarView: View {
                     .font(.caption)
             }
             .buttonStyle(BorderlessButtonStyle())
-            
+
             Spacer()
-            
+
             Menu {
                 Button("Preferences...", action: openPreferences)
                 Button("Check for Updates...", action: checkForUpdates)
@@ -253,12 +253,12 @@ struct MenuBarView: View {
         }
         .padding()
     }
-    
+
     // MARK: - Actions
-    
+
     private func performQuickSearch() {
         guard !searchText.isEmpty else { return }
-        
+
         // Perform search/query
         Task {
             do {
@@ -266,7 +266,7 @@ struct MenuBarView: View {
                     searchText,
                     chatId: "quick-search"
                 )
-                
+
                 await MainActor.run {
                     appState.lastQuickResponse = response.content
                     searchText = ""
@@ -276,17 +276,17 @@ struct MenuBarView: View {
             }
         }
     }
-    
+
     private func sendQuickMessage() {
         guard !quickMessage.isEmpty else { return }
-        
+
         Task {
             do {
                 let response = try await apiService.sendChatMessage(
                     quickMessage,
                     chatId: "quick-chat"
                 )
-                
+
                 await MainActor.run {
                     appState.lastQuickResponse = response.content
                     quickMessage = ""
@@ -296,10 +296,10 @@ struct MenuBarView: View {
             }
         }
     }
-    
+
     private func openMainWindow() {
         NSApplication.shared.activate(ignoringOtherApps: true)
-        
+
         if let window = NSApplication.shared.windows.first {
             window.makeKeyAndOrderFront(nil)
         } else {
@@ -315,27 +315,27 @@ struct MenuBarView: View {
             window.makeKeyAndOrderFront(nil)
         }
     }
-    
+
     private func openSettings() {
         appState.showSettings = true
         openMainWindow()
     }
-    
+
     private func openAgentsPanel() {
         appState.selectedSidebarItem = .agents
         openMainWindow()
     }
-    
+
     private func openContextManager() {
-        appState.selectedSidebarItem = .context
+        appState.selectedSidebarItem = .knowledge
         openMainWindow()
     }
-    
+
     private func openMonitoring() {
         appState.selectedSidebarItem = .monitoring
         openMainWindow()
     }
-    
+
     private func startNewChat() {
         appState.currentChat = Chat(
             id: UUID().uuidString,
@@ -346,27 +346,27 @@ struct MenuBarView: View {
         appState.selectedSidebarItem = .chat
         openMainWindow()
     }
-    
+
     private func openChat(_ chat: Chat) {
         appState.currentChat = chat
         appState.selectedSidebarItem = .chat
         openMainWindow()
     }
-    
+
     private func openPreferences() {
         appState.showSettings = true
         openMainWindow()
     }
-    
+
     private func checkForUpdates() {
         // Implement update check
         NSWorkspace.shared.open(URL(string: "https://github.com/Cmerrill1713/universal-ai-tools/releases")!)
     }
-    
+
     private func showAbout() {
         NSApplication.shared.orderFrontStandardAboutPanel(nil)
     }
-    
+
     private func quitApp() {
         NSApplication.shared.terminate(nil)
     }
@@ -374,11 +374,11 @@ struct MenuBarView: View {
 
 // MARK: - Supporting Views
 
-struct QuickActionButton: View {
+struct MenuQuickActionButton: View {
     let icon: String
     let title: String
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
@@ -398,28 +398,28 @@ struct QuickActionButton: View {
 
 struct ActiveAgentRow: View {
     let agent: Agent
-    
+
     var statusColor: Color {
         switch agent.status {
-        case "active": return .green
-        case "idle": return .orange
-        case "error": return .red
-        default: return .gray
+        case .active: return .green
+        case .busy: return .orange
+        case .error: return .red
+        case .inactive: return .gray
         }
     }
-    
+
     var body: some View {
         HStack {
             Circle()
                 .fill(statusColor)
                 .frame(width: 6, height: 6)
-            
+
             Text(agent.name)
                 .font(.caption)
                 .lineLimit(1)
-            
+
             Spacer()
-            
+
             Text(agent.type)
                 .font(.caption2)
                 .foregroundColor(.secondary)
@@ -436,20 +436,20 @@ struct ActiveAgentRow: View {
 struct RecentChatRow: View {
     let chat: Chat
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack {
                 Image(systemName: "message")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Text(chat.title)
                     .font(.caption)
                     .lineLimit(1)
-                
+
                 Spacer()
-                
+
                 if let lastMessage = chat.messages.last {
                     Text(formatTimestamp(lastMessage.timestamp))
                         .font(.caption2)
@@ -463,7 +463,7 @@ struct RecentChatRow: View {
         .buttonStyle(PlainButtonStyle())
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
-    
+
     private func formatTimestamp(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated

@@ -6,11 +6,8 @@
 
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
-import { LogContext, log } from '../utils/logger';
-import { CircuitBreaker } from '../utils/circuit-breaker';
-import { visionResourceManager } from './vision-resource-manager';
-import { ollamaService } from './ollama-service';
-import { ModelConfig, getModelForTask } from '../config/models';
+
+import { getModelForTask } from '../config/models';
 import type {
   GeneratedImage,
   GenerationParameters,
@@ -22,8 +19,10 @@ import type {
   VisionRequest,
   VisionResponse,
 } from '../types/vision';
-import { DetectedObject } from '../types/vision';
 import { THREE } from '../utils/constants';
+import { log,LogContext } from '../utils/logger';
+import { ollamaService } from './ollama-service';
+import { visionResourceManager } from './vision-resource-manager';
 
 export interface PyVisionMetrics {
   avgResponseTime: number;

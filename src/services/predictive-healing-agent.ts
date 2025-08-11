@@ -3,10 +3,10 @@
  * AI-powered agent that learns from error patterns and predicts failures
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { execSync } from 'child_process';
+import * as fs from 'fs';
 import { fileURLToPath } from 'url';
+
 import { HOURS_IN_DAY, THREE, TWO } from '../utils/constants';
 
 interface ErrorPattern {

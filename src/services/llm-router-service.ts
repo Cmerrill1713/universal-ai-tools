@@ -5,8 +5,8 @@
  */
 
 import { config } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
-import { secretsManager } from './secrets-manager';
+import { log, LogContext } from '@/utils/logger';
+
 import { mcpIntegrationService } from './mcp-integration-service';
 
 export interface LLMMessage {
@@ -62,8 +62,8 @@ export class LLMRouterService {
       // Planning and Strategy Models
       {
         internalName: 'planner-pro',
-        provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-sonnet-20240229',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:3b',
         capabilities: ['planning', 'strategy', 'analysis'],
         maxTokens: 4000,
         temperature: 0.3,
@@ -71,8 +71,8 @@ export class LLMRouterService {
       },
       {
         internalName: 'planner-fast',
-        provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o-mini',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:1b',
         capabilities: ['planning', 'quick_analysis'],
         maxTokens: 2000,
         temperature: 0.4,
@@ -82,8 +82,8 @@ export class LLMRouterService {
       // Code and Technical Models
       {
         internalName: 'code-expert',
-        provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-sonnet-20240229',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'qwen2.5:7b',
         capabilities: ['code_generation', 'debugging', 'refactoring'],
         maxTokens: 6000,
         temperature: 0.2,
@@ -91,8 +91,8 @@ export class LLMRouterService {
       },
       {
         internalName: 'code-assistant',
-        provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:3b',
         capabilities: ['code_analysis', 'documentation'],
         maxTokens: 4000,
         temperature: 0.3,
@@ -102,8 +102,8 @@ export class LLMRouterService {
       // Retrieval and Information Models
       {
         internalName: 'retriever-smart',
-        provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-haiku-20240307',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:3b',
         capabilities: ['information_retrieval', 'summarization'],
         maxTokens: 3000,
         temperature: 0.2,
@@ -111,8 +111,8 @@ export class LLMRouterService {
       },
       {
         internalName: 'retriever-fast',
-        provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o-mini',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:1b',
         capabilities: ['quick_search', 'basic_analysis'],
         maxTokens: 1500,
         temperature: 0.3,
@@ -122,8 +122,8 @@ export class LLMRouterService {
       // Personal Assistant Models
       {
         internalName: 'assistant-personal',
-        provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-sonnet-20240229',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:3b',
         capabilities: ['conversation', 'task_management', 'empathy'],
         maxTokens: 3000,
         temperature: 0.7,
@@ -131,8 +131,8 @@ export class LLMRouterService {
       },
       {
         internalName: 'assistant-casual',
-        provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:1b',
         capabilities: ['casual_chat', 'quick_help'],
         maxTokens: 2000,
         temperature: 0.8,
@@ -142,8 +142,8 @@ export class LLMRouterService {
       // Synthesis and Analysis Models
       {
         internalName: 'synthesizer-deep',
-        provider: LLMProvider.ANTHROPIC,
-        externalModel: 'claude-3-opus-20240229',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'qwen2.5:7b',
         capabilities: ['synthesis', 'deep_analysis', 'consensus'],
         maxTokens: 8000,
         temperature: 0.4,
@@ -151,8 +151,8 @@ export class LLMRouterService {
       },
       {
         internalName: 'synthesizer-quick',
-        provider: LLMProvider.OPENAI,
-        externalModel: 'gpt-4o',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'llama3.2:3b',
         capabilities: ['quick_synthesis', 'summary'],
         maxTokens: 3000,
         temperature: 0.5,
@@ -182,45 +182,20 @@ export class LLMRouterService {
   }
 
   private async initializeProviders(): Promise<void> {
-    // Initialize OpenAI client - try Supabase Vault first, then env
-    const openaiKey = await secretsManager.getApiKeyWithFallback('openai', 'OPENAI_API_KEY');
-    if (openaiKey) {
-      try {
-        const { OpenAI } = await import('openai');
-        const openai = new OpenAI({
-          apiKey: openaiKey,
-        });
-        this.providerClients.set(LLMProvider.OPENAI, openai);
-        log.info('✅ OpenAI client initialized', LogContext.AI);
-      } catch (error) {
-        log.error('❌ Failed to initialize OpenAI client', LogContext.AI, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+    // Skip cloud providers entirely; local-first only (Ollama/MLX)
+    if (true) {
+      log.info('🌐 Remote LLM providers disabled by configuration', LogContext.AI, {
+        offlineMode: true,
+      });
     } else {
-      log.warn('⚠️ OpenAI API key not found in Vault or environment', LogContext.AI);
-    }
-
-    // Initialize Anthropic client - try Supabase Vault first, then env
-    const anthropicKey = await secretsManager.getApiKeyWithFallback(
-      'anthropic',
-      'ANTHROPIC_API_KEY'
-    );
-    if (anthropicKey) {
-      try {
-        const { Anthropic } = await import('@anthropic-ai/sdk');
-        const anthropic = new Anthropic({
-          apiKey: anthropicKey,
-        });
-        this.providerClients.set(LLMProvider.ANTHROPIC, anthropic);
-        log.info('✅ Anthropic client initialized', LogContext.AI);
-      } catch (error) {
-        log.error('❌ Failed to initialize Anthropic client', LogContext.AI, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    } else {
-      log.warn('⚠️ Anthropic API key not found in Vault or environment', LogContext.AI);
+      log.info(
+        '🌐 Offline mode or remote LLMs disabled - skipping OpenAI/Anthropic init',
+        LogContext.AI,
+        {
+          offlineMode: config.offlineMode,
+          disableRemoteLLM: config.disableRemoteLLM,
+        }
+      );
     }
 
     // Initialize Ollama client
@@ -325,16 +300,36 @@ export class LLMRouterService {
     let client = this.providerClients.get(modelConfig.provider);
     let actualConfig = modelConfig;
 
-    // In development, prefer local Ollama to avoid cloud API keys
-    const isDev = (process.env.NODE_ENV || 'development') === 'development';
-    if (isDev && this.providerClients.has(LLMProvider.OLLAMA)) {
+    // Enforce offline-first policy for remote providers
+    const remoteProviderRequested =
+      actualConfig.provider === LLMProvider.OPENAI ||
+      actualConfig.provider === LLMProvider.ANTHROPIC;
+    if ((config.offlineMode || config.disableRemoteLLM) && remoteProviderRequested) {
+      if (this.providerClients.has(LLMProvider.OLLAMA)) {
+        log.info('🌐 Remote LLM disabled - rerouting to Ollama', LogContext.AI, {
+          requestedProvider: actualConfig.provider,
+          internalModel: actualConfig.internalName,
+        } as any);
+        client = this.providerClients.get(LLMProvider.OLLAMA);
+        actualConfig = {
+          ...actualConfig,
+          provider: LLMProvider.OLLAMA,
+          externalModel: 'llama3.2:3b',
+        } as any;
+      } else {
+        throw new Error('Remote LLMs disabled and no local provider available');
+      }
+    }
+
+    // Prefer local Ollama to avoid cloud API keys
+    if (this.providerClients.has(LLMProvider.OLLAMA)) {
       client = this.providerClients.get(LLMProvider.OLLAMA);
       actualConfig = {
         ...modelConfig,
         provider: LLMProvider.OLLAMA,
         externalModel: 'llama3.2:3b',
       };
-      log.debug('DEV mode: forcing Ollama provider', LogContext.AI, {
+      log.debug('Forcing Ollama provider (local-first)', LogContext.AI, {
         internalModel: modelConfig.internalName,
         externalModel: actualConfig.externalModel,
       });
@@ -363,13 +358,7 @@ export class LLMRouterService {
 
     switch (actualConfig.provider) {
       case LLMProvider.OPENAI:
-        return this.callOpenAI(
-          client,
-          actualConfig.externalModel,
-          messages,
-          temperature,
-          maxTokens
-        );
+        throw new Error('OpenAI provider disabled');
 
       case LLMProvider.ANTHROPIC:
         return this.callAnthropic(

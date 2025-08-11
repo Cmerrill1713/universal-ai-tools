@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct WelcomeView: View {
+struct StandaloneWelcomeView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var apiService: APIService
 
@@ -242,7 +242,7 @@ struct QuickActionCard: View {
 }
 
 #Preview {
-    WelcomeView()
+    StandaloneWelcomeView()
         .environmentObject(AppState())
         .environmentObject(APIService())
 }

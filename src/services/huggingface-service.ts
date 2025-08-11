@@ -4,8 +4,9 @@
  */
 
 import { HfInference } from '@huggingface/inference';
-import { LogContext, log } from '../utils/logger';
+
 import { CircuitBreaker, CircuitBreakerRegistry } from '../utils/circuit-breaker';
+import { log,LogContext } from '../utils/logger';
 
 export interface HuggingFaceConfig {
   apiKey: string;

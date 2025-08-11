@@ -141,7 +141,7 @@ export function getModelForTask(
 export async function isModelAvailable(model: string): Promise<boolean> {
   try {
     // Check with Ollama
-    const response = await fetch('http://localhost:11434/api/tags');
+    const response = await ((globalThis as any).fetch || fetch)('http://localhost:11434/api/tags');
     const data = await response.json();
     return data.models?.some((m: any) => m.name === model) || false;
   } catch {

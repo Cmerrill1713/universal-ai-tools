@@ -1,5 +1,5 @@
 import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
-import { LogContext, log } from '@/utils/logger';
+import { log,LogContext } from '@/utils/logger';
 
 export abstract class BaseAgent {
   protected config: AgentConfig;

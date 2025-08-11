@@ -5,13 +5,13 @@
  */
 
 import { Router } from 'express';
-import { LogContext, log } from '@/utils/logger';
-import { CircuitBreakerRegistry, getCircuitBreakerStatus } from '@/utils/circuit-breaker';
+import os from 'os';
+
+import { healthMonitor } from '@/services/health-monitor';
 import { lfm2Bridge } from '@/services/lfm2-bridge';
 import { ollamaService } from '@/services/ollama-service';
-import { multiTierLLM } from '@/services/multi-tier-llm-service';
-import { healthMonitor } from '@/services/health-monitor';
-import os from 'os';
+import { CircuitBreakerRegistry, getCircuitBreakerStatus } from '@/utils/circuit-breaker';
+import { log,LogContext } from '@/utils/logger';
 
 const router = Router();
 
@@ -197,7 +197,6 @@ router.get('/metrics/stream', (req, res) => {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
   });
 
   // Send metrics every 5 seconds

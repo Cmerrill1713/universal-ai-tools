@@ -145,23 +145,42 @@ stop_app() {
 run_swift_tests() {
     print_status "subheader" "Running Swift Tests"
 
-    cd "$PROJECT_ROOT"
-
     local swift_test_start=$(date +%s)
 
-    if swift test --package-path .; then
-        local swift_test_end=$(date +%s)
-        local swift_duration=$((swift_test_end - swift_test_start))
-        print_status "success" "Swift tests passed in ${swift_duration}s"
-        PASSED_TESTS=$((PASSED_TESTS + 1))
-    else
-        local swift_test_end=$(date +%s)
-        local swift_duration=$((swift_test_end - swift_test_start))
-        print_status "error" "Swift tests failed in ${swift_duration}s"
-        FAILED_TESTS=$((FAILED_TESTS + 1))
+    # Prefer testing the Swift package in mcp-swift-sdk
+    if [ -f "$PROJECT_ROOT/mcp-swift-sdk/Package.swift" ]; then
+        if swift test --package-path "$PROJECT_ROOT/mcp-swift-sdk"; then
+            local swift_test_end=$(date +%s)
+            local swift_duration=$((swift_test_end - swift_test_start))
+            print_status "success" "Swift package tests passed in ${swift_duration}s"
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+        else
+            local swift_test_end=$(date +%s)
+            local swift_duration=$((swift_test_end - swift_test_start))
+            print_status "error" "Swift package tests failed in ${swift_duration}s"
+            FAILED_TESTS=$((FAILED_TESTS + 1))
+        fi
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
+        return
     fi
 
-    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    # Fallback: attempt to run swift tests at project root if package exists
+    if [ -f "$PROJECT_ROOT/Package.swift" ]; then
+        if swift test --package-path "$PROJECT_ROOT"; then
+            local swift_test_end=$(date +%s)
+            local swift_duration=$((swift_test_end - swift_test_start))
+            print_status "success" "Swift tests passed in ${swift_duration}s"
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+        else
+            local swift_test_end=$(date +%s)
+            local swift_duration=$((swift_test_end - swift_test_start))
+            print_status "error" "Swift tests failed in ${swift_duration}s"
+            FAILED_TESTS=$((FAILED_TESTS + 1))
+        fi
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    else
+        print_status "warning" "No Swift package found; skipping Swift tests"
+    fi
 }
 
 # Function to run Playwright tests
@@ -171,6 +190,14 @@ run_playwright_tests() {
     cd "$TEST_DIR"
 
     local playwright_test_start=$(date +%s)
+
+    # Skip if no Playwright config or tests found
+    if [ ! -f "playwright.config.ts" ] && [ ! -f "playwright.config.js" ] && \
+       [ ! -d "$TEST_DIR/tests" ] && [ ! -d "$TEST_DIR/playwright" ]; then
+        print_status "warning" "No Playwright tests found; skipping"
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
+        return
+    fi
 
     if npx playwright test --reporter=html --output="$REPORTS_DIR/playwright"; then
         local playwright_test_end=$(date +%s)
@@ -195,6 +222,16 @@ run_puppeteer_tests() {
 
     local puppeteer_test_start=$(date +%s)
 
+    # Skip if no Puppeteer test file
+    if [ ! -f "$TEST_DIR/PuppeteerTests.js" ]; then
+        print_status "warning" "No Puppeteer tests found; skipping"
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
+        return
+    fi
+
+    # Ensure Chrome is installed for puppeteer
+    npx puppeteer browsers install chrome >/dev/null 2>&1 || true
+
     if node PuppeteerTests.js; then
         local puppeteer_test_end=$(date +%s)
         local puppeteer_duration=$((puppeteer_test_end - puppeteer_test_start))
@@ -214,23 +251,26 @@ run_puppeteer_tests() {
 run_hot_reload_tests() {
     print_status "subheader" "Running Hot Reload Tests"
 
-    cd "$PROJECT_ROOT"
-
-    local hot_reload_test_start=$(date +%s)
-
-    if swift run HotReloadTestRunner; then
-        local hot_reload_test_end=$(date +%s)
-        local hot_reload_duration=$((hot_reload_test_end - hot_reload_test_start))
-        print_status "success" "Hot reload tests passed in ${hot_reload_duration}s"
-        PASSED_TESTS=$((PASSED_TESTS + 1))
+    # Only run if a Swift Package exists to host the runner
+    if [ -f "$PROJECT_ROOT/Package.swift" ]; then
+        cd "$PROJECT_ROOT"
+        local hot_reload_test_start=$(date +%s)
+        if swift run HotReloadTestRunner; then
+            local hot_reload_test_end=$(date +%s)
+            local hot_reload_duration=$((hot_reload_test_end - hot_reload_test_start))
+            print_status "success" "Hot reload tests passed in ${hot_reload_duration}s"
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+        else
+            local hot_reload_test_end=$(date +%s)
+            local hot_reload_duration=$((hot_reload_test_end - hot_reload_test_start))
+            print_status "error" "Hot reload tests failed in ${hot_reload_duration}s"
+            FAILED_TESTS=$((FAILED_TESTS + 1))
+        fi
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
     else
-        local hot_reload_test_end=$(date +%s)
-        local hot_reload_duration=$((hot_reload_test_end - hot_reload_test_start))
-        print_status "error" "Hot reload tests failed in ${hot_reload_duration}s"
-        FAILED_TESTS=$((FAILED_TESTS + 1))
+        print_status "warning" "No Package.swift for HotReloadTestRunner; skipping"
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
     fi
-
-    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 }
 
 # Function to run performance tests
@@ -241,7 +281,13 @@ run_performance_tests() {
 
     local performance_test_start=$(date +%s)
 
-    # Run performance benchmarks
+    # Run performance benchmarks if present
+    if [ ! -f "$TEST_DIR/performance-tests.js" ]; then
+        print_status "warning" "No performance-tests.js found; skipping"
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
+        return
+    fi
+
     if node performance-tests.js; then
         local performance_test_end=$(date +%s)
         local performance_duration=$((performance_test_end - performance_test_start))

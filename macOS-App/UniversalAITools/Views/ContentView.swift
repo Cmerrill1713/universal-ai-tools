@@ -1,312 +1,235 @@
 import SwiftUI
 import WebKit
+import Combine
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var apiService: APIService
-    @State private var selectedSidebarItem: SidebarItem? = .dashboard
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var showingAgentActivity = false
+
+    private var sidebarSelectionBinding: Binding<SidebarItem?> {
+        Binding<SidebarItem?>(
+            get: { appState.selectedSidebarItem },
+            set: { appState.selectedSidebarItem = $0 }
+        )
+    }
 
     var body: some View {
-        NavigationSplitView(
-            columnVisibility: .constant(.all),
-            sidebar: {
-                SidebarView(selection: $selectedSidebarItem)
-                    .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 350)
-            },
-            content: {
-                if let selectedItem = selectedSidebarItem {
-                    contentView(for: selectedItem)
-                        .navigationTitle(selectedItem.title)
-                        .navigationSubtitle(appState.backendConnected ? "Connected" : "Offline")
-                } else {
-                    WelcomeView()
-                }
-            },
-            detail: {
-                DetailView()
+        mainView
+            .sheet(isPresented: $showingAgentActivity) {
+                AgentActivityWindow()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
             }
-        )
+            .onAppear { updateColumnVisibility(for: appState.selectedSidebarItem) }
+            .onChange(of: appState.selectedSidebarItem) { newItem in
+                updateColumnVisibility(for: newItem)
+            }
+            .task {
+                // Kick off backend probe and initial data fetch
+                await apiService.connectToBackend()
+                await loadInitialData()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .metricsUpdate)) { note in
+                if let data = note.userInfo?["data"] as? [String: Any],
+                   let cpu = data["cpu"] as? Double,
+                   let memory = data["memory"] as? Double,
+                   let uptime = data["uptime"] as? Double {
+                    appState.systemMetrics = SystemMetrics(
+                        cpuUsage: cpu,
+                        memoryUsage: memory,
+                        uptime: uptime,
+                        requestsPerMinute: data["rpm"] as? Int ?? 0,
+                        activeConnections: data["connections"] as? Int ?? 0
+                    )
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .backendConnected)) { _ in
+                appState.backendConnected = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .backendDisconnected)) { _ in
+                appState.backendConnected = false
+            }
+    }
+
+    private var mainView: some View {
+        Group {
+            if appState.selectedSidebarItem == .chat {
+                // Dock-only layout for Chat: no native sidebar
+                detailView
+            } else {
+                NavigationSplitView(columnVisibility: $columnVisibility) {
+                    SidebarView(selection: sidebarSelectionBinding)
+                        .environmentObject(appState)
+                } detail: {
+                    detailView
+                }
+            }
+        }
         .navigationSplitViewStyle(.balanced)
         .toolbar {
-            ToolbarItemGroup(placement: .navigation) {
-                Button(action: { appState.sidebarVisible.toggle() }) {
+            ToolbarItem(placement: .navigation) {
+                Button(action: toggleSidebar) {
                     Image(systemName: "sidebar.left")
                 }
-                .help("Toggle Sidebar")
             }
 
-            ToolbarItemGroup(placement: .principal) {
-                ConnectionStatusView()
-            }
-
-            ToolbarItemGroup(placement: .automatic) {
-                ViewModeSelector()
-
-                Button(action: { appState.showSettings = true }) {
-                    Image(systemName: "gear")
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: { showingAgentActivity = true }) {
+                    Image(systemName: "brain.head.profile")
+                        .foregroundColor(.accentColor)
                 }
-                .help("Settings")
-                .popover(isPresented: $appState.showSettings) {
-                    QuickSettingsView()
-                        .frame(width: 350, height: 400)
-                }
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if appState.showNotification {
-                NotificationBanner()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(), value: appState.showNotification)
-            }
-            if !appState.backendConnected {
-                HStack(spacing: 12) {
-                    Image(systemName: "wifi.exclamationmark")
-                    Text("Offline. Unable to reach backend.")
-                    Spacer()
-                    Button("Retry") {
-                        Task { await apiService.connectToBackend() }
-                    }
-                    Button("Settings") { appState.showSettings = true }
-                }
-                .padding(12)
-                .background(.thinMaterial)
-                .cornerRadius(10)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .help("Agent Activity")
             }
         }
     }
 
-    @ViewBuilder
-    private func contentView(for item: SidebarItem) -> some View {
-        switch appState.viewMode {
-        case .webView:
-            WebViewContainer(item: item)
-        case .native:
-            nativeView(for: item)
-        case .hybrid:
-            HybridView(item: item)
-        }
-    }
-
-    @ViewBuilder
-    private func nativeView(for item: SidebarItem) -> some View {
-        switch item {
-        case .dashboard:
-            DashboardView()
+    private var detailView: some View {
+        let view: AnyView
+        switch appState.selectedSidebarItem {
         case .chat:
-            ChatInterfaceView()
+            view = AnyView(ChatInterfaceView()
+                .environmentObject(appState)
+                .environmentObject(apiService))
         case .agents:
-            AgentManagementView()
-        case .mlx:
-            MLXFineTuningView()
-        case .vision:
-            VisionProcessingView()
-        case .monitoring:
-            SystemMonitoringView()
-        case .abMcts:
-            ABMCTSOrchestrationView()
-        case .maltSwarm:
-            MALTSwarmControlView()
-        case .parameters:
-            IntelligentParametersView()
-        case .knowledge:
-            KnowledgeBaseView()
+            view = AnyView(AgentManagementView()
+                .environmentObject(appState)
+                .environmentObject(apiService))
+        case .tools:
+            if let tools = try? buildToolsView() {
+                view = tools
+            } else {
+                view = AnyView(ContentWelcomeView().environmentObject(appState))
+            }
+        default:
+            view = AnyView(ContentWelcomeView().environmentObject(appState))
         }
+        return view
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(AppTheme.windowBackgroundGradient)
+    }
+
+    private func buildToolsView() throws -> AnyView {
+        AnyView(ToolsView().environmentObject(appState).environmentObject(apiService))
+    }
+
+    private func toggleSidebar() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            columnVisibility = columnVisibility == .all ? .detailOnly : .all
+        }
+    }
+
+    private func updateColumnVisibility(for item: SidebarItem?) {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            if item == .chat {
+                columnVisibility = .detailOnly
+            } else {
+                columnVisibility = .all
+            }
+        }
+    }
+
+    // MARK: - Data Loading
+    private func loadInitialData() async {
+        do {
+            let agents = try await apiService.getAgents()
+            await MainActor.run { appState.availableAgents = agents }
+        } catch { /* ignore for now */ }
+
+        do {
+            let metrics = try await apiService.getMetrics()
+            await MainActor.run {
+                appState.systemMetrics = metrics
+                appState.backendConnected = true
+            }
+        } catch { /* ignore for now */ }
     }
 }
 
-// WebView Container for HTML integration
-struct WebViewContainer: NSViewRepresentable {
-    let item: SidebarItem
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var apiService: APIService
-
-    func makeNSView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-
-        // Setup JavaScript message handlers
-        config.userContentController.add(context.coordinator, name: "swiftBridge")
-
-        // Enable developer extras for debugging
-        config.preferences.setValue(true, forKey: "developerExtrasEnabled")
-
-        // Create WebView
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-
-        // Load the appropriate HTML content
-        loadContent(in: webView)
-
-        return webView
-    }
-
-    func updateNSView(_ webView: WKWebView, context: Context) {
-        // Update WebView if needed
-        if context.coordinator.currentItem != item {
-            context.coordinator.currentItem = item
-            loadContent(in: webView)
-        }
-    }
-
-    private func loadContent(in webView: WKWebView) {
-        let baseURL = UserDefaults.standard.string(forKey: "FrontendURL") ?? "http://localhost:5173"
-
-        let path: String
-        switch item {
-        case .dashboard:
-            path = "/"
-        case .chat:
-            path = "/chat"
-        case .agents:
-            path = "/agents"
-        case .mlx:
-            path = "/mlx"
-        case .vision:
-            path = "/vision"
-        case .monitoring:
-            path = "/monitoring"
-        case .abMcts:
-            path = "/ab-mcts"
-        case .maltSwarm:
-            path = "/malt-swarm"
-        case .parameters:
-            path = "/parameters"
-        case .knowledge:
-            path = "/knowledge"
-        }
-
-        if let url = URL(string: baseURL + path) {
-            let request = URLRequest(url: url)
-            webView.load(request)
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
-        var parent: WebViewContainer
-        var currentItem: SidebarItem?
-
-        init(_ parent: WebViewContainer) {
-            self.parent = parent
-        }
-
-        // Handle JavaScript messages from web content
-        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            guard let dict = message.body as? [String: Any],
-                  let action = dict["action"] as? String else { return }
-
-            DispatchQueue.main.async {
-                self.handleWebAction(action: action, data: dict["data"])
-            }
-        }
-
-        private func handleWebAction(action: String, data: Any?) {
-            switch action {
-            case "updateState":
-                if let stateData = data as? [String: Any] {
-                    parent.appState.updateFromWeb(stateData)
-                }
-            case "apiCall":
-                if let apiData = data as? [String: Any] {
-                    Task {
-                        await parent.apiService.handleWebAPICall(apiData)
-                    }
-                }
-            case "showNotification":
-                if let message = data as? String {
-                    parent.appState.showNotification(message: message)
-                }
-            default:
-                print("Unknown web action: \(action)")
-            }
-        }
-
-        // WKNavigationDelegate
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // Inject Swift bridge JavaScript
-            let bridgeScript = """
-                window.swiftBridge = {
-                    send: function(action, data) {
-                        window.webkit.messageHandlers.swiftBridge.postMessage({
-                            action: action,
-                            data: data
-                        });
-                    },
-                    updateState: function(state) {
-                        this.send('updateState', state);
-                    },
-                    apiCall: function(endpoint, params) {
-                        this.send('apiCall', { endpoint: endpoint, params: params });
-                    },
-                    showNotification: function(message) {
-                        this.send('showNotification', message);
-                    }
-                };
-
-                // Notify React app that Swift bridge is ready
-                window.dispatchEvent(new CustomEvent('swiftBridgeReady'));
-            """
-
-            webView.evaluateJavaScript(bridgeScript) { _, error in
-                if let error = error {
-                    print("Error injecting Swift bridge: \(error)")
-                }
-            }
-
-            // Pass authentication token if available
-            if let token = parent.apiService.authToken {
-                let tokenScript = "window.localStorage.setItem('authToken', '\(token)');"
-                webView.evaluateJavaScript(tokenScript, completionHandler: nil)
-            }
-        }
-
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("WebView navigation failed: \(error)")
-            parent.appState.showNotification(message: "Failed to load content: \(error.localizedDescription)")
-        }
-
-        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            print("WebView provisional navigation failed: \(error)")
-            parent.appState.showNotification(message: "Failed to load content: \(error.localizedDescription)")
-        }
-
-        // WKUIDelegate
-        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-            // Handle opening links in new windows
-            if let url = navigationAction.request.url {
-                NSWorkspace.shared.open(url)
-            }
-            return nil
-        }
-    }
-}
-
-// Hybrid View combining native and web elements
-struct HybridView: View {
-    let item: SidebarItem
+// MARK: - Welcome View
+struct ContentWelcomeView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        VSplitView {
-            // Native controls at top
-            NativeControlBar(item: item)
-                .frame(height: 60)
-                .background(Color(NSColor.controlBackgroundColor))
+        VStack(spacing: 30) {
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 80))
+                .foregroundColor(.accentColor)
 
-            // Web content in main area
-            WebViewContainer(item: item)
-                .layoutPriority(1)
+            Text("Universal AI Tools")
+                .font(.largeTitle)
+                .fontWeight(.bold)
 
-            // Native status/info panel at bottom
-            NativeStatusPanel(item: item)
-                .frame(minHeight: 100, maxHeight: 200)
-                .background(Color(NSColor.controlBackgroundColor))
+            Text("Your intelligent companion for AI-powered workflows")
+                .font(.title2)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+
+            VStack(spacing: 20) {
+                FeatureCard(
+                    icon: "message.and.waveform",
+                    title: "AI Chat",
+                    description: "Interactive conversations with advanced AI models"
+                )
+
+                FeatureCard(
+                    icon: "brain.head.profile",
+                    title: "AI Agents",
+                    description: "Specialized agents for different tasks and workflows"
+                )
+
+                FeatureCard(
+                    icon: "wrench.and.screwdriver",
+                    title: "AI Tools",
+                    description: "Powerful tools and utilities powered by AI"
+                )
+            }
+            .padding(.horizontal, 40)
+
+            Spacer()
         }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.windowBackgroundColor))
     }
+}
+
+struct FeatureCard: View {
+    let icon: String
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(spacing: 20) {
+            Image(systemName: icon)
+                .font(.title)
+                .foregroundColor(.accentColor)
+                .frame(width: 40)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                Text(description)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.controlBackgroundColor))
+                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+        )
+    }
+}
+
+#Preview {
+    ContentView()
+        .environmentObject(AppState())
+        .environmentObject(APIService())
 }

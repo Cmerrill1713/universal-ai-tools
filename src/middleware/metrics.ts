@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import client from 'prom-client';
 
+import { CircuitBreakerRegistry } from '@/utils/circuit-breaker';
+
 // Create a Registry to register the metrics
 export const metricsRegistry = new client.Registry();
 
@@ -40,6 +42,73 @@ const httpRequestErrorsTotal = new client.Counter({
   registers: [metricsRegistry],
 });
 
+// Circuit breaker gauges
+const cbTotalRequests = new client.Gauge({
+  name: 'circuit_breaker_total_requests',
+  help: 'Total requests observed by the circuit breaker',
+  labelNames: ['breaker'] as const,
+  registers: [metricsRegistry],
+});
+
+const cbFailedRequests = new client.Gauge({
+  name: 'circuit_breaker_failed_requests',
+  help: 'Failed requests observed by the circuit breaker',
+  labelNames: ['breaker'] as const,
+  registers: [metricsRegistry],
+});
+
+const cbRejectedRequests = new client.Gauge({
+  name: 'circuit_breaker_rejected_requests',
+  help: 'Requests rejected due to OPEN state',
+  labelNames: ['breaker'] as const,
+  registers: [metricsRegistry],
+});
+
+const cbErrorRate = new client.Gauge({
+  name: 'circuit_breaker_error_rate_percent',
+  help: 'Error rate percentage within rolling window',
+  labelNames: ['breaker'] as const,
+  registers: [metricsRegistry],
+});
+
+const cbConsecutiveFailures = new client.Gauge({
+  name: 'circuit_breaker_consecutive_failures',
+  help: 'Consecutive failures leading to state changes',
+  labelNames: ['breaker'] as const,
+  registers: [metricsRegistry],
+});
+
+const cbOpen = new client.Gauge({
+  name: 'circuit_breaker_open',
+  help: 'Whether the breaker is OPEN (1) or not (0)',
+  labelNames: ['breaker'] as const,
+  registers: [metricsRegistry],
+});
+
+const cbNextRetryTime = new client.Gauge({
+  name: 'circuit_breaker_next_retry_time_ms',
+  help: 'Epoch milliseconds for next retry attempt (if OPEN)',
+  labelNames: ['breaker'] as const,
+  registers: [metricsRegistry],
+});
+
+function updateCircuitBreakerMetrics(): void {
+  try {
+    const metrics = CircuitBreakerRegistry.getMetrics();
+    Object.entries(metrics).forEach(([name, m]) => {
+      cbTotalRequests.labels(name).set(m.totalRequests);
+      cbFailedRequests.labels(name).set(m.failedRequests);
+      cbRejectedRequests.labels(name).set(m.rejectedRequests);
+      cbErrorRate.labels(name).set(m.errorRate);
+      cbConsecutiveFailures.labels(name).set(m.consecutiveFailures);
+      cbOpen.labels(name).set(m.state === 'OPEN' ? 1 : 0);
+      cbNextRetryTime.labels(name).set(m.nextRetryTime ? m.nextRetryTime : 0);
+    });
+  } catch {
+    // ignore metric update failures
+  }
+}
+
 export function metricsMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     const route = (req.route?.path || req.path || 'unknown')
@@ -59,6 +128,9 @@ export function metricsMiddleware() {
       if (res.statusCode >= 500) {
         httpRequestErrorsTotal.labels(req.method, route, String(res.statusCode)).inc();
       }
+
+      // Update circuit breaker metrics on each completed request
+      updateCircuitBreakerMetrics();
     });
 
     next();

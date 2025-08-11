@@ -10,6 +10,48 @@ struct SidebarView: View {
         }
         .listStyle(SidebarListStyle())
         .frame(minWidth: 200)
+        .background(AppTheme.windowBackgroundGradient)
+    }
+}
+
+// Compact dock overlay used on top of chat content
+struct DockOverlay: View {
+    var onSelect: (SidebarItem) -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            dockButton(.chat, icon: "text.bubble")
+            dockButton(.agents, icon: "brain.head.profile")
+            dockButton(.tools, icon: "wrench.and.screwdriver")
+            dockButton(.monitoring, icon: "chart.line.uptrend.xyaxis")
+            Spacer()
+        }
+        .frame(width: isHovered ? 44 : 36)
+        .padding(.vertical, 12)
+        .background(AppTheme.tertiaryBackground.opacity(0.9))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.separator, lineWidth: 1)
+        )
+        .cornerRadius(8)
+        .opacity(isHovered ? 1.0 : 0.6)
+        .animation(.easeInOut(duration: 0.18), value: isHovered)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.18)) { isHovered = hovering }
+        }
+    }
+
+    private func dockButton(_ item: SidebarItem, icon: String) -> some View {
+        Button(action: { onSelect(item) }) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(AppTheme.primaryText)
+                .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 6))
+        .background(RoundedRectangle(cornerRadius: 6).fill(AppTheme.secondaryBackground))
     }
 }
 

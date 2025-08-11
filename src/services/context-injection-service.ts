@@ -5,8 +5,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
+
 import type { ArchitecturePattern } from '@/types/architecture';
+import { log,LogContext } from '@/utils/logger';
+
 import { architectureAdvisor } from './architecture-advisor-service';
 
 interface ProjectContext {
@@ -590,7 +592,7 @@ export class ContextInjectionService {
     if (result.table_name === 'conversation_messages') return 'conversation';
     if (result.table_name === 'documents') return 'document';
     if (result.content_type?.includes('javascript') || result.content_type?.includes('typescript'))
-      return 'code';
+      {return 'code';}
     return 'knowledge';
   }
 

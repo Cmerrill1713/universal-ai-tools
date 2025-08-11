@@ -3,20 +3,21 @@
  * Replaces mock functionality with actual AI capabilities + validation
  */
 
-import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
-import { LogContext, log } from '@/utils/logger';
-import { type LLMMessage, llmRouter } from '@/services/llm-router-service';
-import {
-  type ValidatedAgentResponse,
-  createValidatedResponse,
-  validators,
-} from '@/utils/validation';
 import { z } from 'zod';
+
+import { type LLMMessage, llmRouter } from '@/services/llm-router-service';
+import { mcpIntegrationService } from '@/services/mcp-integration-service';
+import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
 import type { ABMCTSFeedback, ABMCTSReward } from '@/types/ab-mcts';
 import { bayesianModelRegistry } from '@/utils/bayesian-model';
-import { BetaSampler } from '@/utils/thompson-sampling';
 import { TWO } from '@/utils/common-constants';
-import { mcpIntegrationService } from '@/services/mcp-integration-service';
+import { log,LogContext } from '@/utils/logger';
+import { BetaSampler } from '@/utils/thompson-sampling';
+import {
+  createValidatedResponse,
+  type ValidatedAgentResponse,
+  validators,
+} from '@/utils/validation';
 
 export abstract class EnhancedBaseAgent {
   protected config: AgentConfig;
@@ -143,7 +144,9 @@ export abstract class EnhancedBaseAgent {
             agentResponse.confidence = Math.max(agentResponse.confidence, 0.6);
           }
         }
-      } catch {}
+      } catch {
+        // intentionally empty
+      }
 
       // Update conversation history
       this.updateConversationHistory(context.userRequest, llmResponse.content);
@@ -239,7 +242,7 @@ export abstract class EnhancedBaseAgent {
     return request;
   }
 
-  protected getAdditionalContext(context: AgentContext): string | null {
+  protected getAdditionalContext(_context: AgentContext): string | null {
     // Override in derived classes to add specific context
     return null;
   }
@@ -280,7 +283,7 @@ export abstract class EnhancedBaseAgent {
     }
   }
 
-  protected calculateConfidence(llmResponse: unknown, context: AgentContext): number {
+  protected calculateConfidence(llmResponse: unknown, _context: AgentContext): number {
     let confidence = 0.7; // Base confidence
 
     // Adjust based on provider reliability
@@ -426,7 +429,7 @@ export abstract class EnhancedBaseAgent {
   protected createValidatedErrorResponse<T = null>(
     message: string,
     reasoning?: string,
-    metadata?: Record<string, unknown>
+    _metadata?: Record<string, unknown>
   ): ValidatedAgentResponse<T> {
     return createValidatedResponse(
       null as T,
@@ -893,7 +896,7 @@ export abstract class EnhancedBaseAgent {
   protected async saveMCPContext(
     context: AgentContext,
     agentResponse: AgentResponse,
-    llmResponse: any
+    _llmResponse: any
   ): Promise<void> {
     try {
       // Save conversation context

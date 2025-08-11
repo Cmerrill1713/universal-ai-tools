@@ -4,11 +4,12 @@
  * Competitive advantage: Real AI at every tier
  */
 
-import { BaseAgent } from './base-agent';
-import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
-import { LogContext, log } from '@/utils/logger';
-import { multiTierLLM } from '@/services/multi-tier-llm-service';
 import { kokoroTTS } from '@/services/kokoro-tts-service';
+import { multiTierLLM } from '@/services/multi-tier-llm-service';
+import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
+import { log,LogContext } from '@/utils/logger';
+
+import { BaseAgent } from './base-agent';
 
 export abstract class MultiTierBaseAgent extends BaseAgent {
   protected preferredTier = 2; // Default to tier 2
@@ -142,7 +143,7 @@ export abstract class MultiTierBaseAgent extends BaseAgent {
 
     if (capabilities.some((c) => c.includes('code'))) return 'code';
     if (capabilities.some((c) => c.includes('reasoning') || c.includes('analysis')))
-      return 'reasoning';
+      {return 'reasoning';}
     if (capabilities.some((c) => c.includes('creative'))) return 'creative';
 
     return 'general';

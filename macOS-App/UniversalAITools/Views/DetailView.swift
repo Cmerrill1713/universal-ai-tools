@@ -37,21 +37,21 @@ struct DetailView: View {
 
             // Quick stats
             HStack(spacing: 16) {
-                StatCard(
+                StatCardMini(
                     title: "Agents",
                     value: "\(appState.activeAgents.count)",
                     icon: "person.3",
                     color: .green
                 )
 
-                StatCard(
+                StatCardMini(
                     title: "Chats",
                     value: "\(appState.chats.count)",
                     icon: "bubble.left.and.bubble.right",
                     color: .blue
                 )
 
-                StatCard(
+                StatCardMini(
                     title: "Status",
                     value: appState.backendConnected ? "Online" : "Offline",
                     icon: "circle.fill",
@@ -169,25 +169,25 @@ struct DetailView: View {
                 .font(.headline)
 
             VStack(spacing: 8) {
-                QuickActionButton(
+                QuickActionRowButton(
                     title: "New Chat",
                     icon: "plus.bubble",
                     action: { appState.createNewChat() }
                 )
 
-                QuickActionButton(
+                QuickActionRowButton(
                     title: "Agent Monitor",
                     icon: "chart.bar",
                     action: { appState.showAgentMonitor = true }
                 )
 
-                QuickActionButton(
+                QuickActionRowButton(
                     title: "Settings",
                     icon: "gear",
                     action: { appState.showSettings = true }
                 )
 
-                QuickActionButton(
+                QuickActionRowButton(
                     title: "Reconnect",
                     icon: "arrow.clockwise",
                     action: {
@@ -228,7 +228,7 @@ struct DetailView: View {
     }
 }
 
-struct StatCard: View {
+private struct StatCardMini: View {
     let title: String
     let value: String
     let icon: String
@@ -255,7 +255,7 @@ struct StatCard: View {
     }
 }
 
-struct MetricRow: View {
+private struct MetricRow: View {
     let label: String
     let value: String
     let color: Color
@@ -273,7 +273,7 @@ struct MetricRow: View {
     }
 }
 
-struct AgentRow: View {
+private struct AgentRow: View {
     let agent: Agent
 
     var body: some View {
@@ -314,7 +314,7 @@ struct AgentRow: View {
     }
 }
 
-struct QuickActionButton: View {
+private struct QuickActionRowButton: View {
     let title: String
     let icon: String
     let action: () -> Void

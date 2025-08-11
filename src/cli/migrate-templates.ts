@@ -6,8 +6,8 @@
  */
 
 import { Command } from 'commander';
+
 import { templateMigrationService } from '@/services/template-migration-service';
-import { LogContext, log } from '@/utils/logger';
 
 const program = new Command();
 
@@ -155,9 +155,9 @@ program
     try {
       console.log('📦 Archiving large assets to Supabase...\n');
 
-      const migrationOptions = {
+        const migrationOptions = {
         preserveLocal: options.preserveLocal || false,
-        ageLimitDays: parseInt(options.ageDays) || 7,
+          ageLimitDays: parseInt(options.ageDays, 10) || 7,
       };
 
       const result = await templateMigrationService.archiveLargeAssets(migrationOptions);
@@ -253,9 +253,9 @@ program
 
       // 4. Archive large assets
       console.log('4️⃣ Archiving large assets...');
-      const migrationOptions = {
+        const migrationOptions = {
         preserveLocal: options.preserveLocal || false,
-        ageLimitDays: parseInt(options.ageDays) || 7,
+          ageLimitDays: parseInt(options.ageDays, 10) || 7,
       };
       const archiveResult = await templateMigrationService.archiveLargeAssets(migrationOptions);
       results.push({ name: 'Large Assets', result: archiveResult });

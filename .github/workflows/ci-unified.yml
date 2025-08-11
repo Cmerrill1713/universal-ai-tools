@@ -1,0 +1,91 @@
+name: CI (Unified)
+
+on:
+  push:
+    branches: [main, master, develop, "feature/**", "fix/**"]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  gitleaks-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  typecheck-lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Typecheck and Lint (warnings allowed)
+        run: npm run validate:quick
+      - name: Run tests (CI)
+        run: npm run test:ci
+
+  db-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 54322:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres" --health-interval=10s --health-timeout=5s --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      SUPABASE_URL: http://localhost
+      SUPABASE_ANON_KEY: test
+      SUPABASE_SERVICE_KEY: test
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Apply migrations (best-effort)
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT version();"
+          for f in supabase/migrations/*.sql; do echo "Applying $f"; psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f" || true; done
+      - name: Run DB security tests
+        run: npx jest --ci --testPathPattern=tests/security
+
+  prod-check:
+    name: Production Secrets Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Verify required secrets exist
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          missing=0
+          for var in SUPABASE_URL SUPABASE_SERVICE_KEY DATABASE_URL REDIS_URL JWT_SECRET; do
+            if [ -z "${!var}" ]; then echo "Missing secret: $var"; missing=1; fi
+          done
+          if [ "$missing" -ne 0 ]; then echo "Required production secrets missing"; exit 1; fi
+
+

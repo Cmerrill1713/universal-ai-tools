@@ -2,9 +2,11 @@
  * Global Error Handler Middleware
  */
 
-import { errorLogService } from '@/services/error-log-service';
-import { LogContext, log } from '@/utils/logger';
 import type { NextFunction, Request, Response } from 'express';
+
+import { Sentry } from '@/observability/sentry';
+import { errorLogService } from '@/services/error-log-service';
+import { log, LogContext } from '@/utils/logger';
 
 export async function globalErrorHandler(
   err: Error,
@@ -14,6 +16,20 @@ export async function globalErrorHandler(
 ): Promise<void> {
   try {
     const correlationId = (req.headers['x-request-id'] as string) || `err_${Date.now()}`;
+    // Capture exception in Sentry when available
+    try {
+      if (Sentry) {
+        Sentry.captureException(err, {
+          extra: {
+            path: req.path,
+            method: req.method,
+            userAgent: req.get('User-Agent'),
+            ip: req.ip,
+            correlationId,
+          },
+        });
+      }
+    } catch {}
     const id = await errorLogService.logError({
       correlationId,
       path: req.path,
@@ -26,6 +42,30 @@ export async function globalErrorHandler(
         ip: req.ip,
       },
     });
+
+    // Soft-fail critical health/status endpoints to avoid disrupting readiness checks
+    const p = req.path || '';
+    const isHealth =
+      p === '/health' ||
+      p === '/api/v1/status' ||
+      p === '/api/v1/orchestration/status' ||
+      p === '/api/v1/agents' ||
+      p === '/api/v1/agents/registry' ||
+      p === '/api/v1/agents/status' ||
+      p.startsWith('/api/v1/mlx/health') ||
+      p === '/api/v1/assistant/status';
+    if (isHealth) {
+      res.status(200).json({
+        success: true,
+        degraded: true,
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Degraded: An error occurred',
+        },
+        correlationId: id || correlationId,
+      });
+      return;
+    }
 
     res.status(500).json({
       success: false,

@@ -4,12 +4,13 @@
  * Delegates heavy work to larger models (Ollama, LM Studio, External APIs)
  */
 
-import { LogContext, log } from '@/utils/logger';
+import { TWO } from '@/utils/constants';
+import { log,LogContext } from '@/utils/logger';
 import { isAllowedHost, normalizeHttpUrl } from '@/utils/url-security';
-const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
+
 import { llmRouter } from './llm-router-service';
 import { ollamaService } from './ollama-service';
-import { TWO } from '@/utils/constants';
+const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
 
 export interface FastRoutingDecision {
   shouldUseLocal: boolean;
@@ -56,14 +57,12 @@ export class FastLLMCoordinator {
   private async initializeFastModels(): Promise<void> {
     try {
       // Check if LFM2 model is available
-      const _lfm2Path =
-        '/Users/christianmerrill/Desktop/universal-ai-tools/models/agents/LFM2-1.2B-bf16';
-      this.lfm2Available = true; // Assume available based on file system check
+      // Assume LFM2 available based on local setup
+      this.lfm2Available = true;
 
       // Check if Kokoro TTS is available
-      const _kokoroPath =
-        '/Users/christianmerrill/Desktop/universal-ai-tools/models/tts/Kokoro-82M';
-      this.kokoroAvailable = true; // Assume available based on file system check
+      // Assume Kokoro available based on local setup
+      this.kokoroAvailable = true;
 
       // Check LM Studio availability
       await this.checkLmStudioHealth();
@@ -144,7 +143,7 @@ ROUTING RULES:
       });
 
       return decision;
-    } catch (error) {
+    } catch {
       log.warn('⚠️ Fast routing failed, using fallback logic', LogContext.AI);
       return this.getFallbackDecision(userRequest, context);
     }
@@ -235,7 +234,11 @@ ROUTING RULES:
         reasoning: response.reasoning,
         complexity: this.estimateComplexity(prompt),
         estimatedTokens: response.estimatedTokens,
-        priority: response.confidence > 0.8 ? 1 : response.confidence > 0.6 ? 2 : 3,
+        priority: (() => {
+          if (response.confidence > 0.8) return 1;
+          if (response.confidence > 0.6) return 2;
+          return 3;
+        })(),
       };
     } catch (error) {
       log.warn('⚠️ LFM2 routing failed, using fallback logic', LogContext.AI, { error });
@@ -248,13 +251,14 @@ ROUTING RULES:
       else if (complexity === 'medium') targetService = 'ollama';
       else if (prompt.includes('code') || prompt.includes('program')) targetService = 'lm-studio';
 
+      const priority = complexity === 'simple' ? 1 : complexity === 'medium' ? 3 : 5;
       return {
         shouldUseLocal: targetService === 'lfm2' || targetService === 'ollama',
         targetService,
         reasoning: `Fallback routing - Complexity: ${complexity}, contains technical terms: ${prompt.includes('code')}`,
         complexity,
         estimatedTokens: prompt.length / 4,
-        priority: complexity === 'simple' ? 1 : complexity === 'medium' ? 3 : 5,
+        priority,
       };
     }
   }
@@ -322,7 +326,7 @@ ROUTING RULES:
         provider: 'lm-studio',
         usage: (data as any).usage,
       };
-    } catch (error) {
+    } catch {
       log.warn('⚠️ LM Studio unavailable, falling back to Ollama', LogContext.AI);
       return this.executeOllama(userRequest);
     }

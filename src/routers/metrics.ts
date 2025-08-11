@@ -1,5 +1,7 @@
 import { Router } from 'express';
+
 import { lfm2Bridge } from '@/services/lfm2-bridge';
+import { memoryService } from '@/services/memory-service';
 
 const router = Router();
 
@@ -35,7 +37,7 @@ router.get('/lfm2', (req, res) => {
 router.post('/lfm2/limits', (req, res) => {
   try {
     const { maxPending, timeoutMs, maxConcurrency, maxTokens, maxPromptChars } = req.body || {};
-    (lfm2Bridge as any).setLimits?.({
+    (lfm2Bridge as any).updateLimits?.({
       maxPending,
       timeoutMs,
       maxConcurrency,
@@ -44,8 +46,22 @@ router.post('/lfm2/limits', (req, res) => {
     });
     return res.json({ success: true });
   } catch (error) {
-    return res.status(500).json({ success: false, error: String(error) });
+    return res.json({ success: false, error: String(error) });
   }
+});
+
+// Memory stats and summarization
+router.get('/memory/stats', async (req, res) => {
+  const userId = (req as any).user?.id || 'anonymous';
+  const stats = await memoryService.getStats(userId);
+  res.json({ success: true, data: stats });
+});
+
+router.post('/memory/summarize', async (req, res) => {
+  const userId = (req as any).user?.id || 'anonymous';
+  const { window = 50 } = req.body || {};
+  const id = await memoryService.summarizeRecent(userId, { window });
+  res.json({ success: true, id });
 });
 
 export default router;

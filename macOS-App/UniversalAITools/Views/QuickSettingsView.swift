@@ -44,6 +44,10 @@ struct QuickSettingsView: View {
         }
         .padding()
         .frame(width: 350, height: 400)
+        .onAppear {
+            // Load effective backend URL from persisted settings
+            backendURL = UserDefaults.standard.string(forKey: "BackendURL") ?? backendURL
+        }
     }
 
     private var connectionSettingsSection: some View {
@@ -59,6 +63,9 @@ struct QuickSettingsView: View {
                     TextField("URL", text: $backendURL)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .frame(width: 150)
+                        .onSubmit {
+                            applyBackendURL()
+                        }
                 }
 
                 Toggle("Auto Reconnect", isOn: $autoReconnect)
@@ -110,13 +117,16 @@ struct QuickSettingsView: View {
     }
 
     private var actionsSection: some View {
-        VStack(spacing: 8) {
-            Button("Test Connection") {
-                Task {
-                    await apiService.connectToBackend()
-                }
+        VStack(spacing: 10) {
+            Button("Save & Reconnect") {
+                applyBackendURL()
             }
             .buttonStyle(.borderedProminent)
+
+            Button("Test Connection") {
+                Task { await apiService.connectToBackend() }
+            }
+            .buttonStyle(.bordered)
 
             Button("Reset to Defaults") {
                 resetToDefaults()
@@ -134,11 +144,18 @@ struct QuickSettingsView: View {
     private func resetToDefaults() {
         appState.darkMode = true
         appState.sidebarVisible = true
-        appState.viewMode = .hybrid
+        appState.viewMode = .native
         backendURL = "http://localhost:9999"
         autoReconnect = true
         showNotifications = true
         enableWebSocket = true
+    }
+
+    private func applyBackendURL() {
+        apiService.setBackendURL(backendURL)
+        UserDefaults.standard.set(backendURL, forKey: "BackendURL")
+        Task { await apiService.connectToBackend() }
+        appState.showNotification(message: "Backend URL applied: \(backendURL)", type: .success)
     }
 }
 

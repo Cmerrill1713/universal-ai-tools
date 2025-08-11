@@ -86,7 +86,7 @@ struct AgentManagementView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(filteredAgents) { agent in
-                    AgentCard(agent: agent)
+                    ManagementAgentCard(agent: agent)
                 }
             }
             .padding()
@@ -113,17 +113,11 @@ struct AgentManagementView: View {
         return agents
     }
 
-    private var activeCount: Int {
-        appState.activeAgents.filter { $0.status == .active }.count
-    }
+    private var activeCount: Int { appState.activeAgents.filter { $0.status == .active }.count }
 
-    private var busyCount: Int {
-        appState.activeAgents.filter { $0.status == .busy }.count
-    }
+    private var busyCount: Int { appState.activeAgents.filter { $0.status == .busy }.count }
 
-    private var errorCount: Int {
-        appState.activeAgents.filter { $0.status == .error }.count
-    }
+    private var errorCount: Int { appState.activeAgents.filter { $0.status == .error }.count }
 }
 
 struct StatusFilterButton: View {
@@ -149,7 +143,7 @@ struct StatusFilterButton: View {
     }
 }
 
-struct AgentCard: View {
+struct ManagementAgentCard: View {
     let agent: Agent
     @State private var isExpanded = false
 

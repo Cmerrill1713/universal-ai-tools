@@ -5,26 +5,22 @@ struct ViewModeSelector: View {
 
     var body: some View {
         Picker("View Mode", selection: $appState.viewMode) {
-            HStack {
-                Image(systemName: "globe")
-                Text("Web")
-            }
-            .tag(ViewMode.webView)
+            Image(systemName: "globe")
+                .tag(ViewMode.webView)
+                .help("Web")
 
-            HStack {
-                Image(systemName: "app")
-                Text("Native")
-            }
-            .tag(ViewMode.native)
+            Image(systemName: "app")
+                .tag(ViewMode.native)
+                .help("Native")
 
-            HStack {
-                Image(systemName: "rectangle.split.2x1")
-                Text("Hybrid")
-            }
-            .tag(ViewMode.hybrid)
+            Image(systemName: "rectangle.split.2x1")
+                .tag(ViewMode.hybrid)
+                .help("Hybrid")
         }
         .pickerStyle(SegmentedPickerStyle())
-        .frame(width: 200)
+        .labelsHidden()
+        .frame(width: 150)
+        .fixedSize()
     }
 }
 

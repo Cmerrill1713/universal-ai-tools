@@ -20,7 +20,7 @@ check_service() {
     local service_name=$1
     local port=$2
     local url=$3
-    
+
     if curl -s "$url" >/dev/null 2>&1; then
         echo -e "✅ ${GREEN}$service_name${NC} is running on port $port"
         return 0
@@ -113,10 +113,10 @@ fi
 
 # Start backend if not running
 if [ "$BACKEND_RUNNING" = false ]; then
-    echo -e "${BLUE}Starting backend server...${NC}"
-    npm run dev &
+    echo -e "${BLUE}Starting backend server (auto flags)...${NC}"
+    npm run dev:auto &
     BACKEND_PID=$!
-    
+
     # Wait for backend to start
     echo "Waiting for backend to start..."
     for i in {1..30}; do
@@ -140,7 +140,7 @@ if [ "$FRONTEND_RUNNING" = false ]; then
     cd ui && npm run dev &
     FRONTEND_PID=$!
     cd ..
-    
+
     # Wait for frontend to start
     echo "Waiting for frontend to start..."
     for i in {1..20}; do
@@ -212,19 +212,19 @@ echo -e "${GREEN}System is running! Press Ctrl+C to stop all services.${NC}"
 cleanup() {
     echo ""
     echo -e "${YELLOW}Shutting down services...${NC}"
-    
+
     if [ ! -z "$BACKEND_PID" ]; then
         kill $BACKEND_PID 2>/dev/null || true
     fi
-    
+
     if [ ! -z "$FRONTEND_PID" ]; then
         kill $FRONTEND_PID 2>/dev/null || true
     fi
-    
+
     # Kill any remaining processes
     pkill -f "npm run dev" 2>/dev/null || true
     pkill -f "vite" 2>/dev/null || true
-    
+
     echo -e "${GREEN}Services stopped. Goodbye!${NC}"
     exit 0
 }

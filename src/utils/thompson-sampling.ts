@@ -5,9 +5,9 @@
  */
 
 import type { BetaDistribution, ThompsonSamplingParams } from '@/types/ab-mcts';
-import { GammaDistribution, NormalDistribution } from '@/types/ab-mcts';
-import { LogContext, log } from './logger';
+
 import { THREE, TWO } from './common-constants';
+import { log,LogContext } from './logger';
 
 /**
  * Beta distribution sampling for binary rewards

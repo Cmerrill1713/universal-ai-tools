@@ -1,6 +1,7 @@
-import { getSupabaseClient } from '@/services/supabase-client';
-import { LogContext, log } from '@/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
+
+import { getSupabaseClient } from '@/services/supabase-client';
+import { log, LogContext } from '@/utils/logger';
 
 export interface ErrorEvent {
   id?: string;
@@ -23,7 +24,8 @@ export interface CorrectionEvent {
 class ErrorLogService {
   async logError(event: ErrorEvent): Promise<string | null> {
     const supabase = getSupabaseClient();
-    const id = event.correlationId || uuidv4();
+    // Always use a UUID for the primary key to satisfy DB type constraints
+    const id = uuidv4();
 
     if (!supabase) {
       // Local fallback: keep minimal in-memory log for dev
@@ -39,6 +41,7 @@ class ErrorLogService {
 
     const payload = {
       id,
+      correlation_id: event.correlationId || null,
       path: event.path,
       method: event.method,
       message: event.message,
@@ -46,11 +49,31 @@ class ErrorLogService {
       status_code: event.statusCode || 500,
       metadata: event.metadata || {},
       created_at: new Date().toISOString(),
-    };
+    } as const;
 
-    const { error } = await supabase.from('error_events').insert(payload);
-    if (error) {
-      log.error('Failed to persist error event', LogContext.DATABASE, { error: error.message });
+    try {
+      const { error } = await supabase.from('error_events').insert(payload);
+      if (error) {
+        // Retry without correlation_id if column is missing in current schema
+        if (/correlation_id/.test(error.message || '')) {
+          const { correlation_id: _omit, ...fallbackPayload } = payload as any;
+          const retry = await supabase.from('error_events').insert(fallbackPayload);
+          if (retry.error) {
+            log.error('Failed to persist error event', LogContext.DATABASE, {
+              error: retry.error.message,
+            });
+            return null;
+          }
+        } else {
+          log.error('Failed to persist error event', LogContext.DATABASE, { error: error.message });
+          return null;
+        }
+      }
+    } catch (persistErr: any) {
+      // Never throw; log and continue
+      log.error('Failed to persist error event', LogContext.DATABASE, {
+        error: String(persistErr?.message || persistErr),
+      });
       return null;
     }
 
@@ -72,10 +95,17 @@ class ErrorLogService {
       created_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('error_corrections').insert(payload);
-    if (error) {
+    try {
+      const { error } = await supabase.from('error_corrections').insert(payload);
+      if (error) {
+        log.error('Failed to persist correction event', LogContext.DATABASE, {
+          error: error.message,
+        });
+        return false;
+      }
+    } catch (persistErr: any) {
       log.error('Failed to persist correction event', LogContext.DATABASE, {
-        error: error.message,
+        error: String(persistErr?.message || persistErr),
       });
       return false;
     }

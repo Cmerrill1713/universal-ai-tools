@@ -5,22 +5,18 @@
  * NOTE: These tests use mocking to avoid server startup issues
  */
 
-import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
+import { afterAll, describe, expect, it, jest } from '@jest/globals';
 
 const API_BASE_URL = 'http://localhost:9999';
 
-// Mock axios
-jest.mock('axios', () => ({
+// Local axios-like mock (no module mocking needed)
+const mockAxios = {
   get: jest.fn(),
   post: jest.fn(),
-}));
-
-import axios from 'axios';
-
-const mockAxios = axios as jest.Mocked<typeof axios>;
+} as any;
 
 describe('Model Services Integration Tests', () => {
-  beforeAll(async () => {
+  beforeEach(() => {
     // Mock all axios responses
     mockAxios.get.mockImplementation((url) => {
       if (url === `${API_BASE_URL}/health`) {

@@ -5,28 +5,28 @@ CREATE TABLE IF NOT EXISTS autonomous_actions (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL CHECK (type IN ('parameter_adjustment', 'model_switch', 'prompt_optimization', 'feature_toggle', 'configuration_update')),
   priority TEXT NOT NULL CHECK (priority IN ('critical', 'high', 'medium', 'low')),
-  
+
   -- Target information
   target JSONB NOT NULL,
-  
-  -- Change information  
+
+  -- Change information
   change JSONB NOT NULL,
-  
+
   -- Risk assessment
   assessment JSONB NOT NULL,
-  
+
   -- Supporting evidence
   evidence JSONB NOT NULL,
-  
+
   -- Execution plan
   execution JSONB NOT NULL,
-  
+
   -- Status and timestamps
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'implementing', 'active', 'rolled_back', 'completed')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   implemented_at TIMESTAMPTZ,
   completed_at TIMESTAMPTZ,
-  
+
   -- Implementation results
   implementation_result JSONB
 );
@@ -36,7 +36,8 @@ CREATE INDEX IF NOT EXISTS idx_autonomous_actions_status ON autonomous_actions(s
 CREATE INDEX IF NOT EXISTS idx_autonomous_actions_type ON autonomous_actions(type);
 CREATE INDEX IF NOT EXISTS idx_autonomous_actions_priority ON autonomous_actions(priority);
 CREATE INDEX IF NOT EXISTS idx_autonomous_actions_created_at ON autonomous_actions(created_at);
-CREATE INDEX IF NOT EXISTS idx_autonomous_actions_target_service ON autonomous_actions USING GIN ((target->>'service'));
+-- Use btree index on text expression instead of GIN (which lacks default opclass for text)
+CREATE INDEX IF NOT EXISTS idx_autonomous_actions_target_service ON autonomous_actions ((target->>'service'));
 
 -- Table for storing learning data from autonomous action implementations
 CREATE TABLE IF NOT EXISTS autonomous_learning (
@@ -58,7 +59,7 @@ CREATE TABLE IF NOT EXISTS autonomous_action_metrics (
   metric_value DECIMAL NOT NULL,
   measured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   measurement_type TEXT NOT NULL CHECK (measurement_type IN ('before', 'after', 'monitoring')),
-  
+
   UNIQUE(action_id, metric_name, measurement_type)
 );
 
@@ -69,7 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_autonomous_action_metrics_measured_at ON autonomo
 
 -- Create a view for action performance analysis
 CREATE OR REPLACE VIEW autonomous_action_performance AS
-SELECT 
+SELECT
   aa.id,
   aa.type,
   aa.priority,
@@ -80,21 +81,21 @@ SELECT
   (aa.assessment->>'riskLevel') as risk_level,
   (aa.assessment->>'confidenceScore')::DECIMAL as confidence_score,
   (aa.assessment->>'expectedImpact')::DECIMAL as expected_impact,
-  CASE 
-    WHEN aa.implementation_result IS NOT NULL THEN 
+  CASE
+    WHEN aa.implementation_result IS NOT NULL THEN
       (aa.implementation_result->>'success')::BOOLEAN
-    ELSE NULL 
+    ELSE NULL
   END as actual_success,
   CASE
     WHEN aa.implementation_result IS NOT NULL AND (aa.implementation_result->>'success')::BOOLEAN THEN
       COALESCE(
-        (SELECT AVG(metric_value) 
-         FROM autonomous_action_metrics 
+        (SELECT AVG(metric_value)
+         FROM autonomous_action_metrics
          WHERE action_id = aa.id AND measurement_type = 'after'),
         0
       ) - COALESCE(
-        (SELECT AVG(metric_value) 
-         FROM autonomous_action_metrics 
+        (SELECT AVG(metric_value)
+         FROM autonomous_action_metrics
          WHERE action_id = aa.id AND measurement_type = 'before'),
         0
       )
@@ -118,7 +119,7 @@ CREATE POLICY "System access for autonomous actions" ON autonomous_actions
 CREATE POLICY "System access for autonomous learning" ON autonomous_learning
   FOR ALL USING (auth.role() = 'service_role' OR auth.uid() IS NOT NULL);
 
--- Policy for metrics (system access only)  
+-- Policy for metrics (system access only)
 CREATE POLICY "System access for autonomous metrics" ON autonomous_action_metrics
   FOR ALL USING (auth.role() = 'service_role' OR auth.uid() IS NOT NULL);
 
@@ -146,14 +147,14 @@ DECLARE
   deleted_count INTEGER;
 BEGIN
   WITH old_actions AS (
-    SELECT id FROM autonomous_actions 
+    SELECT id FROM autonomous_actions
     WHERE status IN ('completed', 'rolled_back')
-    ORDER BY created_at DESC 
+    ORDER BY created_at DESC
     OFFSET 1000
   )
-  DELETE FROM autonomous_actions 
+  DELETE FROM autonomous_actions
   WHERE id IN (SELECT id FROM old_actions);
-  
+
   GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RETURN deleted_count;
 END;

@@ -5,10 +5,13 @@
 
 import type { Request, Response } from 'express';
 import express from 'express';
-import { body, query, validationResult } from 'express-validator';
 import * as fs from 'fs';
 import multer from 'multer';
 import * as path from 'path';
+import { z } from 'zod';
+
+import { zodValidate } from '@/middleware/zod-validate';
+
 import { VisionBrowserDebugger } from '../services/vision-browser-debugger';
 import {
   createSecurePath,
@@ -141,23 +144,14 @@ router.post('/stop', (req: Request, res: Response) => {
 router.post(
   '/analyze-screenshot',
   upload.single('screenshot'),
-  [
-    body('prompt').optional().isString().withMessage('Prompt must be a string'),
-    body('focus')
-      .optional()
-      .isIn(['console', 'network', 'performance', 'ui', 'all'])
-      .withMessage('Focus must be one of: console, network, performance, ui, all'),
-  ],
+  zodValidate(
+    z.object({
+      prompt: z.string().optional(),
+      focus: z.enum(['console', 'network', 'performance', 'ui', 'all']).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          errors: errors.array(),
-        });
-      }
-
       if (!req.file) {
         return res.status(400).json({
           success: false,
@@ -221,22 +215,9 @@ router.post(
  */
 router.get(
   '/recent-analyses',
-  [
-    query('count')
-      .optional()
-      .isInt({ min: 1, max: 50 })
-      .withMessage('Count must be between 1 and 50'),
-  ],
+  zodValidate(z.object({ count: z.coerce.number().int().min(1).max(50).optional() })),
   (req: Request, res: Response) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          errors: errors.array(),
-        });
-      }
-
       const count = parseInt(req.query.count as string, 10) || 10;
       const recentAnalyses = visionDebugger.getRecentAnalyses(count);
 
@@ -287,44 +268,19 @@ router.post('/capture-now', async (req: Request, res: Response) => {
  */
 router.post(
   '/auto-fix',
-  [
-    body('analysisId')
-      .isString()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Analysis ID is required and must be valid'),
-    body('suggestionIds')
-      .optional()
-      .isArray({ max: 10 })
-      .withMessage('Suggestion IDs must be an array with max 10 items'),
-    body('suggestionIds.*')
-      .optional()
-      .isString()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Each suggestion ID must be a valid string'),
-  ],
+  zodValidate(
+    z.object({
+      analysisId: z
+        .string()
+        .min(1)
+        .max(100)
+        .regex(/^analysis-\d+-[\w\-]+$/, 'Invalid analysis ID format'),
+      suggestionIds: z.array(z.string().min(1).max(100)).max(10).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        console.log(
-          `🔒 Vision debug auto-fix validation failed: ${JSON.stringify(errors.array())}`
-        );
-        return res.status(400).json({
-          success: false,
-          errors: errors.array(),
-        });
-      }
-
       const { analysisId, suggestionIds } = req.body;
-
-      // Security: Additional validation of analysisId format
-      if (!/^analysis-\d+-[\w\-]+$/.test(analysisId)) {
-        console.log(`🔒 Invalid analysis ID format rejected: ${analysisId}`);
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid analysis ID format',
-        });
-      }
 
       // Security: Log auto-fix attempt
       console.log(
@@ -503,22 +459,9 @@ router.get('/screenshots', (req: Request, res: Response) => {
  */
 router.delete(
   '/cleanup',
-  [
-    query('keepDays')
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage('Keep days must be a positive integer'),
-  ],
+  zodValidate(z.object({ keepDays: z.coerce.number().int().min(1).optional() })),
   (req: Request, res: Response) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          errors: errors.array(),
-        });
-      }
-
       const keepDays = parseInt(req.query.keepDays as string, 10) || 7;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - keepDays);

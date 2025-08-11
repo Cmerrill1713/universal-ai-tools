@@ -3,8 +3,6 @@
  * Monitors code for syntax errors and automatically fixes them
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { execSync } from 'child_process';
 
 interface SyntaxError {

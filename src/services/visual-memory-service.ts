@@ -6,9 +6,10 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
+
 import { config } from '@/config/environment';
-import { pyVisionBridge } from './pyvision-bridge';
+// VisualHypothesis is not used here
+import type { ExpectedOutcome, LearningDelta, ObjectDifference, VisualObject } from '@/types';
 import type {
   GeneratedImage,
   LearningOutcome,
@@ -17,8 +18,9 @@ import type {
   VisionEmbedding,
   VisualMemory,
 } from '@/types/vision';
-// VisualHypothesis is not used here
-import type { ExpectedOutcome, LearningDelta, ObjectDifference, VisualObject } from '@/types';
+import { log, LogContext } from '@/utils/logger';
+
+import { pyVisionBridge } from './pyvision-bridge';
 
 export interface VisualSearchResult {
   memory: VisualMemory;
@@ -486,14 +488,17 @@ export class VisualMemoryService {
     let normB = 0;
 
     for (let i = 0; i < a.length; i++) {
-      const aVal = a[i] || 0;
-      const bVal = b[i] || 0;
+      // eslint-disable-next-line security/detect-object-injection
+      const aVal = Number(a[i] ?? 0);
+      // eslint-disable-next-line security/detect-object-injection
+      const bVal = Number(b[i] ?? 0);
       dotProduct += aVal * bVal;
       normA += aVal * aVal;
       normB += bVal * bVal;
     }
 
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    const denom = Math.sqrt(normA) * Math.sqrt(normB);
+    return denom > 0 ? dotProduct / denom : 0;
   }
 
   private calculateValidationScore(expected: ExpectedOutcome, actual: VisionAnalysis): number {
@@ -527,24 +532,115 @@ export class VisualMemoryService {
   }
 
   private calculateLearningDelta(prediction: unknown, actual: unknown): LearningDelta {
+    const predObj = (
+      typeof prediction === 'object' && prediction !== null
+        ? (prediction as Record<string, unknown>)
+        : {}
+    ) as Record<string, unknown>;
+    const actObj = (
+      typeof actual === 'object' && actual !== null ? (actual as Record<string, unknown>) : {}
+    ) as Record<string, unknown>;
+
+    const predConf = typeof predObj.confidence === 'number' ? (predObj.confidence as number) : 0;
+    const actConf = typeof actObj.confidence === 'number' ? (actObj.confidence as number) : 0;
+
     return {
       added: this.findDifferences(actual, prediction),
       removed: this.findDifferences(prediction, actual),
-      confidence_change: ((actual as any).confidence || 0) - ((prediction as any).confidence || 0),
+      confidence_change: actConf - predConf,
     };
   }
 
-  private findDifferences(a: any, b: any): ObjectDifference {
-    const diff: ObjectDifference = {};
-    for (const key in a as Record<string, any>) {
-      if (
-        !(key in (b as Record<string, any>)) ||
-        JSON.stringify((a as any)[key]) !== JSON.stringify((b as any)[key])
-      ) {
-        diff[key] = (a as any)[key];
+  private findDifferences(a: unknown, b: unknown): ObjectDifference {
+    // Project only known-safe fields from potentially dynamic objects
+    type SafeProjected = {
+      confidence?: number;
+      objects?: Array<{ class: string }>;
+      labels?: string[];
+      path?: string;
+      description?: string;
+      generatedImage?: unknown;
+      expectedOutcome?: unknown;
+      metadata?: Record<string, unknown>;
+      imageData?: { path?: string };
+      timestamp?: string | Date;
+      concept?: string;
+    };
+
+    const project = (input: unknown): SafeProjected => {
+      const out: SafeProjected = {};
+      if (typeof input !== 'object' || input === null) return out;
+      const src = input as Record<string, unknown>;
+
+      if (typeof src.confidence === 'number') out.confidence = src.confidence as number;
+      if (Array.isArray(src.objects)) {
+        const arr = (src.objects as unknown[])
+          .map((o) => {
+            if (o && typeof o === 'object' && typeof (o as any).class === 'string') {
+              return { class: String((o as any).class) };
+            }
+            return null;
+          })
+          .filter(Boolean) as Array<{ class: string }>;
+        if (arr.length > 0) out.objects = arr;
       }
+      if (Array.isArray(src.labels)) {
+        const labels = (src.labels as unknown[]).map((v) => String(v));
+        if (labels.length > 0) out.labels = labels;
+      }
+      if (typeof src.path === 'string') out.path = src.path as string;
+      if (typeof src.description === 'string') out.description = src.description as string;
+      if (typeof src.generatedImage !== 'undefined') out.generatedImage = src.generatedImage;
+      if (typeof src.expectedOutcome !== 'undefined') out.expectedOutcome = src.expectedOutcome;
+      if (src.metadata && typeof src.metadata === 'object') {
+        out.metadata = src.metadata as Record<string, unknown>;
+      }
+      if (src.imageData && typeof src.imageData === 'object') {
+        const id = src.imageData as Record<string, unknown>;
+        const pathVal = typeof id.path === 'string' ? (id.path as string) : undefined;
+        out.imageData = { path: pathVal };
+      }
+      if (typeof src.timestamp === 'string' || src.timestamp instanceof Date) {
+        out.timestamp = src.timestamp as string | Date;
+      }
+      if (typeof src.concept === 'string') out.concept = src.concept as string;
+      return out;
+    };
+
+    const A = project(a);
+    const B = project(b);
+    const result: ObjectDifference = {};
+
+    const json = (v: unknown) => JSON.stringify(v, this.safeStringifyReplacer);
+
+    // Compare field-by-field explicitly to avoid dynamic property access
+    if (json(A.confidence) !== json(B.confidence)) (result as any).confidence = A.confidence as any;
+    if (json(A.objects) !== json(B.objects)) (result as any).objects = A.objects as any;
+    if (json(A.labels) !== json(B.labels)) (result as any).labels = A.labels as any;
+    if (json(A.path) !== json(B.path)) (result as any).path = A.path as any;
+    if (json(A.description) !== json(B.description))
+      {(result as any).description = A.description as any;}
+    if (json(A.generatedImage) !== json(B.generatedImage)) {
+      (result as any).generatedImage = A.generatedImage as any;
     }
-    return diff;
+    if (json(A.expectedOutcome) !== json(B.expectedOutcome)) {
+      (result as any).expectedOutcome = A.expectedOutcome as any;
+    }
+    if (json(A.metadata) !== json(B.metadata)) (result as any).metadata = A.metadata as any;
+    if (json(A.imageData) !== json(B.imageData)) (result as any).imageData = A.imageData as any;
+    if (json(A.timestamp) !== json(B.timestamp)) (result as any).timestamp = A.timestamp as any;
+    if (json(A.concept) !== json(B.concept)) (result as any).concept = A.concept as any;
+
+    return result;
+  }
+
+  // Use a safe stable stringify to avoid prototype pollution concerns
+  // and handle undefined/circular structures gracefully
+
+  private safeStringifyReplacer(_key: string, value: unknown) {
+    if (typeof value === 'function') return '[Function]';
+    if (typeof value === 'symbol') return String(value);
+    return value;
   }
 
   private mockValidation(hypothesisId: string, actual: VisionAnalysis): ValidationResult {

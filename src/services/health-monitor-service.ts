@@ -3,9 +3,11 @@
  * Monitors system health and automatically recovers from failures
  */
 
-import type AgentRegistry from '@/agents/agent-registry';
-import { LogContext, log } from '@/utils/logger';
 import { EventEmitter } from 'events';
+
+import type AgentRegistry from '@/agents/agent-registry';
+import { log,LogContext } from '@/utils/logger';
+
 import { a2aMesh } from './a2a-communication-mesh';
 
 export interface HealthMetrics {

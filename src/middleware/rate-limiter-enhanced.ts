@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import Redis from 'ioredis';
+
 import { config } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
+import { log,LogContext } from '@/utils/logger';
 
 const MILLISECONDS_IN_SECOND = 1000;
 

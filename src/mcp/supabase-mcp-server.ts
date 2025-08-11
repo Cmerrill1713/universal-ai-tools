@@ -7,15 +7,9 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import {
-  CallToolRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema , ListResourcesRequestSchema , ListToolsRequestSchema , ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
-import { z } from 'zod';
 
 interface ContextData {
   id?: string;
@@ -173,6 +167,19 @@ class SupabaseMCPServer {
           },
         },
         {
+          name: 'propose_migration',
+          description: 'Use local LLM to propose a safe SQL migration for Supabase',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              request: { type: 'string', description: 'Human request of desired DB change' },
+              notes: { type: 'string', description: 'Additional context or constraints' },
+              model: { type: 'string', description: 'Optional local model' },
+            },
+            required: ['request'],
+          },
+        },
+        {
           name: 'save_task_progress',
           description: 'Save or update task progress information',
           inputSchema: {
@@ -247,6 +254,8 @@ class SupabaseMCPServer {
             return await this.getCodePatterns(
               args as unknown as { error_type?: string; pattern_type?: string; limit?: number }
             );
+          case 'propose_migration':
+            return await this.proposeMigration(args as any);
           case 'save_task_progress':
             return await this.saveTaskProgress(args as unknown as TaskProgress);
           case 'get_task_history':
@@ -327,7 +336,7 @@ class SupabaseMCPServer {
       content: data.content,
       category: data.category,
       metadata: data.metadata || {},
-      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     });
 
     if (error) {
@@ -352,7 +361,7 @@ class SupabaseMCPServer {
     let query = this.supabase
       .from('mcp_context')
       .select('*')
-      .order('timestamp', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(params.limit || 10);
 
     if (params.category) {
@@ -385,7 +394,7 @@ class SupabaseMCPServer {
     let query = this.supabase
       .from('mcp_context')
       .select('*')
-      .order('timestamp', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(params.limit || 20);
 
     if (params.category) {
@@ -651,6 +660,57 @@ class SupabaseMCPServer {
         },
       ],
     };
+  }
+
+  private async proposeMigration(params: {
+    request: string;
+    notes?: string;
+    model?: string;
+  }): Promise<CallToolResult> {
+    const ollamaBase = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    const lmStudioBase = process.env.LM_STUDIO_BASE_URL; // e.g. http://localhost:1234
+    const model = params.model || process.env.OLLAMA_MODEL || 'llama3.1:8b';
+
+    const prompt = `You are a Postgres SQL migration assistant. Given the request, output ONLY SQL suitable for a Supabase migration file. Avoid destructive changes unless explicitly asked. Request: ${params.request}\nNotes: ${params.notes || ''}`;
+
+    try {
+      if (lmStudioBase) {
+        const res = await (((globalThis as any).fetch) || fetch)(`${lmStudioBase}/v1/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'Return only SQL. No explanations.' },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.1,
+          }),
+        });
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        return {
+          content: [{ type: 'text', text: text.trim() }],
+        };
+      }
+
+      const res = await (((globalThis as any).fetch) || fetch)(`${ollamaBase}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          prompt: `Return only SQL (no prose).\n\n${prompt}`,
+          stream: false,
+          options: { temperature: 0.1 },
+        }),
+      });
+      const data = await res.json();
+      const text = data?.response || '';
+      return { content: [{ type: 'text', text: text.trim() }] };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true } as any;
+    }
   }
 
   async run(): Promise<void> {

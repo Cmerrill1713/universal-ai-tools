@@ -3,10 +3,11 @@
  * Advanced auto-fixing for common TypeScript/ESLint patterns
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { execSync } from 'child_process';
+import * as fs from 'fs';
 import { glob } from 'glob';
+import * as path from 'path';
+
 import { TWO } from '../utils/constants';
 
 interface FixPattern {

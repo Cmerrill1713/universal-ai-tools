@@ -10,16 +10,16 @@
  * 5. Learns from its own implementation decisions
  */
 
-import { LogContext, log } from '../utils/logger';
 import { createClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
+import { log,LogContext } from '../utils/logger';
 import type { FeedbackInsight, LearningSignal } from './feedback-integration-service';
 import { feedbackIntegrationService } from './feedback-integration-service';
-import type { OptimizationInsight } from './parameter-analytics-service';
-import { ModelPerformancePrediction, mlParameterOptimizer } from './ml-parameter-optimizer';
-import type { ParameterEffectiveness } from './parameter-analytics-service';
+import { TaskType } from './intelligent-parameter-service';
+import { mlParameterOptimizer } from './ml-parameter-optimizer';
+import type { OptimizationInsight , ParameterEffectiveness } from './parameter-analytics-service';
 import { parameterAnalyticsService } from './parameter-analytics-service';
-import { TaskParameters, TaskType } from './intelligent-parameter-service';
 
 export interface AutonomousAction {
   id: string;

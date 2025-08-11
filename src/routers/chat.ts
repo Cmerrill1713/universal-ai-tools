@@ -3,15 +3,16 @@
  * Provides endpoints for chat history, message handling, and conversation management
  */
 
-import type { NextFunction, Request, Response } from 'express';
-import { Router } from 'express';
+import { type Request, type Response, Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { LogContext, log } from '@/utils/logger';
-import { authenticate } from '@/middleware/auth';
-import { validateRequest } from '@/middleware/express-validator';
-import { body, param, query } from 'express-validator';
+import { z } from 'zod';
+
 import type AgentRegistry from '@/agents/agent-registry';
+import { authenticate } from '@/middleware/auth';
+import { validateParams } from '@/middleware/validation';
+import { zodValidate } from '@/middleware/zod-validate';
 import type { AgentContext } from '@/types';
+import { log, LogContext } from '@/utils/logger';
 
 interface ChatMessage {
   id: string;
@@ -97,8 +98,7 @@ router.get('/conversations', authenticate, async (req: Request, res: Response) =
 router.get(
   '/history/:conversationId',
   authenticate,
-  [param('conversationId').isUUID().withMessage('Invalid conversation ID')],
-  validateRequest,
+  validateParams(z.object({ conversationId: z.string().uuid() })),
   async (req: Request, res: Response) => {
     try {
       const { conversationId } = req.params;
@@ -158,11 +158,12 @@ router.get(
 router.post(
   '/new',
   authenticate,
-  [
-    body('title').optional().isString().withMessage('Title must be a string'),
-    body('initialMessage').optional().isString().withMessage('Initial message must be a string'),
-  ],
-  validateRequest,
+  zodValidate(
+    z.object({
+      title: z.string().optional(),
+      initialMessage: z.string().optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
@@ -227,22 +228,15 @@ router.post(
  */
 router.post(
   '/',
-  // Require auth in production; allow anonymous only in development for local testing
-  (req: Request, res: Response, next: NextFunction) => {
-    const isDev = process.env.NODE_ENV !== 'production';
-    if (isDev && !req.headers.authorization && !req.headers['x-api-key']) {
-      (req as any).user = { id: 'anonymous' };
-      return next();
-    }
-    return authenticate(req, res, next);
-  },
-  [
-    body('message').isString().withMessage('Message is required'),
-    body('conversationId').optional().isUUID().withMessage('Invalid conversation ID'),
-    body('agentName').optional().isString().withMessage('Agent name must be a string'),
-    body('context').optional().isObject().withMessage('Context must be an object'),
-  ],
-  validateRequest,
+  authenticate,
+  zodValidate(
+    z.object({
+      message: z.string(),
+      conversationId: z.string().uuid().optional(),
+      agentName: z.string().optional(),
+      context: z.record(z.any()).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
@@ -346,7 +340,9 @@ router.post(
           // Try to get the agent
           const agent = await agentRegistry.getAgent(agentName);
           if (!agent) {
-            log.warn('Agent failed to load, using fallback response', LogContext.API, { agentName });
+            log.warn('Agent failed to load, using fallback response', LogContext.API, {
+              agentName,
+            });
             result = {
               response: `I'm experiencing some technical difficulties with the ${agentName} agent, but I'm still here to help! Please try again in a moment.`,
               confidence: 0.5,
@@ -366,7 +362,8 @@ router.post(
 
         // Provide fallback response
         result = {
-          response: "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
+          response:
+            "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
           confidence: 0.5,
           success: false,
           error: agentError instanceof Error ? agentError.message : 'Unknown error',
@@ -376,7 +373,8 @@ router.post(
       // If we still don't have a valid response, provide a basic fallback
       if (!result || !result.response) {
         result = {
-          response: "Hello! I'm your AI assistant. I'm currently initializing my advanced capabilities, but I'm here to help with basic questions and tasks. How can I assist you today?",
+          response:
+            "Hello! I'm your AI assistant. I'm currently initializing my advanced capabilities, but I'm here to help with basic questions and tasks. How can I assist you today?",
           confidence: 0.7,
           success: true,
           reasoning: 'Basic fallback response',
@@ -452,8 +450,7 @@ router.post(
 router.delete(
   '/:conversationId',
   authenticate,
-  [param('conversationId').isUUID().withMessage('Invalid conversation ID')],
-  validateRequest,
+  validateParams(z.object({ conversationId: z.string().uuid() })),
   async (req: Request, res: Response) => {
     try {
       const { conversationId } = req.params;

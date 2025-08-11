@@ -7,10 +7,11 @@
  * Tier 4: External APIs (fallback only)
  */
 
-import { LogContext, log } from '@/utils/logger';
-import { ollamaService } from './ollama-service';
-import { lfm2Bridge } from './lfm2-bridge';
 import { THREE } from '@/utils/constants';
+import { log,LogContext } from '@/utils/logger';
+
+import { lfm2Bridge } from './lfm2-bridge';
+import { ollamaService } from './ollama-service';
 
 export interface ModelTier {
   tier: 1 | 2 | 3 | 4;
@@ -408,7 +409,7 @@ Respond with JSON:
 
     if (length < 50) complexity = 'simple';
     else if (length > 200 || complexKeywords.some((k) => userRequest.toLowerCase().includes(k)))
-      complexity = 'complex';
+      {complexity = 'complex';}
 
     if (codeKeywords.some((k) => userRequest.toLowerCase().includes(k))) domain = 'code';
 

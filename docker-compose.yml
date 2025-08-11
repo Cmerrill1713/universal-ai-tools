@@ -18,44 +18,44 @@ services:
       - NODE_ENV=production
       - PORT=9999
       - HOST=0.0.0.0
-      
+
       # Database Configuration
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/universal_ai_tools
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
-      
+
       # Redis Configuration
       - REDIS_URL=redis://redis:6379
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-      
+
       # Security
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-}
-      
+
       # AI Services
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
-      
+
       # Local LLM Services
       - OLLAMA_URL=http://ollama:11434
       - LM_STUDIO_URL=${LM_STUDIO_URL:-http://host.docker.internal:1234}
-      
+
       # Feature Flags
       - ENABLE_WEBSOCKETS=true
       - ENABLE_MEMORY_SYSTEM=true
       - ENABLE_ANTI_HALLUCINATION=true
       - ENABLE_COGNITIVE_AGENTS=true
-      
+
       # Performance Settings
       - MAX_CONCURRENT_REQUESTS=50
       - REQUEST_TIMEOUT=120000
       - MEMORY_CACHE_SIZE=5000
-      
+
       # Monitoring
       - ENABLE_TELEMETRY=true
       - LOG_LEVEL=${LOG_LEVEL:-info}

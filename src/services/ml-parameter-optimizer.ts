@@ -6,10 +6,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
 import { BayesianModel } from '../utils/bayesian-model';
 import { TWO } from '../utils/constants';
-import { LogContext, log } from '../utils/logger';
+import { log,LogContext } from '../utils/logger';
 import { ThompsonSelector } from '../utils/thompson-sampling';
 import { autonomousActionLoopService } from './autonomous-action-loop-service';
 import type { TaskContext, TaskParameters, UserPreferences } from './intelligent-parameter-service';

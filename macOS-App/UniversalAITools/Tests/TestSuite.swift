@@ -112,6 +112,59 @@ class UIComponentTests: UniversalAIToolsTestSuite {
     }
 }
 
+// MARK: - Router Tests
+class RouterTests: UniversalAIToolsTestSuite {
+
+    func testContentRouterModes() {
+        let item: SidebarItem = .dashboard
+
+        // Web mode
+        var view = ContentRouterView(item: item, viewMode: .webView)
+        XCTAssertNotNil(view)
+
+        // Native mode
+        view = ContentRouterView(item: item, viewMode: .native)
+        XCTAssertNotNil(view)
+
+        // Hybrid mode
+        view = ContentRouterView(item: item, viewMode: .hybrid)
+        XCTAssertNotNil(view)
+    }
+
+    func testNativeRouterRoutesAllCases() {
+        let all: [SidebarItem] = [.dashboard, .chat, .agents, .mlx, .vision,
+                                  .monitoring, .abMcts, .maltSwarm, .parameters,
+                                  .knowledge, .debugging]
+        for item in all {
+            let view = NativeRouterView(item: item)
+            XCTAssertNotNil(view, "Router should return a view for \(item.rawValue)")
+        }
+    }
+}
+
+// MARK: - Overlay Tests
+class OverlayTests: UniversalAIToolsTestSuite {
+
+    func testStatusOverlayShowsNotificationBanner() {
+        appState.showNotification(message: "Test banner")
+        let overlay = StatusOverlayView()
+            .environmentObject(appState)
+            .environmentObject(apiService)
+        XCTAssertNotNil(overlay)
+        XCTAssertTrue(appState.showNotification)
+        XCTAssertEqual(appState.notificationMessage, "Test banner")
+    }
+
+    func testStatusOverlayShowsOfflineBanner() {
+        appState.backendConnected = false
+        let overlay = StatusOverlayView()
+            .environmentObject(appState)
+            .environmentObject(apiService)
+        XCTAssertNotNil(overlay)
+        XCTAssertFalse(appState.backendConnected)
+    }
+}
+
 // MARK: - Agent Management Tests
 class AgentManagementTests: UniversalAIToolsTestSuite {
 
@@ -203,11 +256,11 @@ class ChatInterfaceTests: UniversalAIToolsTestSuite {
 
     func testChatHistory() {
         // Create multiple chats
-        for i in 1...3 {
+        for number in 1...3 {
             appState.createNewChat()
             if let chat = appState.currentChat {
                 var updatedChat = chat
-                updatedChat.title = "Test Chat \(i)"
+                updatedChat.title = "Test Chat \(number)"
                 // Update the chat in the array
                 if let index = appState.chats.firstIndex(where: { $0.id == chat.id }) {
                     appState.chats[index] = updatedChat
@@ -257,12 +310,12 @@ class PerformanceTests: UniversalAIToolsTestSuite {
         // Create large number of agents
         let startTime = CFAbsoluteTimeGetCurrent()
 
-        for i in 1...1000 {
+        for index in 1...1000 {
             let agent = Agent(
-                id: "agent-\(i)",
-                name: "Agent \(i)",
+                id: "agent-\(index)",
+                name: "Agent \(index)",
                 type: "Cognitive",
-                description: "Performance test agent \(i)",
+                description: "Performance test agent \(index)",
                 capabilities: ["capability1", "capability2"],
                 status: .active
             )
@@ -280,7 +333,7 @@ class PerformanceTests: UniversalAIToolsTestSuite {
         let initialMemory = getMemoryUsage()
 
         // Create test data
-        for i in 1...100 {
+        for count in 1...100 {
             appState.createNewChat()
         }
 
@@ -396,31 +449,7 @@ class HotReloadTests: UniversalAIToolsTestSuite {
     }
 }
 
-// MARK: - Test Runner
-class TestRunner {
-    static func runAllTests() {
-        let testSuite = XCTestSuite(name: "UniversalAIToolsTestSuite")
-
-        // Add all test classes
-        let testClasses = [
-            UIComponentTests.self,
-            AgentManagementTests.self,
-            ChatInterfaceTests.self,
-            APIServiceTests.self,
-            PerformanceTests.self,
-            IntegrationTests.self,
-            HotReloadTests.self
-        ]
-
-        for testClass in testClasses {
-            let suite = XCTestSuite(forTestCaseClass: testClass)
-            testSuite.addTest(suite)
-        }
-
-        // Run tests
-        testSuite.run()
-    }
-}
+// Deprecated: aggregate test runner moved to individual test files
 
 // MARK: - Test Utilities
 extension UniversalAIToolsTestSuite {

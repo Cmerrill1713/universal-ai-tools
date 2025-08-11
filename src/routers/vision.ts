@@ -3,18 +3,20 @@
  * API endpoints for image analysis, generation, and visual reasoning
  */
 
-import type { NextFunction, Request, Response } from 'express';
-import { Router } from 'express';
+import { type NextFunction, type Request, type Response, Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
+
+import { zodValidate } from '@/middleware/zod-validate';
+
+import { authenticate } from '../middleware/auth';
+import { createRateLimiter } from '../middleware/rate-limiter-enhanced';
+import { uploadGuard } from '../middleware/upload-guard';
+import { validateRequest } from '../middleware/validation';
 import { pyVisionBridge } from '../services/pyvision-bridge';
 import { visionResourceManager } from '../services/vision-resource-manager';
-import { LogContext, log } from '../utils/logger';
 import { sendError, sendSuccess } from '../utils/api-response';
-import { createRateLimiter } from '../middleware/rate-limiter-enhanced';
-import { authenticate } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import { uploadGuard } from '../middleware/upload-guard';
+import { log, LogContext } from '../utils/logger';
 
 const router = Router();
 
@@ -136,13 +138,8 @@ router.post(
   visionRateLimiter,
   upload.single('image'),
   uploadGuard({ maxSize: 10 * 1024 * 1024 }),
+  zodValidate(analyzeSchema),
   async (req: Request, res: Response, next: NextFunction) => {
-    // Validate request
-    try {
-      analyzeSchema.parse(req.body);
-    } catch (error) {
-      return sendError(res, 'VALIDATION_ERROR', 'Invalid request parameters', 400);
-    }
     try {
       const startTime = Date.now();
 
@@ -187,9 +184,9 @@ router.post(
       };
 
       sendSuccess(res, response, 200);
-    } catch (error) {
-      log.error('Failed to analyze image', LogContext.API, { error });
-      next(error);
+    } catch {
+      log.error('Failed to analyze image', LogContext.API);
+      next();
     }
   }
 );
@@ -201,13 +198,8 @@ router.post(
 router.post(
   '/generate',
   generationRateLimiter,
+  zodValidate(generateSchema),
   async (req: Request, res: Response, next: NextFunction) => {
-    // Validate request
-    try {
-      generateSchema.parse(req.body);
-    } catch (error) {
-      return sendError(res, 'VALIDATION_ERROR', 'Invalid request parameters', 400);
-    }
     try {
       const { prompt, parameters, refine } = req.body;
 
@@ -268,9 +260,9 @@ router.post(
       };
 
       sendSuccess(res, response, 200);
-    } catch (error) {
-      log.error('Failed to generate image', LogContext.API, { error });
-      next(error);
+    } catch {
+      log.error('Failed to generate image', LogContext.API);
+      next();
     }
   }
 );
@@ -283,7 +275,7 @@ router.post(
   '/refine',
   authenticate,
   refinementRateLimiter,
-  validateRequest(refineSchema),
+  zodValidate(refineSchema),
   upload.single('image'),
   uploadGuard({ maxSize: 10 * 1024 * 1024 }),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -323,9 +315,9 @@ router.post(
       };
 
       sendSuccess(res, response, 200);
-    } catch (error) {
-      log.error('Failed to refine image', LogContext.API, { error });
-      next(error);
+    } catch {
+      log.error('Failed to refine image', LogContext.API);
+      next();
     }
   }
 );
@@ -338,7 +330,7 @@ router.post(
   '/embed',
   authenticate,
   visionRateLimiter,
-  validateRequest(embeddingSchema),
+  zodValidate(embeddingSchema),
   upload.single('image'),
   uploadGuard({ maxSize: 10 * 1024 * 1024 }),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -373,9 +365,9 @@ router.post(
       }
 
       sendSuccess(res, result.data, 200);
-    } catch (error) {
-      log.error('Failed to generate embedding', LogContext.API, { error });
-      next(error);
+    } catch {
+      log.error('Failed to generate embedding', LogContext.API);
+      next();
     }
   }
 );
@@ -420,9 +412,9 @@ router.post(
       }
 
       sendSuccess(res, result.data, 200);
-    } catch (error) {
-      log.error('Failed to perform visual reasoning', LogContext.API, { error });
-      next(error);
+    } catch {
+      log.error('Failed to perform visual reasoning', LogContext.API);
+      next();
     }
   }
 );
@@ -441,7 +433,7 @@ router.post(
   upload.array('images', 10), // Max 10 images
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const files = req.files as Express.Multer.File[];
+      const files = req.files as unknown as Array<{ buffer: Buffer }>;
       // Validate all files
       if (files) {
         for (const f of files) {
@@ -473,9 +465,9 @@ router.post(
       const successCount = results.filter((r: any) => r.success).length;
 
       sendSuccess(res, { results, successCount, totalCount: files.length }, 200);
-    } catch (error) {
-      log.error('Failed to batch analyze images', LogContext.API, { error });
-      next(error);
+    } catch {
+      log.error('Failed to batch analyze images', LogContext.API);
+      next();
     }
   }
 );
@@ -506,9 +498,9 @@ router.get('/status', authenticate, async (req: Request, res: Response, next: Ne
     };
 
     sendSuccess(res, status, 200);
-  } catch (error) {
-    log.error('Failed to get vision status', LogContext.API, { error });
-    next(error);
+  } catch {
+    log.error('Failed to get vision status', LogContext.API);
+    next();
   }
 });
 
@@ -535,9 +527,9 @@ router.post(
       await visionResourceManager.preloadModels(models);
 
       sendSuccess(res, { preloaded: models }, 200);
-    } catch (error) {
-      log.error('Failed to preload models', LogContext.API, { error });
-      next(error);
+    } catch {
+      log.error('Failed to preload models', LogContext.API);
+      next();
     }
   }
 );

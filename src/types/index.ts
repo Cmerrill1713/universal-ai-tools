@@ -104,6 +104,10 @@ export interface AgentDefinition {
 export interface ServiceConfig {
   port: number;
   environment: string;
+  // Offline-first controls
+  offlineMode?: boolean;
+  disableExternalCalls?: boolean;
+  disableRemoteLLM?: boolean;
   database: {
     url: string;
     poolSize: number;

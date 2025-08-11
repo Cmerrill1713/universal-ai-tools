@@ -3,10 +3,11 @@
  * Uses DSPy to improve LFM2-1.2B routing decisions and response quality
  */
 
-import { LogContext, log } from '@/utils/logger';
+import { THREE, TWO } from '@/utils/constants';
+import { log,LogContext } from '@/utils/logger';
+
 import type { CoordinationContext, FastRoutingDecision } from './fast-llm-coordinator';
 import { fastCoordinator } from './fast-llm-coordinator';
-import { THREE, TWO } from '@/utils/constants';
 
 export interface DSPyOptimization {
   task: string;
@@ -38,6 +39,10 @@ export class DSPyFastOptimizer {
   private trainingExamples: Map<string, OptimizationExample[]> = new Map();
 
   constructor() {
+    if (process.env.DISABLE_LFM2 === 'true') {
+      log.warn('⚠️ DSPy Fast Optimizer disabled by DISABLE_LFM2', LogContext.AI);
+      return;
+    }
     this.initializeOptimizer();
   }
 

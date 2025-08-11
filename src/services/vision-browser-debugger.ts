@@ -6,6 +6,7 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+
 import type { VisionDebugData } from '../types/index.js';
 import { validatePath, validatePathBoundary } from '../utils/path-security';
 
@@ -776,7 +777,7 @@ class VisionBrowserDebugger {
   classifyErrorType(message: string): 'error' | 'warning' | 'info' {
     if (message.toLowerCase().includes('error')) return 'error';
     if (message.toLowerCase().includes('warning') || message.toLowerCase().includes('warn'))
-      return 'warning';
+      {return 'warning';}
     return 'info';
   }
 

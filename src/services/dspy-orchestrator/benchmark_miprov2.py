@@ -24,10 +24,15 @@ logger = logging.getLogger(__name__)
 # Note: In production, use get_best_available_lm() from llm_discovery
 # For now, configure with a default LM
 try:
-    from .llm_discovery import LLMDiscovery
+    from .llm_discovery import LLMDiscovery  # type: ignore
     lm, provider, model = LLMDiscovery.auto_discover()
     dspy.configure(lm=lm)
 except Exception:
+    try:
+        from llm_discovery import LLMDiscovery  # type: ignore
+        lm, provider, model = LLMDiscovery.auto_discover()
+        dspy.configure(lm=lm)
+    except Exception:
     # Fallback to OpenAI-compatible endpoint if available
     import os
     if os.environ.get("OPENAI_API_KEY"):

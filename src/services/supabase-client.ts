@@ -3,9 +3,10 @@
  * Shared client instance for all services
  */
 
+import { createClient,type SupabaseClient } from '@supabase/supabase-js';
+
 import { config } from '@/config/environment';
-import { LogContext, log } from '@/utils/logger';
-import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+import { log,LogContext } from '@/utils/logger';
 
 let cachedClient: SupabaseClient | null = null;
 

@@ -4,12 +4,12 @@
  * Enables proximity-based lock/unlock, authentication state changes, and device sync
  */
 
-import { WebSocket, WebSocketServer } from 'ws';
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage , Server } from 'http';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { LogContext, log } from '@/utils/logger';
-import type { Server } from 'http';
+import { WebSocket, WebSocketServer } from 'ws';
+
+import { log,LogContext } from '@/utils/logger';
 
 interface AuthEvent {
   type:

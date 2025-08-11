@@ -1,16 +1,21 @@
 import cors from 'cors';
 
 // Allowed origins for CORS
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:9999',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:9999',
-];
+const allowedOrigins: string[] = [];
 
-// Add production URLs if defined
+// In non-production, allow localhost defaults for development
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push(
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:9999',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:9999'
+  );
+}
+
+// Add environment-defined URLs (both dev and prod)
 if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
@@ -21,21 +26,16 @@ if (process.env.PRODUCTION_URL) {
 
 export const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin only in development (mobile apps, Postman)
-    if (!origin) {
-      if (process.env.NODE_ENV !== 'production') return callback(null, true);
-      return callback(new Error('Not allowed by CORS'));
-    }
+    // Always allow requests with no Origin header (native apps, curl/Postman)
+    // This does not weaken browser CORS, because browsers always send Origin
+    if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      // In development, allow all origins
-      if (process.env.NODE_ENV !== 'production') {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      // In production, block unknown origins; in development, allow all
+      if (process.env.NODE_ENV !== 'production') return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,

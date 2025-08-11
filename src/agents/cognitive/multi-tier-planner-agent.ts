@@ -4,8 +4,9 @@
  * Tier 3-4 preferred for complex strategic planning
  */
 
-import { MultiTierBaseAgent } from '../multi-tier-base-agent';
 import type { AgentConfig, AgentContext, PlanPhase } from '@/types';
+
+import { MultiTierBaseAgent } from '../multi-tier-base-agent';
 
 export class MultiTierPlannerAgent extends MultiTierBaseAgent {
   constructor(config: AgentConfig) {

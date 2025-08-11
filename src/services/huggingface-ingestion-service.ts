@@ -5,8 +5,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '@/utils/logger';
-import { contextInjectionService } from './context-injection-service';
+
+import { config } from '@/config/environment';
+import { log, LogContext } from '@/utils/logger';
 
 interface HuggingFaceModel {
   id: string;
@@ -120,6 +121,16 @@ export class HuggingFaceIngestionService {
       popularOnly?: boolean;
     } = {}
   ): Promise<IngestionStats> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return {
+        modelsProcessed: 0,
+        datasetsProcessed: 0,
+        papersProcessed: 0,
+        errors: ['External ingestion disabled in offline mode'],
+        startTime: new Date(),
+        endTime: new Date(),
+      };
+    }
     const stats: IngestionStats = {
       modelsProcessed: 0,
       datasetsProcessed: 0,
@@ -193,6 +204,9 @@ export class HuggingFaceIngestionService {
     popularOnly: boolean,
     stats: IngestionStats
   ): Promise<void> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return;
+    }
     try {
       log.info('📦 Fetching Hugging Face models', LogContext.AI, { limit, popularOnly });
 
@@ -255,6 +269,9 @@ export class HuggingFaceIngestionService {
     popularOnly: boolean,
     stats: IngestionStats
   ): Promise<void> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return;
+    }
     try {
       log.info('📊 Fetching Hugging Face datasets', LogContext.AI, { limit, popularOnly });
 
@@ -312,6 +329,9 @@ export class HuggingFaceIngestionService {
    * Ingest papers from Hugging Face Papers
    */
   private async ingestPapers(limit: number, stats: IngestionStats): Promise<void> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return;
+    }
     try {
       log.info('📚 Fetching Hugging Face papers', LogContext.AI, { limit });
 

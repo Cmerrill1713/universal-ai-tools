@@ -4,11 +4,12 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
-import type { TaskContext } from '../services/intelligent-parameter-service';
-import { TaskType, intelligentParameterService } from '../services/intelligent-parameter-service';
+
 import type { OptimizedParameters } from '@/types';
-import type { UserPreferences } from '../services/intelligent-parameter-service';
-import { LogContext, log } from '../utils/logger';
+
+import type { TaskContext , UserPreferences } from '../services/intelligent-parameter-service';
+import { intelligentParameterService,TaskType } from '../services/intelligent-parameter-service';
+import { log,LogContext } from '../utils/logger';
 
 export interface IntelligentRequest extends Request {
   taskContext?: TaskContext;
@@ -98,16 +99,16 @@ export function intelligentParametersMiddleware(overrides: ParameterOverrides = 
       if (overrides.temperature !== undefined) optimizedParams.temperature = overrides.temperature;
       if (overrides.maxTokens !== undefined) optimizedParams.maxTokens = overrides.maxTokens;
       if (overrides.contextLength !== undefined)
-        optimizedParams.contextLength = overrides.contextLength;
+        {optimizedParams.contextLength = overrides.contextLength;}
       if (overrides.systemPrompt !== undefined)
-        optimizedParams.systemPrompt = overrides.systemPrompt;
+        {optimizedParams.systemPrompt = overrides.systemPrompt;}
 
       // Apply request-level overrides (these take precedence)
       if (req.body.temperature !== undefined) optimizedParams.temperature = req.body.temperature;
       if (req.body.maxTokens !== undefined) optimizedParams.maxTokens = req.body.maxTokens;
       if (req.body.max_tokens !== undefined) optimizedParams.maxTokens = req.body.max_tokens;
       if (req.body.contextLength !== undefined)
-        optimizedParams.contextLength = req.body.contextLength;
+        {optimizedParams.contextLength = req.body.contextLength;}
 
       // Update request body with optimized parameters
       req.body = {
@@ -277,13 +278,13 @@ export function optimizeParameters(
   // Apply overrides
   if (options.overrides) {
     if (options.overrides.temperature !== undefined)
-      optimizedParams.temperature = options.overrides.temperature;
+      {optimizedParams.temperature = options.overrides.temperature;}
     if (options.overrides.maxTokens !== undefined)
-      optimizedParams.maxTokens = options.overrides.maxTokens;
+      {optimizedParams.maxTokens = options.overrides.maxTokens;}
     if (options.overrides.contextLength !== undefined)
-      optimizedParams.contextLength = options.overrides.contextLength;
+      {optimizedParams.contextLength = options.overrides.contextLength;}
     if (options.overrides.systemPrompt !== undefined)
-      optimizedParams.systemPrompt = options.overrides.systemPrompt;
+      {optimizedParams.systemPrompt = options.overrides.systemPrompt;}
   }
 
   const result: OptimizedParameters & {

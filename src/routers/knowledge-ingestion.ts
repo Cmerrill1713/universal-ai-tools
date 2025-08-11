@@ -5,8 +5,11 @@
  */
 
 import { Router } from 'express';
-import { LogContext, log } from '@/utils/logger';
+import { z } from 'zod';
+
+import { zodValidate } from '@/middleware/zod-validate';
 import { huggingFaceIngestionService } from '@/services/huggingface-ingestion-service';
+import { log, LogContext } from '@/utils/logger';
 
 const router = Router();
 
@@ -14,176 +17,215 @@ const router = Router();
  * POST /api/v1/knowledge-ingestion/huggingface
  * Trigger Hugging Face data ingestion
  */
-router.post('/huggingface', async (req, res) => {
-  try {
-    const {
-      includeModels = true,
-      includeDatasets = true,
-      includePapers = true,
-      modelLimit = 100,
-      datasetLimit = 50,
-      paperLimit = 25,
-      popularOnly = true,
-    } = req.body;
+router.post(
+  '/huggingface',
+  zodValidate(
+    z.object({
+      includeModels: z.boolean().optional(),
+      includeDatasets: z.boolean().optional(),
+      includePapers: z.boolean().optional(),
+      modelLimit: z.number().int().min(1).max(1000).optional(),
+      datasetLimit: z.number().int().min(1).max(1000).optional(),
+      paperLimit: z.number().int().min(1).max(1000).optional(),
+      popularOnly: z.boolean().optional(),
+    })
+  ),
+  async (req, res) => {
+    try {
+      const {
+        includeModels = true,
+        includeDatasets = true,
+        includePapers = true,
+        modelLimit = 100,
+        datasetLimit = 50,
+        paperLimit = 25,
+        popularOnly = true,
+      } = req.body;
 
-    log.info('🤗 Starting Hugging Face ingestion via API', LogContext.AI, {
-      includeModels,
-      includeDatasets,
-      includePapers,
-      modelLimit,
-      datasetLimit,
-      paperLimit,
-      popularOnly,
-    });
+      log.info('🤗 Starting Hugging Face ingestion via API', LogContext.AI, {
+        includeModels,
+        includeDatasets,
+        includePapers,
+        modelLimit,
+        datasetLimit,
+        paperLimit,
+        popularOnly,
+      });
 
-    // Start ingestion (this may take several minutes)
-    const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
-      includeModels,
-      includeDatasets,
-      includePapers,
-      modelLimit,
-      datasetLimit,
-      paperLimit,
-      popularOnly,
-    });
+      // Start ingestion (this may take several minutes)
+      const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
+        includeModels,
+        includeDatasets,
+        includePapers,
+        modelLimit,
+        datasetLimit,
+        paperLimit,
+        popularOnly,
+      });
 
-    // Return comprehensive results
-    res.json({
-      success: true,
-      message: 'Hugging Face ingestion completed',
-      stats,
-      duration:
-        stats.endTime && stats.startTime
-          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-          : 'Unknown',
-      recommendations: [
-        'Use GET /api/v1/knowledge-ingestion/stats to monitor ingestion progress',
-        'Consider running incremental updates daily',
-        'Check ingestion errors if any occurred',
-      ],
-    });
-  } catch (error) {
-    log.error('❌ Hugging Face ingestion failed via API', LogContext.AI, {
-      error: error instanceof Error ? error.message : String(error),
-    });
+      // Return comprehensive results
+      res.json({
+        success: true,
+        message: 'Hugging Face ingestion completed',
+        stats,
+        duration:
+          stats.endTime && stats.startTime
+            ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+            : 'Unknown',
+        recommendations: [
+          'Use GET /api/v1/knowledge-ingestion/stats to monitor ingestion progress',
+          'Consider running incremental updates daily',
+          'Check ingestion errors if any occurred',
+        ],
+      });
+    } catch (error) {
+      log.error('❌ Hugging Face ingestion failed via API', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error),
+      });
 
-    res.status(500).json({
-      success: false,
-      error: 'Hugging Face ingestion failed',
-      message: error instanceof Error ? error.message : String(error),
-    });
+      res.status(500).json({
+        success: false,
+        error: 'Hugging Face ingestion failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
-});
+);
 
 /**
  * POST /api/v1/knowledge-ingestion/huggingface/models
  * Ingest only Hugging Face models
  */
-router.post('/huggingface/models', async (req, res) => {
-  try {
-    const { limit = 50, popularOnly = true } = req.body;
+router.post(
+  '/huggingface/models',
+  zodValidate(
+    z.object({
+      limit: z.number().int().min(1).max(1000).optional(),
+      popularOnly: z.boolean().optional(),
+    })
+  ),
+  async (req, res) => {
+    try {
+      const { limit = 50, popularOnly = true } = req.body;
 
-    log.info('📦 Starting Hugging Face models ingestion', LogContext.AI, { limit, popularOnly });
+      log.info('📦 Starting Hugging Face models ingestion', LogContext.AI, { limit, popularOnly });
 
-    const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
-      includeModels: true,
-      includeDatasets: false,
-      includePapers: false,
-      modelLimit: limit,
-      popularOnly,
-    });
+      const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
+        includeModels: true,
+        includeDatasets: false,
+        includePapers: false,
+        modelLimit: limit,
+        popularOnly,
+      });
 
-    res.json({
-      success: true,
-      message: 'Hugging Face models ingestion completed',
-      modelsProcessed: stats.modelsProcessed,
-      errors: stats.errors,
-      duration:
-        stats.endTime && stats.startTime
-          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-          : 'Unknown',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Models ingestion failed',
-      message: error instanceof Error ? error.message : String(error),
-    });
+      res.json({
+        success: true,
+        message: 'Hugging Face models ingestion completed',
+        modelsProcessed: stats.modelsProcessed,
+        errors: stats.errors,
+        duration:
+          stats.endTime && stats.startTime
+            ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+            : 'Unknown',
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Models ingestion failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
-});
+);
 
 /**
  * POST /api/v1/knowledge-ingestion/huggingface/datasets
  * Ingest only Hugging Face datasets
  */
-router.post('/huggingface/datasets', async (req, res) => {
-  try {
-    const { limit = 25, popularOnly = true } = req.body;
+router.post(
+  '/huggingface/datasets',
+  zodValidate(
+    z.object({
+      limit: z.number().int().min(1).max(1000).optional(),
+      popularOnly: z.boolean().optional(),
+    })
+  ),
+  async (req, res) => {
+    try {
+      const { limit = 25, popularOnly = true } = req.body;
 
-    log.info('📊 Starting Hugging Face datasets ingestion', LogContext.AI, { limit, popularOnly });
+      log.info('📊 Starting Hugging Face datasets ingestion', LogContext.AI, {
+        limit,
+        popularOnly,
+      });
 
-    const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
-      includeModels: false,
-      includeDatasets: true,
-      includePapers: false,
-      datasetLimit: limit,
-      popularOnly,
-    });
+      const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
+        includeModels: false,
+        includeDatasets: true,
+        includePapers: false,
+        datasetLimit: limit,
+        popularOnly,
+      });
 
-    res.json({
-      success: true,
-      message: 'Hugging Face datasets ingestion completed',
-      datasetsProcessed: stats.datasetsProcessed,
-      errors: stats.errors,
-      duration:
-        stats.endTime && stats.startTime
-          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-          : 'Unknown',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Datasets ingestion failed',
-      message: error instanceof Error ? error.message : String(error),
-    });
+      res.json({
+        success: true,
+        message: 'Hugging Face datasets ingestion completed',
+        datasetsProcessed: stats.datasetsProcessed,
+        errors: stats.errors,
+        duration:
+          stats.endTime && stats.startTime
+            ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+            : 'Unknown',
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Datasets ingestion failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
-});
+);
 
 /**
  * POST /api/v1/knowledge-ingestion/huggingface/papers
  * Ingest only Hugging Face papers
  */
-router.post('/huggingface/papers', async (req, res) => {
-  try {
-    const { limit = 15 } = req.body;
+router.post(
+  '/huggingface/papers',
+  zodValidate(z.object({ limit: z.number().int().min(1).max(1000).optional() })),
+  async (req, res) => {
+    try {
+      const { limit = 15 } = req.body;
 
-    log.info('📚 Starting Hugging Face papers ingestion', LogContext.AI, { limit });
+      log.info('📚 Starting Hugging Face papers ingestion', LogContext.AI, { limit });
 
-    const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
-      includeModels: false,
-      includeDatasets: false,
-      includePapers: true,
-      paperLimit: limit,
-    });
+      const stats = await huggingFaceIngestionService.ingestHuggingFaceData({
+        includeModels: false,
+        includeDatasets: false,
+        includePapers: true,
+        paperLimit: limit,
+      });
 
-    res.json({
-      success: true,
-      message: 'Hugging Face papers ingestion completed',
-      papersProcessed: stats.papersProcessed,
-      errors: stats.errors,
-      duration:
-        stats.endTime && stats.startTime
-          ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
-          : 'Unknown',
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Papers ingestion failed',
-      message: error instanceof Error ? error.message : String(error),
-    });
+      res.json({
+        success: true,
+        message: 'Hugging Face papers ingestion completed',
+        papersProcessed: stats.papersProcessed,
+        errors: stats.errors,
+        duration:
+          stats.endTime && stats.startTime
+            ? `${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s`
+            : 'Unknown',
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Papers ingestion failed',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
-});
+);
 
 /**
  * GET /api/v1/knowledge-ingestion/stats

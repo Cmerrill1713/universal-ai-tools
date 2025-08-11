@@ -5,9 +5,10 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
-import { mcpIntegrationService } from '../services/mcp-integration-service';
+
 import { architectureAdvisor } from '../services/architecture-advisor-service';
-import { LogContext, log } from '../utils/logger';
+import { mcpIntegrationService } from '../services/mcp-integration-service';
+import { log,LogContext } from '../utils/logger';
 
 export interface ContextualRequest extends Request {
   mcpContext?: {
@@ -37,7 +38,7 @@ const SECURITY_PATTERNS = {
     /system\s*:\s*/gi,
     /assistant\s*:\s*/gi,
     /\[INST\]/gi,
-    /\<\|.*?\|\>/gi,
+    /<\|.*?\|\>/gi,
     /\n\n(human|assistant|user):/gi,
     /act\s+as\s+if/gi,
     /pretend\s+you\s+are/gi,

@@ -14,13 +14,14 @@
  * - System health monitoring
  */
 
-import { type SupabaseClient, createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '../utils/logger';
+import { createClient,type SupabaseClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
+import { autoContextMiddleware } from '../middleware/auto-context-middleware';
+import { log,LogContext } from '../utils/logger';
 import { contextStorageService } from './context-storage-service';
 import { enhancedContextManager } from './enhanced-context-manager';
 import { semanticContextRetrievalService } from './semantic-context-retrieval';
-import { autoContextMiddleware } from '../middleware/auto-context-middleware';
 
 interface ContextMetrics {
   timestamp: Date;

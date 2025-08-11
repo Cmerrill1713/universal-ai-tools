@@ -13,7 +13,11 @@ from typing import Any, Optional
 
 import dspy
 
-from .llm_discovery import LLMDiscovery
+# Support both package and script import modes
+try:
+    from .llm_discovery import LLMDiscovery  # type: ignore
+except Exception:  # noqa: BLE001
+    from llm_discovery import LLMDiscovery  # type: ignore
 
 logger = logging.getLogger(__name__)
 

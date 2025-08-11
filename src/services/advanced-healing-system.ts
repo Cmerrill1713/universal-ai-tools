@@ -3,9 +3,8 @@
  * AI-powered self-repair and optimization system
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import { execSync } from 'child_process';
+import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 
 interface HealingTask {

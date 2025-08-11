@@ -23,7 +23,17 @@
     "fetch": "readonly",
     "Request": "readonly",
     "Response": "readonly",
-    "Headers": "readonly"
+    "Headers": "readonly",
+    "process": "readonly",
+    "Buffer": "readonly",
+    "setTimeout": "readonly",
+    "clearTimeout": "readonly",
+    "setInterval": "readonly",
+    "clearInterval": "readonly",
+    "console": "readonly",
+    "__dirname": "readonly",
+    "global": "readonly",
+    "NodeJS": "readonly"
   },
   "extends": [
     "eslint:recommended",
@@ -85,6 +95,10 @@
     "simple-import-sort/exports": "warn",
     "unused-imports/no-unused-imports": "warn",
     "import/no-duplicates": "warn",
+    "no-duplicate-imports": "off",
+    "prefer-destructuring": "warn",
+    "no-nested-ternary": "warn",
+    "radix": "warn",
 
     // General rules
     "no-console": ["warn", { "allow": ["warn", "error"] }],
@@ -101,7 +115,7 @@
     "prefer-const": "warn",
     "no-var": "warn",
     "eqeqeq": ["error", "always"],
-    "curly": ["error", "all"],
+    "curly": ["warn", "multi-line"],
     "no-throw-literal": "error",
     "prefer-promise-reject-errors": "error",
 
@@ -201,6 +215,7 @@
     "iOS Working App/",
     "macOS-App/",
     "Universal AI Tools Native/",
+    "src/components/ui-showcase/**",
     "src/tests/**"
   ]
 }

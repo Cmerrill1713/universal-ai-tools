@@ -12,8 +12,9 @@ import type {
   NormalDistribution,
   PerformanceObservation,
 } from '@/types/ab-mcts';
+
+import { log,LogContext } from './logger';
 import { BetaSampler, NormalGammaSampler } from './thompson-sampling';
-import { LogContext, log } from './logger';
 
 /**
  * Bayesian model for tracking agent performance

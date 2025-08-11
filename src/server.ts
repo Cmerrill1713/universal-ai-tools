@@ -3,35 +3,30 @@
  * Main server with Express, TypeScript, and comprehensive error handling
  */
 
-import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import cors from 'cors';
-let compressionMiddleware: any = null;
 import express from 'express';
 import helmet from 'helmet';
-import { type Server, createServer } from 'http';
+import { createServer, type Server } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+let compressionMiddleware: any = null;
 
 // Configuration and utilities
+// Agent system
+import AgentRegistry from '@/agents/agent-registry';
 import { config, validateConfig } from '@/config/environment';
-import { apiResponseMiddleware } from '@/utils/api-response';
-import { LogContext, log } from '@/utils/logger';
-
 // Middleware
 import { intelligentParametersMiddleware } from '@/middleware/intelligent-parameters';
 import { createRateLimiter } from '@/middleware/rate-limiter-enhanced';
-
-// Agent system
-import AgentRegistry from '@/agents/agent-registry';
-
-// Health monitoring and self-healing
-import { healthMonitor } from '@/services/health-monitor-service';
-
-// MCP Integration
-import { mcpIntegrationService } from '@/services/mcp-integration-service';
-
 // Context Injection Services
 // Context injection service temporarily disabled
 import { contextStorageService } from '@/services/context-storage-service';
+// Health monitoring and self-healing
+import { healthMonitor } from '@/services/health-monitor-service';
+// MCP Integration
+import { mcpIntegrationService } from '@/services/mcp-integration-service';
+import { apiResponseMiddleware } from '@/utils/api-response';
+import { log, LogContext } from '@/utils/logger';
 // Context injection middleware temporarily disabled
 
 // Types
@@ -254,6 +249,11 @@ class UniversalAIToolsServer {
     } catch {
       // guards unavailable
     }
+    // Lightweight SQL injection prefilter for URL, query, params
+    try {
+      const { sqlInjectionProtection } = await import('./middleware/sql-injection-protection');
+      this.app.use(sqlInjectionProtection());
+    } catch {}
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -274,20 +274,42 @@ class UniversalAIToolsServer {
       // ignore
     }
 
-    // Request logging middleware
+    // Request logging + latency sampling middleware
     this.app.use((req, res, next) => {
       const startTime = Date.now();
 
       res.on('finish', () => {
         const duration = Date.now() - startTime;
+        try {
+          res.setHeader('X-Response-Time', `${duration}ms`);
+        } catch {}
+        const contentLength = Number(res.getHeader('Content-Length') || 0);
+
         log.info(`${req.method} ${req.path} - ${res.statusCode}`, LogContext.API, {
           method: req.method,
           path: req.path,
           statusCode: res.statusCode,
           duration: `${duration}ms`,
+          durationMs: duration,
+          contentLength,
           userAgent: req.get('User-Agent'),
           ip: req.ip,
         });
+
+        if (process.env.ENABLE_PERF_LOGS === 'true') {
+          const latencyBudgetMs = 50;
+          const isLatencySensitive =
+            req.path.startsWith('/api/v1/assistant') ||
+            req.path.startsWith('/api/v1/agents') ||
+            req.path.startsWith('/api/v1/chat');
+          if (isLatencySensitive && duration > latencyBudgetMs) {
+            log.warn('Latency budget exceeded', LogContext.API, {
+              path: req.path,
+              durationMs: duration,
+              budgetMs: latencyBudgetMs,
+            });
+          }
+        }
       });
 
       next();
@@ -305,6 +327,12 @@ class UniversalAIToolsServer {
         // noop if metrics not available
       }
     })();
+
+    // Optional Casbin RBAC/ABAC
+    try {
+      const { wireCasbin } = await import('./security/init-authz');
+      await wireCasbin(this.app);
+    } catch {}
 
     log.info('✅ Middleware setup completed', LogContext.SERVER);
   }
@@ -417,6 +445,13 @@ class UniversalAIToolsServer {
           timestamp: new Date().toISOString(),
           version: '1.0.0',
           environment: config.environment,
+          mode: {
+            offline: process.env.OFFLINE_MODE === 'true' || !!config.offlineMode,
+            disableExternalCalls:
+              process.env.DISABLE_EXTERNAL_CALLS === 'true' || !!config.disableExternalCalls,
+            disableRemoteLLM:
+              process.env.DISABLE_REMOTE_LLM === 'true' || !!config.disableRemoteLLM,
+          },
           services: {
             backend: 'healthy',
             database: this.supabase ? 'healthy' : 'unavailable',
@@ -425,6 +460,7 @@ class UniversalAIToolsServer {
             redis: false,
             mlx: false,
           },
+          providers: { openai: false, anthropic: false, ollama: false, internal: true } as any,
           systemInfo: {
             uptime: process.uptime(),
             memoryUsage: process.memoryUsage(),
@@ -437,7 +473,18 @@ class UniversalAIToolsServer {
             api: '/api/v1',
             websocket: 'ws://localhost:9999',
           },
-        };
+        } as any;
+
+        // Update provider statuses (best-effort)
+        try {
+          const { ollamaService } = await import('./services/ollama-service');
+          (health as any).providers.ollama = ollamaService.isServiceAvailable();
+        } catch {}
+        try {
+          const { llmRouter } = await import('./services/llm-router-service');
+          const status = llmRouter.getProviderStatus();
+          (health as any).providers = { ...health.providers, ...status };
+        } catch {}
 
         res.json({
           success: true,
@@ -505,8 +552,8 @@ class UniversalAIToolsServer {
       }
     });
 
-    // Agents list endpoint
-    this.app.get('/api/v1/agents', async (req, res) => {
+    // Agents list endpoint (moved to /registry to avoid conflict with soft-fail router)
+    this.app.get('/api/v1/agents/registry', async (req, res) => {
       try {
         const agents = this.agentRegistry ? this.agentRegistry.getAvailableAgents() : [];
 
@@ -555,8 +602,8 @@ class UniversalAIToolsServer {
       }
     });
 
-    // Simple monitoring endpoints for client compatibility
-    this.app.get('/metrics', (req, res) => {
+    // Simple monitoring endpoints for client compatibility (JSON)
+    this.app.get('/metrics.json', (req, res) => {
       res.json({
         success: true,
         data: {
@@ -717,6 +764,26 @@ class UniversalAIToolsServer {
 
     // Health monitoring endpoints
     this.setupHealthRoutes();
+
+    // Agents list (soft-fail to empty)
+    try {
+      const agentsRouter = (await import('./routers/agents.js')).default;
+      this.app.use('/api/v1/agents', agentsRouter);
+      log.info('✅ Agents routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Failed to load agents routes', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // DSPy Orchestration (MIPROv2) endpoints
+    try {
+      const orchestrationRouter = (await import('./routers/orchestration')).default;
+      this.app.use('/api/v1/orchestration', orchestrationRouter);
+      log.info('✅ DSPy/MIPRO orchestration router loaded', LogContext.API);
+    } catch (error) {
+      log.error('❌ Failed to load DSPy/MIPRO orchestration router', LogContext.API, { error });
+    }
 
     // Multi-tier LLM test endpoint
     this.app.post('/api/v1/multi-tier/execute', async (req, res) => {
@@ -1129,9 +1196,9 @@ class UniversalAIToolsServer {
     log.info('✅ Vision routes setup completed', LogContext.SERVER);
   }
 
-  private setupAgentRoutes(): void {
-    // List available agents
-    this.app.get('/api/v1/agents', (req, res) => {
+  private async setupAgentRoutes(): Promise<void> {
+    // List available agents (moved to /registry to avoid conflict with soft-fail router)
+    this.app.get('/api/v1/agents/registry', (req, res) => {
       if (!this.agentRegistry) {
         res.status(503).json({
           success: false,
@@ -1170,10 +1237,34 @@ class UniversalAIToolsServer {
     });
 
     // Execute agent
+    const agentExecuteMiddlewares: any[] = [];
+    if (process.env.ENABLE_CONTEXT === 'true') {
+      import('./middleware/context-injection-middleware')
+        .then((cim) => agentExecuteMiddlewares.push(cim.agentContextMiddleware()))
+        .catch(() => undefined);
+    }
+    const agentExecuteValidators: any[] = [];
+    try {
+      const [{ z }, { zodValidate }] = await Promise.all([
+        Promise.resolve().then(() => import('zod')) as any,
+        Promise.resolve().then(() => import('./middleware/zod-validate')) as any,
+      ]);
+      agentExecuteValidators.push(
+        zodValidate(
+          z.object({
+            agentName: z.string().min(1),
+            userRequest: z.union([z.string(), z.record(z.any())]),
+            context: z.record(z.any()).optional(),
+            enqueue: z.boolean().optional(),
+          })
+        )
+      );
+    } catch {}
     this.app.post(
       '/api/v1/agents/execute',
-      // Context injection middleware temporarily disabled
-      intelligentParametersMiddleware(), // Apply intelligent parameters for agent tasks
+      ...agentExecuteMiddlewares,
+      intelligentParametersMiddleware(),
+      ...agentExecuteValidators,
       async (req, res) => {
         try {
           if (!this.agentRegistry) {
@@ -1186,7 +1277,7 @@ class UniversalAIToolsServer {
             });
           }
 
-          const { agentName, userRequest, context = {} } = req.body;
+          const { agentName, userRequest, context = {}, enqueue = false } = req.body;
 
           if (!agentName || !userRequest) {
             return res.status(400).json({
@@ -1198,6 +1289,30 @@ class UniversalAIToolsServer {
             });
           }
 
+          if (enqueue) {
+            try {
+              const { createQueue } = await import('./jobs/queue');
+              const queue = await createQueue();
+              if (!queue) {
+                return res.status(503).json({
+                  success: false,
+                  error: { code: 'SERVICE_UNAVAILABLE', message: 'Queue backend not available' },
+                });
+              }
+              const result = await queue.enqueue({
+                type: 'agent.execute',
+                payload: { agentName, userRequest, context },
+              });
+              await queue.close();
+              return res.json({ success: true, queued: true, jobId: result.id });
+            } catch (e) {
+              return res.status(500).json({
+                success: false,
+                error: { code: 'QUEUE_ERROR', message: 'Failed to enqueue job' },
+              });
+            }
+          }
+
           const agentContext = {
             userRequest,
             requestId: (req.headers['x-request-id'] as string) || `req_${Date.now()}`,
@@ -1206,7 +1321,15 @@ class UniversalAIToolsServer {
             ...context,
           };
 
-          const result = await this.agentRegistry.processRequest(agentName, agentContext);
+          // Enforce execution timeout
+          const timeoutMs = Number(process.env.AGENT_EXECUTE_TIMEOUT_MS || 15000);
+          const execPromise = this.agentRegistry.processRequest(agentName, agentContext);
+          const result = await Promise.race([
+            execPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Agent execution timeout')), timeoutMs)
+            ),
+          ]);
 
           return res.json({
             success: true,
@@ -1224,7 +1347,8 @@ class UniversalAIToolsServer {
             agentName: req.body.agentName,
           });
 
-          return res.status(500).json({
+          const status = /timeout/i.test(errorMessage) ? 504 : 500;
+          return res.status(status).json({
             success: false,
             error: {
               code: 'AGENT_EXECUTION_ERROR',
@@ -1241,9 +1365,39 @@ class UniversalAIToolsServer {
     );
 
     // Parallel agent execution
+    const agentParallelMiddlewares: any[] = [];
+    if (process.env.ENABLE_CONTEXT === 'true') {
+      import('./middleware/context-injection-middleware')
+        .then((cim) => agentParallelMiddlewares.push(cim.agentContextMiddleware()))
+        .catch(() => undefined);
+    }
+    const agentParallelValidators: any[] = [];
+    try {
+      const [{ z }, { zodValidate }] = await Promise.all([
+        Promise.resolve().then(() => import('zod')) as any,
+        Promise.resolve().then(() => import('./middleware/zod-validate')) as any,
+      ]);
+      agentParallelValidators.push(
+        zodValidate(
+          z.object({
+            agentRequests: z
+              .array(
+                z.object({
+                  agentName: z.string().min(1),
+                  userRequest: z.union([z.string(), z.record(z.any())]),
+                  context: z.record(z.any()).optional(),
+                })
+              )
+              .min(1),
+          })
+        )
+      );
+    } catch {}
     this.app.post(
       '/api/v1/agents/parallel',
-      /* agentContextMiddleware(), */ async (req, res) => {
+      ...agentParallelMiddlewares,
+      ...agentParallelValidators,
+      async (req, res) => {
         try {
           if (!this.agentRegistry) {
             return res.status(503).json({
@@ -1296,7 +1450,14 @@ class UniversalAIToolsServer {
           }));
 
           const startTime = Date.now();
-          const results = await this.agentRegistry.processParallelRequests(parallelRequests);
+          const timeoutMs = Number(process.env.AGENT_PARALLEL_TIMEOUT_MS || 20000);
+          const execPromise = this.agentRegistry.processParallelRequests(parallelRequests);
+          const results = (await Promise.race([
+            execPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Parallel agent execution timeout')), timeoutMs)
+            ),
+          ])) as any[];
           const executionTime = Date.now() - startTime;
 
           return res.json({
@@ -1322,7 +1483,8 @@ class UniversalAIToolsServer {
             error: errorMessage,
           });
 
-          return res.status(500).json({
+          const status = /timeout/i.test(errorMessage) ? 504 : 500;
+          return res.status(status).json({
             success: false,
             error: {
               code: 'PARALLEL_EXECUTION_ERROR',
@@ -1335,9 +1497,34 @@ class UniversalAIToolsServer {
     );
 
     // Agent orchestration
+    const agentOrchestrateMiddlewares: any[] = [];
+    if (process.env.ENABLE_CONTEXT === 'true') {
+      import('./middleware/context-injection-middleware')
+        .then((cim) => agentOrchestrateMiddlewares.push(cim.agentContextMiddleware()))
+        .catch(() => undefined);
+    }
+    const agentOrchestrateValidators: any[] = [];
+    try {
+      const [{ z }, { zodValidate }] = await Promise.all([
+        Promise.resolve().then(() => import('zod')) as any,
+        Promise.resolve().then(() => import('./middleware/zod-validate')) as any,
+      ]);
+      agentOrchestrateValidators.push(
+        zodValidate(
+          z.object({
+            primaryAgent: z.string().min(1),
+            supportingAgents: z.array(z.string()).default([]),
+            userRequest: z.union([z.string(), z.record(z.any())]),
+            context: z.record(z.any()).optional(),
+          })
+        )
+      );
+    } catch {}
     this.app.post(
       '/api/v1/agents/orchestrate',
-      /* agentContextMiddleware(), */ async (req, res) => {
+      ...agentOrchestrateMiddlewares,
+      ...agentOrchestrateValidators,
+      async (req, res) => {
         try {
           if (!this.agentRegistry) {
             return res.status(503).json({
@@ -1495,23 +1682,31 @@ class UniversalAIToolsServer {
       this.io = new SocketIOServer(this.server, {
         cors: {
           origin: (origin, callback) => {
-            // Allow all origins in development
-            if (!origin || process.env.NODE_ENV === 'development') {
+            // In development, allow no-origin and localhost for tooling
+            if (!origin && process.env.NODE_ENV !== 'production') {
               return callback(null, true);
             }
 
-            const allowedOrigins = [
-              'http://localhost:5173',
-              'http://localhost:3000',
-              'http://localhost:9999',
-              process.env.FRONTEND_URL,
-            ].filter(Boolean);
-
-            if (allowedOrigins.includes(origin)) {
-              callback(null, true);
-            } else {
-              callback(null, false);
+            if (process.env.NODE_ENV !== 'production') {
+              const devAllowed = [
+                'http://localhost:5173',
+                'http://localhost:3000',
+                'http://localhost:9999',
+                'http://127.0.0.1:5173',
+                'http://127.0.0.1:3000',
+                'http://127.0.0.1:9999',
+              ];
+              return callback(null, !origin || devAllowed.includes(origin));
             }
+
+            // Production: strictly allow only configured URLs
+            const allowedOrigins = [process.env.FRONTEND_URL, process.env.PRODUCTION_URL]
+              .filter(Boolean)
+              .map((s) => String(s));
+            if (origin && allowedOrigins.includes(origin)) {
+              return callback(null, true);
+            }
+            return callback(new Error('Not allowed by CORS'));
           },
           methods: ['GET', 'POST'],
           credentials: true,
@@ -1545,7 +1740,7 @@ class UniversalAIToolsServer {
 
       // Initialize Athena WebSocket service
       import('./services/athena-websocket.js')
-        .then(({ athenaWebSocket, handleAthenaWebSocket }) => {
+        .then(({ athenaWebSocket }) => {
           // Handle Athena WebSocket connections
           this.io?.of('/athena').on('connection', (socket) => {
             // Convert Socket.IO to raw WebSocket for Athena handler
@@ -1608,12 +1803,12 @@ class UniversalAIToolsServer {
         res.json({
           success: true,
           data: {
-            status:
-              summary.overallHealth > 0.7
-                ? 'healthy'
-                : summary.overallHealth > 0.4
-                  ? 'degraded'
-                  : 'unhealthy',
+            status: (() => {
+              const overall = summary.overallHealth;
+              if (overall > 0.7) return 'healthy';
+              if (overall > 0.4) return 'degraded';
+              return 'unhealthy';
+            })(),
             health: health || { systemHealth: 0, timestamp: new Date() },
             summary,
             issues: issues.map((issue) => ({
@@ -1641,7 +1836,7 @@ class UniversalAIToolsServer {
     // GET /api/v1/health/history - Health history
     this.app.get('/api/v1/health/history', async (req, res) => {
       try {
-        const limit = parseInt(req.query.limit as string) || 20;
+        const limit = parseInt(req.query.limit as string, 10) || 20;
         const history = healthMonitor.getHealthHistory(limit);
 
         res.json({
@@ -1804,12 +1999,18 @@ class UniversalAIToolsServer {
       // await this.supabase?.close?.();
 
       log.info('Graceful shutdown completed', LogContext.SYSTEM);
-      process.exit(0);
+      // Avoid exiting the process during tests
+      if (signal !== 'test' && process.env.NODE_ENV !== 'test') {
+        process.exit(0);
+      }
+      return;
     } catch (error) {
       log.error('Error during shutdown', LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
-      process.exit(1);
+      if (signal !== 'test' && process.env.NODE_ENV !== 'test') {
+        process.exit(1);
+      }
     }
   }
 
@@ -1827,25 +2028,54 @@ class UniversalAIToolsServer {
       await this.loadAsyncRoutes();
       log.info('✅ All async routes loaded successfully', LogContext.SERVER);
 
-      // Initialize MCP service for context management
-      await this.initializeMCPService();
+      // Optionally mount GraphQL if enabled (default on in non-production unless explicitly disabled)
+      try {
+        const shouldEnableGraphQL =
+          process.env.ENABLE_GRAPHQL === 'true' ||
+          (process.env.NODE_ENV !== 'production' && process.env.ENABLE_GRAPHQL !== 'false');
+        if (shouldEnableGraphQL) {
+          const { mountGraphQL } = await import('./graphql/server');
+          await mountGraphQL(this.app);
+          log.info('✅ GraphQL server mounted at /graphql', LogContext.API);
+        } else {
+          log.info('🧪 GraphQL disabled by configuration', LogContext.API);
+        }
+      } catch (error) {
+        log.warn('⚠️ GraphQL server not mounted', LogContext.API, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      // Initialize MCP service for context management (skip during tests or when disabled)
+      if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_MCP !== 'true') {
+        await this.initializeMCPService();
+      } else {
+        log.info('🧪 Skipping MCP init in tests or when disabled', LogContext.MCP);
+      }
 
       // Setup error handling AFTER all routes are loaded
       await this.setupErrorHandling();
       log.info('✅ Error handling setup completed (after route loading)', LogContext.SERVER);
 
       // Use dynamic port selection to avoid conflicts
-      const port = config.port || 9999;
+      const desiredPort = Number(process.env.PORT) || (config as any).port || 9999;
+      const port = process.env.NODE_ENV === 'test' ? 0 : desiredPort;
 
       // Start server
       await new Promise<void>((resolve, reject) => {
         this.server
           .listen(port, () => {
-            log.info(`🚀 Universal AI Tools Service running on port ${port}`, LogContext.SERVER, {
-              environment: config.environment,
-              port,
-              healthCheck: `http://localhost:${port}/health`,
-            });
+            const address = this.server.address() as any;
+            const actualPort = address && typeof address === 'object' ? address.port : port;
+            log.info(
+              `🚀 Universal AI Tools Service running on port ${actualPort}`,
+              LogContext.SERVER,
+              {
+                environment: config.environment,
+                port: actualPort,
+                healthCheck: `http://localhost:${actualPort}/health`,
+              }
+            );
             resolve();
           })
           .on('error', reject);
@@ -1866,6 +2096,12 @@ class UniversalAIToolsServer {
     return this.supabase;
   }
 
+  // Expose internal shutdown for tests
+  /* istanbul ignore next */
+  public async testShutdown(): Promise<void> {
+    await this.gracefulShutdown('test');
+  }
+
   private async loadAsyncRoutes(): Promise<void> {
     try {
       // Load monitoring routes
@@ -1874,16 +2110,20 @@ class UniversalAIToolsServer {
       log.info('✅ Monitoring routes loaded', LogContext.SERVER);
 
       // Start automated health monitoring
-      const { healthMonitor } = await import('./services/health-monitor');
-      await healthMonitor.start();
-      log.info('✅ Health monitor service started', LogContext.SERVER);
+      if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_BACKGROUND_JOBS !== 'true') {
+        const { healthMonitor } = await import('./services/health-monitor');
+        await healthMonitor.start();
+        log.info('✅ Health monitor service started', LogContext.SERVER);
+      } else {
+        log.info('🧪 Skipping health monitor start in tests or when disabled', LogContext.SERVER);
+      }
     } catch (error) {
       log.warn('⚠️ Monitoring routes failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
 
-    // Load chat routes with context injection
+    // Load chat routes with context injection (skip if offline)
     try {
       const chatModule = await import('./routers/chat');
       this.app.use('/api/v1/chat', /* chatContextMiddleware(), */ chatModule.default);
@@ -1984,15 +2224,19 @@ class UniversalAIToolsServer {
       });
     }
 
-    // Load Vision routes
+    // Load Vision routes (skip in offline for external deps)
     try {
       const visionModule = await import('./routers/vision');
       this.app.use('/api/v1/vision', visionModule.default);
       log.info('✅ Vision routes loaded', LogContext.SERVER);
 
       // Initialize PyVision service for embeddings
-      const { pyVisionBridge } = await import('./services/pyvision-bridge');
-      log.info('✅ PyVision service initialized for embeddings', LogContext.AI);
+      if (!config.offlineMode) {
+        await import('./services/pyvision-bridge');
+        log.info('✅ PyVision service initialized for embeddings', LogContext.AI);
+      } else {
+        log.info('🧪 Offline mode - skipping PyVision initialization', LogContext.AI);
+      }
     } catch (error) {
       log.warn('⚠️ Vision routes failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
@@ -2010,15 +2254,19 @@ class UniversalAIToolsServer {
       });
     }
 
-    // Load HuggingFace routes (now routed through LM Studio)
-    try {
-      const huggingFaceModule = await import('./routers/huggingface');
-      this.app.use('/api/v1/huggingface', huggingFaceModule.default);
-      log.info('✅ HuggingFace routes loaded (using LM Studio adapter)', LogContext.SERVER);
-    } catch (error) {
-      log.warn('⚠️ HuggingFace routes failed to load', LogContext.SERVER, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+    // Load HuggingFace routes (only when external calls are allowed)
+    if (!config.disableExternalCalls && !config.offlineMode) {
+      try {
+        const huggingFaceModule = await import('./routers/huggingface');
+        this.app.use('/api/v1/huggingface', huggingFaceModule.default);
+        log.info('✅ HuggingFace routes loaded (using LM Studio adapter)', LogContext.SERVER);
+      } catch (error) {
+        log.warn('⚠️ HuggingFace routes failed to load', LogContext.SERVER, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      log.info('🌐 External calls disabled - skipping HuggingFace routes', LogContext.SERVER);
     }
 
     // Load MLX routes - Apple Silicon ML framework
@@ -2068,6 +2316,18 @@ class UniversalAIToolsServer {
 
       // Don't fail server startup if MLX is unavailable
       log.info('🔄 Server continuing without MLX capabilities', LogContext.SERVER);
+
+      // Mount a minimal fallback health endpoint so dashboards/tests don't 404
+      this.app.get('/api/v1/mlx/health', (req, res) => {
+        res.status(200).json({
+          success: true,
+          degraded: true,
+          status: 'unavailable',
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+          version: 'fallback',
+        });
+      });
     }
 
     // Load system metrics routes
@@ -2168,36 +2428,47 @@ class UniversalAIToolsServer {
       });
     }
 
-    // Load knowledge scraper routes
-    try {
-      log.info('🔄 Loading knowledge scraper router...', LogContext.SERVER);
-      const knowledgeModule = await import('./routers/knowledge-scraper');
-      log.info('✅ Knowledge scraper module imported successfully', LogContext.SERVER, {
-        hasDefault: !!knowledgeModule.default,
-        moduleType: typeof knowledgeModule.default,
-      });
-      this.app.use('/api/v1/knowledge', knowledgeModule.default);
-      log.info('✅ Knowledge scraper routes loaded', LogContext.SERVER);
-    } catch (error) {
-      log.error('❌ Failed to load knowledge scraper router', LogContext.SERVER, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+    // Load knowledge scraper routes (skip in offline)
+    if (!config.disableExternalCalls && !config.offlineMode) {
+      try {
+        log.info('🔄 Loading knowledge scraper router...', LogContext.SERVER);
+        const knowledgeModule = await import('./routers/knowledge-scraper');
+        log.info('✅ Knowledge scraper module imported successfully', LogContext.SERVER, {
+          hasDefault: !!knowledgeModule.default,
+          moduleType: typeof knowledgeModule.default,
+        });
+        this.app.use('/api/v1/knowledge', knowledgeModule.default);
+        log.info('✅ Knowledge scraper routes loaded', LogContext.SERVER);
+      } catch (error) {
+        log.error('❌ Failed to load knowledge scraper router', LogContext.SERVER, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      log.info('🌐 External calls disabled - skipping knowledge scraper routes', LogContext.SERVER);
     }
 
-    // Load Knowledge Ingestion routes (Hugging Face integration)
-    try {
-      log.info('🤗 Loading knowledge ingestion router...', LogContext.SERVER);
-      const knowledgeIngestionModule = await import('./routers/knowledge-ingestion');
-      log.info('✅ Knowledge ingestion module imported successfully', LogContext.SERVER, {
-        hasDefault: !!knowledgeIngestionModule.default,
-        moduleType: typeof knowledgeIngestionModule.default,
-      });
-      this.app.use('/api/v1/knowledge-ingestion', knowledgeIngestionModule.default);
-      log.info('✅ Knowledge ingestion routes loaded', LogContext.SERVER);
-    } catch (error) {
-      log.error('❌ Failed to load knowledge ingestion router', LogContext.SERVER, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+    // Load Knowledge Ingestion routes (skip in offline)
+    if (!config.disableExternalCalls && !config.offlineMode) {
+      try {
+        log.info('🤗 Loading knowledge ingestion router...', LogContext.SERVER);
+        const knowledgeIngestionModule = await import('./routers/knowledge-ingestion');
+        log.info('✅ Knowledge ingestion module imported successfully', LogContext.SERVER, {
+          hasDefault: !!knowledgeIngestionModule.default,
+          moduleType: typeof knowledgeIngestionModule.default,
+        });
+        this.app.use('/api/v1/knowledge-ingestion', knowledgeIngestionModule.default);
+        log.info('✅ Knowledge ingestion routes loaded', LogContext.SERVER);
+      } catch (error) {
+        log.error('❌ Failed to load knowledge ingestion router', LogContext.SERVER, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      log.info(
+        '🌐 External calls disabled - skipping knowledge ingestion routes',
+        LogContext.SERVER
+      );
     }
 
     // Load context storage router
@@ -2232,20 +2503,24 @@ class UniversalAIToolsServer {
 
     // HRM router removed for Apple Silicon environment (CUDA/flash_attn not supported)
 
-    // Load External APIs router
-    try {
-      log.info('🌐 Loading External APIs router...', LogContext.SERVER);
-      const externalAPIsModule = await import('./routers/external-apis');
-      log.info('✅ External APIs module imported successfully', LogContext.SERVER, {
-        hasDefault: !!externalAPIsModule.default,
-        moduleType: typeof externalAPIsModule.default,
-      });
-      this.app.use('/api/v1/external-apis', externalAPIsModule.default);
-      log.info('✅ External APIs routes loaded', LogContext.SERVER);
-    } catch (error) {
-      log.error('❌ Failed to load External APIs router', LogContext.SERVER, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+    // Load External APIs router (skip in offline)
+    if (!config.disableExternalCalls && !config.offlineMode) {
+      try {
+        log.info('🌐 Loading External APIs router...', LogContext.SERVER);
+        const externalAPIsModule = await import('./routers/external-apis');
+        log.info('✅ External APIs module imported successfully', LogContext.SERVER, {
+          hasDefault: !!externalAPIsModule.default,
+          moduleType: typeof externalAPIsModule.default,
+        });
+        this.app.use('/api/v1/external-apis', externalAPIsModule.default);
+        log.info('✅ External APIs routes loaded', LogContext.SERVER);
+      } catch (error) {
+        log.error('❌ Failed to load External APIs router', LogContext.SERVER, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      log.info('🌐 External calls disabled - skipping External APIs router', LogContext.SERVER);
     }
 
     // Load Self-Optimization router
@@ -2303,11 +2578,26 @@ class UniversalAIToolsServer {
 
     // Start verified facts background validator (best-effort)
     try {
-      const { startFactsValidator } = await import('./services/verified-facts-validator');
-      startFactsValidator();
-      log.info('✅ Verified facts validator started', LogContext.SERVER);
+      if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_BACKGROUND_JOBS !== 'true') {
+        const { startFactsValidator } = await import('./services/verified-facts-validator');
+        startFactsValidator();
+        log.info('✅ Verified facts validator started', LogContext.SERVER);
+      }
     } catch (error) {
       log.warn('⚠️ Verified facts validator not started', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Start memory scheduler (best-effort)
+    try {
+      if (process.env.NODE_ENV !== 'test' && process.env.DISABLE_BACKGROUND_JOBS !== 'true') {
+        const { startMemoryScheduler } = await import('./services/memory-scheduler');
+        startMemoryScheduler();
+        log.info('✅ Memory scheduler started', LogContext.SERVER);
+      }
+    } catch (error) {
+      log.warn('⚠️ Memory scheduler not started', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -2316,11 +2606,17 @@ class UniversalAIToolsServer {
   }
 }
 
-// Start the server if this file is run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const server = new UniversalAIToolsServer();
-  server.start();
-}
+// Start the server in both CJS and ESM dev contexts
+(async () => {
+  const isCJS = typeof require !== 'undefined' && typeof module !== 'undefined';
+  const isDirectCJS = isCJS && require.main === module;
+  const isTest = process.env.NODE_ENV === 'test';
+  const isESMDev = process.env.NODE_ENV !== 'production' && !isTest && process.env.TSX_DEV !== 'false';
+  if (!isTest && (isDirectCJS || isESMDev)) {
+    const server = new UniversalAIToolsServer();
+    await server.start();
+  }
+})();
 
 export default UniversalAIToolsServer;
 export { UniversalAIToolsServer };

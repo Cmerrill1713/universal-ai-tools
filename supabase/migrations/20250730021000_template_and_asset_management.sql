@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ==========================================
 
 -- Create storage buckets for different asset types
-INSERT INTO storage.buckets (id, name, public) VALUES 
+INSERT INTO storage.buckets (id, name, public) VALUES
   ('prp-templates', 'PRP Template Library', true),
   ('enterprise-templates', 'Enterprise Development Templates', true),
   ('config-templates', 'Configuration Templates', true),
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS prp_templates (
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(name, version)
 );
 
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS system_configurations (
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(config_type, name, category)
 );
 
@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS agent_templates (
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(name, agent_type, template_category, version)
 );
 
@@ -216,32 +216,32 @@ CREATE POLICY "Authenticated users can create archived assets" ON archived_asset
 -- ==========================================
 
 -- PRP Templates bucket (public read)
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'prp-templates');
-CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'prp-templates' AND auth.role() = 'authenticated');
+CREATE POLICY "Public Access (prp-templates)" ON storage.objects FOR SELECT USING (bucket_id = 'prp-templates');
+CREATE POLICY "Authenticated Upload (prp-templates)" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'prp-templates' AND auth.role() = 'authenticated');
 
 -- Enterprise Templates bucket (public read)
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'enterprise-templates');
-CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'enterprise-templates' AND auth.role() = 'authenticated');
+CREATE POLICY "Public Access (enterprise-templates)" ON storage.objects FOR SELECT USING (bucket_id = 'enterprise-templates');
+CREATE POLICY "Authenticated Upload (enterprise-templates)" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'enterprise-templates' AND auth.role() = 'authenticated');
 
 -- Config Templates bucket (public read)
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'config-templates');
-CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'config-templates' AND auth.role() = 'authenticated');
+CREATE POLICY "Public Access (config-templates)" ON storage.objects FOR SELECT USING (bucket_id = 'config-templates');
+CREATE POLICY "Authenticated Upload (config-templates)" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'config-templates' AND auth.role() = 'authenticated');
 
 -- System Assets bucket (public read)
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'system-assets');
-CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'system-assets' AND auth.role() = 'authenticated');
+CREATE POLICY "Public Access (system-assets)" ON storage.objects FOR SELECT USING (bucket_id = 'system-assets');
+CREATE POLICY "Authenticated Upload (system-assets)" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'system-assets' AND auth.role() = 'authenticated');
 
 -- Debug Screenshots bucket (authenticated access only)
-CREATE POLICY "Authenticated Access" ON storage.objects FOR SELECT USING (bucket_id = 'debug-screenshots' AND auth.role() = 'authenticated');
-CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'debug-screenshots' AND auth.role() = 'authenticated');
+CREATE POLICY "Authenticated Access (debug-screenshots)" ON storage.objects FOR SELECT USING (bucket_id = 'debug-screenshots' AND auth.role() = 'authenticated');
+CREATE POLICY "Authenticated Upload (debug-screenshots)" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'debug-screenshots' AND auth.role() = 'authenticated');
 
 -- Archived Logs bucket (authenticated access only)
-CREATE POLICY "Authenticated Access" ON storage.objects FOR SELECT USING (bucket_id = 'archived-logs' AND auth.role() = 'authenticated');
-CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'archived-logs' AND auth.role() = 'authenticated');
+CREATE POLICY "Authenticated Access (archived-logs)" ON storage.objects FOR SELECT USING (bucket_id = 'archived-logs' AND auth.role() = 'authenticated');
+CREATE POLICY "Authenticated Upload (archived-logs)" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'archived-logs' AND auth.role() = 'authenticated');
 
 -- Agent Resources bucket (user-specific access)
-CREATE POLICY "User Access" ON storage.objects FOR SELECT USING (bucket_id = 'agent-resources' AND auth.role() = 'authenticated');
-CREATE POLICY "User Upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'agent-resources' AND auth.role() = 'authenticated');
+CREATE POLICY "User Access (agent-resources)" ON storage.objects FOR SELECT USING (bucket_id = 'agent-resources' AND auth.role() = 'authenticated');
+CREATE POLICY "User Upload (agent-resources)" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'agent-resources' AND auth.role() = 'authenticated');
 
 -- ==========================================
 -- HELPER FUNCTIONS
@@ -260,8 +260,8 @@ RETURNS TABLE (
   tags TEXT[],
   created_at TIMESTAMPTZ
 ) LANGUAGE SQL STABLE AS $$
-  SELECT 
-    t.id, t.name, t.category, t.title, t.description, 
+  SELECT
+    t.id, t.name, t.category, t.title, t.description,
     t.template_content, t.version, t.tags, t.created_at
   FROM prp_templates t
   WHERE t.is_active = true
@@ -280,8 +280,8 @@ RETURNS TABLE (
   is_template BOOLEAN,
   created_at TIMESTAMPTZ
 ) LANGUAGE SQL STABLE AS $$
-  SELECT 
-    c.id, c.config_type, c.name, c.category, 
+  SELECT
+    c.id, c.config_type, c.name, c.category,
     c.configuration, c.is_template, c.created_at
   FROM system_configurations c
   WHERE c.is_active = true
@@ -304,7 +304,7 @@ CREATE OR REPLACE FUNCTION archive_asset(
     file_size, archived_reason, retention_until
   ) VALUES (
     p_original_path, p_storage_bucket, p_storage_path, p_asset_type,
-    p_file_size, p_archived_reason, 
+    p_file_size, p_archived_reason,
     NOW() + (p_retention_days || ' days')::INTERVAL
   )
   RETURNING id;
@@ -325,13 +325,13 @@ INSERT INTO prp_templates (name, category, title, description, template_content,
 ) ON CONFLICT (name, version) DO NOTHING;
 
 -- Insert Claude commands
-INSERT INTO claude_commands (command_name, command_description, command_content, category, parameters) VALUES 
+INSERT INTO claude_commands (command_name, command_description, command_content, category, parameters) VALUES
   ('generate-prp', 'Generate Universal AI Tools PRP', 'Command content will be loaded from storage', 'prp', ARRAY['feature_description']),
   ('execute-prp', 'Execute Universal AI Tools PRP', 'Command content will be loaded from storage', 'prp', ARRAY['prp_file_path'])
 ON CONFLICT (command_name) DO NOTHING;
 
 -- Insert system configuration templates
-INSERT INTO system_configurations (config_type, name, category, configuration, is_template) VALUES 
+INSERT INTO system_configurations (config_type, name, category, configuration, is_template) VALUES
   ('agent', 'enhanced-base-template', 'cognitive', '{"systemPrompt": "", "capabilities": [], "maxLatencyMs": 5000}', true),
   ('service', 'context-injection-template', 'ai', '{"maxContextTokens": 4000, "cacheExpiryMs": 300000}', true),
   ('llm', 'ollama-model-template', 'local', '{"baseURL": "http://localhost:11434", "model": "", "temperature": 0.7}', true)

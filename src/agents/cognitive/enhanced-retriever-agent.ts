@@ -3,10 +3,11 @@
  * Uses information retrieval models to gather and synthesize relevant information
  */
 
-import { EnhancedBaseAgent } from '../enhanced-base-agent';
-import type { AgentContext, AgentResponse } from '@/types';
 import { knowledgeScraperService } from '@/services/knowledge-scraper-service';
-import { LogContext, log } from '@/utils/logger';
+import type { AgentContext, AgentResponse } from '@/types';
+import { log,LogContext } from '@/utils/logger';
+
+import { EnhancedBaseAgent } from '../enhanced-base-agent';
 
 export class EnhancedRetrieverAgent extends EnhancedBaseAgent {
   /**

@@ -1,0 +1,1 @@
+BEGIN; CREATE TABLE IF NOT EXISTS public.demo_events (id uuid primary key default gen_random_uuid(), name text not null, created_at timestamptz default now()); ALTER TABLE public.demo_events ENABLE ROW LEVEL SECURITY; COMMIT;

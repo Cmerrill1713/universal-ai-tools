@@ -4,9 +4,10 @@
  * Uses multi-tier LLMs for meta-learning and self-modification
  */
 
-import { LogContext, log } from '@/utils/logger';
-import { multiTierLLM } from './multi-tier-llm-service';
+import { log,LogContext } from '@/utils/logger';
+
 import { dspyFastOptimizer } from './dspy-fast-optimizer';
+import { multiTierLLM } from './multi-tier-llm-service';
 
 export interface EvolutionMetrics {
   agentName: string;

@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import OSLog
 
 struct ChatMessage: Identifiable {
     let id = UUID()
@@ -49,7 +50,7 @@ class ChatViewModel: ObservableObject {
             if let httpResponse = response as? HTTPURLResponse,
                httpResponse.statusCode == 200 {
                 connectionState = .connected
-                print("✅ Connected to Universal AI Tools backend")
+            Logger(subsystem: "com.universalai.companion", category: "network").info("Connected to backend")
 
                 // Add welcome message
                 let welcomeMessage = ChatMessage(
@@ -62,7 +63,7 @@ class ChatViewModel: ObservableObject {
             }
         } catch {
             connectionState = .disconnected
-            print("❌ Failed to connect: \(error)")
+            Logger(subsystem: "com.universalai.companion", category: "network").error("Failed to connect: \(String(describing: error))")
 
             // Add offline message
             let offlineMessage = ChatMessage(
@@ -180,7 +181,10 @@ struct ChatView: View {
 
     var body: some View {
         NavigationView {
-            VStack {
+            ZStack {
+                AppTheme.backgroundGradient.ignoresSafeArea()
+
+                VStack(spacing: 0) {
                 // Connection Status
                 HStack {
                     Circle()
@@ -204,43 +208,54 @@ struct ChatView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
 
-                // Chat Messages
-                ScrollViewReader { scrollProxy in
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(viewModel.messages) { message in
-                                ChatBubble(message: message)
-                                    .id(message.id)
+                    Divider().background(AppTheme.separator)
+
+                    // Chat Messages
+                    ScrollViewReader { scrollProxy in
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(viewModel.messages) { message in
+                                    ChatBubble(message: message)
+                                        .id(message.id)
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
+                        }
+                        .onChange(of: viewModel.messages.count) { _ in
+                            if let lastMessage = viewModel.messages.last {
+                                withAnimation(.easeOut(duration: 0.25)) {
+                                    scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
                             }
                         }
-                        .padding()
                     }
-                    .onChange(of: viewModel.messages.count) { _ in
-                        if let lastMessage = viewModel.messages.last {
-                            withAnimation {
-                                scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
 
-                // Message Input
-                HStack {
-                    TextField("Type your message...", text: $viewModel.messageText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onSubmit {
-                            viewModel.sendMessage()
+                    // Message Input Bar
+                    HStack(spacing: 10) {
+                        HStack {
+                            TextField("Message Universal AI Tools...", text: $viewModel.messageText)
+                                .textInputAutocapitalization(.sentences)
+                                .disableAutocorrection(false)
+                                .onSubmit { viewModel.sendMessage() }
                         }
+                        .padding(12)
+                        .background(AppTheme.inputBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    Button(action: {
-                        viewModel.sendMessage()
-                    }) {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(viewModel.messageText.isEmpty ? .gray : .blue)
+                        Button(action: { viewModel.sendMessage() }) {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .background(viewModel.messageText.isEmpty || viewModel.connectionState != .connected ? Color.gray : Color.blue)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .disabled(viewModel.messageText.isEmpty || viewModel.connectionState != .connected)
                     }
-                    .disabled(viewModel.messageText.isEmpty || viewModel.connectionState != .connected)
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
                 }
-                .padding()
             }
             .navigationTitle("Universal AI Tools")
             .navigationBarTitleDisplayMode(.inline)
@@ -276,38 +291,36 @@ struct ChatBubble: View {
     let message: ChatMessage
 
     var body: some View {
-        HStack {
-            if message.isFromUser {
-                Spacer()
+        HStack(alignment: .bottom) {
+            if message.isFromUser { Spacer() }
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(message.text)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(18)
-
-                    Text(formatTime(message.timestamp))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+            VStack(alignment: message.isFromUser ? .trailing : .leading, spacing: 6) {
+                Group {
+                    if message.isFromUser {
+                        Text(message.text)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .foregroundColor(.white)
+                            .background(AppTheme.chatUserGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
+                    } else {
+                        Text(message.text)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .foregroundColor(.primary)
+                            .background(AppTheme.chatAIBubble)
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
                 }
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.7, alignment: .trailing)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(message.text)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .foregroundColor(.primary)
-                        .cornerRadius(18)
 
-                    Text(formatTime(message.timestamp))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.7, alignment: .leading)
-
-                Spacer()
+                Text(formatTime(message.timestamp))
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
+            .frame(maxWidth: UIScreen.main.bounds.width * 0.74, alignment: message.isFromUser ? .trailing : .leading)
+
+            if !message.isFromUser { Spacer() }
         }
     }
 

@@ -6,16 +6,19 @@
  * Supabase for future use.
  */
 
-import { authenticate } from '../middleware/auth.js';
-import { validateRequest } from '../middleware/express-validator.js';
-import { contextStorageService } from '../services/context-storage-service.js';
-import { ollamaService } from '../services/ollama-service.js';
-import { semanticContextRetrievalService } from '../services/semantic-context-retrieval.js';
-import { LogContext, log } from '../utils/logger.js';
 import type { NextFunction, Request, Response } from 'express';
 import { Router } from 'express';
-import { body } from 'express-validator';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+
+import { zodValidate } from '@/middleware/zod-validate';
+
+import { authenticate } from '../middleware/auth.js';
+import { contextStorageService } from '../services/context-storage-service.js';
+import { dspyService } from '../services/dspy-service.js';
+import { ollamaService } from '../services/ollama-service.js';
+import { semanticContextRetrievalService } from '../services/semantic-context-retrieval.js';
+import { log, LogContext } from '../utils/logger.js';
 
 const router = Router();
 
@@ -29,21 +32,15 @@ router.get('/status', (req, res) => {
  */
 router.post(
   '/chat',
-  // Allow anonymous for quick local testing; otherwise require auth
-  (req: Request, res: Response, next: NextFunction) => {
-    if (!req.headers.authorization && !req.headers['x-api-key']) {
-      (req as any).user = { id: 'anonymous' };
-      return next();
-    }
-    return authenticate(req, res, next);
-  },
-  [
-    body('message').isString().withMessage('message is required'),
-    body('sessionId').optional().isString(),
-    body('projectPath').optional().isString(),
-    body('maxContext').optional().isInt({ min: 1, max: 25 }),
-  ],
-  validateRequest,
+  authenticate,
+  zodValidate(
+    z.object({
+      message: z.string().min(1, 'message is required'),
+      sessionId: z.string().optional(),
+      projectPath: z.string().optional(),
+      maxContext: z.number().int().min(1).max(25).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     const requestId = (req.headers['x-request-id'] as string) || uuidv4();
     const startTime = Date.now();
@@ -89,12 +86,48 @@ router.post(
         { role: 'user' as const, content: message },
       ];
 
-      // Generate response via Ollama service with graceful fallback
-      let assistantText: string;
+      // Optionally use DSPy orchestration when retrieval is thin or complex
+      const shouldUseDSPy = (() => {
+        try {
+          const lowContext = (retrieval.results?.length || 0) < Math.min(maxContext, 3);
+          const complexHint = /plan|orchestrate|optimize|strategy|pipeline|agents?/i.test(message);
+          return dspyService.isReady() && (lowContext || complexHint);
+        } catch {
+          return false;
+        }
+      })();
+
+      // Generate response via DSPy (if indicated) or Ollama, with graceful fallback
+      let assistantText = '' as string;
       try {
-        const llmResponse = await ollamaService.generateResponse(messages);
-        assistantText =
-          llmResponse?.message?.content || "I'm here to help, but I couldn't generate a response.";
+        if (shouldUseDSPy) {
+          try {
+            const dsp = await dspyService.orchestrate({
+              userRequest: message,
+              userId,
+              context: {
+                projectPath,
+                sessionId: sessionId || null,
+                retrievalPreview: retrieval.results?.slice(0, 5) || [],
+              },
+            });
+            const dspText = (dsp?.data?.response as string) || (dsp?.response as string);
+            if (typeof dspText === 'string' && dspText.trim().length > 0) {
+              assistantText = dspText;
+            }
+          } catch (dspErr) {
+            log.warn('DSPy orchestration not available, falling back to Ollama', LogContext.DSPY, {
+              error: dspErr instanceof Error ? dspErr.message : String(dspErr),
+            });
+          }
+        }
+
+        if (!assistantText) {
+          const llmResponse = await ollamaService.generateResponse(messages);
+          assistantText =
+            llmResponse?.message?.content ||
+            "I'm here to help, but I couldn't generate a response.";
+        }
         // Factuality guard
         try {
           const { checkAndCorrectFactuality } = await import('../services/factuality-guard.js');
@@ -109,27 +142,33 @@ router.post(
         log.warn('LLM unavailable, returning fallback response', LogContext.AI, {
           error: llmError instanceof Error ? llmError.message : String(llmError),
         });
-        // Verified facts first
-        try {
-          const { verifiedFactsService } = await import('../services/verified-facts-service.js');
-          const cached = await verifiedFactsService.findFact(message);
-          if (cached) {
-            assistantText = cached.answer;
-          } else {
-            // Web lookup fallback
-            const { webSearchService } = await import('../services/web-search-service.js');
-            const hits = await webSearchService.searchDuckDuckGo(message, 3);
-            if (hits.length > 0) {
-              const cite = hits
-                .map((r: any, i: number) => `(${i + 1}) ${r.title} - ${r.url}`)
-                .join('\n');
-              assistantText = `Here are authoritative sources I found:\n\n${cite}`;
+        // Best-practice test-friendly fallback: deterministic simple message
+        // Optional: enable lookup via ASSISTANT_FALLBACK_LOOKUP=true
+        const enableLookup = String(process.env.ASSISTANT_FALLBACK_LOOKUP || 'false') === 'true';
+        if (enableLookup) {
+          try {
+            const { verifiedFactsService } = await import('../services/verified-facts-service.js');
+            const cached = await verifiedFactsService.findFact(message);
+            if (cached) {
+              assistantText = cached.answer;
             } else {
-              assistantText =
-                'Assistant is initializing. Context has been retrieved and stored. Please try again shortly.';
+              const { webSearchService } = await import('../services/web-search-service.js');
+              const hits = await webSearchService.searchDuckDuckGo(message, 3);
+              if (hits.length > 0) {
+                const cite = hits
+                  .map((r: any, i: number) => `(${i + 1}) ${r.title} - ${r.url}`)
+                  .join('\n');
+                assistantText = `Here are authoritative sources I found:\n\n${cite}`;
+              } else {
+                assistantText =
+                  'Assistant is initializing. Context has been retrieved and stored. Please try again shortly.';
+              }
             }
+          } catch {
+            assistantText =
+              'Assistant is initializing. Context has been retrieved and stored. Please try again shortly.';
           }
-        } catch {
+        } else {
           assistantText =
             'Assistant is initializing. Context has been retrieved and stored. Please try again shortly.';
         }

@@ -1,5 +1,7 @@
 import { load } from 'cheerio';
 
+import { config } from '@/config/environment';
+
 export interface WebResult {
   title: string;
   url: string;
@@ -43,6 +45,9 @@ export class WebSearchService {
   }
 
   async searchDuckDuckGo(query: string, limit = 5): Promise<WebResult[]> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return [];
+    }
     const cached = this.getCached(query, limit);
     if (cached) return cached;
 
@@ -78,6 +83,9 @@ export class WebSearchService {
   }
 
   async searchWikipedia(query: string, limit = 3): Promise<WebResult[]> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return [];
+    }
     const cacheKey = `wiki::${this.getCacheKey(query, limit)}`;
     const cached = this.cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.results;

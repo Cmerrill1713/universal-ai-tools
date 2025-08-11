@@ -1,16 +1,17 @@
+import { createClient } from '@supabase/supabase-js';
+import { EventEmitter } from 'events';
+
 import { config } from '@/config/environment';
 import { a2aMesh } from '@/services/a2a-communication-mesh';
 import { AgentCategory, type AgentConfig, type AgentDefinition } from '@/types';
-import { LogContext, log } from '@/utils/logger';
-import { createClient } from '@supabase/supabase-js';
-import { EventEmitter } from 'events';
-import type { BaseAgent } from './base-agent';
-import type { EnhancedBaseAgent } from './enhanced-base-agent';
+import { log,LogContext } from '@/utils/logger';
 
+import type { BaseAgent } from './base-agent';
 // Enhanced agent imports
 import { EnhancedPlannerAgent } from './cognitive/enhanced-planner-agent';
 import { EnhancedRetrieverAgent } from './cognitive/enhanced-retriever-agent';
 import { EnhancedSynthesizerAgent } from './cognitive/enhanced-synthesizer-agent';
+import type { EnhancedBaseAgent } from './enhanced-base-agent';
 import { EnhancedPersonalAssistantAgent } from './personal/enhanced-personal-assistant-agent';
 import { EnhancedCodeAssistantAgent } from './specialized/enhanced-code-assistant-agent';
 // HRM agent removed for Apple Silicon environment (CUDA/flash_attn not supported)

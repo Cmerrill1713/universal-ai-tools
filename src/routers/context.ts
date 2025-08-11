@@ -12,15 +12,102 @@
  */
 
 import { Router } from 'express';
-import { LogContext, log } from '../utils/logger';
+
+import { autoContextMiddleware } from '../middleware/auto-context-middleware';
+import { contextAnalyticsService } from '../services/context-analytics-service';
 import { contextStorageService } from '../services/context-storage-service';
 import { enhancedContextManager } from '../services/enhanced-context-manager';
 import { semanticContextRetrievalService } from '../services/semantic-context-retrieval';
-import { contextAnalyticsService } from '../services/context-analytics-service';
-import { autoContextMiddleware } from '../middleware/auto-context-middleware';
 import { sendError, sendSuccess } from '../utils/api-response';
+import { log,LogContext } from '../utils/logger';
 
 const router = Router();
+
+/**
+ * POST /api/v1/context/semantic-search
+ * Perform semantic search across all context types
+ *
+ * Placed BEFORE parameterized routes to avoid shadowing by `/:userId`.
+ */
+router.post('/semantic-search', async (req, res) => {
+  try {
+    const { query, userId, maxResults, minRelevanceScore, contextTypes, timeWindow, projectPath } =
+      req.body;
+
+    if (!query || !userId) {
+      return sendError(res, 'VALIDATION_ERROR', 'query and userId are required', 400);
+    }
+
+    log.info('🔍 Performing semantic context search', LogContext.API, {
+      query: query.substring(0, 50),
+      userId: (userId as string).substring(0, 8),
+      maxResults,
+    });
+
+    const startTime = Date.now();
+    const searchResults = await semanticContextRetrievalService.semanticSearch({
+      query,
+      userId,
+      maxResults,
+      minRelevanceScore,
+      contextTypes,
+      timeWindow,
+      projectPath,
+      fuseSimilarResults: true,
+    });
+    const searchTime = Date.now() - startTime;
+
+    // Track analytics
+    contextAnalyticsService.trackRetrievalEvent(
+      searchTime,
+      searchResults.results.length,
+      searchResults.metrics.averageRelevance
+    );
+
+    return sendSuccess(res, {
+      results: searchResults.results,
+      clusters: searchResults.clusters,
+      metrics: searchResults.metrics,
+      searchTime,
+    });
+  } catch (error) {
+    log.error('❌ Semantic search failed', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return sendError(res, 'INTERNAL_ERROR', 'Semantic search failed', 500, error);
+  }
+});
+
+/**
+ * POST /api/v1/context/:userId/backfill-embeddings
+ * Compute and store embeddings for context rows missing vectors (ANN search enablement)
+ * Must be placed BEFORE `/:userId` routes to avoid shadowing.
+ */
+router.post('/:userId/backfill-embeddings', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit } = req.body || {};
+
+    log.info('🧩 Backfilling context embeddings', LogContext.API, {
+      userId,
+      limit: limit || 500,
+    });
+
+    // Use service helper to fill missing vectors
+    const result = await contextStorageService.backfillEmbeddingsForUser(userId, limit || 500);
+
+    return sendSuccess(res, {
+      userId,
+      updated: result.updated,
+      message: 'Embedding backfill completed',
+    });
+  } catch (error) {
+    log.error('❌ Embedding backfill failed', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return sendError(res, 'INTERNAL_ERROR', 'Embedding backfill failed', 500, error);
+  }
+});
 
 /**
  * GET /api/v1/context/:userId
@@ -307,13 +394,8 @@ router.post('/messages', async (req, res) => {
 router.get('/enhanced/:sessionId/:userId', async (req, res) => {
   try {
     const { sessionId, userId } = req.params;
-    const {
-      maxTokens,
-      relevanceThreshold,
-      includeRecentMessages,
-      includeSummaries,
-      timeWindow
-    } = req.query;
+    const { maxTokens, relevanceThreshold, includeRecentMessages, includeSummaries, timeWindow } =
+      req.query;
 
     log.info('🔍 Retrieving enhanced context', LogContext.API, {
       sessionId: sessionId.substring(0, 8),
@@ -356,10 +438,11 @@ router.get('/enhanced/:sessionId/:userId', async (req, res) => {
  */
 router.post('/semantic-search', async (req, res) => {
   try {
-    const { query, userId, maxResults, minRelevanceScore, contextTypes, timeWindow, projectPath } = req.body;
+    const { query, userId, maxResults, minRelevanceScore, contextTypes, timeWindow, projectPath } =
+      req.body;
 
     if (!query || !userId) {
-        return sendError(res, 'VALIDATION_ERROR', 'query and userId are required', 400);
+      return sendError(res, 'VALIDATION_ERROR', 'query and userId are required', 400);
     }
 
     log.info('🔍 Performing semantic context search', LogContext.API, {
@@ -460,9 +543,14 @@ router.get('/health', async (req, res) => {
     const health = await contextAnalyticsService.getSystemHealth();
 
     // Determine overall health status
-    const systems = [health.contextManager, health.semanticRetrieval, health.database, health.middleware];
-    const criticalCount = systems.filter(s => s.status === 'critical').length;
-    const warningCount = systems.filter(s => s.status === 'warning').length;
+    const systems = [
+      health.contextManager,
+      health.semanticRetrieval,
+      health.database,
+      health.middleware,
+    ];
+    const criticalCount = systems.filter((s) => s.status === 'critical').length;
+    const warningCount = systems.filter((s) => s.status === 'warning').length;
 
     let overallStatus: 'healthy' | 'warning' | 'critical';
     if (criticalCount > 0) {
@@ -493,7 +581,13 @@ router.get('/optimization', async (req, res) => {
     const optimization = await contextAnalyticsService.getCostOptimization();
     return sendSuccess(res, { optimization });
   } catch (error) {
-    return sendError(res, 'INTERNAL_ERROR', 'Failed to get optimization recommendations', 500, error);
+    return sendError(
+      res,
+      'INTERNAL_ERROR',
+      'Failed to get optimization recommendations',
+      500,
+      error
+    );
   }
 });
 
@@ -529,14 +623,10 @@ router.post('/compress/:contextId', async (req, res) => {
  */
 router.get('/system-stats', async (req, res) => {
   try {
-    const [
-      contextManagerStats,
-      middlewareStats,
-      cacheStats
-    ] = await Promise.all([
+    const [contextManagerStats, middlewareStats, cacheStats] = await Promise.all([
       enhancedContextManager.getStats(),
       autoContextMiddleware.getStats(),
-      semanticContextRetrievalService.getCacheStats()
+      semanticContextRetrievalService.getCacheStats(),
     ]);
 
     const stats = {

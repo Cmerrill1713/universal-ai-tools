@@ -4,17 +4,18 @@
  * Supports iPhone/Apple Watch proximity-based authentication
  */
 
-import type { NextFunction, Request, Response } from 'express';
-import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import jwt from 'jsonwebtoken';
-import { LogContext, log } from '@/utils/logger';
-import { authenticate } from '@/middleware/auth';
-import { validateRequest } from '@/middleware/express-validator';
-import { body, param, query } from 'express-validator';
 import crypto from 'crypto';
-import { deviceAuthWebSocket } from '@/services/device-auth-websocket';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+
 import { getJwtSecret } from '@/config/environment';
+import { authenticate } from '@/middleware/auth';
+import { zodValidate } from '@/middleware/zod-validate';
+import { deviceAuthWebSocket } from '@/services/device-auth-websocket';
+import { log, LogContext } from '@/utils/logger';
 
 interface RegisteredDevice {
   id: string;
@@ -132,17 +133,16 @@ const router = Router();
  */
 router.post(
   '/register-initial',
-  [
-    body('deviceId').isString().withMessage('Device ID is required'),
-    body('deviceName').isString().withMessage('Device name is required'),
-    body('deviceType')
-      .isIn(['iPhone', 'iPad', 'AppleWatch', 'Mac'])
-      .withMessage('Invalid device type'),
-    body('publicKey').isString().withMessage('Public key is required'),
-    body('userId').optional().isString().withMessage('User ID must be a string'),
-    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
-  ],
-  validateRequest,
+  zodValidate(
+    z.object({
+      deviceId: z.string(),
+      deviceName: z.string(),
+      deviceType: z.enum(['iPhone', 'iPad', 'AppleWatch', 'Mac']),
+      publicKey: z.string(),
+      userId: z.string().optional(),
+      metadata: z.record(z.any()).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const {
@@ -241,16 +241,15 @@ router.post(
 router.post(
   '/register',
   authenticate,
-  [
-    body('deviceId').isString().withMessage('Device ID is required'),
-    body('deviceName').isString().withMessage('Device name is required'),
-    body('deviceType')
-      .isIn(['iPhone', 'iPad', 'AppleWatch', 'Mac'])
-      .withMessage('Invalid device type'),
-    body('publicKey').isString().withMessage('Public key is required'),
-    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
-  ],
-  validateRequest,
+  zodValidate(
+    z.object({
+      deviceId: z.string(),
+      deviceName: z.string(),
+      deviceType: z.enum(['iPhone', 'iPad', 'AppleWatch', 'Mac']),
+      publicKey: z.string(),
+      metadata: z.record(z.any()).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
@@ -391,8 +390,7 @@ router.get('/devices', authenticate, async (req: Request, res: Response) => {
  */
 router.post(
   '/challenge',
-  [body('deviceId').isString().withMessage('Device ID is required')],
-  validateRequest,
+  zodValidate(z.object({ deviceId: z.string() })),
   async (req: Request, res: Response) => {
     try {
       const { deviceId } = req.body;
@@ -497,12 +495,17 @@ router.post(
  */
 router.post(
   '/verify',
-  [
-    body('challengeId').isString().withMessage('Challenge ID is required'),
-    body('signature').isString().withMessage('Signature is required'),
-    body('proximity').optional().isObject().withMessage('Proximity data must be an object'),
-  ],
-  validateRequest,
+  zodValidate(
+    z.object({
+      challengeId: z.string(),
+      signature: z.string(),
+      proximity: z
+        .object({
+          rssi: z.number().int().min(-100).max(0),
+        })
+        .optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const { challengeId, signature, proximity } = req.body;
@@ -637,11 +640,7 @@ router.post(
 router.post(
   '/proximity',
   authenticate,
-  [
-    body('deviceId').isString().withMessage('Device ID is required'),
-    body('rssi').isInt({ min: -100, max: 0 }).withMessage('Invalid RSSI value'),
-  ],
-  validateRequest,
+  zodValidate(z.object({ deviceId: z.string(), rssi: z.number().int().min(-100).max(0) })),
   async (req: Request, res: Response) => {
     try {
       const { deviceId, rssi } = req.body;

@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
+
 import type { ServiceConfig } from '@/types';
+
 import { ports } from './ports';
 
 // Load environment variables
@@ -8,6 +10,10 @@ dotenv.config();
 export const config: ServiceConfig = {
   port: ports.mainServer,
   environment: process.env.NODE_ENV || 'development',
+  // Offline-first feature flags (automated via env)
+  offlineMode: process.env.OFFLINE_MODE === 'true',
+  disableExternalCalls: process.env.DISABLE_EXTERNAL_CALLS === 'true',
+  disableRemoteLLM: process.env.DISABLE_REMOTE_LLM === 'true',
 
   database: {
     url: process.env.DATABASE_URL || '',
@@ -65,10 +71,16 @@ export function validateConfig(): void {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
-  if (config.environment === 'production' && !config.jwt.secret) {
-    console.warn(
-      'JWT_SECRET not found in environment - will be loaded from Supabase Vault at runtime'
-    );
+  // In production, enforce secrets presence either via env or Vault; do not allow shim
+  if (config.environment === 'production') {
+    const missingJwt = !config.jwt.secret;
+    const usingShim = process.env.ALLOW_VAULT_SHIM === 'true';
+    if (usingShim) {
+      throw new Error('Vault shim is not permitted in production. Set ALLOW_VAULT_SHIM=false');
+    }
+    if (missingJwt) {
+      throw new Error('JWT_SECRET missing in production. It must be provided via Vault or env');
+    }
   }
 }
 

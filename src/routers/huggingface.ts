@@ -4,16 +4,16 @@
  */
 
 import { Router } from 'express';
-// Use LM Studio adapter instead of native HuggingFace service
-import { huggingFaceService } from '../services/huggingface-to-lmstudio';
-import { LogContext, log } from '../utils/logger';
-import { createRateLimiter } from '../middleware/rate-limiter-enhanced';
+
 import {
   analysisParametersMiddleware,
   creativeParametersMiddleware,
-  intelligentParametersMiddleware,
   parameterEffectivenessLogger,
 } from '../middleware/intelligent-parameters';
+import { createRateLimiter } from '../middleware/rate-limiter-enhanced';
+// Use LM Studio adapter instead of native HuggingFace service
+import { huggingFaceService } from '../services/huggingface-to-lmstudio';
+import { log,LogContext } from '../utils/logger';
 
 interface HuggingFaceRequest {
   type:

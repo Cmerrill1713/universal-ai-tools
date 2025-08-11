@@ -1,10 +1,12 @@
-import WebSocket from 'ws';
-import { LogContext, log } from '../../utils/logger';
-import { EventEmitter } from 'events';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
+import { EventEmitter } from 'events';
+import net from 'net';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import WebSocket from 'ws';
+
+import { log, LogContext } from '../../utils/logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,7 +45,35 @@ export class DSPyBridge extends EventEmitter {
   }
 
   private async startPythonService(): Promise<void> {
-    const serverPath = path.join(__dirname, 'server.py');
+    // Prefer compiled path; if missing, fall back to source path
+    let serverPath = path.join(__dirname, 'server.py');
+    const srcPath = path.join(process.cwd(), 'src', 'services', 'dspy-orchestrator', 'server.py');
+    try {
+      const { existsSync } = await import('fs');
+      if (!existsSync(serverPath) && existsSync(srcPath)) {
+        serverPath = srcPath;
+      }
+    } catch {}
+
+    // If port already in use, just connect without spawning another process
+    const portInUse = await new Promise<boolean>((resolve) => {
+      const socket = net.createConnection({ host: '127.0.0.1', port: this.port });
+      socket.on('connect', () => {
+        socket.end();
+        resolve(true);
+      });
+      socket.on('error', () => resolve(false));
+      // Safety timeout
+      setTimeout(() => resolve(false), 500);
+    });
+
+    if (portInUse) {
+      log.info('DSPy port already in use, skipping spawn and connecting', LogContext.AI, {
+        port: this.port,
+      });
+      this.connectWebSocket();
+      return;
+    }
 
     log.info('🚀 Starting DSPy Python service', LogContext.AI, {
       serverPath,
@@ -58,7 +88,12 @@ export class DSPyBridge extends EventEmitter {
 
     this.pythonProcess.stdout?.on('data', (data) => {
       const output = data.toString().trim();
-      if (output.includes('DSPy server ready')) {
+      // Connect as soon as server indicates readiness in any form
+      if (
+        output.includes('DSPy server ready') ||
+        output.includes('Starting DSPy server on') ||
+        output.includes('🚀 DSPy ready')
+      ) {
         this.connectWebSocket();
       }
       log.info('DSPy server output', LogContext.AI, { output });
@@ -75,8 +110,9 @@ export class DSPyBridge extends EventEmitter {
       this.pythonProcess = null;
     });
 
-    // Wait for server to start
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Wait for server to start, then attempt an initial connection regardless of stdout
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    this.connectWebSocket();
   }
 
   private connectWebSocket(): void {

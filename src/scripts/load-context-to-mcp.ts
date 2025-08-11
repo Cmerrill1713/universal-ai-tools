@@ -4,10 +4,9 @@
  * Loads Universal AI Tools project knowledge, patterns, and history into the MCP system
  */
 
+
 import { mcpIntegrationService } from '../services/mcp-integration-service.js';
-import { LogContext, log } from '../utils/logger.js';
-import fs from 'fs/promises';
-import path from 'path';
+import { log,LogContext } from '../utils/logger.js';
 
 interface ContextEntry {
   content: string;

@@ -12,18 +12,17 @@
  * - Resource management and queuing
  */
 
-import { EventEmitter } from 'events';
+import { createClient,type SupabaseClient } from '@supabase/supabase-js';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { EventEmitter } from 'events';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs';
 import { basename, dirname, extname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { LogContext, log } from '../utils/logger';
-import { CircuitBreaker, CircuitBreakerRegistry } from '../utils/circuit-breaker';
-import { mlxService } from './mlx-service';
-import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
 import { THREE, TWO } from '../utils/constants';
+import { log,LogContext } from '../utils/logger';
 
 // ============================================================================
 // Type Definitions

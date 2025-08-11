@@ -14,10 +14,11 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
+
 import { contextInjectionService } from '../services/context-injection-service';
 import { enhancedContextManager } from '../services/enhanced-context-manager';
 import { semanticContextRetrievalService } from '../services/semantic-context-retrieval';
-import { LogContext, log } from '../utils/logger';
+import { log,LogContext } from '../utils/logger';
 
 interface ContextMiddlewareOptions {
   enableAutoTracking?: boolean;

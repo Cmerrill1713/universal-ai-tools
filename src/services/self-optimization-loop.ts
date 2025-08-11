@@ -3,9 +3,10 @@
  * Continuously monitors and optimizes system performance
  */
 
-import type { FSWatcher} from 'fs';
+import type { FSWatcher } from 'fs';
 import { watch } from 'fs';
-import { LogContext, log } from '../utils/logger';
+
+import { log, LogContext } from '../utils/logger';
 
 interface OptimizationMetrics {
   cpuUsage: number;
@@ -257,7 +258,7 @@ class SelfOptimizationLoop {
     const cpuUsage =
       os.cpus().reduce((acc, cpu) => {
         const total = Object.values(cpu.times).reduce((sum, time) => sum + time, 0);
-        const {idle} = cpu.times;
+        const { idle } = cpu.times;
         return acc + ((total - idle) / total) * 100;
       }, 0) / os.cpus().length;
 
@@ -344,7 +345,7 @@ class SelfOptimizationLoop {
    */
   private generateOptimizationActions(
     issues: string[],
-    metrics: OptimizationMetrics
+    _metrics: OptimizationMetrics
   ): OptimizationAction[] {
     const actions: OptimizationAction[] = [];
 

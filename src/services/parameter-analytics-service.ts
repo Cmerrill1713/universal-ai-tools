@@ -3,12 +3,13 @@
  * Tracks parameter effectiveness and provides real-time analytics for optimization
  */
 
-import { LogContext, log } from '../utils/logger';
 import { createClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
+import { THREE, TWO } from '../utils/constants';
+import { log,LogContext } from '../utils/logger';
 import type { TaskParameters } from './intelligent-parameter-service';
 import { TaskType } from './intelligent-parameter-service';
-import { THREE, TWO } from '../utils/constants';
 
 export interface ParameterExecution {
   id: string;

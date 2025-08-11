@@ -4,11 +4,13 @@
  * Replaces mock agents with actual AI capabilities
  */
 
-import { config } from '../config/environment.js';
-import { LogContext, log } from '../utils/logger.js';
+import { CircuitBreakerRegistry, createCircuitBreaker } from '@/utils/circuit-breaker';
 import { isAllowedHost, normalizeHttpUrl } from '@/utils/url-security';
-const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
+
+import { config } from '../config/environment.js';
 import { ModelConfig } from '../config/models.js';
+import { log, LogContext } from '../utils/logger.js';
+const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
 
 export interface OllamaMessage {
   role: 'system' | 'user' | 'assistant';
@@ -45,6 +47,14 @@ export class OllamaService {
   private baseUrl: string;
   private defaultModel: string = ModelConfig.text.small;
   private isAvailable = false;
+  private breaker = createCircuitBreaker('ollama', {
+    failureThreshold: 3,
+    successThreshold: 2,
+    timeout: 15000,
+    volumeThreshold: 5,
+    errorThresholdPercentage: 50,
+    rollingWindow: 30000,
+  });
 
   constructor() {
     // Normalize and validate base URL
@@ -63,6 +73,7 @@ export class OllamaService {
       this.baseUrl = 'http://localhost:11434';
     }
     this.checkAvailability();
+    CircuitBreakerRegistry.register('ollama', this.breaker);
   }
 
   private async checkAvailability(): Promise<void> {
@@ -126,18 +137,25 @@ export class OllamaService {
       messages,
       stream: options?.stream || false,
       options: {
-        temperature: options?.temperature || 0.7,
-        num_predict: options?.max_tokens || 500,
+        // Tuned defaults for speed on small tasks
+        temperature: options?.temperature ?? 0.1,
+        num_predict: options?.max_tokens ?? 128,
+        top_k: 20,
+        top_p: 0.9,
+        repeat_penalty: 1.0,
+        keep_alive: '5m',
       },
     };
 
     try {
       const startTime = Date.now();
-      const response = await fetchApi(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await this.breaker.execute(async () =>
+        fetchApi(`${this.baseUrl}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        })
+      );
 
       if (!response.ok) {
         throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
@@ -194,19 +212,25 @@ export class OllamaService {
       prompt: params.prompt,
       stream: false,
       options: {
-        temperature: params.options?.temperature || 0.7,
-        num_predict: params.options?.num_predict || 500,
+        temperature: params.options?.temperature ?? 0.1,
+        num_predict: params.options?.num_predict ?? 128,
+        top_k: 20,
+        top_p: 0.9,
+        repeat_penalty: 1.0,
+        keep_alive: '5m',
       },
       ...(params.options?.format && { format: params.options.format }),
     };
 
     try {
       const startTime = Date.now();
-      const response = await fetchApi(`${this.baseUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await this.breaker.execute(async () =>
+        fetchApi(`${this.baseUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        })
+      );
 
       if (!response.ok) {
         throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
@@ -250,11 +274,13 @@ export class OllamaService {
     };
 
     try {
-      const response = await fetchApi(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await this.breaker.execute(async () =>
+        fetchApi(`${this.baseUrl}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        })
+      );
 
       if (!response.ok) {
         throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
@@ -302,7 +328,7 @@ export class OllamaService {
 
   public async getAvailableModels(): Promise<string[]> {
     try {
-      const response = await fetchApi(`${this.baseUrl}/api/tags`);
+      const response = await this.breaker.execute(async () => fetchApi(`${this.baseUrl}/api/tags`));
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -329,11 +355,13 @@ export class OllamaService {
     try {
       log.info(`🔄 Pulling Ollama model: ${modelName}`, LogContext.AI);
 
-      const response = await fetchApi(`${this.baseUrl}/api/pull`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: modelName }),
-      });
+      const response = await this.breaker.execute(async () =>
+        fetchApi(`${this.baseUrl}/api/pull`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: modelName }),
+        })
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to pull model: ${response.status}`);

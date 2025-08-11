@@ -24,9 +24,9 @@ struct NativeControlBar: View {
 
             // View mode indicator
             HStack(spacing: 4) {
-                Image(systemName: "rectangle.split.2x1")
+                Image(systemName: "rectangle")
                     .font(.caption)
-                Text("Hybrid")
+                Text("Native")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -45,6 +45,8 @@ struct NativeControlBar: View {
             chatActions
         case .agents:
             agentActions
+        case .tools:
+            dashboardActions
         case .mlx:
             mlxActions
         case .vision:
@@ -59,6 +61,8 @@ struct NativeControlBar: View {
             parameterActions
         case .knowledge:
             knowledgeActions
+        case .debugging:
+            debuggingActions
         }
     }
 
@@ -197,6 +201,20 @@ struct NativeControlBar: View {
 
             Button("Search") {
                 // Search knowledge base
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private var debuggingActions: some View {
+        HStack(spacing: 8) {
+            Button("Patterns") {
+                appState.selectedSidebarItem = .debugging
+            }
+            .buttonStyle(.bordered)
+
+            Button("Resources") {
+                appState.selectedSidebarItem = .debugging
             }
             .buttonStyle(.bordered)
         }

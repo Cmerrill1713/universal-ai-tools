@@ -3,8 +3,8 @@
  * Comprehensive path validation and security functions to prevent path traversal attacks
  */
 
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
 
 export interface PathValidationOptions {
   /** Maximum allowed path length */

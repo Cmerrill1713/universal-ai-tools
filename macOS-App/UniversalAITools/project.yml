@@ -1,0 +1,60 @@
+name: UniversalAITools
+options:
+  minimumXcodeGenVersion: 2.38.0
+  xcodeVersion: '15.0'
+  deploymentTarget:
+    macOS: '13.0'
+packages:
+  MCP:
+    path: ../../mcp-swift-sdk
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.universalai.tools
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_STYLE: Manual
+    DEVELOPMENT_TEAM: ''
+    INFOPLIST_FILE: macOS-App/UniversalAITools/Info.plist
+    SWIFT_VERSION: 5.9
+    ENABLE_HARDENED_RUNTIME: NO
+    OTHER_SWIFT_FLAGS: '-warnings-as-errors'
+targets:
+  UniversalAITools:
+    type: application
+    platform: macOS
+    deploymentTarget: '13.0'
+    sources:
+      - path: Models
+      - path: Services
+      - path: Utils
+      - path: Views
+        excludes:
+          - ModernSidebar.swift
+          - ModernSidebarComponents.swift
+          - PopupModal.swift
+      - path: UniversalAIToolsApp.swift
+    excludes:
+      - .derived/**
+      - SourcePackages/**
+      - Tests/**
+    dependencies:
+      - package: MCP
+    settings:
+      base:
+        PRODUCT_NAME: Universal AI Tools
+        INFOPLIST_FILE: Info.plist
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        PRODUCT_BUNDLE_IDENTIFIER: com.universalai.tools
+        DEVELOPMENT_TEAM: ''
+        SWIFT_VERSION: 5.9
+        ENABLE_HARDENED_RUNTIME: NO
+schemes:
+  UniversalAITools:
+    build:
+      targets:
+        UniversalAITools: all
+    run:
+      config: Debug
+    test:
+      config: Debug

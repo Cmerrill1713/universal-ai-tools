@@ -4,6 +4,10 @@
  * Replaces traditional orchestrators with probabilistic, learning-based approach
  */
 
+import { v4 as uuidv4 } from 'uuid';
+
+import AgentRegistry from '@/agents/agent-registry';
+import { EnhancedBaseAgent } from '@/agents/enhanced-base-agent';
 import type {
   ABMCTSConfig,
   ABMCTSExecutionOptions,
@@ -13,15 +17,13 @@ import type {
   AgentContext,
   AgentResponse,
 } from '@/types/ab-mcts';
-import { abMCTSService } from './ab-mcts-service';
-import { EnhancedBaseAgent } from '@/agents/enhanced-base-agent';
-import AgentRegistry from '@/agents/agent-registry';
-import { multiTierLLM } from './multi-tier-llm-service';
 import type { CircuitBreaker } from '@/utils/circuit-breaker';
 import { createCircuitBreaker } from '@/utils/circuit-breaker';
-import { LogContext, log } from '@/utils/logger';
-import { v4 as uuidv4 } from 'uuid';
 import { TWO } from '@/utils/constants';
+import { log, LogContext } from '@/utils/logger';
+
+import { abMCTSService } from './ab-mcts-service';
+import { multiTierLLM } from './multi-tier-llm-service';
 
 export interface OrchestratorConfig extends Partial<ABMCTSConfig> {
   enableLearning: boolean;
@@ -52,7 +54,7 @@ export interface OrchestratorResult {
  */
 export class ABMCTSOrchestrator {
   private config: OrchestratorConfig;
-  private circuitBreaker: CircuitBreaker<OrchestratorResult>;
+  private circuitBreaker: CircuitBreaker;
   private activeSearches: Map<string, ABMCTSSearchResult> = new Map();
   private executionCache: Map<string, OrchestratorResult> = new Map();
   private agentRegistry: AgentRegistry;

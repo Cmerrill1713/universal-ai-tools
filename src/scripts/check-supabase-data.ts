@@ -5,7 +5,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '../utils/logger.js';
+
+import { log,LogContext } from '../utils/logger.js';
 
 async function checkSupabaseData(): Promise<void> {
   log.info('🔍 Checking Supabase data...', LogContext.MCP);

@@ -3,8 +3,8 @@
  * Automatically adjusts context length, prompts, and temperature based on task type
  */
 
-import { LogContext, log } from '../utils/logger';
 import { TWO } from '../utils/constants';
+import { log,LogContext } from '../utils/logger';
 
 export interface TaskParameters {
   contextLength: number;
@@ -748,7 +748,7 @@ export class IntelligentParameterService {
       userInput.includes('complex') ||
       userInput.includes('detailed')
     )
-      complexity = 'complex';
+      {complexity = 'complex';}
 
     // Determine expected output length
     let expectedOutputLength: 'short' | 'medium' | 'long' = 'medium';

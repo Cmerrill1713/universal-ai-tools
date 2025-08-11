@@ -12,9 +12,10 @@
  * - Topic-based filtering and clustering
  */
 
-import { type SupabaseClient, createClient } from '@supabase/supabase-js';
+import { createClient,type SupabaseClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
-import { LogContext, log } from '../utils/logger';
+import { log,LogContext } from '../utils/logger';
 import { contextStorageService } from './context-storage-service';
 
 interface SemanticSearchOptions {
@@ -88,7 +89,7 @@ export class SemanticContextRetrievalService {
   private embeddingCache = new Map<string, { embedding: number[]; expiry: number }>();
   private readonly EMBEDDING_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
   private readonly DEFAULT_EMBEDDING_MODEL = 'all-minilm:latest';
-  private readonly SIMILARITY_THRESHOLD = 0.3;
+  private readonly similarityThreshold: number;
   private readonly MAX_CACHE_SIZE = 1000;
 
   // Scoring weights
@@ -101,9 +102,12 @@ export class SemanticContextRetrievalService {
 
   constructor() {
     this.supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+    // Allow env override for minimum similarity (applied to combined score threshold)
+    const envMin = Number(process.env.CTX_MIN_SIMILARITY || '0.25');
+    this.similarityThreshold = Number.isFinite(envMin) ? envMin : 0.25;
     log.info('🔍 Semantic Context Retrieval Service initialized', LogContext.CONTEXT_INJECTION, {
       embeddingModel: this.DEFAULT_EMBEDDING_MODEL,
-      similarityThreshold: this.SIMILARITY_THRESHOLD,
+      similarityThreshold: this.similarityThreshold,
       cacheSize: this.MAX_CACHE_SIZE,
     });
   }
@@ -155,14 +159,48 @@ export class SemanticContextRetrievalService {
       ];
 
       // Filter by minimum relevance
-      const minScore = options.minRelevanceScore || this.SIMILARITY_THRESHOLD;
+      const minScore = options.minRelevanceScore || this.similarityThreshold;
       const filteredResults = allResults.filter((r) => r.combinedScore >= minScore);
 
-      // Sort by combined score and limit results
+      // Sort by combined score and limit results (pre-rerank)
       const maxResults = options.maxResults || 20;
-      const topResults = filteredResults
+      const prelimTop = filteredResults
         .sort((a, b) => b.combinedScore - a.combinedScore)
-        .slice(0, maxResults);
+        .slice(0, Math.max(maxResults * 2, 20));
+
+      // Optional smart rerank when keys are present; otherwise skip silently
+      let topResults = prelimTop;
+      try {
+        const hasHf = !!process.env.HUGGINGFACE_API_KEY;
+        const hasOpenAI = !!process.env.OPENAI_API_KEY;
+        if (prelimTop.length > 0 && (hasHf || hasOpenAI)) {
+          const { rerankingService } = await import('./reranking-service');
+          const reranked = await rerankingService.rerank(
+            options.query,
+            prelimTop.map((r) => ({
+              id: r.id,
+              content: r.content,
+              metadata: r.metadata,
+              biEncoderScore: r.combinedScore,
+            })),
+             { topK: maxResults, threshold: options.minRelevanceScore || this.similarityThreshold }
+          );
+          // Map back to SemanticResult ordering
+          const byId = new Map(prelimTop.map((r) => [r.id, r] as const));
+          topResults = reranked
+            .map((rr) => byId.get(rr.id))
+            .filter((x): x is SemanticResult => !!x);
+        }
+      } catch (e) {
+        log.warn(
+          '⚠️ Smart rerank unavailable, using bi-encoder ranking',
+          LogContext.CONTEXT_INJECTION,
+          {
+            error: e instanceof Error ? e.message : String(e),
+          }
+        );
+        topResults = prelimTop.slice(0, maxResults);
+      }
 
       // Optionally fuse similar results
       const finalResults = options.fuseSimilarResults
@@ -219,7 +257,93 @@ export class SemanticContextRetrievalService {
     queryEmbedding: number[]
   ): Promise<SemanticResult[]> {
     try {
-      // Get recent stored context
+      // Prefer ANN search via Supabase RPC when available
+      try {
+        const { data, error } = await this.supabase.rpc('search_context_storage_by_embedding', {
+          query_embedding: queryEmbedding,
+          in_user_id: options.userId,
+          in_category: null,
+          in_limit: 100,
+        } as any);
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const annResults: SemanticResult[] = [];
+          for (const row of data) {
+            // Optional time window filter
+            if (options.timeWindow && row.created_at) {
+              const t = new Date(row.created_at).getTime();
+              const cutoff = Date.now() - options.timeWindow * 60 * 60 * 1000;
+              if (t < cutoff) continue;
+            }
+
+            const content: string = row.content || '';
+            if (content.length < 10) continue;
+
+            const semanticScore: number =
+              typeof row.similarity === 'number'
+                ? row.similarity
+                : Math.max(0, Math.min(1, row.score || 0));
+
+            if (semanticScore < this.similarityThreshold) continue;
+
+            const temporalScore = this.calculateTemporalScore(
+              new Date(row.created_at || Date.now())
+            );
+            const contextScore = this.calculateContextualScore(row, options);
+            const importanceScore = this.calculateImportanceScore(
+              content,
+              row.category || 'conversation'
+            );
+
+            const combinedScore = this.combineScores({
+              semantic: semanticScore,
+              temporal: temporalScore,
+              contextual: contextScore,
+              importance: importanceScore,
+            });
+
+            annResults.push({
+              id: row.id,
+              content,
+              contentType: row.category || 'conversation',
+              source: row.source || 'context_storage',
+              relevanceScore: semanticScore,
+              semanticScore,
+              temporalScore,
+              contextScore,
+              combinedScore,
+              embedding: undefined,
+              metadata: {
+                timestamp: new Date(row.created_at || Date.now()),
+                userId: row.user_id || options.userId,
+                projectPath: row.project_path || options.projectPath,
+                tags: this.extractTags(content),
+                topics: this.extractTopics(content),
+                wordCount: content.split(' ').length,
+                tokenCount: Math.ceil(content.length / 4),
+              },
+            });
+          }
+
+          // If ANN returned results, use them
+          if (annResults.length > 0) {
+            log.info('🧠 Using ANN memory retrieval (Supabase)', LogContext.CONTEXT_INJECTION, {
+              results: annResults.length,
+            });
+            return annResults;
+          }
+        }
+      } catch (e) {
+        log.warn(
+          '⚠️ ANN RPC unavailable, falling back to client-side search',
+          LogContext.CONTEXT_INJECTION,
+          {
+            error: e instanceof Error ? e.message : String(e),
+          }
+        );
+      }
+
+      // Fallback: fetch recent context and compute locally
       const storedContext = await contextStorageService.getContext(
         options.userId,
         undefined,
@@ -228,30 +352,23 @@ export class SemanticContextRetrievalService {
       );
 
       const results: SemanticResult[] = [];
-
       for (const context of storedContext) {
-        // Skip if outside time window
         if (options.timeWindow) {
           const contextTime = new Date(context.created_at).getTime();
           const cutoff = Date.now() - options.timeWindow * 60 * 60 * 1000;
           if (contextTime < cutoff) continue;
         }
 
-        // Get or compute embedding for context
         const contextEmbedding = await this.getContentEmbedding(context.content);
         if (!contextEmbedding) continue;
 
-        // Calculate semantic similarity
         const semanticScore = this.cosineSimilarity(queryEmbedding, contextEmbedding);
+        if (semanticScore < this.similarityThreshold) continue;
 
-        if (semanticScore < this.SIMILARITY_THRESHOLD) continue;
-
-        // Calculate other scores
         const temporalScore = this.calculateTemporalScore(new Date(context.created_at));
         const contextScore = this.calculateContextualScore(context, options);
         const importanceScore = this.calculateImportanceScore(context.content, context.category);
 
-        // Combine scores
         const combinedScore = this.combineScores({
           semantic: semanticScore,
           temporal: temporalScore,
@@ -299,24 +416,17 @@ export class SemanticContextRetrievalService {
     queryEmbedding: number[]
   ): Promise<SemanticResult[]> {
     try {
-      // Get conversation messages from ai_memories table
-      const { data: conversations, error } = await this.supabase
-        .from('ai_memories')
-        .select('*')
-        .eq('memory_type', 'conversation')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) {
-        log.warn('⚠️ Conversation search query failed', LogContext.CONTEXT_INJECTION, {
-          error: error.message,
-        });
-        return [];
-      }
+      // Prefer context_storage category 'conversation' for conversation history
+      const stored = await contextStorageService.getContext(
+        options.userId,
+        'conversation',
+        options.projectPath,
+        100
+      );
 
       const results: SemanticResult[] = [];
 
-      for (const conv of conversations || []) {
+      for (const conv of stored || []) {
         // Filter by time window if specified
         if (options.timeWindow) {
           const convTime = new Date(conv.created_at).getTime();
@@ -333,14 +443,11 @@ export class SemanticContextRetrievalService {
 
         // Calculate similarity
         const semanticScore = this.cosineSimilarity(queryEmbedding, contentEmbedding);
-        if (semanticScore < this.SIMILARITY_THRESHOLD) continue;
+        if (semanticScore < this.similarityThreshold) continue;
 
         // Calculate other scores
         const temporalScore = this.calculateTemporalScore(new Date(conv.created_at));
-        const contextScore = this.calculateContextualScoreFromMetadata(
-          conv.metadata || {},
-          options
-        );
+        const contextScore = this.calculateContextualScore(conv, options);
         const importanceScore = this.calculateImportanceScore(content, 'conversation');
 
         const combinedScore = this.combineScores({
@@ -354,7 +461,7 @@ export class SemanticContextRetrievalService {
           id: conv.id,
           content,
           contentType: 'conversation',
-          source: 'ai_memories',
+          source: conv.source,
           relevanceScore: semanticScore,
           semanticScore,
           temporalScore,
@@ -363,8 +470,8 @@ export class SemanticContextRetrievalService {
           embedding: options.includeEmbeddings ? contentEmbedding : undefined,
           metadata: {
             timestamp: new Date(conv.created_at),
-            userId: options.userId,
-            sessionId: conv.metadata?.sessionId,
+            userId: conv.userId,
+            projectPath: conv.projectPath || undefined,
             tags: this.extractTags(content),
             topics: this.extractTopics(content),
             wordCount: content.split(' ').length,
@@ -394,7 +501,7 @@ export class SemanticContextRetrievalService {
       const { data: knowledge, error } = await this.supabase
         .from('knowledge_sources')
         .select('*')
-        .textSearch('content', options.query)
+        .textSearch('content', options.query, { type: 'websearch' })
         .limit(30);
 
       if (error) {
@@ -414,7 +521,7 @@ export class SemanticContextRetrievalService {
 
         // Calculate similarity
         const semanticScore = this.cosineSimilarity(queryEmbedding, contentEmbedding);
-        if (semanticScore < this.SIMILARITY_THRESHOLD) continue;
+        if (semanticScore < this.similarityThreshold) continue;
 
         // Calculate other scores
         const temporalScore = this.calculateTemporalScore(new Date(item.created_at || Date.now()));
@@ -489,7 +596,7 @@ export class SemanticContextRetrievalService {
 
         // Calculate similarity
         const semanticScore = this.cosineSimilarity(queryEmbedding, contentEmbedding);
-        if (semanticScore < this.SIMILARITY_THRESHOLD) continue;
+        if (semanticScore < this.similarityThreshold) continue;
 
         // Calculate other scores
         const temporalScore = this.calculateTemporalScore(new Date(summary.created_at));
@@ -743,6 +850,8 @@ export class SemanticContextRetrievalService {
       error: 0.9,
       summary: 0.6,
       knowledge: 0.8,
+      project_info: 0.75,
+      verified_answer: 0.9,
     };
 
     score = typeScores[type] || 0.5;

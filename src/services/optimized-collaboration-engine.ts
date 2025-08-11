@@ -4,8 +4,10 @@
  * for improved agent collaboration and self-healing
  */
 
-import { LogContext, log } from '@/utils/logger';
 import { EventEmitter } from 'events';
+
+import { log,LogContext } from '@/utils/logger';
+
 import { a2aMesh } from './a2a-communication-mesh';
 import { healthMonitor } from './health-monitor-service';
 

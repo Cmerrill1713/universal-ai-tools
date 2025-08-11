@@ -31,13 +31,13 @@ function sniffMagicBytes(buf: Buffer): string | null {
     buf[6] === 0x1a &&
     buf[7] === 0x0a
   )
-    return 'image/png';
+    {return 'image/png';}
   // GIF
   if (
     (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38 && buf[4] === 0x39 && buf[5] === 0x61) ||
     (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38 && buf[4] === 0x37 && buf[5] === 0x61)
   )
-    return 'image/gif';
+    {return 'image/gif';}
   // WebP (RIFF....WEBP)
   if (
     buf[0] === 0x52 &&
@@ -49,7 +49,7 @@ function sniffMagicBytes(buf: Buffer): string | null {
     buf[10] === 0x42 &&
     buf[11] === 0x50
   )
-    return 'image/webp';
+    {return 'image/webp';}
   return null;
 }
 
@@ -78,7 +78,7 @@ export function uploadGuard(options?: { maxSize?: number }) {
       }
 
       return next();
-    } catch (e) {
+    } catch {
       return res.status(400).json({ success: false, error: 'Invalid upload' });
     }
   };

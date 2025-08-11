@@ -5,9 +5,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
 import { THREE, TWO } from '../utils/constants';
-import { LogContext, log } from '../utils/logger';
+import { log,LogContext } from '../utils/logger';
 import { autonomousActionLoopService } from './autonomous-action-loop-service';
 import type { TaskParameters } from './intelligent-parameter-service';
 import { TaskType } from './intelligent-parameter-service';

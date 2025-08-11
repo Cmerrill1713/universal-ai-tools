@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+
 import { VisionBrowserDebugger } from '../services/vision-browser-debugger';
 
 const router = express.Router();

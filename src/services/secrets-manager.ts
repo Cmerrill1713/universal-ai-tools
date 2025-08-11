@@ -4,8 +4,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
-import { LogContext, log } from '../utils/logger';
+import { log, LogContext } from '../utils/logger';
 
 interface SecretConfig {
   name: string;
@@ -15,22 +16,20 @@ interface SecretConfig {
   expires_at?: Date;
 }
 
-interface ServiceCredentials {
-  [key: string]: {
-    api_key?: string;
-    base_url?: string;
-    auth_type?: string;
-    auth_header?: string;
-    auth_prefix?: string;
-    rate_limit?: unknown;
-    metadata?: unknown;
-  };
-}
+type ServiceCredential = {
+  api_key?: string;
+  base_url?: string;
+  auth_type?: string;
+  auth_header?: string;
+  auth_prefix?: string;
+  rate_limit?: unknown;
+  metadata?: unknown;
+};
 
 export class SecretsManager {
   private static instance: SecretsManager;
   private supabase: unknown;
-  private cachedCredentials: ServiceCredentials = {};
+  private cachedCredentials: Map<string, ServiceCredential> = new Map();
   private cacheExpiry: number = 5 * 60 * 1000; // 5 minutes
   private lastCacheUpdate = 0;
   private initializing = false;
@@ -168,10 +167,10 @@ export class SecretsManager {
             key_name: `${config.service}_key`,
             description: config.description,
             updated_at: new Date().toISOString(),
-                      },
-            {
-              onConflict: 'key_name', // Use the actual unique constraint
-            }
+          },
+          {
+            onConflict: 'key_name', // Use the actual unique constraint
+          }
         );
 
         if (error) {
@@ -184,7 +183,10 @@ export class SecretsManager {
 
       return true;
     } catch (error) {
-      log.error(`❌ Failed to store secret: ${config.name}`, LogContext.SYSTEM, {
+      const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+      const level = isDev ? 'warn' : 'error';
+      const msg = `${isDev ? '⚠️' : '❌'} Failed to store secret: ${config.name}`;
+      (log as any)[level](msg, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return false;
@@ -206,9 +208,18 @@ export class SecretsManager {
 
       return data || null;
     } catch (error) {
-      log.error(`❌ Failed to get secret: ${name}`, LogContext.SYSTEM, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      // Avoid noisy logs in development when Vault isn't configured yet
+      const isDev = process.env.NODE_ENV !== 'production';
+      const message = `${isDev ? '⚠️' : '❌'} Failed to get secret: ${name}`;
+      if (isDev) {
+        log.warn(message, LogContext.SYSTEM, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      } else {
+        log.error(message, LogContext.SYSTEM, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       return null;
     }
   }
@@ -252,7 +263,7 @@ export class SecretsManager {
 
       // Update cache
       if (data) {
-        this.cachedCredentials[service] = data;
+        this.cachedCredentials.set(service, data);
         this.lastCacheUpdate = Date.now();
       }
 
@@ -278,16 +289,23 @@ export class SecretsManager {
 
       if (error) throw error;
 
-      if (data) {
-        this.cachedCredentials = data;
+      if (data && typeof data === 'object') {
+        this.cachedCredentials.clear();
+        const entries = Object.entries(data as Record<string, ServiceCredential>);
+        for (const [svc, cfg] of entries) {
+          this.cachedCredentials.set(String(svc), cfg);
+        }
         this.lastCacheUpdate = Date.now();
 
         log.info('✅ Loaded all service credentials to cache', LogContext.SYSTEM, {
-          services: Object.keys(data).length,
+          services: this.cachedCredentials.size,
         });
       }
     } catch (error) {
-      log.error('❌ Failed to load all credentials', LogContext.SYSTEM, {
+      const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+      const level = isDev ? 'warn' : 'error';
+      const msg = `${isDev ? '⚠️' : '❌'} Failed to load all credentials`;
+      (log as any)[level](msg, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -300,7 +318,7 @@ export class SecretsManager {
     if (!this.isCacheValid()) {
       return null;
     }
-    return this.cachedCredentials[service];
+    return this.cachedCredentials.get(service) || null;
   }
 
   /**
@@ -308,6 +326,42 @@ export class SecretsManager {
    */
   private isCacheValid(): boolean {
     return Date.now() - this.lastCacheUpdate < this.cacheExpiry;
+  }
+
+  /**
+   * Read environment variables via a fixed whitelist to avoid dynamic property access.
+   */
+  private readEnvSafe(name: string): string | undefined {
+    switch (name) {
+      case 'OPENAI_API_KEY':
+        return process.env.OPENAI_API_KEY;
+      case 'ANTHROPIC_API_KEY':
+        return process.env.ANTHROPIC_API_KEY;
+      case 'GOOGLE_AI_API_KEY':
+        return process.env.GOOGLE_AI_API_KEY;
+      case 'HUGGINGFACE_API_KEY':
+        return process.env.HUGGINGFACE_API_KEY;
+      case 'SERPER_API_KEY':
+        return process.env.SERPER_API_KEY;
+      case 'SERPAPI_API_KEY':
+        return process.env.SERPAPI_API_KEY;
+      case 'BROWSERLESS_API_KEY':
+        return process.env.BROWSERLESS_API_KEY;
+      case 'ELEVENLABS_API_KEY':
+        return process.env.ELEVENLABS_API_KEY;
+      case 'REPLICATE_API_TOKEN':
+        return process.env.REPLICATE_API_TOKEN;
+      case 'PINECONE_API_KEY':
+        return process.env.PINECONE_API_KEY;
+      case 'REDIS_PASSWORD':
+        return process.env.REDIS_PASSWORD;
+      case 'JWT_SECRET':
+        return process.env.JWT_SECRET;
+      case 'ENCRYPTION_KEY':
+        return process.env.ENCRYPTION_KEY;
+      default:
+        return undefined;
+    }
   }
 
   /**
@@ -386,13 +440,14 @@ export class SecretsManager {
     }
 
     // Fallback to environment variable
-    const envKey = process.env[envVar];
+    const envKey = this.readEnvSafe(envVar);
     if (envKey && envKey !== `your-${service}-key-here`) {
       log.warn(`⚠️ Using environment variable for ${service} (not in Vault)`, LogContext.SYSTEM);
 
       // Try to store it in Vault for next time
+      const sanitizeKey = (s: string) => s.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 50);
       await this.storeSecret({
-        name: `${service}_key`,
+        name: `${sanitizeKey(service)}_key`,
         value: envKey,
         description: `API key for ${service} (migrated from env)`,
         service,

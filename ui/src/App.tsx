@@ -1,21 +1,21 @@
-import React from 'react'
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
-import { Provider, defaultTheme } from '@adobe/react-spectrum'
+import { defaultTheme, Provider } from '@adobe/react-spectrum'
+import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom'
+import ErrorPage from './components/ErrorPage'
 import Navigation from './components/Navigation/Navigation'
-import Dashboard from './pages/Dashboard'
+import AgentActivityMonitorDemo from './pages/AgentActivityMonitorDemo'
+import AgentPerformanceDemo from './pages/AgentPerformanceDemo'
+import Agents from './pages/Agents'
+import ApiKeysManager from './pages/ApiKeysManager'
 import ChatEnhanced from './pages/ChatEnhanced'
 import ChatModern from './pages/ChatModern'
-import VisionStudio from './pages/VisionStudio'
-import MLXTraining from './pages/MLXTraining'
-import OrchestrationDashboard from './pages/OrchestrationDashboard'
-import MonitoringDashboard from './pages/MonitoringDashboard'
-import ModelsManager from './pages/ModelsManager'
-import Agents from './pages/Agents'
+import Dashboard from './pages/Dashboard'
 import Memory from './pages/Memory'
-import AgentPerformanceDemo from './pages/AgentPerformanceDemo'
-import AgentActivityMonitorDemo from './pages/AgentActivityMonitorDemo'
+import MLXTraining from './pages/MLXTraining'
+import ModelsManager from './pages/ModelsManager'
+import MonitoringDashboard from './pages/MonitoringDashboard'
+import OrchestrationDashboard from './pages/OrchestrationDashboard'
 import TaskExecutionDemo from './pages/TaskExecutionDemo'
-import ApiKeysManager from './pages/ApiKeysManager'
+import VisionStudio from './pages/VisionStudio'
 
 // Layout component with navigation - Dashboard has its own header
 function DashboardLayout() {
@@ -39,6 +39,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <DashboardLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <Dashboard /> },
     ],
@@ -46,6 +47,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <AppLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { path: 'chat', element: <ChatModern /> },
       { path: 'chat-classic', element: <ChatEnhanced /> },
@@ -60,6 +62,7 @@ const router = createBrowserRouter([
       { path: 'activity', element: <AgentActivityMonitorDemo /> },
       { path: 'tasks', element: <TaskExecutionDemo /> },
       { path: 'api-keys', element: <ApiKeysManager /> },
+      { path: '*', element: <ErrorPage /> },
     ],
   },
 ], {

@@ -3,9 +3,10 @@
  * Uses code-specialized models for programming assistance
  */
 
-import { EnhancedBaseAgent } from '../enhanced-base-agent';
-import type { AgentContext, CodeAssistantResponse, CodeBlock } from '@/types';
 import { safeCalculate } from '@/services/tools/calculator';
+import type { AgentContext, CodeBlock } from '@/types';
+
+import { EnhancedBaseAgent } from '../enhanced-base-agent';
 
 export class EnhancedCodeAssistantAgent extends EnhancedBaseAgent {
   protected buildSystemPrompt(): string {

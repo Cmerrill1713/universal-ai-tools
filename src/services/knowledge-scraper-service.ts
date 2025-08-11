@@ -6,9 +6,11 @@
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { LogContext, log } from '../utils/logger';
 import { RateLimiter } from 'limiter';
-import { THOUSAND, TWO } from '../utils/common-constants';
+
+import { config } from '@/config/environment';
+
+import { log, LogContext } from '../utils/logger';
 import { rerankingService } from './reranking-service';
 
 interface ScrapingSource {
@@ -106,6 +108,10 @@ export class KnowledgeScraperService {
       updateExisting?: boolean;
     } = {}
   ): Promise<void> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      log.info('🌐 Offline mode: skipping external knowledge scraping', LogContext.SERVICE);
+      return;
+    }
     log.info('🔍 Starting knowledge scraping', LogContext.SERVICE);
 
     for (const source of this.sources) {
@@ -132,6 +138,9 @@ export class KnowledgeScraperService {
       updateExisting?: boolean;
     } = {}
   ): Promise<void> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      throw new Error('External scraping disabled in offline mode');
+    }
     const limiter = this.limiters.get(source.name)!;
 
     log.info(`Scraping ${source.name}...`, LogContext.SERVICE);

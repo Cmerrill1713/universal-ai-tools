@@ -3,7 +3,8 @@
  * Handles dynamic integration of external APIs for local-first system
  */
 
-import { LogContext, log } from '../utils/logger.js';
+import { type CircuitBreaker,createCircuitBreaker } from '../utils/circuit-breaker.js';
+import { log, LogContext } from '../utils/logger.js';
 const fetchApi = (globalThis as any).fetch?.bind(globalThis) as typeof globalThis.fetch;
 
 interface ExternalAPIConfig {
@@ -47,6 +48,7 @@ class ExternalAPIManager {
   private apis: Map<string, ExternalAPIConfig> = new Map();
   private rateLimits: Map<string, RateLimitInfo> = new Map();
   private requestHistory: Map<string, Date[]> = new Map();
+  private breakers: Map<string, CircuitBreaker> = new Map();
 
   constructor() {
     log.info('External API Manager initialized', LogContext.API);
@@ -135,6 +137,20 @@ class ExternalAPIManager {
     }
 
     try {
+      // Wrap external call with circuit breaker per API
+      let breaker = this.breakers.get(apiId);
+      if (!breaker) {
+        breaker = createCircuitBreaker(`external:${apiId}`, {
+          failureThreshold: 5,
+          successThreshold: 2,
+          timeout: 30000,
+          volumeThreshold: 10,
+          errorThresholdPercentage: 50,
+          rollingWindow: 60000,
+        });
+        this.breakers.set(apiId, breaker);
+      }
+
       // Build target URL safely using WHATWG URL
       let target: URL;
       try {
@@ -164,17 +180,31 @@ class ExternalAPIManager {
         headers['Authorization'] = `Bearer ${api.apiKey}`;
       }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? 15000);
-      const response = await fetchApi(target.toString(), {
-        method: request.method,
-        headers,
-        body: request.data ? JSON.stringify(request.data) : undefined,
-        // Local safety defaults
-        redirect: 'follow',
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+      const response = await breaker.execute(
+        async () => {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), request.timeoutMs ?? 15000);
+          const resp = await fetchApi(target.toString(), {
+            method: request.method,
+            headers,
+            body: request.data ? JSON.stringify(request.data) : undefined,
+            redirect: 'follow',
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (!resp.ok && resp.status >= 500) {
+            throw new Error(`Upstream ${resp.status}`);
+          }
+          return resp as Response;
+        },
+        async () => {
+          // Fallback response when breaker is open
+          return new Response(JSON.stringify({ error: 'Service temporarily unavailable' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }) as unknown as Response;
+        }
+      );
 
       // Safely parse response depending on content-type
       const ct = response.headers.get('content-type') || '';
@@ -321,7 +351,7 @@ class ExternalAPIManager {
         headers['Authorization'] = `Bearer ${config.apiKey}`;
       }
 
-      const response = await fetch(`${config.baseUrl}/health`, {
+      const response = await fetchApi(`${config.baseUrl}/health`, {
         method: 'GET',
         headers,
       });

@@ -3,10 +3,11 @@
  * Implements two-stage retrieval with cross-encoder reranking for improved search relevance
  */
 
-import axios from 'axios';
-import { LogContext, log } from '../utils/logger';
 import { createClient } from '@supabase/supabase-js';
+import axios from 'axios';
+
 import { THOUSAND } from '../utils/common-constants';
+import { log,LogContext } from '../utils/logger';
 
 interface RerankingModel {
   name: string;
@@ -46,6 +47,11 @@ export class RerankingService {
       name: 'text-embedding-3-small',
       type: 'openai',
       maxBatchSize: 100,
+    },
+    {
+      name: 'local-heuristic',
+      type: 'local',
+      maxBatchSize: 1000,
     },
   ];
 
@@ -289,15 +295,33 @@ export class RerankingService {
     query: string,
     candidates: RerankCandidate[]
   ): Promise<RerankResult[]> {
-    // Mock implementation - would integrate with local model server
-    return candidates.map((candidate) => {
-      // Simple heuristic: boost scores for exact matches
-      const lowerQuery = query.toLowerCase();
-      const lowerContent = candidate.content.toLowerCase();
-      const exactMatch = lowerContent.includes(lowerQuery) ? 0.3 : 0;
-      const wordOverlap = this.calculateWordOverlap(lowerQuery, lowerContent);
+    // Heuristic local reranker: combines token overlap, BM25-like scoring, and position bonuses
+    const normalizedQuery = query.toLowerCase();
+    const queryTokens = normalizedQuery.split(/\W+/).filter(Boolean);
 
-      const crossEncoderScore = Math.min(1.0, wordOverlap + exactMatch);
+    return candidates.map((candidate) => {
+      const content = candidate.content || '';
+      const lowerContent = content.toLowerCase();
+
+      // Exact phrase presence bonus
+      const exactMatch = lowerContent.includes(normalizedQuery) ? 0.25 : 0;
+
+      // Token overlap ratio
+      const overlap = this.calculateWordOverlap(normalizedQuery, lowerContent); // 0..1
+
+      // Early-position bonus (first 200 chars)
+      const earlySection = lowerContent.slice(0, 200);
+      const earlyOverlap = this.calculateWordOverlap(normalizedQuery, earlySection) * 0.2;
+
+      // Length normalization (discourage overly long snippets)
+      const lengthPenalty = Math.min(0.2, Math.max(0, (content.length - 1200) / 6000));
+
+      // Aggregate cross-encoder proxy score
+      const crossEncoderScore = Math.max(
+        0,
+        Math.min(1, exactMatch + overlap * 0.6 + earlyOverlap * 0.2 - lengthPenalty)
+      );
+
       const finalScore = this.combineBiAndCrossEncoderScores(
         candidate.biEncoderScore,
         crossEncoderScore

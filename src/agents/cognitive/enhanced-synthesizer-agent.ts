@@ -3,8 +3,9 @@
  * Uses advanced models to synthesize information from multiple sources and perspectives
  */
 
-import { EnhancedBaseAgent } from '../enhanced-base-agent';
 import type { AgentContext } from '@/types';
+
+import { EnhancedBaseAgent } from '../enhanced-base-agent';
 
 export class EnhancedSynthesizerAgent extends EnhancedBaseAgent {
   protected buildSystemPrompt(): string {

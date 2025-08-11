@@ -3,8 +3,9 @@
  * Uses conversational models to provide personalized assistance
  */
 
-import { EnhancedBaseAgent } from '../enhanced-base-agent';
 import type { AgentContext } from '@/types';
+
+import { EnhancedBaseAgent } from '../enhanced-base-agent';
 
 export class EnhancedPersonalAssistantAgent extends EnhancedBaseAgent {
   protected buildSystemPrompt(): string {

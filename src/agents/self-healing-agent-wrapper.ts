@@ -3,9 +3,11 @@
  * Wraps agents with automatic failure recovery and optimization
  */
 
-import { healthMonitor } from '@/services/health-monitor-service';
-import { LogContext, log } from '@/utils/logger';
 import { EventEmitter } from 'events';
+
+import { healthMonitor } from '@/services/health-monitor-service';
+import { log,LogContext } from '@/utils/logger';
+
 import type { BaseAgent } from './base-agent';
 import type { EnhancedBaseAgent } from './enhanced-base-agent';
 

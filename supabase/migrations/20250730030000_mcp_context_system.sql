@@ -1,10 +1,10 @@
 -- MCP Context System Migration
 -- Creates tables for Model Context Protocol integration with RLS policies
--- 
+--
 -- This migration creates the complete MCP infrastructure for:
 -- - Context storage and retrieval
 -- - Code pattern learning
--- - Task progress tracking  
+-- - Task progress tracking
 -- - Error analysis and learning
 -- - Multi-tenant security with RLS
 
@@ -12,17 +12,12 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "vector" WITH SCHEMA "public";
 
--- =============================================================================
--- MCP CONTEXT TABLE
--- Stores all context data with categories for different types of information
--- =============================================================================
-
 CREATE TABLE IF NOT EXISTS public.mcp_context (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content TEXT NOT NULL,
     category TEXT NOT NULL CHECK (category IN (
         'project_overview',
-        'code_patterns', 
+        'code_patterns',
         'error_analysis',
         'conversation_history',
         'agent_responses',
@@ -37,11 +32,7 @@ CREATE TABLE IF NOT EXISTS public.mcp_context (
     access_count INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    expires_at TIMESTAMPTZ, -- Optional expiration for temporary context
-    
-    -- Indexes for performance
-    CONSTRAINT mcp_context_category_check CHECK (length(category) > 0),
-    CONSTRAINT mcp_context_content_check CHECK (length(content) > 0)
+    expires_at TIMESTAMPTZ -- Optional expiration for temporary context
 );
 
 -- Create indexes for performance
@@ -53,11 +44,11 @@ CREATE INDEX IF NOT EXISTS mcp_context_metadata_idx ON public.mcp_context USING 
 CREATE INDEX IF NOT EXISTS mcp_context_search_idx ON public.mcp_context USING GIN(to_tsvector('english', content));
 
 -- Vector similarity search index
-CREATE INDEX IF NOT EXISTS mcp_context_embedding_idx ON public.mcp_context 
+CREATE INDEX IF NOT EXISTS mcp_context_embedding_idx ON public.mcp_context
 USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- =============================================================================
--- MCP CODE PATTERNS TABLE  
+-- MCP CODE PATTERNS TABLE
 -- Stores successful code patterns for learning and reuse
 -- =============================================================================
 
@@ -78,7 +69,7 @@ CREATE TABLE IF NOT EXISTS public.mcp_code_patterns (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     last_used_at TIMESTAMPTZ,
-    
+
     -- Constraints
     CONSTRAINT mcp_code_patterns_description_check CHECK (length(description) > 0),
     CONSTRAINT mcp_code_patterns_after_code_check CHECK (length(after_code) > 0)
@@ -91,7 +82,7 @@ CREATE INDEX IF NOT EXISTS mcp_code_patterns_success_rate_idx ON public.mcp_code
 CREATE INDEX IF NOT EXISTS mcp_code_patterns_language_idx ON public.mcp_code_patterns(programming_language);
 CREATE INDEX IF NOT EXISTS mcp_code_patterns_complexity_idx ON public.mcp_code_patterns(complexity_level);
 CREATE INDEX IF NOT EXISTS mcp_code_patterns_error_types_idx ON public.mcp_code_patterns USING GIN(error_types);
-CREATE INDEX IF NOT EXISTS mcp_code_patterns_search_idx ON public.mcp_code_patterns 
+CREATE INDEX IF NOT EXISTS mcp_code_patterns_search_idx ON public.mcp_code_patterns
 USING GIN(to_tsvector('english', description || ' ' || coalesce(before_code, '') || ' ' || after_code));
 
 -- =============================================================================
@@ -118,7 +109,7 @@ CREATE TABLE IF NOT EXISTS public.mcp_task_progress (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
-    
+
     -- Constraints
     CONSTRAINT mcp_task_progress_task_id_check CHECK (length(task_id) > 0),
     CONSTRAINT mcp_task_progress_description_check CHECK (length(description) > 0)
@@ -155,7 +146,7 @@ CREATE TABLE IF NOT EXISTS public.mcp_error_analysis (
     first_seen TIMESTAMPTZ DEFAULT NOW(),
     last_seen TIMESTAMPTZ DEFAULT NOW(),
     resolved_at TIMESTAMPTZ,
-    
+
     -- Constraints
     CONSTRAINT mcp_error_analysis_error_type_check CHECK (length(error_type) > 0),
     CONSTRAINT mcp_error_analysis_error_message_check CHECK (length(error_message) > 0),
@@ -170,7 +161,7 @@ CREATE INDEX IF NOT EXISTS mcp_error_analysis_user_id_idx ON public.mcp_error_an
 CREATE INDEX IF NOT EXISTS mcp_error_analysis_language_idx ON public.mcp_error_analysis(programming_language);
 CREATE INDEX IF NOT EXISTS mcp_error_analysis_category_idx ON public.mcp_error_analysis(error_category);
 CREATE INDEX IF NOT EXISTS mcp_error_analysis_status_idx ON public.mcp_error_analysis(resolution_status);
-CREATE INDEX IF NOT EXISTS mcp_error_analysis_search_idx ON public.mcp_error_analysis 
+CREATE INDEX IF NOT EXISTS mcp_error_analysis_search_idx ON public.mcp_error_analysis
 USING GIN(to_tsvector('english', error_message || ' ' || coalesce(solution_pattern, '')));
 
 -- =============================================================================
@@ -199,55 +190,55 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- MCP Context RLS Policies
-CREATE POLICY mcp_context_select_policy ON public.mcp_context 
+CREATE POLICY mcp_context_select_policy ON public.mcp_context
 FOR SELECT USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_context_insert_policy ON public.mcp_context 
+CREATE POLICY mcp_context_insert_policy ON public.mcp_context
 FOR INSERT WITH CHECK (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_context_update_policy ON public.mcp_context 
+CREATE POLICY mcp_context_update_policy ON public.mcp_context
 FOR UPDATE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_context_delete_policy ON public.mcp_context 
+CREATE POLICY mcp_context_delete_policy ON public.mcp_context
 FOR DELETE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
 -- MCP Code Patterns RLS Policies
-CREATE POLICY mcp_code_patterns_select_policy ON public.mcp_code_patterns 
+CREATE POLICY mcp_code_patterns_select_policy ON public.mcp_code_patterns
 FOR SELECT USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_code_patterns_insert_policy ON public.mcp_code_patterns 
+CREATE POLICY mcp_code_patterns_insert_policy ON public.mcp_code_patterns
 FOR INSERT WITH CHECK (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_code_patterns_update_policy ON public.mcp_code_patterns 
+CREATE POLICY mcp_code_patterns_update_policy ON public.mcp_code_patterns
 FOR UPDATE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_code_patterns_delete_policy ON public.mcp_code_patterns 
+CREATE POLICY mcp_code_patterns_delete_policy ON public.mcp_code_patterns
 FOR DELETE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
 -- MCP Task Progress RLS Policies
-CREATE POLICY mcp_task_progress_select_policy ON public.mcp_task_progress 
+CREATE POLICY mcp_task_progress_select_policy ON public.mcp_task_progress
 FOR SELECT USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_task_progress_insert_policy ON public.mcp_task_progress 
+CREATE POLICY mcp_task_progress_insert_policy ON public.mcp_task_progress
 FOR INSERT WITH CHECK (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_task_progress_update_policy ON public.mcp_task_progress 
+CREATE POLICY mcp_task_progress_update_policy ON public.mcp_task_progress
 FOR UPDATE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_task_progress_delete_policy ON public.mcp_task_progress 
+CREATE POLICY mcp_task_progress_delete_policy ON public.mcp_task_progress
 FOR DELETE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
 -- MCP Error Analysis RLS Policies
-CREATE POLICY mcp_error_analysis_select_policy ON public.mcp_error_analysis 
+CREATE POLICY mcp_error_analysis_select_policy ON public.mcp_error_analysis
 FOR SELECT USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_error_analysis_insert_policy ON public.mcp_error_analysis 
+CREATE POLICY mcp_error_analysis_insert_policy ON public.mcp_error_analysis
 FOR INSERT WITH CHECK (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_error_analysis_update_policy ON public.mcp_error_analysis 
+CREATE POLICY mcp_error_analysis_update_policy ON public.mcp_error_analysis
 FOR UPDATE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
-CREATE POLICY mcp_error_analysis_delete_policy ON public.mcp_error_analysis 
+CREATE POLICY mcp_error_analysis_delete_policy ON public.mcp_error_analysis
 FOR DELETE USING (user_id = get_current_user_id() OR user_id IS NULL);
 
 -- =============================================================================
@@ -264,16 +255,22 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Apply triggers to all tables
-CREATE TRIGGER update_mcp_context_updated_at 
-    BEFORE UPDATE ON public.mcp_context 
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'update_mcp_context_updated_at'
+    ) THEN
+        CREATE TRIGGER update_mcp_context_updated_at
+            BEFORE UPDATE ON public.mcp_context
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$;
+
+CREATE TRIGGER update_mcp_code_patterns_updated_at
+    BEFORE UPDATE ON public.mcp_code_patterns
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_mcp_code_patterns_updated_at 
-    BEFORE UPDATE ON public.mcp_code_patterns 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_mcp_task_progress_updated_at 
-    BEFORE UPDATE ON public.mcp_task_progress 
+CREATE TRIGGER update_mcp_task_progress_updated_at
+    BEFORE UPDATE ON public.mcp_task_progress
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================================================
@@ -298,7 +295,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         c.id,
         c.content,
         c.category,
@@ -306,7 +303,7 @@ BEGIN
         c.metadata,
         c.created_at
     FROM public.mcp_context c
-    WHERE 
+    WHERE
         (category_filter IS NULL OR c.category = category_filter)
         AND (user_id_filter IS NULL OR c.user_id = user_id_filter OR c.user_id IS NULL)
         AND c.embedding IS NOT NULL
@@ -322,9 +319,9 @@ RETURNS INTEGER AS $$
 DECLARE
     deleted_count INTEGER;
 BEGIN
-    DELETE FROM public.mcp_context 
+    DELETE FROM public.mcp_context
     WHERE expires_at IS NOT NULL AND expires_at < NOW();
-    
+
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;
 END;
@@ -334,7 +331,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION increment_context_access(context_id UUID)
 RETURNS VOID AS $$
 BEGIN
-    UPDATE public.mcp_context 
+    UPDATE public.mcp_context
     SET access_count = access_count + 1,
         updated_at = NOW()
     WHERE id = context_id;
@@ -347,7 +344,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- View for context usage analytics
 CREATE OR REPLACE VIEW mcp_context_analytics AS
-SELECT 
+SELECT
     category,
     COUNT(*) as total_entries,
     AVG(access_count) as avg_access_count,
@@ -360,7 +357,7 @@ ORDER BY created_date DESC, total_entries DESC;
 
 -- View for code pattern effectiveness
 CREATE OR REPLACE VIEW mcp_pattern_effectiveness AS
-SELECT 
+SELECT
     pattern_type,
     programming_language,
     COUNT(*) as pattern_count,
@@ -373,7 +370,7 @@ ORDER BY avg_success_rate DESC, pattern_count DESC;
 
 -- View for error trends
 CREATE OR REPLACE VIEW mcp_error_trends AS
-SELECT 
+SELECT
     error_type,
     error_category,
     programming_language,
@@ -410,10 +407,15 @@ GRANT SELECT ON mcp_pattern_effectiveness TO authenticated;
 GRANT SELECT ON mcp_error_trends TO authenticated;
 
 -- Allow anonymous access for public context (controlled by RLS)
-GRANT SELECT, INSERT ON public.mcp_context TO anonymous;
-GRANT SELECT, INSERT ON public.mcp_code_patterns TO anonymous;
-GRANT SELECT, INSERT ON public.mcp_task_progress TO anonymous;
-GRANT SELECT, INSERT ON public.mcp_error_analysis TO anonymous;
+-- Supabase roles are typically 'anon' and 'authenticated'; skip grants to non-existent 'anonymous' role
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anonymous') THEN
+        EXECUTE 'GRANT SELECT, INSERT ON public.mcp_context TO anonymous';
+        EXECUTE 'GRANT SELECT, INSERT ON public.mcp_code_patterns TO anonymous';
+        EXECUTE 'GRANT SELECT, INSERT ON public.mcp_task_progress TO anonymous';
+        EXECUTE 'GRANT SELECT, INSERT ON public.mcp_error_analysis TO anonymous';
+    END IF;
+END $$;
 
 -- =============================================================================
 -- COMMENTS FOR DOCUMENTATION

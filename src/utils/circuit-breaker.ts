@@ -4,7 +4,7 @@
  * Superior to Agent Zero's basic error handling
  */
 
-import { LogContext, log } from './logger';
+import { log, LogContext } from './logger';
 
 export enum CircuitState {
   CLOSED = 'CLOSED', // Normal operation
@@ -40,7 +40,7 @@ export interface CircuitBreakerMetrics {
   };
 }
 
-export class CircuitBreaker<T = unknown> {
+export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
   private failureCount = 0;
   private successCount = 0;
@@ -274,11 +274,11 @@ export class CircuitBreaker<T = unknown> {
 }
 
 // Factory function for creating circuit breakers
-export function createCircuitBreaker<T>(
+export function createCircuitBreaker(
   name: string,
   options?: CircuitBreakerOptions
-): CircuitBreaker<T> {
-  return new CircuitBreaker<T>(name, options);
+): CircuitBreaker {
+  return new CircuitBreaker(name, options);
 }
 
 // Global circuit breaker registry
@@ -298,13 +298,11 @@ export class CircuitBreakerRegistry {
   }
 
   static getMetrics(): Record<string, CircuitBreakerMetrics> {
-    const metrics: Record<string, CircuitBreakerMetrics> = {};
-
+    const entries: Array<[string, CircuitBreakerMetrics]> = [];
     this.breakers.forEach((breaker, name) => {
-      metrics[name] = breaker.getMetrics();
+      entries.push([name, breaker.getMetrics()]);
     });
-
-    return metrics;
+    return Object.fromEntries(entries);
   }
 
   static reset(name?: string): void {

@@ -4,17 +4,18 @@ import Charts
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var apiService: APIService
-    
+
     @State private var systemMetrics: SystemMetrics?
     @State private var isLoadingMetrics = false
+    @State private var loadError: String?
     @State private var selectedTimeRange = TimeRange.hour
-    
+
     enum TimeRange: String, CaseIterable {
         case hour = "1H"
         case day = "24H"
         case week = "7D"
         case month = "30D"
-        
+
         var displayName: String {
             switch self {
             case .hour: return "Last Hour"
@@ -24,31 +25,45 @@ struct DashboardView: View {
             }
         }
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 // Header
                 headerSection
-                
+
                 // Quick Stats
-                statsGrid
-                
-                // Performance Charts
-                if let metrics = systemMetrics {
-                    performanceCharts(metrics)
+                if isLoadingMetrics {
+                    statsGridSkeleton
+                } else {
+                    statsGrid
                 }
-                
+
+                // Performance Charts
+                Group {
+                    if let metrics = systemMetrics {
+                        performanceCharts(metrics)
+                    } else if isLoadingMetrics {
+                        chartsSkeleton
+                    } else {
+                        emptyState
+                    }
+                }
+
                 // Agent Status
                 agentStatusSection
-                
+
                 // Recent Activity
                 recentActivitySection
+
+                if let errorMessage = loadError {
+                    errorBanner(message: errorMessage)
+                }
             }
             .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(AppTheme.windowBackgroundGradient)
         .onAppear {
             loadMetrics()
         }
@@ -56,48 +71,48 @@ struct DashboardView: View {
             await loadMetricsAsync()
         }
     }
-    
+
     // MARK: - Header Section
-    
+
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Universal AI Tools")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                
+
                 Text("System Dashboard")
                     .font(.headline)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             // Time Range Picker
-            Picker("Time Range", selection: $selectedTimeRange) {
+            Picker("Time Range", selection: $selectedTimeRange, content: {
                 ForEach(TimeRange.allCases, id: \.self) { range in
                     Text(range.rawValue).tag(range)
                 }
-            }
+            })
             .pickerStyle(SegmentedPickerStyle())
             .frame(width: 200)
             .onChange(of: selectedTimeRange) { _ in
                 loadMetrics()
             }
-            
+
             // Refresh Button
-            Button(action: { loadMetrics() }) {
+            Button(action: { loadMetrics() }, label: {
                 Image(systemName: "arrow.clockwise")
                     .foregroundColor(isLoadingMetrics ? .gray : .accentColor)
-            }
+            })
             .disabled(isLoadingMetrics)
             .buttonStyle(PlainButtonStyle())
         }
         .padding(.bottom)
     }
-    
+
     // MARK: - Stats Grid
-    
+
     private var statsGrid: some View {
         LazyVGrid(columns: [
             GridItem(.flexible()),
@@ -110,53 +125,53 @@ struct DashboardView: View {
                 value: "\(appState.activeAgents.count)",
                 icon: "cpu",
                 color: .blue,
-                trend: .up(12)
+                trend: .increase(12)
             )
-            
+
             StatCard(
                 title: "API Calls",
-                value: formatNumber(systemMetrics?.apiCalls ?? 0),
+                value: formatNumber(systemMetrics?.requestsPerMinute ?? 0),
                 icon: "network",
                 color: .green,
-                trend: .up(8)
+                trend: .increase(8)
             )
-            
+
             StatCard(
                 title: "Memory Usage",
-                value: formatMemory(systemMetrics?.memoryUsage ?? 0),
+                value: memoryUsageText,
                 icon: "memorychip",
                 color: .orange,
                 trend: .stable
             )
-            
+
             StatCard(
                 title: "Response Time",
-                value: "\(systemMetrics?.avgResponseTime ?? 0)ms",
+                value: averageResponseText,
                 icon: "timer",
                 color: .purple,
-                trend: .down(15)
+                trend: .decrease(15)
             )
         }
     }
-    
+
     // MARK: - Performance Charts
-    
+
     private func performanceCharts(_ metrics: SystemMetrics) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Performance Metrics")
                 .font(.headline)
                 .padding(.top)
-            
+
             HStack(spacing: 16) {
                 // CPU Usage Chart
-                ChartCard(title: "CPU Usage") {
-                    Chart(metrics.cpuHistory) { point in
+                ChartCard(title: "CPU Usage", content: {
+                    Chart(metrics.cpuHistory ?? []) { point in
                         LineMark(
                             x: .value("Time", point.timestamp),
                             y: .value("CPU %", point.value)
                         )
                         .foregroundStyle(.blue)
-                        
+
                         AreaMark(
                             x: .value("Time", point.timestamp),
                             y: .value("CPU %", point.value)
@@ -164,17 +179,17 @@ struct DashboardView: View {
                         .foregroundStyle(.blue.opacity(0.1))
                     }
                     .frame(height: 150)
-                }
-                
+                })
+
                 // Memory Usage Chart
-                ChartCard(title: "Memory Usage") {
-                    Chart(metrics.memoryHistory) { point in
+                ChartCard(title: "Memory Usage", content: {
+                    Chart(metrics.memoryHistory ?? []) { point in
                         LineMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Memory MB", point.value / 1024 / 1024)
                         )
                         .foregroundStyle(.orange)
-                        
+
                         AreaMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Memory MB", point.value / 1024 / 1024)
@@ -182,13 +197,13 @@ struct DashboardView: View {
                         .foregroundStyle(.orange.opacity(0.1))
                     }
                     .frame(height: 150)
-                }
+                })
             }
-            
+
             HStack(spacing: 16) {
                 // Request Rate Chart
-                ChartCard(title: "Request Rate") {
-                    Chart(metrics.requestHistory) { point in
+                ChartCard(title: "Request Rate", content: {
+                    Chart(metrics.requestHistory ?? []) { point in
                         BarMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Requests/min", point.value)
@@ -196,18 +211,18 @@ struct DashboardView: View {
                         .foregroundStyle(.green)
                     }
                     .frame(height: 150)
-                }
-                
+                })
+
                 // Response Time Chart
-                ChartCard(title: "Response Time") {
-                    Chart(metrics.responseTimeHistory) { point in
+                ChartCard(title: "Response Time", content: {
+                    Chart(metrics.responseTimeHistory ?? []) { point in
                         LineMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Time (ms)", point.value)
                         )
                         .foregroundStyle(.purple)
                         .lineStyle(StrokeStyle(lineWidth: 2))
-                        
+
                         PointMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Time (ms)", point.value)
@@ -215,19 +230,38 @@ struct DashboardView: View {
                         .foregroundStyle(.purple)
                     }
                     .frame(height: 150)
-                }
+                })
             }
         }
     }
-    
+
+    private var memoryUsageText: String {
+        if let bytes = systemMetrics?.memoryBytes, bytes > 0 {
+            return formatMemory(bytes)
+        }
+        if let percent = systemMetrics?.memoryUsage {
+            return String(format: "%.0f%%", percent)
+        }
+        return "—"
+    }
+
+    private var averageResponseText: String {
+        guard let points = systemMetrics?.responseTimeHistory, !points.isEmpty else {
+            return "—"
+        }
+        let total = points.reduce(0) { $0 + $1.value }
+        let avg = Double(total) / Double(points.count)
+        return String(format: "%.0fms", avg)
+    }
+
     // MARK: - Agent Status Section
-    
+
     private var agentStatusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Agent Status")
                 .font(.headline)
                 .padding(.top)
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(appState.activeAgents) { agent in
@@ -237,23 +271,21 @@ struct DashboardView: View {
             }
         }
     }
-    
+
     // MARK: - Recent Activity
-    
+
     private var recentActivitySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Recent Activity")
                     .font(.headline)
-                
+
                 Spacer()
-                
-                Button("View All") {
-                    appState.selectedSidebarItem = .activity
-                }
+
+                Button("View All") { appState.selectedSidebarItem = .monitoring }
                 .buttonStyle(LinkButtonStyle())
             }
-            
+
             VStack(spacing: 8) {
                 ForEach(appState.recentActivities.prefix(5)) { activity in
                     ActivityRow(activity: activity)
@@ -264,220 +296,175 @@ struct DashboardView: View {
             .cornerRadius(8)
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func loadMetrics() {
         isLoadingMetrics = true
-        
+        loadError = nil
+
         Task {
             do {
                 systemMetrics = try await apiService.getSystemMetrics()
                 isLoadingMetrics = false
             } catch {
                 print("Failed to load metrics:", error)
+                loadError = (error as? APIError)?.errorDescription ?? error.localizedDescription
                 isLoadingMetrics = false
             }
         }
     }
-    
+
     private func loadMetricsAsync() async {
         do {
+            loadError = nil
             systemMetrics = try await apiService.getSystemMetrics()
         } catch {
             print("Failed to load metrics:", error)
+            loadError = (error as? APIError)?.errorDescription ?? error.localizedDescription
         }
     }
-    
+
     private func formatNumber(_ number: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 0
         return formatter.string(from: NSNumber(value: number)) ?? "\(number)"
     }
-    
-    private func formatMemory(_ bytes: Int) -> String {
-        let mb = Double(bytes) / 1024 / 1024
-        if mb < 1024 {
-            return String(format: "%.1f MB", mb)
+
+    private func formatMemory(_ bytes: Int64) -> String {
+        let megaBytes = Double(bytes) / 1024.0 / 1024.0
+        if megaBytes < 1024 {
+            return String(format: "%.1f MB", megaBytes)
         } else {
-            let gb = mb / 1024
-            return String(format: "%.2f GB", gb)
+            let gigaBytes = megaBytes / 1024
+            return String(format: "%.2f GB", gigaBytes)
         }
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Loading Skeletons and Empty/Error States
 
-struct StatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-    let trend: Trend
-    
-    enum Trend {
-        case up(Int)
-        case down(Int)
-        case stable
-        
-        var icon: String {
-            switch self {
-            case .up: return "arrow.up.right"
-            case .down: return "arrow.down.right"
-            case .stable: return "minus"
-            }
-        }
-        
-        var color: Color {
-            switch self {
-            case .up: return .green
-            case .down: return .red
-            case .stable: return .gray
-            }
-        }
-        
-        var text: String {
-            switch self {
-            case .up(let percent): return "+\(percent)%"
-            case .down(let percent): return "-\(percent)%"
-            case .stable: return "0%"
-            }
-        }
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundColor(color)
-                    .font(.title2)
-                
-                Spacer()
-                
-                HStack(spacing: 2) {
-                    Image(systemName: trend.icon)
-                        .font(.caption)
-                    Text(trend.text)
-                        .font(.caption)
+extension DashboardView {
+    // Skeleton grid for loading state
+    private var statsGridSkeleton: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible()),
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: 16) {
+            ForEach(0..<4, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 24, height: 24)
+                            .shimmering()
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(width: 60, height: 14)
+                            .shimmering()
+                    }
+
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(width: 120, height: 22)
+                        .shimmering()
+
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(width: 100, height: 12)
+                        .shimmering()
                 }
-                .foregroundColor(trend.color)
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
             }
-            
-            Text(value)
-                .font(.title)
-                .fontWeight(.semibold)
-            
-            Text(title)
+        }
+    }
+
+    // Skeleton charts while loading
+    private var chartsSkeleton: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Performance Metrics")
+                .font(.headline)
+                .padding(.top)
+
+            HStack(spacing: 16) {
+                ChartCard(title: "CPU Usage") {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 150)
+                        .shimmering()
+                }
+                ChartCard(title: "Memory Usage") {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 150)
+                        .shimmering()
+                }
+            }
+
+            HStack(spacing: 16) {
+                ChartCard(title: "Request Rate") {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 150)
+                        .shimmering()
+                }
+                ChartCard(title: "Response Time") {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.secondary.opacity(0.15))
+                        .frame(height: 150)
+                        .shimmering()
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "waveform.path.ecg")
+                .font(.largeTitle)
+                .foregroundColor(.secondary)
+            Text("No metrics available")
+                .font(.headline)
+            Text("Pull to refresh or try again.")
                 .font(.caption)
                 .foregroundColor(.secondary)
+            Button(action: { loadMetrics() }, label: {
+                Label("Retry", systemImage: "arrow.clockwise")
+            })
+            .buttonStyle(.bordered)
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
-    }
-}
-
-struct ChartCard<Content: View>: View {
-    let title: String
-    let content: Content
-    
-    init(title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            content
-        }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct AgentStatusCard: View {
-    let agent: Agent
-    
-    var statusColor: Color {
-        switch agent.status {
-        case "active": return .green
-        case "idle": return .orange
-        case "error": return .red
-        default: return .gray
-        }
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 8, height: 8)
-                
-                Text(agent.name)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-            }
-            
-            Text(agent.type)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            HStack {
-                Image(systemName: "clock")
-                    .font(.caption2)
-                Text(agent.lastActive)
-                    .font(.caption2)
-            }
-            .foregroundColor(.secondary)
-        }
-        .padding()
-        .frame(width: 150)
+        .padding(.vertical, 24)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
     }
-}
 
-struct ActivityRow: View {
-    let activity: Activity
-    
-    var body: some View {
-        HStack {
-            Image(systemName: activity.icon)
-                .foregroundColor(Color(activity.color))
-                .frame(width: 20)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(activity.title)
-                    .font(.subheadline)
-                
-                Text(activity.description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
+    private func errorBanner(message: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.yellow)
+            Text(message)
+                .font(.caption)
+                .lineLimit(2)
+                .truncationMode(.tail)
             Spacer()
-            
-            Text(activity.timestamp)
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            Button("Dismiss") { loadError = nil }
+                .buttonStyle(.borderless)
+                .font(.caption)
+            Button("Retry") { loadMetrics() }
+                .buttonStyle(.bordered)
+                .font(.caption)
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(.thinMaterial)
+        .cornerRadius(10)
     }
 }
 
-struct LinkButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundColor(.accentColor)
-            .font(.subheadline)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-    }
-}
+    // The supporting view types are defined in `DashboardComponents.swift`

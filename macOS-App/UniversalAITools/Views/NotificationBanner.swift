@@ -30,9 +30,13 @@ struct NotificationBanner: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(NSColor.controlBackgroundColor))
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(AppTheme.separator, lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
         )
         .padding(.horizontal, 16)
         .padding(.bottom, 16)

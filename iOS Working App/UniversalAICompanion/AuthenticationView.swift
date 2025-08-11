@@ -8,57 +8,59 @@ struct AuthenticationView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 30) {
-                // Logo and Title
-                VStack(spacing: 16) {
-                    Image(systemName: "lock.shield")
-                        .font(.system(size: 80))
-                        .foregroundColor(.blue)
+            ZStack {
+                AppTheme.backgroundGradient.ignoresSafeArea()
 
-                    Text("Universal AI Tools")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Logo and Title
+                        VStack(spacing: 10) {
+                            Image(systemName: "lock.shield")
+                                .font(.system(size: 64))
+                                .foregroundStyle(AppTheme.chatUserGradient)
 
-                    Text("Secure Authentication")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.top, 40)
+                            Text("Universal AI Tools")
+                                .font(.largeTitle).bold()
 
-                Spacer()
+                            Text("Secure Authentication")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 28)
 
-                // Animated Authentication Status
-                AnimatedAuthenticationStatusView()
-                    .environmentObject(authManager)
+                        // Animated Authentication Status
+                        AnimatedAuthenticationStatusView()
+                            .environmentObject(authManager)
 
-                // Registration/Authentication Controls
-                VStack(spacing: 20) {
-                    switch authManager.registrationState {
-                    case .unregistered:
-                        RegisterDeviceButton(authManager: authManager)
+                        // Registration/Authentication Controls
+                        VStack(spacing: 16) {
+                            switch authManager.registrationState {
+                            case .unregistered:
+                                RegisterDeviceButton(authManager: authManager)
+                                    .padding(.horizontal, 2)
 
-                    case .registering:
-                        ProgressView("Registering device...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            case .registering:
+                                ProgressView("Registering device...")
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
 
-                    case .registered:
-                        AuthenticationControls(authManager: authManager)
+                            case .registered:
+                                AuthenticationControls(authManager: authManager)
+                            }
+                        }
+
+                        // Device Information
+                        DeviceInfoCard(authManager: authManager)
+                            .padding(.top, 8)
+
+                        Spacer(minLength: 20)
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
                 }
-
-                Spacer()
-
-                // Device Information
-                DeviceInfoCard(authManager: authManager)
-
-                Spacer()
             }
-            .padding()
             .navigationBarHidden(true)
             .alert("Authentication Error", isPresented: $showingError) {
-                Button("OK") {
-                    authManager.lastError = nil
-                }
+                Button("OK") { authManager.lastError = nil }
             } message: {
                 Text(authManager.lastError?.localizedDescription ?? "Unknown error")
             }
@@ -233,16 +235,16 @@ struct RegisterDeviceButton: View {
                     await authManager.registerDevice()
                 }
             }) {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
                     Text("Register Device")
                 }
                 .font(.headline)
                 .foregroundColor(.white)
-                .padding()
+                .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
-                .background(Color.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(AppTheme.chatUserGradient)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
         .padding()
@@ -261,16 +263,16 @@ struct AuthenticationControls: View {
                     await authManager.authenticateWithBiometrics()
                 }
             }) {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: biometricIcon)
                     Text("Authenticate with \(biometricType)")
                 }
                 .font(.headline)
                 .foregroundColor(.white)
-                .padding()
+                .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
-                .background(authManager.authenticationState == .authenticated ? Color.green : Color.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .background(primaryBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             .disabled(authManager.authenticationState == .authenticating)
 
@@ -278,13 +280,13 @@ struct AuthenticationControls: View {
             if authManager.registrationState == .registered {
                 Toggle("Proximity Detection", isOn: $isProximityEnabled)
                     .onChange(of: isProximityEnabled) { enabled in
-                        if enabled {
-                            authManager.startProximityDetection()
-                        } else {
-                            authManager.stopProximityDetection()
-                        }
+                        if enabled { authManager.startProximityDetection() }
+                        else { authManager.stopProximityDetection() }
                     }
                     .padding(.horizontal)
+                    .padding(.vertical, 12)
+                    .background(AppTheme.inputBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
 
             // Quick Actions
@@ -305,6 +307,15 @@ struct AuthenticationControls: View {
             }
         }
         .padding()
+    }
+
+    @ViewBuilder
+    private var primaryBackground: some View {
+        if authManager.authenticationState == .authenticated {
+            Color.green
+        } else {
+            AppTheme.chatUserGradient
+        }
     }
 
     private var biometricType: String {
@@ -365,8 +376,8 @@ struct DeviceInfoCard: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

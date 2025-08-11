@@ -3,6 +3,8 @@
  * Revolutionary AI orchestration that learns and improves continuously
  */
 
+import { v4 as uuidv4 } from 'uuid';
+
 import type {
   ABMCTSAction,
   ABMCTSConfig,
@@ -15,17 +17,16 @@ import type {
   AgentResponse,
 } from '../types/ab-mcts';
 import { isTerminalNode } from '../types/ab-mcts';
+import { bayesianModelRegistry } from '../utils/bayesian-model';
+import { THREE } from '../utils/constants';
+import { log,LogContext } from '../utils/logger';
 import {
   AdaptiveExplorer,
   BetaSampler,
   ThompsonSelector,
   UCBCalculator,
 } from '../utils/thompson-sampling';
-import { bayesianModelRegistry } from '../utils/bayesian-model';
-import { LogContext, log } from '../utils/logger';
-import { v4 as uuidv4 } from 'uuid';
 import { treeStorage } from './ab-mcts-tree-storage';
-import { THREE } from '../utils/constants';
 
 /**
  * Core AB-MCTS implementation

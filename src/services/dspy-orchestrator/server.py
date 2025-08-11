@@ -2,22 +2,51 @@ import asyncio
 import json
 import logging
 import os
+import os as _os
+
+# Allow running as a script without package context
+import sys
 from typing import Any, Optional
 
 import dspy
 import websockets
 from dspy.teleprompt import MIPROv2
 
-from .internal_llm_relay import get_best_available_lm
-from .knowledge_optimizer import (
-    KnowledgeOptimizer,
-    OptimizedKnowledgeEvolver,
-    OptimizedKnowledgeExtractor,
-    OptimizedKnowledgeSearcher,
-    OptimizedKnowledgeValidator,
-)
-from .llm_discovery import LLMDiscovery
-from .model_selector import model_selector
+_this_dir = _os.path.dirname(_os.path.abspath(__file__))
+if _this_dir not in sys.path:
+    sys.path.append(_this_dir)
+
+try:
+    from .internal_llm_relay import get_best_available_lm
+except Exception:  # noqa: BLE001
+    from internal_llm_relay import get_best_available_lm
+
+try:
+    from .knowledge_optimizer import (
+        KnowledgeOptimizer,
+        OptimizedKnowledgeEvolver,
+        OptimizedKnowledgeExtractor,
+        OptimizedKnowledgeSearcher,
+        OptimizedKnowledgeValidator,
+    )
+except Exception:  # noqa: BLE001
+    from knowledge_optimizer import (
+        KnowledgeOptimizer,
+        OptimizedKnowledgeEvolver,
+        OptimizedKnowledgeExtractor,
+        OptimizedKnowledgeSearcher,
+        OptimizedKnowledgeValidator,
+    )
+
+try:
+    from .llm_discovery import LLMDiscovery
+except Exception:  # noqa: BLE001
+    from llm_discovery import LLMDiscovery
+
+try:
+    from .model_selector import model_selector
+except Exception:  # noqa: BLE001
+    from model_selector import model_selector
 
 # Configure logging first
 logging.basicConfig(

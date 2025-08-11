@@ -8,7 +8,8 @@ import { createClient } from '@supabase/supabase-js';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { LogContext, log } from '../utils/logger.js';
+
+import { log,LogContext } from '../utils/logger.js';
 
 async function setupMCPDatabase(): Promise<boolean> {
   log.info('🗄️ Setting up MCP database tables', LogContext.MCP);

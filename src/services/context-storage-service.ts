@@ -3,10 +3,10 @@
  * Implements the CLAUDE.md instruction: "Always use supabase for context. Save context to supabase for later use."
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '../utils/logger';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
 import { config } from '../config/environment';
+import { log,LogContext } from '../utils/logger';
 
 interface ContextEntry {
   id?: string;
@@ -17,7 +17,12 @@ interface ContextEntry {
     | 'error_analysis'
     | 'code_patterns'
     | 'test_results'
-    | 'architecture_patterns';
+    | 'architecture_patterns'
+    | 'research_notes'
+    | 'agent_profiles'
+    | 'system_events'
+    | 'training_data'
+    | 'verified_answer';
   source: string;
   userId: string;
   projectPath?: string;
@@ -51,6 +56,12 @@ export class ContextStorageService {
    */
   async storeContext(context: ContextEntry): Promise<string | null> {
     try {
+      // Generate embedding on write (best practice: embed-at-ingest)
+      const embedding = await this.generateEmbedding(
+        (config.llm.ollamaUrl || 'http://localhost:11434').replace(/\/$/, ''),
+        context.content
+      );
+
       const { data, error } = await this.supabase
         .from('context_storage')
         .insert({
@@ -60,6 +71,7 @@ export class ContextStorageService {
           user_id: context.userId,
           project_path: context.projectPath || null,
           metadata: context.metadata || {},
+          embedding,
         })
         .select('id')
         .single();
@@ -87,6 +99,74 @@ export class ContextStorageService {
       });
       return null;
     }
+  }
+
+  /**
+   * Backfill embeddings for a user's context_storage rows.
+   * Tries Ollama embeddings; falls back to a deterministic local 384-dim vector.
+   */
+  async backfillEmbeddingsForUser(userId: string, maxRows = 500): Promise<{ updated: number }> {
+    const ollamaUrl = (config.llm.ollamaUrl || 'http://localhost:11434').replace(/\/$/, '');
+
+    const { data: rows, error } = await this.supabase
+      .from('context_storage')
+      .select('id, content')
+      .eq('user_id', userId)
+      .is('embedding', null)
+      .order('updated_at', { ascending: false })
+      .limit(maxRows);
+
+    if (error || !rows || rows.length === 0) {
+      return { updated: 0 };
+    }
+
+    let updated = 0;
+    for (const row of rows) {
+      const embedding = await this.generateEmbedding(ollamaUrl, row.content);
+      const { error: upErr } = await this.supabase
+        .from('context_storage')
+        .update({ embedding })
+        .eq('id', row.id);
+      if (!upErr) updated += 1;
+    }
+
+    return { updated };
+  }
+
+  private async generateEmbedding(ollamaUrl: string, content: string): Promise<number[]> {
+    try {
+      const truncated = content.length > 2000 ? `${content.slice(0, 2000)}...` : content;
+      const res = await fetch(`${ollamaUrl}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'all-minilm:latest', prompt: truncated }),
+      });
+      if (res.ok) {
+        const json: any = await res.json();
+        if (Array.isArray(json?.embedding)) return json.embedding as number[];
+      }
+      return this.generateFallbackEmbedding(content);
+    } catch {
+      return this.generateFallbackEmbedding(content);
+    }
+  }
+
+  private generateFallbackEmbedding(content: string): number[] {
+    const embedding = new Array(384).fill(0);
+    const words = (content || '').toLowerCase().split(/\s+/);
+    for (let i = 0; i < words.length && i < 100; i++) {
+      const w = words[i];
+      if (!w) continue;
+      let h = 0;
+      for (let j = 0; j < w.length; j++) {
+        h = (h << 5) - h + w.charCodeAt(j);
+        h |= 0;
+      }
+      const idx = Math.abs(h) % embedding.length;
+      embedding[idx] += 1 / (i + 1);
+    }
+    const mag = Math.sqrt(embedding.reduce((s, v) => s + v * v, 0));
+    return mag > 0 ? embedding.map((v) => v / mag) : embedding;
   }
 
   /**
@@ -150,11 +230,21 @@ export class ContextStorageService {
     try {
       const updateData: any = {};
 
-      if (updates.content) updateData.content = updates.content;
-      if (updates.category) updateData.category = updates.category;
-      if (updates.source) updateData.source = updates.source;
-      if (updates.metadata) updateData.metadata = updates.metadata;
-      if (updates.projectPath) updateData.project_path = updates.projectPath;
+      if (updates.content) {
+        updateData.content = updates.content;
+      }
+      if (updates.category) {
+        updateData.category = updates.category;
+      }
+      if (updates.source) {
+        updateData.source = updates.source;
+      }
+      if (updates.metadata) {
+        updateData.metadata = updates.metadata;
+      }
+      if (updates.projectPath) {
+        updateData.project_path = updates.projectPath;
+      }
 
       updateData.updated_at = new Date().toISOString();
 
@@ -198,7 +288,7 @@ export class ContextStorageService {
         .from('context_storage')
         .select('*')
         .eq('user_id', userId)
-        .textSearch('content', searchQuery)
+        .textSearch('content', searchQuery, { type: 'websearch' })
         .order('updated_at', { ascending: false })
         .limit(limit);
 
@@ -206,16 +296,36 @@ export class ContextStorageService {
         query = query.eq('category', category);
       }
 
-      const { data, error } = await query;
+      let { data, error } = await query;
 
       if (error) {
-        log.error('Failed to search context in Supabase', LogContext.DATABASE, {
-          error: error.message,
-          searchQuery,
-          userId,
-          category,
-        });
-        return [];
+        // Fallback to ILIKE if websearch fails (e.g., syntax errors)
+        try {
+          const terms = searchQuery
+            .toLowerCase()
+            .split(/\s+/)
+            .filter((t) => t.length > 2)
+            .slice(0, 5);
+          const pattern = `%${terms.join('%')}%`;
+          const fallback = await this.supabase
+            .from('context_storage')
+            .select('*')
+            .eq('user_id', userId)
+            .ilike('content', pattern)
+            .order('updated_at', { ascending: false })
+            .limit(limit);
+          if (!fallback.error) {
+            data = fallback.data || [];
+          }
+        } catch (e) {
+          log.error('Failed to search context in Supabase', LogContext.DATABASE, {
+            error: e instanceof Error ? e.message : String(e),
+            searchQuery,
+            userId,
+            category,
+          });
+          return [];
+        }
       }
 
       log.info('🔍 Context search completed', LogContext.DATABASE, {

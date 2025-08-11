@@ -5,7 +5,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { LogContext, log } from '@/utils/logger';
+
+import { log,LogContext } from '@/utils/logger';
 
 export interface ModelInfo {
   name: string;

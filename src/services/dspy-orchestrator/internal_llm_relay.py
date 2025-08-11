@@ -154,8 +154,11 @@ def get_best_available_lm() -> Optional[LM]:
     if relay_lm:
         return relay_lm
 
-    # Fallback to standard discovery
-    from .llm_discovery import LLMDiscovery
+    # Fallback to standard discovery (support both package and script modes)
+    try:
+        from .llm_discovery import LLMDiscovery  # type: ignore
+    except Exception:  # noqa: BLE001
+        from llm_discovery import LLMDiscovery  # type: ignore
 
     try:
         lm, provider, model = LLMDiscovery.auto_discover()

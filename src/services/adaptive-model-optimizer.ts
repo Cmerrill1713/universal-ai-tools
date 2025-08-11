@@ -3,11 +3,12 @@
  * Uses healing system insights to automatically fine-tune MLX models
  */
 
-import { THREE } from '@/utils/constants';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+
+import { THREE } from '@/utils/constants';
 
 interface HealingPattern {
   id: string;

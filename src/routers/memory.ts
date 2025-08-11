@@ -3,13 +3,16 @@
  * Provides CRUD operations for memories with vector search capabilities
  */
 
-import type { Request, Response } from 'express';
-import { NextFunction, Router } from 'express';
+import { type Request, type Response, Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { LogContext, log } from '@/utils/logger';
+import { z } from 'zod';
+
 import { authenticate } from '@/middleware/auth';
-import { validateRequest } from '@/middleware/express-validator';
-import { body, param, query } from 'express-validator';
+import { validateParams, validateQuery } from '@/middleware/validation';
+import { zodValidate } from '@/middleware/zod-validate';
+import { type MemoryRecord, memoryService, type MemoryType } from '@/services/memory-service';
+import { robustMemoryService } from '@/services/robust-memory-service';
+import { log, LogContext } from '@/utils/logger';
 
 interface Memory {
   id: string;
@@ -28,14 +31,9 @@ interface Memory {
   embedding?: number[]; // Vector embedding for similarity search
 }
 
-interface SearchResult {
-  memory: Memory;
-  score: number;
-  distance?: number;
-}
+// Deprecated local SearchResult type; using service-layer types instead
 
-// In-memory storage for now (should be moved to vector database)
-const memories: Map<string, Memory> = new Map();
+// Supabase-backed memory service
 
 const router = Router();
 
@@ -46,50 +44,39 @@ const router = Router();
 router.get(
   '/',
   authenticate,
-  [
-    query('type').optional().isIn(['conversation', 'knowledge', 'context', 'preference']),
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100'),
-    query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be non-negative'),
-  ],
-  validateRequest,
+  validateQuery(
+    z.object({
+      type: z.enum(['conversation', 'knowledge', 'context', 'preference']).optional(),
+      limit: z.coerce.number().int().min(1).max(100).optional(),
+      offset: z.coerce.number().int().min(0).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
       const { type, limit = 50, offset = 0 } = req.query;
 
-      let userMemories = Array.from(memories.values()).filter((memory) => memory.userId === userId);
-
-      // Filter by type if specified
-      if (type) {
-        userMemories = userMemories.filter((memory) => memory.type === type);
-      }
-
-      // Sort by timestamp (newest first)
-      userMemories.sort(
-        (a, b) =>
-          new Date(b.metadata.timestamp).getTime() - new Date(a.metadata.timestamp).getTime()
+      const userMemories = await memoryService.list(
+        userId,
+        (type as MemoryType) || undefined,
+        Number(limit),
+        Number(offset)
       );
-
-      // Apply pagination
-      const paginatedMemories = userMemories.slice(Number(offset), Number(offset) + Number(limit));
 
       return res.json({
         success: true,
         data: {
-          memories: paginatedMemories.map((memory) => ({
+          memories: userMemories.map((memory: any) => ({
             id: memory.id,
             content: memory.content,
-            type: memory.type,
+            type: memory.category || memory.type,
             metadata: memory.metadata,
           })),
           pagination: {
             total: userMemories.length,
             limit: Number(limit),
             offset: Number(offset),
-            hasMore: Number(offset) + Number(limit) < userMemories.length,
+            hasMore: false,
           },
         },
         metadata: {
@@ -120,15 +107,14 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  [param('id').isUUID().withMessage('Invalid memory ID')],
-  validateRequest,
+  validateParams(z.object({ id: z.string().uuid() })),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userId = (req as any).user?.id || 'anonymous';
 
-      const memory = memories.get(id || '');
-      if (!memory) {
+      const memory = await memoryService.get(userId, id as string);
+      if (!memory || memory.user_id !== userId) {
         return res.status(404).json({
           success: false,
           error: {
@@ -138,27 +124,12 @@ router.get(
         });
       }
 
-      // Check authorization
-      if (memory.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this memory',
-          },
-        });
-      }
-
-      // Update access metadata
-      memory.metadata.accessCount++;
-      memory.metadata.lastAccessed = new Date().toISOString();
-
       return res.json({
         success: true,
         data: {
           id: memory.id,
           content: memory.content,
-          type: memory.type,
+          type: memory.category,
           metadata: memory.metadata,
         },
         metadata: {
@@ -190,53 +161,36 @@ router.get(
 router.post(
   '/',
   authenticate,
-  [
-    body('content').isString().withMessage('Content is required'),
-    body('type')
-      .isIn(['conversation', 'knowledge', 'context', 'preference'])
-      .withMessage('Invalid memory type'),
-    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    body('importance')
-      .optional()
-      .isFloat({ min: 0, max: 1 })
-      .withMessage('Importance must be between 0 and 1'),
-  ],
-  validateRequest,
+  zodValidate(
+    z.object({
+      content: z.string(),
+      type: z.enum(['conversation', 'knowledge', 'context', 'preference']),
+      metadata: z.record(z.any()).optional(),
+      tags: z.array(z.string()).optional(),
+      importance: z.number().min(0).max(1).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
       const { content, type, metadata = {}, tags = [], importance = 0.5 } = req.body;
 
-      const memory: Memory = {
-        id: uuidv4(),
+      const id = await robustMemoryService.save({
         userId,
         content,
         type,
-        metadata: {
-          ...metadata,
-          timestamp: new Date().toISOString(),
-          tags,
-          importance,
-          accessCount: 0,
-        },
-      };
+        metadata,
+        tags,
+        importance,
+        source: 'memory_api',
+      } as MemoryRecord);
 
-      // TODO: Generate vector embedding for the content
-      // memory.embedding = await generateEmbedding(content);
-
-      memories.set(memory.id, memory);
-
-      log.info('Memory created', LogContext.API, {
-        memoryId: memory.id,
-        type: memory.type,
-        userId,
-      });
+      log.info('Memory created', LogContext.API, { memoryId: id, type, userId });
 
       return res.json({
         success: true,
         data: {
-          id: memory.id,
+          id,
           message: 'Memory created successfully',
         },
         metadata: {
@@ -267,24 +221,26 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  [
-    param('id').isUUID().withMessage('Invalid memory ID'),
-    body('content').optional().isString().withMessage('Content must be a string'),
-    body('metadata').optional().isObject().withMessage('Metadata must be an object'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    body('importance')
-      .optional()
-      .isFloat({ min: 0, max: 1 })
-      .withMessage('Importance must be between 0 and 1'),
-  ],
-  validateRequest,
+  validateParams(z.object({ id: z.string().uuid() })),
+  zodValidate(
+    z
+      .object({
+        content: z.string().optional(),
+        metadata: z.record(z.any()).optional(),
+        tags: z.array(z.string()).optional(),
+        importance: z.number().min(0).max(1).optional(),
+      })
+      .refine((data) => Object.keys(data).length > 0, {
+        message: 'At least one field must be provided to update',
+      })
+  ),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userId = (req as any).user?.id || 'anonymous';
       const updates = req.body;
 
-      const memory = memories.get(id || '');
+      const memory = await memoryService.get(userId, id as string);
       if (!memory) {
         return res.status(404).json({
           success: false,
@@ -294,53 +250,8 @@ router.put(
           },
         });
       }
-
-      // Check authorization
-      if (memory.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this memory',
-          },
-        });
-      }
-
-      // Update memory
-      if (updates.content) {
-        memory.content = updates.content;
-        // TODO: Regenerate embedding
-        // memory.embedding = await generateEmbedding(updates.content);
-      }
-
-      if (updates.metadata) {
-        memory.metadata = { ...memory.metadata, ...updates.metadata };
-      }
-
-      if (updates.tags) {
-        memory.metadata.tags = updates.tags;
-      }
-
-      if (updates.importance !== undefined) {
-        memory.metadata.importance = updates.importance;
-      }
-
-      log.info('Memory updated', LogContext.API, {
-        memoryId: id,
-        userId,
-      });
-
-      return res.json({
-        success: true,
-        data: {
-          id: memory.id,
-          message: 'Memory updated successfully',
-        },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
-        },
-      });
+      const ok = await memoryService.update(userId, id as string, updates);
+      return res.json({ success: ok, data: { id, message: 'Memory updated successfully' } });
     } catch (error) {
       log.error('Failed to update memory', LogContext.API, {
         error: error instanceof Error ? error.message : String(error),
@@ -365,14 +276,13 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  [param('id').isUUID().withMessage('Invalid memory ID')],
-  validateRequest,
+  validateParams(z.object({ id: z.string().uuid() })),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const userId = (req as any).user?.id || 'anonymous';
 
-      const memory = memories.get(id || '');
+      const memory = await memoryService.get(userId, id as string);
       if (!memory) {
         return res.status(404).json({
           success: false,
@@ -382,37 +292,8 @@ router.delete(
           },
         });
       }
-
-      // Check authorization
-      if (memory.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'You do not have access to this memory',
-          },
-        });
-      }
-
-      if (id) {
-        memories.delete(id);
-      }
-
-      log.info('Memory deleted', LogContext.API, {
-        memoryId: id,
-        userId,
-      });
-
-      return res.json({
-        success: true,
-        data: {
-          message: 'Memory deleted successfully',
-        },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
-        },
-      });
+      const ok = await memoryService.remove(userId, id as string);
+      return res.json({ success: ok, data: { message: 'Memory deleted successfully' } });
     } catch (error) {
       log.error('Failed to delete memory', LogContext.API, {
         error: error instanceof Error ? error.message : String(error),
@@ -437,79 +318,22 @@ router.delete(
 router.post(
   '/search',
   authenticate,
-  [
-    body('query').isString().withMessage('Query is required'),
-    body('limit')
-      .optional()
-      .isInt({ min: 1, max: 50 })
-      .withMessage('Limit must be between 1 and 50'),
-    body('threshold')
-      .optional()
-      .isFloat({ min: 0, max: 1 })
-      .withMessage('Threshold must be between 0 and 1'),
-    body('types').optional().isArray().withMessage('Types must be an array'),
-  ],
-  validateRequest,
+  zodValidate(
+    z.object({
+      query: z.string().min(1),
+      limit: z.coerce.number().int().min(1).max(50).optional(),
+      threshold: z.number().min(0).max(1).optional(),
+      types: z.array(z.enum(['conversation', 'knowledge', 'context', 'preference'])).optional(),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
-      const { query, limit = 10, threshold = 0.7, types = [] } = req.body;
+      const { query, limit = 10, types = [] } = req.body;
 
-      // Get user memories
-      let userMemories = Array.from(memories.values()).filter((memory) => memory.userId === userId);
-
-      // Filter by types if specified
-      if (types.length > 0) {
-        userMemories = userMemories.filter((memory) => types.includes(memory.type));
-      }
-
-      // TODO: Implement actual vector similarity search
-      // For now, do simple text matching
-      const searchResults: SearchResult[] = userMemories
-        .map((memory) => {
-          const content = memory.content.toLowerCase();
-          const searchQuery = query.toLowerCase();
-          const words = searchQuery.split(' ');
-
-          // Calculate simple relevance score
-          let score = 0;
-          for (const word of words) {
-            if (content.includes(word)) {
-              score += 1 / words.length;
-            }
-          }
-
-          return {
-            memory,
-            score,
-            distance: 1 - score, // Convert to distance metric
-          };
-        })
-        .filter((result) => result.score >= threshold)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
-
-      return res.json({
-        success: true,
-        data: {
-          results: searchResults.map((result) => ({
-            memory: {
-              id: result.memory.id,
-              content: result.memory.content,
-              type: result.memory.type,
-              metadata: result.memory.metadata,
-            },
-            score: result.score,
-            distance: result.distance,
-          })),
-          query,
-          resultsFound: searchResults.length,
-        },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || uuidv4(),
-        },
-      });
+      const typeFilter: MemoryType | undefined = (types?.[0] as MemoryType) || undefined;
+      const rows = await memoryService.search(userId, query as string, typeFilter, Number(limit));
+      return res.json({ success: true, data: { results: rows, query, resultsFound: rows.length } });
     } catch (error) {
       log.error('Memory search failed', LogContext.API, {
         error: error instanceof Error ? error.message : String(error),
@@ -533,16 +357,22 @@ router.post(
 router.post(
   '/bulk',
   authenticate,
-  [
-    body('memories')
-      .isArray({ min: 1, max: 100 })
-      .withMessage('Memories array is required (1-100 items)'),
-    body('memories.*.content').isString().withMessage('Each memory must have content'),
-    body('memories.*.type')
-      .isIn(['conversation', 'knowledge', 'context', 'preference'])
-      .withMessage('Each memory must have a valid type'),
-  ],
-  validateRequest,
+  zodValidate(
+    z.object({
+      memories: z
+        .array(
+          z.object({
+            content: z.string(),
+            type: z.enum(['conversation', 'knowledge', 'context', 'preference']),
+            metadata: z.record(z.any()).optional(),
+            tags: z.array(z.string()).optional(),
+            importance: z.number().min(0).max(1).optional(),
+          })
+        )
+        .min(1)
+        .max(100),
+    })
+  ),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
@@ -565,7 +395,16 @@ router.post(
           },
         };
 
-        memories.set(memory.id, memory);
+        // Persist via service instead of local map
+        await memoryService.save({
+          userId,
+          content: memory.content,
+          type: memory.type as MemoryType,
+          metadata: memory.metadata,
+          source: 'memory_api_bulk',
+          tags: memory.metadata.tags || [],
+          importance: memory.metadata.importance || 0.5,
+        } as MemoryRecord);
         createdMemories.push(memory);
       }
 

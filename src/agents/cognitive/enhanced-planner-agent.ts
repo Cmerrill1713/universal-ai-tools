@@ -3,8 +3,9 @@
  * Uses strategic planning models to create comprehensive task plans
  */
 
-import { EnhancedBaseAgent } from '../enhanced-base-agent';
 import type { AgentContext, PlanPhase } from '@/types';
+
+import { EnhancedBaseAgent } from '../enhanced-base-agent';
 
 export class EnhancedPlannerAgent extends EnhancedBaseAgent {
   protected buildSystemPrompt(): string {

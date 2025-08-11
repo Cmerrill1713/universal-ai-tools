@@ -3,9 +3,10 @@
  * Connects to real Redis instance with fallback to in-memory
  */
 
-import { type RedisClientType, createClient } from 'redis';
+import { createClient,type RedisClientType } from 'redis';
+
 import { config } from '../config/environment';
-import { LogContext, log } from '../utils/logger';
+import { log,LogContext } from '../utils/logger';
 
 class RedisService {
   private client: RedisClientType | null = null;

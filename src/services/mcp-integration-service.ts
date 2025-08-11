@@ -3,14 +3,15 @@
  * Manages the Supabase MCP server process and provides integration with the main application
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
-import { LogContext, log } from '../utils/logger.js';
+
+// Avoid importing fileURLToPath/import.meta in test (CommonJS) environments
+import { log, LogContext } from '../utils/logger.js';
 
 interface MCPMessage {
   id: string;
@@ -108,9 +109,9 @@ export class MCPIntegrationService extends EventEmitter {
       // First, ensure database tables exist
       await this.ensureTablesExist();
 
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      const serverPath = path.join(__dirname, '../mcp/supabase-mcp-server.ts');
+      // Resolve server path without relying on import.meta for Jest compatibility
+      // Resolve path in a Jest-friendly way without import.meta
+      const serverPath = path.join(process.cwd(), 'src/mcp/supabase-mcp-server.ts');
 
       log.info('🚀 Starting Supabase MCP server', LogContext.MCP, {
         serverPath,
@@ -254,6 +255,10 @@ export class MCPIntegrationService extends EventEmitter {
     this.healthStatus.messageCount++;
 
     try {
+      // Temporary: route propose_migration via fallback to get concrete SQL until full MCP response plumbing exists
+      if (method === 'propose_migration') {
+        return await this.fallbackOperation(method, params);
+      }
       if (!this.isConnected || !this.supabaseMCPProcess) {
         log.warn('⚠️ MCP server not connected, using fallback', LogContext.MCP);
         return await this.fallbackOperation(method, params);
@@ -305,6 +310,8 @@ export class MCPIntegrationService extends EventEmitter {
           return await this.fallbackSaveCodePattern(params as any);
         case 'get_code_patterns':
           return await this.fallbackGetCodePatterns(params as any);
+        case 'propose_migration':
+          return await this.fallbackProposeMigration(params as any);
         default:
           throw new Error(`Unsupported fallback method: ${method}`);
       }
@@ -442,6 +449,57 @@ export class MCPIntegrationService extends EventEmitter {
     if (error) throw new Error(`Failed to get code patterns: ${error.message}`);
 
     return { patterns: data || [], count: data?.length || 0 };
+  }
+
+  // Local LLM-backed proposal using Ollama or LM Studio
+  private async fallbackProposeMigration(params: {
+    request: string;
+    notes?: string;
+    model?: string;
+  }): Promise<unknown> {
+    const ollamaBase = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    const lmStudioBase = process.env.LM_STUDIO_BASE_URL; // e.g. http://localhost:1234
+    const model = params.model || process.env.OLLAMA_MODEL || 'llama3.1:8b';
+
+    const prompt = `You are a Postgres SQL migration assistant. Given the request, output ONLY SQL suitable for a Supabase migration file. Avoid destructive changes unless explicitly asked. Request: ${params.request}\nNotes: ${params.notes || ''}`;
+
+    try {
+      // Prefer LM Studio OpenAI-compatible if configured
+      if (lmStudioBase) {
+        const res = await fetch(`${lmStudioBase}/v1/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'Return only SQL. No explanations.' },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.1,
+          }),
+        });
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        return { success: true, sql: text.trim() };
+      }
+
+      // Fallback: Ollama generate
+      const res = await fetch(`${ollamaBase}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          prompt: `Return only SQL (no prose).\n\n${prompt}`,
+          stream: false,
+          options: { temperature: 0.1 },
+        }),
+      });
+      const data = await res.json();
+      const text = data?.response || '';
+      return { success: true, sql: text.trim() };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }
 
   /**

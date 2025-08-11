@@ -39,6 +39,8 @@ struct NativeStatusPanel: View {
             chatStatus
         case .agents:
             agentStatus
+        case .tools:
+            dashboardStatus
         case .mlx:
             mlxStatus
         case .vision:
@@ -53,6 +55,8 @@ struct NativeStatusPanel: View {
             parameterStatus
         case .knowledge:
             knowledgeStatus
+        case .debugging:
+            debuggingStatus
         }
     }
 
@@ -300,6 +304,22 @@ struct NativeStatusPanel: View {
                 Spacer()
                 Text("Up to date")
                     .foregroundColor(.green)
+            }
+        }
+    }
+
+    private var debuggingStatus: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("Debug Console:")
+                Spacer()
+                Text(appState.backendConnected ? "Ready" : "Offline").foregroundColor(appState.backendConnected ? .green : .red)
+            }
+
+            HStack {
+                Text("Recent Tasks:")
+                Spacer()
+                Text("—")
             }
         }
     }

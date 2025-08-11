@@ -4,10 +4,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
-import crypto from 'crypto';
-import { LogContext, log } from '@/utils/logger';
+
+import { log,LogContext } from '@/utils/logger';
 
 interface MigrationResult {
   success: boolean;
