@@ -7,6 +7,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { TaskType } from '@/types';
+
 import { config } from '../config/environment';
 import { BayesianModel } from '../utils/bayesian-model';
 import { TWO } from '../utils/constants';
@@ -14,7 +16,6 @@ import { log,LogContext } from '../utils/logger';
 import { ThompsonSelector } from '../utils/thompson-sampling';
 import { autonomousActionLoopService } from './autonomous-action-loop-service';
 import type { TaskContext, TaskParameters, UserPreferences } from './intelligent-parameter-service';
-import { TaskType } from './intelligent-parameter-service';
 import type { OptimizationInsight } from './parameter-analytics-service';
 import { parameterAnalyticsService } from './parameter-analytics-service';
 

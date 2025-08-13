@@ -92,7 +92,7 @@ struct StandaloneWelcomeView: View {
                     icon: "person.3",
                     color: .green
                 ) {
-                    appState.showAgentSelector = true
+                    appState.openAgentSelectorWindow()
                 }
 
                 QuickActionCard(

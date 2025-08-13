@@ -22,6 +22,3 @@ extension Notification.Name {
     static let mcpResourceUpdated = Notification.Name("mcpResourceUpdated")
     static let mcpToolListChanged = Notification.Name("mcpToolListChanged")
 }
-
-
-

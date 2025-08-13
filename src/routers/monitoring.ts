@@ -110,7 +110,21 @@ router.get('/health/detailed', async (req, res) => {
 
     // Calculate health check duration
     metrics.healthCheckDuration = Date.now() - startTime;
-    res.json(metrics);
+    
+    // Format response to match what APIService expects (same as /metrics)
+    const systemMetrics = metrics.system;
+    const totalMem = systemMetrics.memory.total;
+    const usedMem = systemMetrics.memory.used;
+    
+    const formattedResponse = {
+      cpuUsage: systemMetrics.cpu.usage?.[0] ? systemMetrics.cpu.usage[0] * 10 : 0, // Convert load avg to percentage estimate
+      memoryUsage: (usedMem / totalMem) * 100,
+      uptime: systemMetrics.cpu.uptime,
+      requestsPerMinute: metrics.requests.total,
+      activeConnections: 1 // Default value
+    };
+    
+    res.json(formattedResponse);
   } catch (error) {
     log.error('❌ Health check failed', LogContext.SERVER, {
       error: error instanceof Error ? error.message : String(error),
@@ -376,6 +390,38 @@ router.get('/diagnostics', async (req, res) => {
     ...diagnostics,
     overallStatus: allHealthy ? 'healthy' : 'degraded',
   });
+});
+
+// Simple metrics endpoint that matches what APIService expects
+router.get('/metrics', async (req, res) => {
+  try {
+    const systemMetrics = getSystemMetrics();
+    const totalMem = systemMetrics.memory.total;
+    const usedMem = systemMetrics.memory.used;
+    
+    // Format to match APISystemMetrics interface
+    const metrics = {
+      cpuUsage: systemMetrics.cpu.usage?.[0] ? systemMetrics.cpu.usage[0] * 10 : 0, // Convert load avg to percentage estimate
+      memoryUsage: (usedMem / totalMem) * 100,
+      uptime: systemMetrics.cpu.uptime,
+      requestsPerMinute: 0, // Would be tracked by middleware
+      activeConnections: 1 // Default value
+    };
+
+    res.json(metrics);
+  } catch (error) {
+    log.error('Failed to get metrics', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    
+    res.status(500).json({
+      cpuUsage: 0,
+      memoryUsage: 0,
+      uptime: 0,
+      requestsPerMinute: 0,
+      activeConnections: 0
+    });
+  }
 });
 
 export default router;

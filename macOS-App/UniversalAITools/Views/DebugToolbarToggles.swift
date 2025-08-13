@@ -17,5 +17,3 @@ struct DebugToolbarToggles: View {
 #Preview {
     DebugToolbarToggles().environmentObject(AppState())
 }
-
-

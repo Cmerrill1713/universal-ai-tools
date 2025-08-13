@@ -162,17 +162,34 @@ struct WebContainerView: NSViewRepresentable {
                 case "navigate":
                     if let route = data["route"] as? String {
                         switch route {
-                        case "/": parent.appState.selectedSidebarItem = .dashboard
+                        case "/", "/dashboard": parent.appState.selectedSidebarItem = .chat
                         case "/chat": parent.appState.selectedSidebarItem = .chat
-                        case "/agents": parent.appState.selectedSidebarItem = .agents
-                        case "/mlx": parent.appState.selectedSidebarItem = .mlx
-                        case "/vision": parent.appState.selectedSidebarItem = .vision
-                        case "/monitoring": parent.appState.selectedSidebarItem = .monitoring
-                        case "/ab-mcts": parent.appState.selectedSidebarItem = .abMcts
-                        case "/malt-swarm": parent.appState.selectedSidebarItem = .maltSwarm
-                        case "/parameters": parent.appState.selectedSidebarItem = .parameters
-                        case "/knowledge": parent.appState.selectedSidebarItem = .knowledge
-                        case "/debug": parent.appState.selectedSidebarItem = .debugging
+                        case "/agents", "/objectives": parent.appState.selectedSidebarItem = .objectives
+                        case "/tools": parent.appState.selectedSidebarItem = .tools
+                        case "/mlx":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .mlx
+                        case "/vision":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .vision
+                        case "/monitoring":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .monitoring
+                        case "/ab-mcts":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .abMcts
+                        case "/malt-swarm":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .maltSwarm
+                        case "/parameters":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .parameters
+                        case "/knowledge":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .knowledge
+                        case "/debug":
+                            parent.appState.selectedSidebarItem = .tools
+                            parent.appState.selectedTool = .debugging
                         default: break
                         }
                     }
@@ -193,9 +210,12 @@ struct WebContainerView: NSViewRepresentable {
                             let response = try await parent.apiService.sendChatMessage(message, chatId: chatId)
                             let jsonData = try JSONEncoder().encode(response)
                             let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
-                            executeJavaScript("window.swiftBridge._handleResponse('\(data["requestId"] ?? "")', \(jsonString), null)")
+                            let requestId = data["requestId"] ?? ""
+                            executeJavaScript("window.swiftBridge._handleResponse('\(requestId)', \(jsonString), null)")
                         } catch {
-                            executeJavaScript("window.swiftBridge._handleResponse('\(data["requestId"] ?? "")', null, '\(error.localizedDescription)')")
+                            let requestId = data["requestId"] ?? ""
+                            let errorMsg = error.localizedDescription
+                            executeJavaScript("window.swiftBridge._handleResponse('\(requestId)', null, '\(errorMsg)')")
                         }
                     }
 
@@ -213,7 +233,7 @@ struct WebContainerView: NSViewRepresentable {
                   let contentView = window.contentView,
                   let webView = findWebView(in: contentView) else { return }
 
-            webView.evaluateJavaScript(script) { result, error in
+            webView.evaluateJavaScript(script) { _, error in
                 if let error = error {
                     print("JavaScript execution error:", error)
                 }
@@ -275,7 +295,12 @@ struct WebContainerView: NSViewRepresentable {
 
         // MARK: - WKUIDelegate
 
-        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        func webView(
+            _ webView: WKWebView,
+            createWebViewWith configuration: WKWebViewConfiguration,
+            for navigationAction: WKNavigationAction,
+            windowFeatures: WKWindowFeatures
+        ) -> WKWebView? {
             // Handle window.open() calls
             if navigationAction.targetFrame == nil {
                 webView.load(navigationAction.request)
@@ -283,25 +308,51 @@ struct WebContainerView: NSViewRepresentable {
             return nil
         }
 
-        func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
-            let alert = NSAlert()
-            alert.messageText = "Universal AI Tools"
-            alert.informativeText = message
-            alert.alertStyle = .informational
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
-            completionHandler()
+        func webView(
+            _ webView: WKWebView,
+            runJavaScriptAlertPanelWithMessage message: String,
+            initiatedByFrame frame: WKFrameInfo,
+            completionHandler: @escaping () -> Void
+        ) {
+            // Use async dispatch to avoid blocking and potential freeze
+            DispatchQueue.main.async { [weak self] in
+                guard self != nil else {
+                    completionHandler()
+                    return
+                }
+
+                let alert = NSAlert()
+                alert.messageText = "Universal AI Tools"
+                alert.informativeText = message
+                alert.alertStyle = .informational
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+                completionHandler()
+            }
         }
 
-        func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
-            let alert = NSAlert()
-            alert.messageText = "Universal AI Tools"
-            alert.informativeText = message
-            alert.alertStyle = .informational
-            alert.addButton(withTitle: "OK")
-            alert.addButton(withTitle: "Cancel")
+        func webView(
+            _ webView: WKWebView,
+            runJavaScriptConfirmPanelWithMessage message: String,
+            initiatedByFrame frame: WKFrameInfo,
+            completionHandler: @escaping (Bool) -> Void
+        ) {
+            // Use async dispatch to avoid blocking and potential freeze
+            DispatchQueue.main.async { [weak self] in
+                guard self != nil else {
+                    completionHandler(false)
+                    return
+                }
 
-            completionHandler(alert.runModal() == .alertFirstButtonReturn)
+                let alert = NSAlert()
+                alert.messageText = "Universal AI Tools"
+                alert.informativeText = message
+                alert.alertStyle = .informational
+                alert.addButton(withTitle: "OK")
+                alert.addButton(withTitle: "Cancel")
+
+                completionHandler(alert.runModal() == .alertFirstButtonReturn)
+            }
         }
     }
 }

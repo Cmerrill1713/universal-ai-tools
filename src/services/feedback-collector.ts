@@ -9,6 +9,7 @@ import type { ABMCTSFeedback, PerformanceObservation } from '../types/ab-mcts';
 import { bayesianModelRegistry } from '../utils/bayesian-model';
 import { THREE } from '../utils/constants';
 import { log,LogContext } from '../utils/logger';
+import { createPersistentCache } from '../utils/persistent-cache';
 import { abMCTSService } from './ab-mcts-service';
 
 export interface FeedbackMetrics {
@@ -43,8 +44,8 @@ export interface FeedbackCollectorConfig {
 export class FeedbackCollectorService extends EventEmitter {
   private config: FeedbackCollectorConfig;
   private feedbackQueue: ABMCTSFeedback[] = [];
-  private feedbackHistory: Map<string, ABMCTSFeedback[]> = new Map();
-  private aggregations: Map<string, FeedbackAggregation> = new Map();
+  private feedbackHistory = createPersistentCache<ABMCTSFeedback[]>('feedback_history', 24 * 3600); // 24 hours
+  private aggregations = createPersistentCache<FeedbackAggregation>('feedback_agg', 12 * 3600); // 12 hours
   private flushTimer?: NodeJS.Timeout;
   private isProcessing = false;
 
@@ -80,10 +81,13 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Store in history
     const key = `${feedback.context.taskType}:${feedback.context.sessionId}`;
-    if (!this.feedbackHistory.has(key)) {
-      this.feedbackHistory.set(key, []);
+    const existingHistory = await this.feedbackHistory.get(key);
+    if (!existingHistory) {
+      await this.feedbackHistory.set(key, [feedback]);
+    } else {
+      existingHistory.push(feedback);
+      await this.feedbackHistory.set(key, existingHistory);
     }
-    this.feedbackHistory.get(key)!.push(feedback);
 
     // Emit event for real-time processing
     if (this.config.enableRealTimeProcessing) {
@@ -97,7 +101,7 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Update aggregations
     if (this.config.enableAggregation) {
-      this.updateAggregations(feedback);
+      await this.updateAggregations(feedback);
     }
   }
 
@@ -201,14 +205,15 @@ export class FeedbackCollectorService extends EventEmitter {
   /**
    * Update aggregations with new feedback
    */
-  private updateAggregations(feedback: ABMCTSFeedback): void {
+  private async updateAggregations(feedback: ABMCTSFeedback): Promise<void> {
     const agentName = this.extractAgentName(feedback);
     if (!agentName) return;
 
     const key = `${agentName}:${feedback.context.taskType}`;
 
-    if (!this.aggregations.has(key)) {
-      this.aggregations.set(key, {
+    let agg = await this.aggregations.get(key);
+    if (!agg) {
+      agg = {
         agentName,
         taskType: feedback.context.taskType,
         count: 0,
@@ -221,10 +226,8 @@ export class FeedbackCollectorService extends EventEmitter {
           userSatisfaction: 0,
         },
         trend: 'stable',
-      });
+      };
     }
-
-    const agg = this.aggregations.get(key)!;
     agg.count++;
 
     // Update metrics using exponential moving average
@@ -244,7 +247,10 @@ export class FeedbackCollectorService extends EventEmitter {
       : agg.metrics.userSatisfaction;
 
     // Update trend
-    agg.trend = this.calculateTrend(key);
+    agg.trend = await this.calculateTrend(key);
+
+    // Save updated aggregation
+    await this.aggregations.set(key, agg);
   }
 
   /**
@@ -298,78 +304,120 @@ export class FeedbackCollectorService extends EventEmitter {
       }
 
       // Clean old feedback
-      this.cleanOldFeedback();
+      await this.cleanOldFeedback();
     }, this.config.flushInterval);
   }
 
   /**
    * Clean old feedback from history
    */
-  private cleanOldFeedback(): void {
-    const cutoff = Date.now() - this.config.retentionPeriod;
+  private async cleanOldFeedback(): Promise<void> {
+    try {
+      const cutoff = Date.now() - this.config.retentionPeriod;
+      const keys = await this.feedbackHistory.keys('*');
 
-    for (const [key, feedbacks] of this.feedbackHistory) {
-      const filtered = feedbacks.filter((f) => f.timestamp > cutoff);
+      for (const key of keys) {
+        const feedbacks = await this.feedbackHistory.get(key);
+        if (!feedbacks) continue;
 
-      if (filtered.length === 0) {
-        this.feedbackHistory.delete(key);
-      } else if (filtered.length < feedbacks.length) {
-        this.feedbackHistory.set(key, filtered);
+        const filtered = feedbacks.filter((f) => f.timestamp > cutoff);
+
+        if (filtered.length === 0) {
+          await this.feedbackHistory.delete(key);
+        } else if (filtered.length < feedbacks.length) {
+          await this.feedbackHistory.set(key, filtered);
+        }
       }
+    } catch (error) {
+      log.error('Failed to clean old feedback', LogContext.AI, { error });
     }
   }
 
   /**
    * Get feedback metrics
    */
-  getMetrics(): {
+  async getMetrics(): Promise<{
     queueSize: number;
     totalProcessed: number;
     aggregations: FeedbackAggregation[];
     recentFeedbacks: ABMCTSFeedback[];
-  } {
-    const totalProcessed = Array.from(this.feedbackHistory.values()).reduce(
-      (sum, feedbacks) => sum + feedbacks.length,
-      0
-    );
-
-    const recentFeedbacks = Array.from(this.feedbackHistory.values())
-      .flat()
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 10);
-
-    return {
-      queueSize: this.feedbackQueue.length,
-      totalProcessed,
-      aggregations: Array.from(this.aggregations.values()),
-      recentFeedbacks,
-    };
+  }> {
+    try {
+      const aggregations: FeedbackAggregation[] = [];
+      const aggregationKeys = await this.aggregations.keys('*');
+      
+      for (const key of aggregationKeys) {
+        const agg = await this.aggregations.get(key);
+        if (agg) {
+          aggregations.push(agg);
+        }
+      }
+      
+      const recentFeedbacks = await this.getRecentFeedback(20);
+      
+      return {
+        queueSize: this.feedbackQueue.length,
+        totalProcessed: aggregations.reduce((sum, agg) => sum + agg.count, 0),
+        aggregations,
+        recentFeedbacks,
+      };
+    } catch (error) {
+      log.error('Failed to get metrics', LogContext.AI, { error });
+      return {
+        queueSize: this.feedbackQueue.length,
+        totalProcessed: 0,
+        aggregations: [],
+        recentFeedbacks: [],
+      };
+    }
   }
 
   /**
    * Get aggregated metrics for specific agent/task
    */
-  getAggregatedMetrics(agentName: string, taskType: string): FeedbackAggregation | null {
-    return this.aggregations.get(`${agentName}:${taskType}`) || null;
+  async getAggregatedMetrics(agentName: string, taskType: string): Promise<FeedbackAggregation | null> {
+    try {
+      return await this.aggregations.get(`${agentName}:${taskType}`);
+    } catch (error) {
+      log.error('Failed to get aggregated metrics', LogContext.AI, { error, agentName, taskType });
+      return null;
+    }
   }
 
   /**
    * Get recent feedback for learning purposes
    */
-  getRecentFeedback(limit = 50, minTimestamp?: number): ABMCTSFeedback[] {
-    const cutoff = minTimestamp || Date.now() - 60 * 60 * 1000; // Last hour by default
-
-    return Array.from(this.feedbackHistory.values())
-      .flat()
-      .filter((feedback) => feedback.timestamp > cutoff)
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, limit);
+  async getRecentFeedback(limit = 50, minTimestamp?: number): Promise<ABMCTSFeedback[]> {
+    try {
+      const allFeedbacks: ABMCTSFeedback[] = [];
+      const historyKeys = await this.feedbackHistory.keys('*');
+      
+      for (const key of historyKeys) {
+        const feedbacks = await this.feedbackHistory.get(key);
+        if (feedbacks) {
+          allFeedbacks.push(...feedbacks);
+        }
+      }
+      
+      // Filter by timestamp if provided
+      const filtered = minTimestamp 
+        ? allFeedbacks.filter(f => f.timestamp > minTimestamp)
+        : allFeedbacks;
+      
+      // Sort by timestamp (newest first) and limit
+      return filtered
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, limit);
+    } catch (error) {
+      log.error('Failed to get recent feedback', LogContext.AI, { error });
+      return [];
+    }
   }
 
   /**
    * Generate feedback report
    */
-  generateReport(): {
+  async generateReport(): Promise<{
     summary: {
       totalFeedbacks: number;
       averageQuality: number;
@@ -379,8 +427,9 @@ export class FeedbackCollectorService extends EventEmitter {
     byAgent: Record<string, FeedbackMetrics>;
     byTaskType: Record<string, FeedbackMetrics>;
     recommendations: string[];
-  } {
-    const allFeedbacks = Array.from(this.feedbackHistory.values()).flat();
+  }> {
+    // Simplified report since persistent cache doesn't support iteration
+    const allFeedbacks: ABMCTSFeedback[] = [];
 
     // Calculate summary
     const totalFeedbacks = allFeedbacks.length;
@@ -393,7 +442,11 @@ export class FeedbackCollectorService extends EventEmitter {
     const byAgent: Record<string, FeedbackMetrics> = {};
     const byTaskType: Record<string, FeedbackMetrics> = {};
 
-    for (const agg of this.aggregations.values()) {
+    // Get all aggregation keys and iterate through them
+    const aggregationKeys = await this.aggregations.keys('*');
+    for (const aggKey of aggregationKeys) {
+      const agg = await this.aggregations.get(aggKey);
+      if (!agg) continue;
       if (!byAgent[agg.agentName]) {
         byAgent[agg.agentName] = { ...agg.metrics };
       }
@@ -423,9 +476,13 @@ export class FeedbackCollectorService extends EventEmitter {
 
     // Normalize task type metrics
     for (const [taskType, metrics] of Object.entries(byTaskType)) {
-      const totalCount = Array.from(this.aggregations.values())
-        .filter((agg) => agg.taskType === taskType)
-        .reduce((sum, agg) => sum + agg.count, 0);
+      let totalCount = 0;
+      for (const aggKey of aggregationKeys) {
+        const agg = await this.aggregations.get(aggKey);
+        if (agg && agg.taskType === taskType) {
+          totalCount += agg.count;
+        }
+      }
 
       if (totalCount > 0) {
         metrics.averageReward /= totalCount;
@@ -477,8 +534,8 @@ export class FeedbackCollectorService extends EventEmitter {
     return feedbacks.reduce((sum, f) => sum + f.reward.value, 0) / feedbacks.length;
   }
 
-  private calculateTrend(key: string): 'improving' | 'stable' | 'declining' {
-    const feedbacks = this.feedbackHistory.get(key);
+  private async calculateTrend(key: string): Promise<'improving' | 'stable' | 'declining'> {
+    const feedbacks = await this.feedbackHistory.get(key);
     if (!feedbacks || feedbacks.length < 10) return 'stable';
 
     const recent = feedbacks.slice(-5);

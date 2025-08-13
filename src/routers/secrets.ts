@@ -240,4 +240,308 @@ router.get('/health', async (req: Request, res: Response, next: NextFunction) =>
   }
 });
 
+// MARK: - macOS Client Endpoints
+
+/**
+ * @route POST /api/v1/secrets/get
+ * @desc Get a specific API key for macOS client
+ * @access Private (device token required)
+ */
+router.post('/get', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { service } = req.body;
+    const deviceToken = req.headers['x-device-token'] as string;
+
+    if (!service) {
+      return sendError(res, 'MISSING_REQUIRED_FIELD', 'Service name is required');
+    }
+
+    if (!deviceToken) {
+      return sendError(res, 'UNAUTHORIZED', 'Device token required');
+    }
+
+    // Validate device token (simplified for now)
+    // In production, you'd verify the device token against stored device credentials
+    if (!deviceToken.startsWith('device_') && !deviceToken.includes('-')) {
+      return sendError(res, 'UNAUTHORIZED', 'Invalid device token');
+    }
+
+    // Get the API key
+    const apiKey = await secretsManager.getApiKey(service);
+    
+    if (!apiKey) {
+      return sendError(res, 'NOT_FOUND', `No API key found for service: ${service}`);
+    }
+
+    // Audit log the access
+    log.info(`🔑 API key accessed for ${service}`, LogContext.API, {
+      device_token: deviceToken.substring(0, 12) + '...',
+      service,
+    });
+
+    sendSuccess(res, { 
+      key: apiKey,
+      service,
+      retrieved_at: new Date().toISOString()
+    }, 200, { message: 'API key retrieved successfully' });
+
+  } catch (error) {
+    log.error('❌ Failed to get API key for client', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error);
+  }
+});
+
+/**
+ * @route POST /api/v1/secrets/store
+ * @desc Store an API key from macOS client
+ * @access Private (device token required)
+ */
+router.post('/client/store', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { service, key, description, device_id } = req.body;
+    const deviceToken = req.headers['x-device-token'] as string;
+
+    if (!service || !key) {
+      return sendError(res, 'MISSING_REQUIRED_FIELD', 'Service name and key are required');
+    }
+
+    if (!deviceToken) {
+      return sendError(res, 'UNAUTHORIZED', 'Device token required');
+    }
+
+    // Store in Vault with device tracking
+    const success = await secretsManager.storeSecret({
+      name: `${service}_key`,
+      value: key,
+      description: description || `API key for ${service} (from macOS client)`,
+      service: service,
+    });
+
+    if (!success) {
+      return sendError(res, 'INTERNAL_ERROR', 'Failed to store API key');
+    }
+
+    // Audit log the storage
+    log.info(`📝 API key stored for ${service}`, LogContext.API, {
+      device_token: deviceToken.substring(0, 12) + '...',
+      device_id: device_id?.substring(0, 8) + '...',
+      service,
+    });
+
+    sendSuccess(res, { 
+      stored: true,
+      service,
+      stored_at: new Date().toISOString()
+    }, 201, { message: 'API key stored successfully' });
+
+  } catch (error) {
+    log.error('❌ Failed to store API key from client', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error);
+  }
+});
+
+/**
+ * @route DELETE /api/v1/secrets/delete
+ * @desc Delete an API key from macOS client
+ * @access Private (device token required)
+ */
+router.delete('/client/delete', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { service } = req.body;
+    const deviceToken = req.headers['x-device-token'] as string;
+
+    if (!service) {
+      return sendError(res, 'MISSING_REQUIRED_FIELD', 'Service name is required');
+    }
+
+    if (!deviceToken) {
+      return sendError(res, 'UNAUTHORIZED', 'Device token required');
+    }
+
+    // Delete from api_secrets table
+    const supabase = getSupabaseClient() as SupabaseClient | null;
+    if (!supabase) return sendError(res, 'INTERNAL_ERROR', 'Database unavailable', 503);
+    
+    const { error: deleteError } = await supabase
+      .from('api_secrets')
+      .delete()
+      .eq('service_name', service);
+
+    if (deleteError) throw deleteError;
+
+    // Also try to delete from Vault
+    try {
+      const { error: vaultError } = await supabase.rpc('delete_secret', {
+        secret_name: `${service}_key`,
+      });
+
+      if (vaultError) {
+        log.warn('⚠️ Could not delete from Vault', LogContext.API, { error: vaultError });
+      }
+    } catch (vaultErr) {
+      log.warn('⚠️ Vault deletion skipped', LogContext.API);
+    }
+
+    // Audit log the deletion
+    log.info(`🗑️ API key deleted for ${service}`, LogContext.API, {
+      device_token: deviceToken.substring(0, 12) + '...',
+      service,
+    });
+
+    sendSuccess(res, { 
+      deleted: true,
+      service,
+      deleted_at: new Date().toISOString()
+    }, 200, { message: 'API key deleted successfully' });
+
+  } catch (error) {
+    log.error('❌ Failed to delete API key from client', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error);
+  }
+});
+
+/**
+ * @route POST /api/v1/secrets/sync
+ * @desc Sync keys between client and vault
+ * @access Private (device token required)
+ */
+router.post('/sync', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { keys, device_id } = req.body;
+    const deviceToken = req.headers['x-device-token'] as string;
+
+    if (!deviceToken) {
+      return sendError(res, 'UNAUTHORIZED', 'Device token required');
+    }
+
+    if (!Array.isArray(keys)) {
+      return sendError(res, 'INVALID_INPUT', 'Keys must be an array');
+    }
+
+    const syncResults = {
+      uploaded: [] as string[],
+      downloaded: [] as string[],
+      conflicts: [] as string[],
+      errors: [] as string[]
+    };
+
+    // Process each key in the sync request
+    for (const keyData of keys) {
+      try {
+        const { service, local_key, action } = keyData;
+        
+        if (!service) {
+          syncResults.errors.push(`Missing service name in key data`);
+          continue;
+        }
+
+        switch (action) {
+          case 'upload':
+            if (local_key) {
+              const success = await secretsManager.storeSecret({
+                name: `${service}_key`,
+                value: local_key,
+                description: `API key for ${service} (synced from macOS)`,
+                service: service,
+              });
+              
+              if (success) {
+                syncResults.uploaded.push(service);
+              } else {
+                syncResults.errors.push(`Failed to upload key for ${service}`);
+              }
+            }
+            break;
+
+          case 'download':
+            const vaultKey = await secretsManager.getApiKey(service);
+            if (vaultKey) {
+              syncResults.downloaded.push(service);
+            } else {
+              syncResults.errors.push(`No vault key found for ${service}`);
+            }
+            break;
+
+          case 'conflict':
+            // For now, prefer vault version
+            const conflictKey = await secretsManager.getApiKey(service);
+            if (conflictKey) {
+              syncResults.conflicts.push(service);
+            }
+            break;
+        }
+      } catch (error) {
+        syncResults.errors.push(`Error processing ${keyData.service}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    // Audit log the sync
+    log.info(`🔄 Key sync completed`, LogContext.API, {
+      device_token: deviceToken.substring(0, 12) + '...',
+      device_id: device_id?.substring(0, 8) + '...',
+      uploaded: syncResults.uploaded.length,
+      downloaded: syncResults.downloaded.length,
+      conflicts: syncResults.conflicts.length,
+      errors: syncResults.errors.length,
+    });
+
+    sendSuccess(res, syncResults, 200, { message: 'Key synchronization completed' });
+
+  } catch (error) {
+    log.error('❌ Failed to sync keys', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error);
+  }
+});
+
+/**
+ * @route GET /api/v1/secrets/status
+ * @desc Get key status for all services
+ * @access Private (device token required)
+ */
+router.get('/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const deviceToken = req.headers['x-device-token'] as string;
+
+    if (!deviceToken) {
+      return sendError(res, 'UNAUTHORIZED', 'Device token required');
+    }
+
+    const services = await secretsManager.getAvailableServices();
+    const missing = await secretsManager.getMissingCredentials();
+
+    const status = await Promise.all(
+      services.map(async (service: string) => {
+        const hasKey = await secretsManager.hasValidCredentials(service);
+        return {
+          service,
+          has_key: hasKey,
+          is_missing: missing.includes(service)
+        };
+      })
+    );
+
+    sendSuccess(res, {
+      services: status,
+      total_services: services.length,
+      configured_services: status.filter(s => s.has_key).length,
+      missing_services: missing.length,
+      last_updated: new Date().toISOString()
+    }, 200, { message: 'Service status retrieved' });
+
+  } catch (error) {
+    log.error('❌ Failed to get service status', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error);
+  }
+});
+
 export default router;

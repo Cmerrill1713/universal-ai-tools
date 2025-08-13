@@ -407,8 +407,10 @@ router.post(
       // Update conversation metadata
       conversation.updatedAt = new Date().toISOString();
       conversation.metadata.totalTokens += assistantMessage.metadata?.tokens || 0;
-      conversation.metadata.agentUsage[agentName] =
-        (conversation.metadata.agentUsage[agentName] || 0) + 1;
+      const currentUsage = Object.prototype.hasOwnProperty.call(conversation.metadata.agentUsage, agentName) 
+        ? conversation.metadata.agentUsage[agentName] 
+        : 0;
+      Object.assign(conversation.metadata.agentUsage, { [agentName]: currentUsage + 1 });
 
       return res.json({
         success: true,
@@ -437,6 +439,72 @@ router.post(
           code: 'CHAT_ERROR',
           message: 'Failed to process chat message',
           details: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/chat/cancel
+ * Cancel an ongoing chat request
+ */
+router.post(
+  '/cancel',
+  authenticate,
+  zodValidate(
+    z.object({
+      conversationId: z.string().uuid(),
+    })
+  ),
+  async (req: Request, res: Response) => {
+    try {
+      const { conversationId } = req.body;
+      const userId = (req as any).user?.id || 'anonymous';
+
+      log.info('Chat cancellation requested', LogContext.API, {
+        conversationId,
+        userId,
+      });
+
+      // Check if conversation exists and user has access
+      const conversation = conversations.get(conversationId);
+      if (conversation && conversation.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'You do not have access to this conversation',
+          },
+        });
+      }
+
+      // TODO: Implement actual cancellation logic
+      // This would involve cancelling any ongoing AI processing
+      // For now, we just acknowledge the cancellation request
+
+      return res.json({
+        success: true,
+        data: {
+          message: 'Chat cancellation request received',
+          conversationId,
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || uuidv4(),
+        },
+      });
+    } catch (error) {
+      log.error('Failed to cancel chat', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+        conversationId: req.body?.conversationId,
+      });
+
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'CANCELLATION_ERROR',
+          message: 'Failed to cancel chat request',
         },
       });
     }

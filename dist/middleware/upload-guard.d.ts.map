@@ -1,0 +1,1 @@
+{"version":3,"file":"upload-guard.d.ts","sourceRoot":"","sources":["../../src/middleware/upload-guard.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,YAAY,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAuD/D,wBAAgB,WAAW,CAAC,OAAO,CAAC,EAAE;IAAE,OAAO,CAAC,EAAE,MAAM,CAAA;CAAE,SAE3C,OAAO,OAAO,QAAQ,QAAQ,YAAY,+CA2BxD;AAED,eAAe,WAAW,CAAC"}

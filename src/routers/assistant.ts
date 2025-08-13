@@ -18,6 +18,7 @@ import { contextStorageService } from '../services/context-storage-service.js';
 import { dspyService } from '../services/dspy-service.js';
 import { ollamaService } from '../services/ollama-service.js';
 import { semanticContextRetrievalService } from '../services/semantic-context-retrieval.js';
+import { unifiedModelService } from '../services/unified-model-service.js';
 import { log, LogContext } from '../utils/logger.js';
 
 const router = Router();
@@ -46,7 +47,7 @@ router.post(
     const startTime = Date.now();
 
     try {
-      const userId = (req as any).user?.id || 'anonymous';
+      const userId = req.user?.id || 'anonymous';
       const {
         message,
         sessionId,
@@ -123,10 +124,50 @@ router.post(
         }
 
         if (!assistantText) {
-          const llmResponse = await ollamaService.generateResponse(messages);
-          assistantText =
-            llmResponse?.message?.content ||
-            "I'm here to help, but I couldn't generate a response.";
+          try {
+            // Use unified model service for dynamic routing
+            const unifiedResponse = await unifiedModelService.generate({
+              prompt: message,
+              systemPrompt: systemPreamble + contextBlock,
+              taskType: 'conversation',
+              priority: 'balanced',
+              maxTokens: 2048,
+              temperature: 0.7,
+            });
+            
+            assistantText = unifiedResponse.content || '';
+            
+            // Log routing decision for debugging
+            log.info('Assistant used model', LogContext.AI, {
+              model: unifiedResponse.model.id,
+              provider: unifiedResponse.model.provider,
+              latency: unifiedResponse.metrics.latencyMs,
+              tokensPerSecond: unifiedResponse.metrics.tokensPerSecond,
+            });
+            
+            // If response is empty or too short, provide a fallback
+            if (!assistantText || assistantText.length < 10) {
+              assistantText = "I'm a versatile AI assistant that can help you with:\n\n" +
+                "• Code generation and debugging\n" +
+                "• Text analysis and summarization\n" +
+                "• Data processing and analysis\n" +
+                "• Research and information gathering\n" +
+                "• Creative writing and content generation\n" +
+                "• Problem-solving and brainstorming\n\n" +
+                "Feel free to ask me anything!";
+            }
+          } catch (error) {
+            log.warn('Unified model service error, falling back to Ollama directly', LogContext.AI, { error });
+            
+            // Fallback to direct Ollama call
+            try {
+              const llmResponse = await ollamaService.generateResponse(messages);
+              assistantText = llmResponse?.message?.content || '';
+            } catch (ollamaError) {
+              log.warn('Ollama error, using fallback', LogContext.AI, { error: ollamaError });
+              assistantText = "I'm here to help! I can assist with coding, analysis, writing, and many other tasks. What would you like to work on?";
+            }
+          }
         }
         // Factuality guard
         try {

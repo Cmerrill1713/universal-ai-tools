@@ -1,0 +1,193 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+
+  "eslint.enable": true,
+  "eslint.packageManager": "npm",
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.runtime": "node",
+  "eslint.useFlatConfig": true,
+
+  "prettier.requireConfig": true,
+  "prettier.configPath": ".prettierrc.json",
+
+  "jest.enableInlineErrorMessages": true,
+  "jest.jestCommandLine": "npm test --",
+  "jest.rootPath": ".",
+
+  "files.associations": {
+    "*.cjs": "javascript"
+  },
+  "files.exclude": {
+    "**/dist": true,
+    "**/build": true,
+    "**/.git": true,
+    "**/.next": true,
+    "**/coverage": true,
+    "**/venv": true,
+    "**/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/node_modules/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true
+  },
+  "search.exclude": {
+    "**/dist": true,
+    "**/build": true,
+    "**/coverage": true,
+    "**/node_modules": true,
+    "**/venv": true
+  },
+
+  "yaml.schemas": {
+    "kubernetes": "*.k8s.yaml"
+  },
+
+  "docker.languageserver.formatter.ignoreMultilineInstructions": true,
+
+  "gitlens.showWelcomeOnInstall": false,
+  "gitlens.showWhatsNewAfterUpgrades": false,
+
+  // TypeScript/JavaScript formatting
+  "typescript.preferences.quoteStyle": "single",
+  "javascript.preferences.quoteStyle": "single",
+  "editor.rulers": [100],
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  "typescript.suggest.paths": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.validate.enable": true,
+  "problems.showCurrentInStatus": true,
+  "typescript.reportStyleChecksAsWarnings": true,
+  "typescript.suggest.completeJSDocs": true,
+
+  // Python & Pylance Configuration
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.envFile": "${workspaceFolder}/.env",
+
+  // Pylance Settings (minimal)
+  "python.languageServer": "None",
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.autoImportCompletions": false,
+  "python.analysis.autoSearchPaths": false,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src/services",
+    "${workspaceFolder}/src/services/dspy-orchestrator"
+  ],
+  "python.analysis.stubPath": "typings",
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.inlayHints.functionReturnTypes": false,
+  "python.analysis.inlayHints.variableTypes": false,
+  "python.analysis.completeFunctionParens": false,
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingTypeStubs": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedVariable": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalCall": "none",
+    "reportOptionalIterable": "none",
+    "reportOptionalContextManager": "none",
+    "reportOptionalOperand": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownMemberType": "none",
+    "reportMissingParameterType": "none",
+    "reportAttributeAccessIssue": "none",
+    "reportArgumentType": "none",
+    "reportAssignmentType": "none",
+    "reportReturnType": "none",
+    "reportCallIssue": "none",
+    "reportIndexIssue": "none",
+    "reportOperatorIssue": "none"
+  },
+
+  // Python Linting/Formatting with Ruff (native server)
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.fixAll": true,
+  "ruff.organizeImports": true,
+  // removed deprecated: ruff.lint.run, ruff.lint.args
+
+  // Per-language formatting
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+
+  // Python Testing
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["src/services/dspy-orchestrator"],
+  "[swift]": {
+    "editor.defaultFormatter": "vknabel.vscode-apple-swift-format"
+  },
+  "cursorpyright.analysis.autoImportCompletions": false,
+  "cursorpyright.analysis.autoSearchPaths": false,
+  "cursorpyright.analysis.diagnosticMode": "openFilesOnly",
+  "cursorpyright.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingTypeStubs": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedVariable": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalCall": "none",
+    "reportOptionalIterable": "none",
+    "reportOptionalContextManager": "none",
+    "reportOptionalOperand": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownMemberType": "none",
+    "reportMissingParameterType": "none",
+    "reportAttributeAccessIssue": "none",
+    "reportArgumentType": "none",
+    "reportAssignmentType": "none",
+    "reportReturnType": "none",
+    "reportCallIssue": "none",
+    "reportIndexIssue": "none",
+    "reportOperatorIssue": "none"
+  },
+  "cursorpyright.analysis.extraPaths": [
+    "${workspaceFolder}/src/services",
+    "${workspaceFolder}/src/services/dspy-orchestrator"
+  ],
+  "cursorpyright.analysis.inlayHints.functionReturnTypes": false,
+  "cursorpyright.analysis.inlayHints.variableTypes": false,
+  "cursorpyright.analysis.stubPath": "typings",
+  "cursorpyright.analysis.typeCheckingMode": "off"
+}

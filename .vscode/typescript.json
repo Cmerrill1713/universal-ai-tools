@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    // Use the workspace TypeScript
+    "typescript.preferences.useAliasesForRenames": true,
+    
+    // Error detection
+    "typescript.validate.enable": true,
+    "typescript.format.enable": true,
+    "typescript.suggest.enabled": true,
+    
+    // Import handling
+    "typescript.suggest.autoImports": true,
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "typescript.suggest.includeCompletionsForImportStatements": true,
+    
+    // Performance
+    "typescript.disableAutomaticTypeAcquisition": false,
+    "typescript.preferences.useLabelDetailsInCompletionEntries": true,
+    
+    // Strict checking
+    "typescript.reportStyleChecksAsWarnings": false,
+    "typescript.check.npmIsInstalled": false
+  },
+  
+  // Project-specific configuration
+  "eslint.workingDirectories": [
+    "src"
+  ],
+  
+  // Force TypeScript to use our tsconfig.json
+  "typescript.preferences.useWorkspaceTsdk": true,
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  
+  // File watching optimization
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/logs/**": true,
+    "**/.git/**": true,
+    "**/coverage/**": true
+  }
+}

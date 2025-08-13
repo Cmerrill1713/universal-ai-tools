@@ -44,6 +44,14 @@ interface JwtPayload {
  */
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Debug logging
+    log.info('🔐 Auth middleware called', LogContext.API, {
+      path: req.path,
+      method: req.method,
+      hasAuthHeader: !!req.headers.authorization,
+      hasApiKey: !!req.headers['x-api-key']
+    });
+
     // No development authentication bypasses. Tests must provide auth or hit public endpoints.
 
     // Check temporary lockout before any heavy work
@@ -67,6 +75,10 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
+      log.info('🔐 Bearer token extracted', LogContext.API, {
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + '...'
+      });
     } else if (apiKey) {
       // API key authentication - validate against stored keys
       const isValid = await validateApiKey(apiKey);
@@ -84,6 +96,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     if (!token) {
       const fullPath = `${(req as any).baseUrl || ''}${req.path || ''}`;
+      log.info('🔐 No token extracted', LogContext.API, {
+        authHeader,
+        fullPath,
+        path: req.path,
+        baseUrl: (req as any).baseUrl
+      });
       // Check if this is a public endpoint
       if (isPublicEndpoint(req.path, fullPath)) {
         return next();
@@ -91,16 +109,38 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return sendError(res, 'AUTHENTICATION_ERROR', 'No token provided', 401);
     }
 
-    // Get JWT secret
-    let jwtSecret: string | null = null;
-    jwtSecret = (await secretsManager.getSecret('jwt_secret')) || process.env.JWT_SECRET || '';
-    if (!jwtSecret) {
-      log.error('JWT secret not configured', LogContext.API);
-      return sendError(res, 'AUTHENTICATION_ERROR', 'Authentication configuration error', 500);
+    // Get JWT secret from environment or secrets manager
+    let jwtSecret: string | undefined;
+    try {
+      const secretResult = await secretsManager.getSecret('jwt_secret');
+      jwtSecret = secretResult || process.env.JWT_SECRET;
+      
+      if (!jwtSecret) {
+        throw new Error('JWT secret not configured in secrets manager or environment');
+      }
+      
+      if (jwtSecret.length < 32) {
+        throw new Error('JWT secret must be at least 32 characters');
+      }
+      
+      log.info('🔐 JWT secret resolved', LogContext.API, { 
+        source: secretResult ? 'secrets_manager' : 'environment',
+        length: jwtSecret.length 
+      });
+    } catch (error) {
+      log.error('🔐 JWT secret configuration error', LogContext.API, { 
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw new Error('Authentication system not properly configured');
     }
 
     // Verify JWT token
     const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+
+    log.info('🔐 JWT token verified successfully', LogContext.API, {
+      userId: decoded.userId,
+      permissions: decoded.permissions
+    });
 
     req.user = {
       id: decoded.userId,
@@ -302,6 +342,8 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
     if (!apiKey || apiKey.length < 32) {
       return false;
     }
+
+    // Note: No development bypasses for security
 
     // Validate against Vault-backed service configuration
     const { secretsManager } = await import('../services/secrets-manager');

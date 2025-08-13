@@ -1,0 +1,55 @@
+# SwiftLint Configuration for Universal AI Tools macOS App
+
+# Disable rules that are too strict for development
+disabled_rules:
+  - trailing_whitespace
+  - cyclomatic_complexity
+  - function_parameter_count
+  - multiple_closures_with_trailing_closure
+  - todo
+  - nesting
+
+# Enable autocorrect for common issues
+opt_in_rules:
+  - empty_count
+  - overridden_super_call
+  - redundant_nil_coalescing
+  - redundant_optional_initialization
+  - redundant_type_annotation
+
+# Analyzer rules (only run with swiftlint analyze)
+analyzer_rules:
+  - unused_import
+
+# Exclude certain files/directories
+excluded:
+  - Carthage
+  - Pods
+  - Tests
+  - UniversalAIToolsTests
+  - UniversalAIToolsUITests
+  - build
+  - .build
+  - DerivedData
+
+# Custom rule configurations
+line_length:
+  warning: 150
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+function_body_length:
+  warning: 100
+  error: 200
+
+type_body_length:
+  warning: 450
+  error: 1000
+
+file_length:
+  warning: 850
+  error: 1500
+
+# Force unwrapping and implicitly unwrapped optionals are disabled in disabled_rules above
+# Remove these configurations since the rules are disabled

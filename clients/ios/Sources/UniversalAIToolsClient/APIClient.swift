@@ -108,12 +108,12 @@ public final class APIClient {
     let request = try makeRequest(path: "/api/v1/status", method: "GET")
     let (data, response) = try await URLSession.shared.data(for: request)
     guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
-      if let env = try? decode(StatusEnvelope.self, as: StatusEnvelope.self), let err = env.error {
+      if let env = try? decode(data, as: StatusEnvelope.self), let err = env.error {
         throw err
       }
       throw URLError(.badServerResponse)
     }
-    let env = try decode(StatusEnvelope.self, as: StatusEnvelope.self)
+    let env = try decode(data, as: StatusEnvelope.self)
     if env.success, let data = env.data { return data }
     throw env.error ?? APIError(code: "UNKNOWN", message: "Unknown error")
   }
@@ -131,12 +131,12 @@ public final class APIClient {
     let request = try makeRequest(path: "/api/v1/agents/execute", method: "POST", body: body)
     let (data, response) = try await URLSession.shared.data(for: request)
     guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
-      if let env = try? decode(AgentExecuteResponseEnvelope<T>.self, as: AgentExecuteResponseEnvelope<T>.self), let err = env.error {
+      if let env = try? decode(data, as: AgentExecuteResponseEnvelope<T>.self), let err = env.error {
         throw err
       }
       throw URLError(.badServerResponse)
     }
-    let env = try decode(AgentExecuteResponseEnvelope<T>.self, as: AgentExecuteResponseEnvelope<T>.self)
+    let env = try decode(data, as: AgentExecuteResponseEnvelope<T>.self)
     if env.success, let data = env.data { return data }
     throw env.error ?? APIError(code: "UNKNOWN", message: "Unknown error")
   }

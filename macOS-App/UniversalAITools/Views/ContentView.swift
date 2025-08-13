@@ -1,12 +1,12 @@
+import Combine
 import SwiftUI
 import WebKit
-import Combine
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var apiService: APIService
+    @Environment(\.openWindow) private var openWindow
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-    @State private var showingAgentActivity = false
 
     private var sidebarSelectionBinding: Binding<SidebarItem?> {
         Binding<SidebarItem?>(
@@ -17,13 +17,17 @@ struct ContentView: View {
 
     var body: some View {
         mainView
-            .sheet(isPresented: $showingAgentActivity) {
-                AgentActivityWindow()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
+            .onAppear {
+                Log.userInterface.info("ContentView appeared")
+                updateColumnVisibility(for: appState.selectedSidebarItem)
+                
+                // Set up window opener closure
+                appState.windowOpener = { windowId, value in
+                    openWindow(id: windowId, value: value)
+                }
             }
-            .onAppear { updateColumnVisibility(for: appState.selectedSidebarItem) }
             .onChange(of: appState.selectedSidebarItem) { newItem in
+                Log.userInterface.debug("Sidebar selection changed to: \(newItem?.rawValue ?? "nil")")
                 updateColumnVisibility(for: newItem)
             }
             .task {
@@ -32,86 +36,78 @@ struct ContentView: View {
                 await loadInitialData()
             }
             .onReceive(NotificationCenter.default.publisher(for: .metricsUpdate)) { note in
-                if let data = note.userInfo?["data"] as? [String: Any],
-                   let cpu = data["cpu"] as? Double,
-                   let memory = data["memory"] as? Double,
-                   let uptime = data["uptime"] as? Double {
-                    appState.systemMetrics = SystemMetrics(
-                        cpuUsage: cpu,
-                        memoryUsage: memory,
-                        uptime: uptime,
-                        requestsPerMinute: data["rpm"] as? Int ?? 0,
-                        activeConnections: data["connections"] as? Int ?? 0
-                    )
+                Task { @MainActor in
+                    if let data = note.userInfo?["data"] as? [String: Any],
+                       let cpu = data["cpu"] as? Double,
+                       let memory = data["memory"] as? Double,
+                       let uptime = data["uptime"] as? Double {
+                        appState.systemMetrics = SystemMetrics(
+                            cpuUsage: cpu,
+                            memoryUsage: memory,
+                            uptime: uptime,
+                            requestsPerMinute: data["rpm"] as? Int ?? 0,
+                            activeConnections: data["connections"] as? Int ?? 0
+                        )
+                    }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .backendConnected)) { _ in
-                appState.backendConnected = true
+                Task { @MainActor in
+                    appState.backendConnected = true
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .backendDisconnected)) { _ in
-                appState.backendConnected = false
+                Task { @MainActor in
+                    appState.backendConnected = false
+                }
             }
     }
 
     private var mainView: some View {
-        Group {
-            if appState.selectedSidebarItem == .chat {
-                // Dock-only layout for Chat: no native sidebar
-                detailView
-            } else {
-                NavigationSplitView(columnVisibility: $columnVisibility) {
-                    SidebarView(selection: sidebarSelectionBinding)
-                        .environmentObject(appState)
-                } detail: {
-                    detailView
-                }
-            }
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            SidebarView(selection: sidebarSelectionBinding)
+                .environmentObject(appState)
+        } detail: {
+            detailView
         }
         .navigationSplitViewStyle(.balanced)
+        .background(.ultraThinMaterial)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button(action: toggleSidebar) {
-                    Image(systemName: "sidebar.left")
-                }
-            }
-
             ToolbarItem(placement: .primaryAction) {
-                Button(action: { showingAgentActivity = true }) {
+                Button(action: { 
+                    openWindow(id: "agent-activity", value: "main")
+                }) {
                     Image(systemName: "brain.head.profile")
                         .foregroundColor(.accentColor)
+                        .glow(color: .accentColor, radius: 4)
                 }
                 .help("Agent Activity")
+                .neumorphism(cornerRadius: 8)
+                .frame(width: 32, height: 32)
             }
         }
     }
 
     private var detailView: some View {
         let view: AnyView
-        switch appState.selectedSidebarItem {
+        switch appState.selectedSidebarItem ?? .chat {
         case .chat:
-            view = AnyView(ChatInterfaceView()
+            view = AnyView(SimpleChatView()
                 .environmentObject(appState)
                 .environmentObject(apiService))
-        case .agents:
+        case .objectives:
             view = AnyView(AgentManagementView()
                 .environmentObject(appState)
                 .environmentObject(apiService))
         case .tools:
-            if let tools = try? buildToolsView() {
-                view = tools
-            } else {
-                view = AnyView(ContentWelcomeView().environmentObject(appState))
-            }
-        default:
-            view = AnyView(ContentWelcomeView().environmentObject(appState))
+            view = AnyView(ToolsView()
+                .environmentObject(appState)
+                .environmentObject(apiService))
         }
         return view
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AppTheme.windowBackgroundGradient)
-    }
-
-    private func buildToolsView() throws -> AnyView {
-        AnyView(ToolsView().environmentObject(appState).environmentObject(apiService))
+            .background(AnimatedGradientBackground())
+            .transition(.scale.combined(with: .opacity))
     }
 
     private func toggleSidebar() {
@@ -121,13 +117,9 @@ struct ContentView: View {
     }
 
     private func updateColumnVisibility(for item: SidebarItem?) {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            if item == .chat {
-                columnVisibility = .detailOnly
-            } else {
-                columnVisibility = .all
-            }
-        }
+        // Allow sidebar to be toggled for all views including chat
+        // Don't automatically hide sidebar based on selection
+                        Log.userInterface.debug("Column visibility maintained")
     }
 
     // MARK: - Data Loading
@@ -150,20 +142,30 @@ struct ContentView: View {
 // MARK: - Welcome View
 struct ContentWelcomeView: View {
     @EnvironmentObject var appState: AppState
+    @State private var logoScale: CGFloat = 1.0
 
     var body: some View {
         VStack(spacing: 30) {
             Image(systemName: "brain.head.profile")
                 .font(.system(size: 80))
                 .foregroundColor(.accentColor)
+                .scaleEffect(logoScale)
+                .glow(color: .accentColor, radius: 20)
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                        logoScale = 1.1
+                    }
+                }
 
             Text("Universal AI Tools")
                 .font(.largeTitle)
                 .fontWeight(.bold)
+                .foregroundColor(.white)
+                .glow(color: .white, radius: 10)
 
             Text("Your intelligent companion for AI-powered workflows")
                 .font(.title2)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
 
             VStack(spacing: 20) {
@@ -191,7 +193,7 @@ struct ContentWelcomeView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.windowBackgroundColor))
+        .background(AnimatedGradientBackground())
     }
 }
 
@@ -222,9 +224,10 @@ struct FeatureCard: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.controlBackgroundColor))
-                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                .fill(.ultraThinMaterial)
         )
+        .glassMorphism(cornerRadius: 12)
+        .floating(amplitude: 5, duration: 3)
     }
 }
 

@@ -200,7 +200,7 @@ Be thorough, objective, and balanced. Focus on creating unified understanding fr
     for (const pattern of stakeholderPatterns) {
       const matches = Array.from(request.matchAll(pattern));
       matches.forEach((match) => {
-        const stakeholder = match[0];
+        const [stakeholder] = match;
         if (stakeholder && !stakeholders.includes(stakeholder.toLowerCase())) {
           stakeholders.push(stakeholder.toLowerCase());
         }

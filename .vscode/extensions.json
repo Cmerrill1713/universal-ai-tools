@@ -1,0 +1,175 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "Orta.vscode-jest",
+    "ms-playwright.playwright",
+    "ms-azuretools.vscode-docker",
+    "eamodio.gitlens",
+    "EditorConfig.EditorConfig",
+    "redhat.vscode-yaml",
+    "graphql.vscode-graphql",
+    "humao.rest-client",
+    "rangav.vscode-thunder-client",
+    "streetsidesoftware.code-spell-checker",
+    "supabase-community.supabase-vscode",
+    "bierner.markdown-mermaid",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "ms-python.black-formatter"
+  ],
+  "unwantedRecommendations": [
+    "HookyQR.beautify"
+  ]
+}
+{
+  "recommendations": [
+    // === CRITICAL EXTENSIONS (Required for Universal AI Tools) ===
+    // TypeScript & JavaScript Core
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+
+    // Python (for DSPy orchestrator)
+    "ms-python.python",
+    "charliermarsh.ruff",
+
+    // Deno
+    "denoland.vscode-deno",
+
+    // Essential Development Tools
+    "usernamehw.errorlens",
+    "mikestead.dotenv",
+    "redis.redis-for-vscode",
+
+    // === RECOMMENDED EXTENSIONS (Enhanced Development) ===
+    // Testing
+    "orta.vscode-jest",
+    "firsttris.vscode-jest-runner",
+
+    // Git Integration
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Productivity
+    "gruntfuggly.todo-tree",
+    "aaron-bond.better-comments",
+    "streetsidesoftware.code-spell-checker",
+
+    // Import Management
+    "christian-kohler.path-intellisense",
+    "wix.vscode-import-cost",
+
+    // === OPTIONAL EXTENSIONS (Specific Workflows) ===
+    // AI Assistants (Note: Cursor has built-in AI, these are optional)
+    "github.copilot",
+    "github.copilot-chat",
+    "continue.continue",
+
+    // API Development
+    "humao.rest-client",
+    "rangav.vscode-thunder-client",
+    "redhat.vscode-yaml",
+    "42crunch.vscode-openapi",
+
+    // Database
+    "supabase.supabase-vscode",
+    "cweijan.vscode-postgresql-client2",
+
+    // Docker & DevOps
+    "ms-azuretools.vscode-docker",
+    "ms-vscode-remote.remote-containers",
+
+    // Python Advanced
+    "ms-python.vscode-pylance",
+    "ms-python.black-formatter",
+
+    // Additional Git Tools
+    "donjayamanne.githistory",
+
+    // More Productivity Tools
+    "wayou.vscode-todo-highlight",
+    "alefragnani.bookmarks",
+
+    // Code Quality
+    "sonarsource.sonarlint-vscode",
+    "snyk-security.snyk-vulnerability-scanner",
+
+    // Markdown
+    "yzhang.markdown-all-in-one",
+    "bierner.markdown-preview-github-styles",
+    "davidanson.vscode-markdownlint",
+
+    // Environment
+    "irongeek.vscode-env",
+
+    // GraphQL
+    "graphql.vscode-graphql",
+    "graphql.vscode-graphql-syntax",
+
+    // Advanced Testing
+    "hbenl.vscode-test-explorer",
+    "kavod-io.vscode-jest-test-adapter",
+    "andys8.jest-snippets",
+
+    // Formatting & Linting
+    "editorconfig.editorconfig",
+    "shardulm94.trailing-spaces",
+    "oderwat.indent-rainbow",
+
+    // TypeScript Tools
+    "pmneo.tsimporter",
+    "rbbit.typescript-hero",
+
+    // Utilities
+    "sleistner.vscode-fileutils",
+    "chakrounanas.turbo-console-log",
+    "quicktype.quicktype",
+    "ibm.output-colorizer",
+
+    // WebSockets
+    "jingkaizhao.vscode-ws-client",
+
+    // Debugging (Legacy - may not work with modern browsers)
+    "msjsdiag.debugger-for-chrome",
+    "firefox-devtools.vscode-firefox-debug"
+  ],
+
+  // Cursor-specific note
+  "cursorNote": "Cursor IDE includes built-in AI features that replace the need for GitHub Copilot. The extensions marked as CRITICAL are essential for the Universal AI Tools project to function properly.",
+
+  // Extension categories for easier management
+  "extensionCategories": {
+    "critical": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "ms-python.python",
+      "charliermarsh.ruff",
+      "usernamehw.errorlens",
+      "mikestead.dotenv",
+      "redis.redis-for-vscode",
+      "denoland.vscode-deno"
+    ],
+    "recommended": [
+      "orta.vscode-jest",
+      "firsttris.vscode-jest-runner",
+      "eamodio.gitlens",
+      "mhutchie.git-graph",
+      "gruntfuggly.todo-tree",
+      "aaron-bond.better-comments",
+      "streetsidesoftware.code-spell-checker",
+      "christian-kohler.path-intellisense",
+      "wix.vscode-import-cost"
+    ],
+    "optional": [
+      "github.copilot",
+      "github.copilot-chat",
+      "continue.continue",
+      "humao.rest-client",
+      "rangav.vscode-thunder-client",
+      "supabase.supabase-vscode"
+    ]
+  }
+}

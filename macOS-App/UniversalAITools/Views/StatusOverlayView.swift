@@ -55,5 +55,3 @@ struct StatusOverlayView: View {
         .environmentObject(AppState())
         .environmentObject(APIService())
 }
-
-

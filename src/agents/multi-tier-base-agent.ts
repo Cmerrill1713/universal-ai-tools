@@ -54,8 +54,8 @@ export abstract class MultiTierBaseAgent extends BaseAgent {
             result.response,
             this.preferredVoice
           );
-          audioPath = ttsResponse.audioPath;
-        } catch (error) {
+          const { audioPath: _audioPath } = ttsResponse;
+        } catch {
           log.warn('⚠️ Voice generation failed', LogContext.AGENT, { agentName: this.config.name });
         }
       }
@@ -152,7 +152,7 @@ export abstract class MultiTierBaseAgent extends BaseAgent {
   /**
    * Get additional context for the agent
    */
-  protected getAdditionalContext(context: AgentContext): string | null {
+  protected getAdditionalContext(_context: AgentContext): string | null {
     return null; // Override in specific agents
   }
 

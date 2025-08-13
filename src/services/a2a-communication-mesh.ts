@@ -526,18 +526,54 @@ Respond with JSON:
   }
 
   private optimizeRouting(): void {
-    // Use Alpha Evolve to learn better routing patterns
-    alphaEvolve.learnFromInteraction('a2a_mesh', {
+    // Use Alpha Evolve to learn better routing patterns with timeout and error handling
+    const optimizationPromise = alphaEvolve.learnFromInteraction('a2a_mesh', {
       userRequest: 'routing_optimization',
       agentResponse: JSON.stringify({
         totalMessages: this.messageHistory.length,
         activeAgents: Array.from(this.agents.values()).filter((a) => a.status === 'online').length,
         collaborations: this.activeCollaborations.size,
+        meshHealth: this.getMeshStatus().meshHealth,
+        lastOptimization: new Date().toISOString()
       }),
       wasSuccessful: true,
       responseTime: 100,
       tokensUsed: 50,
     });
+
+    // Add timeout to prevent hanging
+    Promise.race([
+      optimizationPromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Routing optimization timeout')), 5000)
+      )
+    ]).catch(error => {
+      // This error is already logged by the alpha-evolve service
+      // We just continue with basic routing optimization
+      this.performBasicRoutingOptimization();
+    });
+  }
+
+  private performBasicRoutingOptimization(): void {
+    // Fallback optimization without AI - update routing table based on agent performance
+    const now = new Date();
+    for (const [agentName, connection] of this.agents) {
+      // Remove offline agents from routing table
+      if (connection.status === 'offline') {
+        for (const [capability, agents] of this.routingTable) {
+          const index = agents.indexOf(agentName);
+          if (index > -1) {
+            agents.splice(index, 1);
+          }
+        }
+      }
+      
+      // Update last seen for responsive agents
+      if (connection.messageQueue.length === 0 && connection.status === 'online') {
+        connection.lastSeen = now;
+        connection.collaborationScore = Math.min(1.0, connection.collaborationScore + 0.01);
+      }
+    }
   }
 
   private async notifyCollaborationEnd(sessionId: string, reason: string): Promise<void> {

@@ -523,8 +523,7 @@ export abstract class EnhancedBaseAgent {
       batchSize: contexts.length,
     });
 
-    for (let i = 0; i < contexts.length; i++) {
-      const context = contexts[i];
+    for (const [i, context] of contexts.entries()) {
       try {
         const result = await this.executeValidated(context!, dataSchema);
         results.push(result);

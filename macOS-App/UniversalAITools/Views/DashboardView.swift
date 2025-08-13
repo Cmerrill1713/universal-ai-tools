@@ -1,5 +1,6 @@
-import SwiftUI
 import Charts
+import Foundation
+import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
@@ -63,7 +64,8 @@ struct DashboardView: View {
             .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppTheme.windowBackgroundGradient)
+        .background(AnimatedGradientBackground())
+        .glassMorphism(cornerRadius: 0)
         .onAppear {
             loadMetrics()
         }
@@ -124,7 +126,7 @@ struct DashboardView: View {
                 title: "Active Agents",
                 value: "\(appState.activeAgents.count)",
                 icon: "cpu",
-                color: .blue,
+                color: AppTheme.accentBlue,
                 trend: .increase(12)
             )
 
@@ -132,7 +134,7 @@ struct DashboardView: View {
                 title: "API Calls",
                 value: formatNumber(systemMetrics?.requestsPerMinute ?? 0),
                 icon: "network",
-                color: .green,
+                color: AppTheme.accentOrange,
                 trend: .increase(8)
             )
 
@@ -140,7 +142,7 @@ struct DashboardView: View {
                 title: "Memory Usage",
                 value: memoryUsageText,
                 icon: "memorychip",
-                color: .orange,
+                color: AppTheme.accentOrange,
                 trend: .stable
             )
 
@@ -148,7 +150,7 @@ struct DashboardView: View {
                 title: "Response Time",
                 value: averageResponseText,
                 icon: "timer",
-                color: .purple,
+                color: AppTheme.accentBlue,
                 trend: .decrease(15)
             )
         }
@@ -170,13 +172,13 @@ struct DashboardView: View {
                             x: .value("Time", point.timestamp),
                             y: .value("CPU %", point.value)
                         )
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(AppTheme.accentBlue)
 
                         AreaMark(
                             x: .value("Time", point.timestamp),
                             y: .value("CPU %", point.value)
                         )
-                        .foregroundStyle(.blue.opacity(0.1))
+                        .foregroundStyle(AppTheme.accentBlue.opacity(0.1))
                     }
                     .frame(height: 150)
                 })
@@ -188,13 +190,13 @@ struct DashboardView: View {
                             x: .value("Time", point.timestamp),
                             y: .value("Memory MB", point.value / 1024 / 1024)
                         )
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppTheme.accentOrange)
 
                         AreaMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Memory MB", point.value / 1024 / 1024)
                         )
-                        .foregroundStyle(.orange.opacity(0.1))
+                        .foregroundStyle(AppTheme.accentOrange.opacity(0.1))
                     }
                     .frame(height: 150)
                 })
@@ -208,7 +210,7 @@ struct DashboardView: View {
                             x: .value("Time", point.timestamp),
                             y: .value("Requests/min", point.value)
                         )
-                        .foregroundStyle(.green)
+                        .foregroundStyle(AppTheme.accentBlue)
                     }
                     .frame(height: 150)
                 })
@@ -220,14 +222,14 @@ struct DashboardView: View {
                             x: .value("Time", point.timestamp),
                             y: .value("Time (ms)", point.value)
                         )
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(AppTheme.accentOrange)
                         .lineStyle(StrokeStyle(lineWidth: 2))
 
                         PointMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Time (ms)", point.value)
                         )
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(AppTheme.accentOrange)
                     }
                     .frame(height: 150)
                 })
@@ -282,7 +284,10 @@ struct DashboardView: View {
 
                 Spacer()
 
-                Button("View All") { appState.selectedSidebarItem = .monitoring }
+                Button("View All") {
+                    appState.selectedSidebarItem = .tools
+                    appState.selectedTool = .monitoring
+                }
                 .buttonStyle(LinkButtonStyle())
             }
 

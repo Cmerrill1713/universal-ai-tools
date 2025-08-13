@@ -1,0 +1,15 @@
+src/**
+tests/**
+scripts/**
+jest.config.js
+tsconfig.json
+tsconfig.*.json
+package.json
+supabase/**/*.sql
+supabase/functions/**
+ui/src/**
+!dist/**
+!build/**
+!coverage/**
+!node_modules/**
+

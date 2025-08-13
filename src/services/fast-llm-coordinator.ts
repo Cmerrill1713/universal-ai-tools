@@ -37,7 +37,7 @@ export class FastLLMCoordinator {
   private lmStudioAvailable = false;
 
   constructor() {
-    const base = process.env.LM_STUDIO_URL || 'http://localhost:1234';
+    const base = process.env.LM_STUDIO_URL || 'http://localhost:5901';
     try {
       const normalized = normalizeHttpUrl(base);
       if (!normalized) throw new Error('Unsupported protocol');
@@ -46,12 +46,16 @@ export class FastLLMCoordinator {
       }
       this.lmStudioUrl = normalized;
     } catch (e) {
-      log.warn('Invalid LM_STUDIO_URL, using http://localhost:1234', LogContext.AI, {
+      log.warn('Invalid LM_STUDIO_URL, using http://localhost:5901', LogContext.AI, {
         error: e instanceof Error ? e.message : String(e),
       });
-      this.lmStudioUrl = 'http://localhost:1234';
+      this.lmStudioUrl = 'http://localhost:5901';
     }
     this.initializeFastModels();
+    // Check LM Studio availability on startup
+    this.checkLmStudioHealth().catch(err => 
+      log.warn('LM Studio not available on startup', LogContext.AI, { error: String(err) })
+    );
   }
 
   private async initializeFastModels(): Promise<void> {

@@ -6,9 +6,10 @@
 import type { NextFunction, Request, Response } from 'express';
 
 import type { OptimizedParameters } from '@/types';
+import { TaskType } from '@/types';
 
 import type { TaskContext , UserPreferences } from '../services/intelligent-parameter-service';
-import { intelligentParameterService,TaskType } from '../services/intelligent-parameter-service';
+import { intelligentParameterService } from '../services/intelligent-parameter-service';
 import { log,LogContext } from '../utils/logger';
 
 export interface IntelligentRequest extends Request {

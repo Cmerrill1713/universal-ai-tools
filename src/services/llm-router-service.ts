@@ -52,124 +52,16 @@ export class LLMRouterService {
   private providerClients: Map<LLMProvider, any> = new Map();
 
   constructor() {
-    this.initializeModelConfigs();
-    this.initializeProviders();
+    this.initializeAsync();
   }
 
-  private initializeModelConfigs(): void {
-    // Internal model mappings to external providers
-    const configs: ModelConfig[] = [
-      // Planning and Strategy Models
-      {
-        internalName: 'planner-pro',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
-        capabilities: ['planning', 'strategy', 'analysis'],
-        maxTokens: 4000,
-        temperature: 0.3,
-        priority: 1,
-      },
-      {
-        internalName: 'planner-fast',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:1b',
-        capabilities: ['planning', 'quick_analysis'],
-        maxTokens: 2000,
-        temperature: 0.4,
-        priority: 2,
-      },
+  private async initializeAsync(): Promise<void> {
+    await this.initializeModelConfigs();
+    await this.initializeProviders();
+  }
 
-      // Code and Technical Models
-      {
-        internalName: 'code-expert',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'qwen2.5:7b',
-        capabilities: ['code_generation', 'debugging', 'refactoring'],
-        maxTokens: 6000,
-        temperature: 0.2,
-        priority: 1,
-      },
-      {
-        internalName: 'code-assistant',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
-        capabilities: ['code_analysis', 'documentation'],
-        maxTokens: 4000,
-        temperature: 0.3,
-        priority: 2,
-      },
-
-      // Retrieval and Information Models
-      {
-        internalName: 'retriever-smart',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
-        capabilities: ['information_retrieval', 'summarization'],
-        maxTokens: 3000,
-        temperature: 0.2,
-        priority: 1,
-      },
-      {
-        internalName: 'retriever-fast',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:1b',
-        capabilities: ['quick_search', 'basic_analysis'],
-        maxTokens: 1500,
-        temperature: 0.3,
-        priority: 2,
-      },
-
-      // Personal Assistant Models
-      {
-        internalName: 'assistant-personal',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
-        capabilities: ['conversation', 'task_management', 'empathy'],
-        maxTokens: 3000,
-        temperature: 0.7,
-        priority: 1,
-      },
-      {
-        internalName: 'assistant-casual',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:1b',
-        capabilities: ['casual_chat', 'quick_help'],
-        maxTokens: 2000,
-        temperature: 0.8,
-        priority: 2,
-      },
-
-      // Synthesis and Analysis Models
-      {
-        internalName: 'synthesizer-deep',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'qwen2.5:7b',
-        capabilities: ['synthesis', 'deep_analysis', 'consensus'],
-        maxTokens: 8000,
-        temperature: 0.4,
-        priority: 1,
-      },
-      {
-        internalName: 'synthesizer-quick',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
-        capabilities: ['quick_synthesis', 'summary'],
-        maxTokens: 3000,
-        temperature: 0.5,
-        priority: 2,
-      },
-
-      // Local/Ollama Models (fallback)
-      {
-        internalName: 'local-general',
-        provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:1b',
-        capabilities: ['general_purpose', 'offline'],
-        maxTokens: 1024,
-        temperature: 0.5,
-        priority: 3,
-      },
-    ];
+  private async initializeModelConfigs(): Promise<void> {
+    const configs = await this.generateDynamicConfigs();
 
     configs.forEach((config) => {
       this.modelConfigs.set(config.internalName, config);
@@ -179,6 +71,168 @@ export class LLMRouterService {
       totalModels: configs.length,
       providers: Array.from(new Set(configs.map((c) => c.provider))),
     });
+  }
+
+  private async generateDynamicConfigs(): Promise<ModelConfig[]> {
+    try {
+      // Get available models from Ollama
+      const response = await fetch('http://localhost:11434/api/tags');
+      const data = await response.json();
+      const availableModels = data.models?.map((m: any) => m.name) || [];
+
+      if (availableModels.length === 0) {
+        log.warn('⚠️ No models found in Ollama, using fallback configuration', LogContext.AI);
+        return this.getFallbackConfigs();
+      }
+
+      // Sort models by capability (heuristic)
+      const fastModels = availableModels.filter((name: string) => 
+        name.includes('tiny') || name.includes('1b') || name.includes('2b') || 
+        name.includes('small') || name.includes('mini')
+      );
+      
+      const largeModels = availableModels.filter((name: string) => 
+        name.includes('20b') || name.includes('24b') || name.includes('70b') ||
+        name.includes('large') || name.includes('xl')
+      );
+
+      // Use first available models for each role
+      const primaryModel = largeModels[0] || availableModels[0];
+      const secondaryModel = fastModels[0] || availableModels[availableModels.length - 1] || primaryModel;
+
+      return [
+        // Planning Models
+        {
+          internalName: 'planner-pro',
+          provider: LLMProvider.OLLAMA,
+          externalModel: primaryModel,
+          capabilities: ['planning', 'strategy', 'analysis'],
+          maxTokens: 4000,
+          temperature: 0.3,
+          priority: 1,
+        },
+        {
+          internalName: 'planner-fast',
+          provider: LLMProvider.OLLAMA,
+          externalModel: secondaryModel,
+          capabilities: ['planning', 'quick_analysis'],
+          maxTokens: 2000,
+          temperature: 0.4,
+          priority: 2,
+        },
+
+        // Code Models
+        {
+          internalName: 'code-expert',
+          provider: LLMProvider.OLLAMA,
+          externalModel: primaryModel,
+          capabilities: ['code_generation', 'debugging', 'refactoring'],
+          maxTokens: 6000,
+          temperature: 0.2,
+          priority: 1,
+        },
+        {
+          internalName: 'code-assistant',
+          provider: LLMProvider.OLLAMA,
+          externalModel: secondaryModel,
+          capabilities: ['code_analysis', 'documentation'],
+          maxTokens: 4000,
+          temperature: 0.3,
+          priority: 2,
+        },
+
+        // Retrieval Models
+        {
+          internalName: 'retriever-smart',
+          provider: LLMProvider.OLLAMA,
+          externalModel: primaryModel,
+          capabilities: ['information_retrieval', 'summarization'],
+          maxTokens: 3000,
+          temperature: 0.2,
+          priority: 1,
+        },
+        {
+          internalName: 'retriever-fast',
+          provider: LLMProvider.OLLAMA,
+          externalModel: secondaryModel,
+          capabilities: ['quick_search', 'basic_analysis'],
+          maxTokens: 1500,
+          temperature: 0.3,
+          priority: 2,
+        },
+
+        // Assistant Models
+        {
+          internalName: 'assistant-personal',
+          provider: LLMProvider.OLLAMA,
+          externalModel: primaryModel,
+          capabilities: ['conversation', 'task_management', 'empathy'],
+          maxTokens: 3000,
+          temperature: 0.7,
+          priority: 1,
+        },
+        {
+          internalName: 'assistant-casual',
+          provider: LLMProvider.OLLAMA,
+          externalModel: secondaryModel,
+          capabilities: ['casual_chat', 'quick_help'],
+          maxTokens: 2000,
+          temperature: 0.8,
+          priority: 2,
+        },
+
+        // Synthesis Models
+        {
+          internalName: 'synthesizer-deep',
+          provider: LLMProvider.OLLAMA,
+          externalModel: primaryModel,
+          capabilities: ['synthesis', 'deep_analysis', 'consensus'],
+          maxTokens: 8000,
+          temperature: 0.4,
+          priority: 1,
+        },
+        {
+          internalName: 'synthesizer-quick',
+          provider: LLMProvider.OLLAMA,
+          externalModel: secondaryModel,
+          capabilities: ['quick_synthesis', 'summary'],
+          maxTokens: 3000,
+          temperature: 0.5,
+          priority: 2,
+        },
+
+        // Fallback
+        {
+          internalName: 'local-general',
+          provider: LLMProvider.OLLAMA,
+          externalModel: secondaryModel,
+          capabilities: ['general_purpose', 'offline'],
+          maxTokens: 1024,
+          temperature: 0.5,
+          priority: 3,
+        },
+      ];
+
+    } catch (error) {
+      log.warn('⚠️ Could not fetch available models, using fallback', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return this.getFallbackConfigs();
+    }
+  }
+
+  private getFallbackConfigs(): ModelConfig[] {
+    return [
+      {
+        internalName: 'local-general',
+        provider: LLMProvider.OLLAMA,
+        externalModel: 'fallback-model',
+        capabilities: ['general_purpose'],
+        maxTokens: 1024,
+        temperature: 0.5,
+        priority: 1,
+      }
+    ];
   }
 
   private async initializeProviders(): Promise<void> {

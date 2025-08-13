@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+venv/
+ui/**
+archive/**
+backups/**
+serena/**
+claude-flow/**
+public/**
+examples/**
+worktrees/**
+temp/**
+uploads/**

@@ -37,5 +37,3 @@ struct ContentView_Previews: PreviewProvider {
   }
 }
 #endif
-
-

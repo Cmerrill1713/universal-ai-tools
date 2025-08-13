@@ -1,73 +1,36 @@
 import SwiftUI
 
-struct SystemMonitoringPlaceholderView: View {
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var apiService: APIService
+struct PlaceholderView: View {
+    let title: String
+    let icon: String
+    let description: String
 
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("System Monitoring")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Spacer()
-                Button("Refresh") {
-                    // Hook into metrics refresh when backend is ready
-                }
-                .buttonStyle(.bordered)
-            }
-            .padding(.horizontal)
+        VStack(spacing: 20) {
+            Image(systemName: icon)
+                .font(.system(size: 60))
+                .foregroundColor(AppTheme.accentBlue)
+                .glow(color: AppTheme.accentBlue, radius: 20)
+                .floating(amplitude: 5, duration: 3)
+                .padding(.top, 40)
 
-            if let metrics = appState.systemMetrics {
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("CPU Usage")
-                        Spacer()
-                        Text("\(Int(metrics.cpuUsage))%")
-                    }
-                    HStack {
-                        Text("Memory Usage")
-                        Spacer()
-                        Text("\(Int(metrics.memoryUsage))%")
-                    }
-                    HStack {
-                        Text("Requests/min")
-                        Spacer()
-                        Text("\(metrics.requestsPerMinute)")
-                    }
-                    HStack {
-                        Text("Active Connections")
-                        Spacer()
-                        Text("\(metrics.activeConnections)")
-                    }
-                }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-                .padding(.horizontal)
-            } else {
-                if #available(macOS 14.0, *) {
-                    ContentUnavailableView(
-                        "No metrics yet",
-                        systemImage: "chart.xyaxis.line",
-                        description: Text("Connect backend to view live system metrics.")
-                    )
-                } else {
-                    VStack(spacing: 8) {
-                        Image(systemName: "chart.xyaxis.line")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                        Text("No metrics yet").font(.headline)
-                        Text("Connect backend to view live system metrics.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
+            Text(title)
+                .font(.title)
+                .fontWeight(.bold)
+                .foregroundColor(AppTheme.primaryText)
+                .glow(color: .white, radius: 5)
+
+            Text(description)
+                .font(.body)
+                .foregroundColor(AppTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
 
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AnimatedGradientBackground())
+        .glassMorphism(cornerRadius: 0)
     }
 }
 
@@ -79,8 +42,11 @@ struct ABMCTSOrchestrationView: View {
             Text("AB-MCTS Orchestration")
                 .font(.title2)
                 .fontWeight(.bold)
-            Text("Controller UI placeholder. Start/stop, config, and progress will appear here.")
-                .foregroundColor(.secondary)
+            ControlPanel(
+                startAction: { appState.showNotification(message: "AB-MCTS start requested") },
+                pauseAction: { appState.showNotification(message: "AB-MCTS pause requested") },
+                stopAction: { appState.showNotification(message: "AB-MCTS stop requested") }
+            )
             Spacer()
         }
         .padding()
@@ -95,8 +61,11 @@ struct MALTSwarmControlView: View {
             Text("MALT Swarm Control")
                 .font(.title2)
                 .fontWeight(.bold)
-            Text("Deployment and status controls will appear here.")
-                .foregroundColor(.secondary)
+            ControlPanel(
+                startAction: { appState.showNotification(message: "MALT Swarm deploy requested") },
+                pauseAction: { appState.showNotification(message: "MALT Swarm scale/pause requested") },
+                stopAction: { appState.showNotification(message: "MALT Swarm teardown requested") }
+            )
             Spacer()
         }
         .padding()
@@ -116,6 +85,35 @@ struct IntelligentParametersView: View {
             Spacer()
         }
         .padding()
+    }
+}
+
+private struct ControlPanel: View {
+    let startAction: () -> Void
+    let pauseAction: () -> Void
+    let stopAction: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ParticleButton(action: startAction) {
+                Text("Start")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(AppTheme.accentOrange.gradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .glow(color: AppTheme.accentOrange, radius: 8)
+            }
+
+            Button("Pause", action: pauseAction)
+                .buttonStyle(.bordered)
+                .foregroundColor(AppTheme.accentBlue)
+
+            Button("Stop", action: stopAction)
+                .buttonStyle(.bordered)
+                .foregroundColor(.red)
+        }
     }
 }
 
@@ -177,7 +175,7 @@ struct KnowledgeBaseView: View {
             if mcpService.isConnected {
                 Text("MCP Connected")
                     .font(.caption)
-                    .foregroundColor(.green)
+                    .foregroundColor(AppTheme.accentOrange)
             } else {
                 Text("MCP Disconnected")
                     .font(.caption)
@@ -257,8 +255,8 @@ struct KnowledgeBaseView: View {
         isLoading = true
         errorMessage = nil
         do {
-            let category: String? = selectedCategoryFilter.isEmpty ? nil : selectedCategoryFilter
-            let data = try await mcpService.searchContext(query: query, category: category, limit: fetchLimit)
+            let _: String? = selectedCategoryFilter.isEmpty ? nil : selectedCategoryFilter
+            let data = try await mcpService.searchContext(query)
             results = data
         } catch {
             errorMessage = error.localizedDescription
@@ -271,8 +269,8 @@ struct KnowledgeBaseView: View {
         isLoading = true
         errorMessage = nil
         do {
-            let category: String? = selectedCategoryFilter.isEmpty ? nil : selectedCategoryFilter
-            let data = try await mcpService.getRecentContext(category: category, limit: fetchLimit)
+            let _: String? = selectedCategoryFilter.isEmpty ? nil : selectedCategoryFilter
+            let data = try await mcpService.getRecentContext()
             results = data
         } catch {
             errorMessage = error.localizedDescription
@@ -293,11 +291,11 @@ struct KnowledgeBaseView: View {
         isLoading = true
         errorMessage = nil
         do {
-            try await mcpService.saveContext(
-                content: newNoteText,
-                category: newNoteCategory,
-                metadata: ["source": "macOS-app", "timestamp": Date().timeIntervalSince1970]
-            )
+            try await mcpService.saveContext([
+                "content": newNoteText,
+                "category": newNoteCategory,
+                "metadata": ["source": "macOS-app", "timestamp": Date().timeIntervalSince1970]
+            ])
             newNoteText = ""
             await loadRecent(resetLimit: true)
         } catch {
@@ -321,7 +319,7 @@ private struct TagView: View {
 
 #Preview {
     Group {
-        SystemMonitoringPlaceholderView()
+        SystemMonitoringView()
         ABMCTSOrchestrationView()
         MALTSwarmControlView()
         IntelligentParametersView()
@@ -331,4 +329,3 @@ private struct TagView: View {
     .environmentObject(APIService())
     .environmentObject(MCPService())
 }
-

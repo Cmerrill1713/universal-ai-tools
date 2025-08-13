@@ -1,0 +1,1052 @@
+openapi: 3.0.3
+info:
+  title: Universal AI Tools API
+  description: |
+    Comprehensive API for AI model interaction, memory management, agent orchestration, and system monitoring.
+    
+    ## Features
+    - Multi-model LLM routing and optimization
+    - Intelligent memory and context management
+    - Advanced agent orchestration
+    - Real-time monitoring and analytics
+    - User preference learning
+    - Comprehensive feedback collection
+    
+  version: 1.0.0
+  contact:
+    name: Universal AI Tools
+    url: https://github.com/your-org/universal-ai-tools
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Local development server
+  - url: https://api.universalaitools.com/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate device and get JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deviceId:
+                  type: string
+                  description: Unique device identifier
+                deviceType:
+                  type: string
+                  enum: [Mac, iPhone, iPad, AppleWatch]
+              required: [deviceId, deviceType]
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Chat & LLM
+  /chat/message:
+    post:
+      tags: [Chat]
+      summary: Send chat message to AI model
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ChatResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimit'
+
+  /chat/stream:
+    post:
+      tags: [Chat]
+      summary: Stream chat response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  # Agents
+  /agents:
+    get:
+      tags: [Agents]
+      summary: List available agents
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Agent'
+
+  /agents/{agentId}/execute:
+    post:
+      tags: [Agents]
+      summary: Execute agent task
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentExecuteRequest'
+      responses:
+        '200':
+          description: Agent execution result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AgentExecuteResponse'
+
+  /agents/{agentId}/status:
+    get:
+      tags: [Agents]
+      summary: Get agent status
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AgentStatus'
+
+  # Memory
+  /memory/store:
+    post:
+      tags: [Memory]
+      summary: Store memory entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryStoreRequest'
+      responses:
+        '200':
+          description: Memory stored successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          memoryId:
+                            type: string
+
+  /memory/retrieve:
+    post:
+      tags: [Memory]
+      summary: Retrieve memories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryRetrieveRequest'
+      responses:
+        '200':
+          description: Retrieved memories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MemoryRetrieveResponse'
+
+  /memory/analytics:
+    get:
+      tags: [Memory]
+      summary: Get memory analytics
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Memory analytics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MemoryAnalytics'
+
+  # Models
+  /models:
+    get:
+      tags: [Models]
+      summary: List available models
+      responses:
+        '200':
+          description: Available models
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Model'
+
+  /models/{modelId}/performance:
+    get:
+      tags: [Models]
+      summary: Get model performance metrics
+      parameters:
+        - name: modelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Model performance metrics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ModelPerformance'
+
+  # Monitoring
+  /monitoring/health:
+    get:
+      tags: [Monitoring]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: System is unhealthy
+
+  /monitoring/metrics:
+    get:
+      tags: [Monitoring]
+      summary: Get system metrics
+      security:
+        - BearerAuth: [admin]
+      responses:
+        '200':
+          description: System metrics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SystemMetrics'
+
+  /monitoring/errors:
+    get:
+      tags: [Monitoring]
+      summary: Get error logs
+      security:
+        - BearerAuth: [admin]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 500
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Error logs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          errors:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/ErrorLog'
+
+  # Speech
+  /speech/synthesize:
+    post:
+      tags: [Speech]
+      summary: Convert text to speech
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeechRequest'
+      responses:
+        '200':
+          description: Speech synthesis result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SpeechResponse'
+
+  # Users
+  /users/preferences:
+    get:
+      tags: [Users]
+      summary: Get user preferences
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserPreferences'
+
+    put:
+      tags: [Users]
+      summary: Update user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  # Feedback
+  /feedback:
+    post:
+      tags: [Feedback]
+      summary: Submit feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+      responses:
+        '200':
+          description: Feedback submitted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          feedbackId:
+                            type: string
+
+  /feedback/analytics:
+    get:
+      tags: [Feedback]
+      summary: Get feedback analytics
+      security:
+        - BearerAuth: [admin]
+      parameters:
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [1h, 24h, 7d, 30d]
+            default: 7d
+      responses:
+        '200':
+          description: Feedback analytics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FeedbackAnalytics'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimit:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+
+  schemas:
+    APIResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        metadata:
+          type: object
+          properties:
+            requestId:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            version:
+              type: string
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/APIResponse'
+        - type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: string
+            message:
+              type: string
+
+    AuthResponse:
+      allOf:
+        - $ref: '#/components/schemas/APIResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: JWT token
+                expiresIn:
+                  type: string
+                  example: "24h"
+                user:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    deviceId:
+                      type: string
+                    deviceType:
+                      type: string
+                    trusted:
+                      type: boolean
+
+    ChatRequest:
+      type: object
+      properties:
+        message:
+          type: string
+          description: The user's message
+        model:
+          type: string
+          description: Model ID to use
+          example: gpt-4
+        sessionId:
+          type: string
+          description: Session identifier for context
+        context:
+          type: object
+          properties:
+            conversationHistory:
+              type: boolean
+            useMemory:
+              type: boolean
+        options:
+          type: object
+          properties:
+            maxTokens:
+              type: integer
+              minimum: 1
+              maximum: 4000
+            temperature:
+              type: number
+              minimum: 0
+              maximum: 2
+            stream:
+              type: boolean
+      required: [message]
+
+    ChatResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        model:
+          type: string
+        usage:
+          type: object
+          properties:
+            promptTokens:
+              type: integer
+            completionTokens:
+              type: integer
+            totalTokens:
+              type: integer
+        responseTime:
+          type: integer
+          description: Response time in milliseconds
+        sessionId:
+          type: string
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [cognitive, specialized, personal]
+        status:
+          type: string
+          enum: [active, inactive, processing, error]
+        capabilities:
+          type: array
+          items:
+            type: string
+        version:
+          type: string
+        description:
+          type: string
+
+    AgentExecuteRequest:
+      type: object
+      properties:
+        task:
+          type: string
+          description: Task description
+        context:
+          type: object
+          description: Task context and parameters
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          default: medium
+      required: [task]
+
+    AgentExecuteResponse:
+      type: object
+      properties:
+        taskId:
+          type: string
+        result:
+          type: object
+          description: Agent execution result
+        status:
+          type: string
+          enum: [completed, failed, processing]
+        executionTime:
+          type: integer
+        agentId:
+          type: string
+
+    AgentStatus:
+      type: object
+      properties:
+        agentId:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, processing, error]
+        currentTask:
+          type: string
+          nullable: true
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        lastActivity:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          properties:
+            totalTasks:
+              type: integer
+            successfulTasks:
+              type: integer
+            averageExecutionTime:
+              type: number
+
+    MemoryStoreRequest:
+      type: object
+      properties:
+        content:
+          type: string
+        userId:
+          type: string
+        sessionId:
+          type: string
+        importance:
+          type: number
+          minimum: 0
+          maximum: 1
+        contextType:
+          type: string
+          enum: [conversation, document, task, preference, fact]
+        retentionPolicy:
+          type: string
+          enum: [permanent, session, temporary, auto]
+        tags:
+          type: array
+          items:
+            type: string
+      required: [content, userId]
+
+    MemoryRetrieveRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        userId:
+          type: string
+        sessionId:
+          type: string
+        limit:
+          type: integer
+          default: 10
+          maximum: 100
+        threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.7
+        filters:
+          type: object
+      required: [query, userId]
+
+    MemoryRetrieveResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              content:
+                type: string
+              importance:
+                type: number
+              relevanceScore:
+                type: number
+              createdAt:
+                type: string
+                format: date-time
+              tags:
+                type: array
+                items:
+                  type: string
+              contextType:
+                type: string
+        totalResults:
+          type: integer
+        searchTime:
+          type: integer
+          description: Search time in milliseconds
+
+    MemoryAnalytics:
+      type: object
+      properties:
+        totalEntries:
+          type: integer
+        totalSize:
+          type: integer
+        averageImportance:
+          type: number
+        clusters:
+          type: array
+          items:
+            type: object
+        accessPatterns:
+          type: object
+        retentionStats:
+          type: object
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        provider:
+          type: string
+        type:
+          type: string
+          enum: [text, multimodal, code, embedding]
+        contextLength:
+          type: integer
+        available:
+          type: boolean
+        local:
+          type: boolean
+        pricing:
+          type: object
+          properties:
+            inputCostPer1kTokens:
+              type: number
+            outputCostPer1kTokens:
+              type: number
+
+    ModelPerformance:
+      type: object
+      properties:
+        modelId:
+          type: string
+        averageLatency:
+          type: number
+        errorRate:
+          type: number
+        tokensPerSecond:
+          type: number
+        availability:
+          type: number
+        qualityScore:
+          type: number
+        totalRequests:
+          type: integer
+        successfulRequests:
+          type: integer
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: integer
+        service:
+          type: string
+        version:
+          type: string
+        environment:
+          type: string
+        metrics:
+          type: object
+        checks:
+          type: object
+
+    SystemMetrics:
+      type: object
+      properties:
+        errors:
+          type: object
+        rateLimiting:
+          type: object
+        system:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorLog:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        context:
+          type: object
+        resolved:
+          type: boolean
+
+    SpeechRequest:
+      type: object
+      properties:
+        text:
+          type: string
+        voice:
+          type: string
+          default: kokoro
+        format:
+          type: string
+          enum: [mp3, wav, ogg]
+          default: mp3
+        options:
+          type: object
+          properties:
+            speed:
+              type: number
+              minimum: 0.5
+              maximum: 2.0
+              default: 1.0
+            pitch:
+              type: number
+              minimum: 0.5
+              maximum: 2.0
+              default: 1.0
+            volume:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+              default: 0.8
+      required: [text]
+
+    SpeechResponse:
+      type: object
+      properties:
+        audioUrl:
+          type: string
+        duration:
+          type: number
+        format:
+          type: string
+        size:
+          type: integer
+
+    UserPreferences:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, auto]
+        language:
+          type: string
+        defaultModel:
+          type: string
+        maxTokens:
+          type: integer
+        temperature:
+          type: number
+        streamResponses:
+          type: boolean
+        enableAnalytics:
+          type: boolean
+        notifications:
+          type: object
+          properties:
+            email:
+              type: boolean
+            push:
+              type: boolean
+            desktop:
+              type: boolean
+            alerts:
+              type: boolean
+
+    FeedbackRequest:
+      type: object
+      properties:
+        feedbackType:
+          type: string
+          enum: [rating, suggestion, bug_report, feature_request, general]
+        category:
+          type: string
+          enum: [model_performance, user_interface, speed, accuracy, usability, other]
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+        description:
+          type: string
+        context:
+          type: object
+      required: [feedbackType, category, description]
+
+    FeedbackAnalytics:
+      type: object
+      properties:
+        totalFeedback:
+          type: integer
+        averageRating:
+          type: number
+        sentimentDistribution:
+          type: object
+        categoryBreakdown:
+          type: object
+        trendData:
+          type: array
+          items:
+            type: object
+        topIssues:
+          type: array
+          items:
+            type: object
+
+tags:
+  - name: Authentication
+    description: Device authentication and JWT token management
+  - name: Chat
+    description: Chat and LLM interaction endpoints
+  - name: Agents
+    description: AI agent orchestration and execution
+  - name: Memory
+    description: Memory storage and retrieval operations
+  - name: Models
+    description: AI model management and performance
+  - name: Monitoring
+    description: System health and performance monitoring
+  - name: Speech
+    description: Text-to-speech synthesis
+  - name: Users
+    description: User preferences and settings
+  - name: Feedback
+    description: Feedback collection and analytics

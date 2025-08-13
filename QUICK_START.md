@@ -1,218 +1,195 @@
-# Universal AI Tools - Quick Start Guide
+# 🚀 Universal AI Tools - Quick Start Guide
 
-## 🚀 Get Started in 5 Minutes
+Welcome to Universal AI Tools! This guide will get you up and running in minutes with our production-ready AI platform.
+
+## ⚡ Quick Start (2 Minutes)
 
 ### 1. Prerequisites
 
 - Node.js 18+
-- PostgreSQL or Supabase account
+- Supabase project (optional for demo mode)
 - Redis (optional)
 - Ollama (optional, for local models)
 
-### 2. Installation
+### 2. Start the Server
 
 ```bash
-# Clone repository
+# Clone and install
 git clone https://github.com/your-org/universal-ai-tools.git
 cd universal-ai-tools
-
-# Install dependencies
 npm install
 
-# Setup environment
-cp .env.example .env
-# Edit .env with your Supabase credentials
-```
-
-### 3. Configure Supabase
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-key
-JWT_SECRET=your-secret-key
-```
-
-### 4. Initialize Database
-
-```bash
-# Run database migrations
-npm run migrate
-
-# (Optional) Load Supabase documentation
-npm run scrape:supabase
-```
-
-### 5. Start Development
-
-```bash
-# Start the server
+# Start development server
 npm run dev
 
-# Server runs on http://localhost:3456
+# Server runs on http://localhost:9999
 ```
 
-## 🎯 First API Call
-
-### 1. Register Your Service
+### 3. Generate Demo Token (No Account Required!)
 
 ```bash
-curl -X POST http://localhost:3456/api/register \
+# Generate a 24-hour demo token instantly
+curl -X POST http://localhost:9999/api/v1/auth/demo-token \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Your Name","purpose":"Testing the API"}'
+
+# Save the token from response
+TOKEN="eyJhbGciOiJIUzI1NiIs..."
+```
+
+### 4. Test the API
+
+```bash
+# Check available parameter presets
+curl -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:9999/api/v1/parameters/presets'
+
+# Submit feedback
+curl -H "Authorization: Bearer $TOKEN" \
+  -X POST 'http://localhost:9999/api/v1/feedback/submit' \
   -H "Content-Type: application/json" \
   -d '{
-    "service_name": "my-ai-app",
-    "service_type": "custom",
-    "capabilities": ["memory", "tools", "ai_chat"]
+    "sessionId": "test-session",
+    "feedbackType": "general",
+    "category": "usability",
+    "rating": 5,
+    "title": "Great API!",
+    "description": "Easy to use and fast."
   }'
 
-# Response:
-# {
-#   "service_id": "...",
-#   "api_key": "your-api-key",
-#   "endpoints": {...}
-# }
-```
-
-### 2. Store a Memory
-
-```bash
-curl -X POST http://localhost:3456/api/v1/memory \
-  -H "X-API-Key: your-api-key" \
-  -H "X-AI-Service: my-ai-app" \
+# Chat with AI assistant
+curl -H "Authorization: Bearer $TOKEN" \
+  -X POST 'http://localhost:9999/api/v1/assistant/chat' \
   -H "Content-Type: application/json" \
-  -d '{
-    "content": "The user prefers dark mode interfaces",
-    "metadata": {"type": "preference"}
-  }'
+  -d '{"message": "Hello! Can you help me?"}'
 ```
 
-### 3. Search Memories
+## 🌟 Core Features
 
+### 🔐 Authentication System
+- **Demo Tokens**: Instant access, no account required
+- **JWT-based**: Secure token validation
+- **Configurable**: 1h to 30d expiration periods
+
+### 🎯 Parameter Optimization
+- **Smart Presets**: Pre-configured for different tasks
+- **ML-Based Selection**: Intelligent parameter optimization
+- **Analytics**: Performance tracking and improvement metrics
+
+### 📝 Feedback Collection
+- **Multiple Types**: General, feature requests, bug reports
+- **Category Support**: Performance, usability, accuracy, etc.
+- **Real-time Analytics**: Instant feedback processing
+
+### 🤖 AI Assistant
+- **Context-Aware**: Supabase-backed context retrieval
+- **Multi-Model**: Ollama, LM Studio, external APIs
+- **Conversation Storage**: Persistent chat history
+
+### 🔧 Model Management
+- **16 Available Models**: Across multiple tiers and providers
+- **Auto-Discovery**: Dynamic model detection
+- **Performance Monitoring**: Real-time model metrics
+
+## 🎯 Use Case Examples
+
+### Calendar Task Management
 ```bash
-curl -X POST http://localhost:3456/api/v1/memory/search \
-  -H "X-API-Key: your-api-key" \
-  -H "X-AI-Service: my-ai-app" \
+# Optimize parameters for calendar tasks
+curl -H "Authorization: Bearer $TOKEN" \
+  -X POST 'http://localhost:9999/api/v1/parameters/optimize' \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "user preferences",
-    "limit": 5
-  }'
+  -d '{"taskType": "calendar_management"}'
 ```
 
-### 4. Chat with AI
-
+### Swift/iOS Development
 ```bash
-curl -X POST http://localhost:3456/api/v1/assistant/chat \
-  -H "X-API-Key: your-api-key" \
-  -H "X-AI-Service: my-ai-app" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "What are the user preferences?",
-    "model": "llama3.2:3b"
-  }'
+# Get code generation presets
+curl -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:9999/api/v1/parameters/presets?taskType=code_generation'
 ```
 
-## 📚 Key Features
-
-### Memory Management
-
-- Store and retrieve contextual information
-- Semantic search capabilities
-- Automatic relevance scoring
-- Memory evolution and learning
-
-### Multi-Model Support
-
-- OpenAI GPT models
-- Anthropic Claude
-- Local Ollama models
-- Custom model integration
-
-### Supabase Integration
-
-- Database with RLS
-- Real-time subscriptions
-- Vector embeddings
-- GraphQL API
-- Edge Functions
-- Scheduled jobs
-
-### API Features
-
-- RESTful endpoints
-- API versioning (/api/v1/)
-- WebSocket support
-- Rate limiting
-- Circuit breakers
-
-## 🛠️ Common Commands
-
+### Web Scraping & Data Analysis
 ```bash
-# Development
-npm run dev              # Start dev server
-npm run test:fast       # Quick tests
-npm run lint:fix        # Fix linting
-
-# Database
-npm run migrate         # Run migrations
-npm run migrate:status  # Check status
-
-# Documentation
-npm run scrape:supabase # Update Supabase docs
-
-# Production
-npm run build          # Build for production
-npm start             # Start production server
+# Get analytics on optimization performance
+curl -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:9999/api/v1/parameters/analytics'
 ```
 
-## 📖 Next Steps
+## 🛠️ Available Endpoints
 
-1. **Explore the API**: Check [API Documentation](docs/API.md)
-2. **View all commands**: See [Command Reference](docs/COMMANDS.md)
-3. **Understand architecture**: Read [Architecture Guide](docs/ARCHITECTURE.md)
-4. **Learn Supabase features**: Review scraped documentation via API
-5. **Set up monitoring**: Configure health checks and metrics
+### Authentication
+- `POST /api/v1/auth/demo-token` - Generate demo token
+- `GET /api/v1/auth/info` - Get auth info
+- `POST /api/v1/auth/validate` - Validate token
 
-## 🔍 Useful Endpoints
+### Parameters & Optimization
+- `GET /api/v1/parameters/presets` - List parameter presets
+- `GET /api/v1/parameters/models` - Available models
+- `GET /api/v1/parameters/analytics` - Optimization analytics
+- `POST /api/v1/parameters/optimize` - Optimize parameters
 
-- **Health**: `GET /health`
-- **API Docs**: `GET /api/docs`
-- **Versions**: `GET /api/versions`
-- **Metrics**: `GET /api/performance/metrics`
-- **Supabase Docs**: `GET /api/v1/docs/supabase/features`
+### Feedback System
+- `POST /api/v1/feedback/submit` - Submit feedback
+- `GET /api/v1/feedback/history` - Feedback history
+- `GET /api/v1/feedback/analytics` - Feedback analytics
 
-## 💡 Tips
+### AI Assistant
+- `POST /api/v1/assistant/chat` - Chat with AI
+- `GET /api/v1/assistant/status` - Assistant status
 
-1. Use local models (Ollama) for development to save API costs
-2. Enable Redis for better performance
-3. Run `npm run scrape:supabase` to get comprehensive Supabase docs
-4. Use the health check endpoints for monitoring
-5. Check the command reference for all available commands
+## 📊 Categories & Types
+
+### Feedback Categories
+- `model_performance` - AI model quality
+- `user_interface` - UI/UX experience  
+- `speed` - Performance and response times
+- `accuracy` - Result correctness
+- `usability` - Ease of use
+- `other` - Other feedback
+
+### Task Types
+- `calendar_management` - Scheduling and reminders
+- `code_generation` - Programming tasks
+- `creative_writing` - Content creation
+- `analysis` - Data analysis and reasoning
+- `conversation` - Chat and general assistance
 
 ## 🚨 Troubleshooting
 
 ```bash
 # Check service health
-curl http://localhost:3456/api/health/detailed
+curl http://localhost:9999/health
 
-# View logs
+# Check API status
+curl http://localhost:9999/api/v1/status
+
+# Test authentication
+curl -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:9999/api/v1/auth/info'
+
+# View server logs
 npm run dev  # Logs appear in console
-
-# Reset database (development only)
-supabase db reset
-
-# Check TypeScript errors
-npm run type-check
 ```
 
-## 🎉 Success!
+## 🎉 You're Ready!
 
-You now have a running Universal AI Tools service with:
+Your Universal AI Tools service now provides:
 
-- ✅ Multi-model AI support
-- ✅ Advanced memory management
-- ✅ Supabase integration
-- ✅ API authentication
-- ✅ Health monitoring
+- ✅ **Instant Demo Access** - No signup required
+- ✅ **JWT Authentication** - Secure and scalable
+- ✅ **Parameter Optimization** - ML-powered tuning
+- ✅ **Feedback Collection** - User-driven improvements
+- ✅ **Multi-Model AI** - 16 available models
+- ✅ **Production Ready** - Built for scale
 
-Happy coding! 🚀
+Start building amazing AI applications! 🚀
+
+## 📚 Next Steps
+
+1. **Explore Complex Scenarios**: Try calendar management, Swift development, web scraping
+2. **Check System Health**: Monitor `/health` and `/api/v1/status`
+3. **Submit Feedback**: Help improve the system with your experience
+4. **Scale Up**: Configure Supabase, Redis, and production settings
+
+Happy coding! 💻✨

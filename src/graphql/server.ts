@@ -21,7 +21,7 @@ export async function mountGraphQL(app: Application): Promise<void> {
     await server.start();
     // Basic depth/complexity limits can be added here when the deps are installed
     app.use('/graphql', expressMiddleware(server));
-  } catch (err) {
+  } catch {
     // Fallback: mount a minimal handler so tests and simple health queries work
     app.post('/graphql', (req: any, res: any) => {
       try {
@@ -30,7 +30,7 @@ export async function mountGraphQL(app: Application): Promise<void> {
           return res.status(200).json({ data: { health: 'ok' } });
         }
         return res.status(400).json({ errors: [{ message: 'Unsupported query' }] });
-      } catch (e) {
+      } catch {
         return res.status(500).json({ errors: [{ message: 'GraphQL fallback error' }] });
       }
     });

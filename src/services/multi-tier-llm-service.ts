@@ -68,34 +68,14 @@ export class MultiTierLLMService {
       useCase: 'Instant decisions, routing, simple questions',
     });
 
-    // Tier 2: Fast general purpose (200-1000ms)
-    this.modelTiers.set(2, {
-      tier: 2,
-      models: ['gemma:2b', 'phi:2.7b-chat-v2-q4_0'],
-      capabilities: ['conversation', 'basic_analysis', 'summarization', 'simple_code'],
-      maxTokens: 1024,
-      avgResponseTime: 500,
-      useCase: 'General conversation, basic tasks, quick analysis',
-    });
+    // Initialize basic fallback tiers immediately to prevent undefined access
+    this.initializeFallbackTiers();
 
-    // Tier 3: Advanced reasoning (1000-5000ms)
-    this.modelTiers.set(3, {
-      tier: 3,
-      models: ['qwen2.5:7b', 'deepseek-r1:14b', 'nous-hermes:13b-llama2-q4_K_M'],
-      capabilities: ['advanced_reasoning', 'code_generation', 'complex_analysis', 'research'],
-      maxTokens: 4096,
-      avgResponseTime: 2500,
-      useCase: 'Complex reasoning, code generation, detailed analysis',
-    });
-
-    // Tier 4: Expert-level tasks (5000ms+)
-    this.modelTiers.set(4, {
-      tier: 4,
-      models: ['devstral:24b'], // Your largest local model
-      capabilities: ['expert_analysis', 'complex_code', 'research', 'creative_writing'],
-      maxTokens: 8192,
-      avgResponseTime: 8000,
-      useCase: 'Expert-level tasks, complex code, research, creative work',
+    // Auto-discover available models and populate tiers (async in background)
+    this.populateAvailableModels().catch(error => {
+      log.warn('Failed to populate available models, using fallback configuration', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error)
+      });
     });
 
     log.info('🏗️ Multi-tier LLM architecture initialized', LogContext.AI, {
@@ -105,6 +85,140 @@ export class MultiTierLLMService {
         0
       ),
     });
+  }
+
+  private initializeFallbackTiers(): void {
+    // Initialize minimal fallback tiers to prevent undefined access
+    if (!this.modelTiers.has(2)) {
+      this.modelTiers.set(2, {
+        tier: 2,
+        models: ['llama3.2:3b'], // Common default model
+        capabilities: ['conversation', 'basic_analysis', 'summarization', 'simple_code'],
+        maxTokens: 1024,
+        avgResponseTime: 500,
+        useCase: 'General conversation, basic tasks, quick analysis',
+      });
+    }
+
+    if (!this.modelTiers.has(3)) {
+      this.modelTiers.set(3, {
+        tier: 3,
+        models: ['llama3.2:3b'], // Fallback to same model
+        capabilities: ['advanced_reasoning', 'code_generation', 'complex_analysis', 'research'],
+        maxTokens: 4096,
+        avgResponseTime: 2500,
+        useCase: 'Complex reasoning, code generation, detailed analysis',
+      });
+    }
+
+    if (!this.modelTiers.has(4)) {
+      this.modelTiers.set(4, {
+        tier: 4,
+        models: ['llama3.2:3b'], // Fallback to same model
+        capabilities: ['expert_analysis', 'complex_code', 'research', 'creative_writing'],
+        maxTokens: 8192,
+        avgResponseTime: 8000,
+        useCase: 'Expert-level tasks, complex code, research, creative work',
+      });
+    }
+  }
+
+  private async populateAvailableModels(): Promise<void> {
+    try {
+      // Get available models from Ollama
+      const response = await fetch('http://localhost:11434/api/tags');
+      const data = await response.json();
+      const availableModels = data.models?.map((m: any) => m.name) || [];
+
+      // Categorize models by size/capability (heuristic-based)
+      const fastModels = availableModels.filter((name: string) => 
+        name.includes('tiny') || name.includes('1b') || name.includes('2b') || 
+        name.includes('small') || name.includes('mini')
+      );
+      
+      const mediumModels = availableModels.filter((name: string) => 
+        name.includes('7b') || name.includes('8b') || name.includes('13b') ||
+        (name.includes('3b') && !fastModels.includes(name))
+      );
+      
+      const largeModels = availableModels.filter((name: string) => 
+        name.includes('20b') || name.includes('24b') || name.includes('70b') ||
+        name.includes('large') || name.includes('xl')
+      );
+
+      // Fallback: if no categorization matches, put all models in medium tier
+      const uncategorized = availableModels.filter((name: string) => 
+        !fastModels.includes(name) && !mediumModels.includes(name) && !largeModels.includes(name)
+      );
+
+      // Populate Tier 2 with fast models
+      if (fastModels.length > 0 || uncategorized.length > 0) {
+        this.modelTiers.set(2, {
+          tier: 2,
+          models: fastModels.length > 0 ? fastModels : uncategorized.slice(0, 1),
+          capabilities: ['conversation', 'basic_analysis', 'summarization', 'simple_code'],
+          maxTokens: 1024,
+          avgResponseTime: 500,
+          useCase: 'General conversation, basic tasks, quick analysis',
+        });
+      }
+
+      // Populate Tier 3 with medium models 
+      if (mediumModels.length > 0 || (uncategorized.length > 1)) {
+        this.modelTiers.set(3, {
+          tier: 3,
+          models: mediumModels.length > 0 ? mediumModels : uncategorized.slice(1),
+          capabilities: ['advanced_reasoning', 'code_generation', 'complex_analysis', 'research'],
+          maxTokens: 4096,
+          avgResponseTime: 2500,
+          useCase: 'Complex reasoning, code generation, detailed analysis',
+        });
+      }
+
+      // Populate Tier 4 with large models
+      if (largeModels.length > 0) {
+        this.modelTiers.set(4, {
+          tier: 4,
+          models: largeModels,
+          capabilities: ['expert_analysis', 'complex_code', 'research', 'creative_writing'],
+          maxTokens: 8192,
+          avgResponseTime: 8000,
+          useCase: 'Expert-level tasks, complex code, research, creative work',
+        });
+      }
+
+      log.info('🔍 Auto-discovered models', LogContext.AI, {
+        available: availableModels.length,
+        fast: fastModels.length,
+        medium: mediumModels.length,
+        large: largeModels.length,
+        uncategorized: uncategorized.length
+      });
+
+    } catch (error) {
+      log.warn('⚠️ Could not auto-discover models, using fallback configuration', LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Fallback configuration with generic model names
+      this.modelTiers.set(2, {
+        tier: 2,
+        models: ['local-model-fast'],
+        capabilities: ['conversation', 'basic_analysis'],
+        maxTokens: 1024,
+        avgResponseTime: 500,
+        useCase: 'Fast general purpose',
+      });
+      
+      this.modelTiers.set(3, {
+        tier: 3,
+        models: ['local-model-medium'],
+        capabilities: ['advanced_reasoning', 'code_generation'],
+        maxTokens: 4096,
+        avgResponseTime: 2500,
+        useCase: 'Advanced reasoning',
+      });
+    }
   }
 
   /**
@@ -173,12 +287,15 @@ export class MultiTierLLMService {
         tokensUsed = lfm2Response.tokens;
       } else {
         // Use Ollama models for tiers 2-4
+        const tierConfig = this.modelTiers.get(plan.tier);
+        const maxTokens = tierConfig?.maxTokens || 2048;
+        
         const ollamaResponse = await ollamaService.generateResponse(
           [{ role: 'user', content: userRequest }],
           plan.primaryModel,
           {
             temperature: this.getOptimalTemperature(classification.domain),
-            max_tokens: this.modelTiers.get(plan.tier)?.maxTokens || 2048,
+            max_tokens: maxTokens,
           }
         );
         response = ollamaResponse.message.content;
@@ -278,8 +395,12 @@ export class MultiTierLLMService {
 
     if (systemLoad > 0.8) {
       // High load - prefer faster models
-      plan.tier = Math.max(1, plan.tier - 1);
-      plan.primaryModel = this.modelTiers.get(plan.tier)?.models[0] || plan.primaryModel;
+      const newTier = Math.max(1, plan.tier - 1);
+      const tierConfig = this.modelTiers.get(newTier);
+      if (tierConfig && tierConfig.models && tierConfig.models.length > 0) {
+        plan.tier = newTier;
+        plan.primaryModel = tierConfig.models[0] || 'default-model';
+      }
     }
 
     return this.execute(userRequest, context);
@@ -345,7 +466,20 @@ Respond with JSON:
       optimalTier = Math.max(optimalTier, THREE); // Code tasks need at least tier 3
     }
 
-    const tierConfig = this.modelTiers.get(optimalTier)!;
+    // Ensure the tier exists, fallback to available tiers
+    let tierConfig = this.modelTiers.get(optimalTier);
+    if (!tierConfig) {
+      // Find the highest available tier
+      const availableTiers = Array.from(this.modelTiers.keys()).sort((a, b) => b - a);
+      optimalTier = availableTiers[0] || 1;
+      tierConfig = this.modelTiers.get(optimalTier);
+    }
+    
+    // Final safety check
+    if (!tierConfig) {
+      throw new Error(`No model tiers available for execution`);
+    }
+
     const primaryModel = this.selectBestModelFromTier(optimalTier);
     const fallbackModels = this.getFallbackModels(optimalTier);
 
@@ -360,7 +494,18 @@ Respond with JSON:
   }
 
   private selectBestModelFromTier(tier: number): string {
-    const tierConfig = this.modelTiers.get(tier)!;
+    const tierConfig = this.modelTiers.get(tier);
+    
+    if (!tierConfig || !tierConfig.models || tierConfig.models.length === 0) {
+      // Fallback to any available model from any tier
+      for (const [_, config] of this.modelTiers) {
+        if (config.models && config.models.length > 0) {
+          return config.models[0] || 'llama3.2:3b';
+        }
+      }
+      // Ultimate fallback
+      return 'llama3.2:3b';
+    }
 
     // Select model based on recent performance
     let bestModel = tierConfig.models[0] || 'llama3.2:3b';
@@ -387,16 +532,30 @@ Respond with JSON:
     const fallbacks: string[] = [];
 
     // Add other models from same tier
-    const currentTier = this.modelTiers.get(tier)!;
-    fallbacks.push(...currentTier.models.slice(1));
+    const currentTier = this.modelTiers.get(tier);
+    if (currentTier && currentTier.models && currentTier.models.length > 1) {
+      fallbacks.push(...currentTier.models.slice(1));
+    }
 
     // Add models from lower tiers as last resort
     if (tier > 1) {
-      const lowerTier = this.modelTiers.get(tier - 1)!;
-      fallbacks.push(...lowerTier.models);
+      const lowerTier = this.modelTiers.get(tier - 1);
+      if (lowerTier && lowerTier.models) {
+        fallbacks.push(...lowerTier.models);
+      }
     }
 
-    return fallbacks;
+    // If no fallbacks found, collect any available models from any tier
+    if (fallbacks.length === 0) {
+      for (const [_, config] of this.modelTiers) {
+        if (config.models) {
+          fallbacks.push(...config.models);
+        }
+      }
+    }
+
+    // Remove duplicates and return unique fallbacks
+    return [...new Set(fallbacks)];
   }
 
   private heuristicClassification(userRequest: string): TaskClassification {

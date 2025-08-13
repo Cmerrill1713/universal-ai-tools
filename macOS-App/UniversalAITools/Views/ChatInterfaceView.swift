@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct ChatInterfaceView: View {
     @EnvironmentObject var appState: AppState
@@ -12,6 +12,8 @@ struct ChatInterfaceView: View {
     @State private var showModelPicker = false
     @State private var showSettings = false
     @State private var isDockHovering = false
+    @State private var attachedFiles: [URL] = []
+    @State private var currentSendTask: Task<Void, Never>?
 
     @FocusState private var isInputFocused: Bool
 
@@ -46,27 +48,25 @@ struct ChatInterfaceView: View {
             }
 
             // Floating Composer anchored using safe area inset
-            VStack { Spacer() }
-                .safeAreaInset(edge: .bottom) {
-                    VStack(spacing: 8) {
-                        if let error = sendError {
-                            errorBanner(error)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                                .padding(.horizontal, 20)
-                        }
-                        ChatTabsView()
+            VStack {
+                Spacer()
+
+                VStack(spacing: 8) {
+                    if let error = sendError {
+                        errorBanner(error)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                             .padding(.horizontal, 20)
-                            .environmentObject(appState)
-                        inputArea
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .bottom).combined(with: .opacity),
-                                removal: .move(edge: .bottom).combined(with: .opacity)
-                            ))
                     }
-                    .padding(.bottom, 10)
-                    .background(AppTheme.primaryBackground.opacity(0.001))
+                    ChatTabsView()
+                        .padding(.horizontal, 20)
+                        .environmentObject(appState)
+                    inputArea
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-        }
+                .padding(.bottom, 10)
+                .background(AppTheme.primaryBackground.opacity(0.001))
+            }
+
             // Left-side dock overlay on top of chat area
             HStack(alignment: .top, spacing: 0) {
                 ZStack(alignment: .leading) {
@@ -92,12 +92,13 @@ struct ChatInterfaceView: View {
 
                 Spacer()
             }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppTheme.primaryBackground)
         .onAppear {
             setupChat()
-            // Animate in the composer after a slight delay
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.2)) {
+            // Focus input field after setup
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isInputFocused = true
             }
         }
@@ -169,13 +170,18 @@ struct ChatInterfaceView: View {
         FloatingComposer(
             messageText: $messageText,
             isGenerating: $isGenerating,
+            attachedFiles: attachedFiles,
             onSend: sendMessage,
             onAttach: attachFile,
-            onStop: stopGenerating
+            onStop: stopGenerating,
+            onRemoveAttachment: { url in
+                attachedFiles.removeAll { $0 == url }
+            }
         )
         .frame(maxWidth: 720)
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
+        .focused($isInputFocused)
     }
 
     // MARK: - Actions
@@ -207,7 +213,7 @@ struct ChatInterfaceView: View {
         messageText = ""
         isGenerating = true
 
-        Task {
+        currentSendTask = Task {
             do {
                 let response = try await apiService.sendChatMessage(
                     currentMessage,
@@ -299,22 +305,28 @@ struct ChatInterfaceView: View {
     }
 
     private func attachFile() {
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
+        // Use async to prevent UI freeze during file panel
+        DispatchQueue.main.async {
+            let panel = NSOpenPanel()
+            panel.allowsMultipleSelection = false
+            panel.canChooseDirectories = false
+            panel.canChooseFiles = true
 
-        if panel.runModal() == .OK,
-           let url = panel.url {
-            // Handle file attachment
-            messageText += "\n[Attached: \(url.lastPathComponent)]"
+            if panel.runModal() == .OK,
+               let url = panel.url {
+                self.attachedFiles.append(url)
+            }
         }
     }
 
     private func stopGenerating() {
-        // Cancel the current generation task
+        // Cancel the current generation task (URLSession respects Task cancellation)
+        currentSendTask?.cancel()
+        currentSendTask = nil
         isGenerating = false
-        // TODO: Implement actual API cancellation when backend supports it
+        if let conversationId = appState.currentChat?.id {
+            Task { await apiService.cancelChat(conversationId: conversationId) }
+        }
     }
 
     private func generateChatTitle(from message: String) -> String {
@@ -324,12 +336,15 @@ struct ChatInterfaceView: View {
     }
 
     private func showError(_ error: Error) {
-        let alert = NSAlert()
-        alert.messageText = "Error"
-        alert.informativeText = error.localizedDescription
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
+        // Use async dispatch to prevent freezing and ensure proper cleanup
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = "Error"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
     }
 
     // MARK: - Chat Tabs (icon buttons)
@@ -338,13 +353,16 @@ struct ChatInterfaceView: View {
             Button(action: { appState.selectedSidebarItem = .chat }, label: {
                 Image(systemName: "text.bubble").font(.subheadline)
             })
-            Button(action: { appState.selectedSidebarItem = .agents }, label: {
-                Image(systemName: "brain.head.profile").font(.subheadline)
+            Button(action: { appState.selectedSidebarItem = .objectives }, label: {
+                Image(systemName: "target").font(.subheadline)
             })
             Button(action: { appState.selectedSidebarItem = .tools }, label: {
                 Image(systemName: "wrench.and.screwdriver").font(.subheadline)
             })
-            Button(action: { appState.selectedSidebarItem = .monitoring }, label: {
+            Button(action: {
+                appState.selectedSidebarItem = .tools
+                appState.selectedTool = .monitoring
+            }, label: {
                 Image(systemName: "chart.line.uptrend.xyaxis").font(.subheadline)
             })
             Spacer()
@@ -381,321 +399,4 @@ struct ChatInterfaceView: View {
 
 // MARK: - Supporting Views
 
-struct InterfaceMessageBubble: View {
-    let message: Message
-    var onRegenerate: (() -> Void)? = nil
-    @State private var isHovered = false
-    @State private var showActions = false
-    @State private var animateIn = false
-
-    var bubbleColor: some View {
-        Group {
-            if message.role == .user {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        AppTheme.accentGreen,
-                        AppTheme.accentGreen.opacity(0.9)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                AppTheme.surfaceBackground
-                    .opacity(isHovered ? 1.0 : 0.95)
-            }
-        }
-    }
-
-    var textColor: Color {
-        message.role == .user ? .white : AppTheme.primaryText
-    }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Assistant avatar
-            if message.role == .assistant {
-                Circle()
-                    .fill(LinearGradient(
-                        gradient: Gradient(colors: [
-                            AppTheme.accentBlue,
-                            AppTheme.accentBlue.opacity(0.8)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Image(systemName: "cpu")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                    )
-                    .scaleEffect(animateIn ? 1.0 : 0.8)
-                    .opacity(animateIn ? 1.0 : 0.0)
-            }
-
-            // Message content
-            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 6) {
-                // Message bubble
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(message.content)
-                        .font(.system(size: 15))
-                        .foregroundColor(textColor)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(bubbleColor)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(
-                            message.role == .assistant ?
-                            AppTheme.separator.opacity(0.5) :
-                            Color.clear,
-                            lineWidth: 1
-                        )
-                )
-                .shadow(
-                    color: AppTheme.composerShadow.opacity(0.1),
-                    radius: isHovered ? 8 : 4,
-                    x: 0,
-                    y: 2
-                )
-                .scaleEffect(animateIn ? 1.0 : 0.95)
-                .opacity(animateIn ? 1.0 : 0.0)
-
-                // Action buttons (fade in on hover)
-                if message.role == .assistant && (isHovered || showActions) {
-                    HStack(spacing: 12) {
-                        // Copy Button
-                        ActionButton(
-                            icon: "doc.on.doc",
-                            label: "Copy",
-                            action: { copyToClipboard(message.content) }
-                        )
-
-                        // Regenerate Button
-                        ActionButton(
-                            icon: "arrow.clockwise",
-                            label: "Regenerate",
-                            action: { onRegenerate?() }
-                        )
-
-                        // Share Button
-                        ActionButton(
-                            icon: "square.and.arrow.up",
-                            label: "Share",
-                            action: { shareMessage(message.content) }
-                        )
-
-                        Spacer()
-
-                        // Timestamp
-                        Text(formatTimestamp(message.timestamp))
-                            .font(.caption2)
-                            .foregroundColor(AppTheme.tertiaryText)
-                    }
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity),
-                        removal: .opacity
-                    ))
-                }
-            }
-            .frame(maxWidth: message.role == .user ? 480 : .infinity, alignment: message.role == .user ? .trailing : .leading)
-
-            // User avatar
-            if message.role == .user {
-                Circle()
-                    .fill(LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.purple,
-                            Color.purple.opacity(0.8)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text(String(NSFullUserName().prefix(1).uppercased()))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                    )
-                    .scaleEffect(animateIn ? 1.0 : 0.8)
-                    .opacity(animateIn ? 1.0 : 0.0)
-            }
-
-            if message.role == .assistant { Spacer(minLength: 40) }
-        }
-        .padding(.horizontal, message.role == .user ? 40 : 0)
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isHovered = hovering
-                if hovering {
-                    showActions = true
-                } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if !isHovered {
-                            showActions = false
-                        }
-                    }
-                }
-            }
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.05)) {
-                animateIn = true
-            }
-        }
-    }
-
-    private func copyToClipboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-    }
-
-    private func shareMessage(_ text: String) {
-        let sharingServicePicker = NSSharingServicePicker(items: [text])
-
-        // Find a suitable view to present from (the main window's content view)
-        if let window = NSApp.mainWindow,
-           let contentView = window.contentView {
-            let rect = NSRect(x: contentView.bounds.midX - 25,
-                            y: contentView.bounds.midY - 25,
-                            width: 50,
-                            height: 50)
-            sharingServicePicker.show(relativeTo: rect, of: contentView, preferredEdge: .minY)
-        }
-    }
-
-    private func formatTimestamp(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-}
-
-struct GeneratingIndicator: View {
-    @State private var dots = 0
-
-    let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
-
-    var body: some View {
-        HStack {
-            HStack(spacing: 4) {
-                ForEach(0..<3) { index in
-                    Circle()
-                        .fill(Color.secondary)
-                        .frame(width: 8, height: 8)
-                        .opacity(index < dots ? 1.0 : 0.3)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(12)
-
-            Spacer()
-        }
-        .onReceive(timer) { _ in
-            withAnimation {
-                dots = (dots + 1) % 4
-            }
-        }
-    }
-}
-
-struct ModelPickerView: View {
-    @Binding var selectedModel: String
-    let models: [String]
-    let onSelect: (String) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Select Model")
-                .font(.headline)
-                .padding()
-
-            Divider()
-
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(models, id: \.self) { model in
-                        Button(action: { onSelect(model) }, label: {
-                            HStack {
-                                Image(systemName: "cpu")
-                                    .foregroundColor(.secondary)
-
-                                Text(model)
-                                    .foregroundColor(.primary)
-
-                                Spacer()
-
-                                if model == selectedModel {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.accentColor)
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                            .contentShape(Rectangle())
-                        })
-                        .buttonStyle(PlainButtonStyle())
-                        .background(
-                            model == selectedModel ?
-                            Color.accentColor.opacity(0.1) : Color.clear
-                        )
-                    }
-                }
-            }
-        }
-        .frame(width: 250, height: 300)
-    }
-}
-
-struct ChatSettingsView: View {
-    @AppStorage("maxTokens") private var maxTokens = 2048
-    @AppStorage("temperature") private var temperature = 0.7
-    @AppStorage("systemPrompt") private var systemPrompt = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Chat Settings")
-                .font(.headline)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Max Tokens: \(maxTokens)")
-                    .font(.subheadline)
-
-                Slider(value: Binding(
-                    get: { Double(maxTokens) },
-                    set: { maxTokens = Int($0) }
-                ), in: 256...8192, step: 256)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Temperature: \(String(format: "%.1f", temperature))")
-                    .font(.subheadline)
-
-                Slider(value: $temperature, in: 0...2, step: 0.1)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("System Prompt")
-                    .font(.subheadline)
-
-                TextEditor(text: $systemPrompt)
-                    .font(.caption)
-                    .frame(height: 100)
-                    .padding(4)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(4)
-            }
-
-            Spacer()
-        }
-        .padding()
-    }
-}
+// Moved subviews into separate files under Views/Components and Views/Chat

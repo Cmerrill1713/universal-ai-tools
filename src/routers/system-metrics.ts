@@ -62,7 +62,7 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
     const availableAgents = agentRegistry.getAvailableAgents();
 
     // Get feedback metrics
-    const feedbackMetrics = feedbackCollector.getMetrics();
+    const feedbackMetrics = await feedbackCollector.getMetrics();
 
     // Calculate queue metrics
     const queuedTasks = feedbackMetrics.queueSize;

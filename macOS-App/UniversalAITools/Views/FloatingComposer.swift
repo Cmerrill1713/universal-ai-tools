@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 // MARK: - Floating Composer (ChatGPT-style)
 struct FloatingComposer: View {
@@ -8,11 +8,16 @@ struct FloatingComposer: View {
     @State private var isExpanded = false
     @State private var showAttachmentMenu = false
     @State private var textHeight: CGFloat = 40
+    @State private var isRecording = false
+    @State private var isPlayingResponse = false
+    @State private var selectedVoice = "af_bella"
     @FocusState private var isInputFocused: Bool
 
+    var attachedFiles: [URL] = []
     var onSend: () -> Void
     var onAttach: () -> Void
     var onStop: (() -> Void)?
+    var onRemoveAttachment: ((URL) -> Void)?
 
     // Dynamic height calculation
     private var composerHeight: CGFloat {
@@ -22,18 +27,18 @@ struct FloatingComposer: View {
     var body: some View {
         VStack(spacing: 0) {
             // Attached files preview (if any)
-            if isExpanded {
+            if isExpanded || !attachedFiles.isEmpty {
                 attachedFilesPreview
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity),
-                        removal: .move(edge: .bottom).combined(with: .opacity)
-                    ))
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             // Main composer container
             HStack(spacing: 12) {
                 // Attachment button
                 attachmentButton
+
+                // Microphone button
+                microphoneButton
 
                 // Input field container
                 inputFieldContainer
@@ -43,13 +48,10 @@ struct FloatingComposer: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(composerBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .shadow(color: AppTheme.composerShadow, radius: 20, x: 0, y: 10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(AppTheme.composerBorder, lineWidth: 1)
-            )
+            .background(.ultraThinMaterial)
+            .glassMorphism(cornerRadius: 24)
+            .glow(color: isInputFocused ? .blue : .clear, radius: isInputFocused ? 15 : 0)
+            .floating(amplitude: 2, duration: 4)
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: composerHeight)
@@ -71,8 +73,11 @@ struct FloatingComposer: View {
                 .foregroundColor(AppTheme.secondaryText)
                 .rotationEffect(.degrees(showAttachmentMenu ? 45 : 0))
                 .scaleEffect(showAttachmentMenu ? 1.1 : 1.0)
+                .glow(color: showAttachmentMenu ? .blue : .clear, radius: showAttachmentMenu ? 8 : 0)
         }
         .buttonStyle(PlainButtonStyle())
+        .neumorphism(isPressed: showAttachmentMenu, cornerRadius: 12)
+        .frame(width: 32, height: 32)
         .help("Attach files or add context")
         .popover(isPresented: $showAttachmentMenu) {
             AttachmentMenuView()
@@ -80,9 +85,29 @@ struct FloatingComposer: View {
         }
     }
 
+    private var microphoneButton: some View {
+        Button(action: {
+            toggleRecording()
+        }) {
+            ZStack {
+                Circle()
+                    .fill(isRecording ? Color.red.opacity(0.8) : AppTheme.surfaceBackground)
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: isRecording ? "mic.fill" : "mic")
+                    .font(.system(size: 16))
+                    .foregroundColor(isRecording ? .white : AppTheme.secondaryText)
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .help(isRecording ? "Stop recording" : "Start voice input")
+        .scaleEffect(isRecording ? 1.1 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isRecording)
+    }
+
     private var inputFieldContainer: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Placeholder or input
+            // Input hint or text
             ZStack(alignment: .topLeading) {
                 if messageText.isEmpty {
                     Text("Message Universal AI Tools...")
@@ -118,17 +143,18 @@ struct FloatingComposer: View {
     }
 
     private var actionButton: some View {
-        Group {
+        ZStack {
             if isGenerating {
-                // Stop button
+                // Enhanced Stop button with particles
                 Button(action: { onStop?() }) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.red.opacity(0.9))
-                            .frame(width: 28, height: 28)
+                        Circle()
+                            .fill(Color.red.gradient)
+                            .frame(width: 32, height: 32)
+                            .glow(color: .red, radius: 8)
 
                         Image(systemName: "stop.fill")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.white)
                     }
                 }
@@ -136,12 +162,18 @@ struct FloatingComposer: View {
                 .help("Stop generating")
                 .transition(.scale.combined(with: .opacity))
             } else {
-                // Send button
-                Button(action: onSend) {
+                // Enhanced Send button with particles
+                ParticleButton(action: onSend) {
                     ZStack {
                         Circle()
-                            .fill(sendButtonBackground)
+                            .fill(LinearGradient(
+                                colors: messageText.isEmpty ? [Color.gray.opacity(0.3)] : [AppTheme.accentGreen, AppTheme.accentGreen.opacity(0.8)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ))
                             .frame(width: 32, height: 32)
+                            .glow(color: messageText.isEmpty ? .clear : AppTheme.accentGreen,
+                                  radius: messageText.isEmpty ? 0 : 8)
 
                         Image(systemName: "arrow.up")
                             .font(.system(size: 16, weight: .bold))
@@ -150,12 +182,12 @@ struct FloatingComposer: View {
                             .animation(.spring(response: 0.3), value: messageText.isEmpty)
                     }
                 }
-                .buttonStyle(PlainButtonStyle())
                 .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .help(messageText.isEmpty ? "Type a message" : "Send message (⌘↵)")
                 .keyboardShortcut(.return, modifiers: .command)
-                .scaleEffect(messageText.isEmpty ? 0.9 : 1.0)
+                .scaleEffect(messageText.isEmpty ? 0.9 : 1.05)
                 .animation(.spring(response: 0.2, dampingFraction: 0.6), value: messageText.isEmpty)
+                .transition(.scale.combined(with: .opacity))
             }
         }
     }
@@ -163,9 +195,11 @@ struct FloatingComposer: View {
     private var attachedFilesPreview: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                // Placeholder for attached files
-                ForEach(0..<3, id: \.self) { _ in
-                    AttachedFileChip(fileName: "document.pdf", onRemove: {})
+                ForEach(attachedFiles, id: \.self) { url in
+                    AttachedFileChip(
+                        fileName: url.lastPathComponent,
+                        onRemove: { onRemoveAttachment?(url) }
+                    )
                 }
             }
             .padding(.horizontal, 16)
@@ -201,6 +235,43 @@ struct FloatingComposer: View {
     private var sendButtonForeground: Color {
         messageText.isEmpty ? AppTheme.tertiaryText : .white
     }
+
+    // MARK: - Voice Methods
+
+    private func toggleRecording() {
+        if isRecording {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+
+    private func startRecording() {
+        isRecording = true
+        // Request microphone permission and start recording
+        // For now, just simulate recording
+        // This will be connected to the API service when properly configured
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            self.messageText = "Voice input simulated"
+            self.isRecording = false
+        }
+    }
+
+    private func stopRecording() {
+        isRecording = false
+        Task {
+            // Voice functionality temporarily disabled
+        }
+    }
+
+    func playVoiceResponse(_ text: String) {
+        guard !isPlayingResponse else { return }
+        isPlayingResponse = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.isPlayingResponse = false
+        }
+    }
 }
 
 // MARK: - Dynamic Text Editor
@@ -220,7 +291,17 @@ struct DynamicTextEditor: NSViewRepresentable {
         textView.backgroundColor = .clear
         textView.drawsBackground = false
         textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = false
         textView.allowsUndo = true
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.isContinuousSpellCheckingEnabled = false
+        textView.isGrammarCheckingEnabled = false
+        textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.heightTracksTextView = false
+        textView.textContainer?.maximumNumberOfLines = 0
+        textView.textContainer?.lineBreakMode = .byWordWrapping
 
         scrollView.documentView = textView
         scrollView.hasVerticalScroller = true
@@ -228,6 +309,7 @@ struct DynamicTextEditor: NSViewRepresentable {
         scrollView.borderType = .noBorder
         scrollView.backgroundColor = .clear
         scrollView.drawsBackground = false
+        scrollView.contentView.postsBoundsChangedNotifications = true
 
         return scrollView
     }
@@ -241,8 +323,12 @@ struct DynamicTextEditor: NSViewRepresentable {
         }
 
         // Update focus state
-        if isFocused && textView.window?.firstResponder != textView {
-            textView.window?.makeFirstResponder(textView)
+        DispatchQueue.main.async {
+            if self.isFocused && textView.window?.firstResponder != textView {
+                textView.window?.makeFirstResponder(textView)
+            } else if !self.isFocused && textView.window?.firstResponder == textView {
+                textView.window?.makeFirstResponder(nil)
+            }
         }
     }
 

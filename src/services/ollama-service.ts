@@ -45,7 +45,7 @@ export interface OllamaStreamResponse {
 
 export class OllamaService {
   private baseUrl: string;
-  private defaultModel: string = ModelConfig.text.small;
+  private defaultModel: string = 'tinyllama:latest'; // Use fast local model
   private isAvailable = false;
   private breaker = createCircuitBreaker('ollama', {
     failureThreshold: 3,
@@ -91,17 +91,24 @@ export class OllamaService {
           baseUrl: this.baseUrl,
         });
 
-        // Check if default model is available
+        // Check if default model is available - prefer fast models
         const models = data.models || [];
+        log.info(`Available Ollama models:`, LogContext.AI, { 
+          models: models.map((m: any) => m.name) 
+        });
+        
         const preferred =
-          models.find((m: any) => m.name.includes('llama3.2')) ||
-          models.find((m: any) => m.name.includes('qwen2.5')) ||
-          models.find((m: any) => m.name.includes('gemma')) ||
-          models.find((m: any) => !m.name.includes('embed') && !m.name.includes('minilm')) ||
+          models.find((m: any) => m.name === 'tinyllama:latest') ||  // Ultra fast 1.1B
+          models.find((m: any) => m.name === 'llama3.2:1b') ||  // Fastest
+          models.find((m: any) => m.name === 'llama3.2:3b') ||  // Fast
+          models.find((m: any) => m.name === 'phi3:mini') ||  // Very fast
+          models.find((m: any) => m.name.includes('mistral')) ||  // Good balance
+          models.find((m: any) => m.name.includes('qwen')) ||  // Good for code
+          models.find((m: any) => !m.name.includes('embed') && !m.name.includes('vision')) ||
           models[0];
         if (preferred?.name) {
           this.defaultModel = preferred.name;
-          log.info(`Using available chat model: ${this.defaultModel}`, LogContext.AI);
+          log.info(`Selected model for chat: ${this.defaultModel}`, LogContext.AI);
         }
       } else {
         throw new Error(`HTTP ${response.status}`);
@@ -137,12 +144,14 @@ export class OllamaService {
       messages,
       stream: options?.stream || false,
       options: {
-        // Tuned defaults for speed on small tasks
-        temperature: options?.temperature ?? 0.1,
-        num_predict: options?.max_tokens ?? 128,
-        top_k: 20,
-        top_p: 0.9,
-        repeat_penalty: 1.0,
+        // Optimized for speed with reasonable quality
+        temperature: options?.temperature ?? 0.3,
+        num_predict: options?.max_tokens ?? 256,  // Reasonable default
+        top_k: 10,  // Reduced for speed
+        top_p: 0.7,  // More focused generation
+        repeat_penalty: 1.1,
+        num_ctx: 2048,  // Smaller context for speed
+        num_thread: 8,  // Use multiple threads
         keep_alive: '5m',
       },
     };

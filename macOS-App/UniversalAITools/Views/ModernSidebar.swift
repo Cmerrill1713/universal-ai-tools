@@ -5,21 +5,21 @@ struct ModernSidebar: View {
     @Binding var selection: SidebarItem?
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var apiService: APIService
-    
+
     @State private var searchText = ""
     @State private var showNewChatMenu = false
     @State private var hoveredConversation: String?
     @State private var editingConversation: String?
     @State private var editingTitle = ""
-    
+
     // Grouped conversations by date
     var groupedConversations: [(String, [Chat])] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: appState.chatHistory) { chat in
-            let components = calendar.dateComponents([.year, .month, .day], from: chat.lastModified)
-            if calendar.isDateInToday(chat.lastModified) {
+            let components = calendar.dateComponents([.year, .month, .day], from: chat.updatedAt)
+            if calendar.isDateInToday(chat.updatedAt) {
                 return "Today"
-            } else if calendar.isDateInYesterday(chat.lastModified) {
+            } else if calendar.isDateInYesterday(chat.updatedAt) {
                 return "Yesterday"
             } else if let date = calendar.date(from: components),
                       calendar.dateComponents([.weekOfYear], from: date, to: Date()).weekOfYear == 0 {
@@ -31,16 +31,16 @@ struct ModernSidebar: View {
                 return "Older"
             }
         }
-        
+
         let order = ["Today", "Yesterday", "This Week", "This Month", "Older"]
         return order.compactMap { key in
             if let chats = grouped[key] {
-                return (key, chats.sorted { $0.lastModified > $1.lastModified })
+                return (key, chats.sorted { $0.updatedAt > $1.updatedAt })
             }
             return nil
         }
     }
-    
+
     // Filtered conversations based on search
     var filteredConversations: [(String, [Chat])] {
         if searchText.isEmpty {
@@ -55,31 +55,31 @@ struct ModernSidebar: View {
             }
         }
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with New Chat button
             sidebarHeader
-            
+
             // Search bar
             searchBar
-            
+
             Divider()
                 .background(AppTheme.separator)
-            
+
             // Conversations list
             conversationsList
-            
+
             Divider()
                 .background(AppTheme.separator)
-            
+
             // Bottom actions
             bottomActions
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppTheme.sidebarBackground)
     }
-    
+
     // MARK: - Header
     private var sidebarHeader: some View {
         HStack(spacing: 12) {
@@ -92,13 +92,13 @@ struct ModernSidebar: View {
                     Circle()
                         .fill(AppTheme.accentBlue.opacity(0.1))
                 )
-            
+
             Text("Universal AI")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(AppTheme.primaryText)
-            
+
             Spacer()
-            
+
             // New chat button
             Button(action: { showNewChatMenu.toggle() }) {
                 Image(systemName: "square.and.pencil")
@@ -120,19 +120,19 @@ struct ModernSidebar: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
     }
-    
+
     // MARK: - Search Bar
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 13))
                 .foregroundColor(AppTheme.tertiaryText)
-            
+
             TextField("Search conversations...", text: $searchText)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 13))
                 .foregroundColor(AppTheme.primaryText)
-            
+
             if !searchText.isEmpty {
                 Button(action: { searchText = "" }) {
                     Image(systemName: "xmark.circle.fill")
@@ -155,7 +155,7 @@ struct ModernSidebar: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
     }
-    
+
     // MARK: - Conversations List
     private var conversationsList: some View {
         ScrollViewReader { proxy in
@@ -185,7 +185,7 @@ struct ModernSidebar: View {
                             }
                         }
                     }
-                    
+
                     // Empty state
                     if filteredConversations.isEmpty {
                         emptyState
@@ -202,7 +202,7 @@ struct ModernSidebar: View {
             }
         }
     }
-    
+
     // MARK: - Section Header
     private func sectionHeader(_ title: String) -> some View {
         HStack {
@@ -210,25 +210,25 @@ struct ModernSidebar: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(AppTheme.tertiaryText)
                 .textCase(.uppercase)
-            
+
             Spacer()
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .background(AppTheme.sidebarBackground.opacity(0.95))
     }
-    
+
     // MARK: - Empty State
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: searchText.isEmpty ? "message" : "magnifyingglass")
                 .font(.system(size: 32))
                 .foregroundColor(AppTheme.tertiaryText)
-            
+
             Text(searchText.isEmpty ? "No conversations yet" : "No results found")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(AppTheme.secondaryText)
-            
+
             if searchText.isEmpty {
                 Text("Start a new chat to begin")
                     .font(.system(size: 11))
@@ -238,7 +238,7 @@ struct ModernSidebar: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
     }
-    
+
     // MARK: - Bottom Actions
     private var bottomActions: some View {
         VStack(spacing: 8) {
@@ -247,7 +247,7 @@ struct ModernSidebar: View {
                 HStack {
                     Circle()
                         .fill(LinearGradient(
-                            gradient: Gradient(colors: [Color.purple, Color.purple.opacity(0.8)]),
+                            gradient: Gradient(colors: [AppTheme.accentOrange, AppTheme.accentOrange.opacity(0.8)]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ))
@@ -257,19 +257,19 @@ struct ModernSidebar: View {
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white)
                         )
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text(NSFullUserName())
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(AppTheme.primaryText)
-                        
+
                         Text(appState.planType.rawValue)
                             .font(.system(size: 10))
                             .foregroundColor(AppTheme.tertiaryText)
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: "ellipsis")
                         .font(.system(size: 12))
                         .foregroundColor(AppTheme.tertiaryText)
@@ -294,13 +294,13 @@ struct ModernSidebar: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
     }
-    
+
     // MARK: - Actions
     private func selectChat(_ chat: Chat) {
         appState.currentChat = chat
         selection = .chat
     }
-    
+
     private func deleteChat(_ chat: Chat) {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             appState.chatHistory.removeAll { $0.id == chat.id }
@@ -309,12 +309,12 @@ struct ModernSidebar: View {
             }
         }
     }
-    
+
     private func startRenaming(_ chat: Chat) {
         editingTitle = chat.title
         editingConversation = chat.id
     }
-    
+
     private func commitRename(_ chat: Chat) {
         if !editingTitle.isEmpty {
             if let index = appState.chatHistory.firstIndex(where: { $0.id == chat.id }) {
@@ -327,34 +327,35 @@ struct ModernSidebar: View {
         editingConversation = nil
         editingTitle = ""
     }
-    
+
     private func duplicateChat(_ chat: Chat) {
-        var newChat = chat
-        newChat.id = UUID().uuidString
-        newChat.title = "\(chat.title) (Copy)"
-        newChat.lastModified = Date()
-        
+        let newChat = Chat(
+            id: UUID().uuidString,
+            title: "\(chat.title) (Copy)",
+            model: chat.model,
+            messages: chat.messages
+        )
+
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             appState.chatHistory.insert(newChat, at: 0)
             appState.currentChat = newChat
         }
     }
-    
+
     private func startNewChat(with template: ChatTemplate) {
         let newChat = Chat(
             id: UUID().uuidString,
             title: template.title,
             model: template.defaultModel,
-            messages: [],
-            systemPrompt: template.systemPrompt
+            messages: []
         )
-        
+
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             appState.chatHistory.insert(newChat, at: 0)
             appState.currentChat = newChat
             selection = .chat
         }
-        
+
         showNewChatMenu = false
     }
 }

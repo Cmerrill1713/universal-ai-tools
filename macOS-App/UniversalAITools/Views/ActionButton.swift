@@ -5,24 +5,24 @@ struct ActionButton: View {
     let icon: String
     let label: String
     let action: () -> Void
-    
+
     @State private var isHovered = false
     @State private var isPressed = false
-    
+
     var body: some View {
         Button(action: {
             withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
                 isPressed = true
             }
-            
+
             // Haptic feedback on click
             NSHapticFeedbackManager.defaultPerformer.perform(
                 .generic,
                 performanceTime: .default
             )
-            
+
             action()
-            
+
             // Reset pressed state after action
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
@@ -36,15 +36,12 @@ struct ActionButton: View {
                     .foregroundColor(iconColor)
                     .rotationEffect(.degrees(isPressed ? 15 : 0))
                     .scaleEffect(isPressed ? 1.2 : (isHovered ? 1.1 : 1.0))
-                
+
                 if isHovered || isPressed {
                     Text(label)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(textColor)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .leading).combined(with: .opacity),
-                            removal: .move(edge: .trailing).combined(with: .opacity)
-                        ))
+                        .transition(.move(edge: .leading).combined(with: .opacity))
                 }
             }
             .padding(.horizontal, isHovered ? 10 : 6)
@@ -72,9 +69,9 @@ struct ActionButton: View {
         }
         .help(label)
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var iconColor: Color {
         if isPressed {
             return AppTheme.accentGreen
@@ -84,7 +81,7 @@ struct ActionButton: View {
             return AppTheme.secondaryText
         }
     }
-    
+
     private var textColor: Color {
         if isPressed {
             return AppTheme.accentGreen
@@ -92,7 +89,7 @@ struct ActionButton: View {
             return AppTheme.primaryText
         }
     }
-    
+
     private var backgroundView: some View {
         Group {
             if isPressed {
@@ -111,7 +108,7 @@ struct ActionButton: View {
             }
         }
     }
-    
+
     private var borderColor: Color {
         if isPressed {
             return AppTheme.accentGreen.opacity(0.5)
@@ -131,7 +128,7 @@ extension ActionButton {
         case danger
         case success
     }
-    
+
     init(icon: String, label: String, style: Style = .secondary, action: @escaping () -> Void) {
         self.icon = icon
         self.label = label
@@ -144,23 +141,23 @@ extension ActionButton {
     static func copy(action: @escaping () -> Void) -> ActionButton {
         ActionButton(icon: "doc.on.doc", label: "Copy", action: action)
     }
-    
+
     static func regenerate(action: @escaping () -> Void) -> ActionButton {
         ActionButton(icon: "arrow.clockwise", label: "Regenerate", action: action)
     }
-    
+
     static func share(action: @escaping () -> Void) -> ActionButton {
         ActionButton(icon: "square.and.arrow.up", label: "Share", action: action)
     }
-    
+
     static func edit(action: @escaping () -> Void) -> ActionButton {
         ActionButton(icon: "pencil", label: "Edit", action: action)
     }
-    
+
     static func delete(action: @escaping () -> Void) -> ActionButton {
         ActionButton(icon: "trash", label: "Delete", action: action)
     }
-    
+
     static func favorite(action: @escaping () -> Void) -> ActionButton {
         ActionButton(icon: "star", label: "Favorite", action: action)
     }
@@ -173,47 +170,47 @@ struct ActionButton_Previews: PreviewProvider {
             Text("Action Button Components")
                 .font(.headline)
                 .padding()
-            
+
             HStack(spacing: 12) {
                 ActionButton(icon: "doc.on.doc", label: "Copy", action: {
                     print("Copy action")
                 })
-                
+
                 ActionButton(icon: "arrow.clockwise", label: "Regenerate", action: {
                     print("Regenerate action")
                 })
-                
+
                 ActionButton(icon: "square.and.arrow.up", label: "Share", action: {
                     print("Share action")
                 })
             }
             .padding()
-            
+
             Divider()
-            
+
             Text("Preset Buttons")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-            
+
             HStack(spacing: 12) {
                 ActionButton.copy {
                     print("Copy preset")
                 }
-                
+
                 ActionButton.edit {
                     print("Edit preset")
                 }
-                
+
                 ActionButton.favorite {
                     print("Favorite preset")
                 }
-                
+
                 ActionButton.delete {
                     print("Delete preset")
                 }
             }
             .padding()
-            
+
             Spacer()
         }
         .frame(width: 500, height: 300)

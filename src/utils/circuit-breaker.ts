@@ -271,6 +271,19 @@ export class CircuitBreaker {
     this.successCount = 0;
     log.info(`✅ Circuit breaker manually closed for ${this.name}`, LogContext.SYSTEM);
   }
+
+  // Additional methods for compatibility
+  recordFailure(): void {
+    this.onFailure(new Error('Manual failure recorded'));
+  }
+
+  getFailureCount(): number {
+    return this.failureCount;
+  }
+
+  getLastFailureTime(): number | undefined {
+    return this.lastFailureTime;
+  }
 }
 
 // Factory function for creating circuit breakers

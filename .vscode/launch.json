@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json.schemastore.org/launch.json",
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Server (Development)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "development",
+        "PORT": "9999"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest: Current File",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": [
+        "--runInBand",
+        "--detectOpenHandles",
+        "--config",
+        "${workspaceFolder}/jest.config.js",
+        "${file}"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest: All Tests",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": [
+        "--runInBand",
+        "--detectOpenHandles",
+        "--config",
+        "${workspaceFolder}/jest.config.js"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Server (Development)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "development",
+        "PORT": "9999",
+        "DEBUG": "app:*"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug Server (Production Build)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/dist/server.js",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "9999"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "preLaunchTask": "npm: build:prod"
+    },
+    {
+      "name": "Debug Jest Tests",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": [
+        "--inspect-brk",
+        "${workspaceFolder}/node_modules/.bin/jest",
+        "--runInBand",
+        "--coverage=false"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "windows": {
+        "runtimeArgs": [
+          "--inspect-brk",
+          "${workspaceFolder}/node_modules/jest/bin/jest.js",
+          "--runInBand",
+          "--coverage=false"
+        ]
+      }
+    },
+    {
+      "name": "Debug Current Test File",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": [
+        "--inspect-brk",
+        "${workspaceFolder}/node_modules/.bin/jest",
+        "--runInBand",
+        "--coverage=false",
+        "${relativeFile}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "windows": {
+        "runtimeArgs": [
+          "--inspect-brk",
+          "${workspaceFolder}/node_modules/jest/bin/jest.js",
+          "--runInBand",
+          "--coverage=false",
+          "${relativeFile}"
+        ]
+      }
+    },
+    {
+      "name": "Debug TypeScript File",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "tsx",
+      "args": ["${file}"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true
+    },
+    {
+      "name": "Python: DSPy Orchestrator",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/services/dspy-orchestrator/server.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src/services/dspy-orchestrator"
+      }
+    },
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Attach to Process",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Debug CLI Command",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "tsx",
+      "args": ["${workspaceFolder}/src/cli/${input:cliScript}.ts"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack Debug",
+      "configurations": [
+        "Debug Server (Development)",
+        "Python: DSPy Orchestrator"
+      ],
+      "stopAll": true
+    }
+  ],
+  "inputs": [
+    {
+      "id": "cliScript",
+      "type": "pickString",
+      "description": "Select CLI script to debug",
+      "options": [
+        "backup",
+        "migrate",
+        "production-readiness",
+        "resource-monitor",
+        "scrape-supabase-docs",
+        "security-audit"
+      ]
+    }
+  ]
+}

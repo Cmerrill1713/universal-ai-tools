@@ -98,7 +98,7 @@ struct DebugConsoleView: View {
         isBusy = true
         defer { isBusy = false }
         do {
-            let text = try await mcpService.readResource(uri: selectedResourceURI)
+            let text = try await mcpService.readResource(selectedResourceURI)
             logText = "Resource (\(selectedResourceURI)):\n\(text)"
         } catch {
             logText = "Error: \(error.localizedDescription)"
@@ -109,7 +109,7 @@ struct DebugConsoleView: View {
         isBusy = true
         defer { isBusy = false }
         do {
-            let tasks = try await mcpService.getTaskHistory(taskId: taskId.isEmpty ? nil : taskId, status: nil, limit: 50)
+            let tasks = try await mcpService.getTaskHistory(limit: 50)
             logText = "Task History:\n\(pretty(tasks))"
         } catch {
             logText = "Error: \(error.localizedDescription)"
@@ -127,11 +127,11 @@ struct DebugConsoleView: View {
         isBusy = true
         defer { isBusy = false }
         do {
-            try await mcpService.saveContext(
-                content: logText,
-                category: "debug_logs",
-                metadata: ["origin": "DebugConsoleView", "timestamp": Date().timeIntervalSince1970]
-            )
+            try await mcpService.saveContext([
+                "content": logText,
+                "category": "debug_logs",
+                "metadata": ["origin": "DebugConsoleView", "timestamp": Date().timeIntervalSince1970]
+            ])
         } catch {
             logText += "\n\nSave failed: \(error.localizedDescription)"
         }
@@ -148,4 +148,3 @@ struct DebugConsoleView: View {
 #Preview {
     DebugConsoleView().environmentObject(MCPService())
 }
-

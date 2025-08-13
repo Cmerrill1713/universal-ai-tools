@@ -1,0 +1,1 @@
+{"version":3,"file":"syntax-guardian.d.ts","sourceRoot":"","sources":["../../src/services/syntax-guardian.ts"],"names":[],"mappings":"AAgBA,cAAM,cAAc;IAClB,OAAO,CAAC,SAAS,CAAS;IAC1B,OAAO,CAAC,aAAa,CAAS;;IAMxB,KAAK,IAAI,OAAO,CAAC,IAAI,CAAC;IAqBtB,WAAW,IAAI,OAAO,CAAC,IAAI,CAAC;IAwB5B,cAAc,CAAC,YAAY,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC;IAiBzD,IAAI;CAIL;AAcD,OAAO,EAAE,cAAc,EAAE,CAAC"}

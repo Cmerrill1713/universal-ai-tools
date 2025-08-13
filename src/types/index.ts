@@ -1,4 +1,5 @@
 // Core Types for Universal AI Tools
+import type { Request } from 'express';
 export interface AgentConfig {
   name: string;
   description: string;
@@ -28,6 +29,10 @@ export interface AgentContext {
   userId?: string;
   previousContext?: unknown;
   metadata?: Record<string, any>;
+  conversationHistory?: Array<{
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+  }>;
 }
 
 export interface AgentResponse {
@@ -52,8 +57,8 @@ export interface Memory {
 
 // Extended Request interfaces for middleware
 export interface ExtendedRequest extends Request {
-  taskContext: TaskContext;
-  optimizedParameters: OptimizedParameters;
+  taskContext?: TaskContext;
+  optimizedParameters?: OptimizedParameters;
   userPreferences?: UserPreferences;
 }
 
@@ -149,6 +154,7 @@ export interface ServiceConfig {
 export interface ErrorCode {
   MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD';
   INVALID_FORMAT: 'INVALID_FORMAT';
+  INVALID_INPUT: 'INVALID_INPUT';
   REQUEST_TOO_LARGE: 'REQUEST_TOO_LARGE';
   MEMORY_STORAGE_ERROR: 'MEMORY_STORAGE_ERROR';
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR';
@@ -164,6 +170,16 @@ export interface ErrorCode {
   EMBEDDING_ERROR: 'EMBEDDING_ERROR';
   SERVICE_ERROR: 'SERVICE_ERROR';
   REFINEMENT_ERROR: 'REFINEMENT_ERROR';
+  TOKEN_GENERATION_ERROR: 'TOKEN_GENERATION_ERROR';
+  AUTH_INFO_ERROR: 'AUTH_INFO_ERROR';
+  DEMO_INFO_ERROR: 'DEMO_INFO_ERROR';
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE';
+  OPTIMIZATION_ERROR: 'OPTIMIZATION_ERROR';
+  PRESETS_ERROR: 'PRESETS_ERROR';
+  ANALYTICS_ERROR: 'ANALYTICS_ERROR';
+  MODELS_ERROR: 'MODELS_ERROR';
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED';
+  FORBIDDEN_ERROR: 'FORBIDDEN_ERROR';
 }
 
 export interface ApiResponse<T = unknown> {
@@ -436,4 +452,99 @@ export interface FeedbackItem {
     [key: string]: any;
   };
   [key: string]: any;
+}
+
+// Task Type Enum (moved from intelligent-parameter-service)
+export enum TaskType {
+  // Code Tasks
+  CODE_GENERATION = 'code_generation',
+  CODE_REVIEW = 'code_review',
+  CODE_DEBUGGING = 'code_debugging',
+  CODE_EXPLANATION = 'code_explanation',
+  CODE_REFACTORING = 'code_refactoring',
+  CODE_TESTING = 'code_testing',
+  
+  // Data Tasks
+  DATA_ANALYSIS = 'data_analysis',
+  DATA_VISUALIZATION = 'data_visualization',
+  DATA_EXTRACTION = 'data_extraction',
+  DATA_TRANSFORMATION = 'data_transformation',
+  
+  // Research Tasks
+  RESEARCH_SYNTHESIS = 'research_synthesis',
+  RESEARCH_DISCOVERY = 'research_discovery',
+  LITERATURE_REVIEW = 'literature_review',
+  RESEARCH = 'research',
+  
+  // Creative Tasks
+  CREATIVE_WRITING = 'creative_writing',
+  CREATIVE_BRAINSTORMING = 'creative_brainstorming',
+  CONTENT_GENERATION = 'content_generation',
+  BRAINSTORMING = 'brainstorming',
+  
+  // Q&A Tasks
+  QUESTION_ANSWERING = 'question_answering',
+  FACT_CHECKING = 'fact_checking',
+  EXPLANATION = 'explanation',
+  FACTUAL_QA = 'factual_qa',
+  
+  // Document Tasks
+  DOCUMENT_SUMMARIZATION = 'document_summarization',
+  DOCUMENT_TRANSLATION = 'document_translation',
+  DOCUMENT_EDITING = 'document_editing',
+  SUMMARIZATION = 'summarization',
+  TRANSLATION = 'translation',
+  
+  // Planning Tasks
+  PROJECT_PLANNING = 'project_planning',
+  TASK_DECOMPOSITION = 'task_decomposition',
+  STRATEGY_FORMULATION = 'strategy_formulation',
+  
+  // Reasoning Tasks
+  LOGICAL_REASONING = 'logical_reasoning',
+  MATHEMATICAL_REASONING = 'mathematical_reasoning',
+  CAUSAL_REASONING = 'causal_reasoning',
+  REASONING = 'reasoning',
+  
+  // Agent Tasks
+  AGENT_ORCHESTRATION = 'agent_orchestration',
+  AGENT_COLLABORATION = 'agent_collaboration',
+  
+  // System Tasks
+  SYSTEM_OPTIMIZATION = 'system_optimization',
+  SYSTEM_MONITORING = 'system_monitoring',
+  ERROR_DIAGNOSIS = 'error_diagnosis',
+  
+  // Communication Tasks
+  CASUAL_CHAT = 'casual_chat',
+  TECHNICAL_SUPPORT = 'technical_support',
+  
+  // Vision Tasks
+  IMAGE_ANALYSIS = 'image_analysis',
+  IMAGE_DESCRIPTION = 'image_description',
+  VISUAL_REASONING = 'visual_reasoning',
+  
+  // Model Tasks
+  MODEL_TRAINING = 'model_training',
+  
+  // Default/Unknown
+  GENERAL = 'general',
+  UNKNOWN = 'unknown'
+}
+
+// For backward compatibility
+export const apiResponse = {
+  success: (data: any, message?: string) => ({
+    success: true,
+    data,
+    message: message || 'Operation successful'
+  }),
+  error: (message: string, code?: string, details?: any) => ({
+    success: false,
+    error: {
+      message,
+      code: code || 'ERROR',
+      details
+    }
+  })
 }

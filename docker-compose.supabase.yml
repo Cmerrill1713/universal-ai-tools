@@ -1,0 +1,229 @@
+version: '3.8'
+
+name: universal-ai-tools-with-supabase
+
+services:
+  # Supabase Database
+  supabase-db:
+    image: postgres:15-alpine
+    container_name: supabase-db
+    restart: unless-stopped
+    ports:
+      - '54322:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C
+    volumes:
+      - supabase_db_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Supabase Auth
+  supabase-auth:
+    image: supabase/gotrue:latest
+    container_name: supabase-auth
+    restart: unless-stopped
+    ports:
+      - '9999:9999'
+    environment:
+      - GOTRUE_API_HOST=0.0.0.0
+      - GOTRUE_API_PORT=9999
+      - GOTRUE_DB_DRIVER=postgres
+      - GOTRUE_DB_DATABASE_URL=postgres://postgres:postgres@supabase-db:5432/postgres?sslmode=disable
+      - GOTRUE_SITE_URL=http://localhost:3000
+      - GOTRUE_URI_ALLOW_LIST=http://localhost:3000
+      - GOTRUE_DISABLE_SIGNUP=false
+      - GOTRUE_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - GOTRUE_JWT_EXP=3600
+      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
+      - GOTRUE_EXTERNAL_EMAIL_ENABLED=false
+      - GOTRUE_MAILER_AUTOCONFIRM=true
+      - GOTRUE_SMTP_ADMIN_EMAIL=admin@example.com
+      - GOTRUE_SMTP_HOST=mail
+      - GOTRUE_SMTP_PORT=2500
+      - GOTRUE_SMTP_USER=fake_mail_user
+      - GOTRUE_SMTP_PASS=fake_mail_password
+      - GOTRUE_SMTP_SENDER_NAME=fake_sender
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - ai-network
+
+  # Supabase REST API
+  supabase-rest:
+    image: postgrest/postgrest:latest
+    container_name: supabase-rest
+    restart: unless-stopped
+    ports:
+      - '3001:3000'
+    environment:
+      - PGRST_DB_URI=postgres://postgres:postgres@supabase-db:5432/postgres
+      - PGRST_DB_SCHEMAS=public,storage,graphql_public
+      - PGRST_DB_ANON_ROLE=anon
+      - PGRST_JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - PGRST_DB_USE_LEGACY_GUCS=false
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - ai-network
+
+  # Supabase Realtime
+  supabase-realtime:
+    image: supabase/realtime:latest
+    container_name: supabase-realtime
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    environment:
+      - DB_HOST=supabase-db
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_PORT=5432
+      - PORT=4000
+      - JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - REPLICATION_MODE=RLS
+      - DB_SSL=false
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - ai-network
+
+  # Supabase Storage
+  supabase-storage:
+    image: supabase/storage-api:latest
+    container_name: supabase-storage
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      - ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      - SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+      - PROJECT_REF=your-project-ref
+      - REGION=us-east-1
+      - GLOBAL_S3_BUCKET=supabase
+      - DATABASE_URL=postgres://postgres:postgres@supabase-db:5432/postgres
+      - PGOPTIONS=-c search_path=storage,public
+      - FILE_SIZE_LIMIT=52428800
+      - STORAGE_BACKEND=file
+      - FILE_STORAGE_BACKEND_PATH=/var/lib/storage
+      - TENANT_ID=stub
+      - JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+    volumes:
+      - supabase_storage_data:/var/lib/storage
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - ai-network
+
+  # Supabase Edge Functions
+  supabase-edge-functions:
+    image: supabase/edge-runtime:latest
+    container_name: supabase-edge-functions
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+    environment:
+      - SUPABASE_URL=http://localhost:8000
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+    volumes:
+      - ./supabase/functions:/home/deno/functions
+    networks:
+      - ai-network
+
+  # Supabase Dashboard
+  supabase-dashboard:
+    image: supabase/dashboard:latest
+    container_name: supabase-dashboard
+    restart: unless-stopped
+    ports:
+      - '8000:3000'
+    environment:
+      - SUPABASE_URL=http://localhost:8000
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+    networks:
+      - ai-network
+
+  # Agent Zero (Universal AI Tools)
+  agent-zero:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agent-zero
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+      - '3001:3001'
+    environment:
+      # Supabase Configuration
+      - SUPABASE_URL=http://supabase-rest:3000
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+      - SUPABASE_DB_HOST=supabase-db
+      - SUPABASE_DB_PORT=5432
+      - SUPABASE_DB_NAME=postgres
+      - SUPABASE_DB_USER=postgres
+      - SUPABASE_DB_PASSWORD=postgres
+
+      # Agent Zero Configuration
+      - NODE_ENV=development
+      - PORT=3000
+      - LOG_LEVEL=debug
+
+      # Redis Configuration (if you want to add Redis later)
+      - REDIS_URL=redis://redis:6379
+
+      # Other configurations from your existing setup
+      - JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:8000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_started
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis (Optional - for caching and session management)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-network
+    command: redis-server --appendonly yes
+
+volumes:
+  supabase_db_data:
+  supabase_storage_data:
+  redis_data:
+
+networks:
+  ai-network:
+    driver: bridge

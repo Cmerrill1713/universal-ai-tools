@@ -65,7 +65,7 @@ export const config: ServiceConfig = {
 export function validateConfig(): void {
   const required = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY'];
 
-  const missing = required.filter((key) => !process.env[key]);
+  const missing = required.filter((key) => !Object.prototype.hasOwnProperty.call(process.env, key) || !process.env[key]);
 
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);

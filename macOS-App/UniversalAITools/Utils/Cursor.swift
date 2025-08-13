@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 enum HoverCursor {
     case pointingHand
@@ -21,8 +21,8 @@ private struct HoverCursorModifier: ViewModifier {
                     NSCursor.crosshair.push()
                 case .arrow:
                     NSCursor.arrow.push()
-                case .custom(let c):
-                    c.push()
+                case .custom(let customCursor):
+                    customCursor.push()
                 }
             } else {
                 NSCursor.pop()
@@ -36,5 +36,3 @@ extension View {
         modifier(HoverCursorModifier(cursor: cursor))
     }
 }
-
-

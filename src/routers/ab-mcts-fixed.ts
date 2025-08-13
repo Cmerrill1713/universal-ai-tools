@@ -216,7 +216,7 @@ router.get('/metrics', async (req: Request, res: Response, next: NextFunction) =
     const orchestratorStats = abMCTSOrchestrator.getStatistics();
 
     // Get feedback metrics
-    const feedbackMetrics = feedbackCollector.getMetrics();
+    const feedbackMetrics = await feedbackCollector.getMetrics();
 
     // Get Thompson sampling statistics
     const thompsonStats = defaultThompsonSelector.getRankedArms();

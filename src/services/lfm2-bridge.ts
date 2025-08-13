@@ -7,6 +7,11 @@
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import { ollamaService } from '@/services/ollama-service';
 import { CircuitBreaker, CircuitBreakerRegistry } from '@/utils/circuit-breaker';
@@ -86,6 +91,17 @@ export class LFM2BridgeService {
       const defaultScript = path.join(__dirname, 'lfm2-server.py');
       const pythonScript = scriptFromEnv || defaultScript;
 
+      // Verify the script exists before trying to spawn
+      const fs = await import('fs');
+      if (!fs.existsSync(pythonScript)) {
+        throw new Error(`LFM2 Python script not found at: ${pythonScript}`);
+      }
+      
+      log.info('🐍 Starting LFM2 Python process', LogContext.AI, {
+        pythonBin,
+        scriptPath: pythonScript
+      });
+
       this.pythonProcess = spawn(pythonBin, [pythonScript], {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: { ...process.env },
@@ -102,19 +118,20 @@ export class LFM2BridgeService {
 
       // Handle stderr output (includes Python logging)
       this.pythonProcess.stderr.on('data', (data) => {
-        const message = data.toString();
+        const message = data.toString().trim();
         // Python logging outputs to stderr by default
         // Only log as error if it's actually an error-level message
         if (
           message.includes('ERROR') ||
           message.includes('CRITICAL') ||
-          message.includes('Traceback')
+          message.includes('Traceback') ||
+          message.includes('Exception')
         ) {
           log.error('❌ LFM2 Python error', LogContext.AI, { error: message });
         } else if (message.includes('WARNING')) {
           log.warn('⚠️ LFM2 Python warning', LogContext.AI, { message });
-        } else {
-          // INFO and DEBUG messages - don't treat as errors
+        } else if (message.length > 0) {
+          // INFO and DEBUG messages - log at debug level
           log.debug('LFM2 Python output', LogContext.AI, { message });
         }
       });
@@ -126,24 +143,51 @@ export class LFM2BridgeService {
         this.restartProcess();
       });
 
-      // Wait for initialization
+      // Wait for initialization with better error handling
       await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('LFM2 initialization timeout')), 30000);
+        const timeout = setTimeout(() => {
+          log.error('❌ LFM2 initialization timeout after 30 seconds', LogContext.AI);
+          reject(new Error('LFM2 initialization timeout after 30 seconds'));
+        }, 30000);
 
         const checkInit = () => {
           if (this.isInitialized) {
             clearTimeout(timeout);
+            log.info('✅ LFM2 initialization confirmed', LogContext.AI);
             resolve(true);
           } else {
             setTimeout(checkInit, 100);
           }
         };
-        checkInit();
+        
+        // Start checking after a small delay to allow process to start
+        setTimeout(checkInit, 200);
+
+        // Also handle process early exit
+        if (this.pythonProcess) {
+          this.pythonProcess.on('exit', (code, signal) => {
+            if (!this.isInitialized && code !== 0) {
+              clearTimeout(timeout);
+              log.error('❌ LFM2 Python process exited early during initialization', LogContext.AI, {
+                exitCode: code,
+                signal,
+                error: 'Process terminated before initialization completed'
+              });
+              reject(new Error(`LFM2 Python process exited early with code ${code}, signal: ${signal}`));
+            }
+          });
+        }
       });
 
       log.info('✅ LFM2-1.2B bridge service initialized', LogContext.AI);
     } catch (error) {
-      log.error('❌ Failed to initialize LFM2 bridge service', LogContext.AI, { error });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      log.error('❌ Failed to initialize LFM2 bridge service', LogContext.AI, { 
+        error: errorMessage, 
+        stack: errorStack,
+        details: error 
+      });
       // Fall back to mock implementation
       this.initializeMockLFM2();
     }
@@ -661,8 +705,10 @@ class SafeLFM2Bridge {
           this.instance = new LFM2BridgeService();
           log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
           log.warn('⚠️ LFM2 bridge initialization failed, using fallback', LogContext.AI, {
-            error,
+            error: errorMessage,
+            details: error instanceof Error ? error.stack : undefined
           });
           return this.createFallbackResponse(userRequest);
         }
@@ -687,8 +733,10 @@ class SafeLFM2Bridge {
             this.instance = new LFM2BridgeService();
             log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);
           } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             log.warn('⚠️ LFM2 bridge initialization failed, using fallback', LogContext.AI, {
-              error: error instanceof Error ? error.message : String(error),
+              error: errorMessage,
+              stack: error instanceof Error ? error.stack : undefined
             });
           }
         }
@@ -788,7 +836,11 @@ class SafeLFM2Bridge {
         estimatedTokens: userRequest.length / 4,
       };
     } catch (error) {
-      log.error('❌ LFM2 routing decision failed', LogContext.AI, { error });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.error('❌ LFM2 routing decision failed', LogContext.AI, { 
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return {
         targetService: 'ollama',
         confidence: 0.3,

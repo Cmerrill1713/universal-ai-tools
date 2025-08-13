@@ -386,6 +386,7 @@ export class AgentRegistry extends EventEmitter {
     primary: unknown;
     supporting: Array<{ agentName: string; result: unknown; error?: string }>;
     synthesis?: unknown;
+    optimization?: unknown;
   }> {
     log.info(
       `Orchestrating agents: primary=${primaryAgent}, supporting=[${supportingAgents.join(', ')}]`,
@@ -395,6 +396,27 @@ export class AgentRegistry extends EventEmitter {
     // Create task record in Supabase
     const taskId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     await this.createTaskRecord(taskId, primaryAgent, supportingAgents, context);
+
+    // Try to use DSPy for optimization if available
+    let dspyOptimization: any = null;
+    try {
+      const { dspyService } = await import('../services/dspy-service');
+      if (dspyService.isReady()) {
+        const userRequest = (context as any)?.userRequest || 'Agent orchestration task';
+        dspyOptimization = await dspyService.orchestrate({
+          userRequest,
+          userId: (context as any)?.userId || 'system',
+          context: {
+            primaryAgent,
+            supportingAgents,
+            taskId,
+          }
+        });
+        log.info('✅ DSPy optimization applied to agent orchestration', LogContext.AGENT);
+      }
+    } catch {
+      log.debug('DSPy optimization not available for orchestration', LogContext.AGENT);
+    }
 
     // Execute primary and supporting agents in parallel
     const [primaryResult, supportingResults] = await Promise.all([
@@ -424,6 +446,7 @@ export class AgentRegistry extends EventEmitter {
       primary: primaryResult,
       supporting: supportingResults,
       synthesis,
+      optimization: dspyOptimization,
     };
 
     // Update task record with results

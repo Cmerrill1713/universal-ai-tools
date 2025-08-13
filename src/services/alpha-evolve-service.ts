@@ -117,9 +117,11 @@ Provide specific, actionable evolution recommendations in JSON format:
 
     try {
       const result = await multiTierLLM.execute(analysisPrompt, {
-        domain: 'reasoning',
-        complexity: 'expert',
-        agentName: 'alpha_evolve_analyzer',
+        metadata: {
+          domain: 'reasoning',
+          complexity: 'expert',
+          agentName: 'alpha_evolve_analyzer',
+        }
       });
 
       const analysis = this.parseEvolutionAnalysis(result.response);
@@ -258,9 +260,11 @@ Suggest specific architectural changes in JSON format:
 
     try {
       const result = await multiTierLLM.execute(architectureAnalysisPrompt, {
-        domain: 'reasoning',
-        complexity: 'expert',
-        agentName: 'alpha_evolve_architect',
+        metadata: {
+          domain: 'reasoning',
+          complexity: 'expert',
+          agentName: 'alpha_evolve_architect',
+        }
       });
 
       const architecturalPlan = this.parseArchitecturalEvolution(result.response);
@@ -324,16 +328,32 @@ Extract patterns and improvement opportunities:
 }`;
 
     try {
+      // Use multiTierLLM with proper context structure
       const learningResult = await multiTierLLM.execute(learningPrompt, {
-        domain: 'reasoning',
-        complexity: 'medium',
-        agentName: 'alpha_evolve_learner',
+        metadata: {
+          domain: 'reasoning',
+          complexity: 'medium',
+          agentName: 'alpha_evolve_learner',
+        }
       });
 
       // Apply learning insights
       await this.applyLearningInsights(agentName, learningResult.response);
     } catch (error) {
-      log.warn(`⚠️ Learning from interaction failed for ${agentName}`, LogContext.AI);
+      log.warn(`⚠️ Learning from interaction failed for ${agentName}`, LogContext.AI, { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userRequest: interaction.userRequest?.substring(0, 100),
+        agentResponse: interaction.agentResponse?.substring(0, 100)
+      });
+      
+      // Fallback: Store basic metrics without LLM analysis
+      try {
+        await this.storeBasicInteractionMetrics(agentName, interaction);
+      } catch (fallbackError) {
+        log.error(`❌ Failed to store basic interaction metrics for ${agentName}`, LogContext.AI, {
+          error: fallbackError instanceof Error ? fallbackError.message : 'Unknown fallback error'
+        });
+      }
     }
   }
 
@@ -538,6 +558,52 @@ Extract patterns and improvement opportunities:
   private async applyLearningInsights(agentName: string, insights: string): Promise<void> {
     // Apply learning insights to improve agent
     log.info(`📚 Applying learning insights to ${agentName}`, LogContext.AI);
+  }
+
+  private async storeBasicInteractionMetrics(
+    agentName: string, 
+    interaction: {
+      userRequest: string;
+      agentResponse: string;
+      userFeedback?: number;
+      wasSuccessful: boolean;
+      responseTime: number;
+      tokensUsed: number;
+    }
+  ): Promise<void> {
+    // Update or create basic metrics without LLM analysis
+    let metrics = this.agentMetrics.get(agentName);
+    if (!metrics) {
+      metrics = {
+        agentName,
+        successRate: 0,
+        averageResponseTime: 0,
+        userSatisfaction: 3.5,
+        taskComplexityHandled: 'general',
+        improvementSuggestions: [],
+        lastEvolution: new Date()
+      };
+    }
+
+    // Update metrics based on interaction
+    const currentSuccessCount = Math.floor(metrics.successRate * 100);
+    const newSuccessCount = currentSuccessCount + (interaction.wasSuccessful ? 1 : 0);
+    const totalInteractions = currentSuccessCount + 1;
+    
+    metrics.successRate = newSuccessCount / totalInteractions;
+    metrics.averageResponseTime = (metrics.averageResponseTime + interaction.responseTime) / 2;
+    
+    if (interaction.userFeedback) {
+      metrics.userSatisfaction = (metrics.userSatisfaction + interaction.userFeedback) / 2;
+    }
+
+    this.agentMetrics.set(agentName, metrics);
+    
+    log.info(`📊 Updated basic metrics for ${agentName}`, LogContext.AI, {
+      successRate: metrics.successRate.toFixed(2),
+      avgResponseTime: Math.round(metrics.averageResponseTime),
+      userSatisfaction: metrics.userSatisfaction.toFixed(1)
+    });
   }
 
   public getEvolutionStatus(): {

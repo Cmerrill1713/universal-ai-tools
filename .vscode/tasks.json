@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json.schemastore.org/tasks.json",
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Type Check",
+      "type": "shell",
+      "command": "npm run type-check",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "npm run lint",
+      "group": "build",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Lint: Fix",
+      "type": "shell",
+      "command": "npm run lint:fix",
+      "group": "build",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Format",
+      "type": "shell",
+      "command": "npm run format",
+      "group": "build"
+    },
+    {
+      "label": "Jest: Watch",
+      "type": "shell",
+      "command": "npm run test:watch",
+      "group": "test",
+      "problemMatcher": ["$jest-stare"]
+    },
+    {
+      "label": "Jest: Coverage",
+      "type": "shell",
+      "command": "npm run test:coverage",
+      "group": "test"
+    },
+    {
+      "label": "Dev Server",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": ".*",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Listening on"
+        }
+      }
+    },
+    {
+      "label": "Supabase: Start",
+      "type": "shell",
+      "command": "npm run supabase:start"
+    },
+    {
+      "label": "Supabase: Stop",
+      "type": "shell",
+      "command": "npm run supabase:stop"
+    },
+    {
+      "label": "Docker: Telemetry Up",
+      "type": "shell",
+      "command": "npm run telemetry:start"
+    },
+    {
+      "label": "Docker: Telemetry Down",
+      "type": "shell",
+      "command": "npm run telemetry:stop"
+    }
+  ]
+}
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Project",
+      "type": "npm",
+      "script": "build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Build Production",
+      "type": "npm",
+      "script": "build:prod",
+      "group": "build",
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Start Development Server",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^([^\\s].*)\\((\\d+,\\d+)\\):\\s+(error|warning)\\s+TS(\\d+)\\s*:\\s*(.*)$",
+          "file": 1,
+          "location": 2,
+          "severity": 3,
+          "code": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting development server.*$",
+          "endsPattern": "^.*Server started on port.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Tests",
+      "type": "npm",
+      "script": "test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": ["$jest"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Tests (Watch Mode)",
+      "type": "npm",
+      "script": "test:watch",
+      "isBackground": true,
+      "problemMatcher": ["$jest-watch"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Lint Code",
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": ["$eslint-stylish"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Fix Lint Issues",
+      "type": "npm",
+      "script": "lint:fix",
+      "problemMatcher": ["$eslint-stylish"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Format Code",
+      "type": "npm",
+      "script": "format",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Type Check",
+      "type": "npm",
+      "script": "typecheck",
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Clean Build",
+      "type": "shell",
+      "command": "rm -rf dist build",
+      "windows": {
+        "command": "rmdir /s /q dist build"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Start Python DSPy Server",
+      "type": "shell",
+      "command": "python",
+      "args": ["src/services/dspy-orchestrator/server.py"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/src/services/dspy-orchestrator"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting DSPy orchestrator server.*$",
+          "endsPattern": "^.*DSPy server running on.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Database Migration",
+      "type": "npm",
+      "script": "migrate",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Setup Vault Secrets",
+      "type": "npm",
+      "script": "setup:vault-secrets",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Check Health",
+      "type": "npm",
+      "script": "health:check",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Start Redis",
+      "type": "shell",
+      "command": "redis-server",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting Redis.*$",
+          "endsPattern": "^.*Ready to accept connections.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Start Supabase",
+      "type": "npm",
+      "script": "supabase:start",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Start All Services",
+      "dependsOn": [
+        "Start Redis",
+        "Start Supabase",
+        "Start Python DSPy Server",
+        "Start Development Server"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Production Readiness Check",
+      "type": "npm",
+      "script": "production:check",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Security Audit",
+      "type": "npm",
+      "script": "security:audit",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Generate API Documentation",
+      "type": "shell",
+      "command": "npx",
+      "args": ["typedoc", "--out", "docs/api", "src"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

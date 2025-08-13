@@ -464,7 +464,8 @@ export class ContextStorageService {
 
         // Find oldest and newest entries
         const dates = data.map((entry) => entry.created_at).sort();
-        stats.oldestEntry = dates[0];
+        const [oldestEntry] = dates;
+        stats.oldestEntry = oldestEntry;
         stats.newestEntry = dates[dates.length - 1];
       }
 

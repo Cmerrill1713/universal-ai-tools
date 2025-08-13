@@ -212,7 +212,7 @@ export class ContextAnalyticsService {
       const userContexts = await contextStorageService.getContext(userId, undefined, undefined, 100);
 
       // Calculate metrics
-      const sessionIds = [...new Set(userContexts.map(ctx => ctx.source))];
+      const sessionIds = Array.from(new Set(userContexts.map(ctx => ctx.source)));
       const messageCount = userContexts.reduce((sum, ctx) => {
         try {
           const messages = JSON.parse(ctx.content);
@@ -318,10 +318,11 @@ export class ContextAnalyticsService {
 
         totalTokensSaved += (originalTokens - compressedTokens);
         totalCompressionRatio += ratio;
-        compressionsByType[type] = (compressionsByType[type] || 0) + 1;
+        const currentCount = Object.prototype.hasOwnProperty.call(compressionsByType, type) ? (compressionsByType[type] || 0) : 0;
+        Object.assign(compressionsByType, { [type]: currentCount + 1 });
 
         // Daily aggregation
-        const date = compression.created_at.split('T')[0];
+        const [date] = compression.created_at.split('T');
         const daily = dailyCompressions.get(date) || { count: 0, tokensSaved: 0, totalRatio: 0 };
         daily.count += 1;
         daily.tokensSaved += (originalTokens - compressedTokens);
@@ -468,6 +469,221 @@ export class ContextAnalyticsService {
         semanticRetrieval: { status: 'critical', cacheSize: 0, embeddingFailures: 0, averageQueryTime: 0 },
         database: { status: 'critical', totalRecords: 0, storageSize: 0, queryPerformance: 0 },
         middleware: { status: 'critical', activeSessions: 0, requestsPerMinute: 0, errorRate: 1 },
+      };
+    }
+  }
+
+  /**
+   * Get usage patterns for a specific time range
+   */
+  async getUsagePatterns(timeRange: string): Promise<{
+    contextCreation: Array<{ date: Date; count: number }>;
+    retrievalPatterns: Array<{ hour: number; queries: number }>;
+    compressionPatterns: Array<{ date: Date; compressions: number }>;
+    topUsers: Array<{ userId: string; activity: number }>;
+    topTopics: Array<{ topic: string; frequency: number }>;
+  }> {
+    try {
+      const days = this.parseTimeRange(timeRange);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      // Get context creation patterns
+      const { data: contexts, error } = await this.supabase
+        .from('context_storage')
+        .select('created_at, user_id, content')
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      const contextData = contexts || [];
+
+      // Build context creation patterns
+      const dailyContexts = new Map<string, number>();
+      const hourlyQueries = new Map<number, number>();
+      const userActivity = new Map<string, number>();
+      const allTopics: string[] = [];
+
+      contextData.forEach(context => {
+        const [date] = context.created_at.split('T');
+        const hour = new Date(context.created_at).getHours();
+        
+        dailyContexts.set(date, (dailyContexts.get(date) || 0) + 1);
+        hourlyQueries.set(hour, (hourlyQueries.get(hour) || 0) + 1);
+        userActivity.set(context.user_id, (userActivity.get(context.user_id) || 0) + 1);
+        
+        // Extract topics
+        allTopics.push(...this.extractTopics(context.content));
+      });
+
+      // Get compression patterns
+      const compressionData = this.compressionEvents.filter(
+        event => event.timestamp.getTime() > cutoffDate.getTime()
+      );
+
+      const dailyCompressions = new Map<string, number>();
+      compressionData.forEach(event => {
+        const dateStr = event.timestamp.toISOString().split('T')[0];
+        if (dateStr) {
+          const currentCount = dailyCompressions.get(dateStr) ?? 0;
+          dailyCompressions.set(dateStr, currentCount + 1);
+        }
+      });
+
+      return {
+        contextCreation: Array.from(dailyContexts.entries()).map(([date, count]) => ({
+          date: new Date(date),
+          count,
+        })).sort((a, b) => a.date.getTime() - b.date.getTime()),
+        
+        retrievalPatterns: Array.from(hourlyQueries.entries()).map(([hour, queries]) => ({
+          hour,
+          queries,
+        })).sort((a, b) => a.hour - b.hour),
+        
+        compressionPatterns: Array.from(dailyCompressions.entries()).map(([date, compressions]) => ({
+          date: new Date(date),
+          compressions,
+        })).sort((a, b) => a.date.getTime() - b.date.getTime()),
+        
+        topUsers: Array.from(userActivity.entries())
+          .map(([userId, activity]) => ({ userId, activity }))
+          .sort((a, b) => b.activity - a.activity)
+          .slice(0, 10),
+        
+        topTopics: this.getMostFrequentItems(allTopics, 10)
+          .map(topic => ({ topic, frequency: allTopics.filter(t => t === topic).length })),
+      };
+    } catch (error) {
+      log.error('❌ Failed to get usage patterns', LogContext.CONTEXT_INJECTION, {
+        error: error instanceof Error ? error.message : String(error),
+        timeRange,
+      });
+
+      return {
+        contextCreation: [],
+        retrievalPatterns: [],
+        compressionPatterns: [],
+        topUsers: [],
+        topTopics: [],
+      };
+    }
+  }
+
+  /**
+   * Optimize context for a specific user and session
+   */
+  async optimizeContextForUser(userId: string, sessionId?: string): Promise<{
+    recommendations: Array<{
+      type: 'compression' | 'cleanup' | 'caching' | 'retrieval';
+      priority: 'high' | 'medium' | 'low';
+      description: string;
+      impact: string;
+    }>;
+    currentStats: {
+      contextCount: number;
+      totalTokens: number;
+      averageSize: number;
+      compressionRatio: number;
+    };
+    optimizedStats: {
+      projectedSavings: number;
+      projectedSize: number;
+      performanceImprovement: number;
+    };
+  }> {
+    try {
+      const userAnalytics = await this.getUserAnalytics(userId);
+      const recommendations = [];
+      
+      // Analyze current context state
+      const currentStats = {
+        contextCount: userAnalytics.messageCount,
+        totalTokens: userAnalytics.totalTokens,
+        averageSize: userAnalytics.totalTokens / Math.max(userAnalytics.messageCount, 1),
+        compressionRatio: userAnalytics.contextCompressions / Math.max(userAnalytics.messageCount, 1),
+      };
+
+      // Compression recommendations
+      if (currentStats.compressionRatio < 0.3) {
+        recommendations.push({
+          type: 'compression' as const,
+          priority: 'high' as const,
+          description: 'Increase compression frequency to reduce token usage',
+          impact: `Could save ~${Math.floor(currentStats.totalTokens * 0.4)} tokens`,
+        });
+      }
+
+      // Cleanup recommendations
+      if (currentStats.contextCount > 100) {
+        recommendations.push({
+          type: 'cleanup' as const,
+          priority: 'medium' as const,
+          description: 'Archive old contexts to improve retrieval performance',
+          impact: `Remove ${currentStats.contextCount - 50} old contexts`,
+        });
+      }
+
+      // Caching recommendations
+      if (userAnalytics.efficiency.retrievalAccuracy < 0.7) {
+        recommendations.push({
+          type: 'caching' as const,
+          priority: 'medium' as const,
+          description: 'Improve semantic caching for frequently accessed topics',
+          impact: 'Improve retrieval speed by ~30%',
+        });
+      }
+
+      // Retrieval optimization
+      if (currentStats.averageSize > 1000) {
+        recommendations.push({
+          type: 'retrieval' as const,
+          priority: 'low' as const,
+          description: 'Split large contexts for better semantic matching',
+          impact: 'Improve context relevance by ~20%',
+        });
+      }
+
+      // Calculate optimized projections
+      const projectedSavings = Math.floor(currentStats.totalTokens * 0.3);
+      const projectedSize = currentStats.totalTokens - projectedSavings;
+      const performanceImprovement = 25; // 25% improvement estimate
+
+      return {
+        recommendations: recommendations.sort((a, b) => {
+          const priorityOrder = { high: 3, medium: 2, low: 1 };
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        }),
+        currentStats,
+        optimizedStats: {
+          projectedSavings,
+          projectedSize,
+          performanceImprovement,
+        },
+      };
+    } catch (error) {
+      log.error('❌ Failed to optimize context for user', LogContext.CONTEXT_INJECTION, {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        sessionId,
+      });
+
+      return {
+        recommendations: [],
+        currentStats: {
+          contextCount: 0,
+          totalTokens: 0,
+          averageSize: 0,
+          compressionRatio: 0,
+        },
+        optimizedStats: {
+          projectedSavings: 0,
+          projectedSize: 0,
+          performanceImprovement: 0,
+        },
       };
     }
   }
@@ -775,6 +991,22 @@ export class ContextAnalyticsService {
   private calculateRequestsPerMinute(): number {
     // Placeholder - would need to track request counts
     return 25;
+  }
+
+  private parseTimeRange(timeRange: string): number {
+    const match = timeRange.match(/^(\d+)([hdmw])$/);
+    if (!match || !match[1] || !match[2]) return 1; // Default to 1 day
+    
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    
+    switch (unit) {
+      case 'h': return value / 24; // Convert hours to days
+      case 'd': return value;
+      case 'w': return value * 7; // Convert weeks to days
+      case 'm': return value * 30; // Convert months to days
+      default: return 1;
+    }
   }
 
   private convertToCSV(data: any): string {

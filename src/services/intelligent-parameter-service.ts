@@ -3,6 +3,8 @@
  * Automatically adjusts context length, prompts, and temperature based on task type
  */
 
+import { TaskType } from '@/types';
+
 import { TWO } from '../utils/constants';
 import { log,LogContext } from '../utils/logger';
 
@@ -33,53 +35,6 @@ export interface UserPreferences {
   preferredLength?: 'concise' | 'detailed' | 'comprehensive';
   writingStyle?: 'formal' | 'casual' | 'technical';
   creativity?: 'conservative' | 'balanced' | 'creative';
-}
-
-export enum TaskType {
-  // Code Tasks
-  CODE_GENERATION = 'code_generation',
-  CODE_REVIEW = 'code_review',
-  CODE_DEBUGGING = 'code_debugging',
-  CODE_EXPLANATION = 'code_explanation',
-  CODE_REFACTORING = 'code_refactoring',
-
-  // Analysis Tasks
-  DATA_ANALYSIS = 'data_analysis',
-  TEXT_ANALYSIS = 'text_analysis',
-  DOCUMENT_ANALYSIS = 'document_analysis',
-  RESEARCH = 'research',
-
-  // Creative Tasks
-  CREATIVE_WRITING = 'creative_writing',
-  CONTENT_GENERATION = 'content_generation',
-  BRAINSTORMING = 'brainstorming',
-  STORY_GENERATION = 'story_generation',
-
-  // Question Answering
-  FACTUAL_QA = 'factual_qa',
-  REASONING = 'reasoning',
-  EXPLANATION = 'explanation',
-  TUTORIAL = 'tutorial',
-
-  // Conversation
-  CASUAL_CHAT = 'casual_chat',
-  PROFESSIONAL_CONSULTATION = 'professional_consultation',
-  TECHNICAL_SUPPORT = 'technical_support',
-
-  // Specialized
-  TRANSLATION = 'translation',
-  SUMMARIZATION = 'summarization',
-  CLASSIFICATION = 'classification',
-  EXTRACTION = 'extraction',
-
-  // Vision Tasks
-  IMAGE_ANALYSIS = 'image_analysis',
-  IMAGE_DESCRIPTION = 'image_description',
-  VISUAL_REASONING = 'visual_reasoning',
-
-  // Fine-tuning
-  MODEL_TRAINING = 'model_training',
-  DATASET_PREPARATION = 'dataset_preparation',
 }
 
 export class IntelligentParameterService {

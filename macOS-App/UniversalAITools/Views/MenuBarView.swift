@@ -300,18 +300,16 @@ struct MenuBarView: View {
     private func openMainWindow() {
         NSApplication.shared.activate(ignoringOtherApps: true)
 
+        // Find and activate the main window safely
+        for window in NSApplication.shared.windows {
+            if window.title == "Universal AI Tools" || window.isMainWindow {
+                window.makeKeyAndOrderFront(nil)
+                return
+            }
+        }
+
+        // If no main window found, just activate the app
         if let window = NSApplication.shared.windows.first {
-            window.makeKeyAndOrderFront(nil)
-        } else {
-            // Create main window if not exists
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-            window.title = "Universal AI Tools"
-            window.center()
             window.makeKeyAndOrderFront(nil)
         }
     }
@@ -322,17 +320,19 @@ struct MenuBarView: View {
     }
 
     private func openAgentsPanel() {
-        appState.selectedSidebarItem = .agents
+        appState.selectedSidebarItem = .objectives
         openMainWindow()
     }
 
     private func openContextManager() {
-        appState.selectedSidebarItem = .knowledge
+        appState.selectedSidebarItem = .tools
+        appState.selectedTool = .knowledge
         openMainWindow()
     }
 
     private func openMonitoring() {
-        appState.selectedSidebarItem = .monitoring
+        appState.selectedSidebarItem = .tools
+        appState.selectedTool = .monitoring
         openMainWindow()
     }
 

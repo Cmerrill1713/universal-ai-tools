@@ -1,6 +1,6 @@
-import SwiftUI
-import Foundation
 import Combine
+import Foundation
+import SwiftUI
 
 struct AgentActivityWindow: View {
     @EnvironmentObject var appState: AppState

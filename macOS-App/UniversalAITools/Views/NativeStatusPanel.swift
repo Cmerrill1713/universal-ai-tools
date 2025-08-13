@@ -33,56 +33,28 @@ struct NativeStatusPanel: View {
     @ViewBuilder
     private var statusContent: some View {
         switch item {
-        case .dashboard:
-            dashboardStatus
         case .chat:
             chatStatus
-        case .agents:
-            agentStatus
+        case .objectives:
+            objectivesStatus
         case .tools:
-            dashboardStatus
-        case .mlx:
-            mlxStatus
-        case .vision:
-            visionStatus
-        case .monitoring:
-            monitoringStatus
-        case .abMcts:
-            abMctsStatus
-        case .maltSwarm:
-            maltSwarmStatus
-        case .parameters:
-            parameterStatus
-        case .knowledge:
-            knowledgeStatus
-        case .debugging:
-            debuggingStatus
+            toolsStatus
         }
     }
 
-    private var dashboardStatus: some View {
+    private var toolsStatus: some View {
         VStack(spacing: 8) {
             HStack {
-                Text("System Health:")
+                Text("Active Tools:")
                 Spacer()
-                Text(appState.backendConnected ? "Good" : "Poor")
-                    .foregroundColor(appState.backendConnected ? .green : .red)
+                Text("\(ToolCategory.allCases.count)")
             }
 
-            if let metrics = appState.systemMetrics {
-                HStack {
-                    Text("CPU:")
-                    Spacer()
-                    Text("\(Int(metrics.cpuUsage))%")
-                        .foregroundColor(metrics.cpuUsage > 80 ? .red : .green)
-                }
-
-                HStack {
-                    Text("Memory:")
-                    Spacer()
-                    Text("\(Int(metrics.memoryUsage))%")
-                        .foregroundColor(metrics.memoryUsage > 80 ? .red : .green)
-                }
+            HStack {
+                Text("Performance:")
+                Spacer()
+                Text("Good")
+                    .foregroundColor(.green)
             }
         }
     }
@@ -112,221 +84,39 @@ struct NativeStatusPanel: View {
         }
     }
 
-    private var agentStatus: some View {
+    private var objectivesStatus: some View {
         VStack(spacing: 8) {
             HStack {
-                Text("Active Agents:")
+                Text("Active Objectives:")
                 Spacer()
-                Text("\(appState.activeAgents.count)")
+                Text("\(appState.activeObjectives.count)")
             }
 
-            let busyCount = appState.activeAgents.filter { $0.status == .busy }.count
-            if busyCount > 0 {
+            let activeCount = appState.activeObjectives.filter { $0.status == .active }.count
+            if activeCount > 0 {
                 HStack {
-                    Text("Busy:")
+                    Text("In Progress:")
                     Spacer()
-                    Text("\(busyCount)")
+                    Text("\(activeCount)")
                         .foregroundColor(.orange)
                 }
             }
 
-            let errorCount = appState.activeAgents.filter { $0.status == .error }.count
-            if errorCount > 0 {
+            let completedCount = appState.activeObjectives.filter { $0.status == .completed }.count
+            if completedCount > 0 {
                 HStack {
-                    Text("Errors:")
+                    Text("Completed:")
                     Spacer()
-                    Text("\(errorCount)")
-                        .foregroundColor(.red)
+                    Text("\(completedCount)")
+                        .foregroundColor(.green)
                 }
-            }
-        }
-    }
-
-    private var mlxStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("MLX Status:")
-                Spacer()
-                Text("Ready")
-                    .foregroundColor(.green)
-            }
-
-            HStack {
-                Text("Models:")
-                Spacer()
-                Text("3 Available")
-            }
-
-            HStack {
-                Text("Training:")
-                Spacer()
-                Text("Idle")
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    private var visionStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Vision Status:")
-                Spacer()
-                Text("Ready")
-                    .foregroundColor(.green)
-            }
-
-            HStack {
-                Text("Models:")
-                Spacer()
-                Text("2 Loaded")
-            }
-
-            HStack {
-                Text("Processing:")
-                Spacer()
-                Text("Idle")
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    private var monitoringStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Monitoring:")
-                Spacer()
-                Text("Active")
-                    .foregroundColor(.green)
-            }
-
-            if let metrics = appState.systemMetrics {
-                HStack {
-                    Text("Requests/min:")
-                    Spacer()
-                    Text("\(metrics.requestsPerMinute)")
-                }
-
-                HStack {
-                    Text("Connections:")
-                    Spacer()
-                    Text("\(metrics.activeConnections)")
-                }
-            }
-        }
-    }
-
-    private var abMctsStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("AB-MCTS:")
-                Spacer()
-                Text("Stopped")
-                    .foregroundColor(.secondary)
-            }
-
-            HStack {
-                Text("Nodes:")
-                Spacer()
-                Text("0")
-            }
-
-            HStack {
-                Text("Iterations:")
-                Spacer()
-                Text("0")
-            }
-        }
-    }
-
-    private var maltSwarmStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("MALT Swarm:")
-                Spacer()
-                Text("Stopped")
-                    .foregroundColor(.secondary)
-            }
-
-            HStack {
-                Text("Nodes:")
-                Spacer()
-                Text("0")
-            }
-
-            HStack {
-                Text("Status:")
-                Spacer()
-                Text("Inactive")
-            }
-        }
-    }
-
-    private var parameterStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Optimization:")
-                Spacer()
-                Text("Idle")
-                    .foregroundColor(.secondary)
-            }
-
-            HStack {
-                Text("Parameters:")
-                Spacer()
-                Text("12 Configured")
-            }
-
-            HStack {
-                Text("History:")
-                Spacer()
-                Text("5 Runs")
-            }
-        }
-    }
-
-    private var knowledgeStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Knowledge Base:")
-                Spacer()
-                Text("Ready")
-                    .foregroundColor(.green)
-            }
-
-            HStack {
-                Text("Entries:")
-                Spacer()
-                Text("1,247")
-            }
-
-            HStack {
-                Text("Index:")
-                Spacer()
-                Text("Up to date")
-                    .foregroundColor(.green)
-            }
-        }
-    }
-
-    private var debuggingStatus: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Debug Console:")
-                Spacer()
-                Text(appState.backendConnected ? "Ready" : "Offline").foregroundColor(appState.backendConnected ? .green : .red)
-            }
-
-            HStack {
-                Text("Recent Tasks:")
-                Spacer()
-                Text("—")
             }
         }
     }
 
     private var hasProgress: Bool {
         switch item {
-        case .mlx, .vision, .abMcts, .maltSwarm, .parameters:
+        case .tools:
             return true
         default:
             return false
@@ -350,6 +140,6 @@ struct NativeStatusPanel: View {
 }
 
 #Preview {
-    NativeStatusPanel(item: .dashboard)
+    NativeStatusPanel(item: .chat)
         .environmentObject(AppState())
 }

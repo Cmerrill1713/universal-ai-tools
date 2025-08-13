@@ -10,24 +10,32 @@ struct AgentsView: View {
     private let categories = ["All", "Research", "Memory", "Orchestration", "Specialized"]
 
     private var filteredAgents: [Agent] {
-        let categoryFiltered = selectedCategory == "All" ? appState.availableAgents : appState.availableAgents.filter { $0.type == selectedCategory }
+        let categoryFiltered = selectedCategory == "All"
+            ? appState.availableAgents
+            : appState.availableAgents.filter { $0.type == selectedCategory }
 
         if searchText.isEmpty {
             return categoryFiltered
         } else {
-            return categoryFiltered.filter { $0.name.localizedCaseInsensitiveContains(searchText) || $0.description.localizedCaseInsensitiveContains(searchText) }
+            return categoryFiltered.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText)
+                || $0.description.localizedCaseInsensitiveContains(searchText)
+            }
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            agentsHeader
+            AgentsHeaderView(showingCreateAgent: $showingCreateAgent)
 
             Divider()
 
             // Filters and Search
-            filtersAndSearch
+            FiltersAndSearchView(
+                categories: categories,
+                selectedCategory: $selectedCategory,
+                searchText: $searchText
+            )
 
             Divider()
 
@@ -51,7 +59,18 @@ struct AgentsView: View {
         }
     }
 
-    private var agentsHeader: some View {
+    private var gridColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 280, maximum: 320), spacing: 20)
+        ]
+    }
+}
+
+// MARK: - Subviews
+private struct AgentsHeaderView: View {
+    @Binding var showingCreateAgent: Bool
+
+    var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("AI Agents")
@@ -65,26 +84,35 @@ struct AgentsView: View {
 
             Spacer()
 
-            Button(action: { showingCreateAgent = true }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Create Agent")
-                        .fontWeight(.medium)
+            Button(
+                action: { showingCreateAgent = true },
+                label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Create Agent")
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.accentColor)
+                    )
+                    .foregroundColor(.white)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.accentColor)
-                )
-                .foregroundColor(.white)
-            }
+            )
             .buttonStyle(.plain)
         }
         .padding()
     }
+}
 
-    private var filtersAndSearch: some View {
+private struct FiltersAndSearchView: View {
+    let categories: [String]
+    @Binding var selectedCategory: String
+    @Binding var searchText: String
+
+    var body: some View {
         VStack(spacing: 16) {
             // Category Picker
             HStack {
@@ -111,10 +139,13 @@ struct AgentsView: View {
                     .textFieldStyle(.plain)
 
                 if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                    }
+                    Button(
+                        action: { searchText = "" },
+                        label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    )
                     .buttonStyle(.plain)
                 }
             }
@@ -131,12 +162,6 @@ struct AgentsView: View {
         }
         .padding(.horizontal)
         .padding(.top, 8)
-    }
-
-    private var gridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 280, maximum: 320), spacing: 20)
-        ]
     }
 }
 
@@ -207,38 +232,44 @@ struct AgentCard: View {
 
             // Actions
             HStack(spacing: 12) {
-                Button(action: { activateAgent() }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "play.circle.fill")
-                        Text("Activate")
+                Button(
+                    action: { activateAgent() },
+                    label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "play.circle.fill")
+                            Text("Activate")
+                        }
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.green)
+                        )
+                        .foregroundColor(.white)
                     }
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.green)
-                    )
-                    .foregroundColor(.white)
-                }
+                )
                 .buttonStyle(.plain)
 
-                Button(action: { showingDetails = true }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "info.circle")
-                        Text("Details")
+                Button(
+                    action: { showingDetails = true },
+                    label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle")
+                            Text("Details")
+                        }
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color(.controlBackgroundColor))
+                        )
+                        .foregroundColor(.primary)
                     }
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color(.controlBackgroundColor))
-                    )
-                    .foregroundColor(.primary)
-                }
+                )
                 .buttonStyle(.plain)
 
                 Spacer()
@@ -274,8 +305,19 @@ struct AgentCard: View {
     }
 
     private func activateAgent() {
-        // Simulate agent activation
-        appState.activateAgent(agent)
+        Task {
+            do {
+                try await apiService.activateAgent(id: agent.id)
+                await MainActor.run { appState.activateAgent(agent) }
+            } catch {
+                await MainActor.run {
+                    appState.showNotification(
+                        message: "Failed to activate agent: \(error.localizedDescription)",
+                        type: .error
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -314,10 +356,13 @@ struct CreateAgentView: View {
                                 TextField("Capability", text: $capabilities[index])
 
                                 if capabilities.count > 1 {
-                                    Button(action: { removeCapability(at: index) }) {
-                                        Image(systemName: "minus.circle.fill")
-                                            .foregroundColor(.red)
-                                    }
+                        Button(
+                            action: { removeCapability(at: index) },
+                            label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundColor(.red)
+                            }
+                        )
                                     .buttonStyle(.plain)
                                 }
                             }
@@ -429,12 +474,36 @@ struct AgentDetailView: View {
 
                         HStack(spacing: 12) {
                             Button("Activate") {
-                                appState.activateAgent(agent)
+                                Task {
+                                    do {
+                                        try await apiService.activateAgent(id: agent.id)
+                                        await MainActor.run { appState.activateAgent(agent) }
+                                    } catch {
+                                        await MainActor.run {
+                                            appState.showNotification(
+                                                message: "Failed to activate agent: \(error.localizedDescription)",
+                                                type: .error
+                                            )
+                                        }
+                                    }
+                                }
                             }
                             .buttonStyle(.borderedProminent)
 
                             Button("Deactivate") {
-                                appState.deactivateAgent(agent)
+                                Task {
+                                    do {
+                                        try await apiService.deactivateAgent(id: agent.id)
+                                        await MainActor.run { appState.deactivateAgent(agent) }
+                                    } catch {
+                                        await MainActor.run {
+                                            appState.showNotification(
+                                                message: "Failed to deactivate agent: \(error.localizedDescription)",
+                                                type: .error
+                                            )
+                                        }
+                                    }
+                                }
                             }
                             .buttonStyle(.bordered)
 

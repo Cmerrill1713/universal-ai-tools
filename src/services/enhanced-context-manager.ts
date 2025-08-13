@@ -862,7 +862,7 @@ Discussion Topics: ${this.extractTopics(messages).join(', ')}`;
   private async performBackgroundCleanup(): Promise<void> {
     try {
       const now = Date.now();
-      const staleThreshold = 2 * 60 * 60 * 1000; // 2 hours (increased from 1 hour)
+      const staleThreshold = 8 * 60 * 60 * 1000; // 8 hours - aligned with session timeout for better continuity
       const contextsToCleanup: string[] = [];
 
       // Find stale contexts - only clean up truly inactive ones

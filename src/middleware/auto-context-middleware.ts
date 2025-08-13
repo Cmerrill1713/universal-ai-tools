@@ -71,7 +71,7 @@ interface ContextSession {
 
 export class AutoContextMiddleware {
   private sessions = new Map<string, ContextSession>();
-  private readonly SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
+  private readonly SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours - increased from 2 hours for better session continuity
   private cleanupTimer?: NodeJS.Timeout;
   private readonly CLEANUP_INTERVAL = 15 * 60 * 1000; // 15 minutes
 

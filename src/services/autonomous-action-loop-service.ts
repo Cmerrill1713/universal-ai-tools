@@ -12,11 +12,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { TaskType } from '@/types';
+
 import { config } from '../config/environment';
 import { log,LogContext } from '../utils/logger';
 import type { FeedbackInsight, LearningSignal } from './feedback-integration-service';
 import { feedbackIntegrationService } from './feedback-integration-service';
-import { TaskType } from './intelligent-parameter-service';
 import { mlParameterOptimizer } from './ml-parameter-optimizer';
 import type { OptimizationInsight , ParameterEffectiveness } from './parameter-analytics-service';
 import { parameterAnalyticsService } from './parameter-analytics-service';

@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 
 import { CircuitBreaker } from '../utils/circuit-breaker';
 import { log, LogContext } from '../utils/logger';
+import { getPorts } from '../config/ports';
 
 // ES Module compatibility for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -114,12 +115,20 @@ export class MLXService {
       },
     };
 
-    this.initialize();
+    // Delay initialization to avoid race conditions during startup
+    setTimeout(() => this.initialize(), 2000);
   }
 
   private async initialize(): Promise<void> {
     try {
       log.info('🍎 Initializing MLX service for Apple Silicon', LogContext.AI);
+
+      // Wait for port configuration to be ready
+      const ports = await getPorts();
+      log.info('✅ Port configuration loaded', LogContext.AI, {
+        mlxBridge: ports.mlxBridge,
+        mlxProvider: ports.mlxProvider,
+      });
 
       // Check MLX installation
       await this.checkMLXInstallation();
@@ -135,6 +144,10 @@ export class MLXService {
       log.error('❌ Failed to initialize MLX service', LogContext.AI, {
         error: error instanceof Error ? error.message : String(error),
       });
+      
+      // Don't fail completely - allow graceful degradation
+      this.isInitialized = false;
+      this.metrics.isInitialized = false;
     }
   }
 
@@ -604,11 +617,24 @@ if __name__ == "__main__":
    */
   public async healthCheck(): Promise<any> {
     try {
-      if (!this.isInitialized) {
+      // Check if initialization is in progress
+      if (!this.isInitialized && this.pythonProcess === null) {
+        // Try to initialize if not already attempted
+        setTimeout(() => this.initialize(), 1000);
         return {
           status: 'initializing',
           healthy: false,
-          error: 'Service not initialized',
+          error: 'Service initializing - please wait',
+          retryAfter: 5000,
+        };
+      }
+
+      if (!this.isInitialized) {
+        return {
+          status: 'degraded',
+          healthy: false,
+          error: 'Service initialization failed - running in mock mode',
+          mockMode: true,
         };
       }
 
@@ -624,6 +650,7 @@ if __name__ == "__main__":
         status: 'unhealthy',
         healthy: false,
         error: error instanceof Error ? error.message : String(error),
+        mockMode: true,
       };
     }
   }

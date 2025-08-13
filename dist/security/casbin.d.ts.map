@@ -1,0 +1,1 @@
+{"version":3,"file":"casbin.d.ts","sourceRoot":"","sources":["../../src/security/casbin.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,YAAY,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAG/D,wBAAsB,oBAAoB,iBA6BzC;AAED,wBAAgB,gBAAgB,CAAC,QAAQ,EAAE,GAAG,SACzB,OAAO,OAAO,QAAQ,QAAQ,YAAY,wDAa9D"}

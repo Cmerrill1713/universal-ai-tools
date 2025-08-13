@@ -178,7 +178,7 @@ struct DetailView: View {
                 QuickActionRowButton(
                     title: "Agent Monitor",
                     icon: "chart.bar",
-                    action: { appState.showAgentMonitor = true }
+                    action: { appState.openSystemMonitorWindow() }
                 )
 
                 QuickActionRowButton(

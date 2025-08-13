@@ -22,9 +22,8 @@ struct DockOverlay: View {
     var body: some View {
         VStack(spacing: 12) {
             dockButton(.chat, icon: "text.bubble")
-            dockButton(.agents, icon: "brain.head.profile")
+            dockButton(.objectives, icon: "target")
             dockButton(.tools, icon: "wrench.and.screwdriver")
-            dockButton(.monitoring, icon: "chart.line.uptrend.xyaxis")
             Spacer()
         }
         .frame(width: isHovered ? 44 : 36)
@@ -94,28 +93,21 @@ struct SidebarItemView: View {
 
     private var subtitle: String? {
         switch item {
-        case .dashboard:
-            return appState.backendConnected ? "System Overview" : "Offline"
         case .chat:
             return "\(appState.chats.count) conversations"
-        case .agents:
-            return "\(appState.activeAgents.count) active"
-        case .monitoring:
-            return appState.systemMetrics != nil ? "Live" : "No data"
-        default:
-            return nil
+        case .objectives:
+            return "\(appState.activeObjectives.count) active"
+        case .tools:
+            return "\(ToolCategory.allCases.count) tools"
         }
     }
 
     private var badge: String? {
         switch item {
-        case .agents:
-            let busyCount = appState.activeAgents.filter { $0.status == .busy }.count
-            return busyCount > 0 ? "\(busyCount)" : nil
-        case .monitoring:
-            if let metrics = appState.systemMetrics, metrics.cpuUsage > 80 {
-                return "High"
-            }
+        case .objectives:
+            let activeCount = appState.activeObjectives.filter { $0.status == .active }.count
+            return activeCount > 0 ? "\(activeCount)" : nil
+        case .tools:
             return nil
         default:
             return nil
@@ -124,10 +116,10 @@ struct SidebarItemView: View {
 
     private var badgeColor: Color {
         switch item {
-        case .agents:
+        case .objectives:
             return .orange
-        case .monitoring:
-            return .red
+        case .tools:
+            return AppTheme.accentOrange
         default:
             return .blue
         }
@@ -135,6 +127,6 @@ struct SidebarItemView: View {
 }
 
 #Preview {
-    SidebarView(selection: .constant(.dashboard))
+    SidebarView(selection: .constant(.chat))
         .environmentObject(AppState())
 }

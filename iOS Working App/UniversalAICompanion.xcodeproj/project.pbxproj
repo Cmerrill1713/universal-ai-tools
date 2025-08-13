@@ -7,16 +7,37 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		10A56A3BE9A0DACB9E5DA205 /* ImageCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00162581A7F3CCE541192320 /* ImageCacheManager.swift */; };
+		4B42FFCFEA4F0941C43C25BB /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD96F529F307295333971E35 /* Theme.swift */; };
+		63D84CDAC3B77F5EA4A23940 /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 193AADC833C358E593E46A0D /* WatchConnectivityService.swift */; };
 		7D94191AF45E6D86A0E0DBDD /* UniversalAICompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041553DDB84B1F3AB78E1914 /* UniversalAICompanionApp.swift */; };
 		87BA61A121B412DFD776BC0A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B05293CD504CAF323DACA73 /* Preview Assets.xcassets */; };
 		9160D59AEC15BC2D9AA8F7AF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F62C218DF40BEAA4007E4AC6 /* ContentView.swift */; };
+		9D977D6AB938648F96280C35 /* ProximityDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81A4018942CA7B4974BF61B7 /* ProximityDetectionService.swift */; };
+		9F05733B905C25E797CC5460 /* AnimatedAuthenticationStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6825F6D298C98BF2B4F20 /* AnimatedAuthenticationStatusView.swift */; };
+		AFCD53E7407517E00651CB5E /* ProximityDetectionExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22D4EDD6990352159959E9CA /* ProximityDetectionExtensions.swift */; };
+		CF01F4FC032337768BA35DAF /* ErrorLogging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A675F76B7E84C1C6FC5C2B7 /* ErrorLogging.swift */; };
+		D53B62E8DDDAF257268548CE /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A7EC0EACFEEB4B41EF6339 /* AuthenticationView.swift */; };
+		E7B5FAAD85647E13B839071F /* DeviceAuthenticationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD20AEBBAAA643EB91E6BB8F /* DeviceAuthenticationManager.swift */; };
 		EC658078C5DF709FABD29319 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F055F7195B2C50F9B551A11B /* Assets.xcassets */; };
+		F1C2BA5D720A8D551AB27C25 /* OptimizedListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4274F4B39994417508FA9786 /* OptimizedListView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00162581A7F3CCE541192320 /* ImageCacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCacheManager.swift; sourceTree = "<group>"; };
 		041553DDB84B1F3AB78E1914 /* UniversalAICompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalAICompanionApp.swift; sourceTree = "<group>"; };
+		09F8601302334CB411E09E1A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		0A675F76B7E84C1C6FC5C2B7 /* ErrorLogging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorLogging.swift; sourceTree = "<group>"; };
+		193AADC833C358E593E46A0D /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
+		22D4EDD6990352159959E9CA /* ProximityDetectionExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityDetectionExtensions.swift; sourceTree = "<group>"; };
+		4274F4B39994417508FA9786 /* OptimizedListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizedListView.swift; sourceTree = "<group>"; };
+		81A4018942CA7B4974BF61B7 /* ProximityDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProximityDetectionService.swift; sourceTree = "<group>"; };
+		86A7EC0EACFEEB4B41EF6339 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		8B05293CD504CAF323DACA73 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		ABC6825F6D298C98BF2B4F20 /* AnimatedAuthenticationStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedAuthenticationStatusView.swift; sourceTree = "<group>"; };
 		BC9F97E1B65BE3F683A49F4D /* UniversalAICompanion.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = UniversalAICompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD20AEBBAAA643EB91E6BB8F /* DeviceAuthenticationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceAuthenticationManager.swift; sourceTree = "<group>"; };
+		DD96F529F307295333971E35 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		F055F7195B2C50F9B551A11B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F62C218DF40BEAA4007E4AC6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -41,9 +62,20 @@
 		B5319A33B4816612BF874D0D /* UniversalAICompanion */ = {
 			isa = PBXGroup;
 			children = (
+				ABC6825F6D298C98BF2B4F20 /* AnimatedAuthenticationStatusView.swift */,
 				F055F7195B2C50F9B551A11B /* Assets.xcassets */,
+				86A7EC0EACFEEB4B41EF6339 /* AuthenticationView.swift */,
 				F62C218DF40BEAA4007E4AC6 /* ContentView.swift */,
+				CD20AEBBAAA643EB91E6BB8F /* DeviceAuthenticationManager.swift */,
+				0A675F76B7E84C1C6FC5C2B7 /* ErrorLogging.swift */,
+				00162581A7F3CCE541192320 /* ImageCacheManager.swift */,
+				09F8601302334CB411E09E1A /* Info.plist */,
+				4274F4B39994417508FA9786 /* OptimizedListView.swift */,
+				22D4EDD6990352159959E9CA /* ProximityDetectionExtensions.swift */,
+				81A4018942CA7B4974BF61B7 /* ProximityDetectionService.swift */,
+				DD96F529F307295333971E35 /* Theme.swift */,
 				041553DDB84B1F3AB78E1914 /* UniversalAICompanionApp.swift */,
+				193AADC833C358E593E46A0D /* WatchConnectivityService.swift */,
 				DFC632F6BBAEFD1B5354432D /* Preview Content */,
 			);
 			path = UniversalAICompanion;
@@ -128,8 +160,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9F05733B905C25E797CC5460 /* AnimatedAuthenticationStatusView.swift in Sources */,
+				D53B62E8DDDAF257268548CE /* AuthenticationView.swift in Sources */,
 				9160D59AEC15BC2D9AA8F7AF /* ContentView.swift in Sources */,
+				E7B5FAAD85647E13B839071F /* DeviceAuthenticationManager.swift in Sources */,
+				CF01F4FC032337768BA35DAF /* ErrorLogging.swift in Sources */,
+				10A56A3BE9A0DACB9E5DA205 /* ImageCacheManager.swift in Sources */,
+				F1C2BA5D720A8D551AB27C25 /* OptimizedListView.swift in Sources */,
+				AFCD53E7407517E00651CB5E /* ProximityDetectionExtensions.swift in Sources */,
+				9D977D6AB938648F96280C35 /* ProximityDetectionService.swift in Sources */,
+				4B42FFCFEA4F0941C43C25BB /* Theme.swift in Sources */,
 				7D94191AF45E6D86A0E0DBDD /* UniversalAICompanionApp.swift in Sources */,
+				63D84CDAC3B77F5EA4A23940 /* WatchConnectivityService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,6 +252,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"UniversalAICompanion/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = UniversalAICompanion/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -241,6 +284,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"UniversalAICompanion/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = UniversalAICompanion/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

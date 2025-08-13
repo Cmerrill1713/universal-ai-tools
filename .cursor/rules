@@ -1,0 +1,55 @@
+# Workspace rules for Cursor
+
+## Code Style
+
+- TypeScript strict mode, single quotes, trailing commas (ES5), 100 char width, 2-space indent
+- Follow existing patterns, meaningful names, early returns, guard clauses, minimal comments
+
+## Security Checklist
+
+- No hardcoded keys or localhost in prod configs
+- Input validation on all endpoints; proper error handling (no stack traces to users)
+- Authentication required everywhere; remove dev bypasses
+- Audit SECURITY DEFINER functions and DB migrations
+
+## Current Priorities
+
+1. Re-enable performance middleware with error handling
+2. Fix GraphQL server dependency issues
+3. Enable security hardening service
+4. Fix agent execution endpoints (timeouts)
+5. Remove ALL development auth fallbacks
+
+## Mock/Disabled Services Awareness
+
+- ALL cognitive agents in `src/agents/cognitive/` are mocks
+- DSPy orchestration currently mock-backed
+- Circuit breakers imported, not implemented
+- Redis infra missing
+
+## Testing
+
+- Target ≥ 85% coverage; add tests for any new functionality
+- Add API, security, and integration tests for DB
+
+## Sentry Usage (examples)
+
+- Exceptions: `Sentry.captureException(error)`
+- Spans: `Sentry.startSpan({ op, name }, (span) => { ... })`
+- Logs: `import * as Sentry from '@sentry/nextjs'` and enable logs via `_experiments.enableLogs`
+
+## PRD Discipline
+
+- All work must map to PRD IDs (e.g., ST-101)
+- Acceptance criteria define DoD; block merges until met
+- No scope creep without PRD update and approval
+
+## Useful Commands
+
+- Lint: `npm run lint` / `npm run lint:fix`
+- Type check: `npm run type-check`
+- Tests: `npm test`, `npm run test:coverage`
+- Supabase: `npm run supabase:start|stop|status`
+- Security scans: `npm run security:scan` and `npm run check:all`
+
+Refer to `PRODUCTION_BLOCKERS.md`, `MIGRATION_ANALYSIS_REPORT.md`, `INFRASTRUCTURE_AUDIT_REPORT.md`, and `SECURITY_ASSESSMENT_REPORT.md` for latest status.

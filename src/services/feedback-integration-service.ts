@@ -6,12 +6,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { TaskType } from '@/types';
+
 import { config } from '../config/environment';
 import { THREE, TWO } from '../utils/constants';
 import { log,LogContext } from '../utils/logger';
 import { autonomousActionLoopService } from './autonomous-action-loop-service';
 import type { TaskParameters } from './intelligent-parameter-service';
-import { TaskType } from './intelligent-parameter-service';
 import { mlParameterOptimizer } from './ml-parameter-optimizer';
 import { parameterAnalyticsService } from './parameter-analytics-service';
 
@@ -1086,7 +1087,9 @@ export class FeedbackIntegrationService {
   private startPeriodicProcessing(): void {
     // Flush feedback buffer periodically
     setInterval(() => {
-      this.flushFeedbackBuffer();
+      this.flushFeedbackBuffer().catch((error) => {
+        log.error('Periodic feedback flush failed', LogContext.AI, { error });
+      });
     }, this.flushInterval);
 
     // Apply learning periodically (every 15 minutes for more responsive autonomous actions)

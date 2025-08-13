@@ -7,15 +7,15 @@ struct ConversationRow: View {
     let isHovered: Bool
     let isEditing: Bool
     @Binding var editingTitle: String
-    
+
     let onSelect: () -> Void
     let onDelete: () -> Void
     let onRename: () -> Void
     let onCommitRename: () -> Void
     let onDuplicate: () -> Void
-    
+
     @State private var showActions = false
-    
+
     var body: some View {
         HStack(spacing: 8) {
             // Icon
@@ -23,7 +23,7 @@ struct ConversationRow: View {
                 .font(.system(size: 13))
                 .foregroundColor(iconColor)
                 .frame(width: 20)
-            
+
             // Title or editing field
             if isEditing {
                 TextField("Chat title", text: $editingTitle, onCommit: onCommitRename)
@@ -41,28 +41,28 @@ struct ConversationRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
-            
+
             Spacer()
-            
+
             // Action buttons (show on hover)
             if (isHovered || showActions) && !isEditing {
                 HStack(spacing: 4) {
                     ActionButton(
                         icon: "pencil",
-                        action: onRename,
-                        help: "Rename"
+                        label: "Rename",
+                        action: onRename
                     )
-                    
+
                     ActionButton(
                         icon: "doc.on.doc",
-                        action: onDuplicate,
-                        help: "Duplicate"
+                        label: "Duplicate",
+                        action: onDuplicate
                     )
-                    
+
                     ActionButton(
                         icon: "trash",
-                        action: onDelete,
-                        help: "Delete"
+                        label: "Delete",
+                        action: onDelete
                     )
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -85,19 +85,19 @@ struct ConversationRow: View {
             }
         }
     }
-    
+
     private var iconName: String {
         chat.messages.isEmpty ? "bubble.left" : "bubble.left.and.bubble.right"
     }
-    
+
     private var iconColor: Color {
         isSelected ? AppTheme.accentBlue : AppTheme.secondaryText
     }
-    
+
     private var textColor: Color {
         isSelected ? AppTheme.primaryText : AppTheme.secondaryText
     }
-    
+
     @ViewBuilder
     private var backgroundView: some View {
         if isSelected {
@@ -117,39 +117,14 @@ struct ConversationRow: View {
 }
 
 // MARK: - Action Button
-struct ActionButton: View {
-    let icon: String
-    let action: () -> Void
-    let help: String
-    
-    @State private var isHovered = false
-    
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 11))
-                .foregroundColor(isHovered ? AppTheme.primaryText : AppTheme.tertiaryText)
-                .frame(width: 20, height: 20)
-                .background(
-                    Circle()
-                        .fill(isHovered ? Color.white.opacity(0.1) : Color.clear)
-                )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .help(help)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-    }
-}
 
 // MARK: - New Chat Menu
 struct NewChatMenu: View {
     let onSelect: (ChatTemplate) -> Void
     @Environment(\.dismiss) private var dismiss
-    
+
     let templates = ChatTemplate.defaultTemplates
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -157,9 +132,9 @@ struct NewChatMenu: View {
                 Text("Start New Chat")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(AppTheme.primaryText)
-                
+
                 Spacer()
-                
+
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 16))
@@ -168,10 +143,10 @@ struct NewChatMenu: View {
                 .buttonStyle(PlainButtonStyle())
             }
             .padding(12)
-            
+
             Divider()
                 .background(AppTheme.separator)
-            
+
             // Template list
             ScrollView {
                 VStack(spacing: 8) {
@@ -201,9 +176,9 @@ struct NewChatMenu: View {
 struct TemplateRow: View {
     let template: ChatTemplate
     let onSelect: () -> Void
-    
+
     @State private var isHovered = false
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 12) {
@@ -212,26 +187,26 @@ struct TemplateRow: View {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(template.color.opacity(0.15))
                         .frame(width: 36, height: 36)
-                    
+
                     Image(systemName: template.icon)
                         .font(.system(size: 16))
                         .foregroundColor(template.color)
                 }
-                
+
                 // Text
                 VStack(alignment: .leading, spacing: 2) {
                     Text(template.title)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(AppTheme.primaryText)
-                    
+
                     Text(template.description)
                         .font(.system(size: 11))
                         .foregroundColor(AppTheme.tertiaryText)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 // Arrow
                 Image(systemName: "arrow.right")
                     .font(.system(size: 12))
@@ -263,7 +238,7 @@ struct ChatTemplate: Identifiable {
     let color: Color
     let systemPrompt: String
     let defaultModel: String
-    
+
     static let defaultTemplates = [
         ChatTemplate(
             title: "General Chat",

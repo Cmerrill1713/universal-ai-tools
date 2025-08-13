@@ -19,6 +19,7 @@ export interface PortConfig {
   // Python bridges
   dspyOrchestrator: number;
   mlxBridge: number;
+  mlxProvider: number;
   pyVisionBridge: number;
 
   // Infrastructure
@@ -48,6 +49,7 @@ const DEFAULT_PORTS: PortConfig = {
   // Python bridges
   dspyOrchestrator: parseInt(process.env.DSPY_PORT || '8001', 10),
   mlxBridge: parseInt(process.env.MLX_BRIDGE_PORT || '8002', 10),
+  mlxProvider: parseInt(process.env.MLX_PROVIDER_PORT || '8004', 10),
   pyVisionBridge: parseInt(process.env.PYVISION_PORT || '8003', 10),
 
   // Infrastructure
@@ -111,13 +113,13 @@ export async function autoConfigurePorts(): Promise<PortConfig> {
         `Port conflict detected for ${service} on ${port}, using ${newPort}`,
         LogContext.CONFIG
       );
-      (ports as any)[service] = newPort;
+      Object.assign(ports, { [service]: newPort });
       usedPorts.add(newPort);
     } else if (!(await isPortAvailable(port))) {
       // Port already in use by another process
       const newPort = await findAvailablePort(port + 1);
       log.warn(`Port ${port} already in use for ${service}, using ${newPort}`, LogContext.CONFIG);
-      (ports as any)[service] = newPort;
+      Object.assign(ports, { [service]: newPort });
       usedPorts.add(newPort);
     } else {
       usedPorts.add(port);
@@ -145,6 +147,7 @@ export function getServiceUrls(ports: PortConfig) {
     // Python bridges
     dspyOrchestrator: `http://${host}:${ports.dspyOrchestrator}`,
     mlxBridge: `http://${host}:${ports.mlxBridge}`,
+    mlxProvider: `http://${host}:${ports.mlxProvider}`,
     pyVisionBridge: `http://${host}:${ports.pyVisionBridge}`,
 
     // Infrastructure
@@ -176,6 +179,7 @@ export function logPortConfiguration(ports: PortConfig): void {
     pythonBridges: {
       dspy: ports.dspyOrchestrator,
       mlx: ports.mlxBridge,
+      mlxProvider: ports.mlxProvider,
       pyVision: ports.pyVisionBridge,
     },
     infrastructure: {

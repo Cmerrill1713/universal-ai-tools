@@ -5,11 +5,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { TaskType } from '@/types';
+
 import { config } from '../config/environment';
 import { THREE, TWO } from '../utils/constants';
 import { log,LogContext } from '../utils/logger';
 import type { TaskParameters } from './intelligent-parameter-service';
-import { TaskType } from './intelligent-parameter-service';
 
 export interface ParameterExecution {
   id: string;

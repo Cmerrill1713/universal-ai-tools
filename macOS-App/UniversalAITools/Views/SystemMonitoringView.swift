@@ -1,5 +1,5 @@
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct SystemMonitoringView: View {
     @EnvironmentObject var appState: AppState
@@ -37,7 +37,8 @@ struct SystemMonitoringView: View {
             .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(AnimatedGradientBackground())
+        .glassMorphism(cornerRadius: 0)
         .onAppear(perform: load)
         .refreshable { await loadAsync() }
     }
@@ -212,4 +213,3 @@ struct SystemMonitoringView: View {
         }
     }
 }
-

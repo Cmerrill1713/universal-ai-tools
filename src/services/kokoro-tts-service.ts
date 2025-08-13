@@ -230,6 +230,24 @@ export class KokoroTTSService {
   }
 
   /**
+   * Alias for generateSpeech to match router expectations
+   */
+  public async synthesize(request: TTSRequest): Promise<TTSResponse> {
+    return this.generateSpeech(request);
+  }
+
+  /**
+   * Check service health
+   */
+  public checkHealth(): { status: string; isInitialized: boolean; voicesCount: number } {
+    return {
+      status: this.isInitialized ? 'healthy' : 'initializing',
+      isInitialized: this.isInitialized,
+      voicesCount: this.availableVoices.length,
+    };
+  }
+
+  /**
    * Generate speech for agent responses (optimized for conversation)
    */
   public async speakAgentResponse(

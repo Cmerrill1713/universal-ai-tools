@@ -534,4 +534,39 @@ router.post(
   }
 );
 
+/**
+ * @route GET /api/v1/vision
+ * @description Vision API information and available endpoints
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const endpoints = {
+      analyze: 'POST /api/v1/vision/analyze - Analyze images using YOLO and CLIP',
+      reason: 'POST /api/v1/vision/reason - Visual reasoning and Q&A',
+      embedding: 'POST /api/v1/vision/embedding - Generate image embeddings',
+      refine: 'POST /api/v1/vision/refine - Refine and enhance images',
+      generate: 'POST /api/v1/vision/generate - Generate images from text',
+      status: 'GET /api/v1/vision/status - Get vision service status',
+      preload: 'POST /api/v1/vision/models/preload - Preload models'
+    };
+
+    sendSuccess(res, {
+      service: 'Universal AI Tools - Vision API',
+      version: '1.0.0',
+      status: 'operational',
+      endpoints,
+      capabilities: [
+        'Image analysis and object detection',
+        'Visual reasoning and Q&A',
+        'Image embedding generation',
+        'Image refinement and enhancement',
+        'Text-to-image generation',
+        'Multi-modal understanding'
+      ]
+    });
+  } catch (error) {
+    sendError(res, 'SERVICE_ERROR', 'Failed to get vision API info', 500);
+  }
+});
+
 export default router;

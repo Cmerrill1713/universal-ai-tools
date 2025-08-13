@@ -30,6 +30,16 @@ jest.mock('../../src/services/secrets-manager', () => ({
   },
 }));
 
+// Mock Redis service
+jest.mock('../../src/services/redis-service', () => ({
+  redisService: {
+    isConnected: () => false,
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  },
+}));
+
 // Mock sendError utility
 const mockSendError = jest.fn();
 jest.mock('../../src/utils/api-response', () => ({
@@ -52,6 +62,8 @@ describe('Authentication Middleware Tests', () => {
       headers: {},
       user: undefined,
       path: '/api/v1/test',
+      ip: '127.0.0.1',
+      connection: { remoteAddress: '127.0.0.1' },
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
@@ -63,7 +75,7 @@ describe('Authentication Middleware Tests', () => {
       res.status?.(status);
       res.json?.({ error: code, message });
     });
-    mockGetSecret.mockResolvedValue('test-jwt-secret');
+    mockGetSecret.mockResolvedValue('test-jwt-secret-that-is-long-enough-to-pass-validation');
   });
 
   afterEach(() => {

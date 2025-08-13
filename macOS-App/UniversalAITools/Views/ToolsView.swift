@@ -1,449 +1,246 @@
 import SwiftUI
 
 struct ToolsView: View {
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var apiService: APIService
-    @State private var selectedCategory = "All"
-    @State private var searchText = ""
-    @State private var showingToolDetails = false
-    @State private var selectedTool: AITool?
+  @EnvironmentObject var appState: AppState
+  @EnvironmentObject var apiService: APIService
+  @State private var selectedCategory: ToolCategory?
+  @State private var searchText = ""
 
-    private let categories = ["All", "Text", "Image", "Code", "Data", "Analysis"]
-
-    private var filteredTools: [AITool] {
-        let categoryFiltered = selectedCategory == "All" ? appState.availableTools : appState.availableTools.filter { $0.category == selectedCategory }
-
-        if searchText.isEmpty {
-            return categoryFiltered
-        } else {
-            return categoryFiltered.filter { $0.name.localizedCaseInsensitiveContains(searchText) || $0.description.localizedCaseInsensitiveContains(searchText) }
-        }
+  var body: some View {
+    if let selected = selectedCategory {
+      toolDetailView(for: selected)
+    } else {
+      toolsOverview
     }
+  }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            toolsHeader
+  private var toolsOverview: some View {
+    VStack(spacing: 0) {
+      // Header
+      toolsHeader
 
-            Divider()
+      Divider()
+        .background(AppTheme.separator)
 
-            // Filters and Search
-            filtersAndSearch
+      // Search
+      searchBar
 
-            Divider()
+      Divider()
+        .background(AppTheme.separator)
 
-            // Tools Grid
-            ScrollView {
-                LazyVGrid(columns: gridColumns, spacing: 20) {
-                    ForEach(filteredTools) { tool in
-                        ToolCard(tool: tool) {
-                            selectedTool = tool
-                            showingToolDetails = true
-                        }
-                    }
-                }
-                .padding()
+      // Tools Grid
+      ScrollView {
+        LazyVGrid(columns: gridColumns, spacing: 20) {
+          ForEach(filteredTools) { tool in
+            ToolCategoryCard(tool: tool) {
+              withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                selectedCategory = tool
+                appState.selectedTool = tool
+              }
             }
-        }
-        .background(Color(.windowBackgroundColor))
-        .sheet(isPresented: $showingToolDetails) {
-            if let tool = selectedTool {
-                ToolDetailView(tool: tool)
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-            }
-        }
-    }
-
-    private var toolsHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("AI Tools")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text("Powerful tools and utilities powered by AI")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            // Quick Stats
-            HStack(spacing: 20) {
-                StatItem(
-                    icon: "checkmark.circle.fill",
-                    value: "\(appState.availableTools.count)",
-                    label: "Available",
-                    color: .green
-                )
-
-                StatItem(
-                    icon: "clock.fill",
-                    value: "\(appState.recentToolUsage.count)",
-                    label: "Recent",
-                    color: .blue
-                )
-            }
+          }
         }
         .padding()
+      }
     }
+    .background(AnimatedGradientBackground())
+    .glassMorphism(cornerRadius: 0)
+  }
 
-    private var filtersAndSearch: some View {
-        VStack(spacing: 16) {
-            // Category Picker
-            HStack {
-                Text("Category:")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                Picker("Category", selection: $selectedCategory) {
-                    ForEach(categories, id: \.self) { category in
-                        Text(category).tag(category)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Spacer()
-            }
-
-            // Search Bar
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-
-                TextField("Search tools...", text: $searchText)
-                    .textFieldStyle(.plain)
-
-                if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.controlBackgroundColor))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(.separatorColor), lineWidth: 1)
-            )
+  private var toolsHeader: some View {
+    HStack {
+      Button(action: {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+          selectedCategory = nil
+          appState.selectedTool = nil
         }
-        .padding(.horizontal)
-        .padding(.top, 8)
+      }) {
+        HStack(spacing: 8) {
+          if selectedCategory != nil {
+            Image(systemName: "chevron.left")
+              .font(.caption)
+          }
+          Image(systemName: "wrench.and.screwdriver")
+            .font(.title2)
+            .foregroundColor(AppTheme.accentOrange)
+        }
+      }
+      .buttonStyle(.plain)
+      .opacity(selectedCategory != nil ? 1 : 0.6)
+
+      VStack(alignment: .leading, spacing: 4) {
+        Text(selectedCategory?.title ?? "Tools")
+          .font(.title2)
+          .fontWeight(.semibold)
+          .foregroundColor(AppTheme.primaryText)
+
+        Text(selectedCategory?.description ?? "Powerful AI-powered tools and utilities")
+          .font(.subheadline)
+          .foregroundColor(AppTheme.secondaryText)
+      }
+
+      Spacer()
+
+      // Status indicator
+      ConnectionPulse(isConnected: .constant(appState.backendConnected))
     }
+    .padding()
+  }
 
-    private var gridColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 300, maximum: 350), spacing: 20)
-        ]
-    }
-}
+  private var searchBar: some View {
+    HStack {
+      Image(systemName: "magnifyingglass")
+        .foregroundColor(AppTheme.tertiaryText)
 
-// MARK: - Tool Card
-struct ToolCard: View {
-    let tool: AITool
-    let onTap: () -> Void
+      TextField("Search tools...", text: $searchText)
+        .textFieldStyle(.plain)
+        .font(.system(size: 14))
+        .foregroundColor(AppTheme.primaryText)
 
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Header
-                HStack {
-                    Image(systemName: "wand.and.stars")
-                        .font(.title2)
-                        .foregroundColor(.accentColor)
-                        .frame(width: 30)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(tool.name)
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-
-                        Text(tool.category)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(
-                                Capsule()
-                                    .fill(Color(.controlBackgroundColor))
-                            )
-                    }
-
-                    Spacer()
-
-                    // Status Indicator
-                    if tool.status == .available {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                    }
-                }
-
-                // Description
-                Text(tool.description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-
-                // Features removed (not present on AITool model)
-
-                // Usage Stats
-                HStack {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.caption2)
-                        Text("\(tool.usageCount) uses")
-                            .font(.caption2)
-                    }
-                    .foregroundColor(.secondary)
-
-                    Spacer()
-                }
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.controlBackgroundColor))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(.separatorColor), lineWidth: 1)
-            )
+      if !searchText.isEmpty {
+        Button(action: { searchText = "" }) {
+          Image(systemName: "xmark.circle.fill")
+            .foregroundColor(AppTheme.tertiaryText)
         }
         .buttonStyle(.plain)
+      }
     }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
+    .background(AppTheme.surfaceBackground)
+    .glassMorphism(cornerRadius: 8)
+    .padding(.horizontal)
+    .padding(.vertical, 8)
+  }
 
-    private var featureColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 70, maximum: 90))]
+  private var filteredTools: [ToolCategory] {
+    if searchText.isEmpty {
+      return ToolCategory.allCases
+    } else {
+      return ToolCategory.allCases.filter {
+        $0.title.localizedCaseInsensitiveContains(searchText)
+          || $0.description.localizedCaseInsensitiveContains(searchText)
+      }
     }
+  }
+
+  private var gridColumns: [GridItem] {
+    [
+      GridItem(.adaptive(minimum: 300, maximum: 350), spacing: 20)
+    ]
+  }
+
+  @ViewBuilder
+  private func toolDetailView(for category: ToolCategory) -> some View {
+    switch category {
+    case .mlx:
+      MLXFineTuningView()
+        .environmentObject(appState)
+        .environmentObject(apiService)
+    case .vision:
+      VisionProcessingView()
+        .environmentObject(appState)
+        .environmentObject(apiService)
+    case .monitoring:
+      SystemMonitoringView()
+        .environmentObject(appState)
+        .environmentObject(apiService)
+    case .abMcts:
+      PlaceholderView(
+        title: "AB-MCTS",
+        icon: "tree",
+        description: "AlphaBeta Monte Carlo Tree Search orchestration"
+      )
+    case .maltSwarm:
+      PlaceholderView(
+        title: "MALT Swarm",
+        icon: "network",
+        description: "Multi-Agent Learning and Teaching swarm coordination"
+      )
+    case .parameters:
+      PlaceholderView(
+        title: "Parameters",
+        icon: "slider.horizontal.3",
+        description: "Intelligent parameter optimization settings"
+      )
+    case .knowledge:
+      KnowledgeBaseView()
+        .environmentObject(appState)
+        .environmentObject(MCPService())
+    case .debugging:
+      DebugConsoleView()
+        .environmentObject(appState)
+        .environmentObject(apiService)
+    case .guiGrounding:
+      GUIGroundingView()
+        .environmentObject(appState)
+    }
+  }
 }
 
-// MARK: - Stat Item
-struct StatItem: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
+// MARK: - Tool Category Card
+struct ToolCategoryCard: View {
+  let tool: ToolCategory
+  let onTap: () -> Void
+  @State private var isHovered = false
 
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
+  var body: some View {
+    ParticleButton(action: onTap) {
+      VStack(alignment: .leading, spacing: 16) {
+        // Header
+        HStack {
+          Image(systemName: tool.icon)
+            .font(.system(size: 32))
+            .foregroundColor(AppTheme.accentBlue)
+            .glow(color: AppTheme.accentBlue, radius: isHovered ? 10 : 0)
+            .frame(width: 50, height: 50)
+            .background(
+              Circle()
+                .fill(AppTheme.accentBlue.opacity(0.1))
+            )
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.headline)
-                    .fontWeight(.semibold)
+          Spacer()
 
-                Text(label)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+          // Arrow indicator
+          Image(systemName: "arrow.up.right")
+            .font(.caption)
+            .foregroundColor(AppTheme.tertiaryText)
+            .opacity(isHovered ? 1 : 0.6)
         }
-    }
-}
 
-// MARK: - Tool Detail View
-struct ToolDetailView: View {
-    let tool: AITool
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var apiService: APIService
-    @Environment(\.dismiss) private var dismiss
-    @State private var inputText = ""
-    @State private var isProcessing = false
-    @State private var result = ""
+        // Title and Description
+        VStack(alignment: .leading, spacing: 8) {
+          Text(tool.title)
+            .font(.headline)
+            .fontWeight(.semibold)
+            .foregroundColor(AppTheme.primaryText)
 
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(tool.name)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-
-                        Text(tool.description)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer()
-
-                    Button("Done") { dismiss() }
-                        .keyboardShortcut(.escape)
-                }
-                .padding()
-                .background(Color(.controlBackgroundColor))
-
-                Divider()
-
-                // Content
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Tool Info
-                        toolInfoSection
-
-                        Divider()
-
-                        // Usage Interface
-                        usageInterface
-
-                        if !result.isEmpty {
-                            Divider()
-
-                            // Results
-                            resultsSection
-                        }
-                    }
-                    .padding()
-                }
-            }
+          Text(tool.description)
+            .font(.subheadline)
+            .foregroundColor(AppTheme.secondaryText)
+            .lineLimit(3)
+            .multilineTextAlignment(.leading)
         }
-        .frame(width: 700, height: 600)
-        .background(Color(.windowBackgroundColor))
+
+        Spacer()
+      }
+      .padding(20)
+      .frame(height: 160)
+      .background(AppTheme.surfaceBackground)
+      .glassMorphism(cornerRadius: 16)
+      .glow(color: isHovered ? AppTheme.accentOrange : .clear, radius: isHovered ? 8 : 0)
+      .scaleEffect(isHovered ? 1.02 : 1.0)
+      .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isHovered)
     }
-
-    private var toolInfoSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Tool Information")
-                .font(.headline)
-                .fontWeight(.semibold)
-
-            HStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    InfoRow(label: "Category", value: tool.category)
-                    InfoRow(label: "Status", value: tool.status == .available ? "Active" : tool.status.rawValue.capitalized)
-                    InfoRow(label: "Usage Count", value: "\(tool.usageCount)")
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    // Rating removed: not present on AITool model
-                    // InfoRow(label: "Rating", value: String(format: "%.1f/5.0", tool.rating))
-                    // Last Used removed: not present on AITool model
-                    // InfoRow(label: "Last Used", value: tool.lastUsed?.formatted() ?? "Never")
-                }
-            }
-
-            // Features removed: not present on AITool model
-        }
+    .onHover { hovering in
+      isHovered = hovering
     }
-
-    private var usageInterface: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Use Tool")
-                .font(.headline)
-                .fontWeight(.semibold)
-
-            VStack(spacing: 12) {
-                TextField("Enter your input...", text: $inputText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(3...6)
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color(.controlBackgroundColor))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(.separatorColor), lineWidth: 1)
-                    )
-
-                HStack {
-                    Button("Process") {
-                        processTool()
-                    }
-                    .disabled(inputText.isEmpty || isProcessing)
-                    .buttonStyle(.borderedProminent)
-
-                    if isProcessing {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
-
-                    Spacer()
-                }
-            }
-        }
-    }
-
-    private var resultsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Results")
-                .font(.headline)
-                .fontWeight(.semibold)
-
-            Text(result)
-                .font(.body)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.controlBackgroundColor))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(.separatorColor), lineWidth: 1)
-                )
-
-            HStack {
-                Button("Copy") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(result, forType: .string)
-                }
-                .buttonStyle(.bordered)
-
-                Button("Save") {
-                    saveResult()
-                }
-                .buttonStyle(.bordered)
-
-                Spacer()
-            }
-        }
-    }
-
-    private var featureColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 100, maximum: 150))]
-    }
-
-    private func processTool() {
-        guard !inputText.isEmpty else { return }
-
-        isProcessing = true
-
-        // Simulate tool processing
-        Task {
-            try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
-
-            await MainActor.run {
-                result = "Processed result for: \"\(inputText)\"\n\nThis is a simulated output from the \(tool.name) tool. " +
-                    "In a real implementation, this would contain the actual processed result based on your input."
-                isProcessing = false
-
-                // Update usage stats
-                appState.updateToolUsage(tool.id)
-            }
-        }
-    }
-
-    private func saveResult() {
-        // Save result to app state or file system
-        appState.saveToolResult(tool.id, result: result)
-    }
+    .transition(.scale.combined(with: .opacity))
+  }
 }
 
 #Preview {
-    ToolsView()
-        .environmentObject(AppState())
-        .environmentObject(APIService())
+  ToolsView()
+    .environmentObject(AppState())
+    .environmentObject(APIService())
 }

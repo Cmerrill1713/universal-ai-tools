@@ -58,7 +58,7 @@ const contextCache = new Map<
   }
 >();
 
-const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes - increased from 5 minutes for better cache utilization
 
 /**
  * Main context injection middleware factory
@@ -66,12 +66,14 @@ const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 export function contextInjectionMiddleware(options: ContextInjectionOptions = {}) {
   const config = {
     enabled: true,
-    maxContextTokens: 1000, // Reduced from 4000
+    maxContextTokens: 8000, // Increased from 1000 to better utilize available context window
     cacheContext: true,
     contextTypes: [
       'code_patterns',      // Most relevant for current work
       'error_analysis',     // Only if there are errors
-      // Removed: 'project_overview', 'conversation_history', 'architecture_patterns'
+      'conversation_history', // Re-enabled: Important for context continuity
+      'project_overview',   // Re-enabled: Provides essential project context
+      // Keep disabled: 'architecture_patterns' - less frequently needed
     ],
     securityLevel: 'strict' as const,
     fallbackOnError: true,
@@ -254,7 +256,7 @@ async function fetchRelevantContext(req: Request, config: ContextInjectionOption
       mcpIntegrationService.sendMessage('search_context', {
         query: userInput,
         category: 'code_patterns',
-        limit: 2, // Reduced from 5
+        limit: 5, // Restored to original limit for better pattern coverage
       })
     );
   }
@@ -264,7 +266,7 @@ async function fetchRelevantContext(req: Request, config: ContextInjectionOption
       mcpIntegrationService.sendMessage('search_context', {
         query: userInput,
         category: 'error_analysis',
-        limit: 1, // Reduced from 3
+        limit: 3, // Restored to original limit for comprehensive error context
       })
     );
   }
@@ -276,6 +278,23 @@ async function fetchRelevantContext(req: Request, config: ContextInjectionOption
         limit: 5,
       })
     );
+  }
+
+  // Include tool definitions if requested
+  if (config.contextTypes?.includes('tool_definitions')) {
+    const toolDefs = getToolDefinitions(req.path);
+    if (toolDefs) {
+      contextPromises.push(
+        Promise.resolve({
+          results: [{
+            type: 'tool_definitions',
+            content: toolDefs,
+            source: 'system',
+            category: 'tools'
+          }]
+        })
+      );
+    }
   }
 
   try {
@@ -379,24 +398,105 @@ function enhanceMessagesWithContext(req: ContextualRequest, context: any[]): voi
   // Create context summary
   const contextSummary = formatContextForInjection(context);
 
+  // Add tool definitions for agent awareness
+  const toolDefinitions = getToolDefinitions(req.path);
+
   if (req.body?.messages && Array.isArray(req.body.messages)) {
     // Add context to system message or create one
     const systemMessage = req.body.messages.find((msg: any) => msg.role === 'system');
 
     if (systemMessage) {
-      systemMessage.content = `${systemMessage.content}\n\n## Relevant Project Context:\n${contextSummary}`;
+      systemMessage.content = `${systemMessage.content}\n\n## Relevant Project Context:\n${contextSummary}${toolDefinitions ? `\n\n## Available Tools:\n${toolDefinitions}` : ''}`;
     } else {
       req.body.messages.unshift({
         role: 'system',
-        content: `## Relevant Project Context:\n${contextSummary}`,
+        content: `## Relevant Project Context:\n${contextSummary}${toolDefinitions ? `\n\n## Available Tools:\n${toolDefinitions}` : ''}`,
       });
     }
   } else if (req.body?.prompt) {
     // Enhance prompt directly
-    req.body.prompt = `## Relevant Project Context:\n${contextSummary}\n\n## User Request:\n${req.body.prompt}`;
+    req.body.prompt = `## Relevant Project Context:\n${contextSummary}${toolDefinitions ? `\n\n## Available Tools:\n${toolDefinitions}` : ''}\n\n## User Request:\n${req.body.prompt}`;
   }
 
   req.enhancedMessages = JSON.parse(JSON.stringify(req.body?.messages || []));
+}
+
+/**
+ * Get tool definitions based on the request path
+ */
+function getToolDefinitions(path: string): string | null {
+  // Define tools available for different endpoints
+  const toolSets: Record<string, any[]> = {
+    '/api/v1/agents': [
+      {
+        name: 'organize_photos',
+        description: 'Organize photos with metadata extraction and intelligent tagging',
+        parameters: {
+          extract_metadata: 'Extract date, location, camera settings from photos',
+          identify_people: 'Use face recognition to identify and tag people',
+          auto_tag: 'Automatically add descriptive tags for search',
+          create_albums: 'Create smart albums based on criteria'
+        }
+      },
+      {
+        name: 'search_context',
+        description: 'Search through stored project context and documentation',
+        parameters: {
+          query: 'Search query string',
+          category: 'Optional category filter (code_patterns, errors, etc.)',
+          limit: 'Maximum number of results'
+        }
+      },
+      {
+        name: 'save_context',
+        description: 'Save important context for future reference',
+        parameters: {
+          content: 'Content to save',
+          category: 'Category for organization',
+          metadata: 'Additional metadata'
+        }
+      },
+      {
+        name: 'analyze_code',
+        description: 'Analyze code patterns and suggest improvements',
+        parameters: {
+          code: 'Code to analyze',
+          language: 'Programming language',
+          focus: 'Analysis focus (performance, security, style)'
+        }
+      }
+    ],
+    '/api/v1/chat': [
+      {
+        name: 'search_knowledge',
+        description: 'Search through knowledge base',
+        parameters: {
+          query: 'Search query'
+        }
+      }
+    ],
+    '/api/v1/vision': [
+      {
+        name: 'analyze_image',
+        description: 'Analyze and extract information from images',
+        parameters: {
+          image_path: 'Path to image file',
+          analysis_type: 'Type of analysis (ocr, object_detection, face_recognition)'
+        }
+      }
+    ]
+  };
+
+  // Find matching tools for the path
+  for (const [pathPattern, tools] of Object.entries(toolSets)) {
+    if (path.startsWith(pathPattern)) {
+      return tools.map(tool => 
+        `- **${tool.name}**: ${tool.description}\n  Parameters: ${JSON.stringify(tool.parameters, null, 2)}`
+      ).join('\n\n');
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -419,8 +519,8 @@ function formatContextForInjection(context: any[]): string {
  */
 export function chatContextMiddleware() {
   return contextInjectionMiddleware({
-    contextTypes: ['error_analysis'], // Only errors for chat
-    maxContextTokens: 500, // Very limited for chat
+    contextTypes: ['error_analysis', 'conversation_history'], // Include conversation history for continuity
+    maxContextTokens: 2000, // Increased from 500 for better context
   });
 }
 
@@ -429,8 +529,8 @@ export function chatContextMiddleware() {
  */
 export function agentContextMiddleware() {
   return contextInjectionMiddleware({
-    contextTypes: ['code_patterns', 'error_analysis'], // Reduced from 4 to 2 types
-    maxContextTokens: 800, // Reduced from 3000
+    contextTypes: ['code_patterns', 'error_analysis', 'conversation_history', 'project_overview', 'tool_definitions'], // Added tool_definitions
+    maxContextTokens: 5000, // Increased to accommodate tool definitions
   });
 }
 
@@ -439,8 +539,8 @@ export function agentContextMiddleware() {
  */
 export function codeContextMiddleware() {
   return contextInjectionMiddleware({
-    contextTypes: ['code_patterns', 'error_analysis'],
-    maxContextTokens: 1200, // Reduced from 4000
+    contextTypes: ['code_patterns', 'error_analysis', 'project_overview'],
+    maxContextTokens: 8000, // Restored to original 4000+ for code-heavy operations
     securityLevel: 'moderate',
   });
 }

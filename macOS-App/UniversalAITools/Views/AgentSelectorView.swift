@@ -46,13 +46,17 @@ struct AgentSelectorView: View {
                     }
                     Spacer()
                     Button("Activate") {
-                        // Placeholder: mark as active
-                        if !appState.activeAgents.contains(where: { $0.id == agent.id }) {
-                            var a = agent
-                            a.status = .active
-                            appState.activeAgents.append(a)
+                        Task {
+                            do {
+                                try await apiService.activateAgent(id: agent.id)
+                                await MainActor.run { appState.activateAgent(agent) }
+                            } catch {
+                                await MainActor.run {
+                                    appState.showNotification(message: "Failed to activate agent: \(error.localizedDescription)", type: .error)
+                                }
+                            }
+                            await MainActor.run { dismiss() }
                         }
-                        dismiss()
                     }
                     .buttonStyle(.bordered)
                 }
@@ -75,5 +79,3 @@ struct AgentSelectorView: View {
         .environmentObject(AppState())
         .environmentObject(APIService())
 }
-
-

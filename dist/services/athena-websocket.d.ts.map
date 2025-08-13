@@ -1,0 +1,1 @@
+{"version":3,"file":"athena-websocket.d.ts","sourceRoot":"","sources":["../../src/services/athena-websocket.ts"],"names":[],"mappings":"AAKA,qBAAa,sBAAsB;IACjC,cAAc;IAId,kBAAkB;IAIlB,QAAQ;IAIR,gBAAgB,CAAC,EAAE,EAAE,GAAG,EAAE,GAAG,EAAE,GAAG;CAGnC;AAED,eAAO,MAAM,eAAe,wBAA+B,CAAC;AAE5D,wBAAgB,qBAAqB,CAAC,EAAE,EAAE,GAAG,EAAE,GAAG,EAAE,GAAG,QAEtD"}

@@ -21,41 +21,21 @@ struct NativeRouterView: View {
 
     var body: some View {
         switch item {
-        case .dashboard:
-            DashboardView()
         case .chat:
             ChatInterfaceView()
-        case .agents:
+        case .objectives:
             AgentManagementView()
         case .tools:
             ToolsView()
-        case .mlx:
-            MLXFineTuningView()
-        case .vision:
-            VisionProcessingView()
-        case .monitoring:
-            SystemMonitoringView()
-        case .abMcts:
-            ABMCTSOrchestrationView()
-        case .maltSwarm:
-            MALTSwarmControlView()
-        case .parameters:
-            IntelligentParametersView()
-        case .knowledge:
-            KnowledgeBaseView()
-        case .debugging:
-            DebugConsoleView()
         }
     }
 }
 
 #Preview {
     VStack {
-        ContentRouterView(item: .dashboard, viewMode: .native)
+        ContentRouterView(item: .chat, viewMode: .native)
         NativeRouterView(item: .chat)
     }
     .environmentObject(AppState())
     .environmentObject(APIService())
 }
-
-

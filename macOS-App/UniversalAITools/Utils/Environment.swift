@@ -9,5 +9,3 @@ enum EnvironmentContext {
         ProcessInfo.processInfo.arguments.contains("UI-TESTING")
     }
 }
-
-
