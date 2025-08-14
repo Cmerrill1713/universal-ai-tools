@@ -81,7 +81,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       });
     } else if (apiKey) {
       // API key authentication - validate against stored keys
-      const isValid = await validateApiKey(apiKey);
+      const isValid = await authenticateAPIKey(apiKey);
       if (isValid) {
         req.user = {
           id: 'api-user',
@@ -337,7 +337,7 @@ const authLockouts = new Map<string, { until: number }>();
 /**
  * Validate API key against stored keys
  */
-async function validateApiKey(apiKey: string): Promise<boolean> {
+export async function authenticateAPIKey(apiKey: string): Promise<boolean> {
   try {
     if (!apiKey || apiKey.length < 32) {
       return false;
@@ -346,16 +346,41 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
     // Note: No development bypasses for security
 
     // Validate against Vault-backed service configuration
-    const { secretsManager } = await import('../services/secrets-manager');
     const services = await secretsManager.getAvailableServices();
+    
+    // If no services are available, return false
     if (!services || services.length === 0) {
       return false;
     }
 
-    // Optional: check a dedicated API key service entry if present
-    const apiServiceCfg = await secretsManager.getServiceConfig('api_gateway');
-    if (apiServiceCfg?.api_key && typeof apiServiceCfg.api_key === 'string') {
-      return apiKey === apiServiceCfg.api_key;
+    // Check if any service has this API key
+    for (const service of services) {
+      try {
+        // Check service configuration for API key
+        const serviceConfig = await secretsManager.getServiceConfig(service);
+        if (serviceConfig?.api_key === apiKey || serviceConfig?.apiKey === apiKey) {
+          return true;
+        }
+      } catch (error) {
+        // Log error but continue checking other services
+        const { LogContext, log } = await import('../utils/logger');
+        log.warn('Failed to check service config for API key', LogContext.API, { 
+          service: typeof service === 'string' ? service : 'unknown',
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+    
+    // Check dedicated API gateway service
+    try {
+      const apiServiceCfg = await secretsManager.getServiceConfig('api_gateway');
+      if (apiServiceCfg?.api_key === apiKey) {
+        return true;
+      }
+    } catch (error) {
+      // Log but don't fail - this is optional
+      const { LogContext, log } = await import('../utils/logger');
+      log.debug('API gateway service not configured', LogContext.API);
     }
 
     // Otherwise, deny by default (no dev/test bypass)
@@ -379,5 +404,85 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
 
 // Export authenticateRequest for backward compatibility
 export const authenticateRequest = authenticate;
+
+/**
+ * JWT authentication function for testing
+ */
+export const authenticateJWT = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Extract token from Authorization header
+    const authHeader = req.headers.authorization;
+    let token: string | null = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+
+    if (!token) {
+      return sendError(res, 'AUTHENTICATION_ERROR', 'No token provided', 401);
+    }
+
+    // Get JWT secret from environment or secrets manager
+    let jwtSecret: string | undefined;
+    try {
+      const secretResult = await secretsManager.getSecret('jwt_secret');
+      jwtSecret = secretResult || process.env.JWT_SECRET;
+      
+      if (!jwtSecret) {
+        throw new Error('JWT secret not configured in secrets manager or environment');
+      }
+      
+      if (jwtSecret.length < 32) {
+        throw new Error('JWT secret must be at least 32 characters');
+      }
+    } catch (error) {
+      log.error('🔐 JWT secret configuration error', LogContext.API, { 
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw new Error('Authentication system not properly configured');
+    }
+
+    // Verify JWT token
+    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+
+    req.user = {
+      id: decoded.userId,
+      email: decoded.email,
+      isAdmin: decoded.isAdmin || false,
+      permissions: decoded.permissions || [],
+      deviceId: decoded.deviceId,
+      deviceType: decoded.deviceType as any,
+      trusted: decoded.trusted || false,
+    };
+
+    next();
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      log.warn('Invalid JWT token', LogContext.API, { error: error.message });
+      res.status(401).json({
+        success: false,
+        error: 'AUTHENTICATION_ERROR',
+        message: 'Invalid token',
+      });
+      return;
+    } else if (error instanceof jwt.TokenExpiredError) {
+      log.warn('Expired JWT token', LogContext.API);
+      res.status(401).json({
+        success: false,
+        error: 'AUTHENTICATION_ERROR',
+        message: 'Token expired',
+      });
+      return;
+    } else {
+      log.error('Authentication failed', LogContext.API, { error });
+      res.status(401).json({
+        success: false,
+        error: 'AUTHENTICATION_ERROR',
+        message: 'Authentication failed',
+      });
+      return;
+    }
+  }
+};
 
 export default authenticate;

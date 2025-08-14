@@ -6,15 +6,16 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 
-import { authenticateAPIKey,authenticateJWT } from '../auth';
+import { authenticate, authenticateJWT, authenticateAPIKey, requireAdmin } from '../auth';
 
 // Mock the secrets manager
 jest.mock('../../services/secrets-manager', () => ({
   secretsManager: {
     getSecret: jest.fn().mockResolvedValue('test-jwt-secret-that-is-at-least-32-characters-long'),
     getAvailableServices: jest.fn().mockResolvedValue([
-      { id: 'test-service', name: 'Test Service' }
+      { id: 'test-service', name: 'Test Service', apiKey: 'valid-api-key-that-is-at-least-32-characters-long' }
     ]),
+    getServiceConfig: jest.fn().mockResolvedValue(null),
   },
 }));
 
@@ -45,6 +46,7 @@ describe('Authentication Middleware', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let nextFunction: jest.Mock;
+  let mockSendError: jest.Mock;
 
   beforeEach(() => {
     mockRequest = {};
@@ -54,6 +56,11 @@ describe('Authentication Middleware', () => {
     };
     nextFunction = jest.fn();
     jest.clearAllMocks();
+    
+    // Get reference to the mocked sendError function
+    const { sendError } = require('../../utils/api-response');
+    mockSendError = sendError as jest.Mock;
+    mockSendError.mockClear();
   });
 
   describe('JWT Authentication', () => {
@@ -79,7 +86,10 @@ describe('Authentication Middleware', () => {
       );
 
       expect(nextFunction).toHaveBeenCalled();
-      expect(mockRequest.user).toEqual(expect.objectContaining(payload));
+      expect(mockRequest.user).toEqual(expect.objectContaining({
+        id: payload.userId,
+        email: payload.email
+      }));
     });
 
     it('should reject missing authorization header', async () => {
@@ -92,7 +102,7 @@ describe('Authentication Middleware', () => {
       );
 
       expect(nextFunction).not.toHaveBeenCalled();
-      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockSendError).toHaveBeenCalledWith(expect.anything(), 'AUTHENTICATION_ERROR', 'No token provided', 401);
     });
 
     it('should reject malformed authorization header', async () => {
@@ -107,7 +117,7 @@ describe('Authentication Middleware', () => {
       );
 
       expect(nextFunction).not.toHaveBeenCalled();
-      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockSendError).toHaveBeenCalledWith(expect.anything(), 'AUTHENTICATION_ERROR', 'No token provided', 401);
     });
 
     it('should reject invalid JWT token', async () => {
@@ -145,7 +155,7 @@ describe('Authentication Middleware', () => {
 
     it('should handle JWT secret configuration errors', async () => {
       // Mock secrets manager to fail
-      const { secretsManager } = require('../secrets-manager');
+      const { secretsManager } = require('../../services/secrets-manager');
       secretsManager.getSecret.mockRejectedValueOnce(new Error('Secrets unavailable'));
       
       // Remove environment secret to force error
@@ -158,16 +168,24 @@ describe('Authentication Middleware', () => {
         authorization: `Bearer ${token}`,
       };
 
-      await expect(authenticateJWT(
+      await authenticateJWT(
         mockRequest as Request,
         mockResponse as Response,
         nextFunction
-      )).rejects.toThrow('Authentication system not properly configured');
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'AUTHENTICATION_ERROR',
+        message: 'Authentication failed',
+      });
+      expect(nextFunction).not.toHaveBeenCalled();
     });
 
     it('should validate JWT secret length', async () => {
       // Mock short secret
-      const { secretsManager } = require('../secrets-manager');
+      const { secretsManager } = require('../../services/secrets-manager');
       secretsManager.getSecret.mockResolvedValueOnce('short');
       
       delete process.env.JWT_SECRET;
@@ -176,16 +194,31 @@ describe('Authentication Middleware', () => {
         authorization: 'Bearer test-token',
       };
 
-      await expect(authenticateJWT(
+      await authenticateJWT(
         mockRequest as Request,
         mockResponse as Response,
         nextFunction
-      )).rejects.toThrow('JWT secret must be at least 32 characters');
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'AUTHENTICATION_ERROR',
+        message: 'Authentication failed',
+      });
+      expect(nextFunction).not.toHaveBeenCalled();
     });
   });
 
   describe('API Key Authentication', () => {
     it('should authenticate valid API key', async () => {
+      // Mock the secrets manager to return services and service config
+      const { secretsManager } = require('../../services/secrets-manager');
+      secretsManager.getAvailableServices.mockResolvedValueOnce(['test-service']);
+      secretsManager.getServiceConfig.mockResolvedValueOnce({
+        api_key: 'valid-api-key-that-is-at-least-32-characters-long'
+      });
+      
       mockRequest.headers = {
         'x-api-key': 'valid-api-key-that-is-at-least-32-characters-long',
       };
@@ -216,10 +249,11 @@ describe('Authentication Middleware', () => {
       const longValidKey = 'test-api-key-that-is-definitely-longer-than-32-characters';
       
       // Mock secrets manager with available services
-      const { secretsManager } = require('../secrets-manager');
-      secretsManager.getAvailableServices.mockResolvedValueOnce([
-        { id: 'service1', apiKey: longValidKey }
-      ]);
+      const { secretsManager } = require('../../services/secrets-manager');
+      secretsManager.getAvailableServices.mockResolvedValueOnce(['service1']);
+      secretsManager.getServiceConfig.mockResolvedValueOnce({
+        api_key: longValidKey
+      });
 
       const result = await authenticateAPIKey(longValidKey);
       
@@ -227,7 +261,7 @@ describe('Authentication Middleware', () => {
     });
 
     it('should handle secrets manager errors gracefully', async () => {
-      const { secretsManager } = require('../secrets-manager');
+      const { secretsManager } = require('../../services/secrets-manager');
       secretsManager.getAvailableServices.mockRejectedValueOnce(new Error('Service unavailable'));
 
       const result = await authenticateAPIKey('valid-api-key-that-is-at-least-32-characters-long');
@@ -236,7 +270,7 @@ describe('Authentication Middleware', () => {
     });
 
     it('should reject when no services are available', async () => {
-      const { secretsManager } = require('../secrets-manager');
+      const { secretsManager } = require('../../services/secrets-manager');
       secretsManager.getAvailableServices.mockResolvedValueOnce([]);
 
       const result = await authenticateAPIKey('valid-api-key-that-is-at-least-32-characters-long');
@@ -327,6 +361,10 @@ describe('Authentication Middleware', () => {
       const payload = { userId: 'test-user' };
       const token = jwt.sign(payload, validSecret);
       
+      // Mock secrets manager
+      const { secretsManager } = require('../../services/secrets-manager');
+      secretsManager.getSecret.mockResolvedValueOnce(validSecret);
+      
       mockRequest.headers = {
         authorization: `Bearer ${token}`,
       };
@@ -349,6 +387,10 @@ describe('Authentication Middleware', () => {
 
     it('should handle rapid sequential requests', async () => {
       const validSecret = 'test-jwt-secret-that-is-at-least-32-characters-long';
+      
+      // Mock secrets manager for all requests
+      const { secretsManager } = require('../../services/secrets-manager');
+      secretsManager.getSecret.mockResolvedValue(validSecret);
       
       for (let i = 0; i < 50; i++) {
         const payload = { userId: `user-${i}` };
@@ -378,7 +420,7 @@ describe('Authentication Middleware', () => {
       
       process.env.JWT_SECRET = envSecret;
       
-      const { secretsManager } = require('../secrets-manager');
+      const { secretsManager } = require('../../services/secrets-manager');
       secretsManager.getSecret.mockResolvedValueOnce(secretsSecret);
       
       const payload = { userId: 'test-user' };
@@ -402,7 +444,7 @@ describe('Authentication Middleware', () => {
       const envSecret = 'environment-jwt-secret-32-characters';
       process.env.JWT_SECRET = envSecret;
       
-      const { secretsManager } = require('../secrets-manager');
+      const { secretsManager } = require('../../services/secrets-manager');
       secretsManager.getSecret.mockResolvedValueOnce(null);
       
       const payload = { userId: 'test-user' };
