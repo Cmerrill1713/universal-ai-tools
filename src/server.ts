@@ -389,6 +389,25 @@ class UniversalAIToolsServer {
     // Inject services into request context
     this.app.use(injectServices);
 
+    // Monitoring middleware - capture request/response metrics and tracing
+    try {
+      const { 
+        requestMetricsMiddleware, 
+        apiUsageMiddleware, 
+        businessMetricsMiddleware 
+      } = await import('./middleware/request-metrics-middleware');
+      
+      this.app.use(requestMetricsMiddleware());
+      this.app.use(apiUsageMiddleware());
+      this.app.use(businessMetricsMiddleware());
+      
+      log.info('📊 Monitoring middleware initialized', LogContext.MONITORING);
+    } catch (error) {
+      log.error('❌ Failed to initialize monitoring middleware', LogContext.MONITORING, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Apply Auto Context Middleware globally for all LLM endpoints
     try {
       const { contextMiddleware } = await import('./middleware/auto-context-middleware');
@@ -2490,6 +2509,17 @@ class UniversalAIToolsServer {
     // Error tracking middleware - Error handler (must be last)
     this.app.use(errorTrackingService.errorHandler());
 
+    // Monitoring error tracking middleware
+    try {
+      const { errorTrackingMiddleware } = await import('./middleware/request-metrics-middleware');
+      this.app.use(errorTrackingMiddleware());
+      log.info('📊 Monitoring error tracking middleware initialized', LogContext.MONITORING);
+    } catch (error) {
+      log.error('❌ Failed to initialize monitoring error tracking middleware', LogContext.MONITORING, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Global error handler - Enhanced version with context storage
     const { globalErrorHandler } = await import('./middleware/global-error-handler');
     this.app.use(globalErrorHandler);
@@ -2710,6 +2740,11 @@ class UniversalAIToolsServer {
       const monitoringModule = await import('./routers/monitoring');
       this.app.use('/api/v1/monitoring', monitoringModule.default);
       log.info('✅ Monitoring routes loaded', LogContext.SERVER);
+
+      // Load monitoring dashboard routes
+      const monitoringDashboardModule = await import('./routers/monitoring-dashboard');
+      this.app.use('/api/v1/monitoring', monitoringDashboardModule.default);
+      log.info('✅ Monitoring dashboard routes loaded', LogContext.SERVER);
 
       // Load error monitoring routes
       const errorMonitoringModule = await import('./routers/error-monitoring');

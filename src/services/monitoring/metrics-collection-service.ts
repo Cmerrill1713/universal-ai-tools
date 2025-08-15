@@ -268,7 +268,7 @@ export class MetricsCollectionService extends EventEmitter {
         });
       }
 
-      if (systemMetric.cpu.loadAverage[0] > systemMetric.cpu.cores * 2) {
+      if (systemMetric.cpu.loadAverage[0] && systemMetric.cpu.loadAverage[0] > systemMetric.cpu.cores * 2) {
         log.warn('High CPU load detected', LogContext.MONITORING, {
           loadAverage: systemMetric.cpu.loadAverage[0],
           cores: systemMetric.cpu.cores

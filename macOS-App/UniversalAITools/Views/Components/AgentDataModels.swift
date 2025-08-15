@@ -48,59 +48,9 @@ struct OrchestrationAgent: Identifiable, Codable, Equatable {
     }
 }
 
-/// Agent type classification
-enum AgentType: String, Codable, CaseIterable {
-    case cognitive = "Cognitive"
-    case reactive = "Reactive"
-    case swarm = "Swarm"
-    case orchestrator = "Orchestrator"
-    case specialist = "Specialist"
-    case hybrid = "Hybrid"
-    
-    var color: Color {
-        switch self {
-        case .cognitive: return .blue
-        case .reactive: return .green
-        case .swarm: return .purple
-        case .orchestrator: return .orange
-        case .specialist: return .cyan
-        case .hybrid: return .pink
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .cognitive: return "brain.head.profile"
-        case .reactive: return "bolt.circle"
-        case .swarm: return "hexagon.fill"
-        case .orchestrator: return "music.quarternote.3"
-        case .specialist: return "scope"
-        case .hybrid: return "star.circle"
-        }
-    }
-}
+// AgentType is defined in Agent.swift - import that definition
 
-// AgentStatus is defined in AppState.swift
-// Extension to add UI properties
-extension AgentStatus {
-    var color: Color {
-        switch self {
-        case .active: return .green
-        case .inactive: return .gray
-        case .busy: return .blue
-        case .error: return .red
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .active: return "checkmark.circle.fill"
-        case .inactive: return "circle"
-        case .busy: return "arrow.clockwise.circle.fill"
-        case .error: return "exclamationmark.triangle.fill"
-        }
-    }
-}
+// AgentStatus is defined in Agent.swift and SharedTypes.swift - use those definitions
 
 /// Agent configuration settings
 struct AgentConfiguration: Codable {

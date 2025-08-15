@@ -402,7 +402,7 @@ export class DistributedTracingService extends EventEmitter {
       const parentContext = this.extractFromHeaders(req.headers);
       
       // Start new span for this request
-      const span = this.startTrace(`${req.method} ${req.path}`, parentContext);
+      const span = this.startTrace(`${req.method} ${req.path}`, parentContext || undefined);
       
       // Add request tags
       span.tags = {
@@ -429,7 +429,7 @@ export class DistributedTracingService extends EventEmitter {
           span.tags.errorMessage = `HTTP ${res.statusCode}`;
         }
 
-        span.finishSpan(span.spanId);
+        this.finishSpan(span.spanId);
         return originalSend.call(this, body);
       };
 

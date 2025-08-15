@@ -8,25 +8,53 @@ struct UniversalAIToolsApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var apiService = APIService()
     @StateObject private var mcpService = MCPService()
+    
+    // Debug mode detection
+    private var isDebugMode: Bool {
+        #if DEBUG
+        return true
+        #else
+        return ProcessInfo.processInfo.arguments.contains("--uitesting") ||
+               ProcessInfo.processInfo.arguments.contains("--debug-mode") ||
+               ProcessInfo.processInfo.environment["ENABLE_DEBUG_CONSOLE"] == "true"
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(appState)
-                .environmentObject(apiService)
-                .environmentObject(mcpService)
-                .frame(minWidth: 1200, minHeight: 800)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onAppear {
-                    setupApplication()
+            ZStack {
+                ContentView()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+                    .environmentObject(mcpService)
+                    .frame(minWidth: 1200, minHeight: 800)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        setupApplication()
+                    }
+                    .sheet(isPresented: .init(
+                        get: { appState.showAboutWindow },
+                        set: { appState.showAboutWindow = $0 }
+                    )) {
+                        AboutView()
+                            .frame(width: 400, height: 320)
+                    }
+                
+                // Debug overlay for testing
+                if isDebugMode {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            DebugOverlay()
+                                .environmentObject(appState)
+                                .padding()
+                        }
+                        Spacer()
+                    }
+                    .allowsHitTesting(true)
+                    .zIndex(1000)
                 }
-                .sheet(isPresented: .init(
-                    get: { appState.showAboutWindow },
-                    set: { appState.showAboutWindow = $0 }
-                )) {
-                    AboutView()
-                        .frame(width: 400, height: 320)
-                }
+            }
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified(showsTitle: true))

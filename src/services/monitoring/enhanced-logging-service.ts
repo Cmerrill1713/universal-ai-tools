@@ -181,7 +181,7 @@ export class EnhancedLoggingService {
     } catch (error) {
       const duration = performance.now() - startTime;
       
-      this.log('error', `${message} - Failed`, context, {
+      this.error(`${message} - Failed`, context, {
         ...data,
         duration: Math.round(duration * 100) / 100,
         success: false

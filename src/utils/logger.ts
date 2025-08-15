@@ -18,6 +18,7 @@ export enum LogContext {
   SERVICE = 'service',
   CONTEXT_INJECTION = 'context_injection',
   SYNTAX_FIXING = 'syntax_fixing',
+  MONITORING = 'monitoring',
 }
 
 const logLevel = process.env.LOG_LEVEL || 'info';
