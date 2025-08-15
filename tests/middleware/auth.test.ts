@@ -64,11 +64,16 @@ describe('Authentication Middleware Tests', () => {
       path: '/api/v1/test',
       ip: '127.0.0.1',
       connection: { remoteAddress: '127.0.0.1' },
+      get: jest.fn((name: string) => {
+        if (name === 'host') return 'localhost';
+        return undefined;
+      }),
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
       locals: {},
+      setHeader: jest.fn(),
     };
     mockNext = jest.fn();
     mockSendError.mockImplementation((res, code, message, status) => {

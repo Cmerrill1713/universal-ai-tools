@@ -1,29 +1,35 @@
-// OpenAPI docs and validator scaffolding (no generation yet)
-import type { Application } from 'express';
+/**
+ * OpenAPI Documentation Setup
+ * Wires comprehensive API documentation into the Express app
+ */
 
+import type { Application } from 'express';
+import { setupOpenAPIDocumentation } from './openapi-integration';
+import { log, LogContext } from '@/utils/logger';
+
+/**
+ * Wire OpenAPI documentation and validation
+ * This is the main entry point for API documentation
+ */
 export async function wireOpenAPIDocs(app: Application): Promise<void> {
   try {
-    const swaggerUi = await import('swagger-ui-express');
-    const { default: expressOpenApiValidator } = await import('express-openapi-validator');
-
-    // Minimal spec placeholder; expand with real paths/schemas later
-    const doc: any = {
-      openapi: '3.0.0',
-      info: { title: 'Universal AI Tools API', version: '1.0.0' },
-      paths: {},
-      components: { schemas: {} },
-    };
-
-    app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(doc));
-
-    app.use(
-      expressOpenApiValidator({
-        apiSpec: doc,
-        validateRequests: false,
-        validateResponses: false,
-      }) as any
-    );
-  } catch {
-    // Optional; skip when deps not installed
+    // Set up comprehensive OpenAPI documentation
+    await setupOpenAPIDocumentation(app, {
+      enableValidation: process.env.ENABLE_API_VALIDATION === 'true',
+      enableMockMode: process.env.ENABLE_MOCK_MODE === 'true',
+      apiKeyHeader: 'X-API-Key'
+    });
+    
+    log.info('📚 API Documentation initialized', LogContext.API, {
+      docsUrl: '/api/docs',
+      specUrl: '/api/openapi.json',
+      gettingStarted: '/docs/api-getting-started.md'
+    });
+    
+  } catch (error) {
+    log.warn('Failed to initialize OpenAPI documentation', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+      note: 'API will continue without documentation'
+    });
   }
 }

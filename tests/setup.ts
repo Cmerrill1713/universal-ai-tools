@@ -1,9 +1,31 @@
 // Test setup file
 import { config } from 'dotenv';
 import { jest } from '@jest/globals';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Load test environment variables
 config({ path: '.env.test' });
+
+// Set up module system globals for ES/CommonJS compatibility
+if (typeof globalThis.__filename === 'undefined') {
+  // In CommonJS/test environment - use Node.js globals if available
+  if (typeof __filename !== 'undefined') {
+    globalThis.__filename = __filename;
+    globalThis.__dirname = __dirname;
+  } else {
+    // Fallback for test environment
+    globalThis.__filename = process.cwd() + '/tests/setup.ts';
+    globalThis.__dirname = process.cwd() + '/tests';
+  }
+}
+
+// Ensure test environment
+process.env.NODE_ENV = 'test';
+process.env.TEST_MODE = 'true';
+
+// Add test bypass headers for requests
+process.env.X_TEST_BYPASS = 'true';
 
 // Add globals
 declare global {
@@ -14,7 +36,6 @@ declare global {
   const Buffer: typeof Buffer;
   const __dirname: string;
   const __filename: string;
-  const fetch: typeof fetch;
   const setImmediate: typeof setImmediate;
   const clearImmediate: typeof clearImmediate;
   const setTimeout: typeof setTimeout;

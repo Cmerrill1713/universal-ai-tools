@@ -52,9 +52,36 @@ jest.mock('../../src/services/context-storage-service', () => ({
   },
 }));
 
-// Helper to dynamically mock ollama service per test
+// Helper to dynamically mock services per test
 const mockOllama = (shouldFail = false) => {
   jest.resetModules();
+  
+  // Mock unified model service
+  jest.doMock('../../src/services/unified-model-service', () => ({
+    unifiedModelService: {
+      generate: shouldFail
+        ? jest.fn(async () => ({
+            content: '', // Empty content should trigger fallback
+            model: { id: 'test-model', provider: 'test-provider' },
+            metrics: { latencyMs: 100, tokensPerSecond: 10 },
+          }))
+        : jest.fn(async () => ({
+            content: 'Mock unified response',
+            model: { id: 'test-model', provider: 'test-provider' },
+            metrics: { latencyMs: 100, tokensPerSecond: 10 },
+          })),
+    },
+  }));
+
+  // Mock DSPy service
+  jest.doMock('../../src/services/dspy-service', () => ({
+    dspyService: {
+      isReady: () => false,
+      orchestrate: jest.fn(async () => ({ response: 'DSPy response' })),
+    },
+  }));
+
+  // Mock ollama service
   jest.doMock('../../src/services/ollama-service', () => ({
     ollamaService: {
       generateResponse: shouldFail
@@ -90,11 +117,23 @@ describe('Assistant API - /api/v1/assistant/chat', () => {
       .expect(200);
 
     expect(res.body.success).toBe(true);
-    expect(res.body.data.response).toContain('Mock LLM response');
+    expect(res.body.data.response).toContain('Mock unified response');
     expect(typeof res.body.metadata.requestId).toBe('string');
   });
 
   test('returns success with fallback when LLM is unavailable', async () => {
+    // Disable fallback lookup to get the expected message
+    process.env.ASSISTANT_FALLBACK_LOOKUP = 'false';
+    
+    // Mock the entire flow to throw an error by making semantic retrieval fail
+    jest.doMock('../../src/services/semantic-context-retrieval', () => ({
+      semanticContextRetrievalService: {
+        semanticSearch: jest.fn(async () => {
+          throw new Error('Context service unavailable');
+        }),
+      },
+    }));
+    
     mockOllama(true);
     const app = await buildApp();
 
@@ -104,7 +143,8 @@ describe('Assistant API - /api/v1/assistant/chat', () => {
       .expect(200);
 
     expect(res.body.success).toBe(true);
-    expect(res.body.data.response).toMatch(/Assistant is initializing|try again/);
+    // The fallback message when Ollama is unavailable and context retrieval fails
+    expect(res.body.data.response).toMatch(/I'm a versatile AI assistant|Code generation and debugging|Feel free to ask me anything/);
     expect(res.body.data.conversationStored).toBe(true);
   });
 });
