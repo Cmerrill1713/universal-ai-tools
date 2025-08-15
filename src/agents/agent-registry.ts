@@ -14,6 +14,13 @@ import { EnhancedSynthesizerAgent } from './cognitive/enhanced-synthesizer-agent
 import type { EnhancedBaseAgent } from './enhanced-base-agent';
 import { EnhancedPersonalAssistantAgent } from './personal/enhanced-personal-assistant-agent';
 import { EnhancedCodeAssistantAgent } from './specialized/enhanced-code-assistant-agent';
+// New domain-specific agents for R1 RAG system
+import { GraphRAGReasoningAgent } from './specialized/graphrag-reasoning-agent';
+import { R1ReasoningAgent } from './specialized/r1-reasoning-agent';
+import { MultiTierRouterAgent } from './specialized/multi-tier-router-agent';
+import { PerformanceOptimizationAgent } from './specialized/performance-optimization-agent';
+import { EnhancedCodebaseOptimizerAgent } from './specialized/enhanced-codebase-optimizer-agent';
+import { ConversationalVoiceAgent } from './specialized/conversational-voice-agent';
 // HRM agent removed for Apple Silicon environment (CUDA/flash_attn not supported)
 
 export interface AgentLoadingLock {
@@ -26,6 +33,8 @@ export class AgentRegistry extends EventEmitter {
   private agentUsage: Map<string, Date> = new Map();
   private loadingLocks: Map<string, Promise<BaseAgent | EnhancedBaseAgent | null>> = new Map();
   private supabase: unknown;
+  private cleanupTimer?: NodeJS.Timeout;
+  private maxLoadedAgents = 10; // Limit concurrent loaded agents
 
   constructor() {
     super();
@@ -43,6 +52,7 @@ export class AgentRegistry extends EventEmitter {
       supabaseAnonKey
     );
     this.registerBuiltInAgents();
+    this.startCleanupScheduler();
     log.info(
       `Agent Registry initialized with ${this.agentDefinitions.size} agent definitions`,
       LogContext.AGENT
@@ -122,6 +132,91 @@ export class AgentRegistry extends EventEmitter {
       retryAttempts: 2,
     });
 
+    // Domain-specific agents for R1 RAG system
+    this.registerAgent({
+      name: 'graphrag_reasoning',
+      category: AgentCategory.SPECIALIZED,
+      description: 'Advanced knowledge graph construction and graph-based reasoning',
+      priority: 2,
+      className: 'GraphRAGReasoningAgent',
+      modulePath: './specialized/graphrag-reasoning-agent',
+      dependencies: ['retriever'],
+      capabilities: ['knowledge_graph_construction', 'graph_based_reasoning', 'entity_relationship_extraction'],
+      memoryEnabled: true,
+      maxLatencyMs: 8000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'r1_reasoning',
+      category: AgentCategory.SPECIALIZED,
+      description: 'Advanced R1 reasoning with Think-Generate-Retrieve-Rethink cycles',
+      priority: 2,
+      className: 'R1ReasoningAgent',
+      modulePath: './specialized/r1-reasoning-agent',
+      dependencies: ['retriever'],
+      capabilities: ['r1_reasoning_cycles', 'multi_step_thinking', 'dynamic_retrieval'],
+      memoryEnabled: true,
+      maxLatencyMs: 12000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'multi_tier_router',
+      category: AgentCategory.SPECIALIZED,
+      description: 'Intelligent multi-tier model routing and selection',
+      priority: 1,
+      className: 'MultiTierRouterAgent',
+      modulePath: './specialized/multi-tier-router-agent',
+      dependencies: [],
+      capabilities: ['tier_routing', 'complexity_analysis', 'performance_optimization'],
+      memoryEnabled: true,
+      maxLatencyMs: 3000,
+      retryAttempts: 3,
+    });
+
+    this.registerAgent({
+      name: 'performance_optimization',
+      category: AgentCategory.SPECIALIZED,
+      description: 'Performance optimization for sub-3 second response times',
+      priority: 3,
+      className: 'PerformanceOptimizationAgent',
+      modulePath: './specialized/performance-optimization-agent',
+      dependencies: [],
+      capabilities: ['latency_optimization', 'throughput_optimization', 'bottleneck_analysis'],
+      memoryEnabled: true,
+      maxLatencyMs: 5000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'codebase_optimizer',
+      category: AgentCategory.SPECIALIZED,
+      description: 'Comprehensive codebase analysis, optimization, and quality improvement',
+      priority: 3,
+      className: 'EnhancedCodebaseOptimizerAgent',
+      modulePath: './specialized/enhanced-codebase-optimizer-agent',
+      dependencies: [],
+      capabilities: ['codebase_analysis', 'code_optimization', 'performance_analysis', 'security_analysis', 'code_quality_assessment', 'automated_refactoring'],
+      memoryEnabled: true,
+      maxLatencyMs: 30000, // Allow longer execution time for codebase analysis
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'conversational_voice',
+      category: AgentCategory.SPECIALIZED,
+      description: 'Advanced conversational voice agent for natural voice interactions',
+      priority: 3,
+      className: 'ConversationalVoiceAgent',
+      modulePath: './specialized/conversational-voice-agent',
+      dependencies: [],
+      capabilities: ['voice_conversation', 'voice_command_processing', 'conversational_memory', 'voice_response_optimization', 'emotion_detection'],
+      memoryEnabled: true,
+      maxLatencyMs: 5000, // Voice interactions need faster response
+      retryAttempts: 2,
+    });
+
     // HRM registration removed
 
     log.info(`Registered ${this.agentDefinitions.size} built-in agents`, LogContext.AGENT);
@@ -149,6 +244,24 @@ export class AgentRegistry extends EventEmitter {
       case 'code_assistant':
         return new EnhancedCodeAssistantAgent(config);
 
+      case 'graphrag_reasoning':
+        return new GraphRAGReasoningAgent(config);
+
+      case 'r1_reasoning':
+        return new R1ReasoningAgent(config);
+
+      case 'multi_tier_router':
+        return new MultiTierRouterAgent(config);
+
+      case 'performance_optimization':
+        return new PerformanceOptimizationAgent(config);
+
+      case 'codebase_optimizer':
+        return new EnhancedCodebaseOptimizerAgent(config);
+
+      case 'conversational_voice':
+        return new ConversationalVoiceAgent(config);
+
       // case 'hrm': // removed
       //   return new HRMSapientAgent(config);
 
@@ -162,6 +275,11 @@ export class AgentRegistry extends EventEmitter {
     if (this.loadedAgents.has(agentName)) {
       this.agentUsage.set(agentName, new Date());
       return this.loadedAgents.get(agentName)!;
+    }
+
+    // Check if we need to unload agents before loading new ones
+    if (this.loadedAgents.size >= this.maxLoadedAgents) {
+      await this.unloadLeastRecentlyUsedAgent();
     }
 
     // Use loading lock to prevent duplicate loading
@@ -184,6 +302,56 @@ export class AgentRegistry extends EventEmitter {
       return agent;
     } finally {
       this.loadingLocks.delete(agentName);
+    }
+  }
+
+  private async unloadLeastRecentlyUsedAgent(): Promise<void> {
+    // Find least recently used non-core agent
+    let oldestAgent: string | null = null;
+    let oldestTime = Date.now();
+
+    for (const [agentName, lastUsed] of this.agentUsage.entries()) {
+      const definition = this.agentDefinitions.get(agentName);
+      // Don't unload core agents
+      if (definition?.category === AgentCategory.CORE) continue;
+      
+      if (lastUsed.getTime() < oldestTime) {
+        oldestTime = lastUsed.getTime();
+        oldestAgent = agentName;
+      }
+    }
+
+    if (oldestAgent) {
+      const agent = this.loadedAgents.get(oldestAgent);
+      if (agent) {
+        await agent.shutdown();
+        this.loadedAgents.delete(oldestAgent);
+        this.agentUsage.delete(oldestAgent);
+        log.info(`Unloaded LRU agent: ${oldestAgent}`, LogContext.AGENT);
+      }
+    }
+  }
+
+  private startCleanupScheduler(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.performMemoryCleanup();
+    }, 2 * 60 * 1000); // Every 2 minutes
+  }
+
+  private performMemoryCleanup(): void {
+    // Force garbage collection if available
+    if (global.gc && this.loadedAgents.size === 0) {
+      global.gc();
+    }
+    
+    // Clear old loading locks
+    for (const [agentName, promise] of this.loadingLocks.entries()) {
+      // Check if promise is still pending after 30 seconds
+      const timeout = setTimeout(() => {
+        this.loadingLocks.delete(agentName);
+      }, 30000);
+      
+      promise.finally(() => clearTimeout(timeout));
     }
   }
 
@@ -569,6 +737,12 @@ export class AgentRegistry extends EventEmitter {
   public async shutdown(): Promise<void> {
     log.info('Shutting down Agent Registry...', LogContext.AGENT);
 
+    // Clear cleanup timer
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
+
     const shutdownPromises = Array.from(this.loadedAgents.values()).map((agent) =>
       agent
         .shutdown()
@@ -580,6 +754,11 @@ export class AgentRegistry extends EventEmitter {
     this.loadedAgents.clear();
     this.agentUsage.clear();
     this.loadingLocks.clear();
+
+    // Force final garbage collection
+    if (global.gc) {
+      global.gc();
+    }
 
     log.info('Agent Registry shutdown completed', LogContext.AGENT);
   }
