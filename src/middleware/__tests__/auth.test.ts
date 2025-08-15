@@ -6,7 +6,7 @@
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 
-import { authenticate, authenticateJWT, authenticateAPIKey, requireAdmin } from '../auth';
+import { authenticateAPIKey, authenticateJWT } from '../auth';
 
 // Mock the secrets manager
 jest.mock('../../services/secrets-manager', () => ({

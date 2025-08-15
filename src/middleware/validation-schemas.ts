@@ -272,3 +272,151 @@ export type ChatRequest = z.infer<typeof chatRequestSchema>;
 export type AgentRequest = z.infer<typeof agentRequestSchema>;
 export type SystemMetricsQuery = z.infer<typeof systemMetricsQuerySchema>;
 export type SearchQuery = z.infer<typeof searchSchema>;
+// ============================================================================
+// Additional Common Schemas for API Standardization
+// ============================================================================
+
+// Common path parameter schemas
+export const idParamSchema = z.object({
+  id: baseIdSchema.describe('Resource identifier')
+});
+
+export const uuidParamSchema = z.object({
+  id: z.string().uuid().describe('UUID identifier')
+});
+
+// Model and provider schemas
+export const modelRequestSchema = z.object({
+  model: baseIdSchema.describe('Model identifier'),
+  provider: baseIdSchema.optional().describe('Provider identifier'),
+  temperature: z.number().min(0).max(2).optional().describe('Model temperature'),
+  maxTokens: z.number().int().min(1).max(100000).optional().describe('Maximum tokens'),
+  stream: z.boolean().default(false).describe('Stream response')
+});
+
+// Memory and context schemas
+export const memoryStoreSchema = z.object({
+  key: z.string().min(1).max(255).describe('Memory key'),
+  value: z.any().describe('Memory value'),
+  namespace: z.string().min(1).max(100).optional().describe('Memory namespace'),
+  ttl: z.number().int().min(1).max(86400).optional().describe('TTL in seconds'),
+  metadata: z.record(z.any()).optional().describe('Additional metadata')
+});
+
+export const memoryRetrieveSchema = z.object({
+  key: z.string().min(1).max(255).describe('Memory key'),
+  namespace: z.string().min(1).max(100).optional().describe('Memory namespace')
+});
+
+// Monitoring and analytics schemas
+export const healthCheckQuerySchema = z.object({
+  include: z.array(z.enum(['system', 'models', 'circuits', 'memory', 'services']))
+    .optional()
+    .describe('Health check components to include'),
+  detailed: z.boolean().default(false).describe('Include detailed metrics')
+});
+
+export const metricsQuerySchema = z.object({
+  metric: z.enum(['requests', 'errors', 'latency', 'memory', 'cpu']).describe('Metric type'),
+  timeRange: z.enum(['1h', '6h', '24h', '7d']).default('1h').describe('Time range'),
+  aggregation: z.enum(['avg', 'sum', 'min', 'max', 'count']).default('avg').describe('Aggregation method'),
+  groupBy: z.string().optional().describe('Group by field')
+});
+
+// Vision and image processing schemas
+export const imageUploadSchema = z.object({
+  image: z.string().describe('Base64 encoded image or image URL'),
+  format: z.enum(['jpeg', 'png', 'webp', 'gif']).optional().describe('Image format'),
+  maxWidth: z.number().int().min(1).max(4096).optional().describe('Maximum width'),
+  maxHeight: z.number().int().min(1).max(4096).optional().describe('Maximum height'),
+  quality: z.number().min(0.1).max(1).default(0.9).describe('Image quality')
+});
+
+export const imageAnalysisSchema = z.object({
+  ...imageUploadSchema.shape,
+  analysisType: z.enum(['description', 'objects', 'text', 'faces', 'general'])
+    .describe('Type of analysis to perform'),
+  language: z.string().min(2).max(5).default('en').describe('Language for results')
+});
+
+// Training and fine-tuning schemas
+export const trainingJobSchema = z.object({
+  modelId: baseIdSchema.describe('Base model to fine-tune'),
+  datasetId: baseIdSchema.describe('Training dataset identifier'),
+  trainingConfig: z.object({
+    learningRate: z.number().min(0.00001).max(1).default(0.0001),
+    batchSize: z.number().int().min(1).max(128).default(8),
+    epochs: z.number().int().min(1).max(100).default(3),
+    warmupSteps: z.number().int().min(0).max(10000).default(500)
+  }).describe('Training configuration'),
+  outputModelName: z.string().min(1).max(255).describe('Name for the trained model')
+});
+
+// Device and authentication schemas
+export const deviceRegistrationSchema = z.object({
+  deviceId: z.string().min(1).max(255).describe('Unique device identifier'),
+  deviceName: z.string().min(1).max(255).describe('Human-readable device name'),
+  deviceType: z.enum(['mobile', 'desktop', 'tablet', 'server', 'other']).describe('Device type'),
+  platform: z.string().min(1).max(100).optional().describe('Platform/OS'),
+  appVersion: z.string().min(1).max(50).optional().describe('Application version')
+});
+
+export const tokenRefreshSchema = z.object({
+  refreshToken: z.string().min(1).describe('Refresh token'),
+  deviceId: z.string().min(1).max(255).optional().describe('Device identifier')
+});
+
+// Advanced feature schemas
+export const proactiveTaskSchema = z.object({
+  taskType: z.enum(['reminder', 'analysis', 'optimization', 'backup', 'cleanup'])
+    .describe('Type of proactive task'),
+  schedule: z.string().regex(/^(\*|[0-5]?\d) (\*|[01]?\d|2[0-3]) (\*|[0-2]?\d|3[01]) (\*|[0]?\d|1[0-2]) (\*|[0-6])$/)
+    .optional()
+    .describe('Cron expression for scheduling'),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+  parameters: z.record(z.any()).optional().describe('Task-specific parameters'),
+  enabled: z.boolean().default(true).describe('Whether task is enabled')
+});
+
+export const feedbackSchema = z.object({
+  rating: z.number().int().min(1).max(5).describe('Rating from 1-5'),
+  category: z.enum(['accuracy', 'helpfulness', 'speed', 'clarity', 'other']).describe('Feedback category'),
+  comment: z.string().max(1000).optional().describe('Additional feedback text'),
+  sessionId: z.string().uuid().optional().describe('Session identifier'),
+  feature: z.string().min(1).max(100).optional().describe('Feature being rated')
+});
+
+// Voice and speech schemas
+export const voiceConfigSchema = z.object({
+  voice: z.string().min(1).max(100).describe('Voice identifier'),
+  speed: z.number().min(0.25).max(4).default(1).describe('Speech speed'),
+  pitch: z.number().min(-20).max(20).default(0).describe('Voice pitch'),
+  volume: z.number().min(0).max(1).default(0.8).describe('Volume level'),
+  language: z.string().min(2).max(5).default('en').describe('Language code')
+});
+
+export const speechToTextSchema = z.object({
+  audio: z.string().describe('Base64 encoded audio data'),
+  format: z.enum(['wav', 'mp3', 'webm', 'ogg']).describe('Audio format'),
+  language: z.string().min(2).max(5).default('en').describe('Language code'),
+  enablePunctuation: z.boolean().default(true).describe('Enable automatic punctuation'),
+  enableTimestamps: z.boolean().default(false).describe('Include word timestamps')
+});
+
+// Export additional type definitions
+export type IdParam = z.infer<typeof idParamSchema>;
+export type UuidParam = z.infer<typeof uuidParamSchema>;
+export type ModelRequest = z.infer<typeof modelRequestSchema>;
+export type MemoryStore = z.infer<typeof memoryStoreSchema>;
+export type MemoryRetrieve = z.infer<typeof memoryRetrieveSchema>;
+export type HealthCheckQuery = z.infer<typeof healthCheckQuerySchema>;
+export type MetricsQuery = z.infer<typeof metricsQuerySchema>;
+export type ImageUpload = z.infer<typeof imageUploadSchema>;
+export type ImageAnalysis = z.infer<typeof imageAnalysisSchema>;
+export type TrainingJob = z.infer<typeof trainingJobSchema>;
+export type DeviceRegistration = z.infer<typeof deviceRegistrationSchema>;
+export type TokenRefresh = z.infer<typeof tokenRefreshSchema>;
+export type ProactiveTask = z.infer<typeof proactiveTaskSchema>;
+export type Feedback = z.infer<typeof feedbackSchema>;
+export type VoiceConfig = z.infer<typeof voiceConfigSchema>;
+export type SpeechToText = z.infer<typeof speechToTextSchema>;

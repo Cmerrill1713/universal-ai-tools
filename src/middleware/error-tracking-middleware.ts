@@ -164,14 +164,23 @@ class ErrorTrackingService {
 
     // Track by error type
     const errorType = error.constructor.name;
-    this.metrics.errorsByType[errorType] = (Object.prototype.hasOwnProperty.call(this.metrics.errorsByType, errorType) ? this.metrics.errorsByType[errorType] : 0) + 1;
+    if (this.metrics.errorsByType) {
+      const errorsByType = this.metrics.errorsByType;
+      errorsByType[errorType] = (errorsByType[errorType] || 0) + 1;
+    }
 
     // Track by path
-    this.metrics.errorsByPath[context.path] = (Object.prototype.hasOwnProperty.call(this.metrics.errorsByPath, context.path) ? this.metrics.errorsByPath[context.path] : 0) + 1;
+    if (this.metrics.errorsByPath && context.path) {
+      const errorsByPath = this.metrics.errorsByPath;
+      errorsByPath[context.path] = (errorsByPath[context.path] || 0) + 1;
+    }
 
     // Track by status code
     const statusCode = this.getStatusCode(error);
-    this.metrics.errorsByStatusCode[statusCode] = (Object.prototype.hasOwnProperty.call(this.metrics.errorsByStatusCode, statusCode) ? this.metrics.errorsByStatusCode[statusCode] : 0) + 1;
+    if (this.metrics.errorsByStatusCode) {
+      const errorsByStatusCode = this.metrics.errorsByStatusCode;
+      errorsByStatusCode[statusCode] = (errorsByStatusCode[statusCode] || 0) + 1;
+    }
 
     // Store recent error
     this.recentErrors.unshift({ ...context });

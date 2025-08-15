@@ -3,7 +3,7 @@
  * Simple content safety implementation for immediate deployment
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction,Request, Response } from 'express';
 
 interface ContentCheckResult {
   allowed: boolean;

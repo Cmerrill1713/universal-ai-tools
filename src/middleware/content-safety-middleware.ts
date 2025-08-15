@@ -3,11 +3,12 @@
  * Integrates input and output guardrails into Express middleware
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction,Request, Response } from 'express';
+
 import { inputGuardrailsService } from '../services/guardrails/input-guardrails.js';
 import { outputGuardrailsService } from '../services/guardrails/output-guardrails.js';
-import { log, LogContext } from '../utils/logger.js';
 import { sendError } from '../utils/api-response.js';
+import { log, LogContext } from '../utils/logger.js';
 
 interface SafetyRequest extends Request {
   safetyContext?: {

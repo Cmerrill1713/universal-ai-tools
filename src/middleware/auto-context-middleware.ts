@@ -271,10 +271,24 @@ export class AutoContextMiddleware {
       const userRequest = this.extractUserRequest(req);
       if (!userRequest) return;
 
+      // Check if RAG is explicitly disabled
+      if (req.body?.useRAG === false) {
+        log.debug('RAG disabled by request', LogContext.CONTEXT_INJECTION);
+        return;
+      }
+
+      // Auto-detect if RAG would be beneficial
+      const shouldUseRAG = this.shouldAutoEnableRAG(userRequest, req);
+      if (!shouldUseRAG && !req.body?.useRAG) {
+        log.debug('RAG not beneficial for this request', LogContext.CONTEXT_INJECTION);
+        return;
+      }
+
       log.info('💉 Injecting context into LLM request', LogContext.CONTEXT_INJECTION, {
         sessionId: req.contextInfo.sessionId,
         userId: req.contextInfo.userId,
         requestLength: userRequest.length,
+        autoRAG: shouldUseRAG,
       });
 
       // Get relevant context using semantic search
@@ -530,6 +544,8 @@ export class AutoContextMiddleware {
       '/chat',
       '/complete',
       '/generate',
+      '/local/chat',  // Local LLM with RAG support
+      '/local/completion',
     ];
 
     const isLLMEndpoint = llmEndpoints.some((endpoint) => path.includes(endpoint));
@@ -642,6 +658,44 @@ export class AutoContextMiddleware {
   public getSession(sessionId: string, userId: string): ContextSession | null {
     const sessionKey = `${sessionId}_${userId}`;
     return this.sessions.get(sessionKey) || null;
+  }
+
+  /**
+   * Auto-detect if RAG would be beneficial for this request
+   */
+  private shouldAutoEnableRAG(userRequest: string, req: EnhancedRequest): boolean {
+    // Keywords that suggest RAG would be helpful
+    const ragKeywords = [
+      'previous', 'earlier', 'before', 'last time', 'remember',
+      'context', 'based on', 'according to', 'from the',
+      'in the code', 'in the project', 'documentation',
+      'explain', 'how does', 'what is', 'why does',
+      'debug', 'error', 'issue', 'problem', 'fix',
+      'implement', 'create', 'build', 'design',
+      'refactor', 'optimize', 'improve', 'enhance',
+    ];
+
+    const lowerRequest = userRequest.toLowerCase();
+    
+    // Check for RAG-beneficial keywords
+    const hasRAGKeywords = ragKeywords.some(keyword => lowerRequest.includes(keyword));
+    
+    // Check for code-related questions
+    const isCodeRelated = /\b(function|class|method|variable|api|endpoint|service|component)\b/i.test(userRequest);
+    
+    // Check for technical questions
+    const isTechnical = /\b(typescript|javascript|python|react|node|express|graphql|sql|database)\b/i.test(userRequest);
+    
+    // Check if this is part of an ongoing conversation
+    const sessionKey = `${req.contextInfo?.sessionId}_${req.contextInfo?.userId}`;
+    const session = this.sessions.get(sessionKey);
+    const hasHistory = session && session.messageCount > 2;
+    
+    // Check request length - longer questions often benefit from context
+    const isComplex = userRequest.length > 100;
+    
+    // Decision logic
+    return hasRAGKeywords || isCodeRelated || isTechnical || hasHistory || isComplex;
   }
 
   /**
