@@ -28,10 +28,16 @@ struct PopupModal<Content: View>: View {
                 Divider()
                     .background(AppTheme.separator)
 
-                // Content area
-                content()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // Scrollable content area with proper constraints
+                ScrollView {
+                    content()
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .frame(maxWidth: 800, maxHeight: 600) // Set maximum modal size
+                .clipped() // Ensure content doesn't overflow
             }
+            .frame(minWidth: 400, minHeight: 300) // Set minimum modal size
             .background(modalBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(

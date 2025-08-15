@@ -27,6 +27,8 @@ struct NativeRouterView: View {
             AgentManagementView()
         case .tools:
             ToolsView()
+        case .knowledge:
+            KnowledgeGraphView3D()
         }
     }
 }

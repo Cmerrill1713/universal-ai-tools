@@ -150,12 +150,16 @@ struct LiquidGlass: ViewModifier {
                 }
                 try? await Task.sleep(nanoseconds: 12_000_000_000)
             }
+            // Reset animation phase when cancelled to prevent state corruption
+            animationPhase = 0
         }
     }
 
     private func stopLightAnimation() {
         animationTask?.cancel()
         animationTask = nil
+        // Reset animation state immediately to prevent memory leaks
+        animationPhase = 0
     }
 }
 
@@ -201,12 +205,16 @@ struct AnimatedGradientBackground: View {
                 }
                 try? await Task.sleep(nanoseconds: 8_000_000_000) // 8 seconds
             }
+            // Reset gradient state when cancelled
+            animateGradient = false
         }
     }
 
     private func stopAnimation() {
         animationTask?.cancel()
         animationTask = nil
+        // Reset animation state to prevent memory leaks
+        animateGradient = false
     }
 }
 
@@ -287,17 +295,26 @@ struct FloatingAnimation: ViewModifier {
                 }
                 try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
 
+                guard !Task.isCancelled else {
+                    offset = 0
+                    break
+                }
+
                 withAnimation(.easeInOut(duration: duration)) {
                     offset = 0
                 }
                 try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
             }
+            // Reset offset when cancelled
+            offset = 0
         }
     }
 
     private func stopFloatingAnimation() {
         animationTask?.cancel()
         animationTask = nil
+        // Reset offset immediately to prevent visual glitches
+        offset = 0
     }
 }
 
@@ -330,17 +347,26 @@ struct PulseAnimation: ViewModifier {
                 }
                 try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
 
+                guard !Task.isCancelled else {
+                    scale = 1
+                    break
+                }
+
                 withAnimation(.easeInOut(duration: duration)) {
                     scale = minScale
                 }
                 try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
             }
+            // Reset scale when cancelled
+            scale = 1
         }
     }
 
     private func stopPulseAnimation() {
         animationTask?.cancel()
         animationTask = nil
+        // Reset scale immediately to prevent visual artifacts
+        scale = 1
     }
 }
 
@@ -397,11 +423,29 @@ struct PerformanceTracking: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onAppear {
-                // Performance tracking temporarily disabled for build
-                print("Animation started: \(animationName)")
+                // Performance tracking with error boundary
+                Task { @MainActor in
+                    print("Animation started: \(animationName)")
+                }
             }
             .onDisappear {
-                print("Animation stopped: \(animationName)")
+                Task { @MainActor in
+                    print("Animation stopped: \(animationName)")
+                }
             }
+    }
+}
+
+// MARK: - Safe State Update Modifier
+struct SafeStateUpdate: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .animation(.default, value: UUID()) // Prevents animation conflicts
+    }
+}
+
+extension View {
+    func safeStateUpdates() -> some View {
+        modifier(SafeStateUpdate())
     }
 }

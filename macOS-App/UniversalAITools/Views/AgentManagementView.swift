@@ -36,14 +36,16 @@ struct AgentManagementView: View {
             CreateObjectiveView()
                 .environmentObject(appState)
                 .environmentObject(apiService)
-                .frame(width: 500, height: 450)
+                .frame(minWidth: 450, idealWidth: 500, maxWidth: 600,
+                       minHeight: 350, idealHeight: 450, maxHeight: 550)
         }
         .sheet(isPresented: $showObjectiveDetail) {
             if let objective = selectedObjective {
                 ObjectiveDetailView(objective: objective)
                     .environmentObject(appState)
                     .environmentObject(apiService)
-                    .frame(width: 600, height: 500)
+                    .frame(minWidth: 500, idealWidth: 600, maxWidth: 800,
+                           minHeight: 400, idealHeight: 500, maxHeight: 700)
             }
         }
         .onAppear {
@@ -590,35 +592,36 @@ struct ObjectiveDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Header with icon and title
-            HStack(spacing: 16) {
-                MacOSAppIcon(
-                    type: objective.type,
-                    isActive: objective.status == .active
-                )
+        ScrollView {
+            VStack(spacing: 20) {
+                // Header with icon and title
+                HStack(spacing: 16) {
+                    MacOSAppIcon(
+                        type: objective.type,
+                        isActive: objective.status == .active
+                    )
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(objective.title)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(objective.title)
+                            .font(.title2)
+                            .fontWeight(.bold)
 
-                    Text(objective.type)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        Text(objective.type)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    // Status badge
+                    Text(objective.status.rawValue.capitalized)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(statusColor.opacity(0.2))
+                        .foregroundColor(statusColor)
+                        .cornerRadius(8)
                 }
-
-                Spacer()
-
-                // Status badge
-                Text(objective.status.rawValue.capitalized)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(statusColor.opacity(0.2))
-                    .foregroundColor(statusColor)
-                    .cornerRadius(8)
-            }
 
             // Progress
             VStack(alignment: .leading, spacing: 8) {
@@ -711,8 +714,9 @@ struct ObjectiveDetailView: View {
                 .buttonStyle(.bordered)
                 .foregroundColor(.orange)
             }
+            }
+            .padding()
         }
-        .padding()
     }
 
     private var statusColor: Color {

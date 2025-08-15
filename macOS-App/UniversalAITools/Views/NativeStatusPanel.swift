@@ -39,6 +39,8 @@ struct NativeStatusPanel: View {
             objectivesStatus
         case .tools:
             toolsStatus
+        case .knowledge:
+            knowledgeStatus
         }
     }
 
@@ -110,6 +112,30 @@ struct NativeStatusPanel: View {
                     Text("\(completedCount)")
                         .foregroundColor(.green)
                 }
+            }
+        }
+    }
+    
+    private var knowledgeStatus: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("Graph Nodes:")
+                Spacer()
+                Text("Loading...")
+                    .foregroundColor(.secondary)
+            }
+
+            HStack {
+                Text("Connections:")
+                Spacer()
+                Text("0")
+            }
+            
+            HStack {
+                Text("Status:")
+                Spacer()
+                Text("Ready")
+                    .foregroundColor(.green)
             }
         }
     }

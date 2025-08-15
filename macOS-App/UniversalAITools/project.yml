@@ -45,7 +45,10 @@ targets:
       - path: Views
         excludes:
           - Archive/**
+      - path: Managers
+      - path: Controllers
       - path: UniversalAIToolsApp.swift
+      - path: Assets.xcassets
     excludes:
       - .derived/**
       - SourcePackages/**

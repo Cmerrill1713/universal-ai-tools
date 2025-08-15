@@ -8,63 +8,74 @@ struct SettingsView: View {
     private let tabs = ["General", "Connection", "AI Models", "Security", "Advanced"]
 
     var body: some View {
-        ZStack {
-            AnimatedGradientBackground()
-                .trackPerformance("SettingsBackgroundGradient")
-                .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                // Header with Done button
-                HStack {
-                    Spacer()
-                    Button("Done") {
-                        appState.showSettings = false
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+        VStack(spacing: 0) {
+            // Header with Done button
+            HStack {
+                Spacer()
+                Button("Done") {
+                    appState.showSettings = false
                 }
-                .padding()
-                .background(.ultraThinMaterial)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+            .padding()
+            .background(.ultraThinMaterial)
 
             TabView(selection: $selectedTab) {
-            GeneralSettingsView()
+                ScrollView {
+                    GeneralSettingsView()
+                        .padding(.bottom, 20)
+                }
                 .tabItem {
                     Image(systemName: "gear")
                     Text("General")
                 }
                 .tag("General")
 
-            ConnectionSettingsView()
+                ScrollView {
+                    ConnectionSettingsView()
+                        .padding(.bottom, 20)
+                }
                 .tabItem {
                     Image(systemName: "network")
                     Text("Connection")
                 }
                 .tag("Connection")
 
-            AIModelsSettingsView()
+                ScrollView {
+                    AIModelsSettingsView()
+                        .padding(.bottom, 20)
+                }
                 .tabItem {
                     Image(systemName: "cpu")
                     Text("AI Models")
                 }
                 .tag("AI Models")
 
-            SecuritySettingsView()
+                ScrollView {
+                    SecuritySettingsView()
+                        .padding(.bottom, 20)
+                }
                 .tabItem {
                     Image(systemName: "lock")
                     Text("Security")
                 }
                 .tag("Security")
 
-            AdvancedSettingsView()
+                ScrollView {
+                    AdvancedSettingsView()
+                        .padding(.bottom, 20)
+                }
                 .tabItem {
                     Image(systemName: "slider.horizontal.3")
                     Text("Advanced")
                 }
                 .tag("Advanced")
-        }
             }
         }
-        .frame(width: 600, height: 500)
+        .frame(minWidth: 600, minHeight: 500)
+        .frame(maxWidth: 800, maxHeight: 700)
+        .background(AnimatedGradientBackground())
         .glassMorphism(cornerRadius: 0)
     }
 }
@@ -105,16 +116,15 @@ struct GeneralSettingsView: View {
             }
             .padding()
             .glassMorphism(cornerRadius: 12)
-
-            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 }
 
 struct ConnectionSettingsView: View {
     @EnvironmentObject var apiService: APIService
-    @AppStorage("BackendURL") private var backendURL = "http://localhost:9999"
+    @AppStorage("BackendURL") private var backendURL = "http://localhost:9998"
     @AppStorage("FrontendURL") private var frontendURL = "http://localhost:5173"
     @AppStorage("autoReconnect") private var autoReconnect = true
     @AppStorage("connectionTimeout") private var connectionTimeout = 30.0
@@ -179,14 +189,18 @@ struct ConnectionSettingsView: View {
                     Button("Retry Connect") {
                         Task { await apiService.connectToBackend(); await probeHealth() }
                     }
+                    Button("Test Chat") {
+                        Task { await apiService.testChatFunctionality() }
+                    }
+                    .foregroundColor(.orange)
                 }
             }
             .padding()
             .glassMorphism(cornerRadius: 12)
 
-            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .top)
         .task { await probeHealth() }
     }
 
@@ -264,26 +278,117 @@ struct AIModelsSettingsView: View {
             }
             .padding()
             .glassMorphism(cornerRadius: 12)
-
-            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 }
 
+// MARK: - Service Configuration Types
+enum ServiceType {
+    case cloud
+    case local
+}
+
+struct ServiceConfig {
+    let id: String
+    let displayName: String
+    let type: ServiceType
+    let defaultEndpoint: String?
+    let iconName: String
+    let color: Color
+}
+
 struct SecuritySettingsView: View {
+    @EnvironmentObject var apiService: APIService
     @StateObject private var keyManager = SecureKeyManager.shared
     @AppStorage("enableEncryption") private var enableEncryption = true
     @AppStorage("requireAuthentication") private var requireAuthentication = true
     @AppStorage("sessionTimeout") private var sessionTimeout = 3600.0
     @AppStorage("autoLockOnSleep") private var autoLockOnSleep = true
 
+    // Local service endpoints
+    @AppStorage("ollamaEndpoint") private var ollamaEndpoint = "http://localhost:11434"
+    @AppStorage("lmStudioEndpoint") private var lmStudioEndpoint = "http://localhost:1234/v1"
+    
     @State private var showingKeyForm = false
+    @State private var showingLocalServiceForm = false
     @State private var selectedService = ""
     @State private var newAPIKey = ""
+    @State private var selectedLocalService = ""
+    @State private var newEndpoint = ""
     @State private var isRefreshing = false
     @State private var showingDeleteConfirmation = false
     @State private var serviceToDelete = ""
+
+    private let serviceConfigs: [String: ServiceConfig] = [
+        // Cloud Services (require API keys)
+        "universal_ai_backend": ServiceConfig(
+            id: "universal_ai_backend",
+            displayName: "Universal AI Backend",
+            type: .cloud,
+            defaultEndpoint: nil,
+            iconName: "server.rack",
+            color: .blue
+        ),
+        "openai": ServiceConfig(
+            id: "openai",
+            displayName: "OpenAI",
+            type: .cloud,
+            defaultEndpoint: nil,
+            iconName: "brain",
+            color: .green
+        ),
+        "anthropic": ServiceConfig(
+            id: "anthropic",
+            displayName: "Anthropic (Claude)",
+            type: .cloud,
+            defaultEndpoint: nil,
+            iconName: "cpu",
+            color: .orange
+        ),
+        "google_ai": ServiceConfig(
+            id: "google_ai",
+            displayName: "Google AI",
+            type: .cloud,
+            defaultEndpoint: nil,
+            iconName: "globe",
+            color: .red
+        ),
+        "huggingface": ServiceConfig(
+            id: "huggingface",
+            displayName: "Hugging Face",
+            type: .cloud,
+            defaultEndpoint: nil,
+            iconName: "face.smiling",
+            color: .yellow
+        ),
+        // Local Services (require endpoint configuration)
+        "ollama": ServiceConfig(
+            id: "ollama",
+            displayName: "Ollama",
+            type: .local,
+            defaultEndpoint: "http://localhost:11434",
+            iconName: "desktopcomputer",
+            color: .purple
+        ),
+        "lm_studio": ServiceConfig(
+            id: "lm_studio",
+            displayName: "LM Studio",
+            type: .local,
+            defaultEndpoint: "http://localhost:1234/v1",
+            iconName: "desktopcomputer",
+            color: .purple
+        )
+    ]
+
+    var cloudServices: [ServiceConfig] {
+        serviceConfigs.values.filter { $0.type == .cloud }.sorted { $0.displayName < $1.displayName }
+    }
+
+    var localServices: [ServiceConfig] {
+        serviceConfigs.values.filter { $0.type == .local }.sorted { $0.displayName < $1.displayName }
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -319,12 +424,14 @@ struct SecuritySettingsView: View {
             .padding()
             .glassMorphism(cornerRadius: 12)
 
-            // API Key Management Section
+            // Cloud Services (API Key Management)
             VStack(spacing: 16) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("API Key Management")
+                            Image(systemName: "cloud")
+                                .foregroundColor(.blue)
+                            Text("Cloud AI Services")
                                 .font(.headline)
                             if keyManager.isVaultConnected {
                                 Image(systemName: "checkmark.circle.fill")
@@ -336,7 +443,7 @@ struct SecuritySettingsView: View {
                                     .help("Vault offline - using local storage only")
                             }
                         }
-                        Text("Secure storage in Keychain and encrypted cloud Vault")
+                        Text("Secure API key storage in Keychain and encrypted cloud Vault")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -350,7 +457,7 @@ struct SecuritySettingsView: View {
                         }
                         .disabled(isRefreshing)
 
-                        Button("Add Key") {
+                        Button("Add API Key") {
                             selectedService = ""
                             newAPIKey = ""
                             showingKeyForm = true
@@ -359,25 +466,30 @@ struct SecuritySettingsView: View {
                     }
                 }
 
-                if keyManager.keyStatuses.isEmpty {
+                let cloudKeyStatuses = keyManager.keyStatuses.filter { service, _ in
+                    cloudServices.contains { $0.id == service }
+                }
+
+                if cloudKeyStatuses.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "key.fill")
-                            .font(.system(size: 40))
+                            .font(.system(size: 30))
                             .foregroundColor(.secondary)
-                        Text("No API keys configured")
+                        Text("No cloud API keys configured")
                             .font(.headline)
                             .foregroundColor(.secondary)
-                        Text("Add your first API key to get started")
+                        Text("Add API keys for cloud AI services")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    .padding(.vertical, 20)
+                    .padding(.vertical, 16)
                 } else {
                     LazyVStack(spacing: 8) {
-                        ForEach(Array(keyManager.keyStatuses.keys.sorted()), id: \.self) { service in
-                            if let keyInfo = keyManager.keyStatuses[service] {
-                                KeyStatusRow(
-                                    service: service,
+                        ForEach(Array(cloudKeyStatuses.keys.sorted()), id: \.self) { service in
+                            if let keyInfo = cloudKeyStatuses[service],
+                               let config = serviceConfigs[service] {
+                                CloudServiceRow(
+                                    config: config,
                                     keyInfo: keyInfo,
                                     onEdit: {
                                         selectedService = service
@@ -410,6 +522,47 @@ struct SecuritySettingsView: View {
             .padding()
             .glassMorphism(cornerRadius: 12)
 
+            // Local Services (Endpoint Configuration)
+            VStack(spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: "desktopcomputer")
+                                .foregroundColor(.purple)
+                            Text("Local AI Services")
+                                .font(.headline)
+                        }
+                        Text("Configure endpoints for locally running AI services")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+
+                    Button("Configure Service") {
+                        selectedLocalService = ""
+                        newEndpoint = ""
+                        showingLocalServiceForm = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+
+                LazyVStack(spacing: 8) {
+                    ForEach(localServices, id: \.id) { config in
+                        LocalServiceRow(
+                            config: config,
+                            endpoint: getEndpointForService(config.id),
+                            onEdit: {
+                                selectedLocalService = config.id
+                                newEndpoint = getEndpointForService(config.id)
+                                showingLocalServiceForm = true
+                            }
+                        )
+                    }
+                }
+            }
+            .padding()
+            .glassMorphism(cornerRadius: 12)
+
             // Danger Zone
             VStack(spacing: 12) {
                 HStack {
@@ -424,25 +577,43 @@ struct SecuritySettingsView: View {
                     Spacer()
                 }
 
-                Button("Clear All API Keys") {
-                    Task { await keyManager.clearAllKeys() }
+                HStack(spacing: 12) {
+                    Button("Clear All API Keys") {
+                        Task { await keyManager.clearAllKeys() }
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundColor(.red)
+                    
+                    Button("Force Reauth") {
+                        Task { await apiService.forceReauthentication() }
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundColor(.orange)
                 }
-                .buttonStyle(.bordered)
-                .foregroundColor(.red)
             }
             .padding()
             .glassMorphism(cornerRadius: 12)
-
-            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .top)
         .sheet(isPresented: $showingKeyForm) {
-            KeyManagementFormView(
+            CloudKeyManagementFormView(
                 selectedService: $selectedService,
                 newAPIKey: $newAPIKey,
                 isPresented: $showingKeyForm,
-                keyManager: keyManager
+                keyManager: keyManager,
+                serviceConfigs: serviceConfigs
             )
+        }
+        .sheet(isPresented: $showingLocalServiceForm) {
+            LocalServiceConfigFormView(
+                selectedService: $selectedLocalService,
+                newEndpoint: $newEndpoint,
+                isPresented: $showingLocalServiceForm,
+                serviceConfigs: serviceConfigs
+            ) { service, endpoint in
+                setEndpointForService(service, endpoint)
+            }
         }
         .alert("Delete API Key", isPresented: $showingDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }
@@ -465,10 +636,32 @@ struct SecuritySettingsView: View {
         await keyManager.refreshKeyStatuses()
         isRefreshing = false
     }
+
+    private func getEndpointForService(_ service: String) -> String {
+        switch service {
+        case "ollama":
+            return ollamaEndpoint
+        case "lm_studio":
+            return lmStudioEndpoint
+        default:
+            return serviceConfigs[service]?.defaultEndpoint ?? "http://localhost:8080"
+        }
+    }
+
+    private func setEndpointForService(_ service: String, _ endpoint: String) {
+        switch service {
+        case "ollama":
+            ollamaEndpoint = endpoint
+        case "lm_studio":
+            lmStudioEndpoint = endpoint
+        default:
+            break
+        }
+    }
 }
 
-struct KeyStatusRow: View {
-    let service: String
+struct CloudServiceRow: View {
+    let config: ServiceConfig
     let keyInfo: KeyInfo
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -478,8 +671,10 @@ struct KeyStatusRow: View {
             // Service icon and name
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    serviceIcon(for: service)
-                    Text(service.replacingOccurrences(of: "_", with: " ").capitalized)
+                    Image(systemName: config.iconName)
+                        .foregroundColor(config.color)
+                        .font(.title3)
+                    Text(config.displayName)
                         .font(.headline)
                 }
                 Text(statusDescription)
@@ -529,51 +724,18 @@ struct KeyStatusRow: View {
         .cornerRadius(8)
     }
 
-    private func serviceIcon(for service: String) -> some View {
-        let iconName: String
-        let color: Color
-
-        switch service {
-        case "universal_ai_backend":
-            iconName = "server.rack"
-            color = .blue
-        case "openai":
-            iconName = "brain"
-            color = .green
-        case "anthropic":
-            iconName = "cpu"
-            color = .orange
-        case "google_ai":
-            iconName = "globe"
-            color = .red
-        case "huggingface":
-            iconName = "face.smiling"
-            color = .yellow
-        case "lm_studio", "ollama":
-            iconName = "desktopcomputer"
-            color = .purple
-        default:
-            iconName = "key.fill"
-            color = .secondary
-        }
-
-        return Image(systemName: iconName)
-            .foregroundColor(color)
-            .font(.title3)
-    }
-
     private var statusDescription: String {
         switch keyInfo.syncStatus {
         case .synced:
-            return "Synced across all storage"
+            return "API key synced across all storage"
         case .keychainOnly:
-            return "Stored locally only"
+            return "API key stored locally only"
         case .vaultOnly:
-            return "Available in cloud only"
+            return "API key available in cloud only"
         case .conflict:
-            return "Sync conflict detected"
+            return "API key sync conflict detected"
         case .missing:
-            return "No key configured"
+            return "No API key configured"
         }
     }
 
@@ -588,6 +750,141 @@ struct KeyStatusRow: View {
         case .missing:
             return .secondary
         }
+    }
+}
+
+struct LocalServiceRow: View {
+    let config: ServiceConfig
+    let endpoint: String
+    let onEdit: () -> Void
+    @State private var connectionStatus: ConnectionStatus = .unknown
+    @State private var isTestingConnection = false
+
+    enum ConnectionStatus {
+        case unknown
+        case connected
+        case disconnected
+        case testing
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Service icon and name
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Image(systemName: config.iconName)
+                        .foregroundColor(config.color)
+                        .font(.title3)
+                    Text(config.displayName)
+                        .font(.headline)
+                }
+                Text("Endpoint: \(endpoint)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer()
+
+            // Connection status and test button
+            HStack(spacing: 8) {
+                VStack {
+                    Image(systemName: connectionStatusIcon)
+                        .foregroundColor(connectionStatusColor)
+                        .font(.caption)
+                    Text(connectionStatusText)
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+
+                Button {
+                    Task { await testConnection() }
+                } label: {
+                    Image(systemName: isTestingConnection ? "arrow.clockwise" : "network")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .disabled(isTestingConnection)
+                .rotationEffect(.degrees(isTestingConnection ? 360 : 0))
+                .animation(isTestingConnection ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isTestingConnection)
+            }
+
+            // Edit button
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.caption)
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(8)
+    }
+
+    private var connectionStatusIcon: String {
+        switch connectionStatus {
+        case .unknown: return "questionmark.circle"
+        case .connected: return "checkmark.circle.fill"
+        case .disconnected: return "xmark.circle.fill"
+        case .testing: return "arrow.clockwise"
+        }
+    }
+
+    private var connectionStatusColor: Color {
+        switch connectionStatus {
+        case .unknown: return .secondary
+        case .connected: return .green
+        case .disconnected: return .red
+        case .testing: return .blue
+        }
+    }
+
+    private var connectionStatusText: String {
+        switch connectionStatus {
+        case .unknown: return "Unknown"
+        case .connected: return "Online"
+        case .disconnected: return "Offline"
+        case .testing: return "Testing"
+        }
+    }
+
+    private func testConnection() async {
+        guard !isTestingConnection else { return }
+        
+        isTestingConnection = true
+        connectionStatus = .testing
+
+        do {
+            guard let url = URL(string: endpoint) else {
+                connectionStatus = .disconnected
+                isTestingConnection = false
+                return
+            }
+
+            // Add health check endpoint for local services
+            let healthURL = URL(string: endpoint.hasSuffix("/") ? "\(endpoint)health" : "\(endpoint)/health") ?? url
+
+            let request = URLRequest(url: healthURL)
+            let session = URLSession.shared
+            session.configuration.timeoutIntervalForRequest = 5
+
+            let (_, response) = try await session.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse,
+               httpResponse.statusCode < 400 {
+                connectionStatus = .connected
+            } else {
+                connectionStatus = .disconnected
+            }
+        } catch {
+            connectionStatus = .disconnected
+        }
+
+        isTestingConnection = false
     }
 }
 
@@ -609,24 +906,19 @@ struct StorageIndicator: View {
     }
 }
 
-struct KeyManagementFormView: View {
+struct CloudKeyManagementFormView: View {
     @Binding var selectedService: String
     @Binding var newAPIKey: String
     @Binding var isPresented: Bool
     let keyManager: SecureKeyManager
+    let serviceConfigs: [String: ServiceConfig]
 
     @State private var isSaving = false
     @State private var saveError: String?
 
-    private let availableServices = [
-        "universal_ai_backend": "Universal AI Backend",
-        "openai": "OpenAI",
-        "anthropic": "Anthropic (Claude)",
-        "google_ai": "Google AI",
-        "huggingface": "Hugging Face",
-        "lm_studio": "LM Studio",
-        "ollama": "Ollama"
-    ]
+    var availableCloudServices: [ServiceConfig] {
+        serviceConfigs.values.filter { $0.type == .cloud }.sorted { $0.displayName < $1.displayName }
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -636,17 +928,32 @@ struct KeyManagementFormView: View {
 
             VStack(spacing: 16) {
                 if selectedService.isEmpty {
-                    Picker("Service", selection: $selectedService) {
-                        Text("Select a service...").tag("")
-                        ForEach(Array(availableServices.keys.sorted()), id: \.self) { key in
-                            Text(availableServices[key] ?? key).tag(key)
+                    Picker("Cloud Service", selection: $selectedService) {
+                        Text("Select a cloud service...").tag("")
+                        ForEach(availableCloudServices, id: \.id) { config in
+                            HStack {
+                                Image(systemName: config.iconName)
+                                    .foregroundColor(config.color)
+                                Text(config.displayName)
+                            }
+                            .tag(config.id)
                         }
                     }
                     .pickerStyle(.menu)
                 }
 
-                SecureField("API Key", text: $newAPIKey)
-                    .textFieldStyle(.roundedBorder)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("API Key")
+                        .font(.headline)
+                    SecureField("Enter your API key", text: $newAPIKey)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    if !selectedService.isEmpty {
+                        Text(getServiceDescription(selectedService))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
 
                 if let error = saveError {
                     Text(error)
@@ -671,7 +978,22 @@ struct KeyManagementFormView: View {
             Spacer()
         }
         .padding()
-        .frame(width: 400, height: 300)
+        .frame(width: 450, height: 350)
+    }
+
+    private func getServiceDescription(_ service: String) -> String {
+        switch service {
+        case "openai":
+            return "Get your API key from platform.openai.com/api-keys"
+        case "anthropic":
+            return "Get your API key from console.anthropic.com"
+        case "google_ai":
+            return "Get your API key from aistudio.google.com/app/apikey"
+        case "huggingface":
+            return "Get your API key from huggingface.co/settings/tokens"
+        default:
+            return "Enter the API key for this service"
+        }
     }
 
     private func saveKey() async {
@@ -689,6 +1011,142 @@ struct KeyManagementFormView: View {
         }
 
         isSaving = false
+    }
+}
+
+struct LocalServiceConfigFormView: View {
+    @Binding var selectedService: String
+    @Binding var newEndpoint: String
+    @Binding var isPresented: Bool
+    let serviceConfigs: [String: ServiceConfig]
+    let onSave: (String, String) -> Void
+
+    @State private var isTesting = false
+    @State private var connectionStatus: String = ""
+
+    var availableLocalServices: [ServiceConfig] {
+        serviceConfigs.values.filter { $0.type == .local }.sorted { $0.displayName < $1.displayName }
+    }
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(selectedService.isEmpty ? "Configure Local Service" : "Edit Service Configuration")
+                .font(.title2)
+                .fontWeight(.bold)
+
+            VStack(spacing: 16) {
+                if selectedService.isEmpty {
+                    Picker("Local Service", selection: $selectedService) {
+                        Text("Select a service...").tag("")
+                        ForEach(availableLocalServices, id: \.id) { config in
+                            HStack {
+                                Image(systemName: config.iconName)
+                                    .foregroundColor(config.color)
+                                Text(config.displayName)
+                            }
+                            .tag(config.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .onChange(of: selectedService) { service in
+                        if !service.isEmpty, let config = serviceConfigs[service] {
+                            newEndpoint = config.defaultEndpoint ?? "http://localhost:8080"
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Endpoint URL")
+                        .font(.headline)
+                    TextField("http://localhost:port", text: $newEndpoint)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    if !selectedService.isEmpty {
+                        Text(getServiceDescription(selectedService))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                HStack {
+                    Button("Test Connection") {
+                        Task { await testConnection() }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(newEndpoint.isEmpty || isTesting)
+
+                    if !connectionStatus.isEmpty {
+                        Text(connectionStatus)
+                            .font(.caption)
+                            .foregroundColor(connectionStatus.contains("Connected") ? .green : .red)
+                    }
+                }
+            }
+
+            HStack(spacing: 12) {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                .buttonStyle(.bordered)
+
+                Button("Save") {
+                    onSave(selectedService, newEndpoint)
+                    isPresented = false
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedService.isEmpty || newEndpoint.isEmpty)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .frame(width: 450, height: 400)
+    }
+
+    private func getServiceDescription(_ service: String) -> String {
+        switch service {
+        case "ollama":
+            return "Default: http://localhost:11434 - Make sure Ollama is running"
+        case "lm_studio":
+            return "Default: http://localhost:1234/v1 - Enable local server in LM Studio"
+        default:
+            return "Configure the endpoint for your local AI service"
+        }
+    }
+
+    private func testConnection() async {
+        guard !newEndpoint.isEmpty else { return }
+        
+        isTesting = true
+        connectionStatus = "Testing connection..."
+
+        do {
+            guard let url = URL(string: newEndpoint) else {
+                connectionStatus = "❌ Invalid URL"
+                isTesting = false
+                return
+            }
+
+            let request = URLRequest(url: url)
+            let session = URLSession.shared
+            session.configuration.timeoutIntervalForRequest = 5
+
+            let (_, response) = try await session.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode < 400 {
+                    connectionStatus = "✅ Connected successfully"
+                } else {
+                    connectionStatus = "❌ Service responded with error (\(httpResponse.statusCode))"
+                }
+            } else {
+                connectionStatus = "❌ No valid response"
+            }
+        } catch {
+            connectionStatus = "❌ Connection failed: \(error.localizedDescription)"
+        }
+
+        isTesting = false
     }
 }
 
@@ -749,10 +1207,9 @@ struct AdvancedSettingsView: View {
             }
             .padding()
             .glassMorphism(cornerRadius: 12)
-
-            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 
     private func exportChatHistory() {

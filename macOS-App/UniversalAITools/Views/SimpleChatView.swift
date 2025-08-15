@@ -4,35 +4,38 @@ import SwiftUI
 struct SimpleChatView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var apiService: APIService
-
     @State private var messageText = ""
     @State private var isGenerating = false
     @State private var sendError: String?
     @FocusState private var isInputFocused: Bool
     @State private var showSuccessParticles = false
+    @State private var showTTSControls = false
+    @State private var ttsService: TTSService?
+    @State private var sttService: STTService?
+    @State private var voiceAgent: VoiceAgent?
+    @State private var showVoiceControls = false
+    @State private var showVoiceRecording = false
+    @State private var isVoiceInputMode = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Clean header
-            chatHeader
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
-                .glassMorphism(cornerRadius: 0)
-                .overlay(
-                    Rectangle()
-                        .fill(Color.white.opacity(0.1))
-                        .frame(height: 1),
-                    alignment: .bottom
-                )
+            // Modern chat header with enhanced features
+            ChatHeaderView()
+                .environmentObject(appState)
+                .environmentObject(apiService)
 
-            // Message list
-            messageList
+            // Enhanced message list with modern components
+            MessageListView(messages: appState.messages, isGenerating: isGenerating)
+                .environmentObject(appState)
 
-            // Enhanced input area at bottom
-            inputArea
-                .background(.ultraThinMaterial)
-                .glassMorphism(cornerRadius: 0)
+            // Modern floating composer
+            FloatingComposer(
+                messageText: $messageText,
+                isGenerating: $isGenerating,
+                onSend: sendMessage,
+                onVoiceToggle: { showVoiceRecording.toggle() }
+            )
+            .focused($isInputFocused)
         }
         .background(AnimatedGradientBackground())
         .overlay(
@@ -42,6 +45,16 @@ struct SimpleChatView: View {
         )
         .onAppear {
             setupChat()
+            // Initialize voice services
+            if ttsService == nil {
+                ttsService = TTSService()
+            }
+            if sttService == nil {
+                sttService = STTService()
+            }
+            if voiceAgent == nil, let stt = sttService, let tts = ttsService {
+                voiceAgent = VoiceAgent(sttService: stt, ttsService: tts, apiService: apiService)
+            }
             // Focus input after a moment
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isInputFocused = true
@@ -64,9 +77,22 @@ struct SimpleChatView: View {
                     .foregroundColor(AppTheme.primaryText)
 
                 HStack(spacing: 6) {
-                    Circle()
-                        .fill(apiService.isConnected ? Color.green : Color.red)
-                        .frame(width: 6, height: 6)
+                    // Styled connection status indicator with glassmorphism
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.tertiaryBackground.opacity(0.6))
+                            .frame(width: 12, height: 12)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                            )
+                        
+                        Circle()
+                            .fill(connectionStatusColor)
+                            .frame(width: 6, height: 6)
+                            .shadow(color: connectionStatusColor.opacity(0.6), radius: 2)
+                    }
+                    .glassMorphism(cornerRadius: 6)
 
                     Text(apiService.isConnected ? "Connected" : "Disconnected")
                         .font(.caption)
@@ -78,6 +104,37 @@ struct SimpleChatView: View {
 
             // Simple controls
             HStack(spacing: 12) {
+                // Voice Controls Button
+                Button(action: { showVoiceControls.toggle() }) {
+                    Image(systemName: voiceControlsIcon)
+                        .font(.title2)
+                        .foregroundColor(voiceControlsColor)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("Voice Controls")
+                .accessibilityLabel("Voice controls")
+                .accessibilityHint("Opens voice interaction settings and controls")
+                .popover(isPresented: $showVoiceControls) {
+                    if let sttService = sttService, let ttsService = ttsService, let voiceAgent = voiceAgent {
+                        VoiceControlsPanel(sttService: sttService, ttsService: ttsService, voiceAgent: voiceAgent)
+                            .frame(width: 600, height: 500)
+                    } else {
+                        Text("Voice Services Loading...")
+                            .frame(width: 600, height: 500)
+                    }
+                }
+                
+                // Voice Input Toggle
+                Button(action: { toggleVoiceInputMode() }) {
+                    Image(systemName: isVoiceInputMode ? "keyboard" : "mic")
+                        .font(.title2)
+                        .foregroundColor(isVoiceInputMode ? AppTheme.accentGreen : AppTheme.secondaryText)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help(isVoiceInputMode ? "Switch to keyboard input" : "Switch to voice input")
+                .accessibilityLabel(isVoiceInputMode ? "Switch to keyboard" : "Switch to voice")
+                .disabled(voiceAgent?.isEnabled != true)
+                
                 Button(action: startNewChat) {
                     Image(systemName: "plus.square")
                         .font(.title2)
@@ -147,6 +204,11 @@ struct SimpleChatView: View {
     // MARK: - Input Area
     private var inputArea: some View {
         VStack(spacing: 0) {
+            // RAG Controls
+            RAGControlsView(ragSettings: $appState.ragSettings)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+            
             // Error banner
             if let error = sendError {
                 HStack {
@@ -165,68 +227,108 @@ struct SimpleChatView: View {
                 .background(Color.orange.opacity(0.1))
             }
 
-            // Input field
+            // Input field or voice recording
             HStack(alignment: .bottom, spacing: 12) {
-                TextField("Message Universal AI Tools...", text: $messageText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 16))
-                    .lineLimit(1...6)
-                    .focused($isInputFocused)
-                    .disabled(isGenerating)
-                    .accessibilityLabel("Message input field")
-                    .accessibilityHint("Type your message to the AI assistant")
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial)
-                    .glassMorphism(cornerRadius: 20)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(
-                                LinearGradient(
-                                    colors: isInputFocused ? [AppTheme.accentGreen, .blue] : [Color.white.opacity(0.3)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ),
-                                lineWidth: isInputFocused ? 2 : 1
-                            )
-                            .glow(color: isInputFocused ? AppTheme.accentGreen : .clear, radius: isInputFocused ? 8 : 0)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .onSubmit {
-                        if NSEvent.modifierFlags.contains(.command) || messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
-                            sendMessage()
+                if isVoiceInputMode {
+                    // Voice input mode
+                    voiceInputArea
+                } else {
+                    // Text input mode
+                    TextField("Message Universal AI Tools...", text: $messageText, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 16))
+                        .lineLimit(1...6)
+                        .focused($isInputFocused)
+                        .disabled(isGenerating)
+                        .accessibilityLabel("Message input field")
+                        .accessibilityHint("Type your message to the AI assistant")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial)
+                        .glassMorphism(cornerRadius: 20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: isInputFocused ? [AppTheme.accentGreen, .blue] : [Color.white.opacity(0.3)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ),
+                                    lineWidth: isInputFocused ? 2 : 1
+                                )
+                                .glow(color: isInputFocused ? AppTheme.accentGreen : .clear, radius: isInputFocused ? 8 : 0)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .onSubmit {
+                            if NSEvent.modifierFlags.contains(.command) || messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                                sendMessage()
+                            }
+                        }
+                }
+
+                // Send/Voice button
+                if isVoiceInputMode {
+                    // Voice input mode buttons
+                    HStack(spacing: 8) {
+                        // Voice recording button
+                        if let voiceAgent = voiceAgent {
+                            CompactVoiceButton(voiceAgent: voiceAgent)
+                        }
+                        
+                        // Quick voice recording
+                        Button(action: { showVoiceRecording.toggle() }) {
+                            Image(systemName: "waveform.circle")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(AppTheme.accentGreen.gradient)
+                                .clipShape(Circle())
+                                .glow(color: AppTheme.accentGreen, radius: 4)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Voice recording panel")
+                        .popover(isPresented: $showVoiceRecording) {
+                            if let sttService = sttService, let voiceAgent = voiceAgent {
+                                VoiceRecordingView(
+                                    sttService: sttService,
+                                    voiceAgent: voiceAgent,
+                                    onTranscriptionComplete: handleVoiceTranscription
+                                )
+                                .frame(width: 400, height: 350)
+                            }
                         }
                     }
-
-                // Enhanced Send button
-                ParticleButton(action: isGenerating ? stopGenerating : sendMessage) {
-                    if isGenerating {
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 32, height: 32)
-                            .background(Color.red.gradient)
-                            .clipShape(Circle())
-                            .glow(color: .red, radius: 4)
-                    } else {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(canSend ? .white : AppTheme.tertiaryText)
-                            .frame(width: 32, height: 32)
-                            .background(LinearGradient(
-                                colors: canSend ? [AppTheme.accentGreen, AppTheme.accentGreen.opacity(0.8)] : [AppTheme.secondaryText.opacity(0.3)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ))
-                            .clipShape(Circle())
-                            .glow(color: canSend ? AppTheme.accentGreen : .clear, radius: canSend ? 6 : 0)
+                } else {
+                    // Text input mode button
+                    ParticleButton(action: isGenerating ? stopGenerating : sendMessage) {
+                        if isGenerating {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(Color.red.gradient)
+                                .clipShape(Circle())
+                                .glow(color: .red, radius: 4)
+                        } else {
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(canSend ? .white : AppTheme.tertiaryText)
+                                .frame(width: 32, height: 32)
+                                .background(LinearGradient(
+                                    colors: canSend ? [AppTheme.accentGreen, AppTheme.accentGreen.opacity(0.8)] : [AppTheme.secondaryText.opacity(0.3)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ))
+                                .clipShape(Circle())
+                                .glow(color: canSend ? AppTheme.accentGreen : .clear, radius: canSend ? 6 : 0)
+                        }
                     }
+                    .disabled(!canSend && !isGenerating)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .help(isGenerating ? "Stop generating" : "Send message (⌘↵)")
+                    .scaleEffect(canSend ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: canSend)
                 }
-                .disabled(!canSend && !isGenerating)
-                .keyboardShortcut(.return, modifiers: .command)
-                .help(isGenerating ? "Stop generating" : "Send message (⌘↵)")
-                .scaleEffect(canSend ? 1.05 : 1.0)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: canSend)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -289,6 +391,42 @@ struct SimpleChatView: View {
     private var canSend: Bool {
         !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isGenerating
     }
+    
+    private var voiceControlsIcon: String {
+        if let voiceAgent = voiceAgent {
+            switch voiceAgent.state {
+            case .listening:
+                return "mic.fill"
+            case .processing:
+                return "waveform"
+            case .responding:
+                return "speaker.wave.3.fill"
+            case .error:
+                return "exclamationmark.triangle.fill"
+            default:
+                return "mic.and.signal.meter"
+            }
+        }
+        return "mic.slash"
+    }
+    
+    private var voiceControlsColor: Color {
+        if let voiceAgent = voiceAgent {
+            switch voiceAgent.state {
+            case .listening:
+                return .red
+            case .processing:
+                return .orange
+            case .responding:
+                return AppTheme.accentGreen
+            case .error:
+                return .red
+            default:
+                return voiceAgent.isEnabled ? AppTheme.secondaryText : AppTheme.tertiaryText
+            }
+        }
+        return AppTheme.tertiaryText
+    }
 
     // MARK: - Actions
     private func setupChat() {
@@ -329,11 +467,22 @@ struct SimpleChatView: View {
         Task {
             do {
                 print("Sending chat message: \(currentMessage)")
-                let response = try await apiService.sendChatMessage(
-                    currentMessage,
-                    chatId: appState.currentChat?.id ?? ""
-                )
-                print("Received response: \(response.content)")
+                
+                // Try local LLM first (with RAG if enabled), then fallback to backend
+                let response: Message
+                if await apiService.checkLocalLLMServerAvailable() {
+                    response = try await apiService.sendMessageToLocalLLM(
+                        currentMessage,
+                        ragSettings: appState.ragSettings.isEnabled ? appState.ragSettings : nil
+                    )
+                    print("Local LLM response: \(response.content)")
+                } else {
+                    response = try await apiService.sendChatMessageWithFallback(
+                        currentMessage,
+                        chatId: appState.currentChat?.id ?? ""
+                    )
+                    print("Backend response: \(response.content)")
+                }
 
                 await MainActor.run {
                     appState.currentChat?.messages.append(response)
@@ -381,6 +530,102 @@ struct SimpleChatView: View {
     private func generateChatTitle(from message: String) -> String {
         let words = message.split(separator: " ").prefix(4)
         return words.joined(separator: " ") + (words.count == 4 ? "..." : "")
+    }
+    
+    private var connectionStatusColor: Color {
+        if apiService.isConnected {
+            return AppTheme.accentGreen.opacity(0.8)
+        } else {
+            return AppTheme.accentOrange.opacity(0.8)
+        }
+    }
+    
+    // MARK: - Voice Input Area
+    private var voiceInputArea: some View {
+        HStack(spacing: 12) {
+            // Voice activity indicator
+            if let voiceAgent = voiceAgent {
+                VoiceActivityIndicator(voiceAgent: voiceAgent)
+            }
+            
+            // Current transcription or voice prompt
+            VStack(alignment: .leading, spacing: 4) {
+                if let voiceAgent = voiceAgent, !(voiceAgent.currentInteraction?.userInput.isEmpty ?? true) {
+                    Text(voiceAgent.currentInteraction?.userInput ?? "")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppTheme.primaryText)
+                        .lineLimit(3)
+                } else {
+                    Text("Tap microphone to start voice input")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                
+                // Partial transcription
+                if let sttService = sttService, !sttService.partialTranscription.isEmpty {
+                    Text(sttService.partialTranscription)
+                        .font(.system(size: 14))
+                        .foregroundColor(AppTheme.tertiaryText)
+                        .italic()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: voiceAgent?.state == .listening ? [AppTheme.accentGreen, .blue] : [Color.white.opacity(0.3)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: voiceAgent?.state == .listening ? 2 : 1
+                    )
+                    .glow(color: voiceAgent?.state == .listening ? AppTheme.accentGreen : .clear, radius: voiceAgent?.state == .listening ? 8 : 0)
+            )
+        }
+    }
+    
+    // MARK: - Voice Helper Methods
+    private func toggleVoiceInputMode() {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            isVoiceInputMode.toggle()
+        }
+        
+        if isVoiceInputMode {
+            // Request STT permission if needed
+            Task {
+                if let sttService = sttService, !sttService.isAuthorized {
+                    await sttService.requestAuthorization()
+                }
+            }
+        } else {
+            // Cancel any active voice interaction
+            voiceAgent?.cancelVoiceInteraction()
+        }
+    }
+    
+    private func handleVoiceTranscription(_ transcription: String) {
+        // Update message text with transcription
+        messageText = transcription
+        
+        // Close voice recording panel
+        showVoiceRecording = false
+        
+        // Optionally send immediately or let user review
+        if !transcription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Auto-send if voice agent is in conversational mode
+            if voiceAgent?.configuration.interactionMode == .conversational {
+                sendMessage()
+            } else {
+                // Switch back to text mode to let user review/edit
+                isVoiceInputMode = false
+                isInputFocused = true
+            }
+        }
     }
 }
 

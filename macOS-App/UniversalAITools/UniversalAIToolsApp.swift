@@ -16,6 +16,7 @@ struct UniversalAIToolsApp: App {
                 .environmentObject(apiService)
                 .environmentObject(mcpService)
                 .frame(minWidth: 1200, minHeight: 800)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onAppear {
                     setupApplication()
                 }

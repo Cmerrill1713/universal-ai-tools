@@ -22,7 +22,10 @@ struct DockOverlay: View {
     var body: some View {
         VStack(spacing: 12) {
             dockButton(.chat, icon: "text.bubble")
+            dockButton(.knowledge, icon: "point.3.connected.trianglepath.dotted")
             dockButton(.objectives, icon: "target")
+            dockButton(.orchestration, icon: "brain.head.profile")
+            dockButton(.analytics, icon: "chart.bar.doc.horizontal")
             dockButton(.tools, icon: "wrench.and.screwdriver")
             Spacer()
         }
@@ -92,17 +95,42 @@ struct SidebarItemView: View {
     }
 
     private var subtitle: String? {
+        return item.description
+    }
+    
+    private var dynamicBadge: String? {
+        switch item {
+        case .chat:
+            return appState.chats.count > 0 ? "\(appState.chats.count)" : nil
+        case .objectives:
+            return appState.activeObjectives.count > 0 ? "\(appState.activeObjectives.count)" : nil
+        default:
+            return item.featureLevel.badge
+        }
+    }
+    
+    private var oldSubtitle: String? {
         switch item {
         case .chat:
             return "\(appState.chats.count) conversations"
+        case .knowledge:
+            return "3D graph visualization"
         case .objectives:
             return "\(appState.activeObjectives.count) active"
+        case .orchestration:
+            return "AI agent coordination"
+        case .analytics:
+            return "Performance & memory analytics"
         case .tools:
             return "\(ToolCategory.allCases.count) tools"
         }
     }
 
     private var badge: String? {
+        return dynamicBadge
+    }
+    
+    private var oldBadge: String? {
         switch item {
         case .objectives:
             let activeCount = appState.activeObjectives.filter { $0.status == .active }.count
@@ -115,13 +143,15 @@ struct SidebarItemView: View {
     }
 
     private var badgeColor: Color {
+        if item.featureLevel == .advanced {
+            return item.featureLevel.color
+        }
+        
         switch item {
-        case .objectives:
-            return .orange
-        case .tools:
-            return AppTheme.accentOrange
-        default:
+        case .chat, .objectives:
             return .blue
+        default:
+            return AppTheme.accentOrange
         }
     }
 }

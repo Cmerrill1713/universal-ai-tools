@@ -7,10 +7,21 @@ struct ConnectionStatusView: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      // Connection indicator
-      Circle()
-        .fill(connectionColor)
-        .frame(width: 8, height: 8)
+      // Styled connection indicator
+      ZStack {
+        Circle()
+          .fill(Color.white.opacity(0.1))
+          .frame(width: 12, height: 12)
+          .overlay(
+            Circle()
+              .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+          )
+        
+        Circle()
+          .fill(connectionColor)
+          .frame(width: 6, height: 6)
+          .shadow(color: connectionColor.opacity(0.6), radius: 1)
+      }
 
       // Status text
       Text(connectionText)
@@ -19,9 +30,21 @@ struct ConnectionStatusView: View {
 
       Divider().frame(height: 10)
 
-      Circle()
-        .fill(mcpService.isConnected ? .green : .red)
-        .frame(width: 8, height: 8)
+      // Styled MCP connection indicator
+      ZStack {
+        Circle()
+          .fill(Color.white.opacity(0.1))
+          .frame(width: 12, height: 12)
+          .overlay(
+            Circle()
+              .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+          )
+        
+        Circle()
+          .fill(mcpService.isConnected ? connectionColor : Color.orange.opacity(0.8))
+          .frame(width: 6, height: 6)
+          .shadow(color: (mcpService.isConnected ? connectionColor : Color.orange.opacity(0.8)).opacity(0.6), radius: 1)
+      }
       Text(mcpService.isConnected ? "MCP" : "MCP Off")
         .font(.caption)
         .foregroundColor(.secondary)

@@ -9,6 +9,8 @@ struct EnhancedMessageBubble: View {
     @State private var displayedText = ""
     @State private var currentIndex = 0
     @State private var typingTimer: Timer?
+    @State private var ttsService: TTSService?
+    @EnvironmentObject var apiService: APIService
 
     var body: some View {
         HStack(alignment: .top) {
@@ -39,6 +41,12 @@ struct EnhancedMessageBubble: View {
                         }
                     }
 
+                // RAG sources (if available)
+                if let ragMetadata = message.ragMetadata, !ragMetadata.sources.isEmpty {
+                    ragSourcesView
+                        .transition(.scale.combined(with: .opacity))
+                }
+                
                 // Timestamp and controls
                 if isHovered {
                     messageControls
@@ -60,14 +68,18 @@ struct EnhancedMessageBubble: View {
                 hasAppeared = true
             }
 
+            // Initialize TTS service with the injected API service
+            if ttsService == nil {
+                ttsService = TTSService()
+            }
+
             if message.role == .assistant {
                 startTypingAnimation()
             }
         }
         .onDisappear {
-            // Clean up timer to prevent memory leaks
-            typingTimer?.invalidate()
-            typingTimer = nil
+            // Comprehensive cleanup to prevent memory leaks
+            cleanupResources()
         }
     }
 
@@ -151,6 +163,54 @@ struct EnhancedMessageBubble: View {
         }
     }
 
+    // MARK: - RAG Sources View
+    private var ragSourcesView: some View {
+        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 6) {
+            // RAG Status Indicator
+            if let ragMetadata = message.ragMetadata {
+                HStack(spacing: 6) {
+                    Image(systemName: "brain.head.profile.fill")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(AppTheme.accentGreen)
+                    
+                    Text("Enhanced with \(ragMetadata.contextUsed) context items")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(AppTheme.secondaryText)
+                    
+                    if ragMetadata.graphPaths > 0 {
+                        Image(systemName: "network")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(AppTheme.accentBlue)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(AppTheme.accentGreen.opacity(0.1))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(AppTheme.accentGreen.opacity(0.3), lineWidth: 1)
+                )
+            }
+            
+            // Source preview cards
+            if let ragMetadata = message.ragMetadata, !ragMetadata.sources.isEmpty {
+                LazyVStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
+                    ForEach(ragMetadata.sources.prefix(3)) { source in
+                        RAGSourceCard(source: source, alignment: message.role == .user ? .trailing : .leading)
+                    }
+                    
+                    if ragMetadata.sources.count > 3 {
+                        Text("and \(ragMetadata.sources.count - 3) more sources...")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(AppTheme.tertiaryText)
+                            .padding(.top, 2)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Message Controls
     private var messageControls: some View {
         HStack(spacing: 12) {
@@ -158,6 +218,38 @@ struct EnhancedMessageBubble: View {
             Text(message.timestamp.formatted(date: .omitted, time: .shortened))
                 .font(.caption2)
                 .foregroundColor(AppTheme.tertiaryText)
+                
+            // Model/Provider info (if available)
+            if let model = message.model {
+                Text(model)
+                    .font(.caption2)
+                    .foregroundColor(AppTheme.tertiaryText)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(AppTheme.tertiaryBackground.opacity(0.5))
+                    .clipShape(Capsule())
+            }
+
+            // TTS button
+            if let ttsService = ttsService {
+                Button(action: {
+                    if ttsService.playbackState == .playing {
+                        ttsService.stopPlayback()
+                    } else {
+                        Task {
+                            await ttsService.speak(text: message.content)
+                        }
+                    }
+                }) {
+                    Image(systemName: ttsButtonIcon)
+                        .font(.caption)
+                        .foregroundColor(ttsButtonColor)
+                }
+                .buttonStyle(.plain)
+                .neumorphism(isPressed: false, cornerRadius: 8)
+                .frame(width: 24, height: 24)
+                .help(ttsButtonHelpText)
+            }
 
             // Copy button
             Button(action: copyMessage) {
@@ -199,6 +291,53 @@ struct EnhancedMessageBubble: View {
             return Color.blue.opacity(0.2)
         }
     }
+    
+    private var ttsButtonIcon: String {
+        guard let ttsService = ttsService else { return "speaker.slash" }
+        switch ttsService.playbackState {
+        case .playing:
+            return "stop.fill"
+        case .loading:
+            return "waveform"
+        case .error:
+            return "speaker.slash.fill"
+        default:
+            return ttsService.isEnabled ? "speaker.wave.2" : "speaker.slash"
+        }
+    }
+    
+    private var ttsButtonColor: Color {
+        guard let ttsService = ttsService else { return AppTheme.tertiaryText }
+        switch ttsService.playbackState {
+        case .playing:
+            return .red
+        case .loading:
+            return .orange
+        case .error:
+            return .red
+        default:
+            return ttsService.isEnabled ? AppTheme.secondaryText : AppTheme.tertiaryText
+        }
+    }
+    
+    private var ttsButtonHelpText: String {
+        guard let ttsService = ttsService else { return "TTS service loading..." }
+        
+        if !ttsService.isEnabled {
+            return "Text-to-speech is disabled"
+        }
+        
+        switch ttsService.playbackState {
+        case .playing:
+            return "Stop playback"
+        case .loading:
+            return "Loading speech..."
+        case .error(let message):
+            return "TTS Error: \(message)"
+        default:
+            return "Read message aloud"
+        }
+    }
 
     // MARK: - Actions
     private func copyMessage() {
@@ -219,10 +358,28 @@ struct EnhancedMessageBubble: View {
         // Could also implement proper share sheet here
     }
 
+    // MARK: - Resource Management
+    private func cleanupResources() {
+        // Stop and invalidate typing timer
+        typingTimer?.invalidate()
+        typingTimer = nil
+        
+        // Stop TTS playback if active
+        ttsService?.stopPlayback()
+        
+        // Reset animation states
+        showTypingEffect = false
+        displayedText = ""
+        currentIndex = 0
+        hasAppeared = false
+        isHovered = false
+    }
+
     // MARK: - Typing Animation
     private func startTypingAnimation() {
-        // Clean up any existing timer first
+        // Clean up any existing timer first to prevent memory leaks
         typingTimer?.invalidate()
+        typingTimer = nil
 
         showTypingEffect = true
         displayedText = ""
@@ -230,6 +387,7 @@ struct EnhancedMessageBubble: View {
 
         typingTimer = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { _ in
             guard currentIndex < message.content.count else {
+                // Complete typing animation and cleanup
                 typingTimer?.invalidate()
                 typingTimer = nil
                 showTypingEffect = false
@@ -296,6 +454,7 @@ struct BubbleShape: Shape {
 // MARK: - Animated Mesh Gradient
 struct AnimatedMeshGradient: View {
     @State private var animationPhase: CGFloat = 0
+    @State private var animationTask: Task<Void, Never>?
 
     var body: some View {
         GeometryReader { _ in
@@ -332,10 +491,35 @@ struct AnimatedMeshGradient: View {
             }
         }
         .onAppear {
-            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
-                animationPhase = .pi * 2
+            startAnimation()
+        }
+        .onDisappear {
+            stopAnimation()
+        }
+    }
+    
+    private func startAnimation() {
+        stopAnimation()
+        
+        animationTask = Task { @MainActor in
+            while !Task.isCancelled {
+                withAnimation(.linear(duration: 8)) {
+                    animationPhase = .pi * 2
+                }
+                try? await Task.sleep(nanoseconds: 8_000_000_000)
+                guard !Task.isCancelled else {
+                    animationPhase = 0
+                    break
+                }
+                animationPhase = 0
             }
         }
+    }
+    
+    private func stopAnimation() {
+        animationTask?.cancel()
+        animationTask = nil
+        animationPhase = 0
     }
 }
 
@@ -421,5 +605,70 @@ struct NeuralNetworkMini: View {
         let nodeY = CGFloat(nodeInSide) * (size.height / 2) + size.height * 0.25
 
         return CGPoint(x: nodeX, y: nodeY)
+    }
+}
+
+// MARK: - RAG Source Card
+struct RAGSourceCard: View {
+    let source: RAGSource
+    let alignment: Alignment
+    @State private var isExpanded = false
+    
+    var body: some View {
+        VStack(alignment: alignment == .trailing ? .trailing : .leading, spacing: 4) {
+            Button(action: { isExpanded.toggle() }) {
+                HStack(spacing: 6) {
+                    // Source type indicator
+                    Circle()
+                        .fill(sourceColor)
+                        .frame(width: 6, height: 6)
+                    
+                    Text(source.type.capitalized)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(AppTheme.primaryText)
+                    
+                    Text(String(format: "%.0f%%", source.score * 100))
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(sourceColor)
+                    
+                    Spacer()
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(AppTheme.tertiaryText)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(sourceColor.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            
+            if isExpanded {
+                Text(source.preview)
+                    .font(.system(size: 9, weight: .regular))
+                    .foregroundColor(AppTheme.secondaryText)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(sourceColor.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .frame(maxWidth: 200)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isExpanded)
+    }
+    
+    private var sourceColor: Color {
+        switch source.type.lowercased() {
+        case "code": return .blue
+        case "documentation": return .green
+        case "conversation": return .purple
+        default: return .orange
+        }
     }
 }

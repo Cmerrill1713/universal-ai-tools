@@ -7,7 +7,7 @@ struct ChatTabsView: View {
     var body: some View {
         HStack(spacing: 12) {
             ForEach(quickAccessItems) { item in
-                TabButton(
+                ChatTabButton(
                     item: item,
                     isHovered: hoveredTab == item,
                     onHover: { hoveredTab = $0 ? item : nil },
@@ -35,9 +35,9 @@ struct ChatTabsView: View {
     }
 }
 
-// MARK: - Tab Button
+// MARK: - Chat Tab Button
 
-struct TabButton: View {
+struct ChatTabButton: View {
     let item: SidebarItem
     let isHovered: Bool
     let onHover: (Bool) -> Void

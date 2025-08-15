@@ -11,7 +11,11 @@ struct ContentView: View {
     private var sidebarSelectionBinding: Binding<SidebarItem?> {
         Binding<SidebarItem?>(
             get: { appState.selectedSidebarItem },
-            set: { appState.selectedSidebarItem = $0 }
+            set: { newValue in
+                if let newValue = newValue {
+                    appState.selectedSidebarItem = newValue
+                }
+            }
         )
     }
 
@@ -44,8 +48,6 @@ struct ContentView: View {
                         appState.systemMetrics = SystemMetrics(
                             cpuUsage: cpu,
                             memoryUsage: memory,
-                            uptime: uptime,
-                            requestsPerMinute: data["rpm"] as? Int ?? 0,
                             activeConnections: data["connections"] as? Int ?? 0
                         )
                     }
@@ -95,8 +97,20 @@ struct ContentView: View {
             view = AnyView(SimpleChatView()
                 .environmentObject(appState)
                 .environmentObject(apiService))
+        case .knowledge:
+            view = AnyView(KnowledgeGraphView3D()
+                .environmentObject(appState)
+                .environmentObject(apiService))
         case .objectives:
             view = AnyView(AgentManagementView()
+                .environmentObject(appState)
+                .environmentObject(apiService))
+        case .orchestration:
+            view = AnyView(AgentOrchestrationDashboard()
+                .environmentObject(appState)
+                .environmentObject(apiService))
+        case .analytics:
+            view = AnyView(ContextFlowDashboard()
                 .environmentObject(appState)
                 .environmentObject(apiService))
         case .tools:
@@ -107,6 +121,7 @@ struct ContentView: View {
         return view
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(AnimatedGradientBackground())
+            .clipped() // Ensure content doesn't extend beyond bounds
             .transition(.scale.combined(with: .opacity))
     }
 
@@ -119,7 +134,7 @@ struct ContentView: View {
     private func updateColumnVisibility(for item: SidebarItem?) {
         // Allow sidebar to be toggled for all views including chat
         // Don't automatically hide sidebar based on selection
-                        Log.userInterface.debug("Column visibility maintained")
+        Log.userInterface.debug("Column visibility maintained")
     }
 
     // MARK: - Data Loading

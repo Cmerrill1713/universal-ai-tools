@@ -45,6 +45,8 @@ struct NativeControlBar: View {
             objectivesActions
         case .tools:
             toolsActions
+        case .knowledge:
+            knowledgeActions
         }
     }
 
@@ -86,6 +88,20 @@ struct NativeControlBar: View {
             Button("Debug") {
                 appState.selectedSidebarItem = .tools
                 appState.selectedTool = .debugging
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+    
+    private var knowledgeActions: some View {
+        HStack(spacing: 8) {
+            Button("Explore Graph") {
+                // Show knowledge graph
+            }
+            .buttonStyle(.borderedProminent)
+
+            Button("Search") {
+                // Open search panel
             }
             .buttonStyle(.bordered)
         }

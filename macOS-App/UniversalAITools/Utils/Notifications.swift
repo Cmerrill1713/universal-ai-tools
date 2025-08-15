@@ -21,4 +21,10 @@ extension Notification.Name {
     // MCP events
     static let mcpResourceUpdated = Notification.Name("mcpResourceUpdated")
     static let mcpToolListChanged = Notification.Name("mcpToolListChanged")
+    
+    // Voice events
+    static let voiceTranscriptionUpdate = Notification.Name("voiceTranscriptionUpdate")
+    static let voiceSynthesisComplete = Notification.Name("voiceSynthesisComplete")
+    static let voiceInteractionStarted = Notification.Name("voiceInteractionStarted")
+    static let voiceInteractionEnded = Notification.Name("voiceInteractionEnded")
 }

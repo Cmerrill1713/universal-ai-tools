@@ -1,0 +1,233 @@
+{
+  "report": {
+    "summary": {
+      "totalTests": 36,
+      "passed": 27,
+      "failed": 8,
+      "warnings": 1,
+      "successRate": 75
+    },
+    "timestamp": "2025-08-15T16:15:58.824Z",
+    "recommendations": [
+      "Address failed validations to improve user experience"
+    ]
+  },
+  "detailedResults": [
+    {
+      "name": "Chat interface exists and is complete",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Chat has modern UI components",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "3D Knowledge Graph is available",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Agent Orchestration dashboard exists",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "Performance Analytics are available",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Clear navigation structure exists",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "Sidebar navigation is modern",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "User-friendly error handling exists",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "Error recovery options available",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "SwiftUI performance patterns used",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "Memory management implemented",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Accessibility manager exists",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "VoiceOver support implemented",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Complex UI has accessibility descriptions",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "Keyboard navigation supported",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Comprehensive UI tests exist",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Component testing framework exists",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Debug console available",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "User perspective tests created",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "No MobileCoreServices imports (iOS-only)",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "No protocol keyword conflicts",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "SwiftUI imports present in UI files",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "No duplicate TrendDirection declarations",
+      "condition": false,
+      "level": "warning",
+      "status": "FAIL"
+    },
+    {
+      "name": "No duplicate OptimizationType declarations",
+      "condition": true,
+      "level": "warning",
+      "status": "PASS"
+    },
+    {
+      "name": "No duplicate KeyboardShortcut declarations",
+      "condition": true,
+      "level": "warning",
+      "status": "PASS"
+    },
+    {
+      "name": "3D rendering with SceneKit",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Charts for analytics",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "WebSocket real-time data",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Real-time data service",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Touch Bar integration",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Advanced gesture support",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Export manager for data export",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Welcome or onboarding experience",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Settings interface available",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    },
+    {
+      "name": "Agent management workflow",
+      "condition": false,
+      "level": "pass",
+      "status": "FAIL"
+    },
+    {
+      "name": "Complete chat workflow",
+      "condition": true,
+      "level": "pass",
+      "status": "PASS"
+    }
+  ]
+}
