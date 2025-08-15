@@ -1,0 +1,1 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/src/mcp/supabase-mcp-server.ts

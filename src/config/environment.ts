@@ -10,6 +10,8 @@ dotenv.config();
 export const config: ServiceConfig = {
   port: ports.mainServer,
   environment: process.env.NODE_ENV || 'development',
+  // Testing environment detection
+  isTestMode: process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'true',
   // Offline-first feature flags (automated via env)
   offlineMode: process.env.OFFLINE_MODE === 'true',
   disableExternalCalls: process.env.DISABLE_EXTERNAL_CALLS === 'true',
@@ -42,6 +44,10 @@ export const config: ServiceConfig = {
     openaiApiKey: process.env.OPENAI_API_KEY || '',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
     ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
+  },
+
+  searxng: {
+    url: process.env.SEARXNG_URL || 'http://localhost:8888',
   },
 
   lfm2: {

@@ -19,6 +19,7 @@ export interface AgentCapability {
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown>;
   requiresTools?: string[];
+  priority?: number;
 }
 
 export interface AgentContext {
@@ -29,6 +30,7 @@ export interface AgentContext {
   userId?: string;
   previousContext?: unknown;
   metadata?: Record<string, any>;
+  query?: string;
   conversationHistory?: Array<{
     role: 'user' | 'assistant' | 'system';
     content: string;
@@ -41,6 +43,7 @@ export interface AgentResponse {
   confidence: number;
   message: string;
   reasoning: string;
+  content?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -109,6 +112,8 @@ export interface AgentDefinition {
 export interface ServiceConfig {
   port: number;
   environment: string;
+  // Testing environment detection
+  isTestMode?: boolean;
   // Offline-first controls
   offlineMode?: boolean;
   disableExternalCalls?: boolean;
@@ -134,6 +139,9 @@ export interface ServiceConfig {
     openaiApiKey?: string;
     anthropicApiKey?: string;
     ollamaUrl?: string;
+  };
+  searxng?: {
+    url: string;
   };
   lfm2?: {
     maxConcurrency: number;
@@ -180,6 +188,10 @@ export interface ErrorCode {
   MODELS_ERROR: 'MODELS_ERROR';
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED';
   FORBIDDEN_ERROR: 'FORBIDDEN_ERROR';
+  REQUEST_TOO_COMPLEX: 'REQUEST_TOO_COMPLEX';
+  CONTENT_BLOCKED: 'CONTENT_BLOCKED';
+  IMAGE_BLOCKED: 'IMAGE_BLOCKED';
+  SAFETY_CHECK_ERROR: 'SAFETY_CHECK_ERROR';
 }
 
 export interface ApiResponse<T = unknown> {

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Universal AI Tools Supabase MCP Server
+ * Universal AI Tools Integrated Supabase MCP Server
  * Provides context persistence and pattern learning for TypeScript error prevention
+ * This is the integrated version specifically for Claude Desktop
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';

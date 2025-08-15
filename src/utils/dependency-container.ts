@@ -101,6 +101,8 @@ export const SERVICE_NAMES = {
   SECRETS_MANAGER: 'secretsManager',
   PARAMETER_OPTIMIZER: 'parameterOptimizer',
   FEEDBACK_COLLECTOR: 'feedbackCollector',
+  MEMORY_OPTIMIZER: 'memoryOptimizer',
+  FEATURE_DISCOVERY: 'featureDiscovery',
 } as const;
 
 // Utility functions for common services

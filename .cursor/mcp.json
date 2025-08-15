@@ -1,16 +1,23 @@
 {
   "mcpServers": {
-    "supabase": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github@latest"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@latest", "/Users/christianmerrill/Desktop/universal-ai-tools"]
+    },
+    "postgresql": {
       "command": "npx",
       "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--read-only",
-        "--project-ref=undefined"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
-      }
+        "-y", 
+        "@modelcontextprotocol/server-postgres@latest",
+        "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+      ]
     }
   }
 }
