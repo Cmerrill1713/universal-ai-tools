@@ -228,7 +228,7 @@ Entities:`;
       const lines = response.split('\n');
       for (const line of lines) {
         const match = line.match(/[-*]\s*(.+?):\s*(.+)/);
-        if (match) {
+        if (match && match[1] && match[2]) {
           const [, entityText, entityType] = match;
           const position = this.findEntityPosition(entityText, originalText);
           

@@ -615,7 +615,7 @@ Return only the numerical score:`;
 
         // Generate reasoning chains and rankings
         const rankingQuery: RankingQuery = {
-          query,
+          query: query || '',
           domain: (domain as RankingQuery['domain']) || 'general',
           complexity: (complexity as RankingQuery['complexity']) || 'medium',
           reasoningRequired: true,
@@ -629,7 +629,7 @@ Return only the numerical score:`;
 
         // Create training example
         const trainingExample: TrainingData = {
-          query,
+          query: query || '',
           passages: rankingResults.map((r) => ({
             id: r.passageId || '',
             content: r.content || '',

@@ -150,7 +150,8 @@ class WebSocketConnectionManager: ObservableObject {
         }
         
         try await connection.sendMessage(message)
-        updateBandwidthUsage(sent: message.data.count)
+        let dataSize = try JSONSerialization.data(withJSONObject: message.data).count
+        updateBandwidthUsage(sent: dataSize)
     }
     
     func broadcastMessage(_ message: WebSocketMessage) async {
@@ -165,7 +166,8 @@ class WebSocketConnectionManager: ObservableObject {
                 }
             }
         }
-        updateBandwidthUsage(sent: message.data.count * activeConnections.count)
+        let dataSize = (try? JSONSerialization.data(withJSONObject: message.data).count) ?? 0
+        updateBandwidthUsage(sent: dataSize * activeConnections.count)
     }
     
     // MARK: - Network Monitoring
@@ -384,8 +386,7 @@ class WebSocketConnection: NSObject, ObservableObject {
         do {
             let pingMessage = WebSocketMessage(
                 type: "ping",
-                data: Data(),
-                timestamp: Date()
+                data: [:]
             )
             try await sendMessage(pingMessage)
             
@@ -444,7 +445,7 @@ class WebSocketConnection: NSObject, ObservableObject {
             
             // Handle ping/pong
             if message.type == "pong" {
-                lastPingTime = Date().timeIntervalSince(message.timestamp)
+                lastPingTime = Date().timeIntervalSince1970 - (message.data["timestamp"] as? TimeInterval ?? 0)
                 return
             }
             
@@ -477,8 +478,7 @@ class WebSocketConnection: NSObject, ObservableObject {
             do {
                 let pingMessage = WebSocketMessage(
                     type: "ping",
-                    data: Data(),
-                    timestamp: Date()
+                    data: [:]
                 )
                 try await sendMessage(pingMessage)
             } catch {
@@ -580,21 +580,7 @@ struct BandwidthMetrics {
     }
 }
 
-struct WebSocketMessage: Codable {
-    let id: String
-    let type: String
-    let data: Data
-    let timestamp: Date
-    let sessionId: String?
-    
-    init(id: String = UUID().uuidString, type: String, data: Data, timestamp: Date = Date(), sessionId: String? = nil) {
-        self.id = id
-        self.type = type
-        self.data = data
-        self.timestamp = timestamp
-        self.sessionId = sessionId
-    }
-}
+// WebSocketMessage is defined in SharedTypes.swift
 
 enum WebSocketError: Error, LocalizedError {
     case notConnected

@@ -761,8 +761,12 @@ export class CommunityDetector {
     const levels = Array.from(hierarchy.keys()).sort((a, b) => a - b);
     
     for (let i = 0; i < levels.length - 1; i++) {
-      const currentLevel = hierarchy.get(levels[i])!;
-      const nextLevel = hierarchy.get(levels[i + 1])!;
+      const currentLevelKey = levels[i];
+      const nextLevelKey = levels[i + 1];
+      if (currentLevelKey === undefined || nextLevelKey === undefined) continue;
+      
+      const currentLevel = hierarchy.get(currentLevelKey)!;
+      const nextLevel = hierarchy.get(nextLevelKey)!;
       
       // Simple parent assignment based on overlap
       for (const child of currentLevel) {
@@ -833,9 +837,11 @@ export class CommunityDetector {
     let normB = 0;
     
     for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+      const aVal = a[i] || 0;
+      const bVal = b[i] || 0;
+      dotProduct += aVal * bVal;
+      normA += aVal * aVal;
+      normB += bVal * bVal;
     }
     
     const denominator = Math.sqrt(normA) * Math.sqrt(normB);

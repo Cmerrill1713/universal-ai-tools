@@ -20,7 +20,10 @@ struct UniversalAIToolsApp: App {
                 .onAppear {
                     setupApplication()
                 }
-                .sheet(isPresented: $appState.showAboutWindow) {
+                .sheet(isPresented: .init(
+                    get: { appState.showAboutWindow },
+                    set: { appState.showAboutWindow = $0 }
+                )) {
                     AboutView()
                         .frame(width: 400, height: 320)
                 }
@@ -215,7 +218,7 @@ struct UniversalAIToolsApp: App {
         } else {
             Log.startup.info("Starting backend connections...")
             // Connect to backend
-            Task {
+            Task(priority: .userInitiated) {
                 Log.network.info("Attempting backend connection...")
                 await apiService.connectToBackend()
                 Log.network.info("Backend connection attempt completed")
@@ -237,14 +240,14 @@ struct UniversalAIToolsApp: App {
         NotificationCenter.default.publisher(for: .backendConnected)
             .sink { _ in
                 appState.backendConnected = true
-                Log.network.info("Backend connected")
+                Log.app.info("Backend connected")
             }
             .store(in: &appState.cancellables)
 
         NotificationCenter.default.publisher(for: .backendDisconnected)
             .sink { _ in
                 appState.backendConnected = false
-                Log.network.warning("Backend disconnected")
+                Log.app.warning("Backend disconnected")
             }
             .store(in: &appState.cancellables)
     }

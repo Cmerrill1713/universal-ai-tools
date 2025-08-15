@@ -106,10 +106,11 @@ router.post('/chat', async (req, res): Promise<void> => {
     } = req.body;
 
     if (!message) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Message is required',
       });
+      return;
     }
 
     // For now, use the assistant router logic by importing and calling it

@@ -1,0 +1,221 @@
+{
+  "configurations" : [
+    {
+      "id" : "1A0F2F37-6F9A-4C12-A234-8B9C3D2E4F5A",
+      "name" : "UAT-Full",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TEST_MODE",
+            "value" : "UAT"
+          },
+          {
+            "key" : "BACKEND_URL",
+            "value" : "http://localhost:3001"
+          },
+          {
+            "key" : "ENABLE_DEBUG_LOGGING",
+            "value" : "true"
+          }
+        ],
+        "targetForVariableExpansion" : {
+          "containerPath" : "container:UniversalAITools.xcodeproj",
+          "identifier" : "UniversalAITools",
+          "name" : "UniversalAITools"
+        },
+        "testTimeoutsEnabled" : true,
+        "maximumTestExecutionTimeAllowance" : 600,
+        "testExecutionOrdering" : "random",
+        "commandLineArgumentEntries" : [
+          {
+            "argument" : "--uitesting"
+          },
+          {
+            "argument" : "--reset-state"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "2B1F3F47-7F9B-5D23-B345-9C0D4E3F6A7B",
+      "name" : "UAT-Smoke",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TEST_MODE",
+            "value" : "SMOKE"
+          },
+          {
+            "key" : "BACKEND_URL",
+            "value" : "http://localhost:3001"
+          }
+        ],
+        "targetForVariableExpansion" : {
+          "containerPath" : "container:UniversalAITools.xcodeproj",
+          "identifier" : "UniversalAITools",
+          "name" : "UniversalAITools"
+        },
+        "testTimeoutsEnabled" : true,
+        "maximumTestExecutionTimeAllowance" : 120,
+        "commandLineArgumentEntries" : [
+          {
+            "argument" : "--uitesting"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "3C2F4F57-8FAB-6E34-C456-AD1E5F4G7B8C",
+      "name" : "UAT-Accessibility",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TEST_MODE",
+            "value" : "ACCESSIBILITY"
+          },
+          {
+            "key" : "ENABLE_VOICEOVER_SIMULATION",
+            "value" : "true"
+          }
+        ],
+        "targetForVariableExpansion" : {
+          "containerPath" : "container:UniversalAITools.xcodeproj",
+          "identifier" : "UniversalAITools",
+          "name" : "UniversalAITools"
+        },
+        "testTimeoutsEnabled" : true,
+        "maximumTestExecutionTimeAllowance" : 300,
+        "commandLineArgumentEntries" : [
+          {
+            "argument" : "--uitesting"
+          },
+          {
+            "argument" : "--enable-accessibility"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "4D3F5F67-9FBC-7F45-D567-BE2F6G5H8C9D",
+      "name" : "UAT-Performance",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TEST_MODE",
+            "value" : "PERFORMANCE"
+          },
+          {
+            "key" : "ENABLE_METRICS_COLLECTION",
+            "value" : "true"
+          },
+          {
+            "key" : "PERFORMANCE_BASELINE_PATH",
+            "value" : "./Tests/Baselines/"
+          }
+        ],
+        "targetForVariableExpansion" : {
+          "containerPath" : "container:UniversalAITools.xcodeproj",
+          "identifier" : "UniversalAITools",
+          "name" : "UniversalAITools"
+        },
+        "testTimeoutsEnabled" : true,
+        "maximumTestExecutionTimeAllowance" : 900,
+        "gatherLocalizationMetrics" : true,
+        "commandLineArgumentEntries" : [
+          {
+            "argument" : "--uitesting"
+          },
+          {
+            "argument" : "--performance-testing"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "5E4F6F77-AGCD-8G56-E678-CF3G7H6I9DAE",
+      "name" : "UAT-Debug",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TEST_MODE",
+            "value" : "DEBUG"
+          },
+          {
+            "key" : "ENABLE_DEBUG_CONSOLE",
+            "value" : "true"
+          },
+          {
+            "key" : "VERBOSE_LOGGING",
+            "value" : "true"
+          },
+          {
+            "key" : "PAUSE_ON_FAILURE",
+            "value" : "true"
+          }
+        ],
+        "targetForVariableExpansion" : {
+          "containerPath" : "container:UniversalAITools.xcodeproj",
+          "identifier" : "UniversalAITools",
+          "name" : "UniversalAITools"
+        },
+        "testTimeoutsEnabled" : false,
+        "testExecutionOrdering" : "alphabetical",
+        "commandLineArgumentEntries" : [
+          {
+            "argument" : "--uitesting"
+          },
+          {
+            "argument" : "--debug-mode"
+          },
+          {
+            "argument" : "--screenshot-on-failure"
+          }
+        ]
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:UniversalAITools.xcodeproj",
+          "identifier" : "UniversalAITools",
+          "name" : "UniversalAITools"
+        }
+      ]
+    },
+    "testRepetitionMode" : "retryOnFailure",
+    "maximumTestRepetitions" : 3,
+    "testTimeoutsEnabled" : true,
+    "defaultTestExecutionTimeAllowance" : 60
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:UniversalAITools.xcodeproj",
+        "identifier" : "UniversalAIToolsTests",
+        "name" : "UniversalAIToolsTests"
+      },
+      "selectedTests" : [
+        "UATTestSuite/testFirstTimeUserOnboarding",
+        "UATTestSuite/testBasicChatWorkflow",
+        "UATTestSuite/testAgentManagementWorkflow",
+        "UATTestSuite/testPerformanceUnderLoad",
+        "UATTestSuite/testErrorRecoveryScenario",
+        "UATTestSuite/testAccessibilityNavigation",
+        "UATTestSuite/test3DKnowledgeGraphInteraction",
+        "UATTestSuite/testVoiceCommandIntegration"
+      ],
+      "parallelizable" : false
+    },
+    {
+      "target" : {
+        "containerPath" : "container:UniversalAITools.xcodeproj",
+        "identifier" : "UniversalAIToolsUITests",
+        "name" : "UniversalAIToolsUITests"
+      },
+      "enabled" : true
+    }
+  ],
+  "version" : 1
+}

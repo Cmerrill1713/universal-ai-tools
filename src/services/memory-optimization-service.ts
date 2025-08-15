@@ -121,9 +121,8 @@ export class MemoryOptimizationService extends EventEmitter {
         try {
           // Dynamic import to avoid circular dependency
           import('./memory/unified-memory-service').then(({ unifiedMemoryService }) => {
-            if (unifiedMemoryService && typeof unifiedMemoryService.cleanCache === 'function') {
-              unifiedMemoryService.cleanCache();
-            }
+            // Note: cleanCache is private, relying on automatic cleanup
+            log.debug('Unified memory service is available for automatic cleanup', LogContext.SYSTEM);
           }).catch(() => {}); // Silently fail if service not available
         } catch (error) {
           // Service might not be available

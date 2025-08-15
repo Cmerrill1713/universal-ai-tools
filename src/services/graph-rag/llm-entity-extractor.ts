@@ -143,7 +143,9 @@ export class LLMEntityExtractor {
       
       if (textChunks.length === 1) {
         // Single chunk - process normally
-        return await this.extractEntitiesFromChunk(textChunks[0], model, maxEntities, options.includeEmbeddings);
+        const chunk = textChunks[0];
+        if (!chunk) throw new Error('Empty text chunk');
+        return await this.extractEntitiesFromChunk(chunk, model, maxEntities, options.includeEmbeddings);
       }
       
       // OPTIMIZATION: Parallel processing of chunks
@@ -428,7 +430,7 @@ Your reasoning:`;
     
     for (const line of lines) {
       const entityMatch = line.match(/["']([^"']+)["']\s*(?::|,)?\s*["']?(\w+)["']?/);
-      if (entityMatch) {
+      if (entityMatch && entityMatch[1] && entityMatch[2]) {
         entities.push({
           text: entityMatch[1],
           type: this.normalizeEntityType(entityMatch[2]),
@@ -567,13 +569,15 @@ Your reasoning:`;
     const techMatches = text.matchAll(techPattern);
     
     for (const match of techMatches) {
-      entities.push({
-        text: match[1],
+      if (match[1]) {
+        entities.push({
+          text: match[1],
         type: EntityType.TECHNOLOGY,
         confidence: 0.6,
         properties: {},
         context: text.substring(Math.max(0, match.index! - 50), match.index! + 50)
-      });
+        });
+      }
     }
 
     // Deduplicate
@@ -603,7 +607,8 @@ Your reasoning:`;
     for (const pattern of patterns) {
       const matches = text.matchAll(pattern.regex);
       for (const match of matches) {
-        if (entityNames.includes(match[1].toLowerCase()) && 
+        if (match[1] && match[2] &&
+            entityNames.includes(match[1].toLowerCase()) && 
             entityNames.includes(match[2].toLowerCase())) {
           relations.push({
             source: match[1],

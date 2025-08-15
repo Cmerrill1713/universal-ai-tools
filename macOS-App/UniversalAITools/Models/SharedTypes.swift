@@ -210,6 +210,9 @@ enum ConnectionStatus: String, CaseIterable, Codable {
     case connected = "connected"
     case connecting = "connecting"
     case disconnected = "disconnected"
+    case reconnecting = "reconnecting"
+    case disconnecting = "disconnecting"
+    case failed = "failed"
     case error = "error"
     
     var displayName: String {
@@ -217,6 +220,9 @@ enum ConnectionStatus: String, CaseIterable, Codable {
         case .connected: return "Connected"
         case .connecting: return "Connecting"
         case .disconnected: return "Disconnected"
+        case .reconnecting: return "Reconnecting"
+        case .disconnecting: return "Disconnecting"
+        case .failed: return "Failed"
         case .error: return "Error"
         }
     }
@@ -226,6 +232,9 @@ enum ConnectionStatus: String, CaseIterable, Codable {
         case .connected: return .green
         case .connecting: return .orange
         case .disconnected: return .gray
+        case .reconnecting: return .orange
+        case .disconnecting: return .yellow
+        case .failed: return .red
         case .error: return .red
         }
     }
@@ -235,7 +244,45 @@ enum ConnectionStatus: String, CaseIterable, Codable {
         case .connected: return "wifi"
         case .connecting: return "wifi.slash"
         case .disconnected: return "wifi.exclamationmark"
+        case .reconnecting: return "arrow.clockwise"
+        case .disconnecting: return "arrow.down.circle"
+        case .failed: return "xmark.circle"
         case .error: return "xmark.circle"
+        }
+    }
+}
+
+// MARK: - Agent Status (Unified)
+enum AgentStatus: String, CaseIterable, Codable {
+    case active = "active"
+    case inactive = "inactive"
+    case busy = "busy"
+    case error = "error"
+    
+    var displayName: String {
+        switch self {
+        case .active: return "Active"
+        case .inactive: return "Inactive"
+        case .busy: return "Busy"
+        case .error: return "Error"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .active: return .green
+        case .inactive: return .gray
+        case .busy: return .blue
+        case .error: return .red
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .active: return "checkmark.circle.fill"
+        case .inactive: return "circle"
+        case .busy: return "arrow.clockwise.circle.fill"
+        case .error: return "exclamationmark.triangle.fill"
         }
     }
 }

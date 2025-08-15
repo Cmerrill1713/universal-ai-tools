@@ -867,22 +867,6 @@ struct NetworkMetricsPanel: View {
     }
 }
 
-struct MetricItem: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .font(.caption)
-                .fontFamily(.monospaced)
-        }
-    }
-}
 
 // MARK: - Detail Views
 
@@ -1065,26 +1049,6 @@ struct DetailRow: View {
     }
 }
 
-struct ConnectionRow: View {
-    let connection: AgentConnection
-    let currentNodeId: String
-    
-    var body: some View {
-        HStack {
-            Image(systemName: connection.connectionType == .bidirectional ? "arrow.left.and.right" : "arrow.right")
-                .foregroundColor(connection.isActive ? .green : .gray)
-            
-            Text(connection.fromAgentId == currentNodeId ? connection.toAgentId : connection.fromAgentId)
-                .font(.caption)
-            
-            Spacer()
-            
-            Text("\(connection.latency, specifier: "%.0f")ms")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
-}
 
 #Preview {
     AgentNetworkTopology(webSocketService: AgentWebSocketService())

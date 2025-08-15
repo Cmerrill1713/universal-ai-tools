@@ -763,28 +763,6 @@ struct NodeDetailView: View {
     }
 }
 
-struct MetricRow: View {
-    let title: String
-    let value: String
-    let icon: String
-    
-    var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(.blue)
-                .frame(width: 20)
-            
-            Text(title)
-                .fontWeight(.medium)
-            
-            Spacer()
-            
-            Text(value)
-                .foregroundColor(.secondary)
-                .fontFamily(.monospaced)
-        }
-    }
-}
 
 #Preview {
     ABMCTSTreeView(webSocketService: AgentWebSocketService())

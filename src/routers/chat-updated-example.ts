@@ -159,6 +159,10 @@ router.get('/history/:conversationId',
     const { page = 1, limit = 50 } = req.query as any;
     const userId = (req as any).user?.id || 'anonymous';
 
+    if (!conversationId) {
+      throw new ApiValidationError('Conversation ID is required');
+    }
+
     log.debug('Fetching conversation history', LogContext.API, {
       conversationId,
       userId,
@@ -201,7 +205,7 @@ router.get('/history/:conversationId',
       messages: paginatedMessages,
     };
 
-    sendPaginatedSuccess(res, responseData, pagination);
+    sendSuccess(res, responseData);
   })
 );
 
@@ -368,6 +372,10 @@ router.delete('/conversations/:conversationId',
     const { id: conversationId } = req.params;
     const userId = (req as any).user?.id || 'anonymous';
 
+    if (!conversationId) {
+      throw new ApiValidationError('Conversation ID is required');
+    }
+
     log.info('Deleting conversation', LogContext.API, {
       conversationId,
       userId,
@@ -383,7 +391,7 @@ router.delete('/conversations/:conversationId',
       throw new ApiValidationError('Access denied to conversation');
     }
 
-    conversations.delete(conversationId);
+    conversations.delete(conversationId!);
 
     sendSuccess(res, { 
       deleted: true, 

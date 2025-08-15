@@ -6,7 +6,7 @@
 
 import { Router } from 'express';
 
-import { authRequired } from '@/middleware/auth';
+import { authenticate } from '@/middleware/auth';
 import { sendError, sendSuccess } from '@/utils/api-response';
 import { log, LogContext } from '@/utils/logger';
 
@@ -16,7 +16,7 @@ const router = Router();
  * POST /api/v1/features/discover
  * Discover features based on user intent and query
  */
-router.post('/discover', authRequired, async (req, res) => {
+router.post('/discover', authenticate, async (req, res) => {
   try {
     const { featureDiscoveryService } = await import('../services/feature-discovery-service');
     
@@ -83,7 +83,7 @@ router.post('/discover', authRequired, async (req, res) => {
  * GET /api/v1/features/search
  * Search features by text query with optional filters
  */
-router.get('/search', authRequired, async (req, res) => {
+router.get('/search', authenticate, async (req, res) => {
   try {
     const { featureDiscoveryService } = await import('../services/feature-discovery-service');
     
@@ -139,7 +139,7 @@ router.get('/search', authRequired, async (req, res) => {
  * GET /api/v1/features/recommendations
  * Get personalized feature recommendations for the user
  */
-router.get('/recommendations', authRequired, async (req, res) => {
+router.get('/recommendations', authenticate, async (req, res) => {
   try {
     const { featureDiscoveryService } = await import('../services/feature-discovery-service');
     
@@ -175,7 +175,7 @@ router.get('/recommendations', authRequired, async (req, res) => {
  * GET /api/v1/features/categories
  * Get all available feature categories
  */
-router.get('/categories', authRequired, async (req, res) => {
+router.get('/categories', authenticate, async (req, res) => {
   try {
     const { featureDiscoveryService } = await import('../services/feature-discovery-service');
     
@@ -198,12 +198,16 @@ router.get('/categories', authRequired, async (req, res) => {
  * GET /api/v1/features/categories/:categoryId
  * Get features in a specific category
  */
-router.get('/categories/:categoryId', authRequired, async (req, res) => {
+router.get('/categories/:categoryId', authenticate, async (req, res) => {
   try {
     const { featureDiscoveryService } = await import('../services/feature-discovery-service');
     
     const { categoryId } = req.params;
     const limit = parseInt(req.query.limit as string) || 20;
+
+    if (!categoryId) {
+      return sendError(res, 'VALIDATION_ERROR', 'Category ID is required', 400);
+    }
 
     const features = featureDiscoveryService.getFeaturesByCategory(categoryId, limit);
 
@@ -229,7 +233,7 @@ router.get('/categories/:categoryId', authRequired, async (req, res) => {
  * POST /api/v1/features/usage/:featureId
  * Track feature usage for analytics and recommendations
  */
-router.post('/usage/:featureId', authRequired, async (req, res) => {
+router.post('/usage/:featureId', authenticate, async (req, res) => {
   try {
     const { featureDiscoveryService } = await import('../services/feature-discovery-service');
     
@@ -238,6 +242,10 @@ router.post('/usage/:featureId', authRequired, async (req, res) => {
 
     if (!userId || userId === 'anonymous') {
       return sendError(res, 'AUTHENTICATION_ERROR', 'User authentication required for usage tracking', 401);
+    }
+
+    if (!featureId) {
+      return sendError(res, 'VALIDATION_ERROR', 'Feature ID is required', 400);
     }
 
     await featureDiscoveryService.trackFeatureUsage(userId, featureId);
@@ -266,7 +274,7 @@ router.post('/usage/:featureId', authRequired, async (req, res) => {
  * GET /api/v1/features/analytics
  * Get feature discovery analytics and statistics
  */
-router.get('/analytics', authRequired, async (req, res) => {
+router.get('/analytics', authenticate, async (req, res) => {
   try {
     const { featureDiscoveryService } = await import('../services/feature-discovery-service');
     
@@ -370,7 +378,7 @@ router.get('/help', async (req, res) => {
  * POST /api/v1/features/guided-discovery
  * Guided discovery flow - asks follow-up questions to better understand user needs
  */
-router.post('/guided-discovery', authRequired, async (req, res) => {
+router.post('/guided-discovery', authenticate, async (req, res) => {
   try {
     const { initialQuery, answers = [] } = req.body;
 

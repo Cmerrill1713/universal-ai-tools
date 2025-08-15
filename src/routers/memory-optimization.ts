@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 
-import { authRequired } from '@/middleware/auth';
+import { authenticate } from '@/middleware/auth';
 import { sendError, sendSuccess } from '@/utils/api-response';
 import { log, LogContext } from '@/utils/logger';
 
@@ -15,7 +15,7 @@ const router = Router();
  * GET /api/v1/memory/status
  * Get current memory status and optimization analytics
  */
-router.get('/status', authRequired, async (req, res) => {
+router.get('/status', authenticate, async (req, res) => {
   try {
     const { memoryOptimizationService } = await import('../services/memory-optimization-service');
     
@@ -41,7 +41,7 @@ router.get('/status', authRequired, async (req, res) => {
  * POST /api/v1/memory/optimize
  * Force memory optimization
  */
-router.post('/optimize', authRequired, async (req, res) => {
+router.post('/optimize', authenticate, async (req, res) => {
   try {
     const { memoryOptimizationService } = await import('../services/memory-optimization-service');
     
@@ -76,7 +76,7 @@ router.post('/optimize', authRequired, async (req, res) => {
  * GET /api/v1/memory/analytics
  * Get detailed memory analytics and metrics
  */
-router.get('/analytics', authRequired, async (req, res) => {
+router.get('/analytics', authenticate, async (req, res) => {
   try {
     const { memoryOptimizationService } = await import('../services/memory-optimization-service');
     
@@ -100,7 +100,7 @@ router.get('/analytics', authRequired, async (req, res) => {
  * POST /api/v1/memory/gc
  * Force garbage collection (development only)
  */
-router.post('/gc', authRequired, async (req, res) => {
+router.post('/gc', authenticate, async (req, res) => {
   try {
     if (process.env.NODE_ENV === 'production') {
       return sendError(res, 'FORBIDDEN_ERROR', 'Manual garbage collection not allowed in production', 403);
@@ -145,7 +145,7 @@ router.post('/gc', authRequired, async (req, res) => {
  * GET /api/v1/memory/config
  * Get memory optimization configuration
  */
-router.get('/config', authRequired, async (req, res) => {
+router.get('/config', authenticate, async (req, res) => {
   try {
     const { memoryOptimizationService } = await import('../services/memory-optimization-service');
     

@@ -757,10 +757,10 @@ struct LocalServiceRow: View {
     let config: ServiceConfig
     let endpoint: String
     let onEdit: () -> Void
-    @State private var connectionStatus: ConnectionStatus = .unknown
+    @State private var connectionStatus: ServiceConnectionStatus = .unknown
     @State private var isTestingConnection = false
 
-    enum ConnectionStatus {
+    enum ServiceConnectionStatus {
         case unknown
         case connected
         case disconnected

@@ -235,8 +235,9 @@ export function validateCustomField<T>(
   const { required = true, errorMessage = 'Invalid ' + fieldPath } = options;
   
   return async (req: Request, res: Response, next: NextFunction) => {
+    let value: any;
     try {
-      const value = getNestedValue(req.body, fieldPath);
+      value = getNestedValue(req.body, fieldPath);
       
       if (value === undefined && required) {
         return next(new ApiValidationError(fieldPath + ' is required'));
@@ -250,7 +251,7 @@ export function validateCustomField<T>(
       next();
     } catch (error) {
       const message = error instanceof Error ? error.message : errorMessage;
-      next(new ApiValidationError(message, { field: fieldPath, value: value }));
+      next(new ApiValidationError(message, { field: fieldPath, value }));
     }
   };
 }

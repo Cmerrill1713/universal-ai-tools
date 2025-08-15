@@ -329,39 +329,7 @@ class AppState: ObservableObject {
 }
 
 // MARK: - Connection Status
-enum ConnectionStatus: String, CaseIterable {
-    case disconnected = "disconnected"
-    case connecting = "connecting"
-    case connected = "connected"
-    case error = "error"
-    
-    var displayName: String {
-        switch self {
-        case .disconnected: return "Disconnected"
-        case .connecting: return "Connecting"
-        case .connected: return "Connected"
-        case .error: return "Error"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .disconnected: return .gray
-        case .connecting: return .orange
-        case .connected: return .green
-        case .error: return .red
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .disconnected: return "wifi.slash"
-        case .connecting: return "wifi.exclamationmark"
-        case .connected: return "wifi"
-        case .error: return "wifi.slash"
-        }
-    }
-}
+// ConnectionStatus is defined in SharedTypes.swift
 
 // MARK: - Objective Model
 struct Objective: Identifiable, Codable, Hashable {
@@ -399,6 +367,7 @@ struct Objective: Identifiable, Codable, Hashable {
     }
     
     enum ObjectiveStatus: String, Codable, CaseIterable {
+        case planning = "planning"
         case active = "active"
         case paused = "paused"
         case completed = "completed"
@@ -406,6 +375,7 @@ struct Objective: Identifiable, Codable, Hashable {
         
         var displayName: String {
             switch self {
+            case .planning: return "Planning"
             case .active: return "Active"
             case .paused: return "Paused"
             case .completed: return "Completed"
@@ -415,6 +385,7 @@ struct Objective: Identifiable, Codable, Hashable {
         
         var color: Color {
             switch self {
+            case .planning: return .purple
             case .active: return .blue
             case .paused: return .orange
             case .completed: return .green

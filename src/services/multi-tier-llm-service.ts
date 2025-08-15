@@ -129,7 +129,7 @@ export class MultiTierLLMService {
     for (const tier of [2, 3, 4]) {
       const tierConfig = this.modelTiers.get(tier);
       if (tierConfig && tierConfig.models.length > 0) {
-        return tierConfig.models[0];
+        return tierConfig.models[0]!; // Safe since we checked length > 0
       }
     }
     

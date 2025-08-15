@@ -685,8 +685,8 @@ Text: ${text.substring(0, 2000)}`;
       
       return {
         type: 'retrieve',
-        targetNodeId: bestNeighbor.id,
-        reasoning: `Exploring ${bestNeighbor.name}`,
+        targetNodeId: bestNeighbor?.id || '',
+        reasoning: `Exploring ${bestNeighbor?.name || 'unknown node'}`,
       };
     }
     
@@ -873,9 +873,11 @@ Text: ${text.substring(0, 2000)}`;
     let normB = 0;
     
     for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+      const aVal = a[i] || 0;
+      const bVal = b[i] || 0;
+      dotProduct += aVal * bVal;
+      normA += aVal * aVal;
+      normB += bVal * bVal;
     }
     
     const denominator = Math.sqrt(normA) * Math.sqrt(normB);
@@ -916,15 +918,20 @@ Text: ${text.substring(0, 2000)}`;
     const windowSize = 100; // characters
     
     for (let i = 0; i < entities.length; i++) {
-      const group = [entities[i]];
+      const entity = entities[i];
+      if (!entity) continue;
+      const group = [entity];
       
       for (let j = i + 1; j < entities.length; j++) {
         // Check if entities appear close together in context
-        const pos1 = context.indexOf(entities[i].name);
-        const pos2 = context.indexOf(entities[j].name);
+        const entity2 = entities[j];
+        if (!entity2) continue;
+        
+        const pos1 = context.indexOf(entity.name);
+        const pos2 = context.indexOf(entity2.name);
         
         if (Math.abs(pos1 - pos2) < windowSize) {
-          group.push(entities[j]);
+          group.push(entity2);
         }
       }
       

@@ -7,6 +7,7 @@
 
 import { log, LogContext } from '../../utils/logger';
 import { contextStorageService } from '../context-storage-service';
+import { getSupabaseClient } from '../supabase-client';
 
 export interface GraphDatabaseSchema {
   nodes: NodeSchema;
@@ -148,7 +149,7 @@ export class DatabaseSchemaService {
    * Create tables in Supabase (PostgreSQL)
    */
   private async createSupabaseTables(): Promise<void> {
-    const supabase = contextStorageService.getSupabaseClient();
+    const supabase = getSupabaseClient();
 
     // Graph nodes table
     await this.executeSQLSafely(`
@@ -334,7 +335,11 @@ export class DatabaseSchemaService {
         throw new Error('Invalid SQL: Only DDL operations allowed for schema setup');
       }
 
-      const supabase = contextStorageService.getSupabaseClient();
+      const supabase = getSupabaseClient();
+      
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
       
       // SECURITY: Use parameterized queries when possible, avoid direct SQL execution
       // For schema setup, we'll use individual DDL operations instead of bulk execution
@@ -459,7 +464,12 @@ export class DatabaseSchemaService {
     const issues: string[] = [];
 
     try {
-      const supabase = contextStorageService.getSupabaseClient();
+      const supabase = getSupabaseClient();
+
+      if (!supabase) {
+        log.warn('Supabase client not available for validation', LogContext.DATABASE);
+        return { valid: false, issues: ['Supabase client not available'] };
+      }
 
       // Check if required tables exist
       const tables = ['graph_nodes', 'graph_relationships', 'graph_hyperedges', 'graph_communities', 'reasoning_sessions'];

@@ -929,9 +929,9 @@ export class FeatureDiscoveryService extends EventEmitter {
     const userLevel = userProfile.experience;
     const featureLevel = feature.difficulty;
 
-    const levelOrder = { beginner: 0, intermediate: 1, advanced: 2 };
-    const userLevelNum = levelOrder[userLevel];
-    const featureLevelNum = levelOrder[featureLevel];
+    const levelOrder = { beginner: 0, intermediate: 1, advanced: 2, expert: 2 };
+    const userLevelNum = levelOrder[userLevel] ?? 0;
+    const featureLevelNum = levelOrder[featureLevel as keyof typeof levelOrder] ?? 0;
 
     // Allow current level and one level above
     return featureLevelNum <= userLevelNum + 1;

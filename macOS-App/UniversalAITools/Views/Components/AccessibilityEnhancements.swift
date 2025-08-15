@@ -444,17 +444,6 @@ struct AccessibleChartView: View {
     @State private var selectedDataPointIndex: Int?
     @State private var showDataTable = false
     
-    enum ChartType {
-        case line, bar, pie
-        
-        var accessibilityDescription: String {
-            switch self {
-            case .line: return "Line chart"
-            case .bar: return "Bar chart" 
-            case .pie: return "Pie chart"
-            }
-        }
-    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -498,12 +487,12 @@ struct AccessibleChartView: View {
             .fill(.gray.opacity(0.1))
             .frame(height: 200)
             .overlay(
-                Text("\(chartType.accessibilityDescription) visualization")
+                Text("\(chartType.displayName) visualization")
                     .foregroundColor(.secondary)
             )
             .accessibilityRepresentation {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(chartType.accessibilityDescription): \(title)")
+                    Text("\(chartType.displayName): \(title)")
                         .accessibilityAddTraits(.isHeader)
                     
                     Text(chartSummaryText)
@@ -570,7 +559,7 @@ struct AccessibleChartView: View {
     }
     
     private func announceChartLoaded() {
-        let announcement = "\(chartType.accessibilityDescription) titled \(title) loaded. \(chartSummaryText). Use the Show Data Table button for detailed accessible navigation."
+        let announcement = "\(chartType.displayName) titled \(title) loaded. \(chartSummaryText). Use the Show Data Table button for detailed accessible navigation."
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             NSAccessibility.post(

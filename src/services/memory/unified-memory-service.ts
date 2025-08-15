@@ -674,7 +674,10 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
       
       const excessCount = this.memories.size - this.config.maxEntries;
       for (let i = 0; i < excessCount && i < sortedMemories.length; i++) {
-        expiredMemories.push(sortedMemories[i][0]);
+        const entry = sortedMemories[i];
+        if (entry && entry[0]) {
+          expiredMemories.push(entry[0]);
+        }
       }
     }
 
@@ -773,15 +776,18 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
     const avgImportance = memories.reduce((sum, m) => sum + m.importance, 0) / memories.length;
     const allTags = [...new Set(memories.flatMap(m => m.tags))];
     
+    const firstMemory = memories[0]!; // Safe since we checked for empty array above
+    
     return {
-      ...memories[0],
+      ...firstMemory,
       content: contents,
       importance: Math.min(1.0, avgImportance * 1.2), // Boost consolidated importance
       tags: allTags,
       accessCount: memories.reduce((sum, m) => sum + m.accessCount, 0),
       lastAccessed: new Date(), // Ensure lastAccessed is always a Date
-      relationships: memories[0].relationships || [], // Ensure relationships is never undefined
-      contextType: memories[0].contextType || 'conversation', // Ensure contextType is never undefined
+      relationships: firstMemory.relationships || [], // Ensure relationships is never undefined
+      contextType: firstMemory.contextType || 'conversation', // Ensure contextType is never undefined
+      retentionPolicy: firstMemory.retentionPolicy || 'auto' // Ensure retentionPolicy is never undefined
     };
   }
 

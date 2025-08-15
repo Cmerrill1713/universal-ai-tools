@@ -16,7 +16,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
     @Published var agentNetwork: AgentNetwork = AgentNetwork()
     @Published var agentPerformanceMetrics: [String: AgentPerformanceMetric] = [:]
     @Published var abmctsTree: ABMCTSNode?
-    @Published var activeWorkflows: [AgentWorkflow] = []
+    @Published var activeWorkflows: [AgentWorkflowService.AgentWorkflow] = []
     @Published var swarmCoordinationState: SwarmCoordinationState = SwarmCoordinationState()
     
     // Real-time updates
@@ -52,9 +52,11 @@ class AgentWebSocketService: NSObject, ObservableObject {
     }
     
     deinit {
-        disconnect()
-        cancelReconnectTimer()
-        cancelHeartbeatTimer()
+        Task { @MainActor in
+            disconnect()
+            cancelReconnectTimer()
+            cancelHeartbeatTimer()
+        }
     }
     
     // MARK: - Connection Management
@@ -87,7 +89,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
         // Start heartbeat
         startHeartbeat()
         
-        Log.network.info("Agent orchestration WebSocket connecting to: \(serverURL)")
+        Log.info("Agent orchestration WebSocket connecting to: \(serverURL)", log: Log.network)
     }
     
     /// Disconnect from WebSocket
@@ -103,7 +105,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
         cancelHeartbeatTimer()
         cancelReconnectTimer()
         
-        Log.network.info("Agent orchestration WebSocket disconnected")
+        Log.info("Agent orchestration WebSocket disconnected", log: Log.network)
     }
     
     /// Reconnect with exponential backoff
@@ -117,7 +119,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
         reconnectAttempts += 1
         let delay = baseReconnectDelay * pow(2.0, Double(reconnectAttempts - 1))
         
-        Log.network.warning("Agent orchestration WebSocket reconnecting in \(delay)s (attempt \(reconnectAttempts))")
+        Log.warning("Agent orchestration WebSocket reconnecting in \(delay)s (attempt \(reconnectAttempts))", log: Log.network)
         
         reconnectTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             Task { @MainActor in
@@ -152,7 +154,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
         case .data(let data):
             await processBinaryMessage(data)
         @unknown default:
-            Log.network.warning("Unknown WebSocket message type received")
+            Log.warning("Unknown WebSocket message type received", log: Log.network)
         }
     }
     
@@ -164,7 +166,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
             let message = try JSONDecoder().decode(WebSocketMessage.self, from: data)
             await handleOrchestrationMessage(message)
         } catch {
-            Log.network.error("Failed to decode WebSocket message: \(error)")
+            Log.error("Failed to decode WebSocket message: \(error, log: Log.network)", log: Log.network)
         }
     }
     
@@ -174,47 +176,48 @@ class AgentWebSocketService: NSObject, ObservableObject {
             let message = try JSONDecoder().decode(WebSocketMessage.self, from: data)
             await handleOrchestrationMessage(message)
         } catch {
-            Log.network.error("Failed to decode binary WebSocket message: \(error)")
+            Log.error("Failed to decode binary WebSocket message: \(error, log: Log.network)", log: Log.network)
         }
     }
     
     /// Handle orchestration-specific messages
     private func handleOrchestrationMessage(_ message: WebSocketMessage) async {
         switch message.type {
-        case .agentStatusUpdate:
+        case "agent_status_update":
             await handleAgentStatusUpdate(message)
-        case .networkTopologyUpdate:
+        case "network_topology_update":
             await handleNetworkTopologyUpdate(message)
-        case .performanceMetricsUpdate:
+        case "performance_metrics_update":
             await handlePerformanceMetricsUpdate(message)
-        case .abmctsTreeUpdate:
+        case "abmcts_tree_update":
             await handleABMCTSTreeUpdate(message)
-        case .workflowUpdate:
+        case "workflow_update":
             await handleWorkflowUpdate(message)
-        case .swarmCoordinationUpdate:
+        case "swarm_coordination_update":
             await handleSwarmCoordinationUpdate(message)
-        case .heartbeat:
+        case "heartbeat":
             await handleHeartbeat(message)
-        case .error:
+        case "error":
             await handleErrorMessage(message)
-        case .connectionEstablished:
+        case "connection_established":
             await handleConnectionEstablished(message)
+        default:
+            Log.warning("Unknown message type: \(message.type, log: Log.network)", log: Log.network)
         }
     }
     
     // MARK: - Message Type Handlers
     
     private func handleAgentStatusUpdate(_ message: WebSocketMessage) async {
-        guard let data = message.data else { return }
-        
         do {
-            let update = try JSONDecoder().decode(AgentStatusUpdate.self, from: data)
+            let jsonData = try JSONSerialization.data(withJSONObject: message.data)
+            let update = try JSONDecoder().decode(AgentStatusUpdate.self, from: jsonData)
             realtimeAgentUpdates.insert(update, at: 0)
             
             // Update agent network with new status
-            if let nodeIndex = agentNetwork.nodes.firstIndex(where: { $0.agentId == update.agentId }) {
+            if let _ = agentNetwork.nodes.firstIndex(where: { $0.agentId == update.agentId }) {
                 // Update would be applied here based on the update data
-                Log.orchestration.info("Updated agent status for: \(update.agentId)")
+                Log.info("Updated agent status for: \(update.agentId, log: Log.network)", log: Log.orchestration)
             }
             
             // Keep only recent updates (last 100)
@@ -223,33 +226,31 @@ class AgentWebSocketService: NSObject, ObservableObject {
             }
             
         } catch {
-            Log.network.error("Failed to decode agent status update: \(error)")
+            Log.error("Failed to decode agent status update: \(error, log: Log.network)", log: Log.network)
         }
     }
     
     private func handleNetworkTopologyUpdate(_ message: WebSocketMessage) async {
-        guard let data = message.data else { return }
-        
         do {
-            let networkUpdate = try JSONDecoder().decode(AgentNetwork.self, from: data)
+            let jsonData = try JSONSerialization.data(withJSONObject: message.data)
+            let networkUpdate = try JSONDecoder().decode(AgentNetwork.self, from: jsonData)
             
             // Smooth transition for network updates
             withAnimation(.easeInOut(duration: 0.5)) {
                 agentNetwork = networkUpdate
             }
             
-            Log.orchestration.info("Updated agent network topology: \(networkUpdate.nodes.count) nodes, \(networkUpdate.connections.count) connections")
+            Log.info("Updated agent network topology: \(networkUpdate.nodes.count, log: Log.network) nodes, \(networkUpdate.connections.count) connections", log: Log.orchestration)
             
         } catch {
-            Log.network.error("Failed to decode network topology update: \(error)")
+            Log.error("Failed to decode network topology update: \(error, log: Log.network)", log: Log.network)
         }
     }
     
     private func handlePerformanceMetricsUpdate(_ message: WebSocketMessage) async {
-        guard let data = message.data else { return }
-        
         do {
-            let metricsUpdate = try JSONDecoder().decode(MetricUpdate.self, from: data)
+            let jsonData = try JSONSerialization.data(withJSONObject: message.data)
+            let metricsUpdate = try JSONDecoder().decode(MetricUpdate.self, from: jsonData)
             realtimeMetricUpdates.insert(metricsUpdate, at: 0)
             
             // Update performance metrics for specific agent
@@ -260,35 +261,33 @@ class AgentWebSocketService: NSObject, ObservableObject {
                 realtimeMetricUpdates = Array(realtimeMetricUpdates.prefix(100))
             }
             
-            Log.orchestration.debug("Updated performance metrics for agent: \(metricsUpdate.agentId)")
+            Log.debug("Updated performance metrics for agent: \(metricsUpdate.agentId, log: Log.network)")
             
         } catch {
-            Log.network.error("Failed to decode performance metrics update: \(error)")
+            Log.error("Failed to decode performance metrics update: \(error, log: Log.network)")
         }
     }
     
     private func handleABMCTSTreeUpdate(_ message: WebSocketMessage) async {
-        guard let data = message.data else { return }
-        
         do {
-            let treeUpdate = try JSONDecoder().decode(ABMCTSNode.self, from: data)
+            let jsonData = try JSONSerialization.data(withJSONObject: message.data)
+            let treeUpdate = try JSONDecoder().decode(ABMCTSNode.self, from: jsonData)
             
             withAnimation(.easeInOut(duration: 0.3)) {
                 abmctsTree = treeUpdate
             }
             
-            Log.orchestration.info("Updated AB-MCTS decision tree: depth \(treeUpdate.depth), visits \(treeUpdate.visits)")
+            Log.info("Updated AB-MCTS decision tree: depth \(treeUpdate.depth, log: Log.network), visits \(treeUpdate.visits)")
             
         } catch {
-            Log.network.error("Failed to decode AB-MCTS tree update: \(error)")
+            Log.error("Failed to decode AB-MCTS tree update: \(error, log: Log.network)")
         }
     }
     
     private func handleWorkflowUpdate(_ message: WebSocketMessage) async {
-        guard let data = message.data else { return }
-        
         do {
-            let workflow = try JSONDecoder().decode(AgentWorkflow.self, from: data)
+            let jsonData = try JSONSerialization.data(withJSONObject: message.data)
+            let workflow = try JSONDecoder().decode(AgentWorkflowService.AgentWorkflow.self, from: jsonData)
             
             // Update or add workflow
             if let index = activeWorkflows.firstIndex(where: { $0.id == workflow.id }) {
@@ -297,24 +296,23 @@ class AgentWebSocketService: NSObject, ObservableObject {
                 activeWorkflows.append(workflow)
             }
             
-            Log.orchestration.info("Updated workflow: \(workflow.name) (\(workflow.executionState.rawValue))")
+            Log.info("Updated workflow: \(workflow.name, log: Log.network) (\(workflow.executionState.rawValue))")
             
         } catch {
-            Log.network.error("Failed to decode workflow update: \(error)")
+            Log.error("Failed to decode workflow update: \(error, log: Log.network)")
         }
     }
     
     private func handleSwarmCoordinationUpdate(_ message: WebSocketMessage) async {
-        guard let data = message.data else { return }
-        
         do {
-            let coordination = try JSONDecoder().decode(SwarmCoordinationState.self, from: data)
+            let jsonData = try JSONSerialization.data(withJSONObject: message.data)
+            let coordination = try JSONDecoder().decode(SwarmCoordinationState.self, from: jsonData)
             swarmCoordinationState = coordination
             
-            Log.orchestration.info("Updated swarm coordination state")
+            Log.info("Updated swarm coordination state", log: Log.network)
             
         } catch {
-            Log.network.error("Failed to decode swarm coordination update: \(error)")
+            Log.error("Failed to decode swarm coordination update: \(error, log: Log.network)")
         }
     }
     
@@ -329,11 +327,9 @@ class AgentWebSocketService: NSObject, ObservableObject {
     }
     
     private func handleErrorMessage(_ message: WebSocketMessage) async {
-        if let data = message.data,
-           let errorInfo = try? JSONDecoder().decode([String: String].self, from: data),
-           let errorMessage = errorInfo["message"] {
+        if let errorMessage = message.data["message"] as? String {
             lastError = errorMessage
-            Log.network.error("Orchestration service error: \(errorMessage)")
+            Log.error("Orchestration service error: \(errorMessage, log: Log.network)")
         }
     }
     
@@ -343,7 +339,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
         reconnectAttempts = 0
         lastError = nil
         
-        Log.network.info("Agent orchestration WebSocket connection established")
+        Log.info("Agent orchestration WebSocket connection established", log: Log.network)
         
         // Request initial data
         await requestInitialData()
@@ -370,51 +366,59 @@ class AgentWebSocketService: NSObject, ObservableObject {
                 }
             }
         } catch {
-            Log.network.error("Failed to encode outgoing message: \(error)")
+            Log.error("Failed to encode outgoing message: \(error, log: Log.network)")
         }
     }
     
     /// Execute agent workflow
-    func executeWorkflow(_ workflow: AgentWorkflow) async {
-        let message = WebSocketMessage(
-            type: .workflowExecute,
-            data: try? JSONEncoder().encode(workflow),
-            timestamp: Date()
-        )
-        await sendMessage(message)
+    func executeWorkflow(_ workflow: AgentWorkflowService.AgentWorkflow) async {
+        do {
+            let workflowData = try JSONEncoder().encode(workflow)
+            let jsonObject = try JSONSerialization.jsonObject(with: workflowData) as? [String: Any] ?? [:]
+            let message = WebSocketMessage(type: "workflow_execute", data: jsonObject)
+            await sendMessage(message)
+        } catch {
+            Log.error("Failed to encode workflow: \(error, log: Log.network)")
+        }
     }
     
     /// Send agent command
     func sendAgentCommand(_ agentId: String, command: AgentCommand) async {
         let commandMessage = AgentCommandMessage(agentId: agentId, command: command)
-        let message = WebSocketMessage(
-            type: .agentCommand,
-            data: try? JSONEncoder().encode(commandMessage),
-            timestamp: Date()
-        )
-        await sendMessage(message)
+        do {
+            let commandData = try JSONEncoder().encode(commandMessage)
+            let jsonObject = try JSONSerialization.jsonObject(with: commandData) as? [String: Any] ?? [:]
+            let message = WebSocketMessage(type: "agent_command", data: jsonObject)
+            await sendMessage(message)
+        } catch {
+            Log.error("Failed to encode agent command: \(error, log: Log.network)")
+        }
     }
     
     /// Request AB-MCTS tree expansion
     func requestTreeExpansion(_ nodeId: String) async {
         let request = TreeExpansionRequest(nodeId: nodeId)
-        let message = WebSocketMessage(
-            type: .abmctsExpand,
-            data: try? JSONEncoder().encode(request),
-            timestamp: Date()
-        )
-        await sendMessage(message)
+        do {
+            let requestData = try JSONEncoder().encode(request)
+            let jsonObject = try JSONSerialization.jsonObject(with: requestData) as? [String: Any] ?? [:]
+            let message = WebSocketMessage(type: "abmcts_expand", data: jsonObject)
+            await sendMessage(message)
+        } catch {
+            Log.error("Failed to encode tree expansion request: \(error, log: Log.network)")
+        }
     }
     
     /// Update agent configuration
     func updateAgentConfiguration(_ agentId: String, configuration: AgentConfiguration) async {
         let update = AgentConfigurationUpdate(agentId: agentId, configuration: configuration)
-        let message = WebSocketMessage(
-            type: .agentConfigUpdate,
-            data: try? JSONEncoder().encode(update),
-            timestamp: Date()
-        )
-        await sendMessage(message)
+        do {
+            let updateData = try JSONEncoder().encode(update)
+            let jsonObject = try JSONSerialization.jsonObject(with: updateData) as? [String: Any] ?? [:]
+            let message = WebSocketMessage(type: "agent_config_update", data: jsonObject)
+            await sendMessage(message)
+        } catch {
+            Log.error("Failed to encode agent configuration update: \(error, log: Log.network)")
+        }
     }
     
     // MARK: - Private Helper Methods
@@ -431,7 +435,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
         let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor in
-                if path.status == .satisfied && !self?.isConnected ?? true {
+                if path.status == .satisfied && !(self?.isConnected ?? false) {
                     self?.connect()
                 }
             }
@@ -449,17 +453,17 @@ class AgentWebSocketService: NSObject, ObservableObject {
     }
     
     private func sendHeartbeat() async {
-        let message = WebSocketMessage(type: .heartbeat, data: nil, timestamp: Date())
+        let message = WebSocketMessage(type: "heartbeat", data: [:])
         await sendMessage(message)
     }
     
     private func sendHeartbeatResponse() async {
-        let message = WebSocketMessage(type: .heartbeatResponse, data: nil, timestamp: Date())
+        let message = WebSocketMessage(type: "heartbeat_response", data: [:])
         await sendMessage(message)
     }
     
     private func requestInitialData() async {
-        let message = WebSocketMessage(type: .requestInitialData, data: nil, timestamp: Date())
+        let message = WebSocketMessage(type: "request_initial_data", data: [:])
         await sendMessage(message)
     }
     
@@ -482,7 +486,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
             reconnect()
         }
         
-        Log.network.error("Agent orchestration WebSocket error: \(error)")
+        Log.error("Agent orchestration WebSocket error: \(error, log: Log.network)")
     }
     
     private func processMessageQueue() async {
@@ -526,69 +530,9 @@ extension AgentWebSocketService: URLSessionWebSocketDelegate {
 }
 
 // MARK: - Supporting Types
+// ConnectionStatus and WebSocketMessage are defined in SharedTypes.swift
 
-enum ConnectionStatus: String, CaseIterable {
-    case disconnected = "Disconnected"
-    case connecting = "Connecting"
-    case connected = "Connected"
-    case reconnecting = "Reconnecting"
-    case disconnecting = "Disconnecting"
-    case failed = "Failed"
-    
-    var color: Color {
-        switch self {
-        case .disconnected: return .gray
-        case .connecting: return .blue
-        case .connected: return .green
-        case .reconnecting: return .orange
-        case .disconnecting: return .yellow
-        case .failed: return .red
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .disconnected: return "wifi.slash"
-        case .connecting: return "wifi.exclamationmark"
-        case .connected: return "wifi"
-        case .reconnecting: return "arrow.clockwise"
-        case .disconnecting: return "arrow.down.circle"
-        case .failed: return "xmark.circle"
-        }
-    }
-}
-
-struct WebSocketMessage: Codable {
-    let id: String
-    let type: MessageType
-    let data: Data?
-    let timestamp: Date
-    
-    init(id: String = UUID().uuidString, type: MessageType, data: Data?, timestamp: Date) {
-        self.id = id
-        self.type = type
-        self.data = data
-        self.timestamp = timestamp
-    }
-}
-
-enum MessageType: String, Codable, CaseIterable {
-    case agentStatusUpdate = "agent_status_update"
-    case networkTopologyUpdate = "network_topology_update"
-    case performanceMetricsUpdate = "performance_metrics_update"
-    case abmctsTreeUpdate = "abmcts_tree_update"
-    case workflowUpdate = "workflow_update"
-    case swarmCoordinationUpdate = "swarm_coordination_update"
-    case heartbeat = "heartbeat"
-    case heartbeatResponse = "heartbeat_response"
-    case error = "error"
-    case connectionEstablished = "connection_established"
-    case requestInitialData = "request_initial_data"
-    case workflowExecute = "workflow_execute"
-    case agentCommand = "agent_command"
-    case abmctsExpand = "abmcts_expand"
-    case agentConfigUpdate = "agent_config_update"
-}
+// MessageType enum removed - using string literals with unified WebSocketMessage
 
 struct AgentStatusUpdate: Codable, Identifiable {
     let id: String
@@ -693,38 +637,26 @@ struct AgentConfigurationUpdate: Codable {
 }
 
 // MARK: - Logging Extension
-
-extension Log {
-    static let orchestration = Logger(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "AgentOrchestration")
-    static let network = Logger(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "Network")
-}
-
-// Add Logger import if not available
 import os.log
 
-struct Logger {
-    let subsystem: String
-    let category: String
-    
-    func info(_ message: String) {
-        os_log("%@", log: OSLog(subsystem: subsystem, category: category), type: .info, message)
-    }
-    
-    func debug(_ message: String) {
-        os_log("%@", log: OSLog(subsystem: subsystem, category: category), type: .debug, message)
-    }
-    
-    func error(_ message: String) {
-        os_log("%@", log: OSLog(subsystem: subsystem, category: category), type: .error, message)
-    }
-    
-    func warning(_ message: String) {
-        os_log("%@", log: OSLog(subsystem: subsystem, category: category), type: .default, message)
-    }
-}
-
 struct Log {
-    static let userInterface = Logger(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "UserInterface")
-    static let orchestration = Logger(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "AgentOrchestration")
-    static let network = Logger(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "Network")
+    static let userInterface = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "UserInterface")
+    static let orchestration = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "AgentOrchestration")
+    static let network = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "UniversalAITools", category: "Network")
+    
+    static func info(_ message: String, log: OSLog = Log.network) {
+        os_log("%@", log: log, type: .info, message)
+    }
+    
+    static func debug(_ message: String, log: OSLog = Log.network) {
+        os_log("%@", log: log, type: .debug, message)
+    }
+    
+    static func error(_ message: String, log: OSLog = Log.network) {
+        os_log("%@", log: log, type: .error, message)
+    }
+    
+    static func warning(_ message: String, log: OSLog = Log.network) {
+        os_log("%@", log: log, type: .default, message)
+    }
 }

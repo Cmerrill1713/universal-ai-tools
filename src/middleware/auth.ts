@@ -52,39 +52,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       hasApiKey: !!req.headers['x-api-key']
     });
 
-    // Development bypass for GraphRAG endpoints only
-    const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-    const isGraphRAG = req.baseUrl?.includes('/graphrag') || req.originalUrl?.includes('/graphrag');
-    const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1' || req.ip === '::1';
-    
-    // UAT Testing bypass
-    const isUATTest = req.headers['x-uat-test'] === 'true' || req.headers['x-testing-mode'] === 'true';
-    
-    if (isDevelopment && isGraphRAG && isLocalhost) {
-      log.info('🔓 Development bypass for GraphRAG', LogContext.API, {
-        path: req.path,
-        hostname: req.hostname
-      });
-      req.user = {
-        id: 'dev-user',
-        isAdmin: false,
-        permissions: ['graphrag_access'],
-      };
-      return next();
-    }
-
-    if (isDevelopment && isUATTest && isLocalhost) {
-      log.info('🔓 UAT Testing bypass', LogContext.API, {
-        path: req.path,
-        hostname: req.hostname
-      });
-      req.user = {
-        id: 'uat-test-user',
-        isAdmin: false,
-        permissions: ['uat_access'],
-      };
-      return next();
-    }
+    // Remove all development bypasses for production security
+    // Authentication is always required
 
     // Fast lockout check using in-memory cache first
     const clientIp = getClientIp(req);

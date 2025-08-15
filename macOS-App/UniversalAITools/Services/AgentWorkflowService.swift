@@ -38,7 +38,7 @@ class AgentWorkflowService: ObservableObject {
         let workflowId = UUID().uuidString
         
         let steps = generateWorkflowSteps(for: objective)
-        let requiredAgents = determineRequiredAgents(for: objective.type)
+        let requiredAgents = determineRequiredAgents(for: objective.title)
         
         let workflow = AgentWorkflow(
             id: workflowId,
@@ -184,7 +184,10 @@ class AgentWorkflowService: ObservableObject {
     // MARK: - Workflow Generation
     
     private func generateWorkflowSteps(for objective: Objective) -> [WorkflowStep] {
-        switch objective.type {
+        // Determine objective type from title or description
+        let objectiveType = determineObjectiveType(from: objective)
+        
+        switch objectiveType {
         case "Development":
             return generateDevelopmentSteps(for: objective)
         case "Creative":
@@ -200,13 +203,34 @@ class AgentWorkflowService: ObservableObject {
         }
     }
     
+    private func determineObjectiveType(from objective: Objective) -> String {
+        let title = objective.title.lowercased()
+        let description = objective.description.lowercased()
+        
+        if title.contains("develop") || title.contains("code") || title.contains("build") ||
+           description.contains("develop") || description.contains("code") || description.contains("build") {
+            return "Development"
+        } else if title.contains("research") || title.contains("analyze") || title.contains("study") ||
+                  description.contains("research") || description.contains("analyze") || description.contains("study") {
+            return "Research"
+        } else if title.contains("create") || title.contains("design") || title.contains("visual") ||
+                  description.contains("create") || description.contains("design") || description.contains("visual") {
+            return "Creative"
+        } else if title.contains("organize") || title.contains("sort") || title.contains("clean") ||
+                  description.contains("organize") || description.contains("sort") || description.contains("clean") {
+            return "Organization"
+        } else {
+            return "Analysis"
+        }
+    }
+    
     private func generateDevelopmentSteps(for objective: Objective) -> [WorkflowStep] {
         return [
             WorkflowStep(
                 id: UUID().uuidString,
                 name: "Requirements Analysis",
                 description: "Analyze and document project requirements",
-                requiredAgent: .cognitive,
+                requiredAgent: .analysis,
                 estimatedDuration: 300, // 5 minutes
                 dependencies: [],
                 tools: ["documentation", "analysis"]
@@ -215,7 +239,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Architecture Design",
                 description: "Design system architecture and components",
-                requiredAgent: .specialized,
+                requiredAgent: .orchestration,
                 estimatedDuration: 600, // 10 minutes
                 dependencies: [],
                 tools: ["design", "modeling"]
@@ -224,7 +248,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Code Generation",
                 description: "Generate code based on requirements and design",
-                requiredAgent: .developer,
+                requiredAgent: .coding,
                 estimatedDuration: 1800, // 30 minutes
                 dependencies: [],
                 tools: ["code-generation", "debugging"]
@@ -233,7 +257,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Testing & Validation",
                 description: "Test generated code and validate functionality",
-                requiredAgent: .specialized,
+                requiredAgent: .monitoring,
                 estimatedDuration: 900, // 15 minutes
                 dependencies: [],
                 tools: ["testing", "validation"]
@@ -247,7 +271,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Content Planning",
                 description: "Plan creative content and visual elements",
-                requiredAgent: .creative,
+                requiredAgent: .orchestration,
                 estimatedDuration: 600,
                 dependencies: [],
                 tools: ["vision", "design"]
@@ -256,7 +280,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Asset Creation",
                 description: "Create visual assets and content",
-                requiredAgent: .creative,
+                requiredAgent: .chat,
                 estimatedDuration: 1800,
                 dependencies: [],
                 tools: ["vision", "image-processing"]
@@ -265,7 +289,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Style Application",
                 description: "Apply consistent styling and branding",
-                requiredAgent: .creative,
+                requiredAgent: .analysis,
                 estimatedDuration: 900,
                 dependencies: [],
                 tools: ["vision", "style-transfer"]
@@ -279,7 +303,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Data Collection",
                 description: "Gather and prepare data for analysis",
-                requiredAgent: .cognitive,
+                requiredAgent: .research,
                 estimatedDuration: 600,
                 dependencies: [],
                 tools: ["data-extraction", "preprocessing"]
@@ -288,7 +312,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Statistical Analysis",
                 description: "Perform statistical analysis on collected data",
-                requiredAgent: .specialized,
+                requiredAgent: .analysis,
                 estimatedDuration: 1200,
                 dependencies: [],
                 tools: ["analytics", "visualization"]
@@ -297,7 +321,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Report Generation",
                 description: "Generate comprehensive analysis report",
-                requiredAgent: .cognitive,
+                requiredAgent: .chat,
                 estimatedDuration: 900,
                 dependencies: [],
                 tools: ["reporting", "documentation"]
@@ -311,7 +335,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Content Scanning",
                 description: "Scan and categorize files or content",
-                requiredAgent: .specialized,
+                requiredAgent: .analysis,
                 estimatedDuration: 900,
                 dependencies: [],
                 tools: ["file-analysis", "categorization"]
@@ -320,7 +344,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Smart Sorting",
                 description: "Organize content using AI-powered sorting",
-                requiredAgent: .cognitive,
+                requiredAgent: .orchestration,
                 estimatedDuration: 600,
                 dependencies: [],
                 tools: ["organization", "file-management"]
@@ -329,7 +353,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Duplicate Removal",
                 description: "Identify and handle duplicate content",
-                requiredAgent: .specialized,
+                requiredAgent: .monitoring,
                 estimatedDuration: 300,
                 dependencies: [],
                 tools: ["deduplication", "cleanup"]
@@ -343,7 +367,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Source Discovery",
                 description: "Find and validate research sources",
-                requiredAgent: .researcher,
+                requiredAgent: .research,
                 estimatedDuration: 1200,
                 dependencies: [],
                 tools: ["web-scraping", "source-validation"]
@@ -352,7 +376,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Information Synthesis",
                 description: "Analyze and synthesize research findings",
-                requiredAgent: .cognitive,
+                requiredAgent: .analysis,
                 estimatedDuration: 1800,
                 dependencies: [],
                 tools: ["text-analysis", "synthesis"]
@@ -361,7 +385,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Documentation",
                 description: "Document research findings and citations",
-                requiredAgent: .cognitive,
+                requiredAgent: .chat,
                 estimatedDuration: 900,
                 dependencies: [],
                 tools: ["documentation", "citation"]
@@ -375,7 +399,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Task Planning",
                 description: "Plan approach and break down tasks",
-                requiredAgent: .cognitive,
+                requiredAgent: .orchestration,
                 estimatedDuration: 300,
                 dependencies: [],
                 tools: ["planning", "task-management"]
@@ -384,7 +408,7 @@ class AgentWorkflowService: ObservableObject {
                 id: UUID().uuidString,
                 name: "Execution",
                 description: "Execute planned tasks",
-                requiredAgent: .specialized,
+                requiredAgent: .chat,
                 estimatedDuration: 1200,
                 dependencies: [],
                 tools: ["general-tools"]
@@ -395,17 +419,17 @@ class AgentWorkflowService: ObservableObject {
     private func determineRequiredAgents(for objectiveType: String) -> [AgentType] {
         switch objectiveType {
         case "Development":
-            return [.cognitive, .specialized, .developer]
+            return [.analysis, .orchestration, .coding]
         case "Creative":
-            return [.creative, .cognitive]
+            return [.chat, .orchestration]
         case "Analysis":
-            return [.cognitive, .specialized]
+            return [.analysis, .research]
         case "Organization":
-            return [.specialized, .cognitive]
+            return [.analysis, .orchestration]
         case "Research":
-            return [.researcher, .cognitive]
+            return [.research, .analysis]
         default:
-            return [.cognitive]
+            return [.chat]
         }
     }
     
@@ -425,13 +449,14 @@ class AgentWorkflowService: ObservableObject {
     }
     
     private func generateTags(for objective: Objective) -> [String] {
-        var tags = [objective.type.lowercased()]
+        let objectiveType = determineObjectiveType(from: objective)
+        var tags = [objectiveType.lowercased()]
         
         if objective.status == .active {
             tags.append("active")
         }
         
-        if objective.progress > 50 {
+        if objective.progress > 0.5 {
             tags.append("in-progress")
         }
         
@@ -649,14 +674,6 @@ enum StepStatus: String, Codable, CaseIterable {
     case skipped = "skipped"
 }
 
-enum AgentType: String, Codable, CaseIterable {
-    case cognitive = "cognitive"
-    case specialized = "specialized"
-    case creative = "creative"
-    case developer = "developer"
-    case researcher = "researcher"
-    case coordinator = "coordinator"
-}
 
 enum WorkflowError: Error, LocalizedError {
     case workflowNotFound

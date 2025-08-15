@@ -207,8 +207,7 @@ Response optimization:
         { role: 'user', content: prompt }
       ], 'tinyllama:latest', {
         temperature: 0.7,
-        max_tokens: 150, // Reduced for voice responses
-        timeout: 3000 // 3 second timeout for voice
+        max_tokens: 150 // Reduced for voice responses
       }),
       // Fallback timeout
       new Promise((_, reject) => 
@@ -313,8 +312,7 @@ Response optimization:
         { role: 'user', content: prompt }
       ], 'tinyllama:latest', {
         temperature: 0.6,
-        max_tokens: 150, // Optimized for voice
-        timeout: 3000
+        max_tokens: 150 // Optimized for voice
       }),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Voice LLM timeout')), 4000)

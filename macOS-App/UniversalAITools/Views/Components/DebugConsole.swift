@@ -5,7 +5,7 @@ import Combine
 /// Real-time debug console for monitoring enhanced UI components
 struct DebugConsole: View {
     @StateObject private var debugService = DebugService.shared
-    @State private var selectedLogLevel: LogLevel = .all
+    @State private var selectedLogLevel: DebugLogLevel = .all
     @State private var searchText = ""
     @State private var autoScroll = true
     @State private var showFilters = false

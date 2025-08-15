@@ -1,5 +1,8 @@
 node_modules
 
+# Archive directory (old scripts and docs)
+archive/
+
 # Build output directories
 dist/
 build/
