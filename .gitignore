@@ -1,5 +1,10 @@
 node_modules
 
+# Build output directories
+dist/
+build/
+logs/
+
 # Cache directories
 .cache/
 .cache/puppeteer/
