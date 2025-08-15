@@ -21,6 +21,20 @@ import { semanticContextRetrievalService } from '../services/semantic-context-re
 import { unifiedModelService } from '../services/unified-model-service.js';
 import { log, LogContext } from '../utils/logger.js';
 
+// Type for semantic search result items
+interface SemanticResult {
+  id: string;
+  content: string;
+  contentType: string;
+  source: string;
+  relevanceScore: number;
+  semanticScore: number;
+  temporalScore: number;
+  contextScore: number;
+  combinedScore: number;
+  embedding?: number[];
+  metadata: Record<string, any>;
+}
 const router = Router();
 
 router.get('/status', (req, res) => {
@@ -61,18 +75,30 @@ router.post(
       };
 
       // Retrieve relevant context from Supabase (semantic search with fallback)
-      const retrieval = await semanticContextRetrievalService.semanticSearch({
-        query: message,
-        userId,
-        sessionId,
-        projectPath,
-        maxResults: Math.min(Math.max(Number(maxContext) || 8, 1), 25),
-        fuseSimilarResults: true,
-      });
+      let retrieval: { results: SemanticResult[]; clusters: { clusters: any[] } };
+      try {
+        retrieval = await semanticContextRetrievalService.semanticSearch({
+          query: message,
+          userId,
+          sessionId,
+          projectPath,
+          maxResults: Math.min(Math.max(Number(maxContext) || 8, 1), 25),
+          fuseSimilarResults: true,
+        });
+      } catch (contextError) {
+        log.warn('Context retrieval failed, continuing with empty context', LogContext.AI, {
+          error: contextError instanceof Error ? contextError.message : String(contextError),
+        });
+        // Provide empty retrieval results on error
+        retrieval = {
+          results: [],
+          clusters: { clusters: [] },
+        };
+      }
 
       const topContext = retrieval.results
         .slice(0, Math.min(Math.max(Number(maxContext) || 8, 1), 25))
-        .map((r) => `- (${r.contentType}) ${r.content}`)
+        .map((r: SemanticResult) => `- (${r.contentType}) ${r.content}`)
         .join('\n');
 
       // Build messages for model with retrieved context

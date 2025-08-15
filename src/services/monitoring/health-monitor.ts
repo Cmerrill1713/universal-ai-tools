@@ -4,9 +4,9 @@
  * Combines functionality from health-monitor.ts and health-monitor-service.ts
  */
 
-import { EventEmitter } from 'events';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
+import { EventEmitter } from 'events';
 
 import { config } from '@/config/environment';
 import { CircuitBreakerRegistry, createCircuitBreaker } from '@/utils/circuit-breaker';

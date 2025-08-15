@@ -9,9 +9,30 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ES module equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ES module equivalent of __dirname (handle different module systems)
+let moduleFilename: string;
+let moduleDirname: string;
+
+// Check if we're in a test environment or CommonJS
+if (typeof __filename !== 'undefined' && typeof __dirname !== 'undefined') {
+  // CommonJS or test environment
+  moduleFilename = __filename;
+  moduleDirname = __dirname;
+} else if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+  // Test environment fallback - use current working directory
+  moduleFilename = '';
+  moduleDirname = process.cwd();
+} else {
+  // ES modules - only use import.meta.url in actual ES module context
+  try {
+    moduleFilename = fileURLToPath((globalThis as any).importMetaUrl || '');
+    moduleDirname = path.dirname(moduleFilename) || process.cwd();
+  } catch {
+    // Ultimate fallback
+    moduleFilename = '';
+    moduleDirname = process.cwd();
+  }
+}
 
 import { ollamaService } from '@/services/ollama-service';
 import { CircuitBreaker, CircuitBreakerRegistry } from '@/utils/circuit-breaker';
@@ -65,12 +86,13 @@ export class LFM2BridgeService {
     successRate: 1.0,
     tokenThroughput: 0,
   };
-  private MAX_PENDING = parseInt(process.env.LFM2_MAX_PENDING || '50', 10);
-  private REQUEST_TIMEOUT_MS = parseInt(process.env.LFM2_TIMEOUT_MS || '10000', 10);
-  private MAX_CONCURRENCY = parseInt(process.env.LFM2_MAX_CONCURRENCY || '2', 10);
-  private MAX_TOKENS = parseInt(process.env.LFM2_MAX_TOKENS || '512', 10);
-  private MAX_PROMPT_CHARS = parseInt(process.env.LFM2_MAX_PROMPT_CHARS || '4000', 10);
+  private MAX_PENDING = parseInt(process.env.LFM2_MAX_PENDING || '25', 10); // Reduced from 50
+  private REQUEST_TIMEOUT_MS = parseInt(process.env.LFM2_TIMEOUT_MS || '8000', 10); // Reduced from 10000
+  private MAX_CONCURRENCY = parseInt(process.env.LFM2_MAX_CONCURRENCY || '1', 10); // Reduced from 2
+  private MAX_TOKENS = parseInt(process.env.LFM2_MAX_TOKENS || '256', 10); // Reduced from 512
+  private MAX_PROMPT_CHARS = parseInt(process.env.LFM2_MAX_PROMPT_CHARS || '2000', 10); // Reduced from 4000
   private activeCount = 0;
+  private cleanupTimer?: NodeJS.Timeout;
 
   constructor() {
     // Allow disabling LFM2 entirely via environment flag (prefer MLX/Ollama)
@@ -80,6 +102,37 @@ export class LFM2BridgeService {
     } else {
       this.initializeLFM2();
     }
+    
+    // Start memory cleanup timer
+    this.startMemoryCleanup();
+  }
+
+  private startMemoryCleanup(): void {
+    this.cleanupTimer = setInterval(() => {
+      this.performMemoryCleanup();
+    }, 30000); // Clean up every 30 seconds
+  }
+
+  private performMemoryCleanup(): void {
+    const now = Date.now();
+    
+    // Clean up stale pending requests
+    for (const [requestId, request] of this.pendingRequests.entries()) {
+      if (now - request.startTime > this.REQUEST_TIMEOUT_MS * 2) {
+        this.pendingRequests.delete(requestId);
+        this.activeCount = Math.max(0, this.activeCount - 1);
+      }
+    }
+    
+    // Clear old request queue entries if they're stale
+    this.requestQueue = this.requestQueue.filter(req => {
+      return this.pendingRequests.has(req.id);
+    });
+    
+    // Force garbage collection hint if available
+    if (global.gc && this.pendingRequests.size === 0) {
+      global.gc();
+    }
   }
 
   private async initializeLFM2(): Promise<void> {
@@ -88,7 +141,7 @@ export class LFM2BridgeService {
 
       const pythonBin = process.env.LFM2_PYTHON_BIN || 'python3';
       const scriptFromEnv = process.env.LFM2_PYTHON_SCRIPT;
-      const defaultScript = path.join(__dirname, 'lfm2-server.py');
+      const defaultScript = path.join(moduleDirname, 'lfm2-server.py');
       const pythonScript = scriptFromEnv || defaultScript;
 
       // Verify the script exists before trying to spawn
@@ -639,12 +692,28 @@ Respond with JSON:
   public async shutdown(): Promise<void> {
     log.info('🛑 Shutting down LFM2 bridge service', LogContext.AI);
 
+    // Clear cleanup timer
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
+
+    // Clear all pending requests and queues
+    this.pendingRequests.clear();
+    this.requestQueue.length = 0;
+    this.activeCount = 0;
+
     if (this.pythonProcess) {
       this.pythonProcess.kill();
       this.pythonProcess = null;
     }
 
     this.isInitialized = false;
+    
+    // Force garbage collection
+    if (global.gc) {
+      global.gc();
+    }
   }
 
   public updateLimits(
@@ -756,7 +825,7 @@ class SafeLFM2Bridge {
 
         const response = await ollamaService.generateResponse(
           [{ role: 'user', content: request.prompt }],
-          'llama3.2:3b',
+          'gpt-oss:20b',
           {
             temperature: request.temperature || 0.1,
             max_tokens: request.maxTokens || 100,
@@ -767,7 +836,7 @@ class SafeLFM2Bridge {
           content: response.message.content,
           tokens: response.eval_count || 50,
           executionTime: (response.total_duration || 100000000) / 1000000,
-          model: 'llama3.2:3b (LFM2 fallback)',
+          model: 'gpt-oss:20b (LFM2 fallback)',
           confidence: 0.85,
         };
       },

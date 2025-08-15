@@ -4,9 +4,10 @@
  * Based on research from: https://arxiv.org/pdf/2508.09101
  */
 
+import { z } from 'zod';
+
 import { llmRouter } from '@/services/llm-router-service';
 import { log, LogContext } from '@/utils/logger';
-import { z } from 'zod';
 
 // AutoCodeBench Configuration Schema
 const AutoCodeBenchConfigSchema = z.object({
@@ -77,14 +78,14 @@ export type Problem = z.infer<typeof ProblemSchema>;
 
 // Test Result Schema
 const TestResultSchema = z.object({
-  testCaseId: string,
-  input: string,
-  expectedOutput: string,
-  actualOutput: string,
-  passed: boolean,
-  executionTime: number,
-  memoryUsage: number,
-  errorMessage: string.optional(),
+  testCaseId: z.string(),
+  input: z.string(),
+  expectedOutput: z.string(),
+  actualOutput: z.string(),
+  passed: z.boolean(),
+  executionTime: z.number(),
+  memoryUsage: z.number(),
+  errorMessage: z.string().optional(),
 });
 
 export type TestResult = z.infer<typeof TestResultSchema>;
@@ -193,6 +194,7 @@ export class AutoCodeBenchService {
 
       // Step 4: Apply quality filtering
       const filteredProblem = await this.applyQualityFiltering({
+        id: `problem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...problemDescription,
         solution,
         testCases: testFunction.testCases,
@@ -238,12 +240,14 @@ Requirements:
 
 Generate only the ${options.language} code without explanations:`;
 
-    const response = await llmRouter.generateText({
-      prompt,
-      model: 'deepseek-coder',
-      temperature: 0.1,
-      maxTokens: 2000,
-    });
+    const response = await llmRouter.generateResponse(
+      'deepseek-coder',
+      [{ role: 'user', content: prompt }],
+      {
+        temperature: 0.1,
+        maxTokens: 2000,
+      }
+    );
 
     return response.content;
   }
@@ -278,12 +282,14 @@ For each test case, provide:
 
 Format as JSON array of test cases:`;
 
-    const response = await llmRouter.generateText({
-      prompt,
-      model: 'deepseek-coder',
-      temperature: 0.1,
-      maxTokens: 1500,
-    });
+    const response = await llmRouter.generateResponse(
+      'deepseek-coder',
+      [{ role: 'user', content: prompt }],
+      {
+        temperature: 0.1,
+        maxTokens: 1500,
+      }
+    );
 
     // Parse test cases from response
     const testCases = this.parseTestCases(response.content, options.language);
@@ -325,12 +331,14 @@ Generate a problem description that:
 
 Format the response as a structured problem description.`;
 
-    const response = await llmRouter.generateText({
-      prompt,
-      model: 'deepseek-coder',
-      temperature: 0.1,
-      maxTokens: 1000,
-    });
+    const response = await llmRouter.generateResponse(
+      'deepseek-coder',
+      [{ role: 'user', content: prompt }],
+      {
+        temperature: 0.1,
+        maxTokens: 1000,
+      }
+    );
 
     // Parse and structure the problem description
     return this.parseProblemDescription(response.content, options);
@@ -385,12 +393,14 @@ Evaluate the problem on:
 
 Rate each aspect 1-10 and provide specific feedback for improvement.`;
 
-    const response = await llmRouter.generateText({
-      prompt,
-      model: 'deepseek-coder',
-      temperature: 0.1,
-      maxTokens: 1000,
-    });
+    const response = await llmRouter.generateResponse(
+      'deepseek-coder',
+      [{ role: 'user', content: prompt }],
+      {
+        temperature: 0.1,
+        maxTokens: 1000,
+      }
+    );
 
     // Apply improvements based on feedback
     return this.applyCriticFeedback(problem, response.content);
@@ -413,12 +423,14 @@ Assign tags for:
 
 Return only the tags as a JSON array.`;
 
-    const response = await llmRouter.generateText({
-      prompt,
-      model: 'deepseek-coder',
-      temperature: 0.1,
-      maxTokens: 500,
-    });
+    const response = await llmRouter.generateResponse(
+      'deepseek-coder',
+      [{ role: 'user', content: prompt }],
+      {
+        temperature: 0.1,
+        maxTokens: 500,
+      }
+    );
 
     const tags = this.parseTags(response.content);
     return { ...problem, metadata: { ...problem.metadata, tags } };
@@ -692,12 +704,14 @@ ${JSON.stringify(problem, null, 2)}
 
 Focus on improving ${aspect} while maintaining the core requirements.`;
 
-    const response = await llmRouter.generateResponse({
-      messages: [{ role: 'user', content: prompt }],
-      model: 'deepseek-coder',
-      temperature: 0.3,
-      maxTokens: 1000,
-    });
+    const response = await llmRouter.generateResponse(
+      'deepseek-coder',
+      [{ role: 'user', content: prompt }],
+      {
+        temperature: 0.3,
+        maxTokens: 1000,
+      }
+    );
 
     return this.parseProblemDescription(response.content, {
       language: problem.language,
@@ -708,8 +722,12 @@ Focus on improving ${aspect} while maintaining the core requirements.`;
 
   private async selectBestVariation(variations: Problem[]): Promise<Problem> {
     // Select the best variation based on quality metrics
-    // For now, return the first variation
-    return variations[0] || variations[1] || variations[2];
+    // Return the first available variation, or throw if none exist
+    const bestVariation = variations.find(v => v != null);
+    if (!bestVariation) {
+      throw new Error('No valid variations generated');
+    }
+    return bestVariation;
   }
 
   private async applyCriticFeedback(problem: Problem, feedback: string): Promise<Problem> {

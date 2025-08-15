@@ -8,6 +8,15 @@ export interface WebResult {
   snippet?: string;
 }
 
+export interface SearxngResponse {
+  results: Array<{
+    title: string;
+    url: string;
+    content: string;
+    engine: string;
+  }>;
+}
+
 type CacheEntry = { results: WebResult[]; expiresAt: number };
 
 export class WebSearchService {
@@ -15,6 +24,7 @@ export class WebSearchService {
   private lastFailureAt = 0;
   private failureBackoffMs = 30000; // 30s backoff after failure
   private ttlMs = 5 * 60 * 1000; // 5 minutes
+  private searxngUrl = config.searxng?.url || 'http://localhost:8888';
 
   private getCacheKey(query: string, limit: number): string {
     return `${query}::${limit}`.toLowerCase();
@@ -44,6 +54,61 @@ export class WebSearchService {
     return out;
   }
 
+  async searchSearxng(query: string, limit = 5, engines?: string[], categories?: string[]): Promise<WebResult[]> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return [];
+    }
+
+    try {
+      if (!globalThis.fetch) return [];
+      
+      const searchParams = new URLSearchParams({
+        q: query,
+        format: 'json'
+      });
+
+      if (engines && engines.length > 0) {
+        searchParams.append('engines', engines.join(','));
+      }
+
+      if (categories && categories.length > 0) {
+        searchParams.append('categories', categories.join(','));
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const resp = await globalThis.fetch(
+        `${this.searxngUrl}/search?${searchParams.toString()}`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; Universal-AI-Tools/1.0)',
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!resp.ok) {
+        throw new Error(`Searxng responded with status ${resp.status}`);
+      }
+
+      const data: SearxngResponse = await resp.json();
+      const results: WebResult[] = (data.results || []).slice(0, limit).map((item) => ({
+        title: item.title || '',
+        url: item.url || '',
+        snippet: item.content || undefined,
+      }));
+
+      return this.dedupe(results);
+    } catch (error) {
+      console.warn('Searxng search failed:', error);
+      return [];
+    }
+  }
+
   async searchDuckDuckGo(query: string, limit = 5): Promise<WebResult[]> {
     if (config.offlineMode || config.disableExternalCalls) {
       return [];
@@ -54,6 +119,14 @@ export class WebSearchService {
     // Backoff if recent failure
     if (Date.now() - this.lastFailureAt < this.failureBackoffMs) return [];
 
+    // Try Searxng first
+    const searxngResults = await this.searchSearxng(query, limit, ['duckduckgo']);
+    if (searxngResults.length > 0) {
+      this.setCache(query, limit, searxngResults);
+      return searxngResults;
+    }
+
+    // Fallback to direct DuckDuckGo scraping
     const results: WebResult[] = [];
     try {
       if (!globalThis.fetch) return [];
@@ -82,6 +155,36 @@ export class WebSearchService {
     return results;
   }
 
+  async search(query: string, limit = 5, options?: {
+    engines?: string[];
+    categories?: string[];
+    preferSearxng?: boolean;
+  }): Promise<WebResult[]> {
+    if (config.offlineMode || config.disableExternalCalls) {
+      return [];
+    }
+
+    const cached = this.getCached(query, limit);
+    if (cached) return cached;
+
+    // Try Searxng first if preferred or if no specific options
+    if (options?.preferSearxng !== false) {
+      const searxngResults = await this.searchSearxng(
+        query, 
+        limit, 
+        options?.engines, 
+        options?.categories
+      );
+      if (searxngResults.length > 0) {
+        this.setCache(query, limit, searxngResults);
+        return searxngResults;
+      }
+    }
+
+    // Fallback to DuckDuckGo if Searxng fails or is disabled
+    return this.searchDuckDuckGo(query, limit);
+  }
+
   async searchWikipedia(query: string, limit = 3): Promise<WebResult[]> {
     if (config.offlineMode || config.disableExternalCalls) {
       return [];
@@ -90,6 +193,14 @@ export class WebSearchService {
     const cached = this.cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.results;
 
+    // Try Searxng with Wikipedia engine first
+    const searxngResults = await this.searchSearxng(query, limit, ['wikipedia']);
+    if (searxngResults.length > 0) {
+      this.cache.set(cacheKey, { results: searxngResults, expiresAt: Date.now() + this.ttlMs });
+      return searxngResults;
+    }
+
+    // Fallback to direct Wikipedia API
     try {
       const api = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
         query

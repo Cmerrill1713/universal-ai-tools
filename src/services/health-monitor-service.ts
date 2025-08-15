@@ -41,10 +41,77 @@ export class HealthMonitorService extends EventEmitter {
   constructor() {
     super();
     this.startMonitoring();
+    // Initialize core agents in mesh immediately after first health check
+    this.scheduleInitialAgentRegistration();
   }
 
   public setAgentRegistry(agentRegistry: AgentRegistry): void {
     this.agentRegistry = agentRegistry;
+    // Immediately try to initialize agents when registry is available
+    this.forceAgentRegistration();
+  }
+
+  private scheduleInitialAgentRegistration(): void {
+    // Wait 5 seconds after startup to ensure all services are initialized
+    setTimeout(() => {
+      this.forceAgentRegistration();
+    }, 5000);
+  }
+
+  public async forceAgentRegistration(): Promise<void> {
+    if (!this.agentRegistry) {
+      log.debug('Agent registry not available for mesh registration', LogContext.AGENT);
+      return;
+    }
+
+    try {
+      log.info('🚀 Force registering core agents in mesh...', LogContext.AGENT);
+      
+      // Pre-define all core agents that should be in the mesh
+      const coreAgentDefinitions = [
+        { name: 'r1_reasoning', capabilities: ['r1_reasoning_cycles', 'multi_step_thinking', 'dynamic_retrieval'], trustLevel: 0.9 },
+        { name: 'multi_tier_router', capabilities: ['tier_routing', 'complexity_analysis', 'performance_optimization'], trustLevel: 0.9 },
+        { name: 'graphrag_reasoning', capabilities: ['knowledge_graph_construction', 'graph_based_reasoning', 'entity_relationship_extraction'], trustLevel: 0.9 },
+        { name: 'performance_optimization', capabilities: ['latency_optimization', 'throughput_optimization', 'bottleneck_analysis'], trustLevel: 0.8 },
+        { name: 'codebase_optimizer', capabilities: ['codebase_analysis', 'code_optimization', 'performance_analysis'], trustLevel: 0.8 },
+        { name: 'planner', capabilities: ['planning', 'task_decomposition', 'strategy'], trustLevel: 0.9 },
+        { name: 'synthesizer', capabilities: ['synthesis', 'consensus', 'analysis'], trustLevel: 0.8 },
+        { name: 'retriever', capabilities: ['information_retrieval', 'context_gathering', 'search'], trustLevel: 0.8 }
+      ];
+
+      const a2aMesh = (await import('@/services/a2a-communication-mesh')).a2aMesh;
+      const existingConnections = a2aMesh.getAgentConnections();
+      const registeredAgentNames = existingConnections.map(conn => conn.agentName);
+
+      let registeredCount = 0;
+      for (const agentDef of coreAgentDefinitions) {
+        if (!registeredAgentNames.includes(agentDef.name)) {
+          try {
+            a2aMesh.registerAgent(agentDef.name, agentDef.capabilities, agentDef.trustLevel);
+            registeredCount++;
+            log.info(`✅ Registered core agent in mesh: ${agentDef.name}`, LogContext.AGENT, {
+              capabilities: agentDef.capabilities.length,
+              trustLevel: agentDef.trustLevel
+            });
+          } catch (error) {
+            log.warn(`⚠️ Failed to register core agent ${agentDef.name} in mesh`, LogContext.AGENT, { error });
+          }
+        } else {
+          log.debug(`Core agent already registered: ${agentDef.name}`, LogContext.AGENT);
+        }
+      }
+
+      if (registeredCount > 0) {
+        log.info(`🎉 Successfully registered ${registeredCount} core agents in mesh`, LogContext.AGENT);
+        // Force a health check to update mesh health metrics
+        setTimeout(() => this.performHealthCheck(), 1000);
+      } else {
+        log.info('All core agents already registered in mesh', LogContext.AGENT);
+      }
+
+    } catch (error) {
+      log.error('❌ Failed to force register agents in mesh', LogContext.AGENT, { error });
+    }
   }
 
   private startMonitoring(): void {
@@ -78,11 +145,36 @@ export class HealthMonitorService extends EventEmitter {
         timestamp: new Date(),
       };
 
-      // Calculate agent health
+      // Calculate agent and mesh health
       if (this.agentRegistry) {
-        const meshStatus = this.agentRegistry.getMeshStatus();
-        metrics.agentHealth = (meshStatus as any).meshHealth || 0;
-        metrics.meshHealth = (meshStatus as any).meshHealth || 0;
+        // Initialize core agents in mesh if not already done
+        await this.initializeCoreAgents();
+
+        const meshStatus = this.agentRegistry.getMeshStatus() as {
+          totalAgents: number;
+          onlineAgents: number;
+          activeCollaborations: number;
+          messagesInQueue: number;
+          meshHealth: number;
+        };
+
+        // Calculate agent health based on loaded agents vs available agents
+        const coreAgents = this.agentRegistry.getCoreAgents();
+        const loadedAgents = await this.countLoadedAgents();
+        
+        // Agent health is the percentage of core agents that are loaded and functioning
+        metrics.agentHealth = coreAgents.length > 0 ? loadedAgents / coreAgents.length : 0.5; // Default to 50% if no core agents
+        
+        // Mesh health comes directly from the mesh status
+        metrics.meshHealth = meshStatus?.meshHealth || 0;
+        
+        // Ensure values are between 0 and 1
+        metrics.agentHealth = Math.max(0, Math.min(1, metrics.agentHealth));
+        metrics.meshHealth = Math.max(0, Math.min(1, metrics.meshHealth));
+      } else {
+        // Default values when agent registry is not available
+        metrics.agentHealth = 0.2; // 20% health as system is partially functional
+        metrics.meshHealth = 0.1; // 10% mesh health as no agents are connected
       }
 
       // Calculate overall system health
@@ -146,6 +238,38 @@ export class HealthMonitorService extends EventEmitter {
       return Date.now() - start;
     } catch {
       return 5000; // Max response time on error
+    }
+  }
+
+  private async initializeCoreAgents(): Promise<void> {
+    // Use the centralized force registration method
+    await this.forceAgentRegistration();
+  }
+
+  private async countLoadedAgents(): Promise<number> {
+    if (!this.agentRegistry) return 0;
+
+    try {
+      const coreAgents = this.agentRegistry.getCoreAgents();
+      let loadedCount = 0;
+
+      for (const agentName of coreAgents) {
+        try {
+          // Check if agent can be loaded/accessed
+          const agent = await this.agentRegistry.getAgent(agentName);
+          if (agent) {
+            loadedCount++;
+          }
+        } catch (error) {
+          // Agent failed to load, don't count it
+          log.debug(`Agent ${agentName} not loaded`, LogContext.AGENT);
+        }
+      }
+
+      return loadedCount;
+    } catch (error) {
+      log.error('❌ Failed to count loaded agents', LogContext.SYSTEM, { error });
+      return 0;
     }
   }
 

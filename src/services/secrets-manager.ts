@@ -30,7 +30,7 @@ export class SecretsManager {
   private static instance: SecretsManager;
   private supabase: unknown;
   private cachedCredentials: Map<string, ServiceCredential> = new Map();
-  private cacheExpiry: number = 5 * 60 * 1000; // 5 minutes
+  private cacheExpiry: number = 15 * 60 * 1000; // 15 minutes for better performance
   private lastCacheUpdate = 0;
   private initializing = false;
   private initialized = false;

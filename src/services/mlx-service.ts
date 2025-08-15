@@ -9,9 +9,9 @@ import { existsSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
+import { getPorts } from '../config/ports';
 import { CircuitBreaker } from '../utils/circuit-breaker';
 import { log, LogContext } from '../utils/logger';
-import { getPorts } from '../config/ports';
 
 // ES Module compatibility for __dirname
 const __filename = fileURLToPath(import.meta.url);

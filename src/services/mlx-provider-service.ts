@@ -9,8 +9,8 @@ import { EventEmitter } from 'events';
 import fs from 'fs/promises';
 import path from 'path';
 
-import { log, LogContext } from '@/utils/logger';
 import { getPorts } from '@/config/ports';
+import { log, LogContext } from '@/utils/logger';
 
 export interface MLXModel {
   id: string;

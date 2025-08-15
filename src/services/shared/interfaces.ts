@@ -83,6 +83,8 @@ export interface LLMRequest {
   prompt: string;
   maxTokens?: number;
   temperature?: number;
+  topP?: number;
+  systemPrompt?: string;
   stream?: boolean;
   user?: string;
   metadata?: Record<string, any>;

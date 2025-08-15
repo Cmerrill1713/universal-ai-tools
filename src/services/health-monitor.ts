@@ -314,10 +314,23 @@ export class HealthMonitor {
       const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
       const heapPercentage = (heapUsedMB / heapTotalMB) * 100;
 
-      if (heapPercentage > 90) {
+      // Get memory optimization service analytics if available
+      let memoryOptimizationAnalytics = null;
+      try {
+        const { memoryOptimizationService } = await import('./memory-optimization-service');
+        memoryOptimizationAnalytics = memoryOptimizationService.getMemoryAnalytics();
+      } catch (error) {
+        // Memory optimization service might not be available
+      }
+
+      // Use memory optimization service thresholds if available
+      const criticalThreshold = memoryOptimizationAnalytics ? 85 : 90;
+      const degradedThreshold = memoryOptimizationAnalytics ? 75 : 70;
+
+      if (heapPercentage > criticalThreshold) {
         service.status = 'unhealthy';
         service.error = 'Memory usage critical';
-      } else if (heapPercentage > 70) {
+      } else if (heapPercentage > degradedThreshold) {
         service.status = 'degraded';
         service.error = 'Memory usage high';
       } else {
@@ -331,6 +344,9 @@ export class HealthMonitor {
         heapPercentage: `${heapPercentage.toFixed(2)}%`,
         rssMB: (memUsage.rss / 1024 / 1024).toFixed(2),
         externalMB: (memUsage.external / 1024 / 1024).toFixed(2),
+        memoryPressureMode: memoryOptimizationAnalytics?.isMemoryPressureMode || false,
+        averageHeapUsage: memoryOptimizationAnalytics?.averageHeapUsage?.toFixed(2) || 'N/A',
+        peakHeapUsage: memoryOptimizationAnalytics?.peakHeapUsage?.toFixed(2) || 'N/A',
       };
     } catch (error) {
       service.status = 'unhealthy';
@@ -392,6 +408,11 @@ export class HealthMonitor {
     }
 
     return this.services.get(serviceName);
+  }
+
+  async forceHealthCheck(): Promise<SystemHealth> {
+    log.info('🔍 Forcing comprehensive health check', LogContext.SYSTEM);
+    return await this.checkAllServices();
   }
 }
 

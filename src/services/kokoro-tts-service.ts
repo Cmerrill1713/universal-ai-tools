@@ -139,10 +139,19 @@ export class KokoroTTSService {
     const scriptPath = join(this.outputDirectory, 'kokoro_server.py');
     writeFileSync(scriptPath, pythonScript);
 
-    // Start Python process
-    this.pythonProcess = spawn('python3', [scriptPath], {
+    // Use the Python interpreter from our current environment with proper sys.path
+    const pythonExe = process.env.VIRTUAL_ENV ? 
+      join(process.env.VIRTUAL_ENV, 'bin', 'python') : 
+      'python3';
+
+    // Start Python process with proper environment
+    this.pythonProcess = spawn(pythonExe, [scriptPath], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: this.kokoroPath,
+      env: {
+        ...process.env,
+        PYTHONPATH: process.cwd() + ':' + (process.env.PYTHONPATH || ''),
+      },
     });
 
     if (this.pythonProcess.stdout && this.pythonProcess.stderr) {
@@ -154,7 +163,13 @@ export class KokoroTTSService {
       });
 
       this.pythonProcess.stderr.on('data', (data) => {
-        log.error('❌ Kokoro TTS error', LogContext.AI, { error: data.toString() });
+        const output = data.toString();
+        // Filter out status messages that are actually informational
+        if (output.includes('✅ Successfully imported') || output.includes('Loading Kokoro')) {
+          log.info('🎤 Kokoro TTS status', LogContext.AI, { message: output.trim() });
+        } else {
+          log.error('❌ Kokoro TTS error', LogContext.AI, { error: output });
+        }
       });
     }
 
@@ -415,9 +430,21 @@ Integrates with Kokoro-82M model for voice synthesis
 
 import sys
 import json
-import torch
-import torchaudio
-from pathlib import Path
+import os
+
+# Add current working directory to Python path for imports
+sys.path.insert(0, os.getcwd())
+
+try:
+    import torch
+    import torchaudio
+    from pathlib import Path
+    print("✅ Successfully imported torch and torchaudio", file=sys.stderr)
+except ImportError as e:
+    print(f"❌ Import error: {e}", file=sys.stderr)
+    print(f"Python path: {sys.path}", file=sys.stderr)
+    print(f"Current working directory: {os.getcwd()}", file=sys.stderr)
+    sys.exit(1)
 
 class KokoroTTSServer:
     def __init__(self):

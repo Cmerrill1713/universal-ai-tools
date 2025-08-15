@@ -430,6 +430,63 @@ export class ContextStorageService {
   }
 
   /**
+   * Get contexts by IDs
+   */
+  async getContextsByIds(contextIds: string[]): Promise<StoredContext[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('context_storage')
+        .select('*')
+        .in('id', contextIds);
+
+      if (error) {
+        log.error('Failed to retrieve contexts by IDs', LogContext.DATABASE, {
+          error: error.message,
+          contextIds,
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      log.error('Error retrieving contexts by IDs', LogContext.DATABASE, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Get recent contexts for a user
+   */
+  async getRecentContexts(userId: string, limit = 10): Promise<StoredContext[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('context_storage')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        log.error('Failed to retrieve recent contexts', LogContext.DATABASE, {
+          error: error.message,
+          userId,
+          limit,
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      log.error('Error retrieving recent contexts', LogContext.DATABASE, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
+  }
+
+  /**
    * Get context statistics for a user
    */
   async getContextStats(userId: string): Promise<{

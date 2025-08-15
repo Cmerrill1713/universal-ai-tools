@@ -11,6 +11,7 @@ import type AgentRegistry from '@/agents/agent-registry';
 import { authenticate } from '@/middleware/auth';
 import { validateParams } from '@/middleware/validation';
 import { zodValidate } from '@/middleware/zod-validate';
+import { singleFileAgentBridge } from '@/services/single-file-agent-bridge';
 import type { AgentContext } from '@/types';
 import { log, LogContext } from '@/utils/logger';
 
@@ -328,27 +329,78 @@ router.post(
         const agentExists = availableAgents.some((agent) => agent.name === agentName);
 
         if (!agentExists) {
-          log.warn('Agent not found, using fallback response', LogContext.API, { agentName });
-          // Provide a fallback response for testing
-          result = {
-            response: `I'm here to help! The ${agentName} agent is currently being initialized. How can I assist you today?`,
-            confidence: 0.8,
-            success: true,
-            reasoning: 'Fallback response while agents are loading',
-          };
+          log.warn('Agent not found, trying single-file agents', LogContext.API, { agentName });
+          
+          // Try single-file agents as fallback
+          if (singleFileAgentBridge.isAvailable()) {
+            const singleFileResult = await singleFileAgentBridge.processRequest(message, agentContext);
+            
+            if (singleFileResult && singleFileResult.success) {
+              result = {
+                response: singleFileResult.response,
+                confidence: singleFileResult.confidence,
+                success: true,
+                agentUsed: singleFileResult.agentUsed,
+                executionTime: singleFileResult.executionTime,
+                reasoning: `Handled by single-file agent: ${singleFileResult.agentUsed}`,
+                data: singleFileResult.data
+              };
+            } else {
+              // Provide a fallback response
+              result = {
+                response: `I'm here to help! The ${agentName} agent is currently being initialized. How can I assist you today?`,
+                confidence: 0.8,
+                success: true,
+                reasoning: 'Fallback response while agents are loading',
+              };
+            }
+          } else {
+            // Provide a fallback response when single-file agents aren't available
+            result = {
+              response: `I'm here to help! The ${agentName} agent is currently being initialized. How can I assist you today?`,
+              confidence: 0.8,
+              success: true,
+              reasoning: 'Fallback response while agents are loading',
+            };
+          }
         } else {
           // Try to get the agent
           const agent = await agentRegistry.getAgent(agentName);
           if (!agent) {
-            log.warn('Agent failed to load, using fallback response', LogContext.API, {
+            log.warn('Agent failed to load, trying single-file agents', LogContext.API, {
               agentName,
             });
-            result = {
-              response: `I'm experiencing some technical difficulties with the ${agentName} agent, but I'm still here to help! Please try again in a moment.`,
-              confidence: 0.5,
-              success: false,
-              error: 'Agent failed to initialize',
-            };
+            
+            // Try single-file agents as fallback when main agent fails to load
+            if (singleFileAgentBridge.isAvailable()) {
+              const singleFileResult = await singleFileAgentBridge.processRequest(message, agentContext);
+              
+              if (singleFileResult && singleFileResult.success) {
+                result = {
+                  response: singleFileResult.response,
+                  confidence: singleFileResult.confidence,
+                  success: true,
+                  agentUsed: singleFileResult.agentUsed,
+                  executionTime: singleFileResult.executionTime,
+                  reasoning: `Fallback to single-file agent: ${singleFileResult.agentUsed}`,
+                  data: singleFileResult.data
+                };
+              } else {
+                result = {
+                  response: `I'm experiencing some technical difficulties with the ${agentName} agent, but I'm still here to help! Please try again in a moment.`,
+                  confidence: 0.5,
+                  success: false,
+                  error: 'Agent failed to initialize',
+                };
+              }
+            } else {
+              result = {
+                response: `I'm experiencing some technical difficulties with the ${agentName} agent, but I'm still here to help! Please try again in a moment.`,
+                confidence: 0.5,
+                success: false,
+                error: 'Agent failed to initialize',
+              };
+            }
           } else {
             // Process with the agent
             result = await agentRegistry.processRequest(agentName, agentContext);
@@ -360,14 +412,43 @@ router.post(
           agentName,
         });
 
-        // Provide fallback response
-        result = {
-          response:
-            "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
-          confidence: 0.5,
-          success: false,
-          error: agentError instanceof Error ? agentError.message : 'Unknown error',
-        };
+        // Try single-file agents as final fallback
+        if (singleFileAgentBridge.isAvailable()) {
+          try {
+            const singleFileResult = await singleFileAgentBridge.processRequest(message, agentContext);
+            if (singleFileResult && singleFileResult.success) {
+              result = {
+                response: singleFileResult.response,
+                confidence: singleFileResult.confidence,
+                success: true,
+                agentUsed: singleFileResult.agentUsed,
+                executionTime: singleFileResult.executionTime,
+                reasoning: `Emergency fallback to single-file agent: ${singleFileResult.agentUsed}`,
+                data: singleFileResult.data
+              };
+            } else {
+              throw new Error('Single-file agents also failed');
+            }
+          } catch (fallbackError) {
+            // Final fallback response
+            result = {
+              response:
+                "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
+              confidence: 0.5,
+              success: false,
+              error: agentError instanceof Error ? agentError.message : 'Unknown error',
+            };
+          }
+        } else {
+          // Provide fallback response when single-file agents aren't available
+          result = {
+            response:
+              "I'm experiencing some technical difficulties, but I'm still here to help! Please try again in a moment.",
+            confidence: 0.5,
+            success: false,
+            error: agentError instanceof Error ? agentError.message : 'Unknown error',
+          };
+        }
       }
 
       // If we still don't have a valid response, provide a basic fallback
@@ -410,7 +491,7 @@ router.post(
       const currentUsage = Object.prototype.hasOwnProperty.call(conversation.metadata.agentUsage, agentName) 
         ? conversation.metadata.agentUsage[agentName] 
         : 0;
-      Object.assign(conversation.metadata.agentUsage, { [agentName]: currentUsage + 1 });
+      Object.assign(conversation.metadata.agentUsage, { [agentName]: (currentUsage || 0) + 1 });
 
       return res.json({
         success: true,

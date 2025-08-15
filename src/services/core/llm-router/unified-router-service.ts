@@ -6,9 +6,14 @@
 
 import { EventEmitter } from 'events';
 
-import { BaseService, LLMRequest, LLMResponse, LLMProvider, ModelInfo } from '../../shared/interfaces';
+import type { CircuitBreaker} from '@/utils/circuit-breaker';
+import { createCircuitBreaker } from '@/utils/circuit-breaker';
 import { log, LogContext } from '@/utils/logger';
-import { CircuitBreaker, createCircuitBreaker } from '@/utils/circuit-breaker';
+
+import type { BaseService, LLMProvider, LLMRequest, LLMResponse} from '../../shared/interfaces';
+import { ModelInfo } from '../../shared/interfaces';
+import { OllamaService, OllamaMessage } from '../../ollama-service';
+import { HuggingFaceToLMStudioAdapter } from '../../huggingface-to-lmstudio';
 
 // ============================================================================
 // Enhanced Types for Unified Router
@@ -98,6 +103,8 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
   private healthCheckTimer?: NodeJS.Timeout;
   private metricsUpdateTimer?: NodeJS.Timeout;
   private requestCounter = 0;
+  private ollamaService?: OllamaService;
+  private lmStudioAdapter?: HuggingFaceToLMStudioAdapter;
 
   constructor() {
     super();
@@ -334,7 +341,7 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
       }
     }
 
-    return bestModel;
+    return bestModel!;
   }
 
   private selectByCost(candidates: string[], request: LLMRequest): string {
@@ -358,7 +365,7 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
       }
     }
 
-    return bestModel;
+    return bestModel!;
   }
 
   private selectByQuality(candidates: string[]): string {
@@ -377,7 +384,7 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
       }
     }
 
-    return bestModel;
+    return bestModel!;
   }
 
   private selectByLoad(candidates: string[]): string {
@@ -401,13 +408,16 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
       }
     }
 
-    return bestModel;
+    return bestModel!;
   }
 
   private selectRoundRobin(candidates: string[]): string {
+    if (candidates.length === 0) {
+      throw new Error('No candidates available for round-robin selection');
+    }
     const index = this.requestCounter % candidates.length;
     this.requestCounter++;
-    return candidates[index];
+    return candidates[index]!;
   }
 
   // ============================================================================
@@ -424,6 +434,10 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
 
     for (let i = 0; i < attemptOrder.length && i < this.config.maxRetries; i++) {
       const modelId = attemptOrder[i];
+      
+      if (!modelId) {
+        continue; // Skip undefined models
+      }
       
       try {
         log.debug(`🔄 Attempting request with model: ${modelId}`, LogContext.API, {
@@ -449,7 +463,7 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
         log.warn(`⚠️ Request failed with model: ${modelId}`, LogContext.API, {
           requestId,
           attempt: i + 1,
-          error: lastError.message,
+          error: lastError?.message || 'Unknown error',
         });
 
         // Mark model as temporarily unhealthy if circuit breaker trips
@@ -481,33 +495,117 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
   }
 
   private async callProvider(provider: LLMProvider, request: LLMRequest): Promise<LLMResponse> {
-    // Placeholder for actual provider API calls
-    // In real implementation, would make HTTP requests to provider APIs
-    
     if (!provider?.name) {
       throw new Error('Provider must have a valid name');
     }
     
     const startTime = Date.now();
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
-    
-    return {
-      content: `Response from ${provider.name} for: ${request.prompt.slice(0, 50)}...`,
-      model: request.model,
-      usage: {
-        promptTokens: Math.ceil(request.prompt.length / 4),
-        completionTokens: Math.ceil((request.maxTokens || 100) * 0.8),
-        totalTokens: Math.ceil(request.prompt.length / 4) + Math.ceil((request.maxTokens || 100) * 0.8),
-      },
-      provider: provider.name,
-      responseTime: Date.now() - startTime,
-      metadata: {
-        requestId: this.generateRequestId(),
-        timestamp: new Date().toISOString(),
-      },
-    };
+    try {
+      // Route to appropriate provider implementation
+      switch (provider.name.toLowerCase()) {
+        case 'ollama': {
+          if (!this.ollamaService) {
+            this.ollamaService = new OllamaService();
+          }
+          
+          const messages: OllamaMessage[] = [
+            { role: 'user', content: request.prompt }
+          ];
+          
+          if (request.systemPrompt) {
+            messages.unshift({ role: 'system', content: request.systemPrompt });
+          }
+          
+          const response = await this.ollamaService.generateResponse(
+            messages,
+            request.model,
+            {
+              temperature: request.temperature,
+              max_tokens: request.maxTokens,
+              stream: false
+            }
+          );
+          
+          return {
+            content: response.message.content,
+            model: response.model,
+            usage: {
+              promptTokens: response.prompt_eval_count || 0,
+              completionTokens: response.eval_count || 0,
+              totalTokens: (response.prompt_eval_count || 0) + (response.eval_count || 0),
+            },
+            provider: provider.name,
+            responseTime: Date.now() - startTime,
+            metadata: {
+              requestId: this.generateRequestId(),
+              timestamp: new Date().toISOString(),
+            },
+          };
+        }
+        
+        case 'lmstudio': {
+          if (!this.lmStudioAdapter) {
+            this.lmStudioAdapter = new HuggingFaceToLMStudioAdapter();
+          }
+          
+          const response = await this.lmStudioAdapter.generateText({
+            inputs: request.prompt,
+            parameters: {
+              max_new_tokens: request.maxTokens,
+              temperature: request.temperature,
+              top_p: request.topP,
+              do_sample: true
+            },
+            model: request.model
+          });
+          
+          const generatedText = response[0]?.generated_text || '';
+          
+          return {
+            content: generatedText,
+            model: request.model,
+            usage: {
+              promptTokens: Math.ceil(request.prompt.length / 4),
+              completionTokens: Math.ceil(generatedText.length / 4),
+              totalTokens: Math.ceil(request.prompt.length / 4) + Math.ceil(generatedText.length / 4),
+            },
+            provider: provider.name,
+            responseTime: Date.now() - startTime,
+            metadata: {
+              requestId: this.generateRequestId(),
+              timestamp: new Date().toISOString(),
+            },
+          };
+        }
+        
+        case 'openai':
+        case 'anthropic':
+          // For now, return a placeholder for remote providers
+          // These would need proper API implementation
+          return {
+            content: `[${provider.name}] This provider requires API key configuration`,
+            model: request.model,
+            usage: {
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0,
+            },
+            provider: provider.name,
+            responseTime: Date.now() - startTime,
+            metadata: {
+              requestId: this.generateRequestId(),
+              timestamp: new Date().toISOString(),
+            },
+          };
+        
+        default:
+          throw new Error(`Unsupported provider: ${provider.name}`);
+      }
+    } catch (error) {
+      log.error(`Failed to call provider ${provider.name}`, LogContext.API, { error });
+      throw error;
+    }
   }
 
   // ============================================================================
@@ -520,8 +618,14 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
       {
         name: 'ollama',
         type: 'local',
-        models: ['llama3.1', 'mistral', 'codellama'],
-        endpoint: 'http://localhost:11434',
+        models: ['tinyllama:latest', 'gpt-oss:20b', 'nomic-embed-text:latest'],
+        endpoint: process.env.OLLAMA_URL || 'http://localhost:11434',
+      },
+      {
+        name: 'lmstudio',
+        type: 'local',
+        models: ['local-model'],
+        endpoint: process.env.LM_STUDIO_URL || 'http://localhost:1234',
       },
       {
         name: 'openai',
@@ -547,9 +651,9 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
   async registerProvider(provider: LLMProvider): Promise<void> {
     try {
       const circuitBreaker = createCircuitBreaker(`llm-${provider.name}`, {
-        timeout: this.config.timeoutMs,
+        timeout: this.config.circuitBreakerConfig.resetTimeoutMs,
         errorThresholdPercentage: 50,
-        resetTimeoutMs: this.config.circuitBreakerConfig.resetTimeoutMs,
+        failureThreshold: this.config.circuitBreakerConfig.failureThreshold,
       });
 
       const connection: ProviderConnection = {
@@ -669,7 +773,7 @@ class UnifiedLLMRouterService extends EventEmitter implements BaseService {
   private matchesConditions(request: LLMRequest, conditions: RoutingRule['conditions']): boolean {
     // Implement condition matching logic
     if (conditions.promptLength) {
-      const length = request.prompt.length;
+      const {length} = request.prompt;
       if (conditions.promptLength.min && length < conditions.promptLength.min) return false;
       if (conditions.promptLength.max && length > conditions.promptLength.max) return false;
     }

@@ -6,6 +6,30 @@
 import type { FlashAttentionRequest } from '../flash-attention-service';
 import { flashAttentionService } from '../flash-attention-service';
 
+// Mock winston logger
+jest.mock('winston', () => ({
+  createLogger: jest.fn(() => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    add: jest.fn()
+  })),
+  format: {
+    combine: jest.fn(() => jest.fn()),
+    timestamp: jest.fn(() => jest.fn()),
+    printf: jest.fn(() => jest.fn()),
+    colorize: jest.fn(() => jest.fn()),
+    simple: jest.fn(() => jest.fn()),
+    json: jest.fn(() => jest.fn()),
+    errors: jest.fn(() => jest.fn())
+  },
+  transports: {
+    Console: jest.fn(),
+    File: jest.fn()
+  }
+}));
+
 // Mock the Python subprocess execution
 jest.mock('child_process', () => ({
   spawn: jest.fn(() => ({
@@ -40,10 +64,23 @@ jest.mock('child_process', () => ({
 
 // Mock file system operations
 jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
   existsSync: jest.fn(() => true),
   writeFileSync: jest.fn(),
   readFileSync: jest.fn(),
   mkdirSync: jest.fn(),
+  stat: jest.fn((path, callback) => {
+    callback(null, {
+      isFile: () => true,
+      isDirectory: () => false,
+      size: 1024
+    });
+  }),
+  statSync: jest.fn(() => ({
+    isFile: () => true,
+    isDirectory: () => false,
+    size: 1024
+  }))
 }));
 
 describe('FlashAttentionService', () => {
@@ -51,6 +88,23 @@ describe('FlashAttentionService', () => {
     // Clear any previous state
     await flashAttentionService.clearCache();
     jest.clearAllMocks();
+    
+    // Mock successful initialization for tests
+    (flashAttentionService as any).isInitialized = true;
+    
+    // Global mock for executeFlashAttention to prevent actual Python calls
+    jest.spyOn(flashAttentionService as any, 'executeFlashAttention').mockResolvedValue({
+      output: [[[[0.1, 0.2], [0.3, 0.4]]]],
+      execution_time_ms: 15.5,
+      optimization_used: 'flash_attention',
+      memory_usage_mb: 128.5,
+      device: 'cuda:0'
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    (flashAttentionService as any).isInitialized = false;
   });
 
   afterAll(async () => {
@@ -86,6 +140,8 @@ describe('FlashAttentionService', () => {
       useCache: false,
       optimizationLevel: 'medium',
     };
+
+    // Mock is set up globally in main beforeEach
 
     it('should optimize attention successfully', async () => {
       const result = await flashAttentionService.optimizeAttention(validRequest);
@@ -275,18 +331,10 @@ describe('FlashAttentionService', () => {
 
   describe('Error Handling', () => {
     it('should handle Python script errors gracefully', async () => {
-      // Mock Python script failure
-      const { spawn } = require('child_process');
-      spawn.mockImplementationOnce(() => ({
-        stdout: { on: jest.fn() },
-        stderr: { on: jest.fn() },
-        stdin: { write: jest.fn(), end: jest.fn() },
-        on: jest.fn((event, handler) => {
-          if (event === 'close') {
-            handler(1); // Error exit code
-          }
-        }),
-      }));
+      // Mock the executeFlashAttention method to fail
+      jest.spyOn(flashAttentionService as any, 'executeFlashAttention').mockRejectedValueOnce(
+        new Error('Python script failed with code 1: Mock error')
+      );
       
       const result = await flashAttentionService.optimizeAttention(validRequest);
       

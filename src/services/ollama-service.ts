@@ -98,12 +98,8 @@ export class OllamaService {
         });
         
         const preferred =
-          models.find((m: any) => m.name === 'tinyllama:latest') ||  // Ultra fast 1.1B
-          models.find((m: any) => m.name === 'llama3.2:1b') ||  // Fastest
-          models.find((m: any) => m.name === 'llama3.2:3b') ||  // Fast
-          models.find((m: any) => m.name === 'phi3:mini') ||  // Very fast
-          models.find((m: any) => m.name.includes('mistral')) ||  // Good balance
-          models.find((m: any) => m.name.includes('qwen')) ||  // Good for code
+          models.find((m: any) => m.name === 'gpt-oss:20b') ||  // Large capable model
+          models.find((m: any) => m.name === 'tinyllama:latest') ||  // Ultra fast fallback
           models.find((m: any) => !m.name.includes('embed') && !m.name.includes('vision')) ||
           models[0];
         if (preferred?.name) {

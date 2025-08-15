@@ -1,4 +1,6 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
+
 import { swiftDocsService } from '../services/swift-documentation-service';
 import { asyncHandler } from '../utils/async-handler';
 import { log, LogContext } from '../utils/logger';
@@ -13,7 +15,7 @@ router.post('/initialize', asyncHandler(async (req: Request, res: Response) => {
   
   await swiftDocsService.initializeCommonDocs();
   
-  res.json({
+  return res.json({
     success: true,
     message: 'Swift documentation initialized'
   });
@@ -32,7 +34,7 @@ router.post('/scrape', asyncHandler(async (req: Request, res: Response) => {
     log.error('Scraping failed', LogContext.API, { error });
   });
   
-  res.json({
+  return res.json({
     success: true,
     message: 'Documentation scraping started in background'
   });
@@ -56,7 +58,7 @@ router.get('/query', asyncHandler(async (req: Request, res: Response) => {
     framework as string | undefined
   );
   
-  res.json({
+  return res.json({
     success: true,
     results,
     count: results.length
@@ -69,7 +71,7 @@ router.get('/query', asyncHandler(async (req: Request, res: Response) => {
 router.get('/component/:name', asyncHandler(async (req: Request, res: Response) => {
   const { name } = req.params;
   
-  const documentation = await swiftDocsService.getComponentDocumentation(name);
+  const documentation = await swiftDocsService.getComponentDocumentation(name || "");
   
   if (!documentation) {
     return res.status(404).json({
@@ -78,7 +80,7 @@ router.get('/component/:name', asyncHandler(async (req: Request, res: Response) 
     });
   }
   
-  res.json({
+  return res.json({
     success: true,
     documentation
   });
@@ -147,7 +149,7 @@ struct ContentView: View {
 }`
   };
   
-  res.json({
+  return res.json({
     success: true,
     implementation,
     verified: true,

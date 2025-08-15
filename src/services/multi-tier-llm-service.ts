@@ -51,6 +51,7 @@ export class MultiTierLLMService {
       lastUsed: number;
     }
   > = new Map();
+  private performanceCleanupTimer?: NodeJS.Timeout;
 
   constructor() {
     this.initializeModelTiers();
@@ -92,7 +93,7 @@ export class MultiTierLLMService {
     if (!this.modelTiers.has(2)) {
       this.modelTiers.set(2, {
         tier: 2,
-        models: ['llama3.2:3b'], // Common default model
+        models: [this.getWorkingFallbackModel()], // Use working model during init
         capabilities: ['conversation', 'basic_analysis', 'summarization', 'simple_code'],
         maxTokens: 1024,
         avgResponseTime: 500,
@@ -103,7 +104,7 @@ export class MultiTierLLMService {
     if (!this.modelTiers.has(3)) {
       this.modelTiers.set(3, {
         tier: 3,
-        models: ['llama3.2:3b'], // Fallback to same model
+        models: [this.getWorkingFallbackModel()], // Use working model during init
         capabilities: ['advanced_reasoning', 'code_generation', 'complex_analysis', 'research'],
         maxTokens: 4096,
         avgResponseTime: 2500,
@@ -114,13 +115,31 @@ export class MultiTierLLMService {
     if (!this.modelTiers.has(4)) {
       this.modelTiers.set(4, {
         tier: 4,
-        models: ['llama3.2:3b'], // Fallback to same model
+        models: [this.getWorkingFallbackModel()], // Use working model during init
         capabilities: ['expert_analysis', 'complex_code', 'research', 'creative_writing'],
         maxTokens: 8192,
         avgResponseTime: 8000,
         useCase: 'Expert-level tasks, complex code, research, creative work',
       });
     }
+  }
+
+  private getBestAvailableModel(): string {
+    // Get the best available model from any tier (after discovery)
+    for (const tier of [2, 3, 4]) {
+      const tierConfig = this.modelTiers.get(tier);
+      if (tierConfig && tierConfig.models.length > 0) {
+        return tierConfig.models[0];
+      }
+    }
+    
+    // Ultimate fallback - use best available model
+    return 'gpt-oss:20b';
+  }
+  
+  private getWorkingFallbackModel(): string {
+    // During initialization, use a model we know exists
+    return 'tinyllama:latest';
   }
 
   private async populateAvailableModels(): Promise<void> {
@@ -500,15 +519,15 @@ Respond with JSON:
       // Fallback to any available model from any tier
       for (const [_, config] of this.modelTiers) {
         if (config.models && config.models.length > 0) {
-          return config.models[0] || 'llama3.2:3b';
+          return config.models[0] || this.getBestAvailableModel();
         }
       }
       // Ultimate fallback
-      return 'llama3.2:3b';
+      return this.getBestAvailableModel();
     }
 
     // Select model based on recent performance
-    let bestModel = tierConfig.models[0] || 'llama3.2:3b';
+    let bestModel = tierConfig.models[0] || this.getBestAvailableModel();
     let bestScore = 0;
 
     for (const model of tierConfig.models) {
@@ -661,13 +680,13 @@ Respond with JSON:
       const models = await ollamaService.getAvailableModels();
       return models;
     } catch (error) {
-      return ['llama3.2:3b']; // Fallback
+      return [this.getBestAvailableModel()]; // Dynamic fallback
     }
   }
 
   private startPerformanceMonitoring(): void {
     // Monitor model performance every 5 minutes
-    setInterval(
+    const performanceTimer = setInterval(
       () => {
         log.info('📊 Model performance update', LogContext.AI, {
           modelsTracked: this.modelPerformance.size,
@@ -676,6 +695,35 @@ Respond with JSON:
       },
       5 * 60 * 1000
     );
+
+    // Cleanup old performance data every 2 minutes
+    this.performanceCleanupTimer = setInterval(() => {
+      this.cleanupPerformanceData();
+    }, 2 * 60 * 1000);
+  }
+
+  private cleanupPerformanceData(): void {
+    const now = Date.now();
+    const maxAge = 2 * 60 * 60 * 1000; // 2 hours
+    
+    // Remove stale performance data
+    for (const [modelName, perf] of this.modelPerformance.entries()) {
+      if (now - perf.lastUsed > maxAge) {
+        this.modelPerformance.delete(modelName);
+      }
+    }
+    
+    // Keep only top 20 models by performance
+    if (this.modelPerformance.size > 20) {
+      const sorted = Array.from(this.modelPerformance.entries())
+        .sort(([, a], [, b]) => b.successRate - a.successRate)
+        .slice(0, 20);
+      
+      this.modelPerformance.clear();
+      for (const [name, perf] of sorted) {
+        this.modelPerformance.set(name, perf);
+      }
+    }
   }
 
   private getAveragePerformance(): Record<string, number> {

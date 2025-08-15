@@ -1,0 +1,821 @@
+/**
+ * GRPO (Graph Reinforcement Policy Optimization) Implementation
+ * 
+ * Implements the actual reinforcement learning algorithm for Graph-R1
+ * based on policy gradient methods with graph-aware rewards.
+ */
+
+import { EventEmitter } from 'events';
+import { log, LogContext } from '../../utils/logger';
+
+export interface GRPOState {
+  query: string;
+  currentNodeId?: string;
+  visitedNodes: Set<string>;
+  retrievedContext: string[];
+  thoughts: string[];
+  stepCount: number;
+  totalReward: number;
+}
+
+export interface GRPOAction {
+  type: 'think' | 'generate_query' | 'retrieve' | 'rethink' | 'terminate';
+  targetNodeId?: string;
+  query?: string;
+  thought?: string;
+  confidence: number;
+}
+
+export interface GRPOTransition {
+  state: GRPOState;
+  action: GRPOAction;
+  reward: number;
+  nextState: GRPOState;
+  done: boolean;
+}
+
+export interface GRPOPolicy {
+  stateEmbedding: number[];
+  actionProbabilities: Map<string, number>;
+  valueEstimate: number;
+}
+
+export class GRPOOptimizer extends EventEmitter {
+  // Hyperparameters
+  private readonly learningRate = 0.001;
+  private readonly discountFactor = 0.99;
+  private readonly entropyCoefficient = 0.01;
+  private readonly valueCoefficient = 0.5;
+  private readonly maxGradientNorm = 0.5;
+  private readonly batchSize = 32;
+  
+  // OPTIMIZATION: Memory management parameters
+  private readonly maxBufferSize = 10000; // Limit experience buffer size
+  private readonly maxValueCacheSize = 5000; // Limit value function cache
+  private readonly weightCompressionThreshold = 1000; // When to compress weights
+  private readonly gradientAccumulationSteps = 4; // Accumulate gradients to reduce memory
+  
+  // OPTIMIZATION: Use typed arrays for better memory efficiency
+  private policyWeights: Map<string, Float32Array> = new Map();
+  private valueWeights: Map<string, number> = new Map();
+  private gradientAccumulator: Map<string, Float32Array> = new Map();
+  
+  // OPTIMIZATION: Circular buffer for experience replay
+  private experienceBuffer: GRPOTransition[] = [];
+  private bufferIndex = 0;
+  private bufferFull = false;
+  
+  // OPTIMIZATION: Limited episode history with exponential decay
+  private recentRewards: number[] = [];
+  private maxRewardHistory = 100;
+  
+  // Statistics
+  private totalEpisodes = 0;
+  private averageReward = 0;
+  private successRate = 0;
+  private memoryUsage = { weights: 0, buffer: 0, cache: 0 };
+
+  constructor() {
+    super();
+    this.initializeWeights();
+  }
+
+  /**
+   * OPTIMIZATION: Initialize policy and value network weights with memory efficiency
+   */
+  private initializeWeights(): void {
+    // Initialize with small random weights using Float32Array
+    const actionTypes = ['think', 'generate_query', 'retrieve', 'rethink', 'terminate'];
+    const featureSize = 128;
+    
+    for (const action of actionTypes) {
+      // OPTIMIZATION: Use Float32Array for better memory efficiency and SIMD support
+      const weights = new Float32Array(featureSize);
+      for (let i = 0; i < featureSize; i++) {
+        weights[i] = (Math.random() - 0.5) * 0.1; // Xavier initialization
+      }
+      this.policyWeights.set(action, weights);
+      
+      // Initialize gradient accumulator
+      this.gradientAccumulator.set(action, new Float32Array(featureSize));
+    }
+    
+    // OPTIMIZATION: Initialize circular experience buffer
+    this.experienceBuffer = new Array(this.maxBufferSize);
+    
+    this.updateMemoryUsage();
+    
+    log.info('GRPO weights initialized with memory optimization', LogContext.AI, {
+      actions: actionTypes.length,
+      featureSize,
+      memoryUsage: this.memoryUsage
+    });
+  }
+
+  /**
+   * Select action using the current policy
+   */
+  async selectAction(state: GRPOState): Promise<GRPOAction> {
+    // Compute state representation
+    const stateFeatures = this.extractStateFeatures(state);
+    
+    // Compute action probabilities using policy network
+    const actionProbs = this.computeActionProbabilities(stateFeatures);
+    
+    // Sample action from probability distribution
+    const action = this.sampleAction(actionProbs, state);
+    
+    // Add exploration noise during training
+    if (Math.random() < 0.1) { // 10% exploration
+      action.confidence *= 0.8;
+    }
+    
+    log.debug('GRPO action selected', LogContext.AI, {
+      action: action.type,
+      confidence: action.confidence,
+      step: state.stepCount
+    });
+    
+    return action;
+  }
+
+  /**
+   * OPTIMIZATION: Memory-efficient policy update with gradient accumulation
+   */
+  async updatePolicy(
+    transitions: GRPOTransition[],
+    finalReward: number
+  ): Promise<void> {
+    if (transitions.length === 0) return;
+    
+    // OPTIMIZATION: Add to circular buffer to prevent memory growth
+    this.addToCircularBuffer(transitions);
+    
+    // OPTIMIZATION: Process in mini-batches to reduce memory usage
+    const miniBatches = this.createMiniBatches(transitions, this.batchSize);
+    
+    for (let i = 0; i < miniBatches.length; i++) {
+      const batch = miniBatches[i]; if (!batch) continue;
+      
+      // Compute returns and advantages for this batch
+      const returns = this.computeReturns(batch, finalReward);
+      const advantages = this.computeAdvantages(batch, returns);
+      
+      // OPTIMIZATION: Accumulate gradients instead of applying immediately
+      this.accumulateGradients(batch, advantages);
+      
+      // Apply accumulated gradients every N steps
+      if ((i + 1) % this.gradientAccumulationSteps === 0 || i === miniBatches.length - 1) {
+        this.applyAccumulatedGradients();
+        this.clearGradientAccumulator();
+      }
+      
+      // OPTIMIZATION: Update value function incrementally
+      this.updateValueFunctionIncremental(batch, returns);
+    }
+    
+    // OPTIMIZATION: Periodic memory cleanup
+    this.performMemoryCleanup();
+    
+    // Update statistics
+    this.updateStatistics(transitions, finalReward);
+    
+    // Emit training event with memory usage
+    this.emit('training_step', {
+      episodes: this.totalEpisodes,
+      averageReward: this.averageReward,
+      successRate: this.successRate,
+      memoryUsage: this.memoryUsage
+    });
+    
+    log.info('GRPO policy updated with memory optimization', LogContext.AI, {
+      transitions: transitions.length,
+      miniBatches: miniBatches.length,
+      finalReward,
+      averageReward: this.averageReward,
+      memoryUsage: this.memoryUsage
+    });
+  }
+
+  /**
+   * Extract features from state for neural network
+   */
+  private extractStateFeatures(state: GRPOState): number[] {
+    const features: number[] = [];
+    
+    // Query features (simplified - in production, use embeddings)
+    const queryLength = state.query.length / 100; // Normalized
+    const queryComplexity = state.query.split(' ').length / 20; // Normalized
+    features.push(queryLength, queryComplexity);
+    
+    // Graph traversal features
+    features.push(
+      state.visitedNodes.size / 100, // Normalized visited count
+      state.stepCount / 10, // Normalized step count
+      state.retrievedContext.length / 50, // Normalized context count
+      state.thoughts.length / 10 // Normalized thought count
+    );
+    
+    // Context quality features
+    const avgContextLength = state.retrievedContext.length > 0
+      ? state.retrievedContext.reduce((sum, ctx) => sum + ctx.length, 0) / state.retrievedContext.length / 500
+      : 0;
+    features.push(avgContextLength);
+    
+    // Pad to fixed size
+    while (features.length < 128) {
+      features.push(0);
+    }
+    
+    return features.slice(0, 128);
+  }
+
+  /**
+   * Compute action probabilities using policy network
+   */
+  private computeActionProbabilities(stateFeatures: number[]): Map<string, number> {
+    const logits = new Map<string, number>();
+    
+    // Compute logits for each action
+    for (const [action, weights] of this.policyWeights) {
+      const logit = this.dotProduct(stateFeatures, Array.from(weights));
+      logits.set(action, logit);
+    }
+    
+    // Apply softmax to get probabilities
+    return this.softmax(logits);
+  }
+
+  /**
+   * Sample action from probability distribution
+   */
+  private sampleAction(
+    actionProbs: Map<string, number>,
+    state: GRPOState
+  ): GRPOAction {
+    // Build cumulative distribution
+    let cumulative = 0;
+    const cdf: Array<[string, number]> = [];
+    
+    for (const [action, prob] of actionProbs) {
+      cumulative += prob;
+      cdf.push([action, cumulative]);
+    }
+    
+    // Sample from distribution
+    const sample = Math.random();
+    let selectedAction = 'think';
+    
+    for (const [action, threshold] of cdf) {
+      if (sample <= threshold) {
+        selectedAction = action;
+        break;
+      }
+    }
+    
+    // Build action object based on type
+    const confidence = actionProbs.get(selectedAction) || 0.5;
+    
+    switch (selectedAction) {
+      case 'retrieve':
+        return {
+          type: 'retrieve',
+          targetNodeId: this.selectTargetNode(state),
+          confidence
+        };
+      
+      case 'generate_query':
+        return {
+          type: 'generate_query',
+          query: this.generateQuery(state),
+          confidence
+        };
+      
+      case 'think':
+        return {
+          type: 'think',
+          thought: 'Analyzing current context...',
+          confidence
+        };
+      
+      case 'rethink':
+        return {
+          type: 'rethink',
+          thought: 'Re-evaluating approach...',
+          confidence
+        };
+      
+      case 'terminate':
+        return {
+          type: 'terminate',
+          confidence
+        };
+      
+      default:
+        return {
+          type: 'think',
+          confidence: 0.5
+        };
+    }
+  }
+
+  /**
+   * Compute discounted returns
+   */
+  private computeReturns(
+    transitions: GRPOTransition[],
+    finalReward: number
+  ): number[] {
+    const returns: number[] = new Array(transitions.length);
+    let runningReturn = finalReward;
+    
+    // Compute returns backwards
+    for (let i = transitions.length - 1; i >= 0; i--) {
+      const transition = transitions[i]; if (transition) { runningReturn = transition.reward + this.discountFactor * runningReturn; returns[i] = runningReturn; }
+    }
+    
+    return returns;
+  }
+
+  /**
+   * Compute advantages using GAE
+   */
+  private computeAdvantages(
+    transitions: GRPOTransition[],
+    returns: number[]
+  ): number[] {
+    const advantages: number[] = [];
+    
+    for (let i = 0; i < transitions.length; i++) {
+      // Get value estimate for current state
+      const transition = transitions[i]; if (!transition) continue; const stateFeatures = this.extractStateFeatures(transition.state);
+      const valueEstimate = this.estimateValue(stateFeatures);
+      
+      // Advantage = Return - Value estimate
+      const returnValue = returns[i]; if (returnValue !== undefined) { const advantage = returnValue - valueEstimate; advantages.push(advantage); }
+    }
+    
+    // Normalize advantages
+    const mean = advantages.reduce((sum, a) => sum + a, 0) / advantages.length;
+    const variance = advantages.reduce((sum, a) => sum + Math.pow(a - mean, 2), 0) / advantages.length;
+    const std = Math.sqrt(variance) + 1e-8;
+    
+    return advantages.map(a => (a - mean) / std);
+  }
+
+  /**
+   * Compute policy gradients
+   */
+  private computePolicyGradients(
+    transitions: GRPOTransition[],
+    advantages: number[]
+  ): Map<string, number[]> {
+    const gradients = new Map<string, number[]>();
+    
+    // Initialize gradients
+    for (const action of this.policyWeights.keys()) {
+      gradients.set(action, new Array(128).fill(0));
+    }
+    
+    // Accumulate gradients over transitions
+    for (let i = 0; i < transitions.length; i++) {
+      const transition = transitions[i]; if (!transition) continue;
+      const advantage = advantages[i]; if (advantage === undefined) continue;
+      const stateFeatures = this.extractStateFeatures(transition.state);
+      
+      // Compute gradient for taken action
+      const actionGrad = gradients.get(transition.action.type);
+      if (actionGrad) {
+        for (let j = 0; j < stateFeatures.length; j++) {
+          actionGrad[j] += advantage * stateFeatures[j] * transition.action.confidence;
+        }
+      }
+      
+      // Add entropy regularization gradient
+      const actionProbs = this.computeActionProbabilities(stateFeatures);
+      for (const [action, prob] of actionProbs) {
+        const grad = gradients.get(action);
+        if (grad) {
+          const entropy = -prob * Math.log(prob + 1e-8);
+          for (let j = 0; j < stateFeatures.length; j++) {
+            grad[j] += this.entropyCoefficient * entropy * stateFeatures[j];
+          }
+        }
+      }
+    }
+    
+    // Average gradients
+    for (const [action, grad] of gradients) {
+      for (let i = 0; i < grad.length; i++) {
+        grad[i] /= transitions.length;
+      }
+    }
+    
+    return gradients;
+  }
+
+  /**
+   * Apply gradients to update weights
+   */
+  private applyGradients(gradients: Map<string, number[]>): void {
+    for (const [action, gradient] of gradients) {
+      const weights = this.policyWeights.get(action);
+      if (weights) {
+        // Clip gradients
+        const gradNorm = Math.sqrt(gradient.reduce((sum, g) => sum + g * g, 0));
+        const scale = Math.min(1, this.maxGradientNorm / (gradNorm + 1e-8));
+        
+        // Update weights using gradient ascent
+        for (let i = 0; i < weights.length; i++) {
+          weights[i] += this.learningRate * gradient[i] * scale;
+        }
+        
+        this.policyWeights.set(action, weights);
+      }
+    }
+  }
+
+  /**
+   * Update value function
+   */
+  private updateValueFunction(
+    transitions: GRPOTransition[],
+    returns: number[]
+  ): void {
+    for (let i = 0; i < transitions.length; i++) {
+      const transition = transitions[i]; if (!transition) continue; const stateFeatures = this.extractStateFeatures(transition.state);
+      const stateKey = this.hashState(stateFeatures);
+      
+      // Update value estimate using TD learning
+      const currentValue = this.valueWeights.get(stateKey) || 0;
+      const target = returns[i];
+      const error = target - currentValue;
+      
+      const newValue = currentValue + this.learningRate * this.valueCoefficient * error;
+      this.valueWeights.set(stateKey, newValue);
+    }
+  }
+
+  /**
+   * Estimate value of a state
+   */
+  private estimateValue(stateFeatures: number[]): number {
+    const stateKey = this.hashState(stateFeatures);
+    return this.valueWeights.get(stateKey) || 0;
+  }
+
+  /**
+   * Calculate reward for a transition
+   */
+  calculateReward(
+    state: GRPOState,
+    action: GRPOAction,
+    nextState: GRPOState
+  ): number {
+    let reward = 0;
+    
+    // Reward for making progress
+    if (nextState.retrievedContext.length > state.retrievedContext.length) {
+      reward += 0.5; // Retrieved new context
+    }
+    
+    // Reward for efficient exploration
+    if (nextState.visitedNodes.size > state.visitedNodes.size) {
+      reward += 0.3; // Explored new node
+    }
+    
+    // Penalty for excessive steps
+    reward -= 0.1 * nextState.stepCount;
+    
+    // Penalty for revisiting nodes
+    if (action.targetNodeId && state.visitedNodes.has(action.targetNodeId)) {
+      reward -= 0.2;
+    }
+    
+    // Reward for high-confidence actions
+    reward += 0.1 * action.confidence;
+    
+    // Terminal rewards
+    if (action.type === 'terminate') {
+      // Evaluate quality of final answer
+      const contextQuality = nextState.retrievedContext.length / 10; // Normalized
+      const explorationEfficiency = nextState.visitedNodes.size / nextState.stepCount;
+      reward += contextQuality + explorationEfficiency;
+    }
+    
+    return reward;
+  }
+
+  /**
+   * Helper: Generate query based on state
+   */
+  private generateQuery(state: GRPOState): string {
+    // In production, use LLM to generate query
+    const lastThought = state.thoughts[state.thoughts.length - 1] || '';
+    return `Explore: ${lastThought.substring(0, 50)}`;
+  }
+
+  /**
+   * Helper: Select target node for retrieval
+   */
+  private selectTargetNode(state: GRPOState): string {
+    // In production, use graph structure to select next node
+    return `node_${state.stepCount + 1}`;
+  }
+
+  /**
+   * Helper: Hash state features for value function
+   */
+  private hashState(features: number[]): string {
+    // Simple hash for demonstration
+    return features.slice(0, 6).map(f => Math.round(f * 10)).join('_');
+  }
+
+  /**
+   * Helper: Compute dot product
+   */
+  private dotProduct(a: number[], b: number[]): number {
+    return a.reduce((sum, val, i) => sum + val * b[i], 0);
+  }
+
+  /**
+   * Helper: Softmax function
+   */
+  private softmax(logits: Map<string, number>): Map<string, number> {
+    const maxLogit = Math.max(...logits.values());
+    const expSum = Array.from(logits.values())
+      .reduce((sum, logit) => sum + Math.exp(logit - maxLogit), 0);
+    
+    const probs = new Map<string, number>();
+    for (const [action, logit] of logits) {
+      probs.set(action, Math.exp(logit - maxLogit) / expSum);
+    }
+    
+    return probs;
+  }
+
+  /**
+   * Helper: Generate random weight vector
+   */
+  private randomVector(size: number): number[] {
+    return Array.from({ length: size }, () => (Math.random() - 0.5) * 0.1);
+  }
+
+  /**
+   * OPTIMIZATION: Update training statistics with memory management
+   */
+  private updateStatistics(transitions: GRPOTransition[], finalReward: number): void {
+    this.totalEpisodes++;
+    
+    // OPTIMIZATION: Use circular buffer for recent rewards
+    if (this.recentRewards.length >= this.maxRewardHistory) {
+      this.recentRewards.shift(); // Remove oldest reward
+    }
+    this.recentRewards.push(finalReward);
+    
+    // Update average reward (exponential moving average)
+    this.averageReward = 0.9 * this.averageReward + 0.1 * finalReward;
+    
+    // Update success rate
+    const success = finalReward > 0.5; // Threshold for success
+    this.successRate = 0.95 * this.successRate + 0.05 * (success ? 1 : 0);
+    
+    // Update memory usage tracking
+    this.updateMemoryUsage();
+  }
+
+  /**
+   * OPTIMIZATION: Circular buffer for experience replay
+   */
+  private addToCircularBuffer(transitions: GRPOTransition[]): void {
+    for (const transition of transitions) {
+      this.experienceBuffer[this.bufferIndex] = transition;
+      this.bufferIndex = (this.bufferIndex + 1) % this.maxBufferSize;
+      
+      if (this.bufferIndex === 0) {
+        this.bufferFull = true;
+      }
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Create mini-batches for memory-efficient processing
+   */
+  private createMiniBatches(transitions: GRPOTransition[], batchSize: number): GRPOTransition[][] {
+    const batches: GRPOTransition[][] = [];
+    
+    for (let i = 0; i < transitions.length; i += batchSize) {
+      batches.push(transitions.slice(i, i + batchSize));
+    }
+    
+    return batches;
+  }
+
+  /**
+   * OPTIMIZATION: Accumulate gradients to reduce memory usage
+   */
+  private accumulateGradients(transitions: GRPOTransition[], advantages: number[]): void {
+    for (let i = 0; i < transitions.length; i++) {
+      const transition = transitions[i]; if (!transition) continue;
+      const advantage = advantages[i]; if (advantage === undefined) continue;
+      const stateFeatures = this.extractStateFeatures(transition.state);
+      
+      // Accumulate gradient for taken action
+      const actionGrad = this.gradientAccumulator.get(transition.action.type);
+      if (actionGrad) {
+        for (let j = 0; j < stateFeatures.length; j++) {
+          actionGrad[j] += advantage * stateFeatures[j] * transition.action.confidence;
+        }
+      }
+      
+      // Add entropy regularization gradient
+      const actionProbs = this.computeActionProbabilities(stateFeatures);
+      for (const [action, prob] of actionProbs) {
+        const grad = this.gradientAccumulator.get(action);
+        if (grad) {
+          const entropy = -prob * Math.log(prob + 1e-8);
+          for (let j = 0; j < stateFeatures.length; j++) {
+            grad[j] += this.entropyCoefficient * entropy * stateFeatures[j];
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Apply accumulated gradients
+   */
+  private applyAccumulatedGradients(): void {
+    for (const [action, gradients] of this.gradientAccumulator) {
+      const weights = this.policyWeights.get(action);
+      if (weights) {
+        // Compute gradient norm for clipping
+        let gradNorm = 0;
+        for (let i = 0; i < gradients.length; i++) {
+          gradNorm += gradients[i] * gradients[i];
+        }
+        gradNorm = Math.sqrt(gradNorm);
+        
+        // Clip gradients
+        const scale = Math.min(1, this.maxGradientNorm / (gradNorm + 1e-8));
+        
+        // Update weights using gradient ascent with SIMD-friendly operations
+        for (let i = 0; i < weights.length; i++) {
+          weights[i] += this.learningRate * gradients[i] * scale;
+        }
+      }
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Clear gradient accumulator
+   */
+  private clearGradientAccumulator(): void {
+    for (const gradients of this.gradientAccumulator.values()) {
+      gradients.fill(0);
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Incremental value function update
+   */
+  private updateValueFunctionIncremental(
+    transitions: GRPOTransition[],
+    returns: number[]
+  ): void {
+    for (let i = 0; i < transitions.length; i++) {
+      const transition = transitions[i]; if (!transition) continue; const stateFeatures = this.extractStateFeatures(transition.state);
+      const stateKey = this.hashState(stateFeatures);
+      
+      // Update value estimate using TD learning
+      const currentValue = this.valueWeights.get(stateKey) || 0;
+      const target = returns[i];
+      const error = target - currentValue;
+      
+      const newValue = currentValue + this.learningRate * this.valueCoefficient * error;
+      this.valueWeights.set(stateKey, newValue);
+      
+      // OPTIMIZATION: Limit value cache size
+      if (this.valueWeights.size > this.maxValueCacheSize) {
+        this.pruneValueCache();
+      }
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Prune value function cache using LRU strategy
+   */
+  private pruneValueCache(): void {
+    const entries = Array.from(this.valueWeights.entries());
+    // Simple pruning: remove random 20% of entries
+    const toRemove = Math.floor(entries.length * 0.2);
+    
+    for (let i = 0; i < toRemove; i++) {
+      const randomIndex = Math.floor(Math.random() * entries.length);
+      this.valueWeights.delete(entries[randomIndex][0]);
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Periodic memory cleanup
+   */
+  private performMemoryCleanup(): void {
+    // Force garbage collection hint
+    if (global.gc && this.totalEpisodes % 100 === 0) {
+      global.gc();
+    }
+    
+    // Compress weights if they've grown too large
+    if (this.totalEpisodes % this.weightCompressionThreshold === 0) {
+      this.compressWeights();
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Compress policy weights to reduce memory usage
+   */
+  private compressWeights(): void {
+    for (const [action, weights] of this.policyWeights) {
+      // Simple weight pruning: zero out very small weights
+      for (let i = 0; i < weights.length; i++) {
+        if (Math.abs(weights[i]) < 1e-6) {
+          weights[i] = 0;
+        }
+      }
+    }
+  }
+
+  /**
+   * OPTIMIZATION: Track memory usage
+   */
+  private updateMemoryUsage(): void {
+    let weightMemory = 0;
+    for (const weights of this.policyWeights.values()) {
+      weightMemory += weights.byteLength;
+    }
+    for (const gradients of this.gradientAccumulator.values()) {
+      weightMemory += gradients.byteLength;
+    }
+    
+    const bufferMemory = (this.bufferFull ? this.maxBufferSize : this.bufferIndex) * 1000; // Rough estimate
+    const cacheMemory = this.valueWeights.size * 8; // Assuming 8 bytes per entry
+    
+    this.memoryUsage = {
+      weights: weightMemory,
+      buffer: bufferMemory,
+      cache: cacheMemory
+    };
+  }
+
+  /**
+   * Get current policy statistics
+   */
+  getStatistics(): {
+    totalEpisodes: number;
+    averageReward: number;
+    successRate: number;
+    bufferSize: number;
+  } {
+    return {
+      totalEpisodes: this.totalEpisodes,
+      averageReward: this.averageReward,
+      successRate: this.successRate,
+      bufferSize: this.experienceBuffer.length
+    };
+  }
+
+  /**
+   * Save policy weights
+   */
+  exportPolicy(): string {
+    return JSON.stringify({
+      policyWeights: Array.from(this.policyWeights.entries()),
+      valueWeights: Array.from(this.valueWeights.entries()),
+      statistics: this.getStatistics()
+    });
+  }
+
+  /**
+   * Load policy weights
+   */
+  importPolicy(policyData: string): void {
+    try {
+      const data = JSON.parse(policyData);
+      this.policyWeights = new Map(data.policyWeights);
+      this.valueWeights = new Map(data.valueWeights);
+      
+      if (data.statistics) {
+        this.totalEpisodes = data.statistics.totalEpisodes || 0;
+        this.averageReward = data.statistics.averageReward || 0;
+        this.successRate = data.statistics.successRate || 0;
+      }
+      
+      log.info('GRPO policy imported', LogContext.AI, this.getStatistics());
+    } catch (error) {
+      log.error('Failed to import GRPO policy', LogContext.AI, { error });
+    }
+  }
+}
+
+// Export singleton instance
+export const grpoOptimizer = new GRPOOptimizer();

@@ -101,6 +101,17 @@ export class LLMRouterService {
       const secondaryModel = fastModels[0] || availableModels[availableModels.length - 1] || primaryModel;
 
       return [
+        // Direct Ollama model mappings for agent compatibility
+        ...availableModels.map((modelName: string) => ({
+          internalName: modelName,
+          provider: LLMProvider.OLLAMA,
+          externalModel: modelName,
+          capabilities: ['general_purpose', 'reasoning', 'direct_access'],
+          maxTokens: 4000,
+          temperature: 0.5,
+          priority: 1,
+        })),
+
         // Planning Models
         {
           internalName: 'planner-pro',
@@ -222,15 +233,31 @@ export class LLMRouterService {
   }
 
   private getFallbackConfigs(): ModelConfig[] {
+    // Add direct mappings for available model names only
+    const directMappings = [
+      'tinyllama:latest',
+      'gpt-oss:20b', 
+      'nomic-embed-text:latest'
+    ].map(modelName => ({
+      internalName: modelName,
+      provider: LLMProvider.OLLAMA,
+      externalModel: modelName,
+      capabilities: ['general_purpose', 'reasoning', 'direct_access'],
+      maxTokens: 2000,
+      temperature: 0.5,
+      priority: 1,
+    }));
+
     return [
+      ...directMappings,
       {
         internalName: 'local-general',
         provider: LLMProvider.OLLAMA,
-        externalModel: 'fallback-model',
+        externalModel: 'gpt-oss:20b',
         capabilities: ['general_purpose'],
-        maxTokens: 1024,
+        maxTokens: 4000,
         temperature: 0.5,
-        priority: 1,
+        priority: 2,
       }
     ];
   }
@@ -294,20 +321,41 @@ export class LLMRouterService {
     // Get model config or find best match
     let modelConfig = this.modelConfigs.get(internalModel);
 
+    log.debug('🔍 LLM Router model lookup', LogContext.AI, {
+      requestedModel: internalModel,
+      foundDirectly: !!modelConfig,
+      availableModels: Array.from(this.modelConfigs.keys()),
+      requestCapabilities: options?.capabilities
+    });
+
     if (!modelConfig && options?.capabilities) {
       // Find best model based on capabilities
       modelConfig = this.findBestModelForCapabilities(options.capabilities);
+      log.debug('🎯 Found model by capabilities', LogContext.AI, {
+        selectedModel: modelConfig?.internalName,
+        capabilities: options.capabilities
+      });
     }
 
     if (!modelConfig) {
       // Default fallback
       modelConfig =
         this.modelConfigs.get('local-general') || Array.from(this.modelConfigs.values())[0];
+      log.debug('🔄 Using fallback model', LogContext.AI, {
+        fallbackModel: modelConfig?.internalName
+      });
     }
 
     if (!modelConfig) {
       throw new Error(`No model configuration available for: ${internalModel}`);
     }
+
+    log.info('✅ Model configuration selected', LogContext.AI, {
+      internalModel,
+      selectedConfig: modelConfig.internalName,
+      provider: modelConfig.provider,
+      externalModel: modelConfig.externalModel
+    });
 
     try {
       const response = await this.routeToProvider(modelConfig, enhancedMessages, options);
@@ -368,7 +416,7 @@ export class LLMRouterService {
         actualConfig = {
           ...actualConfig,
           provider: LLMProvider.OLLAMA,
-          externalModel: 'llama3.2:3b',
+          externalModel: 'gpt-oss:20b',
         } as any;
       } else {
         throw new Error('Remote LLMs disabled and no local provider available');
@@ -378,10 +426,10 @@ export class LLMRouterService {
     // Prefer local Ollama to avoid cloud API keys
     if (this.providerClients.has(LLMProvider.OLLAMA)) {
       client = this.providerClients.get(LLMProvider.OLLAMA);
+      // Use the actual configured external model instead of hardcoding
       actualConfig = {
         ...modelConfig,
         provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
       };
       log.debug('Forcing Ollama provider (local-first)', LogContext.AI, {
         internalModel: modelConfig.internalName,
@@ -396,10 +444,11 @@ export class LLMRouterService {
         LogContext.AI
       );
       client = this.providerClients.get(LLMProvider.OLLAMA);
+      // Use gpt-oss:20b as the most reliable fallback model
       actualConfig = {
         ...modelConfig,
         provider: LLMProvider.OLLAMA,
-        externalModel: 'llama3.2:3b',
+        externalModel: 'gpt-oss:20b',
       };
     }
 
@@ -505,22 +554,41 @@ export class LLMRouterService {
     maxTokens: number
   ): Promise<LLMResponse> {
     const ollamaClient = client as any;
-    const response = await fetch(`${ollamaClient.baseUrl}/api/chat`, {
+    const requestUrl = `${ollamaClient.baseUrl}/api/chat`;
+    const requestBody = {
+      model,
+      messages,
+      stream: false,
+      options: {
+        temperature,
+        num_predict: maxTokens,
+      },
+    };
+
+    log.debug('🦙 Ollama API request', LogContext.AI, {
+      url: requestUrl,
+      model,
+      messagesCount: messages.length,
+      temperature,
+      maxTokens
+    });
+
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: false,
-        options: {
-          temperature,
-          num_predict: maxTokens,
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      log.error('❌ Ollama API error', LogContext.AI, {
+        status: response.status,
+        statusText: response.statusText,
+        url: requestUrl,
+        model,
+        error: errorText
+      });
+      throw new Error(`Ollama API error: ${response.status} - ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();

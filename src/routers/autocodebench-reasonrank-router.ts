@@ -3,12 +3,17 @@
  * Provides REST endpoints for automated code generation, testing, and reasoning-intensive ranking
  */
 
-import { enhancedReasoningAgent } from '@/agents/enhanced-reasoning-agent';
-import { autoCodeBenchService } from '@/services/autocodebench-service';
-import { reasonRankService, type Passage, type RankingQuery } from '@/services/reasonrank-service';
-import { log, LogContext } from '@/utils/logger';
 import { Router } from 'express';
 import { z } from 'zod';
+
+import EnhancedReasoningAgent from '@/agents/enhanced-reasoning-agent';
+import { autoCodeBenchService } from '@/services/autocodebench-service';
+import { type Passage, type RankingQuery,reasonRankService } from '@/services/reasonrank-service';
+import { log, LogContext } from '@/utils/logger';
+import type { AgentContext } from '@/types';
+
+// Create instance of the enhanced reasoning agent
+const enhancedReasoningAgent = new EnhancedReasoningAgent();
 
 const router = Router();
 
@@ -80,7 +85,7 @@ const ExplainReasoningRequestSchema = z.object({
 
 // Health check endpoint
 router.get('/health', (req, res) => {
-  res.json({
+  return res.json({
     status: 'healthy',
     services: {
       autoCodeBench: 'active',
@@ -110,7 +115,7 @@ router.post('/generate-problem', async (req, res) => {
 
     const problem = await autoCodeBenchService.generateProblem(validatedData);
 
-    res.json({
+    return res.json({
       success: true,
       data: problem,
       metadata: {
@@ -126,7 +131,7 @@ router.post('/generate-problem', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -153,7 +158,8 @@ router.post('/solve-problem', async (req, res) => {
       // Use the enhanced reasoning agent for custom problems
       result = await enhancedReasoningAgent.execute({
         query: `Solve this ${validatedData.language} problem: ${validatedData.customProblem}`,
-        context: validatedData.customProblem,
+        userRequest: validatedData.customProblem,
+        requestId: 'autocodebench-' + Date.now(),
       });
     } else {
       // Use AutoCodeBench service
@@ -165,7 +171,7 @@ router.post('/solve-problem', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: result,
       metadata: {
@@ -181,7 +187,7 @@ router.post('/solve-problem', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -209,7 +215,7 @@ router.post('/execute-code', async (req, res) => {
       validatedData.testCases
     );
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         results,
@@ -235,7 +241,7 @@ router.post('/execute-code', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -251,7 +257,7 @@ router.get('/problems', (req, res) => {
   try {
     const problems = autoCodeBenchService.getProblems();
 
-    res.json({
+    return res.json({
       success: true,
       data: problems,
       metadata: {
@@ -265,7 +271,7 @@ router.get('/problems', (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -290,7 +296,7 @@ router.get('/problems/:id', (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: problem,
       metadata: {
@@ -304,7 +310,7 @@ router.get('/problems/:id', (req, res) => {
       problemId: req.params.id,
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -320,7 +326,7 @@ router.get('/metrics', (req, res) => {
   try {
     const metrics = autoCodeBenchService.getPerformanceMetrics();
 
-    res.json({
+    return res.json({
       success: true,
       data: metrics,
       metadata: {
@@ -333,7 +339,7 @@ router.get('/metrics', (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -365,7 +371,6 @@ router.post('/rank-passages', async (req, res) => {
       content: p.content,
       metadata: p.metadata || {},
       source: p.source,
-      timestamp: new Date(),
     }));
 
     const rankingQuery: RankingQuery = {
@@ -381,7 +386,7 @@ router.post('/rank-passages', async (req, res) => {
       useMultiViewRewards: true,
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         results,
@@ -406,7 +411,7 @@ router.post('/rank-passages', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -429,7 +434,7 @@ router.post('/generate-training-data', async (req, res) => {
     } = req.body;
 
     if (!Array.isArray(queries) || !Array.isArray(passages)) {
-      return res.status(400).json({
+          return res.status(400).json({
         success: false,
         error: 'queries and passages must be arrays',
         timestamp: new Date().toISOString(),
@@ -459,7 +464,7 @@ router.post('/generate-training-data', async (req, res) => {
       maxExamples,
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         trainingData,
@@ -482,7 +487,7 @@ router.post('/generate-training-data', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -498,7 +503,7 @@ router.get('/training-data', (req, res) => {
   try {
     const trainingData = reasonRankService.getTrainingData();
 
-    res.json({
+    return res.json({
       success: true,
       data: trainingData,
       metadata: {
@@ -512,7 +517,7 @@ router.get('/training-data', (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -528,7 +533,7 @@ router.get('/metrics', (req, res) => {
   try {
     const metrics = reasonRankService.getPerformanceMetrics();
 
-    res.json({
+    return res.json({
       success: true,
       data: metrics,
       metadata: {
@@ -541,7 +546,7 @@ router.get('/metrics', (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -560,7 +565,7 @@ router.post('/execute', async (req, res) => {
     const { query, context, capabilities } = req.body;
 
     if (!query) {
-      return res.status(400).json({
+          return res.status(400).json({
         success: false,
         error: 'query is required',
         timestamp: new Date().toISOString(),
@@ -573,13 +578,19 @@ router.post('/execute', async (req, res) => {
       capabilities: capabilities || 'default',
     });
 
-    const result = await enhancedReasoningAgent.execute({
-      query,
-      context,
-      capabilities,
-    });
+    const agentContext: AgentContext = {
+      userRequest: query,
+      requestId: `reasoning-${Date.now()}`,
+      metadata: {
+        context,
+        capabilities,
+        endpoint: '/execute'
+      }
+    };
 
-    res.json({
+    const result = await enhancedReasoningAgent.execute(agentContext);
+
+    return res.json({
       success: result.success,
       data: result.content,
       metadata: {
@@ -587,9 +598,9 @@ router.post('/execute', async (req, res) => {
         service: 'Enhanced Reasoning Agent',
         agent: enhancedReasoningAgent.getName(),
         capabilities: enhancedReasoningAgent.getCapabilities(),
-        reasoningHistory: enhancedReasoningAgent.getReasoningHistory().slice(-5), // Last 5 entries
+        reasoningHistory: [], // TODO: Implement reasoning history tracking
       },
-      error: result.error,
+      error: !result.success ? (result as any).error || 'Operation failed' : undefined,
     });
   } catch (error) {
     log.error('❌ Failed to execute reasoning agent via API', LogContext.API, {
@@ -597,7 +608,7 @@ router.post('/execute', async (req, res) => {
       body: req.body,
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -621,10 +632,11 @@ router.post('/generate-tests', async (req, res) => {
 
     const result = await enhancedReasoningAgent.execute({
       query: `Generate ${validatedData.testType} tests for this ${validatedData.language} code`,
-      context: validatedData.code,
+      userRequest: validatedData.code,
+      requestId: 'test-generation-' + Date.now(),
     });
 
-    res.json({
+    return res.json({
       success: result.success,
       data: result.content,
       metadata: {
@@ -634,7 +646,7 @@ router.post('/generate-tests', async (req, res) => {
         language: validatedData.language,
         testType: validatedData.testType,
       },
-      error: result.error,
+      error: !result.success ? (result as any).error || 'Operation failed' : undefined,
     });
   } catch (error) {
     log.error('❌ Failed to generate tests via API', LogContext.API, {
@@ -642,7 +654,7 @@ router.post('/generate-tests', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -666,10 +678,11 @@ router.post('/analyze-code', async (req, res) => {
 
     const result = await enhancedReasoningAgent.execute({
       query: `Analyze this ${validatedData.language} code for quality, efficiency, maintainability, and security`,
-      context: validatedData.context || validatedData.code,
+      userRequest: validatedData.context || validatedData.code,
+      requestId: 'code-analysis-' + Date.now(),
     });
 
-    res.json({
+    return res.json({
       success: result.success,
       data: result.content,
       metadata: {
@@ -678,7 +691,7 @@ router.post('/analyze-code', async (req, res) => {
         agent: enhancedReasoningAgent.getName(),
         language: validatedData.language,
       },
-      error: result.error,
+      error: !result.success ? (result as any).error || 'Operation failed' : undefined,
     });
   } catch (error) {
     log.error('❌ Failed to analyze code via API', LogContext.API, {
@@ -686,7 +699,7 @@ router.post('/analyze-code', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -710,10 +723,11 @@ router.post('/improve-code', async (req, res) => {
 
     const result = await enhancedReasoningAgent.execute({
       query: `Improve this ${validatedData.language} code focusing on ${validatedData.focus}`,
-      context: validatedData.code,
+      userRequest: validatedData.code,
+      requestId: 'code-improvement-' + Date.now(),
     });
 
-    res.json({
+    return res.json({
       success: result.success,
       data: result.content,
       metadata: {
@@ -723,7 +737,7 @@ router.post('/improve-code', async (req, res) => {
         language: validatedData.language,
         focus: validatedData.focus,
       },
-      error: result.error,
+      error: !result.success ? (result as any).error || 'Operation failed' : undefined,
     });
   } catch (error) {
     log.error('❌ Failed to improve code via API', LogContext.API, {
@@ -731,7 +745,7 @@ router.post('/improve-code', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -755,10 +769,11 @@ router.post('/explain-reasoning', async (req, res) => {
 
     const result = await enhancedReasoningAgent.execute({
       query: `Explain your reasoning process for: ${validatedData.query}`,
-      context: validatedData.context || '',
+      userRequest: validatedData.context || validatedData.query,
+      requestId: 'reasoning-explanation-' + Date.now(),
     });
 
-    res.json({
+    return res.json({
       success: result.success,
       data: result.content,
       metadata: {
@@ -767,7 +782,7 @@ router.post('/explain-reasoning', async (req, res) => {
         agent: enhancedReasoningAgent.getName(),
         approach: validatedData.approach,
       },
-      error: result.error,
+      error: !result.success ? (result as any).error || 'Operation failed' : undefined,
     });
   } catch (error) {
     log.error('❌ Failed to explain reasoning via API', LogContext.API, {
@@ -775,7 +790,7 @@ router.post('/explain-reasoning', async (req, res) => {
       body: req.body,
     });
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -790,9 +805,9 @@ router.post('/explain-reasoning', async (req, res) => {
 router.get('/capabilities', (req, res) => {
   try {
     const capabilities = enhancedReasoningAgent.getCapabilities();
-    const reasoningHistory = enhancedReasoningAgent.getReasoningHistory();
+    const reasoningHistory: any[] = []; // TODO: Implement reasoning history tracking
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         agent: {
@@ -817,7 +832,7 @@ router.get('/capabilities', (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
@@ -836,7 +851,7 @@ router.get('/status', (req, res) => {
     const autoCodeBenchMetrics = autoCodeBenchService.getPerformanceMetrics();
     const reasonRankMetrics = reasonRankService.getPerformanceMetrics();
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         services: {
@@ -869,7 +884,7 @@ router.get('/status', (req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),

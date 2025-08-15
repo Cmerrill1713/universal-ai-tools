@@ -449,7 +449,7 @@ Please provide a detailed answer based on the visual analysis above.`;
           reasoning: 'Text-based reasoning from visual analysis',
         },
         processingTime: response.total_duration ? response.total_duration / 1000000 : 500,
-        model: 'llama3.2:3b',
+        model: 'gpt-oss:20b',
       };
     } catch (error) {
       return {

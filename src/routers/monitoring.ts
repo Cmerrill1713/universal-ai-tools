@@ -424,4 +424,88 @@ router.get('/metrics', async (req, res) => {
   }
 });
 
+// Frontend integration endpoints
+router.get('/local/health', async (req, res) => {
+  try {
+    const health = await healthMonitor.forceHealthCheck();
+    
+    // Get system metrics separately
+    const systemMetrics = getSystemMetrics();
+    const totalMem = systemMetrics.memory.total;
+    const usedMem = systemMetrics.memory.used;
+    
+    const response = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      services: {
+        ollama: true, // Will be updated below
+        lmstudio: false, // Not implemented in current setup
+      },
+      system: {
+        memoryUsage: (usedMem / totalMem) * 100,
+        cpuUsage: systemMetrics.cpu.usage?.[0] ? systemMetrics.cpu.usage[0] * 10 : 0,
+        uptime: process.uptime(),
+      }
+    };
+
+    // Test Ollama availability
+    try {
+      await ollamaService.getAvailableModels();
+      response.services.ollama = true;
+    } catch {
+      response.services.ollama = false;
+    }
+
+    res.json(response);
+  } catch (error) {
+    log.error('Local health check failed', LogContext.API, { error });
+    res.status(503).json({
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Models endpoint for frontend model selection
+router.get('/local/models', async (req, res) => {
+  try {
+    const models: Array<{ id: string; provider: string; name?: string }> = [];
+
+    // Get Ollama models
+    try {
+      const ollamaModels = await ollamaService.getAvailableModels();
+      ollamaModels.forEach(modelId => {
+        models.push({
+          id: modelId,
+          provider: 'ollama',
+          name: modelId
+        });
+      });
+    } catch (error) {
+      log.warn('Failed to get Ollama models', LogContext.API, { error });
+    }
+
+    // Add default auto option
+    models.unshift({
+      id: 'auto',
+      provider: 'auto',
+      name: 'Auto-select'
+    });
+
+    res.json({
+      success: true,
+      models,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error('Failed to get models', LogContext.API, { error });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      models: [],
+    });
+  }
+});
+
 export default router;

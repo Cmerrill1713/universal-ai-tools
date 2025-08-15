@@ -6,8 +6,9 @@
 
 import { EventEmitter } from 'events';
 
-import { BaseService, MemoryEntry, ContextQuery, ContextResult } from '../shared/interfaces';
 import { log, LogContext } from '@/utils/logger';
+
+import type { BaseService, ContextQuery, ContextResult,MemoryEntry } from '../shared/interfaces';
 import { getSupabaseClient } from '../supabase-client';
 
 // ============================================================================
@@ -56,6 +57,8 @@ interface MemoryConfig {
   enableClustering: boolean;
   enableCompression: boolean;
   cacheSize: number;
+  maxEmbeddingCacheSize: number;
+  aggressiveCleanup: boolean;
 }
 
 // ============================================================================
@@ -81,14 +84,16 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
     super();
     
     this.config = {
-      maxEntries: 10000,
-      defaultTTL: 24 * 60 * 60 * 1000, // 24 hours
-      embeddingDimensions: 1536,
+      maxEntries: 5000, // Reduced from 10000
+      defaultTTL: 12 * 60 * 60 * 1000, // Reduced to 12 hours
+      embeddingDimensions: 768, // Reduced from 1536
       clusteringThreshold: 0.8,
-      importanceDecay: 0.95,
-      enableClustering: true,
+      importanceDecay: 0.9, // More aggressive decay
+      enableClustering: false, // Disabled for memory savings
       enableCompression: true,
-      cacheSize: 1000,
+      cacheSize: 200, // Reduced from 1000
+      maxEmbeddingCacheSize: 500, // New limit for embeddings
+      aggressiveCleanup: true, // Enable aggressive cleanup
     };
 
     this.analytics = {
@@ -204,7 +209,7 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
       const now = new Date();
 
       // Generate embedding if not provided
-      let embedding = options.embedding;
+      let {embedding} = options;
       if (!embedding) {
         embedding = await this.generateEmbedding(content);
       }
@@ -286,7 +291,7 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
       const queryEmbedding = await this.generateEmbedding(query.query);
 
       // Filter memories by user and basic criteria
-      let relevantMemories = Array.from(this.memories.values()).filter(memory => {
+      const relevantMemories = Array.from(this.memories.values()).filter(memory => {
         // User filter
         if (memory.userId !== query.userId) return false;
 
@@ -622,11 +627,14 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
   }
 
   private startCleanupScheduler(): void {
+    // More frequent cleanup for memory optimization
+    const cleanupInterval = this.config.aggressiveCleanup ? 30000 : 60 * 60 * 1000; // 30s vs 1h
+    
     this.cleanupTimer = setInterval(() => {
       this.performCleanup().catch(error => 
         log.error('❌ Memory cleanup failed', LogContext.DATABASE, { error })
       );
-    }, 60 * 60 * 1000); // Every hour
+    }, cleanupInterval);
   }
 
   private startClusteringScheduler(): void {
@@ -651,9 +659,35 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
       // Apply importance decay
       memory.importance *= this.config.importanceDecay;
       
-      // Remove very low importance memories
-      if (memory.importance < 0.1 && memory.retentionPolicy !== 'permanent') {
+      // More aggressive cleanup thresholds
+      const cleanupThreshold = this.config.aggressiveCleanup ? 0.2 : 0.1;
+      if (memory.importance < cleanupThreshold && memory.retentionPolicy !== 'permanent') {
         expiredMemories.push(memoryId);
+      }
+    }
+
+    // If we're over capacity, remove lowest importance memories
+    if (this.memories.size > this.config.maxEntries) {
+      const sortedMemories = Array.from(this.memories.entries())
+        .filter(([, memory]) => memory.retentionPolicy !== 'permanent')
+        .sort(([, a], [, b]) => a.importance - b.importance);
+      
+      const excessCount = this.memories.size - this.config.maxEntries;
+      for (let i = 0; i < excessCount && i < sortedMemories.length; i++) {
+        expiredMemories.push(sortedMemories[i][0]);
+      }
+    }
+
+    // Clean up embedding cache if too large
+    if (this.indexMap.size > this.config.maxEmbeddingCacheSize) {
+      const excessEmbeddings = this.indexMap.size - this.config.maxEmbeddingCacheSize;
+      let removed = 0;
+      for (const [memoryId] of this.indexMap) {
+        if (removed >= excessEmbeddings) break;
+        if (!this.memories.has(memoryId) || expiredMemories.includes(memoryId)) {
+          this.indexMap.delete(memoryId);
+          removed++;
+        }
       }
     }
 
@@ -662,9 +696,21 @@ class UnifiedMemoryService extends EventEmitter implements BaseService {
       await this.deleteMemory(memoryId);
     }
 
+    // Clear caches more aggressively
+    if (this.cache.size > this.config.cacheSize * 0.8) {
+      this.cleanCache();
+    }
+
+    // Force garbage collection hint
+    if (global.gc && expiredMemories.length > 0) {
+      global.gc();
+    }
+
     if (expiredMemories.length > 0) {
       log.info('🧹 Memory cleanup completed', LogContext.DATABASE, {
         expiredCount: expiredMemories.length,
+        totalMemories: this.memories.size,
+        totalEmbeddings: this.indexMap.size,
       });
     }
   }
