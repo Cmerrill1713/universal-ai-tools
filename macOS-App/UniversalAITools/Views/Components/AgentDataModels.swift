@@ -456,89 +456,8 @@ struct ActionResult: Codable {
     }
 }
 
-/// Agent workflow management
-struct AgentWorkflow: Identifiable, Codable {
-    let id: String
-    var name: String
-    var steps: [WorkflowStep]
-    var dependencies: [WorkflowDependency]
-    var executionState: WorkflowExecutionState
-    var results: [String: WorkflowResult]
-    var startTime: Date?
-    var endTime: Date?
-    var priority: WorkflowPriority
-    
-    init(
-        id: String = UUID().uuidString,
-        name: String,
-        steps: [WorkflowStep] = [],
-        dependencies: [WorkflowDependency] = [],
-        executionState: WorkflowExecutionState = .pending,
-        results: [String: WorkflowResult] = [:],
-        startTime: Date? = nil,
-        endTime: Date? = nil,
-        priority: WorkflowPriority = .normal
-    ) {
-        self.id = id
-        self.name = name
-        self.steps = steps
-        self.dependencies = dependencies
-        self.executionState = executionState
-        self.results = results
-        self.startTime = startTime
-        self.endTime = endTime
-        self.priority = priority
-    }
-}
-
-struct WorkflowStep: Identifiable, Codable {
-    let id: String
-    var name: String
-    var agentId: String
-    var action: AgentAction
-    var status: StepStatus
-    var order: Int
-    var timeout: Double
-    var retryCount: Int
-    
-    init(
-        id: String = UUID().uuidString,
-        name: String,
-        agentId: String,
-        action: AgentAction,
-        status: StepStatus = .pending,
-        order: Int,
-        timeout: Double = 30.0,
-        retryCount: Int = 3
-    ) {
-        self.id = id
-        self.name = name
-        self.agentId = agentId
-        self.action = action
-        self.status = status
-        self.order = order
-        self.timeout = timeout
-        self.retryCount = retryCount
-    }
-}
-
-enum StepStatus: String, Codable, CaseIterable {
-    case pending = "Pending"
-    case running = "Running"
-    case completed = "Completed"
-    case failed = "Failed"
-    case skipped = "Skipped"
-    
-    var color: Color {
-        switch self {
-        case .pending: return .gray
-        case .running: return .blue
-        case .completed: return .green
-        case .failed: return .red
-        case .skipped: return .orange
-        }
-    }
-}
+// MARK: - Workflow Types (Reference AgentWorkflowService.swift for canonical definitions)
+// AgentWorkflow, WorkflowStep, StepStatus are defined in AgentWorkflowService.swift
 
 struct WorkflowDependency: Identifiable, Codable {
     let id: String
@@ -553,30 +472,7 @@ struct WorkflowDependency: Identifiable, Codable {
     }
 }
 
-enum WorkflowExecutionState: String, Codable, CaseIterable {
-    case pending = "Pending"
-    case running = "Running"
-    case paused = "Paused"
-    case completed = "Completed"
-    case failed = "Failed"
-    case cancelled = "Cancelled"
-}
-
-enum WorkflowPriority: String, Codable, CaseIterable {
-    case low = "Low"
-    case normal = "Normal"
-    case high = "High"
-    case critical = "Critical"
-    
-    var color: Color {
-        switch self {
-        case .low: return .gray
-        case .normal: return .blue
-        case .high: return .orange
-        case .critical: return .red
-        }
-    }
-}
+// WorkflowExecutionState and WorkflowPriority are defined in AgentWorkflowService.swift
 
 struct WorkflowResult: Codable {
     let stepId: String
