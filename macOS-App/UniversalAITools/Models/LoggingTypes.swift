@@ -638,26 +638,53 @@ public struct HealthTrend: Codable {
     }
 }
 
+
+// MARK: - Sync Status
+public enum SyncStatus: String, CaseIterable, Codable {
+    case idle = "idle"
+    case connected = "connected"
+    case syncing = "syncing"
+    case error = "error"
+    case disconnected = "disconnected"
+    
+    public var displayName: String {
+        switch self {
+        case .idle: return "Idle"
+        case .connected: return "Connected"
+        case .syncing: return "Syncing"
+        case .error: return "Error"
+        case .disconnected: return "Disconnected"
+        }
+    }
+    
+    public var color: Color {
+        switch self {
+        case .idle: return .gray
+        case .connected: return .green
+        case .syncing: return .blue
+        case .error: return .red
+        case .disconnected: return .orange
+        }
+    }
+}
+
 // MARK: - Endpoint Health
 public struct EndpointHealth: Codable {
     public let isHealthy: Bool
     public let responseTime: Double
     public let errorCount: Int
-    public let lastChecked: Date
-    public let status: String
+    public let lastCheck: Date
     
     public init(
         isHealthy: Bool,
         responseTime: Double,
         errorCount: Int,
-        lastChecked: Date = Date(),
-        status: String
+        lastCheck: Date = Date()
     ) {
         self.isHealthy = isHealthy
         self.responseTime = responseTime
         self.errorCount = errorCount
-        self.lastChecked = lastChecked
-        self.status = status
+        self.lastCheck = lastCheck
     }
 }
 

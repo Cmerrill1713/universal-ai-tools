@@ -146,23 +146,23 @@ public class BackendMonitoringIntegration: ObservableObject {
             await MainActor.run {
                 endpointHealth["monitoring"] = EndpointHealth(
                     isHealthy: healthResponse.services.monitoring,
-                    lastCheck: Date(),
                     responseTime: 0, // Would measure actual response time
-                    errorCount: 0
+                    errorCount: 0,
+                    lastCheck: Date()
                 )
                 
                 endpointHealth["logging"] = EndpointHealth(
                     isHealthy: healthResponse.services.logging,
-                    lastCheck: Date(),
                     responseTime: 0,
-                    errorCount: 0
+                    errorCount: 0,
+                    lastCheck: Date()
                 )
                 
                 endpointHealth["analytics"] = EndpointHealth(
                     isHealthy: healthResponse.services.analytics,
-                    lastCheck: Date(),
                     responseTime: 0,
-                    errorCount: 0
+                    errorCount: 0,
+                    lastCheck: Date()
                 )
             }
             
@@ -824,8 +824,8 @@ private struct MonitoringSyncData: Codable {
     let timestamp: Date
     let healthStatus: HealthStatus
     let healthCheckResults: [HealthCheckResult]
-    let performanceMetrics: PerformanceMetrics?
-    let connectionHealth: ConnectionHealth?
+    let performanceMetrics: SystemPerformanceMetrics?
+    let connectionHealth: ServiceConnectionHealth?
     let applicationHealth: ApplicationHealth?
     let alerts: [MonitoringAlert]
 }
