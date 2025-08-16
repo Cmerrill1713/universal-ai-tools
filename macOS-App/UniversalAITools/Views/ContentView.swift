@@ -90,39 +90,45 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
     private var detailView: some View {
-        let view: AnyView
-        switch appState.selectedSidebarItem ?? .chat {
-        case .chat:
-            view = AnyView(SimpleChatView()
-                .environmentObject(appState)
-                .environmentObject(apiService))
-        case .knowledge:
-            view = AnyView(KnowledgeGraphView3D()
-                .environmentObject(appState)
-                .environmentObject(apiService))
-        case .objectives:
-            view = AnyView(AgentManagementView()
-                .environmentObject(appState)
-                .environmentObject(apiService))
-        case .orchestration:
-            view = AnyView(AgentOrchestrationDashboard()
-                .environmentObject(appState)
-                .environmentObject(apiService))
-        case .analytics:
-            view = AnyView(ContextFlowDashboard()
-                .environmentObject(appState)
-                .environmentObject(apiService))
-        case .tools:
-            view = AnyView(ToolsView()
-                .environmentObject(appState)
-                .environmentObject(apiService))
+        Group {
+            switch appState.selectedSidebarItem ?? .chat {
+            case .chat:
+                SimpleChatView()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+            case .claude:
+                ClaudeAIChatView()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+            case .knowledge:
+                KnowledgeGraphView3D()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+            case .objectives:
+                AgentManagementView()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+            case .orchestration:
+                AgentOrchestrationDashboard()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+            case .analytics:
+                ContextFlowDashboard()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+            case .tools:
+                ToolsView()
+                    .environmentObject(appState)
+                    .environmentObject(apiService)
+            }
         }
-        return view
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AnimatedGradientBackground())
-            .clipped() // Ensure content doesn't extend beyond bounds
-            .transition(.scale.combined(with: .opacity))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AnimatedGradientBackground())
+        .clipped() // Ensure content doesn't extend beyond bounds
+        .transition(.scale.combined(with: .opacity))
+        .id(appState.selectedSidebarItem?.rawValue ?? "chat") // Force view refresh when selection changes
     }
 
     private func toggleSidebar() {
@@ -184,19 +190,19 @@ struct ContentWelcomeView: View {
                 .multilineTextAlignment(.center)
 
             VStack(spacing: 20) {
-                FeatureCard(
+                ContentFeatureCard(
                     icon: "message.and.waveform",
                     title: "AI Chat",
                     description: "Interactive conversations with advanced AI models"
                 )
 
-                FeatureCard(
+                ContentFeatureCard(
                     icon: "brain.head.profile",
                     title: "AI Agents",
                     description: "Specialized agents for different tasks and workflows"
                 )
 
-                FeatureCard(
+                ContentFeatureCard(
                     icon: "wrench.and.screwdriver",
                     title: "AI Tools",
                     description: "Powerful tools and utilities powered by AI"
@@ -212,7 +218,7 @@ struct ContentWelcomeView: View {
     }
 }
 
-struct FeatureCard: View {
+struct ContentFeatureCard: View {
     let icon: String
     let title: String
     let description: String

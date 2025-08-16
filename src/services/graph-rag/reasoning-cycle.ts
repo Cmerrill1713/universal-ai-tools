@@ -6,11 +6,13 @@
  */
 
 import { EventEmitter } from 'events';
+
 import { log, LogContext } from '../../utils/logger';
-import { llmEntityExtractor } from './llm-entity-extractor';
-import { grpoOptimizer, GRPOState, GRPOAction, GRPOTransition } from './grpo-optimizer';
-import { knowledgeGraphService } from './knowledge-graph-service';
+import type { GRPOAction, GRPOState, GRPOTransition } from './grpo-optimizer';
+import { grpoOptimizer } from './grpo-optimizer';
 import type { GraphEntity, GraphPath } from './knowledge-graph-service';
+import { knowledgeGraphService } from './knowledge-graph-service';
+import { llmEntityExtractor } from './llm-entity-extractor';
 
 export interface ReasoningStep {
   type: 'think' | 'generate' | 'retrieve' | 'rethink' | 'answer';

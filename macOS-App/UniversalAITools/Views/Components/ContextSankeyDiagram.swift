@@ -542,24 +542,7 @@ struct SankeyNode: Identifiable {
     }
 }
 
-struct DetailRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(AppTheme.caption)
-                .foregroundColor(AppTheme.secondaryText)
-            
-            Spacer()
-            
-            Text(value)
-                .font(AppTheme.caption)
-                .foregroundColor(AppTheme.primaryText)
-        }
-    }
-}
+// DetailRow is defined in SharedUIComponents.swift
 
 #Preview {
     ContextSankeyDiagram(

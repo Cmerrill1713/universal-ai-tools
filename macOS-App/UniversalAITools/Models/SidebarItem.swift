@@ -4,6 +4,7 @@ import SwiftUI
 // MARK: - Sidebar Item
 enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
     case chat = "chat"
+    case claude = "claude"
     case knowledge = "knowledge"
     case objectives = "objectives"
     case orchestration = "orchestration"
@@ -15,6 +16,7 @@ enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .chat: return "Chat"
+        case .claude: return "Claude AI"
         case .knowledge: return "Knowledge"
         case .objectives: return "Objectives"
         case .orchestration: return "Orchestration"
@@ -26,6 +28,7 @@ enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
     var description: String {
         switch self {
         case .chat: return "AI conversations"
+        case .claude: return "Claude AI Assistant"
         case .knowledge: return "Knowledge graph"
         case .objectives: return "Goal management"
         case .orchestration: return "Agent coordination"
@@ -37,9 +40,10 @@ enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
     var icon: String {
         switch self {
         case .chat: return "text.bubble"
+        case .claude: return "brain.head.profile"
         case .knowledge: return "point.3.connected.trianglepath.dotted"
         case .objectives: return "target"
-        case .orchestration: return "brain.head.profile"
+        case .orchestration: return "network"
         case .analytics: return "chart.bar.doc.horizontal"
         case .tools: return "wrench.and.screwdriver"
         }
@@ -48,6 +52,7 @@ enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
     var featureLevel: FeatureLevel {
         switch self {
         case .chat: return .core
+        case .claude: return .core
         case .knowledge: return .advanced
         case .objectives: return .core
         case .orchestration: return .advanced
@@ -96,6 +101,15 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case media = "media"
     case system = "system"
     case web = "web"
+    case mlx = "mlx"
+    case vision = "vision"
+    case monitoring = "monitoring"
+    case abMcts = "abMcts"
+    case maltSwarm = "maltSwarm"
+    case parameters = "parameters"
+    case knowledge = "knowledge"
+    case debugging = "debugging"
+    case guiGrounding = "guiGrounding"
     
     var id: String { rawValue }
     
@@ -107,6 +121,15 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .media: return "Media Tools"
         case .system: return "System Tools"
         case .web: return "Web Tools"
+        case .mlx: return "MLX Fine-tuning"
+        case .vision: return "Vision Processing"
+        case .monitoring: return "System Monitoring"
+        case .abMcts: return "AB-MCTS"
+        case .maltSwarm: return "MALT Swarm"
+        case .parameters: return "Parameters"
+        case .knowledge: return "Knowledge Base"
+        case .debugging: return "Debug Console"
+        case .guiGrounding: return "GUI Grounding"
         }
     }
     
@@ -118,6 +141,15 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .media: return "photo.on.rectangle"
         case .system: return "gear"
         case .web: return "globe"
+        case .mlx: return "cpu"
+        case .vision: return "camera"
+        case .monitoring: return "chart.line.uptrend.xyaxis"
+        case .abMcts: return "tree"
+        case .maltSwarm: return "network"
+        case .parameters: return "slider.horizontal.3"
+        case .knowledge: return "book"
+        case .debugging: return "ladybug"
+        case .guiGrounding: return "hand.point.up.left"
         }
     }
 }

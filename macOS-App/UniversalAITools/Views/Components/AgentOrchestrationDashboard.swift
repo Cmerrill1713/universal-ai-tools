@@ -809,6 +809,6 @@ struct WorkflowSummaryRow: View {
 
 #Preview {
     AgentOrchestrationDashboard()
-        .environmentObject(AppState())
+        .environmentObject(AppState.init())
         .frame(width: 1200, height: 800)
 }

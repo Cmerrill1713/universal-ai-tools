@@ -142,7 +142,7 @@ struct UserFriendlyErrorView: View {
                     if !error.metadata.isEmpty {
                         Text("Metadata:")
                             .font(.caption2)
-                            .foregroundColor(.tertiary)
+                            .foregroundColor(.secondary)
                             .padding(.top, 4)
                         
                         ForEach(Array(error.metadata.keys.sorted()), id: \.self) { key in
@@ -154,7 +154,7 @@ struct UserFriendlyErrorView: View {
                     
                     Text("Original Message:")
                         .font(.caption2)
-                        .foregroundColor(.tertiary)
+                        .foregroundColor(.secondary)
                         .padding(.top, 4)
                     
                     Text(error.message)
@@ -178,7 +178,7 @@ struct UserFriendlyErrorView: View {
         HStack {
             Text("\(label):")
                 .font(.caption2)
-                .foregroundColor(.tertiary)
+                .foregroundColor(.secondary)
                 .frame(width: 60, alignment: .leading)
             
             Text(value)

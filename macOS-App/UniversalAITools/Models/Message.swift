@@ -46,7 +46,15 @@ struct Message: Identifiable, Codable, Hashable {
 struct RAGMetadata: Codable, Hashable {
     let contextUsed: Int
     let graphPaths: Int
+    let clusters: Int
     let sources: [RAGSource]
+    
+    init(contextUsed: Int, sources: [RAGSource], graphPaths: Int = 0, clusters: Int = 0) {
+        self.contextUsed = contextUsed
+        self.sources = sources
+        self.graphPaths = graphPaths
+        self.clusters = clusters
+    }
 }
 
 struct RAGSource: Identifiable, Codable, Hashable {

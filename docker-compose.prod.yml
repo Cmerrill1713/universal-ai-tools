@@ -7,7 +7,8 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
+      target: production
     image: universal-ai-tools:latest
     container_name: universal-ai-tools-api
     restart: always

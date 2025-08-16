@@ -4,6 +4,7 @@
  */
 
 import { type Request, type Response, Router } from 'express';
+
 import { authenticate } from '@/middleware/auth';
 import { singleFileAgentBridge } from '@/services/single-file-agent-bridge';
 import { log, LogContext } from '@/utils/logger';
@@ -34,7 +35,7 @@ function categorizeSingleFileAgent(keywords: string[]): string {
 
 function generateUsageExamples(agent: any): string[] {
   const examples: string[] = [];
-  const name = agent.name;
+  const {name} = agent;
   const keywords = agent.keywords || [];
   
   // Generate contextual examples based on agent type
@@ -63,7 +64,7 @@ function generateCategorySummary(agents: any): any {
   
   // Process all agents to build category summary
   [...agents.main, ...agents.singleFile].forEach(agent => {
-    const category = agent.category;
+    const {category} = agent;
     if (!categories[category]) {
       categories[category] = {
         name: category,
@@ -114,7 +115,7 @@ function getCategoryIcon(category: string): string {
 router.get('/', async (req: Request, res: Response) => {
   try {
     // Get main agents from registry
-    const agentRegistry = (global as any).agentRegistry;
+    const {agentRegistry} = (global as any);
     const mainAgents = agentRegistry ? agentRegistry.getAvailableAgents() : [];
 
     // Get single-file agents

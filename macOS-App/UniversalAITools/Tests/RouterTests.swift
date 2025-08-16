@@ -1,11 +1,12 @@
 import XCTest
 import SwiftUI
+import Foundation
 
 class RouterTests: UniversalAIToolsTestSuite {
     func testContentRouterModes() {
-        let item: SidebarItem = .dashboard
+        let item: SidebarItem = .analytics
 
-        var view = ContentRouterView(item: item, viewMode: .webView)
+        var view = ContentRouterView(item: item, viewMode: .web)
         XCTAssertNotNil(view)
 
         view = ContentRouterView(item: item, viewMode: .native)
@@ -17,9 +18,8 @@ class RouterTests: UniversalAIToolsTestSuite {
 
     func testNativeRouterRoutesAllCases() {
         let all: [SidebarItem] = [
-            .dashboard, .chat, .agents, .mlx, .vision,
-            .monitoring, .abMcts, .maltSwarm, .parameters,
-            .knowledge, .debugging,
+            .chat, .knowledge, .objectives,
+            .orchestration, .analytics, .tools
         ]
 
         for item in all {

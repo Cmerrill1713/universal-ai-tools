@@ -36,7 +36,7 @@ struct GestureState {
     var translation: CGPoint = .zero
     var force: Double = 0.0
     var touchCount: Int = 0
-    var timestamp: Date = Date()
+    var timestamp = Date()
 }
 
 // MARK: - Gesture Configuration
@@ -58,11 +58,11 @@ enum GestureConflictStrategy {
 
 // MARK: - Gesture Event
 struct GestureEvent {
-    let id: UUID = UUID()
+    let id = UUID()
     let type: GestureType
     let state: GestureState
     let location: CGPoint
-    let timestamp: Date = Date()
+    let timestamp = Date()
     let target: AnyView?
 }
 

@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct ContentRouterView: View {
@@ -6,7 +7,7 @@ struct ContentRouterView: View {
 
     var body: some View {
         switch viewMode {
-        case .webView:
+        case .web:
             NativeRouterView(item: item) // fallback: remove missing RoutedWebViewContainer
         case .native:
             NativeRouterView(item: item)
@@ -29,6 +30,10 @@ struct NativeRouterView: View {
             ToolsView()
         case .knowledge:
             KnowledgeGraphView3D()
+        case .orchestration:
+            AgentOrchestrationDashboard()
+        case .analytics:
+            ContextFlowDashboard()
         }
     }
 }

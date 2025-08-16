@@ -16,7 +16,7 @@ struct ModelPerformanceChart: View {
     @State private var selectedModels: Set<String> = []
     @State private var selectedMetric: PerformanceMetric = .throughput
     @State private var chartTimeRange: ChartTimeRange = .last24Hours
-    @State private var chartType: ChartType = .line
+    @State private var chartType: PerformanceChartType = .line
     @State private var showComparison = true
     @State private var showPredictions = false
     @State private var normalizeData = false
@@ -255,7 +255,7 @@ enum ChartTimeRange: String, CaseIterable {
     }
 }
 
-enum ChartType: String, CaseIterable {
+enum PerformanceChartType: String, CaseIterable {
     case line = "Line"
     case bar = "Bar"
     case scatter = "Scatter"
@@ -277,7 +277,7 @@ struct ModelPerformanceControls: View {
     @Binding var selectedModels: Set<String>
     @Binding var selectedMetric: PerformanceMetric
     @Binding var chartTimeRange: ChartTimeRange
-    @Binding var chartType: ChartType
+    @Binding var chartType: PerformanceChartType
     @Binding var showComparison: Bool
     @Binding var showPredictions: Bool
     @Binding var normalizeData: Bool
@@ -335,7 +335,7 @@ struct ModelPerformanceControls: View {
                     .foregroundColor(.secondary)
                 
                 Picker("Chart Type", selection: $chartType) {
-                    ForEach(ChartType.allCases, id: \.self) { type in
+                    ForEach(PerformanceChartType.allCases, id: \.self) { type in
                         Label(type.rawValue, systemImage: type.icon).tag(type)
                     }
                 }

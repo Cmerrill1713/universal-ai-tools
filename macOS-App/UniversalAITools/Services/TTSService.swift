@@ -41,25 +41,7 @@ struct TTSVoice: Identifiable, Codable, Hashable {
     }
 }
 
-// MARK: - TTS Playback State
-enum TTSPlaybackState: Equatable {
-    case idle
-    case loading
-    case playing
-    case paused
-    case error(String)
-    
-    static func == (lhs: TTSPlaybackState, rhs: TTSPlaybackState) -> Bool {
-        switch (lhs, rhs) {
-        case (.idle, .idle), (.loading, .loading), (.playing, .playing), (.paused, .paused):
-            return true
-        case (.error(let lhsMessage), .error(let rhsMessage)):
-            return lhsMessage == rhsMessage
-        default:
-            return false
-        }
-    }
-}
+// Note: TTSPlaybackState is defined in VoiceInteraction.swift to avoid conflicts
 
 // MARK: - Speech Event Callbacks
 protocol TTSSpeechDelegate: AnyObject {
@@ -113,6 +95,14 @@ class TTSService: NSObject, ObservableObject {
         loadUserPreferences()
         
         logger.info("🔊 TTSService initialized with \(self.availableVoices.count) system voices")
+    }
+    
+    deinit {
+        stopProgressTimer()
+        stopPlayback()
+        cancellables.removeAll()
+        speechDelegate = nil
+        logger.debug("🔊 TTSService deinitialized")
     }
     
     // MARK: - Public Methods
@@ -456,14 +446,20 @@ class TTSService: NSObject, ObservableObject {
     private func startProgressTimer() {
         stopProgressTimer()
         
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self else { return }
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
+            Task { @MainActor [weak self] in
+                guard let self = self else { 
+                    timer.invalidate()
+                    return 
+                }
                 
                 // Update progress based on speech synthesizer state
                 if self.speechSynthesizer.isSpeaking {
                     // This is a rough approximation - AVSpeechSynthesizer doesn't provide exact progress
                     self.playbackProgress = min(0.95, self.playbackProgress + 0.01)
+                } else {
+                    // Stop timer if not speaking
+                    timer.invalidate()
                 }
             }
         }

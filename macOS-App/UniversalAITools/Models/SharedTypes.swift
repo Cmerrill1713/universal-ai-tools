@@ -44,8 +44,8 @@ enum ContentType: String, CaseIterable, Codable, Identifiable {
     }
 }
 
-// MARK: - Navigation Mode (Unified)
-enum NavigationMode: String, CaseIterable, Codable {
+// MARK: - View Navigation Mode (Unified)
+enum ViewNavigationMode: String, CaseIterable, Codable {
     case standard = "standard"
     case orbit = "orbit"
     case free = "free"
@@ -252,39 +252,19 @@ enum ConnectionStatus: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Agent Status (Unified)
-enum AgentStatus: String, CaseIterable, Codable {
-    case active = "active"
-    case inactive = "inactive"
-    case busy = "busy"
-    case error = "error"
-    
-    var displayName: String {
-        switch self {
-        case .active: return "Active"
-        case .inactive: return "Inactive"
-        case .busy: return "Busy"
-        case .error: return "Error"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .active: return .green
-        case .inactive: return .gray
-        case .busy: return .blue
-        case .error: return .red
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .active: return "checkmark.circle.fill"
-        case .inactive: return "circle"
-        case .busy: return "arrow.clockwise.circle.fill"
-        case .error: return "exclamationmark.triangle.fill"
-        }
-    }
+// Note: AgentStatus moved to Agent.swift to avoid conflicts
+
+// Note: ChartDataPoint moved to ChartDataPoint.swift to avoid conflicts
+
+// MARK: - Accessibility Role (for compatibility)
+enum AccessibilityRole: String, CaseIterable {
+    case button = "button"
+    case chart = "chart"
+    case image = "image"
+    case text = "text"
+    case list = "list"
+    case tab = "tab"
+    case header = "header"
 }
 
 // MARK: - Optimization Priority (Unified)
@@ -313,8 +293,8 @@ enum OptimizationPriority: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Trend Direction (Unified)
-enum TrendDirection: String, CaseIterable, Codable {
+// MARK: - Performance Trend Direction (Unified)
+enum PerformanceTrendDirection: String, CaseIterable, Codable {
     case improving = "improving"
     case stable = "stable"
     case declining = "declining"
@@ -348,8 +328,8 @@ enum TrendDirection: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Time Range (Unified)
-enum TimeRange: String, CaseIterable, Codable {
+// MARK: - Analytics Time Range (Unified)
+enum AnalyticsTimeRange: String, CaseIterable, Codable {
     case lastHour = "1h"
     case last24Hours = "24h"
     case lastWeek = "7d"
@@ -373,6 +353,117 @@ enum TimeRange: String, CaseIterable, Codable {
         case .lastWeek: return 604800
         case .lastMonth: return 2592000
         case .lastYear: return 31536000
+        }
+    }
+}
+
+// MARK: - Task History
+struct TaskHistory: Identifiable, Codable, Hashable {
+    let id: UUID
+    let name: String
+    let description: String
+    let status: TaskStatus
+    let startTime: Date
+    let endTime: Date?
+    let duration: TimeInterval?
+    let agentId: String?
+    let result: String?
+    
+    init(
+        id: UUID = UUID(),
+        name: String,
+        description: String = "",
+        status: TaskStatus = .pending,
+        startTime: Date = Date(),
+        endTime: Date? = nil,
+        agentId: String? = nil,
+        result: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.status = status
+        self.startTime = startTime
+        self.endTime = endTime
+        self.duration = endTime?.timeIntervalSince(startTime)
+        self.agentId = agentId
+        self.result = result
+    }
+}
+
+// MARK: - Task Status
+enum TaskStatus: String, CaseIterable, Codable {
+    case pending = "pending"
+    case running = "running"
+    case completed = "completed"
+    case failed = "failed"
+    case cancelled = "cancelled"
+    
+    var displayName: String {
+        switch self {
+        case .pending: return "Pending"
+        case .running: return "Running"
+        case .completed: return "Completed"
+        case .failed: return "Failed"
+        case .cancelled: return "Cancelled"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .pending: return .gray
+        case .running: return .blue
+        case .completed: return .green
+        case .failed: return .red
+        case .cancelled: return .orange
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .pending: return "clock"
+        case .running: return "arrow.clockwise"
+        case .completed: return "checkmark.circle"
+        case .failed: return "xmark.circle"
+        case .cancelled: return "stop.circle"
+        }
+    }
+}
+
+// MARK: - Sync Status (Unified)
+public enum SyncStatus: String, CaseIterable, Codable {
+    case idle = "idle"
+    case connecting = "connecting"
+    case connected = "connected"
+    case syncing = "syncing"
+    case synced = "synced"
+    case error = "error"
+    case disconnected = "disconnected"
+    case paused = "paused"
+    
+    public var color: Color {
+        switch self {
+        case .idle: return .gray
+        case .connecting: return .yellow
+        case .connected: return .green
+        case .syncing: return .blue
+        case .synced: return .green
+        case .error: return .red
+        case .disconnected: return .red
+        case .paused: return .orange
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .idle: return "pause.circle"
+        case .connecting: return "wifi.circle"
+        case .connected: return "checkmark.circle"
+        case .syncing: return "arrow.triangle.2.circlepath"
+        case .synced: return "checkmark.circle.fill"
+        case .error: return "xmark.circle"
+        case .disconnected: return "wifi.slash"
+        case .paused: return "pause.circle.fill"
         }
     }
 }

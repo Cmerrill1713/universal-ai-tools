@@ -19,8 +19,5 @@ struct RAGSettings: Codable, Hashable {
     var sessionId: String = ""
     var projectPath: String = ""
     
-    init() {}
-    
     static let defaultSettings = RAGSettings()
 }
-

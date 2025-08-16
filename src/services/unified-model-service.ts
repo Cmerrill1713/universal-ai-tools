@@ -92,7 +92,7 @@ export class UnifiedModelService {
       this.circuitBreakers.set(provider, new CircuitBreaker(provider, {
         failureThreshold: 3,
         successThreshold: 2,
-        timeout: 30000,
+        timeout: 5000, // Reduced from 30s to 5s for better UX
         rollingWindow: 60000
       }));
     }
@@ -131,7 +131,7 @@ export class UnifiedModelService {
       try {
         // Add timeout protection
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Model timeout')), request.maxLatencyMs || 30000)
+          setTimeout(() => reject(new Error('Model timeout')), request.maxLatencyMs || 5000) // Reduced from 30s to 5s
         );
         
         response = await Promise.race([
@@ -169,7 +169,7 @@ export class UnifiedModelService {
         try {
           // Add timeout protection for fallbacks too
           const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Fallback model timeout')), request.maxLatencyMs || 30000)
+            setTimeout(() => reject(new Error('Fallback model timeout')), request.maxLatencyMs || 5000) // Reduced from 30s to 5s
           );
           
           response = await Promise.race([

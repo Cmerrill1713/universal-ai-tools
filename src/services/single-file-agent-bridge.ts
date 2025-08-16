@@ -5,11 +5,12 @@
  */
 
 import { exec } from 'child_process';
-import { promisify } from 'util';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { log, LogContext } from '@/utils/logger';
+import { promisify } from 'util';
+
 import type { AgentContext } from '@/types';
+import { log, LogContext } from '@/utils/logger';
 
 const execAsync = promisify(exec);
 
@@ -152,11 +153,12 @@ export class SingleFileAgentBridge {
         scriptPath
       });
 
-      // Execute the single-file agent
+      // Execute the single-file agent with aggressive timeout for performance
       const command = `npx tsx "${scriptPath}" "${userRequest.replace(/"/g, '\\"')}"`;
       const { stdout, stderr } = await execAsync(command, {
-        timeout: 30000, // 30 second timeout
-        cwd: process.cwd()
+        timeout: 3000, // Further reduced to 3s for chat performance
+        cwd: process.cwd(),
+        maxBuffer: 1024 * 1024 // 1MB buffer limit
       });
 
       if (stderr && !stdout) {

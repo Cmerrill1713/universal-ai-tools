@@ -10,10 +10,12 @@
  */
 
 import { z } from 'zod';
+
 import { llmRouter } from '@/services/llm-router-service';
 import type { AgentConfig, AgentContext, AgentResponse } from '@/types';
-import { EnhancedBaseAgent } from './enhanced-base-agent';
 import { log, LogContext } from '@/utils/logger';
+
+import { EnhancedBaseAgent } from './enhanced-base-agent';
 
 // Reasoning types and schemas
 const ReasoningStepSchema = z.object({
@@ -517,7 +519,7 @@ Final Answer:`;
     criticalAnalysis: CriticalAnalysis
   ): number {
     // Base confidence from reasoning tree
-    let confidence = reasoningTree.confidence;
+    let {confidence} = reasoningTree;
 
     // Adjust based on reasoning quality
     if (reasoningTree.reasoning_quality === 'high') {
@@ -578,7 +580,7 @@ Provide only the numeric score (0-100):`;
         maxTokens: 50,
       });
 
-      const score = parseInt(response.content.trim());
+      const score = parseInt(response.content.trim(), 10);
       return isNaN(score) ? 75 : Math.max(0, Math.min(100, score));
     } catch (error) {
       log.warn('⚠️ AutoCodeBench evaluation failed', LogContext.AGENT, {

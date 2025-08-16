@@ -1,4 +1,5 @@
 import type { Application } from 'express';
+
 import AgentRegistry from '../agents/agent-registry.js';
 import { log, LogContext } from '../utils/logger.js';
 
@@ -404,7 +405,7 @@ export async function mountGraphQL(app: Application): Promise<void> {
         context: async ({ req }) => {
           // Extract user from JWT if available
           const token = req.headers.authorization?.replace('Bearer ', '');
-          let user = null;
+          const user = null;
           
           if (token) {
             try {

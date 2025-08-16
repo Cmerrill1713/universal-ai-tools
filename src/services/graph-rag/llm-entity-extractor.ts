@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios';
+
 import { log, LogContext } from '../../utils/logger';
 import { generateEmbedding } from '../embeddings';
 

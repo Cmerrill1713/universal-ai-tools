@@ -1,5 +1,233 @@
 import SwiftUI
 
+// MARK: - Missing View Components
+// These are temporary placeholders to fix compilation issues
+
+// KnowledgeGraphView3D is implemented in Views/Components/KnowledgeGraphView3D.swift
+
+struct AgentOrchestrationDashboard: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            Text("Agent Orchestration")
+                .font(.title2)
+            Text("Agent orchestration dashboard coming soon")
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// ContextFlowDashboard is implemented in Views/Components/ContextFlowDashboard.swift
+
+// ToolsView is defined in its own file
+
+// SystemMonitoringView is implemented in Views/SystemMonitoringView.swift
+
+// VisionProcessingView is defined in its own file
+
+// ABMCTSOrchestrationView is defined in its own file
+
+// MARK: - Chat Component Placeholders
+
+struct EnhancedMessageBubble: View {
+    let message: Message
+    
+    var body: some View {
+        HStack(alignment: .top) {
+            if message.role == .user {
+                Spacer()
+            }
+            
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
+                Text(message.content)
+                    .font(.system(size: 16))
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(message.role == .user ? Color.blue : Color.gray.opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .frame(maxWidth: 600, alignment: message.role == .user ? .trailing : .leading)
+            }
+            
+            if message.role == .assistant {
+                Spacer()
+            }
+        }
+    }
+}
+
+struct EnhancedTypingIndicator: View {
+    var body: some View {
+        HStack {
+            HStack(spacing: 4) {
+                ForEach(0..<3) { index in
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 6, height: 6)
+                        .scaleEffect(1.0)
+                        .animation(
+                            Animation.easeInOut(duration: 0.6)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(index) * 0.2),
+                            value: true
+                        )
+                }
+                Text("AI is thinking...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.gray.opacity(0.2))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            
+            Spacer()
+        }
+    }
+}
+
+struct ParticleButton<Content: View>: View {
+    let action: () -> Void
+    let content: Content
+    
+    init(action: @escaping () -> Void, @ViewBuilder content: () -> Content) {
+        self.action = action
+        self.content = content()
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            content
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct SuccessParticles: View {
+    @Binding var isTriggered: Bool
+    
+    var body: some View {
+        EmptyView() // Placeholder for particle effects
+    }
+}
+
+struct CompactVoiceButton: View {
+    let voiceAgent: VoiceAgent
+    
+    var body: some View {
+        Button(action: {}) {
+            Image(systemName: "mic")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(Color.blue.gradient)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct VoiceActivityIndicator: View {
+    let voiceAgent: VoiceAgent
+    
+    var body: some View {
+        Circle()
+            .fill(Color.blue)
+            .frame(width: 12, height: 12)
+    }
+}
+
+// MARK: - Service Placeholders
+
+public class TTSService: ObservableObject {
+    public init() {}
+}
+
+public class STTService: ObservableObject {
+    @Published public var partialTranscription = ""
+    public var isAuthorized = false
+    
+    public init() {}
+    
+    public func requestAuthorization() async {
+        isAuthorized = true
+    }
+}
+
+public class VoiceAgent: ObservableObject {
+    public enum State {
+        case idle, listening, processing, responding, error
+    }
+    
+    public enum InteractionMode {
+        case conversational, manual
+    }
+    
+    public struct Configuration {
+        public let interactionMode: InteractionMode
+        
+        public init(interactionMode: InteractionMode = .manual) {
+            self.interactionMode = interactionMode
+        }
+    }
+    
+    @Published public var state: State = .idle
+    @Published public var isEnabled = true
+    @Published public var currentInteraction: VoiceInteraction?
+    
+    public let configuration: Configuration
+    
+    public init(sttService: STTService, ttsService: TTSService, apiService: APIService) {
+        self.configuration = Configuration()
+    }
+    
+    public func cancelVoiceInteraction() {
+        state = .idle
+        currentInteraction = nil
+    }
+}
+
+public struct VoiceInteraction {
+    public let userInput: String
+    
+    public init(userInput: String) {
+        self.userInput = userInput
+    }
+}
+
+// MARK: - Missing Environment Effects
+
+extension View {
+    public func glow(color: Color, radius: CGFloat) -> some View {
+        self.shadow(color: color, radius: radius)
+    }
+    
+    public func neumorphism(cornerRadius: CGFloat) -> some View {
+        self
+    }
+    
+    public func glassMorphism(cornerRadius: CGFloat) -> some View {
+        self
+    }
+    
+    public func floating(amplitude: CGFloat, duration: TimeInterval) -> some View {
+        self
+    }
+}
+
+struct AnimatedGradientBackground: View {
+    var body: some View {
+        LinearGradient(
+            colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 struct PlaceholderView: View {
     let title: String
     let icon: String
@@ -34,43 +262,9 @@ struct PlaceholderView: View {
     }
 }
 
-struct ABMCTSOrchestrationView: View {
-    @EnvironmentObject var appState: AppState
+// ABMCTSOrchestrationView is defined in Views/ABMCTSOrchestrationView.swift
 
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("AB-MCTS Orchestration")
-                .font(.title2)
-                .fontWeight(.bold)
-            ControlPanel(
-                startAction: { appState.showNotification(message: "AB-MCTS start requested") },
-                pauseAction: { appState.showNotification(message: "AB-MCTS pause requested") },
-                stopAction: { appState.showNotification(message: "AB-MCTS stop requested") }
-            )
-            Spacer()
-        }
-        .padding()
-    }
-}
-
-struct MALTSwarmControlView: View {
-    @EnvironmentObject var appState: AppState
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("MALT Swarm Control")
-                .font(.title2)
-                .fontWeight(.bold)
-            ControlPanel(
-                startAction: { appState.showNotification(message: "MALT Swarm deploy requested") },
-                pauseAction: { appState.showNotification(message: "MALT Swarm scale/pause requested") },
-                stopAction: { appState.showNotification(message: "MALT Swarm teardown requested") }
-            )
-            Spacer()
-        }
-        .padding()
-    }
-}
+// MALTSwarmControlView is defined in Views/MALTSwarmControlView.swift
 
 struct IntelligentParametersView: View {
     @EnvironmentObject var appState: AppState
@@ -317,15 +511,17 @@ private struct TagView: View {
     }
 }
 
+// KnowledgeBaseView definition moved up to avoid duplication
+
 #Preview {
     Group {
-        SystemMonitoringView()
-        ABMCTSOrchestrationView()
-        MALTSwarmControlView()
-        IntelligentParametersView()
-        KnowledgeBaseView()
+        SystemMonitoringView.init()
+        ABMCTSOrchestrationView.init()
+        MALTSwarmControlView.init()
+        IntelligentParametersView.init()
+        KnowledgeBaseView.init()
     }
-    .environmentObject(AppState())
-    .environmentObject(APIService())
-    .environmentObject(MCPService())
+    .environmentObject(AppState.init())
+    .environmentObject(APIService.init())
+    .environmentObject(MCPService.init())
 }

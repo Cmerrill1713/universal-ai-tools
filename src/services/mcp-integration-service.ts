@@ -162,7 +162,7 @@ export class MCPIntegrationService extends EventEmitter {
         );
 
         // Wait before retry
-        await new Promise((resolve) => setTimeout(resolve, 2000 * this.retryCount));
+        await new Promise((resolve) => setTimeout(resolve, 500 * this.retryCount)); // Reduced from 2s to 500ms
         return this.start();
       }
 
@@ -198,7 +198,7 @@ export class MCPIntegrationService extends EventEmitter {
       // Auto-restart if unexpected exit
       if (code !== 0 && this.retryCount < this.maxRetries) {
         log.info('🔄 Auto-restarting MCP server', LogContext.MCP);
-        setTimeout(() => this.start(), 5000);
+        setTimeout(() => this.start(), 1000); // Reduced from 5s to 1s
       }
     });
 
@@ -628,6 +628,156 @@ export class MCPIntegrationService extends EventEmitter {
       this.supabaseMCPProcess = null;
       this.emit('shutdown');
     }
+  }
+
+  /**
+   * Call a tool on an MCP server
+   * Supports both built-in Supabase tools and external MCP servers like code-search
+   */
+  async callTool(serverName: string, toolName: string, params: Record<string, unknown>): Promise<unknown> {
+    try {
+      if (serverName === 'supabase' || serverName === 'mcp') {
+        // Use existing sendMessage for Supabase MCP operations
+        return await this.sendMessage(toolName, params);
+      }
+
+      if (serverName === 'filesystem') {
+        // Handle filesystem operations via direct tool calls
+        return await this.callFilesystemTool(toolName, params);
+      }
+
+      if (serverName === 'code-search') {
+        // Handle code search operations via new code-search MCP server
+        return await this.callCodeSearchTool(toolName, params);
+      }
+
+      throw new Error(`Unknown MCP server: ${serverName}`);
+    } catch (error) {
+      log.error('Failed to call MCP tool', LogContext.MCP, {
+        server: serverName,
+        tool: toolName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Call filesystem tools directly
+   */
+  private async callFilesystemTool(toolName: string, params: Record<string, unknown>): Promise<unknown> {
+    // For now, provide basic filesystem operations
+    // In production, this would connect to the filesystem MCP server
+    switch (toolName) {
+      case 'list_files':
+        return this.fallbackListFiles(params);
+      case 'read_file':
+        return this.fallbackReadFile(params);
+      case 'search_files':
+        return this.fallbackSearchFiles(params);
+      default:
+        throw new Error(`Unsupported filesystem tool: ${toolName}`);
+    }
+  }
+
+  /**
+   * Call code search tools via the new MCP server
+   */
+  private async callCodeSearchTool(toolName: string, params: Record<string, unknown>): Promise<unknown> {
+    // For now, return mock data until the code-search MCP server is fully integrated
+    // In production, this would spawn and communicate with the code-search MCP server
+    log.info('Code search tool called', LogContext.MCP, { tool: toolName, params });
+
+    switch (toolName) {
+      case 'search_code':
+        return {
+          query: params.query,
+          results: [],
+          total_files_searched: 0,
+          search_strategy: 'code_element_search',
+        };
+      case 'analyze_function':
+        return {
+          function: { name: params.function_name, line: 1, signature: 'mock', context: 'mock' },
+          dependencies: [],
+          usages: [],
+          file_context: { total_functions: 0, total_classes: 0, imports: 0 },
+        };
+      case 'trace_imports':
+        return {
+          starting_file: params.file_path,
+          target_symbol: params.symbol,
+          import_chain: [],
+          total_files_traced: 0,
+        };
+      case 'find_usages':
+        return {
+          symbol: params.symbol,
+          symbol_type: params.symbol_type,
+          usages: [],
+          total_files_searched: 0,
+        };
+      case 'analyze_class':
+        return {
+          class: { name: params.class_name, line: 1, signature: 'mock', context: 'mock' },
+          methods: [],
+          inheritance: [],
+          properties: [],
+        };
+      case 'search_repository':
+        return {
+          repository_root: params.root_path,
+          query: params.query,
+          search_strategy: params.search_strategy,
+          results: [],
+          total_files_scanned: 0,
+          performance_metrics: {
+            files_found: 0,
+            results_found: 0,
+            avg_relevance: 0,
+          },
+        };
+      default:
+        throw new Error(`Unsupported code search tool: ${toolName}`);
+    }
+  }
+
+  /**
+   * Fallback filesystem operations
+   */
+  private async fallbackListFiles(params: Record<string, unknown>): Promise<unknown> {
+    // Basic file listing - would be replaced with actual filesystem MCP calls
+    return {
+      files: [],
+      message: 'Filesystem MCP server not yet connected - using fallback',
+    };
+  }
+
+  private async fallbackReadFile(params: Record<string, unknown>): Promise<unknown> {
+    // Basic file reading - would be replaced with actual filesystem MCP calls
+    return {
+      content: '',
+      message: 'Filesystem MCP server not yet connected - using fallback',
+    };
+  }
+
+  private async fallbackSearchFiles(params: Record<string, unknown>): Promise<unknown> {
+    // Basic file search - would be replaced with actual filesystem MCP calls
+    return {
+      matches: [],
+      message: 'Filesystem MCP server not yet connected - using fallback',
+    };
+  }
+
+  /**
+   * Get available tools from all connected MCP servers
+   */
+  async getAvailableTools(): Promise<Record<string, string[]>> {
+    return {
+      supabase: ['save_context', 'get_context', 'save_code_pattern', 'get_code_patterns', 'propose_migration'],
+      filesystem: ['list_files', 'read_file', 'search_files'],
+      'code-search': ['search_code', 'analyze_function', 'trace_imports', 'find_usages', 'analyze_class', 'search_repository'],
+    };
   }
 
   /**

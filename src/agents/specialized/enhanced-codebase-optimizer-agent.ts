@@ -6,15 +6,15 @@
  * and optimization through the agent system.
  */
 
-import type { AgentConfig, AgentContext, AgentResponse, AgentCapability } from '@/types';
+import type { AgentCapability,AgentConfig, AgentContext, AgentResponse } from '@/types';
 import { log, LogContext } from '@/utils/logger';
+
 import { 
+  type CodeAnalysis,
   codebaseOptimizerAgent, 
   type OptimizationResult,
-  type CodeAnalysis,
   type OptimizationSuggestion 
 } from '../codebase-optimizer-agent';
-
 import { EnhancedBaseAgent } from '../enhanced-base-agent';
 
 interface CodebaseOptimizationContext extends AgentContext {

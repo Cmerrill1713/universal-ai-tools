@@ -4,8 +4,10 @@
  */
 
 import type { Application } from 'express';
-import { setupOpenAPIDocumentation } from './openapi-integration';
+
 import { log, LogContext } from '@/utils/logger';
+
+import { setupOpenAPIDocumentation } from './openapi-integration';
 
 /**
  * Wire OpenAPI documentation and validation

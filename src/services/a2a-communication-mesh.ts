@@ -82,14 +82,14 @@ export class A2ACommunicationMesh extends EventEmitter {
   private initializeMesh(): void {
     log.info('🕸️ Initializing A2A communication mesh', LogContext.AI);
 
-    // Start mesh maintenance cycle
-    setInterval(() => this.maintainMesh(), 30000); // Every 30 seconds
+    // Consolidated maintenance to reduce timer overhead
+    setInterval(() => {
+      this.maintainMesh();
+      this.processMessageQueues();
+    }, 15000); // Every 15 seconds (combined)
 
-    // Start message processing
-    setInterval(() => this.processMessageQueues(), 1000); // Every second
-
-    // Start collaboration monitoring
-    setInterval(() => this.monitorCollaborations(), 5000); // Every 5 seconds
+    // Less frequent collaboration monitoring
+    setInterval(() => this.monitorCollaborations(), 30000); // Every 30 seconds
 
     log.info('✅ A2A communication mesh initialized', LogContext.AI);
   }

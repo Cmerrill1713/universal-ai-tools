@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import XCTest
 import Combine
@@ -25,14 +26,14 @@ class UniversalAIToolsTestSuite: XCTestCase {
 class UIComponentTests: UniversalAIToolsTestSuite {
 
     func testSidebarViewRendering() {
-        let sidebarView = SidebarView(selection: .constant(.dashboard))
+        let sidebarView = SidebarView(selection: .constant(.analytics))
             .environmentObject(appState)
 
         // Test sidebar renders with all items
         XCTAssertNotNil(sidebarView)
 
         // Test sidebar item selection
-        var selection: SidebarItem? = .dashboard
+        var selection: SidebarItem? = .analytics
         let binding = Binding(
             get: { selection },
             set: { selection = $0 }
@@ -101,8 +102,8 @@ class UIComponentTests: UniversalAIToolsTestSuite {
         XCTAssertNotNil(viewModeSelector)
 
         // Test view mode changes
-        appState.viewMode = .webView
-        XCTAssertEqual(appState.viewMode, .webView)
+        appState.viewMode = .web
+        XCTAssertEqual(appState.viewMode, .web)
 
         appState.viewMode = .native
         XCTAssertEqual(appState.viewMode, .native)
@@ -116,10 +117,10 @@ class UIComponentTests: UniversalAIToolsTestSuite {
 class RouterTests: UniversalAIToolsTestSuite {
 
     func testContentRouterModes() {
-        let item: SidebarItem = .dashboard
+        let item: SidebarItem = .analytics
 
         // Web mode
-        var view = ContentRouterView(item: item, viewMode: .webView)
+        var view = ContentRouterView(item: item, viewMode: .web)
         XCTAssertNotNil(view)
 
         // Native mode
@@ -132,9 +133,8 @@ class RouterTests: UniversalAIToolsTestSuite {
     }
 
     func testNativeRouterRoutesAllCases() {
-        let all: [SidebarItem] = [.dashboard, .chat, .agents, .mlx, .vision,
-                                  .monitoring, .abMcts, .maltSwarm, .parameters,
-                                  .knowledge, .debugging]
+        let all: [SidebarItem] = [.chat, .knowledge, .objectives,
+                                  .orchestration, .analytics, .tools]
         for item in all {
             let view = NativeRouterView(item: item)
             XCTAssertNotNil(view, "Router should return a view for \(item.rawValue)")
@@ -436,7 +436,7 @@ class HotReloadTests: UniversalAIToolsTestSuite {
     func testComponentHotReload() {
         // Test that components can be hot reloaded
         let components = [
-            SidebarView(selection: .constant(.dashboard)),
+            SidebarView(selection: .constant(.analytics)),
             WelcomeView(),
             DetailView(),
             ConnectionStatusView(),

@@ -535,6 +535,6 @@ extension View {
 }
 
 #Preview {
-    ContextFlowDashboard()
+    ContextFlowDashboard.init()
         .frame(width: 1200, height: 800)
 }

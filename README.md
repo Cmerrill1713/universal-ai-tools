@@ -4,6 +4,17 @@ A sophisticated service-oriented AI platform featuring multi-tier LLM orchestrat
 
 **🚀 Production Ready**: Advanced service architecture with comprehensive APIs, monitoring, and self-improvement capabilities.
 
+## 🖥️ Primary Frontend
+
+The **macOS-App/UniversalAITools** folder contains the primary SwiftUI frontend application - a world-class AI orchestration platform with:
+- 70+ advanced UI components
+- 3D knowledge graph visualizations
+- Real-time analytics dashboards
+- Full accessibility support (WCAG 2.1 Level AA)
+- Touch Bar and keyboard shortcut integration
+
+> Note: Other frontend implementations have been archived to `archive/frontends/` for reference.
+
 ## 🚀 Features
 
 ### 🌟 Advanced Service Architecture

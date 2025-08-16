@@ -5,9 +5,9 @@
 
 import type { NextFunction, Request, Response } from 'express';
 
+import { config } from '../config/environment';
 import { sendError } from '../utils/api-response';
 import { log, LogContext } from '../utils/logger';
-import { config } from '../config/environment';
 
 interface RateLimitConfig {
   windowMs: number;
@@ -62,25 +62,7 @@ export class ComprehensiveRateLimiter {
   middleware() {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
-        // Skip rate limiting in test mode
-        const isTestMode = config.isTestMode || 
-                          process.env.NODE_ENV === 'test' ||
-                          process.env.JEST_WORKER_ID !== undefined ||
-                          process.env.TEST_MODE === 'true';
-        
-        if (isTestMode) {
-          log.debug('Rate limiting bypassed for test mode', LogContext.API, {
-            path: req.path,
-            method: req.method,
-            nodeEnv: process.env.NODE_ENV,
-            jestWorker: process.env.JEST_WORKER_ID,
-            testMode: process.env.TEST_MODE,
-            configTestMode: config.isTestMode
-          });
-          return next();
-        }
-
-        // Check for test bypass headers
+        // Check for explicit test bypass headers only
         const testBypass = req.headers['x-test-bypass'] === 'true' || 
                           req.headers['x-testing-mode'] === 'true';
         if (testBypass) {
@@ -342,9 +324,19 @@ export const createStandardRateLimiter = () => {
     },
   });
 
-  // AI generation endpoints - moderate limits
+  // Chat endpoint - stricter limits for security
   limiter.addRule({
-    path: /^\/api\/v1\/(vision|agents|chat|parameters)/,
+    path: '/api/v1/chat',
+    method: 'POST',
+    config: {
+      windowMs: 5 * 60 * 1000, // 5 minutes
+      maxRequests: 30, // Limit chat requests to prevent abuse
+    },
+  });
+
+  // Other AI generation endpoints - moderate limits
+  limiter.addRule({
+    path: /^\/api\/v1\/(vision|agents|parameters)/,
     config: {
       windowMs: 10 * 60 * 1000, // 10 minutes
       maxRequests: 100,

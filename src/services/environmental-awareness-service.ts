@@ -225,6 +225,7 @@ export class EnvironmentalAwarenessService extends EventEmitter {
   // System Resource Monitoring
 
   private startSystemMonitoring(): void {
+    // Significantly reduce system monitoring frequency
     this.systemMonitorInterval = setInterval(async () => {
       await this.updateSystemResources();
     }, 15000); // Every 15 seconds

@@ -17,7 +17,7 @@ class ThemeManager: ObservableObject {
     
     // MARK: - Published Properties
     @Published var currentTheme: AppTheme = .system
-    @Published var customTheme: CustomTheme = CustomTheme.default
+    @Published var customTheme = CustomTheme.default
     @Published var colorScheme: ColorScheme = .system
     @Published var accentColor: Color = .blue
     @Published var fontSize: FontSize = .medium
@@ -914,7 +914,7 @@ struct ThemePresetsView: View {
             Button("Cancel", role: .cancel) { }
             Button("Create") {
                 if !newThemeName.isEmpty {
-                    let _ = themeManager.createCustomTheme(name: newThemeName)
+                    _ = themeManager.createCustomTheme(name: newThemeName)
                     newThemeName = ""
                 }
             }

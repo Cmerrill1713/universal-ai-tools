@@ -138,6 +138,7 @@ class UATTester {
               success: res.statusCode! >= 200 && res.statusCode! < 400,
               status: res.statusCode!,
               data: parsedBody.data || parsedBody,
+              agents: parsedBody.agents,
               error: parsedBody.error,
               headers: res.headers
             });
@@ -250,7 +251,7 @@ const userJourneys: UserJourney[] = [
         validation: (response) => {
           if (!response.success) return false;
           // The agents are in a flattened array at the top level
-          const allAgents = response.data?.agents || response.agents || [];
+          const allAgents = response.agents || [];
           if (!Array.isArray(allAgents)) return false;
           return allAgents.some((agent: any) => 
             agent.name.includes('photo') || 
@@ -320,7 +321,7 @@ const userJourneys: UserJourney[] = [
         validation: (response) => {
           if (!response.success) return false;
           // The agents are in a flattened array at the top level
-          const allAgents = response.data?.agents || response.agents || [];
+          const allAgents = response.agents || [];
           if (!Array.isArray(allAgents)) return false;
           return allAgents.some((agent: any) => 
             agent.name.includes('code') || 
@@ -388,7 +389,7 @@ const userJourneys: UserJourney[] = [
         validation: (response) => {
           if (!response.success) return false;
           // The agents are in a flattened array at the top level
-          const allAgents = response.data?.agents || response.agents || [];
+          const allAgents = response.agents || [];
           return Array.isArray(allAgents) && allAgents.length > 0;
         }
       },
@@ -585,7 +586,7 @@ describe('UAT - User Journey Testing', () => {
 
     it('should test critical user workflows', () => {
       const criticalWorkflows = [
-        'photo', 'code', 'error', 'onboarding'
+        'photo', 'developer', 'error', 'onboarding'
       ];
 
       criticalWorkflows.forEach(workflow => {

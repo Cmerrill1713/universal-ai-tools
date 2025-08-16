@@ -9,6 +9,77 @@ import { EventEmitter } from 'events';
 import { log, LogContext } from '@/utils/logger';
 import { clearAllPools } from '@/utils/object-pool';
 
+// Timer consolidation to reduce setInterval overhead
+class TimerManager {
+  private static instance: TimerManager;
+  private timers = new Map<string, NodeJS.Timeout>();
+  private tasks = new Map<string, Array<() => Promise<void> | void>>();
+  private intervals = new Map<string, number>();
+
+  static getInstance(): TimerManager {
+    if (!TimerManager.instance) {
+      TimerManager.instance = new TimerManager();
+    }
+    return TimerManager.instance;
+  }
+
+  private constructor() {
+    // Start consolidated timers
+    this.startConsolidatedTimer('fast', 10000); // 10 seconds
+    this.startConsolidatedTimer('medium', 30000); // 30 seconds  
+    this.startConsolidatedTimer('slow', 60000); // 1 minute
+    this.startConsolidatedTimer('verySlow', 300000); // 5 minutes
+  }
+
+  private startConsolidatedTimer(category: string, interval: number): void {
+    this.intervals.set(category, interval);
+    this.tasks.set(category, []);
+    
+    const timer = setInterval(async () => {
+      const categoryTasks = this.tasks.get(category) || [];
+      for (const task of categoryTasks) {
+        try {
+          await task();
+        } catch (error) {
+          log.error(`Task error in ${category} timer`, LogContext.SYSTEM, { error });
+        }
+      }
+    }, interval);
+    
+    this.timers.set(category, timer);
+  }
+
+  addTask(category: 'fast' | 'medium' | 'slow' | 'verySlow', taskId: string, task: () => Promise<void> | void): void {
+    const categoryTasks = this.tasks.get(category) || [];
+    // Remove existing task with same ID
+    const existingIndex = categoryTasks.findIndex(t => (t as any).taskId === taskId);
+    if (existingIndex >= 0) {
+      categoryTasks.splice(existingIndex, 1);
+    }
+    
+    // Add task with ID for tracking
+    (task as any).taskId = taskId;
+    categoryTasks.push(task);
+    this.tasks.set(category, categoryTasks);
+  }
+
+  removeTask(category: 'fast' | 'medium' | 'slow' | 'verySlow', taskId: string): void {
+    const categoryTasks = this.tasks.get(category) || [];
+    const filteredTasks = categoryTasks.filter(t => (t as any).taskId !== taskId);
+    this.tasks.set(category, filteredTasks);
+  }
+
+  shutdown(): void {
+    for (const timer of this.timers.values()) {
+      clearInterval(timer);
+    }
+    this.timers.clear();
+    this.tasks.clear();
+  }
+}
+
+const timerManager = TimerManager.getInstance();
+
 interface MemoryMetrics {
   heapUsed: number;
   heapTotal: number;
@@ -64,17 +135,17 @@ export class MemoryOptimizationService extends EventEmitter {
     super();
 
     this.config = {
-      maxHeapUsagePercent: 75, // Reduced from default 85%
-      criticalHeapUsagePercent: 85, // Was the problematic threshold
-      gcIntervalMs: 30000, // 30 seconds
-      cacheCleanupIntervalMs: 60000, // 1 minute
-      objectPoolCleanupIntervalMs: 120000, // 2 minutes
+      maxHeapUsagePercent: 65, // Reduced to prevent pressure
+      criticalHeapUsagePercent: 75, // Earlier intervention
+      gcIntervalMs: 45000, // Longer intervals to reduce overhead
+      cacheCleanupIntervalMs: 90000, // Less frequent cleanup
+      objectPoolCleanupIntervalMs: 180000, // Longer object pool cleanup
       enableAggressiveCleanup: true,
       enableMemoryPressureMode: true,
-      memoryPressureThreshold: 80, // Enter pressure mode at 80%
+      memoryPressureThreshold: 60, // Much earlier pressure mode
       enableAutoGC: true,
-      maxServiceCacheSize: 1000, // Reduced cache sizes
-      embeddingCacheLimit: 500,
+      maxServiceCacheSize: 500, // Halved cache sizes
+      embeddingCacheLimit: 250, // Significantly reduced
       ...config,
     };
 
@@ -169,32 +240,31 @@ export class MemoryOptimizationService extends EventEmitter {
   }
 
   private startMemoryMonitoring(): void {
-    this.monitoringTimer = setInterval(() => {
+    // Use consolidated timer instead of individual setInterval
+    timerManager.addTask('medium', 'memory-monitoring', () => {
       this.monitorMemoryUsage().catch((error) => {
         log.error('❌ Memory monitoring failed', LogContext.SYSTEM, { error });
       });
-    }, 10000); // Every 10 seconds
+    });
   }
 
   private startPeriodicCleanup(): void {
-    // Garbage collection timer
+    // Use consolidated timers to reduce overhead
     if (this.config.enableAutoGC && global.gc) {
-      this.gcTimer = setInterval(() => {
+      timerManager.addTask('slow', 'memory-gc', () => {
         this.performGarbageCollection();
-      }, this.config.gcIntervalMs);
+      });
     }
 
-    // Cache cleanup timer
-    this.cacheCleanupTimer = setInterval(() => {
+    timerManager.addTask('slow', 'cache-cleanup', () => {
       this.performCacheCleanup().catch((error) => {
         log.error('❌ Cache cleanup failed', LogContext.SYSTEM, { error });
       });
-    }, this.config.cacheCleanupIntervalMs);
+    });
 
-    // Object pool cleanup timer
-    this.objectPoolTimer = setInterval(() => {
+    timerManager.addTask('verySlow', 'object-pool-cleanup', () => {
       this.performObjectPoolCleanup();
-    }, this.config.objectPoolCleanupIntervalMs);
+    });
   }
 
   private async monitorMemoryUsage(): Promise<void> {
@@ -225,8 +295,8 @@ export class MemoryOptimizationService extends EventEmitter {
     // Emit memory metrics for external monitoring
     this.emit('memoryMetrics', metrics);
 
-    // Log memory status periodically
-    if (this.memoryMetrics.length % 6 === 0) { // Every minute
+    // Log memory status less frequently to reduce overhead
+    if (this.memoryMetrics.length % 10 === 0) { // Every 5 minutes
       log.debug('📊 Memory usage', LogContext.SYSTEM, {
         heapUsedPercent: `${metrics.heapUsedPercent.toFixed(1)}%`,
         heapUsedMB: `${(metrics.heapUsed / 1024 / 1024).toFixed(1)}MB`,
@@ -451,16 +521,42 @@ export class MemoryOptimizationService extends EventEmitter {
     // Clear object pools
     this.performObjectPoolCleanup();
 
-    // Force garbage collection multiple times
-    for (let i = 0; i < 3 && global.gc; i++) {
+    // Force garbage collection multiple times with longer delays
+    for (let i = 0; i < 2 && global.gc; i++) {
       global.gc();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    // Clear old metrics
-    this.memoryMetrics = this.memoryMetrics.slice(-10);
+    // Clear old metrics more aggressively
+    this.memoryMetrics = this.memoryMetrics.slice(-5);
+
+    // Clear any lingering timer references
+    this.optimizeTimerReferences();
 
     log.warn('✅ Aggressive memory cleanup completed', LogContext.SYSTEM);
+  }
+
+  private optimizeTimerReferences(): void {
+    // Clear any WeakRef or other timer references that might be holding memory
+    try {
+      // Force cleanup of any potential circular references
+      if (typeof globalThis !== 'undefined') {
+        const keys = Object.keys(globalThis);
+        const timerKeys = keys.filter(key => key.includes('timer') || key.includes('interval'));
+        for (const key of timerKeys) {
+          const value = (globalThis as any)[key];
+          if (value && typeof value === 'object' && 'unref' in value) {
+            try {
+              value.unref();
+            } catch (error) {
+              // Ignore errors during cleanup
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Ignore cleanup errors
+    }
   }
 
   async assessMemoryUsage(): Promise<MemoryMetrics> {
@@ -519,11 +615,11 @@ export class MemoryOptimizationService extends EventEmitter {
   async shutdown(): Promise<void> {
     log.info('🛑 Shutting down Memory Optimization Service', LogContext.SYSTEM);
 
-    // Clear all timers
-    if (this.gcTimer) clearInterval(this.gcTimer);
-    if (this.cacheCleanupTimer) clearInterval(this.cacheCleanupTimer);
-    if (this.objectPoolTimer) clearInterval(this.objectPoolTimer);
-    if (this.monitoringTimer) clearInterval(this.monitoringTimer);
+    // Remove tasks from consolidated timers
+    timerManager.removeTask('medium', 'memory-monitoring');
+    timerManager.removeTask('slow', 'memory-gc');
+    timerManager.removeTask('slow', 'cache-cleanup');
+    timerManager.removeTask('verySlow', 'object-pool-cleanup');
 
     // Final cleanup
     await this.performAggressiveCleanup();
@@ -535,3 +631,6 @@ export class MemoryOptimizationService extends EventEmitter {
 
 // Export singleton instance
 export const memoryOptimizationService = new MemoryOptimizationService();
+
+// Export timer manager for other services to use
+export { timerManager };

@@ -12,11 +12,12 @@
  * - Best practices enforcement
  */
 
+import { execSync } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
-import { log, LogContext } from '../utils/logger';
+
 import { ollamaService } from '../services/ollama-service';
+import { log, LogContext } from '../utils/logger';
 
 export interface CodeAnalysis {
   file: string;

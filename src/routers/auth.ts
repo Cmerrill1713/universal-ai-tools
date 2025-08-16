@@ -5,8 +5,7 @@
 
 import { type Request, type Response, Router } from 'express';
 import type { SignOptions } from 'jsonwebtoken';
-import * as jwt from 'jsonwebtoken';
-import type { StringValue } from 'ms';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
 import { zodValidate } from '../middleware/zod-validate';
@@ -74,15 +73,34 @@ router.post(
     try {
       const { name = 'Demo User', purpose = 'API Testing', duration = '24h' } = req.body;
 
-      // Get JWT secret from secrets manager
-      const jwtSecret: string = await secretsManager.getSecret('jwt_secret') || 'demo-secret-key';
+      // Get JWT secret using the same logic as auth middleware
+      let jwtSecret: string | null = null;
+      try {
+        const secretFromVault = await secretsManager.getSecret('jwt_secret');
+        jwtSecret = secretFromVault || process.env.JWT_SECRET || null;
+        
+        if (!jwtSecret) {
+          log.error('JWT secret not configured in secrets manager or environment', LogContext.API);
+          return sendError(res, 'CONFIGURATION_ERROR', 'Authentication system not properly configured', 500);
+        }
+        
+        if (jwtSecret.length < 32) {
+          log.error('JWT secret must be at least 32 characters', LogContext.API);
+          return sendError(res, 'CONFIGURATION_ERROR', 'Authentication system configuration error', 500);
+        }
+      } catch (error) {
+        log.error('JWT secret configuration error', LogContext.API, { 
+          error: error instanceof Error ? error.message : String(error)
+        });
+        return sendError(res, 'CONFIGURATION_ERROR', 'Authentication system configuration error', 500);
+      }
 
-      // Calculate expiration with proper type safety
-      const expirationMap: Record<'1h' | '24h' | '7d' | '30d', StringValue> = {
-        '1h': '1h' as StringValue,
-        '24h': '24h' as StringValue, 
-        '7d': '7d' as StringValue,
-        '30d': '30d' as StringValue
+      // Calculate expiration
+      const expirationMap: Record<'1h' | '24h' | '7d' | '30d', string> = {
+        '1h': '1h',
+        '24h': '24h', 
+        '7d': '7d',
+        '30d': '30d'
       };
 
       // Ensure duration is a valid key
@@ -104,13 +122,13 @@ router.post(
         isDemoToken: true,
       };
 
-      const signOptions: SignOptions = {
+      const signOptions = {
         expiresIn: expirationMap[validDuration],
         issuer: 'universal-ai-tools',
         audience: 'api-users'
       };
 
-      const token = jwt.sign(payload, jwtSecret, signOptions);
+      const token = jwt.sign(payload, jwtSecret!, signOptions as jwt.SignOptions);
 
       // Calculate actual expiration timestamp
       const now = new Date();
@@ -167,8 +185,9 @@ router.post(
     } catch (error) {
       log.error('Failed to generate demo token', LogContext.API, {
         error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       });
-      sendError(res, 'TOKEN_GENERATION_ERROR', 'Failed to generate demo token', 500);
+      sendError(res, 'TOKEN_GENERATION_ERROR', `Failed to generate demo token: ${error instanceof Error ? error.message : String(error)}`, 500);
     }
   }
 );
@@ -191,10 +210,22 @@ router.post('/validate', async (req: Request, res: Response) => {
 
     if (token) {
       try {
-        const jwtSecret: string = await secretsManager.getSecret('jwt_secret') || 'demo-secret-key';
-        decoded = jwt.verify(token, jwtSecret);
-        isValid = true;
-        type = 'jwt';
+        let jwtSecret: string | null = null;
+        try {
+          const secretFromVault = await secretsManager.getSecret('jwt_secret');
+          jwtSecret = secretFromVault || process.env.JWT_SECRET || null;
+        } catch (error) {
+          jwtSecret = process.env.JWT_SECRET || null;
+        }
+        
+        if (!jwtSecret) {
+          log.error('JWT secret not available for validation', LogContext.API);
+          isValid = false;
+        } else {
+          decoded = jwt.verify(token, jwtSecret);
+          isValid = true;
+          type = 'jwt';
+        }
       } catch (error) {
         isValid = false;
       }
@@ -258,21 +289,36 @@ router.get('/info', async (req: Request, res: Response) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       try {
-        const jwtSecret: string = await secretsManager.getSecret('jwt_secret') || 'demo-secret-key';
-        const decoded = jwt.verify(token, jwtSecret) as any;
+        let jwtSecret: string | null = null;
+        try {
+          const secretFromVault = await secretsManager.getSecret('jwt_secret');
+          jwtSecret = secretFromVault || process.env.JWT_SECRET || null;
+        } catch (error) {
+          jwtSecret = process.env.JWT_SECRET || null;
+        }
         
-        userInfo = {
-          authenticated: true,
-          type: 'jwt',
-          user: {
-            id: decoded.userId,
-            email: decoded.email,
-            permissions: decoded.permissions || [],
-            isDemoToken: decoded.isDemoToken || false,
-            deviceType: decoded.deviceType,
-          },
-          expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
-        };
+        if (!jwtSecret) {
+          userInfo = {
+            authenticated: false,
+            type: 'jwt',
+            error: 'JWT secret not configured'
+          };
+        } else {
+          const decoded = jwt.verify(token, jwtSecret) as any;
+          
+          userInfo = {
+            authenticated: true,
+            type: 'jwt',
+            user: {
+              id: decoded.userId,
+              email: decoded.email,
+              permissions: decoded.permissions || [],
+              isDemoToken: decoded.isDemoToken || false,
+              deviceType: decoded.deviceType,
+            },
+            expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : null,
+          };
+        }
       } catch (error) {
         userInfo = {
           authenticated: false,

@@ -8,19 +8,19 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
-import { log, LogContext } from '../utils/logger';
-import { validateRequest } from '../middleware/validation';
 import { authenticate } from '../middleware/auth';
-import { 
-  knowledgeGraphService,
-  type GraphQuery,
-  type GraphMetrics,
-} from '../services/graph-rag/knowledge-graph-service';
-import { 
-  entityExtractor,
-  type EntityExtractionOptions,
-} from '../services/graph-rag/entity-extractor';
+import { validateRequest } from '../middleware/validation';
 import { contextStorageService } from '../services/context-storage-service';
+import { 
+  type EntityExtractionOptions,
+  entityExtractor,
+} from '../services/graph-rag/entity-extractor';
+import { 
+  type GraphMetrics,
+  type GraphQuery,
+  knowledgeGraphService,
+} from '../services/graph-rag/knowledge-graph-service';
+import { log, LogContext } from '../utils/logger';
 
 const router = Router();
 

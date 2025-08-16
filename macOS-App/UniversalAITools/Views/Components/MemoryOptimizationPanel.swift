@@ -22,6 +22,11 @@ struct MemoryOptimizationPanel: View {
     @State private var selectedMemorySegment: MemorySegment? = nil
     @State private var autoOptimizeMemory = false
     
+    // Performance optimization: reduce recomputation
+    private var cachedMetrics: MemoryMetrics {
+        metricsService.memoryMetrics
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Memory Panel Controls

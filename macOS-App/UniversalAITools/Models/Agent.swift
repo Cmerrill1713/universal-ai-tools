@@ -13,6 +13,7 @@ struct Agent: Identifiable, Codable, Hashable {
     var capabilities: [String]
     var currentTask: String?
     var progress: Double // 0.0 to 1.0
+    var startTime: Date?
     
     init(
         id: UUID = UUID(),
@@ -22,7 +23,8 @@ struct Agent: Identifiable, Codable, Hashable {
         description: String = "",
         capabilities: [String] = [],
         currentTask: String? = nil,
-        progress: Double = 0.0
+        progress: Double = 0.0,
+        startTime: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -34,6 +36,7 @@ struct Agent: Identifiable, Codable, Hashable {
         self.capabilities = capabilities
         self.currentTask = currentTask
         self.progress = progress
+        self.startTime = startTime
     }
 }
 
@@ -87,6 +90,7 @@ enum AgentStatus: String, CaseIterable, Codable {
     case busy = "busy"
     case error = "error"
     case paused = "paused"
+    case inactive = "inactive"
     
     var displayName: String {
         switch self {
@@ -95,6 +99,7 @@ enum AgentStatus: String, CaseIterable, Codable {
         case .busy: return "Busy"
         case .error: return "Error"
         case .paused: return "Paused"
+        case .inactive: return "Inactive"
         }
     }
     
@@ -105,6 +110,7 @@ enum AgentStatus: String, CaseIterable, Codable {
         case .busy: return .orange
         case .error: return .red
         case .paused: return .yellow
+        case .inactive: return .secondary
         }
     }
     
@@ -115,64 +121,9 @@ enum AgentStatus: String, CaseIterable, Codable {
         case .busy: return "hourglass"
         case .error: return "exclamationmark.triangle"
         case .paused: return "pause.circle.fill"
+        case .inactive: return "circle"
         }
     }
 }
 
-// MARK: - Task History
-struct TaskHistory: Identifiable, Codable, Hashable {
-    let id: UUID
-    var title: String
-    var description: String
-    var agentType: AgentType
-    var status: TaskStatus
-    let createdAt: Date
-    var completedAt: Date?
-    var duration: TimeInterval?
-    
-    init(
-        id: UUID = UUID(),
-        title: String,
-        description: String = "",
-        agentType: AgentType,
-        status: TaskStatus = .pending
-    ) {
-        self.id = id
-        self.title = title
-        self.description = description
-        self.agentType = agentType
-        self.status = status
-        self.createdAt = Date()
-        self.completedAt = nil
-        self.duration = nil
-    }
-}
-
-// MARK: - Task Status
-enum TaskStatus: String, CaseIterable, Codable {
-    case pending = "pending"
-    case running = "running"
-    case completed = "completed"
-    case failed = "failed"
-    case cancelled = "cancelled"
-    
-    var displayName: String {
-        switch self {
-        case .pending: return "Pending"
-        case .running: return "Running"
-        case .completed: return "Completed"
-        case .failed: return "Failed"
-        case .cancelled: return "Cancelled"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .pending: return .gray
-        case .running: return .blue
-        case .completed: return .green
-        case .failed: return .red
-        case .cancelled: return .orange
-        }
-    }
-}
+// Note: TaskHistory and TaskStatus are defined in SharedTypes.swift to avoid conflicts

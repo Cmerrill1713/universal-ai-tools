@@ -608,6 +608,342 @@ export class AdaptiveTrainingService extends EventEmitter {
     await this.scheduleTraining(model, metrics, reason, 'high');
   }
 
+  /**
+   * Domain-specific RL training for specialized tasks like code search
+   * Inspired by ToolTrain's approach to tool-integrated reinforcement learning
+   */
+  public async scheduleRLTraining(
+    domain: 'code-search' | 'tool-usage' | 'multi-hop-reasoning',
+    config: {
+      agentId?: string;
+      targetPerformance: number;
+      trainingData: Array<{
+        state: any;
+        action: any;
+        reward: number;
+        nextState: any;
+        metadata?: any;
+      }>;
+      rlConfig?: {
+        algorithm: 'dqn' | 'ppo' | 'a3c' | 'tooltrain-rl';
+        learningRate: number;
+        explorationRate: number;
+        rewardShaping: boolean;
+        episodes: number;
+      };
+    }
+  ): Promise<string> {
+    const jobId = `rl_${domain}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const rlJob: TrainingJob = {
+      id: jobId,
+      modelId: config.agentId || `${domain}-agent`,
+      reason: `RL training for ${domain} domain`,
+      priority: 'high',
+      dataset: config.trainingData,
+      config: {
+        method: 'full', // RL requires full model access
+        epochs: config.rlConfig?.episodes || 100,
+        learningRate: config.rlConfig?.learningRate || 0.001,
+        batchSize: 32,
+      },
+      status: 'queued',
+    };
+
+    // Add RL-specific metadata
+    (rlJob as any).rlConfig = {
+      domain,
+      algorithm: config.rlConfig?.algorithm || 'tooltrain-rl',
+      targetPerformance: config.targetPerformance,
+      explorationRate: config.rlConfig?.explorationRate || 0.1,
+      rewardShaping: config.rlConfig?.rewardShaping || true,
+      trainingType: 'reinforcement_learning',
+    };
+
+    this.trainingQueue.push(rlJob);
+    
+    // Sort queue by priority
+    this.trainingQueue.sort((a, b) => 
+      this.getPriorityLevel(b.priority) - this.getPriorityLevel(a.priority)
+    );
+
+    log.info('📈 RL training job scheduled', LogContext.AI, {
+      jobId,
+      domain,
+      algorithm: config.rlConfig?.algorithm || 'tooltrain-rl',
+      targetPerformance: config.targetPerformance,
+      trainingDataSize: config.trainingData.length,
+    });
+
+    this.emit('rl-training-scheduled', rlJob);
+    return jobId;
+  }
+
+  /**
+   * Collect RL training data from agent interactions
+   */
+  public collectRLData(
+    domain: string,
+    agentId: string,
+    interactions: Array<{
+      state: any;
+      action: any;
+      reward: number;
+      nextState: any;
+      done: boolean;
+      metadata?: any;
+    }>
+  ): void {
+    // Store RL interaction data for future training
+    const key = `rl_data_${domain}_${agentId}`;
+    
+    if (!(this as any).rlDataStore) {
+      (this as any).rlDataStore = new Map();
+    }
+    
+    const rlStore = (this as any).rlDataStore || new Map();
+    const existingData = rlStore.get(key) || [];
+    
+    existingData.push(...interactions.map(interaction => ({
+      ...interaction,
+      timestamp: Date.now(),
+      domain,
+      agentId,
+    })));
+    
+    // Keep only recent data (last 1000 interactions per agent)
+    if (existingData.length > 1000) {
+      existingData.splice(0, existingData.length - 1000);
+    }
+    
+    rlStore.set(key, existingData);
+    (this as any).rlDataStore = rlStore;
+
+    log.debug('RL interaction data collected', LogContext.AI, {
+      domain,
+      agentId,
+      newInteractions: interactions.length,
+      totalStored: existingData.length,
+    });
+
+    // Auto-trigger training if we have enough data and performance is below threshold
+    this.checkAutoRLTraining(domain, agentId, existingData);
+  }
+
+  /**
+   * Check if automatic RL training should be triggered
+   */
+  private async checkAutoRLTraining(domain: string, agentId: string, data: any[]): Promise<void> {
+    if (data.length < 100) return; // Need minimum data
+
+    // Calculate recent performance
+    const recentData = data.slice(-50);
+    const avgReward = recentData.reduce((sum, d) => sum + d.reward, 0) / recentData.length;
+    
+    // Define performance thresholds by domain
+    const thresholds = {
+      'code-search': 0.7,
+      'tool-usage': 0.8,
+      'multi-hop-reasoning': 0.6,
+    };
+    
+    const threshold = thresholds[domain as keyof typeof thresholds] || 0.7;
+    
+    if (avgReward < threshold) {
+      log.info('🤖 Auto-triggering RL training due to low performance', LogContext.AI, {
+        domain,
+        agentId,
+        avgReward,
+        threshold,
+        dataSize: data.length,
+      });
+
+      await this.scheduleRLTraining(domain as any, {
+        agentId,
+        targetPerformance: threshold + 0.1,
+        trainingData: data.slice(-200), // Use recent data
+        rlConfig: {
+          algorithm: 'tooltrain-rl',
+          learningRate: 0.0005,
+          explorationRate: 0.15,
+          rewardShaping: true,
+          episodes: 50,
+        },
+      });
+    }
+  }
+
+  /**
+   * Get RL training statistics
+   */
+  public getRLTrainingStats(): {
+    totalRLJobs: number;
+    completedRLJobs: number;
+    avgRLPerformanceGain: number;
+    domainStats: Record<string, {
+      jobs: number;
+      avgReward: number;
+      dataPoints: number;
+    }>;
+  } {
+    const rlJobs = this.trainingQueue.filter(job => (job as any).rlConfig?.trainingType === 'reinforcement_learning');
+    const completedRLJobs = rlJobs.filter(job => job.status === 'completed');
+    
+    const rlStore = (this as any).rlDataStore || new Map();
+    const domainStats: Record<string, any> = {};
+    
+    for (const [key, data] of rlStore.entries()) {
+      const [, , domain] = key.split('_');
+      if (!domainStats[domain]) {
+        domainStats[domain] = {
+          jobs: 0,
+          avgReward: 0,
+          dataPoints: 0,
+        };
+      }
+      
+      domainStats[domain].dataPoints += (data as any[]).length;
+      if ((data as any[]).length > 0) {
+        domainStats[domain].avgReward = (data as any[]).reduce((sum: number, d: any) => sum + d.reward, 0) / (data as any[]).length;
+      }
+    }
+    
+    // Count jobs by domain
+    for (const job of rlJobs) {
+      const domain = (job as any).rlConfig?.domain;
+      if (domain && domainStats[domain]) {
+        domainStats[domain].jobs++;
+      }
+    }
+    
+    const avgPerformanceGain = completedRLJobs.length > 0 ?
+      completedRLJobs.reduce((sum, job) => sum + (job.metrics?.improvement || 0), 0) / completedRLJobs.length :
+      0;
+
+    return {
+      totalRLJobs: rlJobs.length,
+      completedRLJobs: completedRLJobs.length,
+      avgRLPerformanceGain: avgPerformanceGain,
+      domainStats,
+    };
+  }
+
+  /**
+   * ToolTrain-style training with tool usage optimization
+   */
+  public async trainToolUsagePolicy(
+    agentId: string,
+    toolInteractions: Array<{
+      context: any;
+      toolSequence: Array<{
+        tool: string;
+        params: any;
+        result: any;
+        reward: number;
+      }>;
+      finalReward: number;
+      searchDepth: number;
+      targetFound: boolean;
+    }>
+  ): Promise<string> {
+    // Convert tool interactions to RL training format
+    const trainingData = toolInteractions.flatMap(interaction => 
+      interaction.toolSequence.map((step, index) => ({
+        state: {
+          context: interaction.context,
+          currentDepth: index,
+          previousTools: interaction.toolSequence.slice(0, index).map(s => s.tool),
+          targetContext: interaction.targetFound,
+        },
+        action: {
+          tool: step.tool,
+          params: step.params,
+        },
+        reward: this.calculateToolUsageReward(step, interaction, index),
+        nextState: {
+          context: interaction.context,
+          currentDepth: index + 1,
+          previousTools: interaction.toolSequence.slice(0, index + 1).map(s => s.tool),
+          targetContext: interaction.targetFound,
+        },
+        metadata: {
+          toolResult: step.result,
+          searchDepth: interaction.searchDepth,
+          finalReward: interaction.finalReward,
+        },
+      }))
+    );
+
+    return await this.scheduleRLTraining('tool-usage', {
+      agentId,
+      targetPerformance: 0.85,
+      trainingData,
+      rlConfig: {
+        algorithm: 'tooltrain-rl',
+        learningRate: 0.001,
+        explorationRate: 0.1,
+        rewardShaping: true,
+        episodes: 100,
+      },
+    });
+  }
+
+  /**
+   * Calculate reward for tool usage based on ToolTrain principles
+   */
+  private calculateToolUsageReward(
+    step: any,
+    interaction: any,
+    stepIndex: number
+  ): number {
+    let reward = 0;
+    
+    // Base reward for successful tool usage
+    if (step.result && !step.result.error) {
+      reward += 0.5;
+    }
+    
+    // Efficiency bonus (fewer steps to reach target)
+    const efficiencyBonus = Math.max(0, 1 - (stepIndex / 10)) * 0.3;
+    reward += efficiencyBonus;
+    
+    // Target finding bonus
+    if (interaction.targetFound) {
+      reward += 0.4;
+      
+      // Early discovery bonus
+      if (stepIndex < interaction.searchDepth / 2) {
+        reward += 0.2;
+      }
+    }
+    
+    // Tool relevance bonus
+    const toolRelevance = this.calculateToolRelevance(step.tool, interaction.context);
+    reward += toolRelevance * 0.3;
+    
+    // Penalty for excessive depth
+    if (stepIndex > 8) {
+      reward -= 0.1;
+    }
+    
+    return Math.max(-1, Math.min(1, reward));
+  }
+
+  /**
+   * Calculate tool relevance to context
+   */
+  private calculateToolRelevance(tool: string, context: any): number {
+    const contextStr = JSON.stringify(context).toLowerCase();
+    
+    // Simple heuristics - in production, this could be learned
+    if (tool === 'search_code' && contextStr.includes('function')) return 0.9;
+    if (tool === 'analyze_class' && contextStr.includes('class')) return 0.9;
+    if (tool === 'trace_imports' && contextStr.includes('import')) return 0.8;
+    if (tool === 'find_usages' && contextStr.includes('usage')) return 0.8;
+    
+    return 0.5; // Neutral relevance
+  }
+
   public stop(): void {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);

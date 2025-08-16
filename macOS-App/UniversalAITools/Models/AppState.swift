@@ -3,11 +3,38 @@ import SwiftUI
 import Combine
 import OSLog
 
+// MARK: - API Service Status
+enum APIServiceStatus: String, CaseIterable, Codable {
+    case disconnected = "disconnected"
+    case connecting = "connecting"
+    case connected = "connected"
+    case error = "error"
+    
+    var color: Color {
+        switch self {
+        case .disconnected: return .gray
+        case .connecting: return .yellow
+        case .connected: return .green
+        case .error: return .red
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .disconnected: return "wifi.slash"
+        case .connecting: return "wifi.exclamationmark"
+        case .connected: return "wifi"
+        case .error: return "xmark.circle"
+        }
+    }
+}
+
 // MARK: - Application State
 @MainActor
 class AppState: ObservableObject {
     // MARK: - Published Properties
     @Published var chats: [Chat] = []
+    @Published var recentChats: [Chat] = []
     @Published var currentChat: Chat?
     @Published var selectedSidebarItem: SidebarItem? = .chat
     @Published var isConnectedToBackend: Bool = false
@@ -35,16 +62,27 @@ class AppState: ObservableObject {
     // System State
     @Published var systemMetrics: SystemMetrics?
     @Published var availableAgents: [Agent] = []
+    @Published var apiServiceStatus: APIServiceStatus = .disconnected
+    @Published var memoryUsage: Double = 0.0
     
     // Agent and Activity State
     @Published var activeAgents: [Agent] = []
     @Published var recentTasks: [TaskHistory] = []
+    @Published var selectedTool: ToolCategory? = nil
     
     // Services
     @Published var apiService: APIService
     @Published var ttsService: TTSService?
     @Published var sttService: STTService?
     @Published var voiceAgent: VoiceAgent?
+    
+    // RAG Settings
+    @Published var ragSettings: RAGSettings = RAGSettings()
+    
+    // Messages for current chat
+    var messages: [Message] {
+        return currentChat?.messages ?? []
+    }
     
     private let logger = Logger(subsystem: "com.universalai.tools", category: "appstate")
     var cancellables = Set<AnyCancellable>()
@@ -288,6 +326,10 @@ class AppState: ObservableObject {
         showAgentSelectorWindow = true
     }
     
+    func openConversationWindow() {
+        windowOpener?("conversation", "main")
+    }
+    
     func openAgentActivityWindow() {
         windowOpener?("agent-activity", "main")
     }
@@ -326,6 +368,25 @@ class AppState: ObservableObject {
     func removeActiveAgent(_ agent: Agent) {
         activeAgents.removeAll { $0.id == agent.id }
     }
+    
+    func activateAgent(_ agent: Agent) {
+        if !activeAgents.contains(where: { $0.id == agent.id }) {
+            activeAgents.append(agent)
+        }
+    }
+    
+    func showNotification(message: String, type: NotificationType) {
+        errorMessage = message
+        showNotification = true
+        notificationType = type.rawValue
+    }
+}
+
+enum NotificationType: String {
+    case info = "info"
+    case warning = "warning"
+    case error = "error"
+    case success = "success"
 }
 
 // MARK: - Connection Status
@@ -336,6 +397,7 @@ struct Objective: Identifiable, Codable, Hashable {
     let id: UUID
     var title: String
     var description: String
+    var type: ObjectiveType
     var status: ObjectiveStatus
     var priority: Priority
     let createdAt: Date
@@ -348,6 +410,7 @@ struct Objective: Identifiable, Codable, Hashable {
         id: UUID = UUID(),
         title: String,
         description: String = "",
+        type: ObjectiveType = .task,
         status: ObjectiveStatus = .active,
         priority: Priority = .medium,
         dueDate: Date? = nil,
@@ -357,6 +420,7 @@ struct Objective: Identifiable, Codable, Hashable {
         self.id = id
         self.title = title
         self.description = description
+        self.type = type
         self.status = status
         self.priority = priority
         self.createdAt = Date()
@@ -416,6 +480,70 @@ struct Objective: Identifiable, Codable, Hashable {
             case .high: return .orange
             case .critical: return .red
             }
+        }
+    }
+    
+    enum ObjectiveType: String, Codable, CaseIterable {
+        case task = "task"
+        case goal = "goal"
+        case milestone = "milestone"
+        case research = "research"
+        case maintenance = "maintenance"
+        case optimization = "optimization"
+        
+        var displayName: String {
+            switch self {
+            case .task: return "Task"
+            case .goal: return "Goal"
+            case .milestone: return "Milestone"
+            case .research: return "Research"
+            case .maintenance: return "Maintenance"
+            case .optimization: return "Optimization"
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .task: return "checkmark.circle"
+            case .goal: return "target"
+            case .milestone: return "flag"
+            case .research: return "magnifyingglass"
+            case .maintenance: return "wrench"
+            case .optimization: return "speedometer"
+            }
+        }
+    }
+}
+
+// MARK: - Supporting Types
+// TaskHistory is defined in SharedTypes.swift to avoid conflicts
+
+enum ToolCategory: String, CaseIterable, Identifiable {
+    case ai = "ai"
+    case analysis = "analysis"
+    case development = "development"
+    case monitoring = "monitoring"
+    case optimization = "optimization"
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .ai: return "AI Tools"
+        case .analysis: return "Analysis"
+        case .development: return "Development"
+        case .monitoring: return "Monitoring"
+        case .optimization: return "Optimization"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .ai: return "brain.head.profile"
+        case .analysis: return "chart.bar"
+        case .development: return "hammer"
+        case .monitoring: return "eye"
+        case .optimization: return "speedometer"
         }
     }
 }

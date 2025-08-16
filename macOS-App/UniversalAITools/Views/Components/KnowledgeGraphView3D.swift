@@ -1390,6 +1390,6 @@ struct FlowLayout: Layout {
 }
 
 #Preview {
-    KnowledgeGraphView3D()
-        .environmentObject(APIService())
+    KnowledgeGraphView3D.init()
+        .environmentObject(APIService.init())
 }

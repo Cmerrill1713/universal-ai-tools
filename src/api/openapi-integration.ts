@@ -4,12 +4,14 @@
  */
 
 import type { Application } from 'express';
-import swaggerUi from 'swagger-ui-express';
 import * as OpenAPIValidator from 'express-openapi-validator';
-import { generateOpenAPISpec } from './openapi-spec';
-import { getEndpointDefinitions } from './openapi-endpoints';
-import { getWebSocketDocumentation } from './openapi-websocket';
+import swaggerUi from 'swagger-ui-express';
+
 import { log, LogContext } from '@/utils/logger';
+
+import { getEndpointDefinitions } from './openapi-endpoints';
+import { generateOpenAPISpec } from './openapi-spec';
+import { getWebSocketDocumentation } from './openapi-websocket';
 
 // Custom CSS for Swagger UI
 const customCss = `

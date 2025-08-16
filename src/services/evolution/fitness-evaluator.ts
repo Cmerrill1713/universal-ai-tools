@@ -7,7 +7,6 @@
 import { log, LogContext } from '@/utils/logger';
 
 import { multiTierLLM } from '../multi-tier-llm-service';
-import { TaskType } from './types';
 import type {
   Benchmark,
   EvaluationResult,
@@ -16,6 +15,7 @@ import type {
   ResourceUsage,
   Task,
   TaskMetrics} from './types';
+import { TaskType } from './types';
 
 export interface EvaluationConfig {
   timeoutMs: number;

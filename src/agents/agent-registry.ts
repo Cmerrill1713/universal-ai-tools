@@ -13,14 +13,14 @@ import { EnhancedRetrieverAgent } from './cognitive/enhanced-retriever-agent';
 import { EnhancedSynthesizerAgent } from './cognitive/enhanced-synthesizer-agent';
 import type { EnhancedBaseAgent } from './enhanced-base-agent';
 import { EnhancedPersonalAssistantAgent } from './personal/enhanced-personal-assistant-agent';
+import { ConversationalVoiceAgent } from './specialized/conversational-voice-agent';
 import { EnhancedCodeAssistantAgent } from './specialized/enhanced-code-assistant-agent';
+import { EnhancedCodebaseOptimizerAgent } from './specialized/enhanced-codebase-optimizer-agent';
 // New domain-specific agents for R1 RAG system
 import { GraphRAGReasoningAgent } from './specialized/graphrag-reasoning-agent';
-import { R1ReasoningAgent } from './specialized/r1-reasoning-agent';
 import { MultiTierRouterAgent } from './specialized/multi-tier-router-agent';
 import { PerformanceOptimizationAgent } from './specialized/performance-optimization-agent';
-import { EnhancedCodebaseOptimizerAgent } from './specialized/enhanced-codebase-optimizer-agent';
-import { ConversationalVoiceAgent } from './specialized/conversational-voice-agent';
+import { R1ReasoningAgent } from './specialized/r1-reasoning-agent';
 // HRM agent removed for Apple Silicon environment (CUDA/flash_attn not supported)
 
 export interface AgentLoadingLock {
@@ -271,10 +271,25 @@ export class AgentRegistry extends EventEmitter {
   }
 
   public async getAgent(agentName: string): Promise<BaseAgent | EnhancedBaseAgent | null> {
+    // PERFORMANCE OPTIMIZATION: Fail fast if system is under load
+    const memUsage = process.memoryUsage();
+    const heapPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+    
+    if (heapPercent > 80) {
+      log.warn(`Memory usage high (${Math.round(heapPercent)}%), skipping agent load for performance`, LogContext.AGENT);
+      return null;
+    }
+
     // Return loaded agent if available
     if (this.loadedAgents.has(agentName)) {
       this.agentUsage.set(agentName, new Date());
       return this.loadedAgents.get(agentName)!;
+    }
+
+    // PERFORMANCE OPTIMIZATION: Limit concurrent agent loading
+    if (this.loadingLocks.size >= 2) {
+      log.warn(`Too many concurrent agent loads, rejecting request for ${agentName}`, LogContext.AGENT);
+      return null;
     }
 
     // Check if we need to unload agents before loading new ones
@@ -287,8 +302,19 @@ export class AgentRegistry extends EventEmitter {
       return this.loadingLocks.get(agentName)!;
     }
 
-    // Start loading process
-    const loadingPromise = this.loadAgent(agentName);
+    // Start loading process with timeout
+    const loadingPromise = Promise.race([
+      this.loadAgent(agentName),
+      new Promise<null>((_, reject) => 
+        setTimeout(() => reject(new Error('Agent load timeout')), 5000)
+      )
+    ]).catch((error) => {
+      log.warn(`Agent loading failed or timed out: ${agentName}`, LogContext.AGENT, {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    });
+    
     this.loadingLocks.set(agentName, loadingPromise);
 
     try {

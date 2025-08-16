@@ -217,7 +217,7 @@ class VoiceEndpointExamples {
             forName: .voiceInteractionStarted,
             object: nil,
             queue: .main
-        ) { notification in
+        ) { _ in
             print("Voice interaction started")
         }
         
@@ -225,7 +225,7 @@ class VoiceEndpointExamples {
             forName: .voiceInteractionEnded,
             object: nil,
             queue: .main
-        ) { notification in
+        ) { _ in
             print("Voice interaction ended")
         }
     }

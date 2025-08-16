@@ -657,12 +657,72 @@ struct NodeDetailView: View {
             
             // Node metrics
             VStack(spacing: 16) {
-                MetricRow(title: "Visits", value: "\(node.visits)", icon: "eye.fill")
-                MetricRow(title: "Average Reward", value: String(format: "%.4f", node.averageReward), icon: "chart.line.uptrend.xyaxis")
-                MetricRow(title: "UCB Value", value: String(format: "%.4f", node.ucbValue), icon: "function")
-                MetricRow(title: "Confidence", value: String(format: "%.2f%%", node.confidence * 100), icon: "checkmark.seal")
-                MetricRow(title: "Depth", value: "\(node.depth)", icon: "tree")
-                MetricRow(title: "Children", value: "\(node.children.count)", icon: "hierarchy")
+                HStack {
+                    Image(systemName: "eye.fill")
+                        .foregroundColor(.blue)
+                        .frame(width: 20)
+                    Text("Visits")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("\(node.visits)")
+                        .foregroundColor(.secondary)
+                        .font(.system(.body, design: .monospaced))
+                }
+                HStack {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .foregroundColor(.blue)
+                        .frame(width: 20)
+                    Text("Average Reward")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text(String(format: "%.4f", node.averageReward))
+                        .foregroundColor(.secondary)
+                        .font(.system(.body, design: .monospaced))
+                }
+                HStack {
+                    Image(systemName: "function")
+                        .foregroundColor(.blue)
+                        .frame(width: 20)
+                    Text("UCB Value")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text(String(format: "%.4f", node.ucbValue))
+                        .foregroundColor(.secondary)
+                        .font(.system(.body, design: .monospaced))
+                }
+                HStack {
+                    Image(systemName: "checkmark.seal")
+                        .foregroundColor(.blue)
+                        .frame(width: 20)
+                    Text("Confidence")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text(String(format: "%.2f%%", node.confidence * 100))
+                        .foregroundColor(.secondary)
+                        .font(.system(.body, design: .monospaced))
+                }
+                HStack {
+                    Image(systemName: "tree")
+                        .foregroundColor(.blue)
+                        .frame(width: 20)
+                    Text("Depth")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("\(node.depth)")
+                        .foregroundColor(.secondary)
+                        .font(.system(.body, design: .monospaced))
+                }
+                HStack {
+                    Image(systemName: "hierarchy")
+                        .foregroundColor(.blue)
+                        .frame(width: 20)
+                    Text("Children")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("\(node.children.count)")
+                        .foregroundColor(.secondary)
+                        .font(.system(.body, design: .monospaced))
+                }
             }
             
             // Agent state details

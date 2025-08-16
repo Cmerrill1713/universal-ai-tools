@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct SidebarView: View {
@@ -6,11 +7,12 @@ struct SidebarView: View {
 
     var body: some View {
         List(SidebarItem.allCases, id: \.self, selection: $selection) { item in
-            SidebarItemView(item: item)
+            OptimizedSidebarItemView(item: item)
         }
         .listStyle(SidebarListStyle())
         .frame(minWidth: 200)
         .background(AppTheme.windowBackgroundGradient)
+        .animation(.easeInOut(duration: 0.2), value: selection)
     }
 }
 
@@ -57,6 +59,115 @@ struct DockOverlay: View {
     }
 }
 
+// MARK: - Optimized Sidebar Item View
+struct OptimizedSidebarItemView: View {
+    let item: SidebarItem
+    @EnvironmentObject var appState: AppState
+    
+    @State private var cachedSubtitle: String?
+    @State private var cachedBadge: String?
+    @State private var hasAppeared = false
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Cached icon
+            OptimizedSidebarIcon(item: item)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 14, weight: .medium))
+
+                if hasAppeared, let subtitle = cachedSubtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .transition(.opacity)
+                }
+            }
+
+            Spacer()
+
+            if hasAppeared, let badge = cachedBadge {
+                Text(badge)
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(badgeColor)
+                    .foregroundColor(.white)
+                    .clipShape(Capsule())
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.vertical, 4)
+        .onAppear {
+            if !hasAppeared {
+                // Cache expensive computations
+                cachedSubtitle = computeSubtitle()
+                cachedBadge = computeBadge()
+                
+                withAnimation(.easeIn(duration: 0.2)) {
+                    hasAppeared = true
+                }
+            }
+        }
+        .onChange(of: appState.chats.count) { _, _ in
+            // Update cached values when relevant state changes
+            updateCachedValues()
+        }
+        .onChange(of: appState.activeObjectives.count) { _, _ in
+            updateCachedValues()
+        }
+        .drawingGroup() // Cache the entire item view
+    }
+    
+    private func updateCachedValues() {
+        cachedSubtitle = computeSubtitle()
+        cachedBadge = computeBadge()
+    }
+    
+    private func computeSubtitle() -> String? {
+        return item.description
+    }
+    
+    private func computeBadge() -> String? {
+        switch item {
+        case .chat:
+            return !appState.chats.isEmpty ? "\(appState.chats.count)" : nil
+        case .objectives:
+            return !appState.activeObjectives.isEmpty ? "\(appState.activeObjectives.count)" : nil
+        default:
+            return item.featureLevel.badge
+        }
+    }
+    
+    private var badgeColor: Color {
+        if item.featureLevel == .advanced {
+            return item.featureLevel.color
+        }
+        
+        switch item {
+        case .chat, .objectives:
+            return .blue
+        default:
+            return AppTheme.accentOrange
+        }
+    }
+}
+
+// MARK: - Optimized Sidebar Icon (Cached)
+private struct OptimizedSidebarIcon: View {
+    let item: SidebarItem
+    
+    var body: some View {
+        Image(systemName: item.icon)
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(.accentColor)
+            .frame(width: 20)
+            .drawingGroup() // Cache the icon rendering
+    }
+}
+
+// MARK: - Original Sidebar Item View (Kept for compatibility)
 struct SidebarItemView: View {
     let item: SidebarItem
     @EnvironmentObject var appState: AppState
@@ -101,9 +212,9 @@ struct SidebarItemView: View {
     private var dynamicBadge: String? {
         switch item {
         case .chat:
-            return appState.chats.count > 0 ? "\(appState.chats.count)" : nil
+            return !appState.chats.isEmpty ? "\(appState.chats.count)" : nil
         case .objectives:
-            return appState.activeObjectives.count > 0 ? "\(appState.activeObjectives.count)" : nil
+            return !appState.activeObjectives.isEmpty ? "\(appState.activeObjectives.count)" : nil
         default:
             return item.featureLevel.badge
         }

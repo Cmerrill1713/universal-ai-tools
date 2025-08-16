@@ -11,27 +11,30 @@ if (typeof global !== 'undefined' && !global.gc && process.env.NODE_ENV === 'dev
   }
 }
 
-// Start memory monitoring
+// Aggressive memory optimization for chat performance
 const memoryMonitor = setInterval(() => {
   const memUsage = process.memoryUsage();
-  const memUsageMB = {
-    rss: Math.round(memUsage.rss / 1024 / 1024),
-    heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-    heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-    external: Math.round(memUsage.external / 1024 / 1024),
-  };
+  const heapPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
   
-  // Log memory usage if high
-  if (memUsageMB.heapUsed > 500) {
-    console.warn('⚠️ High memory usage:', memUsageMB);
-    
-    // Force garbage collection if memory is very high
-    if (global.gc && memUsageMB.heapUsed > 1000) {
+  // More aggressive garbage collection for chat performance
+  if (heapPercent > 70) { // Lower threshold for proactive GC
+    if (global.gc) {
       global.gc();
-      console.log('🗑️ Forced garbage collection');
     }
   }
-}, 30000); // Every 30 seconds
+  
+  // Emergency memory clearing
+  if (heapPercent > 85) {
+    const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+    console.warn(`🚨 High memory usage: ${heapUsedMB}MB (${Math.round(heapPercent)}%) - optimizing`);
+    
+    // Force multiple GC cycles
+    if (global.gc) {
+      global.gc();
+      setTimeout(() => global.gc && global.gc(), 100);
+    }
+  }
+}, 60000); // Every minute for better responsiveness
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import cors from 'cors';
@@ -84,13 +87,27 @@ class UniversalAIToolsServer {
   }
 
   private async initializeServices(): Promise<void> {
+    // Only initialize essential services for faster startup
     this.initializeSupabase();
     this.initializeAgentRegistry();
-    await this.initializeContextServices();
-    await this.initializeUserPreferenceLearning();
-    await this.initializeFlashAttention();
-    await this.initializeFeedbackCollection();
-    await this.registerAdditionalServices();
+    
+    // Defer heavy services to avoid startup bottlenecks
+    if (process.env.DISABLE_HEAVY_SERVICES !== 'true') {
+      // Initialize lightweight context service only
+      await this.initializeContextServices();
+      // Skip heavy services for now to improve response times
+      this.deferHeavyServices();
+    }
+  }
+
+  private deferHeavyServices(): void {
+    // Initialize heavy services after server is running to avoid blocking startup
+    setTimeout(async () => {
+      await this.initializeUserPreferenceLearning();
+      await this.initializeFlashAttention();
+      await this.initializeFeedbackCollection();
+      await this.registerAdditionalServices();
+    }, 5000); // 5 second delay
   }
 
   private async registerAdditionalServices(): Promise<void> {
@@ -165,43 +182,31 @@ class UniversalAIToolsServer {
 
   private async initializeContextServices(): Promise<void> {
     try {
-      // Initialize context injection service for Supabase context loading
-      log.info('🔍 Initializing context injection service', LogContext.DATABASE);
-
-      // Test Supabase context loading
-      if (this.supabase) {
-        // Context injection temporarily disabled
-        const testContext = {
-          contextSummary: 'Context injection disabled during cleanup',
-          relevantPatterns: [],
-        };
-
-        log.info('✅ Context injection service initialized', LogContext.DATABASE, {
-          contextTokens: testContext.contextSummary ? testContext.contextSummary.length : 0,
-          sourcesUsed: testContext.relevantPatterns?.length || 0,
-        });
-
-        // Test context storage service
-        const storedContextId = await contextStorageService.storeContext({
-          content: 'Universal AI Tools - Server startup completed with context injection enabled',
-          category: 'project_info',
-          source: 'server_startup',
-          userId: 'system',
-          projectPath: process.cwd(),
-          metadata: {
-            startup_time: new Date().toISOString(),
-            features_enabled: ['context_injection', 'supabase_storage', 'agent_registry'],
-          },
-        });
-
-        if (storedContextId) {
-          log.info('✅ Context storage service initialized', LogContext.DATABASE, {
-            storedContextId,
-          });
-        }
+      // Skip heavy context operations during startup for performance
+      log.info('🔍 Context service initialized (lightweight mode)', LogContext.DATABASE);
+      
+      // Skip database operations that can slow down startup
+      if (process.env.SKIP_STARTUP_CONTEXT !== 'true') {
+        // Defer context storage test to avoid blocking startup
+        setTimeout(async () => {
+          try {
+            if (this.supabase) {
+              await contextStorageService.storeContext({
+                content: 'Server startup completed',
+                category: 'system_events',
+                source: 'server_startup',
+                userId: 'system',
+                projectPath: process.cwd(),
+                metadata: { startup_time: new Date().toISOString() },
+              });
+            }
+          } catch (error) {
+            log.warn('Context storage deferred initialization failed', LogContext.DATABASE, { error });
+          }
+        }, 10000); // Defer 10 seconds
       }
     } catch (error) {
-      log.warn('⚠️ Context injection service initialization failed', LogContext.DATABASE, {
+      log.warn('⚠️ Context service initialization failed', LogContext.DATABASE, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -389,39 +394,28 @@ class UniversalAIToolsServer {
     // Inject services into request context
     this.app.use(injectServices);
 
-    // Monitoring middleware - capture request/response metrics and tracing
-    try {
-      const { 
-        requestMetricsMiddleware, 
-        apiUsageMiddleware, 
-        businessMetricsMiddleware 
-      } = await import('./middleware/request-metrics-middleware');
-      
-      this.app.use(requestMetricsMiddleware());
-      this.app.use(apiUsageMiddleware());
-      this.app.use(businessMetricsMiddleware());
-      
-      log.info('📊 Monitoring middleware initialized', LogContext.MONITORING);
-    } catch (error) {
-      log.error('❌ Failed to initialize monitoring middleware', LogContext.MONITORING, {
-        error: error instanceof Error ? error.message : String(error),
-      });
+    // Monitoring middleware - lightweight in development for performance
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        const { requestMetricsMiddleware } = await import('./middleware/request-metrics-middleware');
+        this.app.use(requestMetricsMiddleware());
+        log.info('📊 Production monitoring enabled', LogContext.MONITORING);
+      } catch (error) {
+        log.warn('Monitoring middleware failed', LogContext.MONITORING, { error });
+      }
     }
 
-    // Apply Auto Context Middleware globally for all LLM endpoints
-    try {
-      const { contextMiddleware } = await import('./middleware/auto-context-middleware');
-      this.app.use('/api/v1/agents', contextMiddleware);
-      this.app.use('/api/v1/chat', contextMiddleware);
-      this.app.use('/api/v1/assistant', contextMiddleware);
-      this.app.use('/api/v1/vision', contextMiddleware);
-      this.app.use('/api/v1/huggingface', contextMiddleware);
-      log.info('✅ Auto Context Middleware applied globally to LLM endpoints', LogContext.SERVER);
-    } catch (error) {
-      log.error('❌ Failed to apply Auto Context Middleware', LogContext.SERVER, {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+    // Apply Auto Context Middleware - lightweight in development
+    if (process.env.ENABLE_CONTEXT_MIDDLEWARE !== 'false') {
+      try {
+        const { contextMiddleware } = await import('./middleware/auto-context-middleware');
+        // Only apply to critical endpoints to reduce overhead
+        this.app.use('/api/v1/chat', contextMiddleware);
+        this.app.use('/api/v1/assistant', contextMiddleware);
+        log.info('✅ Context middleware applied to critical endpoints', LogContext.SERVER);
+      } catch (error) {
+        log.warn('Context middleware failed to load', LogContext.SERVER, { error });
+      }
     }
 
     // Static file serving
@@ -2861,7 +2855,7 @@ class UniversalAIToolsServer {
 
     // Load AB-MCTS routes
     try {
-      const abMCTSModule = await import('./routers/ab-mcts-fixed');
+      const abMCTSModule = await import('./routers/ab-mcts');
       log.info('📦 AB-MCTS module imported successfully', LogContext.SERVER, {
         hasDefault: !!abMCTSModule.default,
         moduleType: typeof abMCTSModule.default,
@@ -2903,6 +2897,17 @@ class UniversalAIToolsServer {
       }
     } catch (error) {
       log.warn('⚠️ Vision routes failed to load', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load Vision routes
+    try {
+      const visionModule = await import('./routers/vision');
+      this.app.use('/api/v1/vision', visionModule.default);
+      log.info('✅ Vision routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Failed to load vision routes', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }

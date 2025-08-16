@@ -6,7 +6,6 @@
 
 import { log, LogContext } from '@/utils/logger';
 
-import { SelectionStrategy, TaskType } from './types';
 import type {
   ConvergenceMetrics,
   CrossoverOperator,
@@ -14,7 +13,8 @@ import type {
   Individual,
   MutationOperator,
   Population,
-  ReasoningStrategy} from './types';
+  ReasoningStrategy, TaskType } from './types';
+import { SelectionStrategy } from './types';
 
 export interface PopulationConfig {
   size: number;

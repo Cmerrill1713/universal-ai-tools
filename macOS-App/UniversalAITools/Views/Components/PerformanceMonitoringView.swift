@@ -505,7 +505,7 @@ struct PerformanceMonitoringView: View {
     }
     
     private func errorCountColor(_ count: Int) -> Color {
-        if count == 0 { return .green }
+        if isEmpty { return .green }
         else if count < 5 { return .yellow }
         else { return .red }
     }

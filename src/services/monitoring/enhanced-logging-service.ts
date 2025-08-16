@@ -3,9 +3,10 @@
  * Structured logging with context, aggregation support, and sensitive data redaction
  */
 
+import type { WriteStream } from 'fs';
+import { createWriteStream } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { createWriteStream, WriteStream } from 'fs';
 import { performance } from 'perf_hooks';
 
 export interface LogEntry {

@@ -8,11 +8,9 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import { abMCTSAutoPilot } from '../services/ab-mcts-auto-pilot';
 import { abMCTSOrchestrator } from '../services/ab-mcts-service';
 import { feedbackCollector } from '../services/feedback-collector';
-import type { QueueStatus, SystemStats } from '../types';
-import type { ABMCTSExecutionOptions, AgentContext } from '../types/ab-mcts';
+import type { AgentContext, SystemStats } from '../types';
 import { sendError, sendSuccess } from '../utils/api-response';
 import { bayesianModelRegistry } from '../utils/bayesian-model';
 import { log,LogContext } from '../utils/logger';
@@ -85,17 +83,8 @@ router.post('/orchestrate', async (req: Request, res: Response, next: NextFuncti
       },
     };
 
-    // Execute orchestration with default options
-    const executionOptions: ABMCTSExecutionOptions = {
-      useCache: options.useCache ?? true,
-      enableParallelism: options.enableParallelism ?? true,
-      collectFeedback: options.collectFeedback ?? true,
-      saveCheckpoints: options.saveCheckpoints ?? false,
-      visualize: options.visualize ?? false,
-      verboseLogging: options.verboseLogging ?? false,
-      fallbackStrategy: options.fallbackStrategy ?? 'greedy',
-    };
-    const result = await abMCTSOrchestrator.orchestrate(agentContext, executionOptions);
+    // Execute orchestration
+    const result = await abMCTSOrchestrator.orchestrate(agentContext, options);
 
     // Return response
     sendSuccess(
@@ -157,17 +146,8 @@ router.post('/orchestrate/batch', async (req: Request, res: Response, next: Next
       },
     }));
 
-    // Execute batch orchestration with default options
-    const executionOptions: ABMCTSExecutionOptions = {
-      useCache: options.useCache ?? true,
-      enableParallelism: options.enableParallelism ?? true,
-      collectFeedback: options.collectFeedback ?? true,
-      saveCheckpoints: options.saveCheckpoints ?? false,
-      visualize: options.visualize ?? false,
-      verboseLogging: options.verboseLogging ?? false,
-      fallbackStrategy: options.fallbackStrategy ?? 'greedy',
-    };
-    const results = await abMCTSOrchestrator.orchestrateParallel(contexts, executionOptions);
+    // Execute batch orchestration
+    const results = await abMCTSOrchestrator.orchestrateParallel(contexts, options);
 
     // Return aggregated response
     sendSuccess(
@@ -335,10 +315,10 @@ router.get(
       const visualization = await abMCTSOrchestrator.getVisualization(orchestrationId!);
 
       if (!visualization) {
-        return sendError(res, 'NOT_FOUND', 'Orchestration not found');
+        return sendError(res, 'NOT_FOUND', 'Orchestration not found', 404);
       }
 
-      sendSuccess(res, visualization, 200, { message: 'Visualization retrieved' });
+      sendSuccess(res, visualization);
     } catch (error) {
       log.error('❌ Failed to get visualization', LogContext.API, {
         error: error instanceof Error ? error.message : String(error),
@@ -356,7 +336,7 @@ router.get('/report', async (req: Request, res: Response, next: NextFunction) =>
   try {
     const report = feedbackCollector.generateReport();
 
-    sendSuccess(res, report, 200, { message: 'Report generated successfully' });
+    sendSuccess(res, report);
   } catch (error) {
     log.error('❌ Failed to generate report', LogContext.API, {
       error: error instanceof Error ? error.message : String(error),
@@ -372,10 +352,9 @@ router.get('/report', async (req: Request, res: Response, next: NextFunction) =>
 router.post('/reset', async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Check admin permissions (simplified for demo)
-    // Note: Admin check disabled for now
-    // if (!req.user?.isAdmin) {
-    //   return sendError(res, 'UNAUTHORIZED', 'Admin access required');
-    // }
+    if (!(req as any).user?.isAdmin) {
+      return sendError(res, 'UNAUTHORIZED', 'Admin access required', 403);
+    }
 
     abMCTSOrchestrator.reset();
 
@@ -397,170 +376,18 @@ router.post('/reset', async (req: Request, res: Response, next: NextFunction) =>
  */
 router.get('/health', async (req: Request, res: Response) => {
   try {
-    const stats = abMCTSOrchestrator.getStatistics();
-    const systemStats = stats as SystemStats;
-    const healthy = systemStats.circuitBreakerState !== 'OPEN' && systemStats.successRate > 0.5;
+    const stats = abMCTSOrchestrator.getStatistics() as SystemStats;
+    const healthy = stats.circuitBreakerState !== 'OPEN' && stats.successRate > 0.5;
 
-    sendSuccess(
-      res,
-      {
-        status: healthy ? 'healthy' : 'degraded',
-        circuitBreaker: systemStats.circuitBreakerState,
-        successRate: systemStats.successRate,
-        activeSearches: systemStats.activeSearches,
-        timestamp: Date.now(),
-      },
-      200,
-      { message: 'Health check completed' }
-    );
-  } catch (error) {
-    sendError(res, 'INTERNAL_ERROR', 'Health check failed');
-  }
-});
-
-/**
- * @route POST /api/v1/ab-mcts/auto-pilot/start
- * @desc Start the AB-MCTS Auto-Pilot service
- */
-router.post('/auto-pilot/start', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await abMCTSAutoPilot.start();
-
-    sendSuccess(
-      res,
-      {
-        status: 'started',
-        metrics: abMCTSAutoPilot.getMetrics(),
-        timestamp: Date.now(),
-      },
-      200,
-      { message: 'Auto-pilot started successfully' }
-    );
-  } catch (error) {
-    log.error('❌ Failed to start auto-pilot', LogContext.API, {
-      error: error instanceof Error ? error.message : String(error),
+    sendSuccess(res, {
+      status: healthy ? 'healthy' : 'degraded',
+      circuitBreaker: stats.circuitBreakerState,
+      successRate: stats.successRate,
+      activeSearches: stats.activeSearches,
+      timestamp: Date.now(),
     });
-    next(error);
-  }
-});
-
-/**
- * @route POST /api/v1/ab-mcts/auto-pilot/stop
- * @desc Stop the AB-MCTS Auto-Pilot service
- */
-router.post('/auto-pilot/stop', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await abMCTSAutoPilot.stop();
-
-    sendSuccess(
-      res,
-      {
-        status: 'stopped',
-        finalMetrics: abMCTSAutoPilot.getMetrics(),
-        timestamp: Date.now(),
-      },
-      200,
-      { message: 'Auto-pilot stopped successfully' }
-    );
   } catch (error) {
-    log.error('❌ Failed to stop auto-pilot', LogContext.API, {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    next(error);
-  }
-});
-
-/**
- * @route GET /api/v1/ab-mcts/auto-pilot/status
- * @desc Get the current status of the AB-MCTS Auto-Pilot
- */
-router.get('/auto-pilot/status', async (req: Request, res: Response) => {
-  try {
-    const isActive = abMCTSAutoPilot.isActive();
-    const metrics = abMCTSAutoPilot.getMetrics();
-    const queueStatus = abMCTSAutoPilot.getQueueStatus();
-
-    sendSuccess(
-      res,
-      {
-        active: isActive,
-        metrics,
-        queue: queueStatus,
-        timestamp: Date.now(),
-      },
-      200,
-      { message: 'Auto-pilot status retrieved' }
-    );
-  } catch (error) {
-    sendError(res, 'INTERNAL_ERROR', 'Failed to get auto-pilot status');
-  }
-});
-
-/**
- * @route POST /api/v1/ab-mcts/auto-pilot/submit
- * @desc Submit a task to the auto-pilot queue
- */
-router.post('/auto-pilot/submit', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { userRequest, context = {}, priority = 5 } = req.body;
-
-    if (!userRequest) {
-      return sendError(res, 'VALIDATION_ERROR', 'userRequest is required', 400);
-    }
-
-    const taskId = await abMCTSAutoPilot.submitTask(userRequest, context, priority);
-
-    sendSuccess(
-      res,
-      {
-        taskId,
-        status: 'queued',
-        queuePosition: (abMCTSAutoPilot as any).getQueueStatus().queued,
-        timestamp: Date.now(),
-      },
-      200,
-      { message: 'Task submitted to auto-pilot' }
-    );
-  } catch (error) {
-    log.error('❌ Failed to submit task to auto-pilot', LogContext.API, {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    next(error);
-  }
-});
-
-/**
- * @route GET /api/v1/ab-mcts/auto-pilot/metrics
- * @desc Get detailed metrics for the auto-pilot system
- */
-router.get('/auto-pilot/metrics', async (req: Request, res: Response) => {
-  try {
-    const metrics = abMCTSAutoPilot.getMetrics();
-    const queueStatus = abMCTSAutoPilot.getQueueStatus() as QueueStatus & { queued: number };
-
-    sendSuccess(
-      res,
-      {
-        performance: metrics,
-        queue: queueStatus,
-        recommendations: [
-          metrics.successfulRequests / metrics.totalRequests < 0.8
-            ? 'Consider adjusting auto-learn threshold'
-            : null,
-          (queueStatus as any).queued > 10
-            ? 'High queue size - consider increasing batch size'
-            : null,
-          metrics.averageResponseTime > 5000
-            ? 'High response times - check system resources'
-            : null,
-        ].filter(Boolean),
-        timestamp: Date.now(),
-      },
-      200,
-      { message: 'Auto-pilot metrics retrieved' }
-    );
-  } catch (error) {
-    sendError(res, 'INTERNAL_ERROR', 'Failed to get auto-pilot metrics');
+    sendError(res, 'INTERNAL_ERROR', 'Health check failed', 500);
   }
 });
 

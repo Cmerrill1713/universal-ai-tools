@@ -543,7 +543,7 @@ class ExportManager: ObservableObject {
     private func executeScheduledExport(_ schedule: ExportSchedule) async throws {
         // Execute scheduled export based on configuration
         let items = schedule.itemsToExport
-        let _ = try await batchExport(items, template: schedule.template)
+        _ = try await batchExport(items, template: schedule.template)
     }
     
     private func recordExportSuccess(type: ExportType, format: String, outputURL: URL) async throws {
@@ -933,7 +933,7 @@ struct ImageExportOptions {
     var jpegQuality: Float = 0.9
     var includeTransparency: Bool = true
     var backgroundColor: NSColor = .clear
-    var watermark: NSImage? = nil
+    var watermark: NSImage?
     var watermarkPosition: WatermarkPosition = .bottomRight
     var dpi: Int = 300
 }
@@ -942,14 +942,14 @@ struct DataExportOptions {
     var prettyPrinted: Bool = true
     var includeMetadata: Bool = false
     var dateFormat: String = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-    var numberFormat: NumberFormatter? = nil
+    var numberFormat: NumberFormatter?
 }
 
 struct ReportExportOptions {
     var includeRawData: Bool = false
     var embedVisualizations: Bool = true
     var interactiveFeatures: Bool = true
-    var customTheme: String? = nil
+    var customTheme: String?
 }
 
 struct CloudUploadOptions {

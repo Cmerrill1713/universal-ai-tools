@@ -4,8 +4,9 @@
  */
 
 import { Router } from 'express';
-import { ollamaService } from '@/services/ollama-service';
+
 import { healthMonitor } from '@/services/health-monitor-service';
+import { ollamaService } from '@/services/ollama-service';
 import { log, LogContext } from '@/utils/logger';
 
 const router = Router();

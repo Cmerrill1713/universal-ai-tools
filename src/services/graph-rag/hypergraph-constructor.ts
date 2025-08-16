@@ -6,8 +6,9 @@
  */
 
 import { log, LogContext } from '../../utils/logger';
-import { llmEntityExtractor, ExtractedEntity, ExtractedRelation } from './llm-entity-extractor';
 import { generateEmbedding } from '../embeddings';
+import type { ExtractedEntity, ExtractedRelation} from './llm-entity-extractor';
+import {llmEntityExtractor } from './llm-entity-extractor';
 
 export interface HyperedgeNode {
   id: string;

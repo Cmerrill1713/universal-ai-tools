@@ -6,7 +6,7 @@ struct ViewModeSelector: View {
     var body: some View {
         Picker("View Mode", selection: $appState.viewMode) {
             Image(systemName: "globe")
-                .tag(ViewMode.webView)
+                .tag(ViewMode.web)
                 .help("Web")
 
             Image(systemName: "app")

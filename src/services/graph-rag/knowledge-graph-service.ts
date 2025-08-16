@@ -14,14 +14,16 @@
  * - Cost-efficient graph construction ($2.81/1K tokens)
  */
 
-import neo4j, { Driver, Session, Result } from 'neo4j-driver';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { EventEmitter } from 'events';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Driver} from 'neo4j-driver';
+import neo4j, { Result,Session } from 'neo4j-driver';
 
 import { config } from '../../config/environment';
 import { log, LogContext } from '../../utils/logger';
-import { generateEmbedding } from '../embeddings';
 import { contextStorageService } from '../context-storage-service';
+import { generateEmbedding } from '../embeddings';
 import { semanticContextRetrievalService } from '../semantic-context-retrieval';
 
 // Graph-R1 specific types

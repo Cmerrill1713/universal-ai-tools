@@ -113,8 +113,11 @@ services:
     command: >
       redis-server
       --appendonly yes
-      --maxmemory 4gb
+      --maxmemory 2gb
       --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
       --requirepass ${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
@@ -145,19 +148,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: 8G
+          memory: 6G
         reservations:
-          memory: 4G
-    # Automatically pull popular models on startup
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - |
-        ollama serve &
-        sleep 5
-        ollama pull llama3.2:3b || true
-        ollama pull mistral:7b || true
-        ollama pull codellama:7b || true
-        wait
+          memory: 2G
+    # Use standard entrypoint for faster startup
+    # Note: Pull models manually with `docker exec universal-ai-tools-ollama ollama pull <model>`
+    # Or use the models profile to auto-pull common models
 
   # Nginx Reverse Proxy
   nginx:
@@ -181,7 +177,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Prometheus for Metrics
+  # Prometheus for Metrics (optional - use monitoring profile)
   prometheus:
     image: prom/prometheus:latest
     container_name: universal-ai-tools-prometheus
@@ -196,10 +192,14 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.retention.size=1GB'
     networks:
       - ai-network
+    profiles:
+      - monitoring
 
-  # Grafana for Visualization
+  # Grafana for Visualization (optional - use monitoring profile)
   grafana:
     image: grafana/grafana:latest
     container_name: universal-ai-tools-grafana
@@ -210,6 +210,7 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -217,6 +218,8 @@ services:
       - prometheus
     networks:
       - ai-network
+    profiles:
+      - monitoring
 
   # pgAdmin for Database Management (optional)
   pgadmin:

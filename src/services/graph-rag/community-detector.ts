@@ -7,8 +7,8 @@
 
 import { log, LogContext } from '../../utils/logger';
 import { generateEmbedding } from '../embeddings';
-import type { GraphEntity, GraphRelationship } from './knowledge-graph-service';
 import type { Hyperedge } from './hypergraph-constructor';
+import type { GraphEntity, GraphRelationship } from './knowledge-graph-service';
 
 export interface Community {
   id: string;
@@ -232,7 +232,7 @@ export class CommunityDetector {
     // Leiden algorithm - simplified implementation
     // In production, this would be more sophisticated with proper refinement phase
     
-    let result = await this.louvainCommunityDetection(resolution, minSize);
+    const result = await this.louvainCommunityDetection(resolution, minSize);
     
     // Refinement phase: try to split/merge communities
     const refinedCommunities = await this.refineCommunities(result.communities, resolution);

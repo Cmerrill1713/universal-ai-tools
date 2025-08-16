@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Pow
 
 struct AgentManagementView: View {
     @EnvironmentObject var appState: AppState
@@ -11,7 +12,7 @@ struct AgentManagementView: View {
     @State private var selectedObjective: Objective?
     @State private var showObjectiveDetail = false
 
-    private let objectiveTypes = ["All", "Development", "Creative", "Analysis", "Organization", "Research"]
+    private let objectiveTypes = ["All"] + Objective.ObjectiveType.allCases.map { $0.displayName }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -150,14 +151,14 @@ struct AgentManagementView: View {
         if !searchText.isEmpty {
             objectives = objectives.filter { objective in
                 objective.title.localizedCaseInsensitiveContains(searchText) ||
-                objective.type.localizedCaseInsensitiveContains(searchText) ||
+                objective.type.displayName.localizedCaseInsensitiveContains(searchText) ||
                 objective.description.localizedCaseInsensitiveContains(searchText)
             }
         }
 
         // Filter by type
         if selectedObjectiveType != "All" {
-            objectives = objectives.filter { $0.type == selectedObjectiveType }
+            objectives = objectives.filter { $0.type.displayName == selectedObjectiveType }
         }
 
         return objectives
@@ -238,7 +239,7 @@ struct ObjectiveCard: View {
                         .font(.headline)
                         .fontWeight(.semibold)
 
-                    Text(objective.type)
+                    Text(objective.type.displayName)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
@@ -285,24 +286,22 @@ struct ObjectiveCard: View {
                 VStack(spacing: 12) {
                     Divider()
 
-                    // Tasks
-                    if !objective.tasks.isEmpty {
+                    // Tags
+                    if !objective.tags.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Tasks")
+                            Text("Tags")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
 
-                            ForEach(objective.tasks, id: \.self) { task in
-                                HStack(spacing: 8) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(AppTheme.accentOrange.opacity(0.6))
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
+                                ForEach(objective.tags, id: \.self) { tag in
+                                    Text(tag)
                                         .font(.caption)
-
-                                    Text(task)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-
-                                    Spacer()
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(AppTheme.accentBlue.opacity(0.2))
+                                        .foregroundColor(AppTheme.accentBlue)
+                                        .cornerRadius(4)
                                 }
                             }
                         }
@@ -357,34 +356,34 @@ struct ObjectiveCard: View {
 
     private var objectiveIcon: String {
         switch objective.type {
-        case "Development": return "hammer.fill"
-        case "Creative": return "paintbrush.fill"
-        case "Analysis": return "chart.bar.fill"
-        case "Organization": return "folder.fill"
-        case "Research": return "magnifyingglass"
-        default: return "target"
+        case .task: return "checkmark.circle.fill"
+        case .goal: return "target"
+        case .milestone: return "flag.fill"
+        case .research: return "magnifyingglass"
+        case .maintenance: return "wrench.fill"
+        case .optimization: return "speedometer"
         }
     }
 
     private var objectiveIconDescription: String {
         switch objective.type {
-        case "Development": return "Build"
-        case "Creative": return "Design"
-        case "Analysis": return "Analyze"
-        case "Organization": return "Organize"
-        case "Research": return "Research"
-        default: return "Goal"
+        case .task: return "Task"
+        case .goal: return "Goal"
+        case .milestone: return "Milestone"
+        case .research: return "Research"
+        case .maintenance: return "Maintain"
+        case .optimization: return "Optimize"
         }
     }
 
     private var objectiveHoverDetail: String {
         switch objective.type {
-        case "Development": return "Software development, coding, and building applications or systems"
-        case "Creative": return "Creative projects, design work, content creation, and artistic endeavors"
-        case "Analysis": return "Data analysis, research insights, performance metrics, and trend identification"
-        case "Organization": return "File management, data sorting, workflow optimization, and system organization"
-        case "Research": return "Information gathering, market research, competitive analysis, and knowledge discovery"
-        default: return "General objective or goal achievement"
+        case .task: return "Specific actionable tasks with clear completion criteria"
+        case .goal: return "Long-term objectives and strategic targets"
+        case .milestone: return "Key checkpoints and progress markers"
+        case .research: return "Information gathering, analysis, and knowledge discovery"
+        case .maintenance: return "System upkeep, monitoring, and operational tasks"
+        case .optimization: return "Performance improvements and efficiency enhancements"
         }
     }
 }
@@ -463,14 +462,14 @@ struct CreateObjectiveView: View {
             type: type,
             status: .planning,
             progress: 0,
-            tasks: []
+            tags: []
         )
         appState.activeObjectives.append(objective)
     }
 }
 
 struct MacOSAppIcon: View {
-    let type: String
+    let type: Objective.ObjectiveType
     let isActive: Bool
 
     var body: some View {
@@ -505,8 +504,8 @@ struct MacOSAppIcon: View {
 
     private var iconGradient: LinearGradient {
         switch type {
-        case "Development":
-            // Xcode-like blue gradient
+        case .task:
+            // Task-like blue gradient
             return LinearGradient(
                 colors: [
                     Color(hex: "1E9BFF"),
@@ -516,8 +515,8 @@ struct MacOSAppIcon: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        case "Creative":
-            // Photoshop/Creative-like red-pink gradient
+        case .goal:
+            // Goal-like red-pink gradient
             return LinearGradient(
                 colors: [
                     Color(hex: "FF6B6B"),
@@ -527,19 +526,8 @@ struct MacOSAppIcon: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        case "Analysis":
-            // Numbers/Excel-like green gradient
-            return LinearGradient(
-                colors: [
-                    Color(hex: "4ADB6A"),
-                    Color(hex: "34C759"),
-                    Color(hex: "248A3D")
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case "Organization":
-            // Finder/FileManager-like orange gradient
+        case .milestone:
+            // Milestone-like orange gradient
             return LinearGradient(
                 colors: [
                     Color(hex: "FFB340"),
@@ -549,8 +537,8 @@ struct MacOSAppIcon: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        case "Research":
-            // Safari/Browser-like purple gradient
+        case .research:
+            // Research-like purple gradient
             return LinearGradient(
                 colors: [
                     Color(hex: "7B68EE"),
@@ -560,12 +548,24 @@ struct MacOSAppIcon: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        default:
+        case .maintenance:
+            // Maintenance-like green gradient
             return LinearGradient(
                 colors: [
-                    Color(hex: "A8A8A8"),
-                    Color(hex: "8E8E93"),
-                    Color(hex: "636366")
+                    Color(hex: "4ADB6A"),
+                    Color(hex: "34C759"),
+                    Color(hex: "248A3D")
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .optimization:
+            // Optimization-like teal gradient
+            return LinearGradient(
+                colors: [
+                    Color(hex: "64D2FF"),
+                    Color(hex: "5AC8FA"),
+                    Color(hex: "007AFF")
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -575,12 +575,12 @@ struct MacOSAppIcon: View {
 
     private var iconSymbol: String {
         switch type {
-        case "Development": return "chevron.left.forwardslash.chevron.right"
-        case "Creative": return "paintbrush.pointed.fill"
-        case "Analysis": return "chart.bar.fill"
-        case "Organization": return "folder.fill"
-        case "Research": return "doc.text.magnifyingglass"
-        default: return "target"
+        case .task: return "checkmark.circle.fill"
+        case .goal: return "target"
+        case .milestone: return "flag.fill"
+        case .research: return "doc.text.magnifyingglass"
+        case .maintenance: return "wrench.fill"
+        case .optimization: return "speedometer"
         }
     }
 }
@@ -606,7 +606,7 @@ struct ObjectiveDetailView: View {
                             .font(.title2)
                             .fontWeight(.bold)
 
-                        Text(objective.type)
+                        Text(objective.type.displayName)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -648,22 +648,21 @@ struct ObjectiveDetailView: View {
                     .foregroundColor(.secondary)
             }
 
-            // Tasks
-            if !objective.tasks.isEmpty {
+            // Tags
+            if !objective.tags.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Tasks")
+                    Text("Tags")
                         .font(.headline)
 
-                    ForEach(objective.tasks, id: \.self) { task in
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
+                        ForEach(objective.tags, id: \.self) { tag in
+                            Text(tag)
                                 .font(.caption)
-
-                            Text(task)
-                                .font(.body)
-
-                            Spacer()
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(AppTheme.accentBlue.opacity(0.2))
+                                .foregroundColor(AppTheme.accentBlue)
+                                .cornerRadius(4)
                         }
                     }
                 }
@@ -699,7 +698,7 @@ struct ObjectiveDetailView: View {
                     openGalleryForObjective()
                 }
                 .buttonStyle(.bordered)
-                .disabled(objective.type != "Creative" && objective.type != "Organization")
+                .disabled(objective.type != .goal && objective.type != .maintenance)
 
                 Button("Edit") {
                     // Edit objective - could open create window in edit mode
@@ -738,18 +737,18 @@ struct ObjectiveDetailView: View {
         // Navigate to the most relevant tool for this objective type
         appState.selectedSidebarItem = .tools
         switch objective.type {
-        case "Creative":
+        case .research:
+            appState.selectedTool = .knowledge
+        case .task:
+            appState.selectedTool = .debugging 
+        case .goal:
             appState.selectedTool = .vision
-        case "Organization":
-            appState.selectedTool = .debugging // Could be file management
-        case "Development":
-            appState.selectedTool = .debugging // Code tools
-        case "Analysis":
-            appState.selectedTool = .monitoring // Analytics tools
-        case "Research":
-            appState.selectedTool = .knowledge // Research tools
-        default:
-            appState.selectedTool = .debugging
+        case .milestone:
+            appState.selectedTool = .monitoring
+        case .maintenance:
+            appState.selectedTool = .monitoring
+        case .optimization:
+            appState.selectedTool = .monitoring
         }
 
         // Close the detail window
@@ -778,20 +777,20 @@ struct ObjectiveDetailView: View {
         dismiss()
     }
 
-    private func contextualTools(for objectiveType: String) -> [ContextualTool] {
+    private func contextualTools(for objectiveType: Objective.ObjectiveType) -> [ContextualTool] {
         switch objectiveType {
-        case "Creative":
+        case .goal:
             return creativeTools()
-        case "Organization":
+        case .maintenance:
             return organizationTools()
-        case "Development":
+        case .task:
             return developmentTools()
-        case "Analysis":
+        case .milestone:
             return analysisTools()
-        case "Research":
+        case .research:
             return researchTools()
-        default:
-            return []
+        case .optimization:
+            return analysisTools()
         }
     }
     
@@ -975,7 +974,24 @@ struct ContextualToolButton: View {
         // Close the detail sheet and navigate to the tool
         dismiss()
 
-        print("Navigating to \(tool.title) for \(objective.type) objective: \(objective.title)")
+        print("Navigating to \(tool.title) for \(objective.type.displayName) objective: \(objective.title)")
+    }
+}
+
+// MARK: - Supporting Views
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .fontWeight(.medium)
+            Spacer()
+            Text(value)
+                .foregroundColor(.secondary)
+        }
     }
 }
 

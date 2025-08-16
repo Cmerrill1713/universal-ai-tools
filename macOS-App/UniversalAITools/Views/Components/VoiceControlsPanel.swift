@@ -762,33 +762,7 @@ struct SettingsTextField: View {
 }
 
 // MARK: - Extensions
-extension VoiceInteractionMode {
-    var displayName: String {
-        switch self {
-        case .conversational:
-            return "Conversational"
-        case .command:
-            return "Command"
-        case .dictation:
-            return "Dictation"
-        case .assistant:
-            return "AI Assistant"
-        }
-    }
-    
-    var description: String {
-        switch self {
-        case .conversational:
-            return "Back-and-forth conversation with AI"
-        case .command:
-            return "Single command execution"
-        case .dictation:
-            return "Pure speech-to-text transcription"
-        case .assistant:
-            return "AI assistant with context awareness"
-        }
-    }
-}
+// Note: VoiceInteractionMode extensions are defined in Models/VoiceInteraction.swift
 
 extension STTInputMode {
     var description: String {

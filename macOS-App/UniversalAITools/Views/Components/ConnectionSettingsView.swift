@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 /// Connection Settings for Agent Orchestration Service
 struct ConnectionSettingsView: View {
@@ -274,7 +275,7 @@ struct ConnectionSettingsView: View {
                     
                     Picker("Log Level", selection: $logLevel) {
                         ForEach(LogLevel.allCases, id: \.self) { level in
-                            Text(level.rawValue).tag(level)
+                            Text(level.description).tag(level)
                         }
                     }
                     .pickerStyle(.menu)

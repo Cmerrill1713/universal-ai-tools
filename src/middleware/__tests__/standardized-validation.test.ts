@@ -2,22 +2,21 @@
  * Tests for Standardized Validation and Error Handling System
  */
 
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction,Request, Response } from 'express';
 import { z } from 'zod';
 
 import { 
-  validateRequestBody, 
-  validateQueryParams, 
-  validateParams,
   validateContentType,
+  validateParams,
+  validateQueryParams, 
+  validateRequestBody, 
   validateRequestSize 
 } from '../enhanced-validation';
 import { 
-  standardizedErrorHandler,
-  ApiValidationError,
   ApiNotFoundError,
-  asyncErrorHandler
-} from '../standardized-error-handler';
+  ApiValidationError,
+  asyncErrorHandler,
+  standardizedErrorHandler} from '../standardized-error-handler';
 import { chatRequestSchema, idParamSchema } from '../validation-schemas';
 
 // Mock Express objects
@@ -27,6 +26,8 @@ const createMockRequest = (overrides: Partial<Request> = {}): Request => ({
   params: {},
   path: '/test',
   method: 'POST',
+  ip: '127.0.0.1',
+  connection: { remoteAddress: '127.0.0.1' },
   get: jest.fn().mockReturnValue('application/json'),
   ...overrides,
 } as any);

@@ -1,13 +1,14 @@
+import Foundation
 import SwiftUI
 import XCTest
 
 class UIComponentTests: UniversalAIToolsTestSuite {
     func testSidebarViewRendering() {
-        let sidebarView = SidebarView(selection: .constant(.dashboard))
+        let sidebarView = SidebarView(selection: .constant(.analytics))
             .environmentObject(appState)
         XCTAssertNotNil(sidebarView)
 
-        var selection: SidebarItem? = .dashboard
+        var selection: SidebarItem? = .analytics
         let binding = Binding(
             get: { selection },
             set: { selection = $0 }
@@ -70,8 +71,8 @@ class UIComponentTests: UniversalAIToolsTestSuite {
             .environmentObject(appState)
         XCTAssertNotNil(viewModeSelector)
 
-        appState.viewMode = .webView
-        XCTAssertEqual(appState.viewMode, .webView)
+        appState.viewMode = .web
+        XCTAssertEqual(appState.viewMode, .web)
         appState.viewMode = .native
         XCTAssertEqual(appState.viewMode, .native)
         appState.viewMode = .hybrid

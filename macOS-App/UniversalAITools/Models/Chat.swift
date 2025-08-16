@@ -60,4 +60,8 @@ struct Chat: Identifiable, Codable, Hashable {
     var hasUserMessages: Bool {
         return messages.contains { $0.role == .user }
     }
+    
+    var lastMessageTime: Date {
+        return lastMessage?.timestamp ?? updatedAt
+    }
 }

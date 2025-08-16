@@ -63,7 +63,7 @@ struct ConnectionStatusView: View {
         Divider().frame(height: 10)
         HStack(spacing: 6) {
           Label("\(Int(metrics.cpuUsage))%", systemImage: "gauge.high")
-          Label("\(metrics.requestsPerMinute)", systemImage: "bolt.fill")
+          Label("\(Int(metrics.networkUsage.requestsPerSecond * 60))", systemImage: "bolt.fill")
         }
         .labelStyle(.iconOnly)
         .font(.caption2)
@@ -100,7 +100,7 @@ struct ConnectionStatusView: View {
   }
 
   private var connectionColor: Color {
-    if appState.backendConnected && appState.websocketConnected {
+    if appState.backendConnected {
       return .green
     } else if appState.backendConnected {
       return .orange
@@ -110,7 +110,7 @@ struct ConnectionStatusView: View {
   }
 
   private var connectionText: String {
-    if appState.backendConnected && appState.websocketConnected {
+    if appState.backendConnected {
       return "Connected"
     } else if appState.backendConnected {
       return "Partial"

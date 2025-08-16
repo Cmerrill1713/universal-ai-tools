@@ -3,34 +3,32 @@
  * Demonstrates best practices for the new validation and error handling system
  */
 
+import type { NextFunction,Request, Response } from 'express';
 import { Router } from 'express';
-import type { Request, Response, NextFunction } from 'express';
 
 import { authenticate } from '@/middleware/auth';
 import { 
-  validateRequestBody, 
-  validateQueryParams, 
-  validateParams,
-  validateRequest,
   validateContentType,
+  validateParams,
+  validateQueryParams, 
+  validateRequest,
+  validateRequestBody, 
   validateRequestSize 
 } from '@/middleware/enhanced-validation';
-import { 
-  chatRequestSchema, 
-  agentRequestSchema,
-  paginationSchema,
-  idParamSchema,
-  searchSchema,
-  healthCheckQuerySchema 
-} from '@/middleware/validation-schemas';
 import {
-  asyncErrorHandler,
-  ApiNotFoundError,
-  ApiValidationError,
   ApiAuthenticationError,
-  ApiServiceUnavailableError
-} from '@/middleware/standardized-error-handler';
-import { sendSuccess, sendPaginatedSuccess, sendError } from '@/utils/api-response';
+  ApiNotFoundError,
+  ApiServiceUnavailableError,
+  ApiValidationError,
+  asyncErrorHandler} from '@/middleware/standardized-error-handler';
+import { 
+  agentRequestSchema,
+  chatRequestSchema, 
+  healthCheckQuerySchema, 
+  idParamSchema,
+  paginationSchema,
+  searchSchema} from '@/middleware/validation-schemas';
+import { sendError,sendPaginatedSuccess, sendSuccess } from '@/utils/api-response';
 import { log, LogContext } from '@/utils/logger';
 
 const router = Router();

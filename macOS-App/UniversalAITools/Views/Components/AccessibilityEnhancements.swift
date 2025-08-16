@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import AppKit
 
@@ -32,6 +33,7 @@ struct AccessibilityAction {
 // MARK: - 3D Visualization Accessibility
 
 /// Accessibility support for 3D knowledge graph visualization
+@available(macOS 14.0, *)
 struct Accessible3DGraphView: View {
     let nodes: [GraphNode3D]
     let connections: [GraphConnection3D]
@@ -410,28 +412,7 @@ struct AccessibleNodeDetailView: View {
     }
 }
 
-struct ConnectionDetailView: View {
-    let connection: GraphConnection3D
-    let currentNodeId: UUID
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "arrow.right")
-                .foregroundColor(connection.color)
-                .font(.caption)
-            
-            Text(connection.relationshipType)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            Text("→ Connected node")
-                .font(.caption)
-                .foregroundColor(.primary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Connection: \(connection.relationshipType) to connected node")
-    }
-}
+// Note: ConnectionDetailView duplicate removed - using the one from AgentNetworkTopology.swift
 
 // MARK: - Complex Chart Accessibility
 
@@ -748,8 +729,13 @@ struct AccessibilityIssue {
         GraphConnection3D(fromNodeId: nodes[1].id, toNodeId: nodes[2].id, relationshipType: "enables", color: .green)
     ]
     
-    Accessible3DGraphView(nodes: nodes, connections: connections)
-        .frame(width: 800, height: 600)
+    if #available(macOS 14.0, *) {
+        Accessible3DGraphView(nodes: nodes, connections: connections)
+            .frame(width: 800, height: 600)
+    } else {
+        Text("Accessible 3D Graph requires macOS 14.0 or later")
+            .frame(width: 800, height: 600)
+    }
 }
 
 #Preview("Accessible Chart") {

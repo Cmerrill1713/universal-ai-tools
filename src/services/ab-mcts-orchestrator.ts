@@ -23,6 +23,8 @@ import { TWO } from '@/utils/constants';
 import { log, LogContext } from '@/utils/logger';
 
 import { abMCTSService } from './ab-mcts-service';
+import { adaptiveTrainingService } from './adaptive-training-service';
+import { mcpIntegrationService } from './mcp-integration-service';
 import { multiTierLLM } from './multi-tier-llm-service';
 
 export interface OrchestratorConfig extends Partial<ABMCTSConfig> {
@@ -33,6 +35,12 @@ export interface OrchestratorConfig extends Partial<ABMCTSConfig> {
   budgetAllocation: {
     exploration: number; // Percentage for exploration
     exploitation: number; // Percentage for exploitation
+  };
+  toolOptimization: {
+    enableToolTracking: boolean;
+    maxToolsPerPath: number;
+    toolRewardWeight: number;
+    adaptiveToolSelection: boolean;
   };
 }
 
@@ -45,8 +53,21 @@ export interface OrchestratorResult {
     agents: number;
     llmCalls: number;
     tokensUsed: number;
+    toolCalls: number;
   };
   feedback?: ABMCTSFeedback;
+  toolUsage: {
+    toolsUsed: Array<{
+      tool: string;
+      server: string;
+      executionTime: number;
+      success: boolean;
+      relevanceScore: number;
+    }>;
+    totalToolTime: number;
+    toolEfficiencyScore: number;
+    toolSequenceOptimality: number;
+  };
 }
 
 /**
@@ -58,6 +79,22 @@ export class ABMCTSOrchestrator {
   private activeSearches: Map<string, ABMCTSSearchResult> = new Map();
   private executionCache: Map<string, OrchestratorResult> = new Map();
   private agentRegistry: AgentRegistry;
+  
+  // ToolTrain-inspired tool optimization
+  private toolPerformanceHistory: Map<string, {
+    successRate: number;
+    averageTime: number;
+    relevanceScores: number[];
+    usageCount: number;
+    lastUsed: number;
+  }> = new Map();
+  
+  private toolSequencePatterns: Map<string, {
+    pattern: string[];
+    successRate: number;
+    averageReward: number;
+    usageCount: number;
+  }> = new Map();
 
   constructor(config: Partial<OrchestratorConfig> = {}) {
     this.config = {
@@ -68,6 +105,12 @@ export class ABMCTSOrchestrator {
       budgetAllocation: {
         exploration: 30,
         exploitation: 70,
+      },
+      toolOptimization: {
+        enableToolTracking: true,
+        maxToolsPerPath: 10,
+        toolRewardWeight: 0.3,
+        adaptiveToolSelection: true,
       },
       // AB-MCTS specific config
       maxIterations: 500,
@@ -184,6 +227,12 @@ export class ABMCTSOrchestrator {
       totalTime,
       resourcesUsed,
       feedback: executionResult.feedback,
+      toolUsage: {
+        toolsUsed: [],
+        totalToolTime: 0,
+        toolEfficiencyScore: 0.5,
+        toolSequenceOptimality: 0.5
+      }
     };
 
     // Cache result
@@ -313,7 +362,14 @@ export class ABMCTSOrchestrator {
         agents: 1,
         llmCalls: 1,
         tokensUsed: result.metadata.tokensUsed,
+        toolCalls: 0,
       },
+      toolUsage: {
+        toolsUsed: [],
+        totalToolTime: 0,
+        toolEfficiencyScore: 0.5,
+        toolSequenceOptimality: 0.5
+      }
     };
   }
 
@@ -370,6 +426,7 @@ export class ABMCTSOrchestrator {
       agents: agentsUsed,
       llmCalls: searchResult.searchMetrics.nodesExplored,
       tokensUsed: (executionResult as any)?.response?.metadata?.tokens?.total_tokens || 0,
+      toolCalls: 0,
     };
   }
 
@@ -522,13 +579,236 @@ export class ABMCTSOrchestrator {
             searchResult: {} as any,
             executionPath: [],
             totalTime: 0,
-            resourcesUsed: { agents: 0, llmCalls: 0, tokensUsed: 0 },
+            resourcesUsed: { agents: 0, llmCalls: 0, tokensUsed: 0, toolCalls: 0 },
+            toolUsage: {
+              toolsUsed: [],
+              totalToolTime: 0,
+              toolEfficiencyScore: 0,
+              toolSequenceOptimality: 0
+            }
           });
         }
       }
     }
 
     return results;
+  }
+
+  /**
+   * ToolTrain-inspired tool usage optimization
+   */
+  async optimizeToolUsage(
+    context: AgentContext,
+    availableTools: Record<string, string[]>
+  ): Promise<{
+    recommendedTools: Array<{
+      server: string;
+      tool: string;
+      confidence: number;
+      reasoning: string;
+    }>;
+    toolSequence: string[];
+    expectedReward: number;
+  }> {
+    const contextAnalysis = this.analyzeContext(context);
+    const recommendedTools = [];
+    const toolSequence = [];
+    
+    // Get tool performance data
+    const toolPerformanceMap = await this.getToolPerformanceMap();
+    
+    // Analyze context to determine optimal tool sequence
+    for (const [server, tools] of Object.entries(availableTools)) {
+      for (const tool of tools) {
+        const toolKey = `${server}:${tool}`;
+        const performance = toolPerformanceMap.get(toolKey);
+        
+        const relevance = this.calculateToolRelevance(tool, server, contextAnalysis);
+        const confidence = this.calculateToolConfidence(performance, relevance);
+        
+        if (confidence > 0.6) {
+          recommendedTools.push({
+            server,
+            tool,
+            confidence,
+            reasoning: this.generateToolReasoning(tool, server, contextAnalysis, performance),
+          });
+        }
+      }
+    }
+    
+    // Sort by confidence and build optimal sequence
+    recommendedTools.sort((a, b) => b.confidence - a.confidence);
+    
+    // Build tool sequence using learned patterns
+    const optimalSequence = this.buildOptimalToolSequence(
+      recommendedTools.slice(0, this.config.toolOptimization.maxToolsPerPath),
+      contextAnalysis
+    );
+    
+    // Calculate expected reward
+    const expectedReward = this.calculateExpectedToolReward(optimalSequence);
+    
+    return {
+      recommendedTools: recommendedTools.slice(0, 5),
+      toolSequence: optimalSequence,
+      expectedReward,
+    };
+  }
+
+  /**
+   * Track tool usage for RL optimization
+   */
+  trackToolUsage(
+    server: string,
+    tool: string,
+    executionTime: number,
+    success: boolean,
+    relevanceScore: number,
+    context: any
+  ): void {
+    if (!this.config.toolOptimization.enableToolTracking) return;
+    
+    const toolKey = `${server}:${tool}`;
+    const performance = this.toolPerformanceHistory.get(toolKey) || {
+      successRate: 0.5,
+      averageTime: 1000,
+      relevanceScores: [],
+      usageCount: 0,
+      lastUsed: 0,
+    };
+    
+    // Update performance metrics with exponential moving average
+    const alpha = 0.1; // Learning rate
+    performance.successRate = (1 - alpha) * performance.successRate + alpha * (success ? 1 : 0);
+    performance.averageTime = (1 - alpha) * performance.averageTime + alpha * executionTime;
+    performance.relevanceScores.push(relevanceScore);
+    performance.usageCount++;
+    performance.lastUsed = Date.now();
+    
+    // Keep only recent relevance scores (last 50)
+    if (performance.relevanceScores.length > 50) {
+      performance.relevanceScores = performance.relevanceScores.slice(-50);
+    }
+    
+    this.toolPerformanceHistory.set(toolKey, performance);
+    
+    // Store RL data for adaptive training
+    if (this.config.enableLearning) {
+      adaptiveTrainingService.collectRLData('tool-usage', 'ab-mcts-orchestrator', [{
+        state: {
+          context: this.sanitizeContext(context),
+          toolHistory: this.getRecentToolHistory(),
+        },
+        action: { server, tool },
+        reward: this.calculateToolReward(success, relevanceScore, executionTime),
+        nextState: {
+          context: this.sanitizeContext(context),
+          toolHistory: this.getRecentToolHistory(),
+        },
+        done: false,
+        metadata: {
+          executionTime,
+          relevanceScore,
+          toolKey,
+        },
+      }]);
+    }
+  }
+
+  /**
+   * Get tool performance metrics for monitoring
+   */
+  getToolPerformanceMetrics(): Record<string, any> {
+    const metrics: Record<string, any> = {};
+    
+    for (const [toolKey, performance] of this.toolPerformanceHistory.entries()) {
+      const avgRelevance = performance.relevanceScores.length > 0 
+        ? performance.relevanceScores.reduce((sum, score) => sum + score, 0) / performance.relevanceScores.length
+        : 0.5;
+      
+      metrics[toolKey] = {
+        successRate: performance.successRate,
+        averageTime: performance.averageTime,
+        averageRelevance: avgRelevance,
+        usageCount: performance.usageCount,
+        lastUsed: new Date(performance.lastUsed).toISOString(),
+      };
+    }
+    
+    return metrics;
+  }
+
+  // Helper methods for tool optimization (abbreviated for space)
+  private analyzeContext(context: AgentContext): any {
+    const inputText = context.userRequest || context.query || '';
+    return {
+      hasCodeQuery: /function|class|import|variable/.test(inputText.toLowerCase()),
+      hasSearchQuery: /find|search|locate/.test(inputText.toLowerCase()),
+      hasAnalysisQuery: /analyze|explain|understand/.test(inputText.toLowerCase()),
+      complexity: inputText.length > 100 ? 'high' : 'medium',
+      keywords: inputText.toLowerCase().split(/\s+/).filter((word: string) => word.length > 3),
+    };
+  }
+
+  private async getToolPerformanceMap(): Promise<Map<string, any>> {
+    return this.toolPerformanceHistory;
+  }
+
+  private calculateToolRelevance(tool: string, server: string, contextAnalysis: any): number {
+    let relevance = 0.5;
+    if (contextAnalysis.hasCodeQuery && (tool === 'search_code' || tool === 'analyze_function')) relevance += 0.3;
+    if (contextAnalysis.hasSearchQuery && tool.includes('search')) relevance += 0.2;
+    if (contextAnalysis.hasAnalysisQuery && tool.includes('analyze')) relevance += 0.2;
+    return Math.min(1.0, relevance);
+  }
+
+  private calculateToolConfidence(performance: any, relevance: number): number {
+    if (!performance) return relevance * 0.5;
+    return performance.successRate * 0.4 + relevance * 0.3 + Math.min(performance.usageCount / 50, 1) * 0.3;
+  }
+
+  private generateToolReasoning(tool: string, server: string, contextAnalysis: any, performance: any): string {
+    const relevance = this.calculateToolRelevance(tool, server, contextAnalysis);
+    return `Tool ${tool} on ${server} ${relevance > 0.7 ? 'highly' : 'moderately'} relevant with ${performance?.successRate > 0.8 ? 'high' : 'good'} success rate`;
+  }
+
+  private buildOptimalToolSequence(recommendedTools: any[], contextAnalysis: any): string[] {
+    const sequence = [];
+    const searchTools = recommendedTools.filter(t => t.tool.includes('search'));
+    const analysisTools = recommendedTools.filter(t => t.tool.includes('analyze'));
+    
+    if (searchTools.length > 0) sequence.push(`${searchTools[0].server}:${searchTools[0].tool}`);
+    if (analysisTools.length > 0) sequence.push(`${analysisTools[0].server}:${analysisTools[0].tool}`);
+    
+    return sequence;
+  }
+
+  private calculateExpectedToolReward(toolSequence: string[]): number {
+    if (toolSequence.length === 0) return 0;
+    let totalReward = 0;
+    for (const toolKey of toolSequence) {
+      const performance = this.toolPerformanceHistory.get(toolKey);
+      if (performance) totalReward += performance.successRate * 0.8;
+    }
+    return totalReward / toolSequence.length;
+  }
+
+  private calculateToolReward(success: boolean, relevanceScore: number, executionTime: number): number {
+    let reward = success ? 0.5 : -0.2;
+    reward += relevanceScore * 0.3;
+    reward += Math.max(0, (5000 - executionTime) / 5000) * 0.2;
+    return Math.max(-1, Math.min(1, reward));
+  }
+
+  private sanitizeContext(context: any): any {
+    return { type: typeof context, hasInput: !!context.input, inputLength: context.input?.length || 0 };
+  }
+
+  private getRecentToolHistory(): string[] {
+    return Array.from(this.toolPerformanceHistory.entries())
+      .filter(([, perf]) => Date.now() - perf.lastUsed < 300000)
+      .map(([toolKey]) => toolKey).slice(-5);
   }
 
   /**

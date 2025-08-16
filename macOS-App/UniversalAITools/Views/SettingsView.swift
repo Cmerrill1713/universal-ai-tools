@@ -33,7 +33,7 @@ struct SettingsView: View {
                 .tag("General")
 
                 ScrollView {
-                    ConnectionSettingsView()
+                    BackendConnectionSettingsView()
                         .padding(.bottom, 20)
                 }
                 .tabItem {
@@ -122,7 +122,7 @@ struct GeneralSettingsView: View {
     }
 }
 
-struct ConnectionSettingsView: View {
+struct BackendConnectionSettingsView: View {
     @EnvironmentObject var apiService: APIService
     @AppStorage("BackendURL") private var backendURL = "http://localhost:9998"
     @AppStorage("FrontendURL") private var frontendURL = "http://localhost:5173"
@@ -852,7 +852,7 @@ struct LocalServiceRow: View {
         }
     }
 
-    private func testConnection() async {
+    func testConnection() async {
         guard !isTestingConnection else { return }
         
         isTestingConnection = true
@@ -1114,7 +1114,7 @@ struct LocalServiceConfigFormView: View {
         }
     }
 
-    private func testConnection() async {
+    func testConnection() async {
         guard !newEndpoint.isEmpty else { return }
         
         isTesting = true

@@ -596,7 +596,10 @@ struct RealTimeParameterTuning: View {
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(selectedPreset?.id == preset.id ? Color.blue.opacity(0.2) : Color(.controlColor))
-                .stroke(selectedPreset?.id == preset.id ? Color.blue : Color.clear, lineWidth: 1)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(selectedPreset?.id == preset.id ? Color.blue : Color.clear, lineWidth: 1)
+                )
         )
         .onTapGesture {
             selectedPreset = preset

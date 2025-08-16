@@ -230,6 +230,72 @@ class SupabaseMCPServer {
             required: ['error_type', 'error_message'],
           },
         },
+        // Local Memory Layer Tools (ByteRover alternative)
+        {
+          name: 'store_memory',
+          description: 'Store a coding memory for future retrieval (ByteRover alternative)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              agent_name: { type: 'string', description: 'Name of the AI agent' },
+              context_type: { 
+                type: 'string', 
+                enum: ['bug_fix', 'feature', 'refactor', 'optimization', 'pattern', 'decision'],
+                description: 'Type of coding context'
+              },
+              content: { type: 'string', description: 'Description of the coding solution or pattern' },
+              code_snippet: { type: 'string', description: 'Relevant code snippet' },
+              file_path: { type: 'string', description: 'File path where the code is located' },
+              programming_language: { type: 'string', description: 'Programming language used' },
+              tags: { type: 'array', items: { type: 'string' }, description: 'Tags for categorization' },
+              success_metrics: { 
+                type: 'object', 
+                description: 'Metrics indicating success of the solution'
+              }
+            },
+            required: ['agent_name', 'context_type', 'content']
+          }
+        },
+        {
+          name: 'retrieve_memories',
+          description: 'Retrieve relevant coding memories based on context (ByteRover alternative)',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              context: { type: 'string', description: 'Context or problem description to search for' },
+              code_snippet: { type: 'string', description: 'Code snippet to find similar patterns' },
+              file_path: { type: 'string', description: 'File path to filter memories' },
+              language: { type: 'string', description: 'Programming language filter' },
+              agent_name: { type: 'string', description: 'Filter by specific agent' },
+              limit: { type: 'number', description: 'Maximum number of memories to return', default: 5 }
+            },
+            required: ['context']
+          }
+        },
+        {
+          name: 'auto_generate_memory',
+          description: 'Automatically generate and store memory from successful coding interaction',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              agent_name: { type: 'string', description: 'Name of the AI agent' },
+              context: { type: 'string', description: 'Context of the successful interaction' },
+              code_snippet: { type: 'string', description: 'Code that was successfully implemented' },
+              file_path: { type: 'string', description: 'File path of the implementation' },
+              success: { type: 'boolean', description: 'Whether the implementation was successful' }
+            },
+            required: ['agent_name', 'context', 'code_snippet', 'file_path', 'success']
+          }
+        },
+        {
+          name: 'get_memory_stats',
+          description: 'Get statistics about stored coding memories',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
       ],
     }));
 
@@ -265,6 +331,15 @@ class SupabaseMCPServer {
             );
           case 'analyze_errors':
             return await this.analyzeErrors(args as unknown as ErrorAnalysis);
+          // Memory Layer Tools
+          case 'store_memory':
+            return await this.storeMemory(args as any);
+          case 'retrieve_memories':
+            return await this.retrieveMemories(args as any);
+          case 'auto_generate_memory':
+            return await this.autoGenerateMemory(args as any);
+          case 'get_memory_stats':
+            return await this.getMemoryStats();
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -712,6 +787,230 @@ class SupabaseMCPServer {
       const msg = error instanceof Error ? error.message : String(error);
       return { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true } as any;
     }
+  }
+
+  // Memory Layer Methods (ByteRover alternative)
+  private async storeMemory(args: any): Promise<CallToolResult> {
+    try {
+      // Generate a simple hash-based embedding for demo
+      const embedding = this.generateSimpleEmbedding(args.content + ' ' + (args.code_snippet || ''));
+
+      const { data, error } = await this.supabase
+        .from('code_memories')
+        .insert({
+          session_id: 'mcp-session',
+          agent_name: args.agent_name,
+          context_type: args.context_type,
+          content: args.content,
+          code_snippet: args.code_snippet,
+          file_path: args.file_path,
+          programming_language: args.programming_language || this.detectLanguage(args.file_path || ''),
+          tags: args.tags || [],
+          success_metrics: args.success_metrics,
+          embedding,
+          access_count: 0
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✅ Memory stored successfully with ID: ${data.id}`
+          }
+        ]
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { content: [{ type: 'text', text: `Error storing memory: ${msg}` }], isError: true } as any;
+    }
+  }
+
+  private async retrieveMemories(args: any): Promise<CallToolResult> {
+    try {
+      const queryEmbedding = this.generateSimpleEmbedding(args.context + ' ' + (args.code_snippet || ''));
+
+      const { data, error } = await this.supabase.rpc('search_code_memories', {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.5,
+        match_count: args.limit || 5,
+        agent_filter: args.agent_name,
+        language_filter: args.language
+      });
+
+      if (error) throw error;
+
+      const memories = data || [];
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `🔍 Found ${memories.length} relevant memories:\n\n` +
+              memories.map((m: any, i: number) => 
+                `${i + 1}. **${m.context_type}** (${m.programming_language})\n` +
+                `   Agent: ${m.agent_name}\n` +
+                `   Content: ${m.content}\n` +
+                `   File: ${m.file_path || 'N/A'}\n` +
+                `   Tags: ${m.tags?.join(', ') || 'None'}\n` +
+                `   Similarity: ${(m.similarity * 100).toFixed(1)}%\n`
+              ).join('\n')
+          }
+        ]
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { content: [{ type: 'text', text: `Error retrieving memories: ${msg}` }], isError: true } as any;
+    }
+  }
+
+  private async autoGenerateMemory(args: any): Promise<CallToolResult> {
+    try {
+      if (!args.success) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: '⚠️ Memory not generated - interaction was not successful'
+            }
+          ]
+        };
+      }
+
+      // Determine context type from the context
+      let contextType = 'pattern';
+      const context = args.context.toLowerCase();
+      
+      if (context.includes('fix') || context.includes('bug')) {
+        contextType = 'bug_fix';
+      } else if (context.includes('refactor')) {
+        contextType = 'refactor';
+      } else if (context.includes('optimize')) {
+        contextType = 'optimization';
+      } else if (context.includes('feature') || context.includes('add')) {
+        contextType = 'feature';
+      }
+
+      // Generate tags from context and code
+      const tags = this.extractTags(args.context, args.code_snippet);
+
+      const memoryArgs = {
+        agent_name: args.agent_name,
+        context_type: contextType,
+        content: args.context,
+        code_snippet: args.code_snippet,
+        file_path: args.file_path,
+        programming_language: this.detectLanguage(args.file_path),
+        tags,
+        success_metrics: {
+          compilation_success: true,
+          test_passing: args.success
+        }
+      };
+
+      return await this.storeMemory(memoryArgs);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { content: [{ type: 'text', text: `Error auto-generating memory: ${msg}` }], isError: true } as any;
+    }
+  }
+
+  private async getMemoryStats(): Promise<CallToolResult> {
+    try {
+      const { data, error } = await this.supabase.rpc('get_memory_stats');
+      
+      if (error) throw error;
+
+      const stats = data[0] || { total_memories: 0, by_agent: {}, by_type: {}, by_language: {} };
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `📊 Memory Layer Statistics:\n\n` +
+              `Total memories: ${stats.total_memories}\n\n` +
+              `By Agent:\n${Object.entries(stats.by_agent || {}).map(([k, v]) => `  - ${k}: ${v}`).join('\n')}\n\n` +
+              `By Type:\n${Object.entries(stats.by_type || {}).map(([k, v]) => `  - ${k}: ${v}`).join('\n')}\n\n` +
+              `By Language:\n${Object.entries(stats.by_language || {}).map(([k, v]) => `  - ${k}: ${v}`).join('\n')}`
+          }
+        ]
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { content: [{ type: 'text', text: `Error getting memory stats: ${msg}` }], isError: true } as any;
+    }
+  }
+
+  private generateSimpleEmbedding(text: string): number[] {
+    // Simple hash-based embedding for demo purposes
+    const embedding = new Array(1536).fill(0);
+    const words = text.toLowerCase().split(/\s+/);
+    
+    words.forEach((word, i) => {
+      const hash = this.simpleHash(word);
+      embedding[hash % 1536] += 1 / (i + 1);
+    });
+
+    // Normalize
+    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+    return embedding.map(val => magnitude > 0 ? val / magnitude : 0);
+  }
+
+  private simpleHash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  private detectLanguage(filePath: string): string {
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    const languageMap: Record<string, string> = {
+      'ts': 'typescript',
+      'js': 'javascript',
+      'tsx': 'tsx',
+      'jsx': 'jsx',
+      'py': 'python',
+      'swift': 'swift',
+      'go': 'go',
+      'rs': 'rust',
+      'java': 'java',
+      'cpp': 'cpp',
+      'c': 'c'
+    };
+    return languageMap[ext || ''] || 'unknown';
+  }
+
+  private extractTags(context: string, code: string): string[] {
+    const tags: Set<string> = new Set();
+    
+    const patterns = [
+      /async|await/gi,
+      /promise|then|catch/gi,
+      /function|method/gi,
+      /class|interface/gi,
+      /api|endpoint/gi,
+      /database|sql/gi,
+      /test|testing/gi,
+      /performance|optimization/gi,
+      /security|auth/gi,
+      /error|exception/gi
+    ];
+
+    patterns.forEach(pattern => {
+      const matches = (context + ' ' + code).match(pattern);
+      if (matches) {
+        matches.forEach(match => tags.add(match.toLowerCase()));
+      }
+    });
+
+    return Array.from(tags).slice(0, 10);
   }
 
   async run(): Promise<void> {

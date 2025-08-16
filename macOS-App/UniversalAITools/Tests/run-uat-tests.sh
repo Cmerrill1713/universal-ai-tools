@@ -104,7 +104,7 @@ build_app() {
     xcodebuild build-for-testing \
         -project "${PROJECT_NAME}.xcodeproj" \
         -scheme "${SCHEME}" \
-        -testPlan "${TEST_PLAN}" \
+        -destination 'platform=macOS' \
         -configuration Debug \
         -derivedDataPath "${RESULTS_PATH}/DerivedData" \
         -quiet \
@@ -124,12 +124,11 @@ run_tests() {
     
     cd "${PROJECT_DIR}"
     
-    # Prepare xcodebuild command
-    XCODE_CMD="xcodebuild test-without-building \
+    # Prepare xcodebuild command (without test plan for now)
+    XCODE_CMD="xcodebuild test \
         -project ${PROJECT_NAME}.xcodeproj \
         -scheme ${SCHEME} \
-        -testPlan ${TEST_PLAN} \
-        -testConfiguration ${TEST_CONFIG} \
+        -destination 'platform=macOS' \
         -derivedDataPath ${RESULTS_PATH}/DerivedData \
         -resultBundlePath ${RESULTS_PATH}/${TEST_CONFIG}.xcresult"
     

@@ -4,11 +4,13 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
-import { z, ZodError, ZodSchema, ZodType } from 'zod';
+import type { z, ZodSchema, ZodType } from 'zod';
+import { ZodError } from 'zod';
+
+import { log, LogContext } from '@/utils/logger';
 
 import { ApiValidationError } from './standardized-error-handler';
 import { sanitizeString, validateEmail, validateIPAddress } from './validation-schemas';
-import { log, LogContext } from '@/utils/logger';
 
 /**
  * Enhanced validation middleware with better error handling and sanitization

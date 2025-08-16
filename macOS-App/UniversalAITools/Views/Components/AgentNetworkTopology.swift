@@ -1033,21 +1033,7 @@ struct ConnectionDetailView: View {
     }
 }
 
-struct DetailRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .fontWeight(.medium)
-            Spacer()
-            Text(value)
-                .foregroundColor(.secondary)
-                .fontFamily(.monospaced)
-        }
-    }
-}
+// DetailRow is defined in SharedUIComponents.swift
 
 
 #Preview {

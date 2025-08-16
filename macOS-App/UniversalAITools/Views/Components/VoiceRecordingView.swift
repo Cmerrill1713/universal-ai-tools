@@ -431,29 +431,7 @@ struct VoiceRecordingView: View {
 }
 
 // MARK: - Input Mode Extensions
-extension STTInputMode {
-    var displayName: String {
-        switch self {
-        case .pushToTalk:
-            return "Push to Talk"
-        case .voiceActivation:
-            return "Voice Activation"
-        case .continuous:
-            return "Continuous"
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .pushToTalk:
-            return "mic.circle"
-        case .voiceActivation:
-            return "mic.badge.plus"
-        case .continuous:
-            return "mic.circle.fill"
-        }
-    }
-}
+// Note: STTInputMode extensions are defined in Models/VoiceInteraction.swift
 
 // MARK: - Compact Voice Button
 struct CompactVoiceButton: View {

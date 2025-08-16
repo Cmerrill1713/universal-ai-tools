@@ -10,10 +10,11 @@ import type { CircuitBreaker} from '@/utils/circuit-breaker';
 import { createCircuitBreaker } from '@/utils/circuit-breaker';
 import { log, LogContext } from '@/utils/logger';
 
+import { HuggingFaceToLMStudioAdapter } from '../../huggingface-to-lmstudio';
+import type { OllamaMessage} from '../../ollama-service';
+import {OllamaService } from '../../ollama-service';
 import type { BaseService, LLMProvider, LLMRequest, LLMResponse} from '../../shared/interfaces';
 import { ModelInfo } from '../../shared/interfaces';
-import { OllamaService, OllamaMessage } from '../../ollama-service';
-import { HuggingFaceToLMStudioAdapter } from '../../huggingface-to-lmstudio';
 
 // ============================================================================
 // Enhanced Types for Unified Router

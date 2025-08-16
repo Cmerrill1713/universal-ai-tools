@@ -7,10 +7,11 @@
 
 import { log, LogContext } from '../../utils/logger';
 import { generateEmbedding } from '../embeddings';
-import { metalVectorAccelerator, MetalVectorAccelerator } from './metal-vector-accelerator';
-import type { GraphEntity, GraphPath } from './knowledge-graph-service';
 import type { Community } from './community-detector';
 import type { Hyperedge } from './hypergraph-constructor';
+import type { GraphEntity, GraphPath } from './knowledge-graph-service';
+import type { MetalVectorAccelerator} from './metal-vector-accelerator';
+import {metalVectorAccelerator } from './metal-vector-accelerator';
 
 export interface SimilaritySearchResult {
   item: GraphEntity | Community | Hyperedge;

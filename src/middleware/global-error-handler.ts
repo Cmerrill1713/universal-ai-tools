@@ -5,11 +5,12 @@
 
 import type { NextFunction, Request, Response } from 'express';
 
-import { standardizedErrorHandler, healthCheckErrorHandler, requestTimingMiddleware } from './standardized-error-handler';
-import { errorTrackingService } from './error-tracking-middleware';
 import { Sentry } from '@/observability/sentry';
 import { errorLogService } from '@/services/error-log-service';
 import { log, LogContext } from '@/utils/logger';
+
+import { errorTrackingService } from './error-tracking-middleware';
+import { healthCheckErrorHandler, requestTimingMiddleware,standardizedErrorHandler } from './standardized-error-handler';
 
 /**
  * Enhanced global error handler that combines all error handling capabilities

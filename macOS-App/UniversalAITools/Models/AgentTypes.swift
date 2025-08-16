@@ -3,9 +3,9 @@ import SwiftUI
 import Combine
 
 // MARK: - Agent WebSocket Service
-class AgentWebSocketService: ObservableObject {
+class AgentWebSocketObserver: ObservableObject {
     @Published var connectionStatus: ConnectionStatus = .disconnected
-    @Published var agentNetwork: AgentNetwork = AgentNetwork.empty
+    @Published var agentNetwork = AgentNetwork.empty
     @Published var agentPerformanceMetrics: [String: AgentPerformanceMetric] = [:]
     @Published var activeWorkflows: [AgentWorkflow] = []
     @Published var realtimeAgentUpdates: [AgentStatusUpdate] = []
@@ -195,7 +195,7 @@ struct AgentPerformanceMetric: Codable {
     let memoryUsage: Int64
     let errorCount: Int
     
-    init(latency: Double, successRate: Double, throughput: Double, 
+    init(latency: Double = 100.0, successRate: Double = 0.95, throughput: Double = 10.0, 
          cpuUsage: Double = 50.0, memoryUsage: Int64 = 1024 * 1024 * 100, errorCount: Int = 0) {
         self.latency = latency
         self.successRate = successRate
@@ -254,17 +254,14 @@ struct AgentStatusUpdate: Identifiable, Codable {
 struct AgentWorkflow: Identifiable, Codable {
     let id: String
     let name: String
-    let steps: [WorkflowStep]
-    let executionState: WorkflowExecutionState
-    let priority: WorkflowPriority
+    let steps: [AgentWorkflowStep]
+    var executionState: AgentWorkflowExecutionState
+    let priority: AgentWorkflowPriority
     let createdAt: Date
+    var estimatedDuration: TimeInterval = 0
     
-    var progressPercentage: Double {
-        let completedSteps = steps.filter { $0.status == .completed }.count
-        return Double(completedSteps) / Double(steps.count) * 100
-    }
     
-    init(name: String, steps: [WorkflowStep], executionState: WorkflowExecutionState, priority: WorkflowPriority) {
+    init(name: String, steps: [AgentWorkflowStep], executionState: AgentWorkflowExecutionState, priority: AgentWorkflowPriority) {
         self.id = UUID().uuidString
         self.name = name
         self.steps = steps
@@ -277,9 +274,9 @@ struct AgentWorkflow: Identifiable, Codable {
         AgentWorkflow(
             name: "Data Processing Pipeline",
             steps: [
-                WorkflowStep(name: "Data Ingestion", agentId: "worker-1", action: AgentAction(type: .executeTask), order: 1),
-                WorkflowStep(name: "Data Validation", agentId: "worker-2", action: AgentAction(type: .executeTask), order: 2),
-                WorkflowStep(name: "Data Analysis", agentId: "worker-3", action: AgentAction(type: .executeTask), order: 3)
+                AgentWorkflowStep(name: "Data Ingestion", agentId: "worker-1", action: AgentAction(type: .executeTask), order: 1),
+                AgentWorkflowStep(name: "Data Validation", agentId: "worker-2", action: AgentAction(type: .executeTask), order: 2),
+                AgentWorkflowStep(name: "Data Analysis", agentId: "worker-3", action: AgentAction(type: .executeTask), order: 3)
             ],
             executionState: .running,
             priority: .high
@@ -287,8 +284,8 @@ struct AgentWorkflow: Identifiable, Codable {
         AgentWorkflow(
             name: "Model Training",
             steps: [
-                WorkflowStep(name: "Feature Engineering", agentId: "worker-4", action: AgentAction(type: .executeTask), order: 1),
-                WorkflowStep(name: "Model Training", agentId: "coordinator-1", action: AgentAction(type: .executeTask), order: 2)
+                AgentWorkflowStep(name: "Feature Engineering", agentId: "worker-4", action: AgentAction(type: .executeTask), order: 1),
+                AgentWorkflowStep(name: "Model Training", agentId: "coordinator-1", action: AgentAction(type: .executeTask), order: 2)
             ],
             executionState: .pending,
             priority: .normal
@@ -296,14 +293,14 @@ struct AgentWorkflow: Identifiable, Codable {
     ]
 }
 
-// MARK: - Workflow Step
-struct WorkflowStep: Identifiable, Codable {
+// MARK: - Agent Workflow Step
+struct AgentWorkflowStep: Identifiable, Codable {
     let id: String
     let name: String
     let agentId: String
     let action: AgentAction
     let order: Int
-    let status: WorkflowStepStatus
+    let status: AgentWorkflowStepStatus
     
     init(name: String, agentId: String, action: AgentAction, order: Int) {
         self.id = UUID().uuidString
@@ -315,17 +312,18 @@ struct WorkflowStep: Identifiable, Codable {
     }
 }
 
-// MARK: - Workflow Execution State
-enum WorkflowExecutionState: String, CaseIterable, Codable {
+// MARK: - Agent Workflow Execution State
+enum AgentWorkflowExecutionState: String, CaseIterable, Codable {
     case pending = "pending"
     case running = "running"
     case completed = "completed"
     case failed = "failed"
     case paused = "paused"
+    case cancelled = "cancelled"
 }
 
-// MARK: - Workflow Priority
-enum WorkflowPriority: String, CaseIterable, Codable {
+// MARK: - Agent Workflow Priority
+enum AgentWorkflowPriority: String, CaseIterable, Codable {
     case low = "low"
     case normal = "normal"
     case high = "high"
@@ -341,8 +339,8 @@ enum WorkflowPriority: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Workflow Step Status
-enum WorkflowStepStatus: String, CaseIterable, Codable {
+// MARK: - Agent Workflow Step Status
+enum AgentWorkflowStepStatus: String, CaseIterable, Codable {
     case pending = "pending"
     case running = "running"
     case completed = "completed"
@@ -381,12 +379,12 @@ struct ABMCTSNode: Identifiable, Codable {
     let ucbValue: Double
     let isExpanded: Bool
     let children: [ABMCTSNode]
-    let state: AgentState
+    let state: ABMCTSAgentState
     let action: AgentAction?
     
     init(id: String? = nil, depth: Int = 0, visits: Int = 1, averageReward: Double = 0.5, 
          confidence: Double = 0.8, ucbValue: Double = 0.6, isExpanded: Bool = false, 
-         children: [ABMCTSNode] = [], state: AgentState? = nil, action: AgentAction? = nil) {
+         children: [ABMCTSNode] = [], state: ABMCTSAgentState? = nil, action: AgentAction? = nil) {
         self.id = id ?? UUID().uuidString
         self.depth = depth
         self.visits = visits
@@ -395,7 +393,7 @@ struct ABMCTSNode: Identifiable, Codable {
         self.ucbValue = ucbValue
         self.isExpanded = isExpanded
         self.children = children
-        self.state = state ?? AgentState.sample
+        self.state = state ?? ABMCTSAgentState.sample
         self.action = action
     }
     
@@ -415,84 +413,23 @@ struct ABMCTSNode: Identifiable, Codable {
     )
 }
 
-// MARK: - Agent State
-struct AgentState: Codable {
+// MARK: - Agent State (ABMCTSAgentState to avoid conflict with AgentDataModels.AgentState)
+struct ABMCTSAgentState: Codable {
     let agentId: String
     let context: [String: String]
     
-    static let sample = AgentState(
+    static let sample = ABMCTSAgentState(
         agentId: "sample-agent",
         context: ["status": "active", "task": "processing", "workload": "medium"]
     )
 }
 
-// MARK: - Placeholder Types for Missing Components
-struct OrchestrationAgent: Identifiable, Codable {
-    let id: String
-    let name: String
-    let type: String
-    
-    init(id: String = UUID().uuidString, name: String, type: String) {
-        self.id = id
-        self.name = name
-        self.type = type
-    }
-}
+// Note: OrchestrationAgent is defined in AgentDataModels.swift to avoid conflicts
 
-// MARK: - Missing View Placeholders (these would be implemented elsewhere)
-struct ConnectionSettingsView: View {
-    let webSocketService: AgentWebSocketService
-    
-    var body: some View {
-        Text("Connection Settings")
-            .padding()
-    }
-}
-
-struct WorkflowCreatorView: View {
-    let webSocketService: AgentWebSocketService
-    
-    var body: some View {
-        Text("Workflow Creator")
-            .padding()
-    }
-}
-
-struct AgentConfiguratorView: View {
-    let agent: OrchestrationAgent
-    let webSocketService: AgentWebSocketService
-    
-    var body: some View {
-        Text("Agent Configurator")
-            .padding()
-    }
-}
-
-struct WorkflowManagementView: View {
-    let webSocketService: AgentWebSocketService
-    @Binding var selectedWorkflow: AgentWorkflow?
-    @Binding var showWorkflowCreator: Bool
-    
-    var body: some View {
-        Text("Workflow Management")
-            .padding()
-    }
-}
-
-struct PerformanceMonitoringView: View {
-    let webSocketService: AgentWebSocketService
-    
-    var body: some View {
-        Text("Performance Monitoring")
-            .padding()
-    }
-}
-
-struct SwarmCoordinationView: View {
-    let webSocketService: AgentWebSocketService
-    
-    var body: some View {
-        Text("Swarm Coordination")
-            .padding()
-    }
-}
+// Note: View implementations are located in their respective files in Views/Components/
+// - ConnectionSettingsView: Views/Components/ConnectionSettingsView.swift
+// - WorkflowCreatorView: Views/Components/WorkflowCreatorView.swift
+// - AgentConfiguratorView: Views/Components/AgentConfiguratorView.swift
+// - WorkflowManagementView: Views/Components/WorkflowManagementView.swift
+// - PerformanceMonitoringView: Views/Components/PerformanceMonitoringView.swift
+// - SwarmCoordinationView: Views/Components/SwarmCoordinationView.swift

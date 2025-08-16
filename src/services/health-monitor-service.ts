@@ -79,7 +79,7 @@ export class HealthMonitorService extends EventEmitter {
         { name: 'retriever', capabilities: ['information_retrieval', 'context_gathering', 'search'], trustLevel: 0.8 }
       ];
 
-      const a2aMesh = (await import('@/services/a2a-communication-mesh')).a2aMesh;
+      const {a2aMesh} = await import('@/services/a2a-communication-mesh');
       const existingConnections = a2aMesh.getAgentConnections();
       const registeredAgentNames = existingConnections.map(conn => conn.agentName);
 

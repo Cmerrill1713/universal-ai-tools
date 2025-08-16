@@ -22,17 +22,17 @@ class DashboardLayoutManager: ObservableObject {
     @Published var isDragActive: Bool = false
     @Published var draggedPanel: DashboardPanel?
     @Published var dropTarget: DropTarget?
-    @Published var gridConfiguration: GridConfiguration = GridConfiguration()
+    @Published var gridConfiguration = GridConfiguration()
     @Published var isFullScreenMode: Bool = false
     @Published var isPictureInPictureActive: Bool = false
     @Published var focusedPanel: DashboardPanel?
-    @Published var windowConfiguration: WindowConfiguration = WindowConfiguration()
+    @Published var windowConfiguration = WindowConfiguration()
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
     private var layoutProfiles: [String: DashboardLayout] = [:]
-    private var panelAnimator: PanelAnimator = PanelAnimator()
-    private var gridConstraints: GridConstraints = GridConstraints()
+    private var panelAnimator = PanelAnimator()
+    private var gridConstraints = GridConstraints()
     
     // MARK: - Initialization
     private init() {

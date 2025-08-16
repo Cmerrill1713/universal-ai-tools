@@ -6,6 +6,7 @@
  */
 
 import { EventEmitter } from 'events';
+
 import { log, LogContext } from '../../utils/logger';
 
 export interface GRPOState {

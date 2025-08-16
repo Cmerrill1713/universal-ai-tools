@@ -13,7 +13,6 @@ import { multiTierLLM } from '../multi-tier-llm-service';
 import { fitnessEvaluator } from './fitness-evaluator';
 import { populationManager } from './population-manager';
 import { qualityDiversityEngine } from './quality-diversity';
-import { DiversityStrategy, SelectionStrategy, TaskType } from './types';
 import type {
   Benchmark,
   EvolutionConfig,
@@ -21,7 +20,8 @@ import type {
   FitnessFunction,
   Individual,
   Population,
-  Task} from './types';
+  Task, TaskType } from './types';
+import { DiversityStrategy, SelectionStrategy } from './types';
 
 export interface EvolutionExperiment {
   id: string;

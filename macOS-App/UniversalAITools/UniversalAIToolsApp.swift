@@ -1,6 +1,7 @@
 import Combine
 import OSLog
 import SwiftUI
+import Foundation
 
 @main
 struct UniversalAIToolsApp: App {
@@ -8,6 +9,19 @@ struct UniversalAIToolsApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var apiService = APIService()
     @StateObject private var mcpService = MCPService()
+    @AppStorage("useArcUI") private var useArcUI = true
+    
+    // Core services - initialized in init to avoid compilation order issues
+    @StateObject private var loggingService: LoggingService
+    @StateObject private var monitoringService: MonitoringService  
+    @StateObject private var serviceContainer: ServiceContainer
+    
+    init() {
+        // Initialize services with proper StateObject wrapping
+        self._loggingService = StateObject(wrappedValue: LoggingService.shared)
+        self._monitoringService = StateObject(wrappedValue: MonitoringService.shared)
+        self._serviceContainer = StateObject(wrappedValue: ServiceContainer())
+    }
     
     // Debug mode detection
     private var isDebugMode: Bool {
@@ -23,15 +37,26 @@ struct UniversalAIToolsApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                ContentView()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-                    .environmentObject(mcpService)
-                    .frame(minWidth: 1200, minHeight: 800)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onAppear {
-                        setupApplication()
+                Group {
+                    if useArcUI {
+                        ArcContentView()
+                            .environmentObject(appState)
+                            .environmentObject(apiService)
+                    } else {
+                        ContentView()
+                            .environmentObject(appState)
+                            .environmentObject(apiService)
+                            .environmentObject(mcpService)
+                            .environmentObject(loggingService)
+                            .environmentObject(monitoringService)
+                            .environmentObject(serviceContainer)
                     }
+                }
+                .frame(minWidth: 1200, minHeight: 800)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onAppear {
+                    setupApplication()
+                }
                     .sheet(isPresented: .init(
                         get: { appState.showAboutWindow },
                         set: { appState.showAboutWindow = $0 }
@@ -45,9 +70,13 @@ struct UniversalAIToolsApp: App {
                     VStack {
                         HStack {
                             Spacer()
-                            DebugOverlay()
-                                .environmentObject(appState)
+                            // DebugOverlay() - Temporarily disabled for compilation
+                            // .environmentObject(appState)
+                            // .padding()
+                            Text("Debug Mode Active")
                                 .padding()
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(8)
                         }
                         Spacer()
                     }
@@ -74,6 +103,11 @@ struct UniversalAIToolsApp: App {
                     appState.showAgentSelector = true
                 }
                 .keyboardShortcut("t", modifiers: .command)
+                
+                Button("New Conversation") {
+                    appState.openConversationWindow()
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
             }
             CommandMenu("View") {
                 Button("Toggle Sidebar") {
@@ -89,7 +123,7 @@ struct UniversalAIToolsApp: App {
                 Divider()
 
                 Button("Show Web Dashboard") {
-                    appState.viewMode = .webView
+                    appState.viewMode = .web
                 }
                 Button("Show Native UI") {
                     appState.viewMode = .native
@@ -139,6 +173,19 @@ struct UniversalAIToolsApp: App {
                 .environmentObject(apiService)
                 .environmentObject(mcpService)
         }
+
+        // Conversation Window
+        WindowGroup("Conversation", id: "conversation", for: String.self) { _ in
+            ConversationView()
+                .environmentObject(appState)
+                .environmentObject(apiService)
+                .environmentObject(loggingService)
+                .environmentObject(monitoringService)
+                .environmentObject(serviceContainer)
+        }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified(showsTitle: true))
+        .defaultSize(width: 900, height: 700)
 
         // Agent Activity Window
         WindowGroup("Agent Activity", id: "agent-activity", for: String.self) { _ in

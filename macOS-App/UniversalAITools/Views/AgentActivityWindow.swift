@@ -193,14 +193,14 @@ struct AgentActivityCard: View {
                             .fontWeight(.medium)
                     }
 
-                    if let progress = agent.progress {
+                    if agent.progress > 0.0 {
                         HStack {
                         Text("Progress:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            ProgressView(value: progress)
+                            ProgressView(value: agent.progress)
                                 .frame(width: 100)
-                            Text(String(format: "%d%%", Int(progress * 100)))
+                            Text(String(format: "%d%%", Int(agent.progress * 100)))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -233,9 +233,11 @@ struct AgentActivityCard: View {
 
     private var statusColor: Color {
         switch agent.status {
+        case .idle: return .gray
         case .active: return .green
         case .busy: return .orange
         case .error: return .red
+        case .paused: return .yellow
         case .inactive: return .gray
         }
     }
@@ -252,7 +254,7 @@ struct TaskHistoryCard: View {
                 .font(.title2)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.task)
+                Text(item.name)
                     .font(.headline)
                     .fontWeight(.medium)
 
@@ -262,13 +264,13 @@ struct TaskHistoryCard: View {
                     .lineLimit(2)
 
                 HStack {
-                    Text(item.agentName)
+                    Text(item.agentId ?? "Unknown Agent")
                         .font(.caption)
                         .foregroundColor(.blue)
 
                     Spacer()
 
-                    Text(item.timestamp, style: .relative)
+                    Text(item.startTime, style: .relative)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

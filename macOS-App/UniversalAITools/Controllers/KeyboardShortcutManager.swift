@@ -11,11 +11,34 @@ import AppKit
 import Carbon
 import Combine
 
+// MARK: - Keyboard Event Modifiers
+struct KeyboardEventModifiers: OptionSet, Codable, Hashable {
+    let rawValue: UInt
+    
+    static let command = KeyboardEventModifiers(rawValue: 1 << 0)
+    static let shift = KeyboardEventModifiers(rawValue: 1 << 1)
+    static let option = KeyboardEventModifiers(rawValue: 1 << 2)
+    static let control = KeyboardEventModifiers(rawValue: 1 << 3)
+    
+    init(rawValue: UInt) {
+        self.rawValue = rawValue
+    }
+    
+    init(from modifierFlags: NSEvent.ModifierFlags) {
+        var rawValue: UInt = 0
+        if modifierFlags.contains(.command) { rawValue |= KeyboardEventModifiers.command.rawValue }
+        if modifierFlags.contains(.shift) { rawValue |= KeyboardEventModifiers.shift.rawValue }
+        if modifierFlags.contains(.option) { rawValue |= KeyboardEventModifiers.option.rawValue }
+        if modifierFlags.contains(.control) { rawValue |= KeyboardEventModifiers.control.rawValue }
+        self.rawValue = rawValue
+    }
+}
+
 // MARK: - Keyboard Shortcut Definition
 struct KeyboardShortcut: Identifiable, Codable, Hashable {
     let id = UUID()
     let key: String
-    let modifiers: EventModifiers
+    let modifiers: KeyboardEventModifiers
     let action: String
     let description: String
     let category: String
@@ -24,7 +47,7 @@ struct KeyboardShortcut: Identifiable, Codable, Hashable {
     let isGlobal: Bool
     let isCustomizable: Bool
     
-    init(key: String, modifiers: EventModifiers, action: String, description: String,
+    init(key: String, modifiers: KeyboardEventModifiers, action: String, description: String,
          category: String = "General", isChord: Bool = false, chordKeys: [String]? = nil,
          isGlobal: Bool = false, isCustomizable: Bool = true) {
         self.key = key
@@ -66,8 +89,8 @@ struct KeyboardShortcut: Identifiable, Codable, Hashable {
     }
 }
 
-// MARK: - Navigation Mode
-enum NavigationMode: String, CaseIterable {
+// MARK: - Keyboard Navigation Mode
+enum KeyboardNavigationMode: String, CaseIterable, Codable {
     case normal = "normal"
     case vi = "vi"
     case emacs = "emacs"
@@ -124,7 +147,7 @@ class KeyboardShortcutManager: ObservableObject {
     
     // MARK: - Published Properties
     @Published var shortcuts: [KeyboardShortcut] = []
-    @Published var navigationMode: NavigationMode = .normal
+    @Published var navigationMode: KeyboardNavigationMode = .normal
     @Published var isCommandPaletteVisible: Bool = false
     @Published var commandPaletteItems: [CommandPaletteItem] = []
     @Published var recentCommands: [CommandPaletteItem] = []
@@ -140,7 +163,7 @@ class KeyboardShortcutManager: ObservableObject {
     private var chordTimeout: Timer?
     private let chordTimeoutDuration: TimeInterval = 2.0
     private var currentContext: KeyboardContext?
-    private var viState: ViNavigationState = ViNavigationState()
+    private var viState = ViNavigationState()
     private var customizationManager: ShortcutCustomizationManager
     private var conflictResolver: ShortcutConflictResolver
     private var commandPaletteController: CommandPaletteController
@@ -324,7 +347,7 @@ class KeyboardShortcutManager: ObservableObject {
         }
     }
     
-    func setNavigationMode(_ mode: NavigationMode) {
+    func setNavigationMode(_ mode: KeyboardNavigationMode) {
         navigationMode = mode
         
         switch mode {
@@ -428,7 +451,7 @@ class KeyboardShortcutManager: ObservableObject {
     private func handleGlobalKeyEvent(_ event: NSEvent) {
         // Handle global shortcuts
         let keyCode = event.keyCode
-        let modifiers = EventModifiers(rawValue: event.modifierFlags.rawValue)
+        let modifiers = KeyboardEventModifiers(from: event.modifierFlags)
         let key = keyStringFromKeyCode(keyCode)
         
         for shortcut in shortcuts where shortcut.isGlobal {
@@ -441,7 +464,7 @@ class KeyboardShortcutManager: ObservableObject {
     
     private func handleNormalModeEvent(_ event: NSEvent) -> NSEvent? {
         let keyCode = event.keyCode
-        let modifiers = EventModifiers(rawValue: event.modifierFlags.rawValue)
+        let modifiers = KeyboardEventModifiers(from: event.modifierFlags)
         let key = keyStringFromKeyCode(keyCode)
         
         // Check for chord sequences
@@ -470,7 +493,7 @@ class KeyboardShortcutManager: ObservableObject {
               context.canNavigate else { return event }
         
         let key = keyStringFromKeyCode(event.keyCode)
-        let modifiers = EventModifiers(rawValue: event.modifierFlags.rawValue)
+        let modifiers = KeyboardEventModifiers(from: event.modifierFlags)
         
         // Let Vi state handler process the event
         if viState.handleKeyEvent(key, modifiers: modifiers) {
@@ -484,7 +507,7 @@ class KeyboardShortcutManager: ObservableObject {
     private func handleEmacsModeEvent(_ event: NSEvent) -> NSEvent? {
         // Implement Emacs-style key bindings
         let key = keyStringFromKeyCode(event.keyCode)
-        let modifiers = EventModifiers(rawValue: event.modifierFlags.rawValue)
+        let modifiers = KeyboardEventModifiers(from: event.modifierFlags)
         
         // Handle Emacs-specific sequences (C-x, M-x, etc.)
         if modifiers.contains(.control) {
@@ -531,7 +554,7 @@ class KeyboardShortcutManager: ObservableObject {
         showChordHints(for: shortcut)
     }
     
-    private func handleChordSequence(_ key: String, modifiers: EventModifiers, event: NSEvent) -> NSEvent? {
+    private func handleChordSequence(_ key: String, modifiers: KeyboardEventModifiers, event: NSEvent) -> NSEvent? {
         currentChordSequence.append(key.lowercased())
         
         // Find matching chord shortcut
@@ -870,7 +893,7 @@ class ViNavigationState {
         self.context = context
     }
     
-    func handleKeyEvent(_ key: String, modifiers: EventModifiers) -> Bool {
+    func handleKeyEvent(_ key: String, modifiers: KeyboardEventModifiers) -> Bool {
         switch mode {
         case .normal:
             return handleNormalModeKey(key, modifiers: modifiers)
@@ -883,7 +906,7 @@ class ViNavigationState {
         }
     }
     
-    private func handleNormalModeKey(_ key: String, modifiers: EventModifiers) -> Bool {
+    private func handleNormalModeKey(_ key: String, modifiers: KeyboardEventModifiers) -> Bool {
         switch key.lowercased() {
         case "h":
             NotificationCenter.default.post(name: .moveLeft, object: nil)
@@ -918,7 +941,7 @@ class ViNavigationState {
         }
     }
     
-    private func handleInsertModeKey(_ key: String, modifiers: EventModifiers) -> Bool {
+    private func handleInsertModeKey(_ key: String, modifiers: KeyboardEventModifiers) -> Bool {
         if key.lowercased() == "escape" {
             mode = .normal
             return true
@@ -926,7 +949,7 @@ class ViNavigationState {
         return false
     }
     
-    private func handleVisualModeKey(_ key: String, modifiers: EventModifiers) -> Bool {
+    private func handleVisualModeKey(_ key: String, modifiers: KeyboardEventModifiers) -> Bool {
         if key.lowercased() == "escape" {
             mode = .normal
             return true
@@ -935,7 +958,7 @@ class ViNavigationState {
         return handleNormalModeKey(key, modifiers: modifiers)
     }
     
-    private func handleCommandModeKey(_ key: String, modifiers: EventModifiers) -> Bool {
+    private func handleCommandModeKey(_ key: String, modifiers: KeyboardEventModifiers) -> Bool {
         if key.lowercased() == "escape" || key.lowercased() == "return" {
             mode = .normal
             return true

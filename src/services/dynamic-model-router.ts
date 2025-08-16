@@ -4,6 +4,8 @@
  * Learns from performance and adapts over time
  */
 
+import { toolTrainCodeSearchAgent } from '@/agents/specialized/tooltrain-code-search-agent';
+import type { AgentContext } from '@/types';
 import { log, LogContext } from '@/utils/logger';
 
 import type { 
@@ -20,6 +22,12 @@ export interface RoutingDecision {
   reasoning: string;
   estimatedLatency: number;
   confidence: number;
+  specializedAgent?: {
+    name: string;
+    type: 'code-search' | 'tooltrain-enhanced';
+    confidence: number;
+    reasoning: string;
+  };
 }
 
 export interface PerformanceMetrics {
@@ -47,6 +55,27 @@ export class DynamicModelRouter {
   private routingWeights: Map<string, number> = new Map();
   private maxHistoryPerModel = 100;
   private learningRate = 0.1;
+  
+  // ToolTrain-inspired code search routing
+  private codeSearchPatterns: RegExp[] = [
+    /find\s+(function|class|method|variable|import)/i,
+    /search\s+(for\s+)?(code|function|class|method)/i,
+    /locate\s+(the\s+)?(function|class|method|variable)/i,
+    /where\s+(is\s+)?(function|class|method|variable|import)/i,
+    /show\s+(me\s+)?(all\s+)?(usages?|references?)\s+of/i,
+    /trace\s+(imports?|dependencies?|calls?)/i,
+    /analyze\s+(function|class|method|code)/i,
+    /understand\s+(how|what|why).*?(function|class|method)/i,
+    /explain\s+(this\s+)?(function|class|method|code)/i,
+    /debug\s+(this\s+)?(function|class|method|code)/i,
+  ];
+  
+  private codeSearchKeywords = [
+    'repository', 'codebase', 'source code', 'git', 'github',
+    'function definition', 'class definition', 'method signature',
+    'import statement', 'dependency', 'call chain', 'inheritance',
+    'implementation', 'refactor', 'bug', 'error', 'stack trace'
+  ];
 
   constructor() {
     this.loadPerformanceHistory();
@@ -65,6 +94,186 @@ export class DynamicModelRouter {
       minQuality?: number;
       requiredCapabilities?: string[];
     }
+  ): Promise<RoutingDecision> {
+    // ToolTrain-inspired code search detection
+    const codeSearchAnalysis = this.analyzeCodeSearchIntent(taskType, prompt);
+    
+    if (codeSearchAnalysis.isCodeSearch && codeSearchAnalysis.confidence > 0.7) {
+      log.info('🔍 Code search detected - routing to ToolTrain agent', LogContext.AI, {
+        confidence: codeSearchAnalysis.confidence,
+        patterns: codeSearchAnalysis.matchedPatterns,
+        keywords: codeSearchAnalysis.matchedKeywords,
+      });
+      
+      // Create specialized routing decision for code search
+      return this.createCodeSearchRoutingDecision(taskType, prompt, codeSearchAnalysis, options);
+    }
+
+    // Fall back to regular model routing
+    const decision = await this.routeRegularTask(taskType, prompt, options);
+
+    log.info('🎯 Routing decision made', LogContext.AI, {
+      taskType,
+      primary: `${decision.primary.provider}:${decision.primary.name}`,
+      fallbackCount: decision.fallbacks.length,
+      confidence: decision.confidence,
+      estimatedLatency: decision.estimatedLatency,
+    });
+
+    return decision;
+  }
+
+  /**
+   * Analyze if the request is a code search task inspired by ToolTrain
+   */
+  private analyzeCodeSearchIntent(taskType: string, prompt: string): {
+    isCodeSearch: boolean;
+    confidence: number;
+    matchedPatterns: string[];
+    matchedKeywords: string[];
+    reasoning: string;
+  } {
+    const promptLower = prompt.toLowerCase();
+    const taskTypeLower = taskType.toLowerCase();
+    let confidence = 0;
+    const matchedPatterns: string[] = [];
+    const matchedKeywords: string[] = [];
+
+    // Check task type indicators
+    if (taskTypeLower.includes('code') || taskTypeLower.includes('search') || 
+        taskTypeLower.includes('find') || taskTypeLower.includes('repository')) {
+      confidence += 0.2;
+    }
+
+    // Check regex patterns
+    for (const pattern of this.codeSearchPatterns) {
+      if (pattern.test(prompt)) {
+        confidence += 0.15;
+        matchedPatterns.push(pattern.source);
+      }
+    }
+
+    // Check keywords
+    for (const keyword of this.codeSearchKeywords) {
+      if (promptLower.includes(keyword.toLowerCase())) {
+        confidence += 0.1;
+        matchedKeywords.push(keyword);
+      }
+    }
+
+    // Additional context clues
+    const codeIndicators = [
+      'function', 'class', 'method', 'variable', 'import', 'export',
+      'interface', 'type', 'const', 'let', 'var', 'async', 'await',
+      'return', 'throw', 'catch', 'try', 'extends', 'implements'
+    ];
+
+    let codeIndicatorCount = 0;
+    for (const indicator of codeIndicators) {
+      if (promptLower.includes(indicator)) {
+        codeIndicatorCount++;
+      }
+    }
+
+    if (codeIndicatorCount >= 2) {
+      confidence += 0.2;
+    } else if (codeIndicatorCount >= 1) {
+      confidence += 0.1;
+    }
+
+    // File extension context
+    const fileExtensions = ['.ts', '.js', '.py', '.java', '.cpp', '.c', '.go', '.rs', '.swift'];
+    for (const ext of fileExtensions) {
+      if (prompt.includes(ext)) {
+        confidence += 0.1;
+        break;
+      }
+    }
+
+    // Repository navigation patterns
+    const navPatterns = [
+      'where is', 'find file', 'in the codebase', 'project structure',
+      'source tree', 'module structure', 'package structure'
+    ];
+    for (const pattern of navPatterns) {
+      if (promptLower.includes(pattern)) {
+        confidence += 0.15;
+        break;
+      }
+    }
+
+    const isCodeSearch = confidence > 0.5; // Threshold for considering it a code search
+    confidence = Math.min(1.0, confidence); // Cap at 1.0
+
+    let reasoning = '';
+    if (isCodeSearch) {
+      reasoning = `Detected code search task with ${confidence.toFixed(2)} confidence. `;
+      if (matchedPatterns.length > 0) {
+        reasoning += `Matched patterns: ${matchedPatterns.length}. `;
+      }
+      if (matchedKeywords.length > 0) {
+        reasoning += `Found keywords: ${matchedKeywords.slice(0, 3).join(', ')}. `;
+      }
+      reasoning += `Code indicators: ${codeIndicatorCount}.`;
+    } else {
+      reasoning = `Low confidence (${confidence.toFixed(2)}) for code search classification.`;
+    }
+
+    return {
+      isCodeSearch,
+      confidence,
+      matchedPatterns,
+      matchedKeywords,
+      reasoning,
+    };
+  }
+
+  /**
+   * Create specialized routing decision for code search tasks
+   */
+  private async createCodeSearchRoutingDecision(
+    taskType: string,
+    prompt: string,
+    codeSearchAnalysis: any,
+    options?: any
+  ): Promise<RoutingDecision> {
+    // Get regular model routing as fallback
+    const regularDecision = await this.routeRegularTask(taskType, prompt, options);
+
+    // Create specialized agent routing
+    const specializedAgent = {
+      name: 'tooltrain-code-search-agent',
+      type: 'code-search' as const,
+      confidence: codeSearchAnalysis.confidence,
+      reasoning: `ToolTrain-inspired code search agent selected. ${codeSearchAnalysis.reasoning}`,
+    };
+
+    // Enhanced routing decision with specialized agent
+    const decision: RoutingDecision = {
+      ...regularDecision,
+      specializedAgent,
+      reasoning: `Code search detected - routing to ToolTrain agent (${(codeSearchAnalysis.confidence * 100).toFixed(1)}% confidence). Fallback: ${regularDecision.reasoning}`,
+      estimatedLatency: regularDecision.estimatedLatency * 0.8, // ToolTrain agent may be faster for code search
+      confidence: Math.max(regularDecision.confidence, codeSearchAnalysis.confidence),
+    };
+
+    log.info('🎯 Code search routing decision created', LogContext.AI, {
+      agentType: 'tooltrain-code-search',
+      confidence: codeSearchAnalysis.confidence,
+      fallbackModel: `${regularDecision.primary.provider}:${regularDecision.primary.name}`,
+      estimatedLatency: decision.estimatedLatency,
+    });
+
+    return decision;
+  }
+
+  /**
+   * Route task through regular model selection (extracted from original route method)
+   */
+  private async routeRegularTask(
+    taskType: string,
+    prompt: string,
+    options?: any
   ): Promise<RoutingDecision> {
     // Build task requirements from inputs
     const requirements: TaskRequirements = {
@@ -109,14 +318,6 @@ export class DynamicModelRouter {
       estimatedLatency: primaryScore.estimatedLatency,
       confidence: this.calculateConfidence(scores),
     };
-
-    log.info('🎯 Routing decision made', LogContext.AI, {
-      taskType,
-      primary: `${primary.provider}:${primary.name}`,
-      fallbackCount: fallbacks.length,
-      confidence: decision.confidence,
-      estimatedLatency: decision.estimatedLatency,
-    });
 
     return decision;
   }
@@ -530,6 +731,221 @@ export class DynamicModelRouter {
         });
       }
     }
+  }
+
+  /**
+   * Execute ToolTrain code search agent directly
+   */
+  public async executeCodeSearchAgent(
+    prompt: string,
+    context?: any
+  ): Promise<{
+    success: boolean;
+    response: any;
+    metrics: {
+      executionTime: number;
+      toolsUsed: number;
+      searchDepth: number;
+      confidence: number;
+    };
+  }> {
+    const startTime = Date.now();
+    
+    try {
+      const agentContext = {
+        input: prompt,
+        metadata: {
+          source: 'dynamic-router',
+          codeSearchTask: true,
+          ...context,
+        },
+      };
+
+      const agent = new toolTrainCodeSearchAgent({
+        name: 'ToolTrain Code Search Agent',
+        description: 'Specialized code search and repository navigation agent',
+        priority: 1,
+        capabilities: [],
+        maxLatencyMs: 30000,
+        retryAttempts: 3,
+        dependencies: []
+      });
+
+      const agentContextFixed: AgentContext = {
+        userRequest: agentContext.input,
+        requestId: `code-search-${Date.now()}`,
+        metadata: agentContext.metadata
+      };
+
+      const response = await agent.execute(agentContextFixed);
+      
+      const executionTime = Date.now() - startTime;
+      
+      // Track performance for the ToolTrain agent
+      await this.trackCodeSearchAgentPerformance({
+        prompt,
+        response,
+        executionTime,
+        success: response.success,
+      });
+
+      return {
+        success: response.success,
+        response: response.data,
+        metrics: {
+          executionTime,
+          toolsUsed: (response.metadata?.toolsUsed as number) || 0,
+          searchDepth: (response.metadata?.searchDepth as number) || 0,
+          confidence: response.confidence || 0.8,
+        },
+      };
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      
+      log.error('ToolTrain code search agent execution failed', LogContext.AI, {
+        prompt: prompt.substring(0, 100),
+        error: error instanceof Error ? error.message : String(error),
+        executionTime,
+      });
+
+      // Track failure
+      await this.trackCodeSearchAgentPerformance({
+        prompt,
+        response: null,
+        executionTime,
+        success: false,
+      });
+
+      return {
+        success: false,
+        response: null,
+        metrics: {
+          executionTime,
+          toolsUsed: 0,
+          searchDepth: 0,
+          confidence: 0,
+        },
+      };
+    }
+  }
+
+  /**
+   * Track ToolTrain code search agent performance
+   */
+  private async trackCodeSearchAgentPerformance(data: {
+    prompt: string;
+    response: any;
+    executionTime: number;
+    success: boolean;
+  }): Promise<void> {
+    const agentKey = 'tooltrain:code-search-agent';
+    
+    // Create synthetic model for tracking
+    const syntheticModel: DiscoveredModel = {
+      id: 'code-search-agent',
+      name: 'ToolTrain Code Search Agent',
+      provider: 'local',
+      capabilities: ['code_generation', 'debugging', 'reasoning', 'tool_usage', 'repository_navigation'],
+      tier: 3,
+      estimatedSpeed: 'fast',
+      metadata: {
+        quantization: 'specialized',
+        family: 'code-search'
+      },
+    };
+
+    // Calculate quality based on response structure and content
+    let quality = 0.7; // Base quality
+    if (data.success && data.response) {
+      if (data.response.paths && data.response.paths.length > 0) {
+        quality += 0.2;
+      }
+      if (data.response.confidence && data.response.confidence > 0.8) {
+        quality += 0.1;
+      }
+    }
+
+    await this.trackPerformance(syntheticModel, 'code-search', {
+      latencyMs: data.executionTime,
+      tokensGenerated: data.response?.metadata?.tokensGenerated || 100,
+      success: data.success,
+      quality: Math.min(1.0, quality),
+    });
+  }
+
+  /**
+   * Get code search routing statistics
+   */
+  public getCodeSearchStats(): {
+    totalCodeSearchRequests: number;
+    codeSearchSuccessRate: number;
+    avgCodeSearchLatency: number;
+    popularPatterns: Array<{ pattern: string; count: number }>;
+    popularKeywords: Array<{ keyword: string; count: number }>;
+  } {
+    const agentKey = 'tooltrain:code-search-agent';
+    const performance = this.modelPerformance.get(agentKey);
+    
+    // In a real implementation, we'd track pattern/keyword usage
+    // For now, return mock data based on our patterns
+    const popularPatterns = this.codeSearchPatterns.slice(0, 5).map((pattern, index) => ({
+      pattern: pattern.source,
+      count: 10 - index * 2,
+    }));
+
+    const popularKeywords = this.codeSearchKeywords.slice(0, 5).map((keyword, index) => ({
+      keyword,
+      count: 8 - index,
+    }));
+
+    return {
+      totalCodeSearchRequests: performance?.sampleCount || 0,
+      codeSearchSuccessRate: performance?.successRate || 0,
+      avgCodeSearchLatency: performance?.avgLatency || 0,
+      popularPatterns,
+      popularKeywords,
+    };
+  }
+
+  /**
+   * Update code search patterns based on usage data
+   */
+  public updateCodeSearchPatterns(
+    newPatterns: string[],
+    newKeywords: string[]
+  ): void {
+    // Add new patterns (validate regex first)
+    for (const pattern of newPatterns) {
+      try {
+        const regex = new RegExp(pattern, 'i');
+        if (!this.codeSearchPatterns.some(p => p.source === pattern)) {
+          this.codeSearchPatterns.push(regex);
+        }
+      } catch (error) {
+        log.warn('Invalid regex pattern provided', LogContext.AI, { pattern });
+      }
+    }
+
+    // Add new keywords
+    for (const keyword of newKeywords) {
+      if (!this.codeSearchKeywords.includes(keyword)) {
+        this.codeSearchKeywords.push(keyword);
+      }
+    }
+
+    // Keep only the most recent patterns (prevent unbounded growth)
+    if (this.codeSearchPatterns.length > 50) {
+      this.codeSearchPatterns = this.codeSearchPatterns.slice(-40);
+    }
+
+    if (this.codeSearchKeywords.length > 100) {
+      this.codeSearchKeywords = this.codeSearchKeywords.slice(-80);
+    }
+
+    log.info('Code search patterns updated', LogContext.AI, {
+      totalPatterns: this.codeSearchPatterns.length,
+      totalKeywords: this.codeSearchKeywords.length,
+    });
   }
 
   /**

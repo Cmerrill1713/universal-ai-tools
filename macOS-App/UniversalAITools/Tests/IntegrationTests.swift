@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 
 class IntegrationTests: UniversalAIToolsTestSuite {
@@ -26,10 +27,10 @@ class IntegrationTests: UniversalAIToolsTestSuite {
     func testStatePersistence() {
         appState.darkMode = true
         appState.sidebarVisible = false
-        appState.viewMode = .webView
+        appState.viewMode = .web
         XCTAssertTrue(appState.darkMode)
         XCTAssertFalse(appState.sidebarVisible)
-        XCTAssertEqual(appState.viewMode, .webView)
+        XCTAssertEqual(appState.viewMode, .web)
     }
 }
 

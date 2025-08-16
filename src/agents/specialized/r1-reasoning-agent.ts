@@ -281,7 +281,7 @@ Be thorough, self-reflective, and continuously improve response quality through 
   ): Promise<R1ReasoningStep> {
     const stepStart = Date.now();
 
-    let stepPrompt = this.buildStepPrompt(stepType, stepNumber, userRequest, previousSteps);
+    const stepPrompt = this.buildStepPrompt(stepType, stepNumber, userRequest, previousSteps);
     
     try {
       // Get response from LLM for this reasoning step
@@ -456,7 +456,7 @@ Provide your refined response:`;
       };
     }
 
-    let content = typeof llmResponse === 'string' ? llmResponse : String(llmResponse);
+    const content = typeof llmResponse === 'string' ? llmResponse : String(llmResponse);
     
     // Extract confidence if mentioned in response
     let confidence = 0.7; // Default confidence

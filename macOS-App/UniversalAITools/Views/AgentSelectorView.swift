@@ -11,7 +11,7 @@ struct AgentSelectorView: View {
         if searchText.isEmpty { return appState.availableAgents }
         return appState.availableAgents.filter { agent in
             agent.name.localizedCaseInsensitiveContains(searchText) ||
-            agent.type.localizedCaseInsensitiveContains(searchText) ||
+            agent.type.displayName.localizedCaseInsensitiveContains(searchText) ||
             agent.description.localizedCaseInsensitiveContains(searchText)
         }
     }
@@ -40,7 +40,7 @@ struct AgentSelectorView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(agent.name)
                             .font(.subheadline)
-                        Text(agent.type)
+                        Text(agent.type.displayName)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -48,7 +48,7 @@ struct AgentSelectorView: View {
                     Button("Activate") {
                         Task {
                             do {
-                                try await apiService.activateAgent(id: agent.id)
+                                try await apiService.activateAgent(id: agent.id.uuidString)
                                 await MainActor.run { appState.activateAgent(agent) }
                             } catch {
                                 await MainActor.run {

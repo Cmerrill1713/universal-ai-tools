@@ -599,33 +599,7 @@ class DataSynchronizationService: ObservableObject {
 }
 
 // MARK: - Supporting Types
-enum SyncStatus: String, CaseIterable {
-    case idle = "idle"
-    case syncing = "syncing"
-    case synced = "synced"
-    case error = "error"
-    case paused = "paused"
-    
-    var color: Color {
-        switch self {
-        case .idle: return .gray
-        case .syncing: return .blue
-        case .synced: return .green
-        case .error: return .red
-        case .paused: return .orange
-        }
-    }
-    
-    var icon: String {
-        switch self {
-        case .idle: return "pause.circle"
-        case .syncing: return "arrow.triangle.2.circlepath"
-        case .synced: return "checkmark.circle"
-        case .error: return "xmark.circle"
-        case .paused: return "pause.circle.fill"
-        }
-    }
-}
+// Note: SyncStatus is now defined in SharedTypes.swift to avoid duplication
 
 enum SyncPriority: String, CaseIterable {
     case urgent = "urgent"

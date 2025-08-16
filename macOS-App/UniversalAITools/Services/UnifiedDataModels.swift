@@ -2,6 +2,69 @@ import Foundation
 import Combine
 import SwiftUI
 
+// MARK: - Service Container for Lazy Initialization
+@MainActor
+class ServiceContainer: ObservableObject {
+    private var _conversationAnalytics: ConversationAnalytics?
+    private var _conversationManager: ConversationManager?
+    private var _agentService: AgentConversationService?
+    private var _voiceInterface: EnhancedVoiceInterface?
+    private var _conversationIntegration: ConversationMonitoringIntegration?
+    
+    // Lazy getters that initialize services only when needed
+    func conversationAnalytics() -> ConversationAnalytics {
+        if _conversationAnalytics == nil {
+            _conversationAnalytics = ConversationAnalytics(
+                loggingService: LoggingService.shared,
+                monitoringService: MonitoringService.shared
+            )
+        }
+        return _conversationAnalytics!
+    }
+    
+    func conversationManager() -> ConversationManager {
+        if _conversationManager == nil {
+            _conversationManager = ConversationManager(
+                apiService: APIService.shared,
+                loggingService: LoggingService.shared,
+                monitoringService: MonitoringService.shared
+            )
+        }
+        return _conversationManager!
+    }
+    
+    func agentService() -> AgentConversationService {
+        if _agentService == nil {
+            _agentService = AgentConversationService(
+                apiService: APIService.shared,
+                loggingService: LoggingService.shared,
+                monitoringService: MonitoringService.shared
+            )
+        }
+        return _agentService!
+    }
+    
+    func voiceInterface() -> EnhancedVoiceInterface {
+        if _voiceInterface == nil {
+            _voiceInterface = EnhancedVoiceInterface(
+                conversationManager: conversationManager(),
+                agentService: agentService(),
+                loggingService: LoggingService.shared
+            )
+        }
+        return _voiceInterface!
+    }
+    
+    func conversationIntegration() -> ConversationMonitoringIntegration {
+        if _conversationIntegration == nil {
+            _conversationIntegration = ConversationMonitoringIntegration(
+                conversationAnalytics: conversationAnalytics()
+            )
+        }
+        return _conversationIntegration!
+    }
+}
+
 // MARK: - Real-Time Data Protocol
 protocol RealTimeUpdatable: ObservableObject {
     var lastUpdated: Date { get set }
@@ -335,11 +398,11 @@ struct AgentContextData: Codable {
 
 // MARK: - Analytics Context Data
 struct AnalyticsContextData: Codable {
-    let performance: PerformanceMetrics
+    let performance: UnifiedPerformanceMetrics
     let usage: UsageMetrics
     let insights: AnalyticsInsights
     
-    struct PerformanceMetrics: Codable {
+    struct UnifiedPerformanceMetrics: Codable {
         let historical: [HistoricalDataPoint]
         let realTime: RealTimeMetrics
         let predictions: [PredictionDataPoint]
@@ -545,7 +608,7 @@ struct AnalyticsContextData: Codable {
         }
     }
     
-    init(performance: PerformanceMetrics = PerformanceMetrics(), usage: UsageMetrics = UsageMetrics(), insights: AnalyticsInsights = AnalyticsInsights()) {
+    init(performance: UnifiedPerformanceMetrics = UnifiedPerformanceMetrics(), usage: UsageMetrics = UsageMetrics(), insights: AnalyticsInsights = AnalyticsInsights()) {
         self.performance = performance
         self.usage = usage
         self.insights = insights
@@ -636,7 +699,7 @@ struct DataTransformationUtils {
         }
     }
     
-    static func extractChartData(from metrics: AnalyticsContextData.PerformanceMetrics) -> ChartData {
+    static func extractChartData(from metrics: AnalyticsContextData.UnifiedPerformanceMetrics) -> ChartData {
         let cpuData = metrics.historical.map { ChartDataPoint(x: $0.timestamp.timeIntervalSince1970, y: $0.cpu) }
         let memoryData = metrics.historical.map { ChartDataPoint(x: $0.timestamp.timeIntervalSince1970, y: $0.memory) }
         let throughputData = metrics.historical.map { ChartDataPoint(x: $0.timestamp.timeIntervalSince1970, y: $0.throughput) }

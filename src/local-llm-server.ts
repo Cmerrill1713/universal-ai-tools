@@ -4,8 +4,8 @@
  * Runs on port 3456 by default, no authentication required for local access
  */
 
-import express from 'express';
 import cors from 'cors';
+import express from 'express';
 import { createServer } from 'http';
 
 import localLLMRouter from './routers/local-llm';
@@ -257,8 +257,8 @@ Example:
 }
 
 // Start server if run directly
-import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

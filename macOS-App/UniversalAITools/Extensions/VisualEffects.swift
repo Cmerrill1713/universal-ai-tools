@@ -163,60 +163,7 @@ struct LiquidGlass: ViewModifier {
     }
 }
 
-// MARK: - Animated Gradient Background
-struct AnimatedGradientBackground: View {
-    @State private var animateGradient = false
-    @State private var animationTask: Task<Void, Never>?
-    @State private var isVisible = true
-
-    var body: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.1, green: 0.15, blue: 0.25),
-                Color(red: 0.25, green: 0.15, blue: 0.1),
-                Color(red: 0.15, green: 0.25, blue: 0.35)
-            ],
-            startPoint: animateGradient ? .topLeading : .bottomLeading,
-            endPoint: animateGradient ? .bottomTrailing : .topTrailing
-        )
-        .ignoresSafeArea()
-        .onAppear {
-            startAnimation()
-        }
-        .onDisappear {
-            stopAnimation()
-        }
-        .onChange(of: isVisible) { visible in
-            if visible {
-                startAnimation()
-            } else {
-                stopAnimation()
-            }
-        }
-    }
-
-    private func startAnimation() {
-        stopAnimation() // Ensure no duplicate animations
-
-        animationTask = Task { @MainActor in
-            while !Task.isCancelled {
-                withAnimation(.easeInOut(duration: 8)) {
-                    animateGradient.toggle()
-                }
-                try? await Task.sleep(nanoseconds: 8_000_000_000) // 8 seconds
-            }
-            // Reset gradient state when cancelled
-            animateGradient = false
-        }
-    }
-
-    private func stopAnimation() {
-        animationTask?.cancel()
-        animationTask = nil
-        // Reset animation state to prevent memory leaks
-        animateGradient = false
-    }
-}
+// AnimatedGradientBackground is defined in Utils/AppTheme.swift
 
 // MARK: - Mesh Gradient (for macOS 15.0+)
 struct MeshGradient: View {

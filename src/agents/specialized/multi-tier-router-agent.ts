@@ -726,7 +726,7 @@ Focus on optimal resource utilization while maintaining quality standards.`;
     const recommendations: string[] = [];
     let routingAccuracy = 0;
     let performanceGain = 0;
-    let costSavings = 0;
+    const costSavings = 0;
 
     // Calculate routing accuracy
     const recentDecisions = this.routingHistory.slice(-20);

@@ -6,10 +6,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
-import { metricsCollectionService } from '@/services/monitoring/metrics-collection-service';
+import { authenticate, requireAdmin } from '@/middleware/auth';
+import { healthMonitor } from '@/services/health-monitor';
 import { distributedTracingService } from '@/services/monitoring/distributed-tracing-service';
 import { enhancedLoggingService } from '@/services/monitoring/enhanced-logging-service';
-import { healthMonitor } from '@/services/health-monitor';
+import { metricsCollectionService } from '@/services/monitoring/metrics-collection-service';
 import { log, LogContext } from '@/utils/logger';
 
 const router = Router();
@@ -33,7 +34,7 @@ const logFilterSchema = z.object({
 /**
  * Get comprehensive system overview
  */
-router.get('/overview', async (req, res) => {
+router.get('/overview', authenticate, requireAdmin, async (req, res) => {
   try {
     const overview = {
       timestamp: new Date().toISOString(),
@@ -88,7 +89,7 @@ router.get('/overview', async (req, res) => {
 /**
  * Get real-time system metrics
  */
-router.get('/metrics/realtime', (req, res) => {
+router.get('/metrics/realtime', authenticate, requireAdmin, (req, res) => {
   try {
     const metrics = {
       timestamp: new Date().toISOString(),
@@ -115,7 +116,7 @@ router.get('/metrics/realtime', (req, res) => {
 /**
  * Get historical metrics data
  */
-router.get('/metrics/history', (req, res) => {
+router.get('/metrics/history', authenticate, requireAdmin, (req, res) => {
   try {
     const { hours = 24, resolution = 'hourly' } = req.query;
     const hoursNum = parseInt(hours as string);
@@ -154,7 +155,7 @@ router.get('/metrics/history', (req, res) => {
 /**
  * Get distributed tracing data
  */
-router.get('/traces', (req, res) => {
+router.get('/traces', authenticate, requireAdmin, (req, res) => {
   try {
     const { limit = 50, status, minDuration } = req.query;
     const limitNum = parseInt(limit as string);
@@ -225,14 +226,14 @@ router.get('/traces/:traceId', (req, res) => {
       operations: [...new Set(trace.map(s => s.operationName))]
     };
 
-    res.json({
+    return res.json({
       success: true,
       data: traceData
     });
 
   } catch (error) {
     log.error('Failed to get trace details', LogContext.API, { error });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get trace details'
     });
@@ -311,7 +312,7 @@ router.get('/traces/errors', (req, res) => {
 /**
  * Search and filter logs
  */
-router.get('/logs', (req, res) => {
+router.get('/logs', authenticate, requireAdmin, (req, res) => {
   try {
     const validation = logFilterSchema.safeParse(req.query);
     if (!validation.success) {
@@ -325,7 +326,7 @@ router.get('/logs', (req, res) => {
     const { limit, ...filter } = validation.data;
     const logs = enhancedLoggingService.queryLogs(filter, limit);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         logs,
@@ -337,7 +338,7 @@ router.get('/logs', (req, res) => {
 
   } catch (error) {
     log.error('Failed to search logs', LogContext.API, { error });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to search logs'
     });
@@ -365,14 +366,14 @@ router.get('/logs/analytics', (req, res) => {
 
     const analytics = enhancedLoggingService.getLogAggregation(timeRange);
 
-    res.json({
+    return res.json({
       success: true,
       data: analytics
     });
 
   } catch (error) {
     log.error('Failed to get log analytics', LogContext.API, { error });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to get log analytics'
     });
@@ -410,11 +411,11 @@ router.get('/logs/export', (req, res) => {
 
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(exportData);
+    return res.send(exportData);
 
   } catch (error) {
     log.error('Failed to export logs', LogContext.API, { error });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to export logs'
     });
@@ -491,7 +492,7 @@ router.get('/metrics/endpoints', (req, res) => {
 /**
  * Get Prometheus-compatible metrics
  */
-router.get('/metrics/prometheus', (req, res) => {
+router.get('/metrics/prometheus', authenticate, requireAdmin, (req, res) => {
   try {
     const prometheusData = metricsCollectionService.toPrometheusFormat();
     
@@ -541,7 +542,7 @@ router.get('/stream', (req, res) => {
     message: 'Connected to monitoring stream'
   })}\n\n`);
 
-  // Set up metric streaming
+  // Set up metric streaming with reduced frequency to save memory
   const interval = setInterval(() => {
     try {
       const data = {
@@ -556,8 +557,11 @@ router.get('/stream', (req, res) => {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (error) {
       log.error('Error in monitoring stream', LogContext.API, { error });
+      // Clean up on persistent errors
+      clearInterval(interval);
+      res.end();
     }
-  }, 5000); // Update every 5 seconds
+  }, 15000); // Reduced frequency to every 15 seconds
 
   // Clean up on client disconnect
   req.on('close', () => {
@@ -600,14 +604,14 @@ router.post('/metrics/custom', (req, res) => {
       timestamp: new Date()
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Custom metric recorded'
     });
 
   } catch (error) {
     log.error('Failed to create custom metric', LogContext.API, { error });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to create custom metric'
     });

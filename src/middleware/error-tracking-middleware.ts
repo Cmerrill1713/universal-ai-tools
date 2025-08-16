@@ -165,20 +165,20 @@ class ErrorTrackingService {
     // Track by error type
     const errorType = error.constructor.name;
     if (this.metrics.errorsByType) {
-      const errorsByType = this.metrics.errorsByType;
+      const {errorsByType} = this.metrics;
       errorsByType[errorType] = (errorsByType[errorType] || 0) + 1;
     }
 
     // Track by path
     if (this.metrics.errorsByPath && context.path) {
-      const errorsByPath = this.metrics.errorsByPath;
+      const {errorsByPath} = this.metrics;
       errorsByPath[context.path] = (errorsByPath[context.path] || 0) + 1;
     }
 
     // Track by status code
     const statusCode = this.getStatusCode(error);
     if (this.metrics.errorsByStatusCode) {
-      const errorsByStatusCode = this.metrics.errorsByStatusCode;
+      const {errorsByStatusCode} = this.metrics;
       errorsByStatusCode[statusCode] = (errorsByStatusCode[statusCode] || 0) + 1;
     }
 
@@ -464,9 +464,9 @@ class ErrorTrackingService {
 export const errorTrackingService = new ErrorTrackingService({
   enabled: process.env.NODE_ENV === 'production',
   thresholds: {
-    errorRate: parseInt(process.env.ERROR_RATE_THRESHOLD || '10'),
-    responseTime: parseInt(process.env.RESPONSE_TIME_THRESHOLD || '5000'),
-    consecutiveErrors: parseInt(process.env.CONSECUTIVE_ERROR_THRESHOLD || '5'),
+    errorRate: parseInt(process.env.ERROR_RATE_THRESHOLD || '10', 10),
+    responseTime: parseInt(process.env.RESPONSE_TIME_THRESHOLD || '5000', 10),
+    consecutiveErrors: parseInt(process.env.CONSECUTIVE_ERROR_THRESHOLD || '5', 10),
   },
 });
 

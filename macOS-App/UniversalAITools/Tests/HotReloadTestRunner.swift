@@ -154,7 +154,7 @@ class HotReloadTestRunner: ObservableObject {
 
         // Test SidebarView
         do {
-            let sidebarView = SidebarView(selection: .constant(.dashboard))
+            let sidebarView = SidebarView(selection: .constant(.analytics))
             XCTAssertNotNil(sidebarView)
         } catch {
             allPassed = false

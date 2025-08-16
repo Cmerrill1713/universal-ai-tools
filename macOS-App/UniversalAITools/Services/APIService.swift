@@ -18,7 +18,7 @@ private struct APISystemMetrics: Codable {
 
 private let logger = Logger(subsystem: "com.universalai.tools", category: "APIService")
 
-class APIService: ObservableObject {
+public class APIService: ObservableObject {
     static let shared = APIService()
 
     @Published var isConnected = false

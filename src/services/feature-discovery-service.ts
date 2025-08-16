@@ -872,7 +872,7 @@ export class FeatureDiscoveryService extends EventEmitter {
     const experienceLevel = userProfile.experience;
     
     return suggestions.filter(suggestion => {
-      const feature = suggestion.feature;
+      const {feature} = suggestion;
       
       switch (experienceLevel) {
         case 'beginner':

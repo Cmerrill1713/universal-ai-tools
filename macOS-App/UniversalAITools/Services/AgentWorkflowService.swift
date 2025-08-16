@@ -8,7 +8,7 @@ import Combine
 class AgentWorkflowService: ObservableObject {
     @Published var activeWorkflows: [AgentWorkflow] = []
     @Published var workflowHistory: [WorkflowExecution] = []
-    @Published var workflowTemplates: [WorkflowTemplate] = []
+    @Published var workflowTemplates: [AgentWorkflowTemplate] = []
     
     // Real-time workflow status
     @Published var executionStatus: [String: WorkflowStatus] = [:]
@@ -41,17 +41,10 @@ class AgentWorkflowService: ObservableObject {
         let requiredAgents = determineRequiredAgents(for: objective.title)
         
         let workflow = AgentWorkflow(
-            id: workflowId,
             name: "Workflow for \(objective.title)",
-            description: objective.description,
-            objectiveId: objective.id,
             steps: steps,
-            requiredAgents: requiredAgents,
-            executionState: .created,
-            priority: determinePriority(for: objective),
-            estimatedDuration: estimateDuration(for: steps),
-            createdAt: Date(),
-            tags: generateTags(for: objective)
+            executionState: .pending,
+            priority: determinePriority(for: objective)
         )
         
         activeWorkflows.append(workflow)
@@ -183,7 +176,7 @@ class AgentWorkflowService: ObservableObject {
     
     // MARK: - Workflow Generation
     
-    private func generateWorkflowSteps(for objective: Objective) -> [WorkflowStep] {
+    private func generateWorkflowSteps(for objective: Objective) -> [AgentWorkflowStep] {
         // Determine objective type from title or description
         let objectiveType = determineObjectiveType(from: objective)
         
@@ -224,18 +217,15 @@ class AgentWorkflowService: ObservableObject {
         }
     }
     
-    private func generateDevelopmentSteps(for objective: Objective) -> [WorkflowStep] {
+    private func generateDevelopmentSteps(for objective: Objective) -> [AgentWorkflowStep] {
         return [
-            WorkflowStep(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Requirements Analysis",
-                description: "Analyze and document project requirements",
-                requiredAgent: .analysis,
-                estimatedDuration: 300, // 5 minutes
-                dependencies: [],
-                tools: ["documentation", "analysis"]
+                agentId: "analysis-agent",
+                action: AgentAction(type: .analyzeData),
+                order: 1
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Architecture Design",
                 description: "Design system architecture and components",
@@ -244,7 +234,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["design", "modeling"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Code Generation",
                 description: "Generate code based on requirements and design",
@@ -253,7 +243,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["code-generation", "debugging"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Testing & Validation",
                 description: "Test generated code and validate functionality",
@@ -265,9 +255,9 @@ class AgentWorkflowService: ObservableObject {
         ]
     }
     
-    private func generateCreativeSteps(for objective: Objective) -> [WorkflowStep] {
+    private func generateCreativeSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
         return [
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Content Planning",
                 description: "Plan creative content and visual elements",
@@ -276,7 +266,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["vision", "design"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Asset Creation",
                 description: "Create visual assets and content",
@@ -285,7 +275,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["vision", "image-processing"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Style Application",
                 description: "Apply consistent styling and branding",
@@ -297,9 +287,9 @@ class AgentWorkflowService: ObservableObject {
         ]
     }
     
-    private func generateAnalysisSteps(for objective: Objective) -> [WorkflowStep] {
+    private func generateAnalysisSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
         return [
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Data Collection",
                 description: "Gather and prepare data for analysis",
@@ -308,7 +298,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["data-extraction", "preprocessing"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Statistical Analysis",
                 description: "Perform statistical analysis on collected data",
@@ -317,7 +307,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["analytics", "visualization"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Report Generation",
                 description: "Generate comprehensive analysis report",
@@ -329,9 +319,9 @@ class AgentWorkflowService: ObservableObject {
         ]
     }
     
-    private func generateOrganizationSteps(for objective: Objective) -> [WorkflowStep] {
+    private func generateOrganizationSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
         return [
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Content Scanning",
                 description: "Scan and categorize files or content",
@@ -340,7 +330,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["file-analysis", "categorization"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Smart Sorting",
                 description: "Organize content using AI-powered sorting",
@@ -349,7 +339,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["organization", "file-management"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Duplicate Removal",
                 description: "Identify and handle duplicate content",
@@ -361,9 +351,9 @@ class AgentWorkflowService: ObservableObject {
         ]
     }
     
-    private func generateResearchSteps(for objective: Objective) -> [WorkflowStep] {
+    private func generateResearchSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
         return [
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Source Discovery",
                 description: "Find and validate research sources",
@@ -372,7 +362,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["web-scraping", "source-validation"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Information Synthesis",
                 description: "Analyze and synthesize research findings",
@@ -381,7 +371,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["text-analysis", "synthesis"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Documentation",
                 description: "Document research findings and citations",
@@ -393,9 +383,9 @@ class AgentWorkflowService: ObservableObject {
         ]
     }
     
-    private func generateGenericSteps(for objective: Objective) -> [WorkflowStep] {
+    private func generateGenericSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
         return [
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Task Planning",
                 description: "Plan approach and break down tasks",
@@ -404,7 +394,7 @@ class AgentWorkflowService: ObservableObject {
                 dependencies: [],
                 tools: ["planning", "task-management"]
             ),
-            WorkflowStep(
+            AgentWorkflowStepDefinition(
                 id: UUID().uuidString,
                 name: "Execution",
                 description: "Execute planned tasks",
@@ -433,7 +423,7 @@ class AgentWorkflowService: ObservableObject {
         }
     }
     
-    private func determinePriority(for objective: Objective) -> WorkflowPriority {
+    private func determinePriority(for objective: Objective) -> AgentWorkflowPriority {
         switch objective.status {
         case .active:
             return .high
@@ -444,7 +434,7 @@ class AgentWorkflowService: ObservableObject {
         }
     }
     
-    private func estimateDuration(for steps: [WorkflowStep]) -> TimeInterval {
+    private func estimateDuration(for steps: [AgentWorkflowStepDefinition]) -> TimeInterval {
         return steps.reduce(0) { $0 + $1.estimatedDuration }
     }
     
@@ -495,7 +485,7 @@ class AgentWorkflowService: ObservableObject {
     
     private func loadWorkflowTemplates() {
         workflowTemplates = [
-            WorkflowTemplate(
+            AgentWorkflowTemplate(
                 id: "dev-webapp",
                 name: "Web Application Development",
                 description: "Complete workflow for building web applications",
@@ -508,7 +498,7 @@ class AgentWorkflowService: ObservableObject {
                     "Testing & Deployment"
                 ]
             ),
-            WorkflowTemplate(
+            AgentWorkflowTemplate(
                 id: "content-creation",
                 name: "Content Creation Pipeline",
                 description: "End-to-end content creation and optimization",
@@ -521,7 +511,7 @@ class AgentWorkflowService: ObservableObject {
                     "Publication"
                 ]
             ),
-            WorkflowTemplate(
+            AgentWorkflowTemplate(
                 id: "data-analysis",
                 name: "Data Analysis Workflow",
                 description: "Comprehensive data analysis and reporting",
@@ -538,43 +528,16 @@ class AgentWorkflowService: ObservableObject {
     }
     
     /// Get workflow template for objective type
-    func getTemplate(for objectiveType: String) -> WorkflowTemplate? {
+    func getTemplate(for objectiveType: String) -> AgentWorkflowTemplate? {
         return workflowTemplates.first { $0.objectiveTypes.contains(objectiveType) }
     }
 }
 
 // MARK: - Data Models
 
-struct AgentWorkflow: Codable, Identifiable {
-    let id: String
-    var name: String
-    var description: String
-    let objectiveId: String
-    var steps: [WorkflowStep]
-    let requiredAgents: [AgentType]
-    var executionState: WorkflowExecutionState
-    let priority: WorkflowPriority
-    let estimatedDuration: TimeInterval
-    let createdAt: Date
-    var updatedAt: Date?
-    let tags: [String]
-    
-    init(id: String, name: String, description: String, objectiveId: String, steps: [WorkflowStep], requiredAgents: [AgentType], executionState: WorkflowExecutionState, priority: WorkflowPriority, estimatedDuration: TimeInterval, createdAt: Date, tags: [String]) {
-        self.id = id
-        self.name = name
-        self.description = description
-        self.objectiveId = objectiveId
-        self.steps = steps
-        self.requiredAgents = requiredAgents
-        self.executionState = executionState
-        self.priority = priority
-        self.estimatedDuration = estimatedDuration
-        self.createdAt = createdAt
-        self.tags = tags
-    }
-}
+// Note: AgentWorkflow is defined in Models/AgentTypes.swift
 
-struct WorkflowStep: Codable, Identifiable {
+struct AgentWorkflowStepDefinition: Codable, Identifiable {
     let id: String
     let name: String
     let description: String
@@ -634,7 +597,7 @@ struct ExecutionMetrics: Codable {
     let resourceUsage: [String: Double]
 }
 
-struct WorkflowTemplate {
+struct AgentWorkflowTemplate {
     let id: String
     let name: String
     let description: String

@@ -727,7 +727,7 @@ struct ChatLayoutProvider: TouchBarLayoutProvider {
                         SegmentedConfig.SegmentItem(title: "Local", image: nil, width: nil)
                     ],
                     selectedIndex: 0,
-                    selectionChangedAction: { index in /* Change model */ }
+                    selectionChangedAction: { _ in /* Change model */ }
                 )
             ),
             
@@ -739,7 +739,7 @@ struct ChatLayoutProvider: TouchBarLayoutProvider {
                     minValue: 0.0,
                     maxValue: 2.0,
                     currentValue: 0.7,
-                    valueChangedAction: { value in /* Update temperature */ },
+                    valueChangedAction: { _ in /* Update temperature */ },
                     label: "Temp",
                     accessibilityDescription: "Model temperature"
                 )
@@ -784,7 +784,7 @@ struct GraphLayoutProvider: TouchBarLayoutProvider {
                         SegmentedConfig.SegmentItem(title: "Circle", image: nil, width: nil)
                     ],
                     selectedIndex: 0,
-                    selectionChangedAction: { index in /* Change layout */ }
+                    selectionChangedAction: { _ in /* Change layout */ }
                 )
             ),
             
@@ -796,7 +796,7 @@ struct GraphLayoutProvider: TouchBarLayoutProvider {
                     minValue: 0.1,
                     maxValue: 3.0,
                     currentValue: 1.0,
-                    valueChangedAction: { value in /* Update zoom */ },
+                    valueChangedAction: { _ in /* Update zoom */ },
                     label: "Zoom",
                     accessibilityDescription: "Graph zoom level"
                 )
@@ -859,7 +859,7 @@ struct ParametersLayoutProvider: TouchBarLayoutProvider {
                         ScrubberConfig.ScrubberItem(title: "Quality", image: nil, identifier: "quality")
                     ],
                     selectedIndex: 0,
-                    selectionChangedAction: { index in /* Load preset */ },
+                    selectionChangedAction: { _ in /* Load preset */ },
                     mode: .free
                 )
             ),

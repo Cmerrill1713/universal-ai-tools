@@ -435,17 +435,21 @@ struct ContextClusteringView: View {
                 }
                 
                 // Draw connections to parent level
-                if levelIndex > 0, let parent = node.parent {
-                    let parentY = margin + CGFloat(levelIndex - 1) * (drawableHeight / CGFloat(data.levels.count - 1))
-                    let parentX = margin + CGFloat(parent.position) * drawableWidth
-                    
-                    var path = Path()
-                    path.move(to: CGPoint(x: x, y: y))
-                    path.addLine(to: CGPoint(x: x, y: y - 15))
-                    path.addLine(to: CGPoint(x: parentX, y: parentY + 15))
-                    path.addLine(to: CGPoint(x: parentX, y: parentY))
-                    
-                    context.stroke(path, with: .color(AppTheme.separator), lineWidth: 1)
+                if levelIndex > 0, let parentId = node.parentId {
+                    // Find parent node in previous level by ID
+                    if levelIndex - 1 < data.levels.count,
+                       let parentNode = data.levels[levelIndex - 1].nodes.first(where: { $0.id == parentId }) {
+                        let parentY = margin + CGFloat(levelIndex - 1) * (drawableHeight / CGFloat(data.levels.count - 1))
+                        let parentX = margin + CGFloat(parentNode.position) * drawableWidth
+                        
+                        var path = Path()
+                        path.move(to: CGPoint(x: x, y: y))
+                        path.addLine(to: CGPoint(x: x, y: y - 15))
+                        path.addLine(to: CGPoint(x: parentX, y: parentY + 15))
+                        path.addLine(to: CGPoint(x: parentX, y: parentY))
+                        
+                        context.stroke(path, with: .color(AppTheme.separator), lineWidth: 1)
+                    }
                 }
             }
         }
@@ -541,6 +545,26 @@ struct ContextClusteringView: View {
                 context.fill(pointPath, with: .color(cluster.color))
             }
         }
+    }
+    
+    private var evolutionStatisticsView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Evolution Statistics")
+                .font(AppTheme.headline)
+                .foregroundColor(AppTheme.primaryText)
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
+                StatCard(title: "Birth Rate", value: "2.3/hr", color: .green)
+                StatCard(title: "Death Rate", value: "1.1/hr", color: .red)
+                StatCard(title: "Merge Rate", value: "0.8/hr", color: .blue)
+                StatCard(title: "Split Rate", value: "0.5/hr", color: .orange)
+                StatCard(title: "Stability", value: "73%", color: .purple)
+                StatCard(title: "Growth Rate", value: "+12%", color: .cyan)
+            }
+        }
+        .padding(16)
+        .background(AppTheme.surfaceBackground)
+        .cornerRadius(12)
     }
     
     // MARK: - Statistics View
@@ -985,7 +1009,7 @@ struct DendrogramNode {
     let label: String
     let position: Float // 0.0 to 1.0
     let cluster: ContextCluster?
-    let parent: DendrogramNode?
+    let parentId: String? // Reference to parent by ID to avoid recursion
 }
 
 struct EvolutionData {

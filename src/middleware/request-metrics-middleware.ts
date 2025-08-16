@@ -3,11 +3,11 @@
  * Automatically captures request/response metrics for monitoring
  */
 
-import { Request, Response, NextFunction } from 'express';
+import type { NextFunction,Request, Response } from 'express';
 import { performance } from 'perf_hooks';
 
-import { metricsCollectionService } from '@/services/monitoring/metrics-collection-service';
 import { distributedTracingService } from '@/services/monitoring/distributed-tracing-service';
+import { metricsCollectionService } from '@/services/monitoring/metrics-collection-service';
 import { log, LogContext } from '@/utils/logger';
 
 export interface ExtendedRequest extends Request {
@@ -239,7 +239,7 @@ function extractUserId(req: ExtendedRequest): string | undefined {
       const token = authHeader.replace('Bearer ', '');
       const parts = token.split('.');
       if (parts.length === 3) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        const payload = JSON.parse(Buffer.from(parts[1] || '', 'base64').toString());
         return payload.sub || payload.userId || payload.id;
       }
     } catch (error) {

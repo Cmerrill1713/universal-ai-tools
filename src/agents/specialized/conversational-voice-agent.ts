@@ -11,10 +11,10 @@
  * - Voice response generation and synthesis
  */
 
-import { EnhancedBaseAgent } from '../enhanced-base-agent';
-import { AgentContext, AgentResponse, AgentCapability } from '../../types/index';
-import { log, LogContext } from '../../utils/logger';
 import { ollamaService } from '../../services/ollama-service';
+import type { AgentCapability,AgentContext, AgentResponse } from '../../types/index';
+import { log, LogContext } from '../../utils/logger';
+import { EnhancedBaseAgent } from '../enhanced-base-agent';
 
 export interface VoiceInteractionRequest {
   text: string;

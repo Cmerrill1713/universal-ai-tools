@@ -13,6 +13,9 @@ packages:
   Pow:
     url: https://github.com/EmergeTools/Pow
     from: 1.0.0
+  SwiftAnthropic:
+    url: https://github.com/jamesrochabrun/SwiftAnthropic
+    from: 1.0.0
 settings:
   base:
     PRODUCT_BUNDLE_IDENTIFIER: com.universalai.tools
@@ -37,6 +40,7 @@ targets:
     dependencies:
       - package: Vortex
       - package: Pow
+      - package: SwiftAnthropic
     sources:
       - path: Models
       - path: Services  
