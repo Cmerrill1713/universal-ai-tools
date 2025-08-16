@@ -231,7 +231,7 @@ public enum MemoryTimeRange: String, CaseIterable {
 }
 
 // MARK: - Optimization Types
-public enum OptimizationType: String, CaseIterable {
+public enum OptimizationType: String, CaseIterable, Codable {
     case flashAttentionOptimization = "flash_attention"
     case memoryOptimization = "memory"
     case cacheOptimization = "cache"
