@@ -368,14 +368,14 @@ jobs:
             if (fs.existsSync('performance-report.json')) {
               const report = JSON.parse(fs.readFileSync('performance-report.json', 'utf8'));
               const comment = `## Performance Test Results
-
+              
               - **Response Time**: ${report.responseTime}ms
               - **Memory Usage**: ${report.memoryUsage}MB
               - **CPU Usage**: ${report.cpuUsage}%
               - **Throughput**: ${report.throughput} req/s
-
+              
               ${report.status === 'pass' ? '✅ Performance tests passed' : '❌ Performance tests failed'}`;
-
+              
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
