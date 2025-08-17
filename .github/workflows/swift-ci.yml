@@ -1,0 +1,531 @@
+name: Swift CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop, feature/*, fix/*]
+    paths:
+      - 'macOS-App/**'
+      - '.github/workflows/swift-ci.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'macOS-App/**'
+      - '.github/workflows/swift-ci.yml'
+  workflow_dispatch:
+    inputs:
+      force_fix:
+        description: 'Force auto-fix Swift errors'
+        required: false
+        default: 'false'
+        type: boolean
+      performance_test:
+        description: 'Run performance tests'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  XCODE_VERSION: '16.0'
+  SWIFT_VERSION: '6.0'
+  MACOS_VERSION: '15.0'
+  DERIVED_DATA_PATH: 'macOS-App/UniversalAITools/DerivedData'
+
+jobs:
+  # 1. Swift Environment Setup and Validation
+  swift-environment:
+    name: Swift Environment Setup
+    runs-on: macos-14
+    timeout-minutes: 15
+    outputs:
+      xcode-version: ${{ steps.xcode-info.outputs.version }}
+      swift-version: ${{ steps.swift-info.outputs.version }}
+      project-path: ${{ steps.project-info.outputs.path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+          xcodebuild -version
+
+      - id: xcode-info
+        name: Get Xcode info
+        run: |
+          XCODE_VERSION=$(xcodebuild -version | head -1 | cut -d ' ' -f2)
+          echo "version=$XCODE_VERSION" >> $GITHUB_OUTPUT
+
+      - id: swift-info
+        name: Get Swift info
+        run: |
+          SWIFT_VERSION=$(swift --version | head -1 | cut -d ' ' -f4)
+          echo "version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
+
+      - id: project-info
+        name: Validate project structure
+        run: |
+          PROJECT_PATH="macOS-App/UniversalAITools/UniversalAITools.xcodeproj"
+          if [ ! -f "$PROJECT_PATH/project.pbxproj" ]; then
+            echo "❌ Xcode project not found at $PROJECT_PATH"
+            exit 1
+          fi
+          echo "✅ Xcode project found at $PROJECT_PATH"
+          echo "path=$PROJECT_PATH" >> $GITHUB_OUTPUT
+
+      - name: Cache Swift Package dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            macOS-App/UniversalAITools/SourcePackages
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('macOS-App/UniversalAITools/UniversalAITools.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+  # 2. Swift Package Dependencies Resolution
+  dependency-resolution:
+    name: Dependency Resolution
+    runs-on: macos-14
+    timeout-minutes: 20
+    needs: swift-environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Cache Swift Package dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            macOS-App/UniversalAITools/SourcePackages
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('macOS-App/UniversalAITools/UniversalAITools.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Resolve Swift Package dependencies
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔄 Resolving Swift Package dependencies..."
+          xcodebuild -resolvePackageDependencies -project UniversalAITools.xcodeproj
+          
+      - name: Validate Package.resolved
+        run: |
+          cd macOS-App/UniversalAITools
+          if [ ! -f "UniversalAITools.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" ]; then
+            echo "❌ Package.resolved not found - dependency resolution failed"
+            exit 1
+          fi
+          echo "✅ Dependencies resolved successfully"
+
+      - name: Check for dependency conflicts
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔍 Checking for dependency conflicts..."
+          xcodebuild -checkFirstLaunchAfterInstallation -project UniversalAITools.xcodeproj || true
+
+  # 3. Swift Code Formatting and Style Validation
+  swift-format:
+    name: Swift Format & Style
+    runs-on: macos-14
+    timeout-minutes: 10
+    needs: swift-environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Install SwiftFormat
+        run: |
+          brew install swiftformat
+          swiftformat --version
+
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint version
+
+      - name: Check Swift code formatting
+        id: format-check
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔍 Checking Swift code formatting..."
+          
+          # Check if formatting is needed
+          if swiftformat --lint .; then
+            echo "✅ Code formatting is correct"
+            echo "needs_formatting=false" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Code formatting issues found"
+            echo "needs_formatting=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Auto-fix formatting issues
+        if: steps.format-check.outputs.needs_formatting == 'true'
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Auto-fixing Swift formatting..."
+          swiftformat .
+          
+          # Check if changes were made
+          if git diff --quiet; then
+            echo "No formatting changes needed"
+          else
+            echo "✅ Formatting changes applied"
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add .
+            git commit -m "fix: automated Swift fixes - Generated with Claude Code"
+          fi
+
+      - name: Run SwiftLint analysis
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔍 Running SwiftLint analysis..."
+          swiftlint lint --reporter github-actions-logging || true
+
+      - name: Upload SwiftLint results
+        if: always()
+        run: |
+          cd macOS-App/UniversalAITools
+          swiftlint lint --reporter json > swiftlint-results.json || true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-lint-results
+          path: macOS-App/UniversalAITools/swiftlint-results.json
+          retention-days: 7
+
+  # 4. Swift Compilation and Build Validation
+  swift-build:
+    name: Swift Build Validation
+    runs-on: macos-14
+    timeout-minutes: 30
+    needs: [swift-environment, dependency-resolution]
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+        scheme: [UniversalAITools]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Cache Swift Package dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            macOS-App/UniversalAITools/SourcePackages
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('macOS-App/UniversalAITools/UniversalAITools.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            macOS-App/UniversalAITools/DerivedData
+            ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-${{ matrix.configuration }}-${{ hashFiles('macOS-App/UniversalAITools/**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-${{ matrix.configuration }}-
+
+      - name: Clean build directory
+        run: |
+          cd macOS-App/UniversalAITools
+          rm -rf DerivedData
+          xcodebuild clean -project UniversalAITools.xcodeproj -scheme ${{ matrix.scheme }}
+
+      - name: Build Swift project
+        id: build
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔨 Building Swift project - ${{ matrix.configuration }} configuration..."
+          
+          # Build with detailed logging
+          set -o pipefail
+          xcodebuild build \
+            -project UniversalAITools.xcodeproj \
+            -scheme ${{ matrix.scheme }} \
+            -configuration ${{ matrix.configuration }} \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath DerivedData \
+            -clonedSourcePackagesDirPath SourcePackages \
+            -resultBundlePath build-results-${{ matrix.configuration }}.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE="" \
+            | tee build-log-${{ matrix.configuration }}.txt
+
+      - name: Analyze build errors
+        if: failure()
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔍 Analyzing build errors..."
+          
+          # Extract and categorize errors
+          if [ -f "build-log-${{ matrix.configuration }}.txt" ]; then
+            echo "## Build Errors - ${{ matrix.configuration }}" > build-errors-${{ matrix.configuration }}.md
+            echo "### Compilation Errors" >> build-errors-${{ matrix.configuration }}.md
+            grep -A 5 -B 5 "error:" build-log-${{ matrix.configuration }}.txt >> build-errors-${{ matrix.configuration }}.md || true
+            echo "### Warnings" >> build-errors-${{ matrix.configuration }}.md
+            grep -A 2 -B 2 "warning:" build-log-${{ matrix.configuration }}.txt >> build-errors-${{ matrix.configuration }}.md || true
+          fi
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-build-${{ matrix.configuration }}
+          path: |
+            macOS-App/UniversalAITools/build-log-${{ matrix.configuration }}.txt
+            macOS-App/UniversalAITools/build-errors-${{ matrix.configuration }}.md
+            macOS-App/UniversalAITools/build-results-${{ matrix.configuration }}.xcresult
+          retention-days: 7
+
+      - name: Validate build products
+        if: success()
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "✅ Build completed successfully for ${{ matrix.configuration }}"
+          
+          # Check if app bundle was created
+          APP_PATH="DerivedData/Build/Products/${{ matrix.configuration }}/UniversalAITools.app"
+          if [ -d "$APP_PATH" ]; then
+            echo "✅ App bundle created: $APP_PATH"
+            ls -la "$APP_PATH/Contents/"
+          else
+            echo "❌ App bundle not found at expected location"
+            find DerivedData -name "*.app" -type d
+          fi
+
+  # 5. Swift Testing Suite
+  swift-tests:
+    name: Swift Unit Tests
+    runs-on: macos-14
+    timeout-minutes: 20
+    needs: [swift-build]
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Cache Swift Package dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            macOS-App/UniversalAITools/SourcePackages
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('macOS-App/UniversalAITools/UniversalAITools.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
+      - name: Run Swift unit tests
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🧪 Running Swift unit tests..."
+          
+          # Run tests with coverage
+          set -o pipefail
+          xcodebuild test \
+            -project UniversalAITools.xcodeproj \
+            -scheme UniversalAITools \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath DerivedData \
+            -resultBundlePath test-results.xcresult \
+            -enableCodeCoverage YES \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee test-log.txt
+
+      - name: Process test results
+        if: always()
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "📊 Processing test results..."
+          
+          # Extract test summary
+          if [ -d "test-results.xcresult" ]; then
+            xcrun xccov view --report test-results.xcresult > coverage-report.txt || true
+            echo "✅ Test results processed"
+          fi
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-test-results
+          path: |
+            macOS-App/UniversalAITools/test-log.txt
+            macOS-App/UniversalAITools/test-results.xcresult
+            macOS-App/UniversalAITools/coverage-report.txt
+          retention-days: 7
+
+  # 6. Auto-Fix Common Swift Issues
+  swift-auto-fix:
+    name: Auto-Fix Swift Issues
+    runs-on: macos-14
+    timeout-minutes: 15
+    needs: [swift-format]
+    if: failure() || github.event.inputs.force_fix == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Install Swift tools
+        run: |
+          brew install swiftformat swiftlint
+
+      - name: Auto-fix Swift formatting
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Auto-fixing Swift formatting issues..."
+          swiftformat . --verbose
+
+      - name: Auto-fix import statements
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Optimizing import statements..."
+          find . -name "*.swift" -exec sed -i '' '/^import.*$/N;s/import Foundation\nimport SwiftUI/import SwiftUI/' {} \;
+
+      - name: Fix basic syntax issues
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Fixing basic syntax issues..."
+          
+          # Fix common semicolon issues
+          find . -name "*.swift" -exec sed -i '' 's/;;/;/g' {} \;
+          find . -name "*.swift" -exec sed -i '' 's/;$//' {} \;
+          
+          # Fix spacing issues
+          find . -name "*.swift" -exec sed -i '' 's/  */ /g' {} \;
+
+      - name: Update dependencies if needed
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Checking for dependency updates..."
+          xcodebuild -resolvePackageDependencies -project UniversalAITools.xcodeproj
+
+      - name: Commit auto-fixes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          if ! git diff --quiet; then
+            git add .
+            git commit -m "fix: automated Swift fixes - Generated with Claude Code"
+            # Push changes back to branch
+            git push
+            echo "✅ Auto-fixes committed and pushed"
+          else
+            echo "ℹ️ No changes to commit"
+          fi
+
+  # 7. Performance and Memory Analysis
+  swift-performance:
+    name: Swift Performance Analysis
+    runs-on: macos-14
+    timeout-minutes: 15
+    needs: [swift-build]
+    if: success() && (github.event.inputs.performance_test == 'true' || contains(github.event.pull_request.labels.*.name, 'performance'))
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Analyze build performance
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "📊 Analyzing Swift build performance..."
+          
+          # Build with timing information
+          time xcodebuild build \
+            -project UniversalAITools.xcodeproj \
+            -scheme UniversalAITools \
+            -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath DerivedData \
+            -showBuildTimingSummary \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee performance-log.txt
+
+      - name: Memory usage analysis
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🧠 Analyzing memory usage patterns..."
+          
+          # Static analysis for memory leaks
+          if [ -d "DerivedData" ]; then
+            find DerivedData -name "*.o" | wc -l > object-files-count.txt
+            du -sh DerivedData > build-size.txt
+          fi
+
+      - name: Upload performance data
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-performance-analysis
+          path: |
+            macOS-App/UniversalAITools/performance-log.txt
+            macOS-App/UniversalAITools/object-files-count.txt
+            macOS-App/UniversalAITools/build-size.txt
+          retention-days: 7
+
+  # 8. Build Status Summary
+  swift-status:
+    name: Swift Build Status Summary
+    runs-on: macos-14
+    timeout-minutes: 5
+    needs: [swift-environment, dependency-resolution, swift-format, swift-build, swift-tests]
+    if: always()
+    steps:
+      - name: Generate build summary
+        run: |
+          echo "# Swift CI/CD Pipeline Summary" > swift-summary.md
+          echo "" >> swift-summary.md
+          echo "## Environment" >> swift-summary.md
+          echo "- **Xcode Version**: ${{ needs.swift-environment.outputs.xcode-version }}" >> swift-summary.md
+          echo "- **Swift Version**: ${{ needs.swift-environment.outputs.swift-version }}" >> swift-summary.md
+          echo "- **Project Path**: ${{ needs.swift-environment.outputs.project-path }}" >> swift-summary.md
+          echo "" >> swift-summary.md
+          echo "## Results" >> swift-summary.md
+          echo "- **Environment Setup**: ${{ needs.swift-environment.result }}" >> swift-summary.md
+          echo "- **Dependencies**: ${{ needs.dependency-resolution.result }}" >> swift-summary.md
+          echo "- **Formatting**: ${{ needs.swift-format.result }}" >> swift-summary.md
+          echo "- **Build**: ${{ needs.swift-build.result }}" >> swift-summary.md
+          echo "- **Tests**: ${{ needs.swift-tests.result }}" >> swift-summary.md
+
+      - name: Comment on PR with summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('swift-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${summary}\n\n🤖 Generated with [Claude Code](https://claude.ai/code)`
+            });
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-ci-summary
+          path: swift-summary.md
+          retention-days: 30

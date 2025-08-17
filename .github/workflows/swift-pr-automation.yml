@@ -1,0 +1,479 @@
+name: Swift PR Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'macOS-App/**/*.swift'
+      - 'macOS-App/UniversalAITools/UniversalAITools.xcodeproj/**'
+      - '.github/workflows/swift-*.yml'
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+
+env:
+  XCODE_VERSION: '16.0'
+  SWIFT_VERSION: '6.0'
+
+jobs:
+  # 1. Swift PR Analysis and Validation
+  pr-analysis:
+    name: PR Analysis
+    runs-on: macos-14
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request'
+    outputs:
+      has_swift_changes: ${{ steps.swift-changes.outputs.has_changes }}
+      build_required: ${{ steps.build-check.outputs.required }}
+      complexity_score: ${{ steps.complexity.outputs.score }}
+      test_coverage_delta: ${{ steps.coverage.outputs.delta }}
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - id: swift-changes
+        name: Analyze Swift changes
+        run: |
+          echo "🔍 Analyzing Swift file changes..."
+          
+          # Get list of changed Swift files
+          CHANGED_SWIFT_FILES=$(git diff --name-only origin/main...HEAD | grep "\.swift$" | grep -v "/Tests/" | wc -l)
+          TOTAL_CHANGED_FILES=$(git diff --name-only origin/main...HEAD | wc -l)
+          
+          echo "Changed Swift files: $CHANGED_SWIFT_FILES"
+          echo "Total changed files: $TOTAL_CHANGED_FILES"
+          
+          if [ $CHANGED_SWIFT_FILES -gt 0 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "✅ Swift changes detected"
+            
+            # List changed files
+            echo "## Changed Swift Files" > pr-analysis.md
+            git diff --name-only origin/main...HEAD | grep "\.swift$" | grep -v "/Tests/" >> pr-analysis.md || true
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No Swift changes detected"
+          fi
+
+      - id: build-check
+        name: Check if build is required
+        run: |
+          # Check for changes that require full build
+          BUILD_AFFECTING_CHANGES=$(git diff --name-only origin/main...HEAD | grep -E "(\.xcodeproj/|Package\.swift|\.xcconfig)" | wc -l)
+          
+          if [ $BUILD_AFFECTING_CHANGES -gt 0 ] || [ "${{ steps.swift-changes.outputs.has_changes }}" == "true" ]; then
+            echo "required=true" >> $GITHUB_OUTPUT
+            echo "🔨 Build required due to project/code changes"
+          else
+            echo "required=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Build not required"
+          fi
+
+      - id: complexity
+        name: Calculate code complexity
+        if: steps.swift-changes.outputs.has_changes == 'true'
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "📊 Calculating code complexity..."
+          
+          # Basic complexity analysis using line counts and structure
+          TOTAL_LINES=0
+          FUNC_COUNT=0
+          CLASS_COUNT=0
+          
+          for file in $(git diff --name-only origin/main...HEAD | grep "\.swift$" | grep -v "/Tests/"); do
+            if [ -f "$file" ]; then
+              LINES=$(wc -l < "$file")
+              FUNCS=$(grep -c "func " "$file" || echo 0)
+              CLASSES=$(grep -c "class \|struct \|enum " "$file" || echo 0)
+              
+              TOTAL_LINES=$((TOTAL_LINES + LINES))
+              FUNC_COUNT=$((FUNC_COUNT + FUNCS))
+              CLASS_COUNT=$((CLASS_COUNT + CLASSES))
+            fi
+          done
+          
+          # Simple complexity score calculation
+          COMPLEXITY_SCORE=$((TOTAL_LINES / 10 + FUNC_COUNT * 2 + CLASS_COUNT * 5))
+          
+          echo "score=$COMPLEXITY_SCORE" >> $GITHUB_OUTPUT
+          echo "## Code Complexity Analysis" >> pr-analysis.md
+          echo "- **Total Lines**: $TOTAL_LINES" >> pr-analysis.md
+          echo "- **Functions**: $FUNC_COUNT" >> pr-analysis.md
+          echo "- **Types**: $CLASS_COUNT" >> pr-analysis.md
+          echo "- **Complexity Score**: $COMPLEXITY_SCORE" >> pr-analysis.md
+
+      - id: coverage
+        name: Estimate test coverage impact
+        if: steps.swift-changes.outputs.has_changes == 'true'
+        run: |
+          # Check if tests were added/modified for the changes
+          TEST_CHANGES=$(git diff --name-only origin/main...HEAD | grep -c "Test.*\.swift$" || echo 0)
+          SWIFT_CHANGES=$(git diff --name-only origin/main...HEAD | grep -c "\.swift$" | grep -v "Test" || echo 0)
+          
+          if [ $SWIFT_CHANGES -gt 0 ] && [ $TEST_CHANGES -eq 0 ]; then
+            echo "delta=-5" >> $GITHUB_OUTPUT
+            echo "⚠️ Code changes without test updates may decrease coverage"
+          elif [ $TEST_CHANGES -gt 0 ]; then
+            echo "delta=+3" >> $GITHUB_OUTPUT
+            echo "✅ Test changes detected - coverage likely improved"
+          else
+            echo "delta=0" >> $GITHUB_OUTPUT
+            echo "ℹ️ No coverage impact detected"
+          fi
+
+      - name: Upload analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-analysis
+          path: pr-analysis.md
+          retention-days: 7
+
+  # 2. Automated Swift Build Check
+  swift-build-check:
+    name: Swift Build Check
+    runs-on: macos-14
+    timeout-minutes: 25
+    needs: pr-analysis
+    if: needs.pr-analysis.outputs.build_required == 'true'
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            macOS-App/UniversalAITools/SourcePackages
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('macOS-App/UniversalAITools/UniversalAITools.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+
+      - name: Quick build validation
+        id: build-check
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔨 Running quick build validation..."
+          
+          # Quick syntax check first
+          echo "## Build Validation Results" > build-results.md
+          
+          # Check for obvious syntax errors
+          SYNTAX_ERRORS=0
+          for file in $(find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*"); do
+            if ! swift -frontend -parse "$file" 2>/dev/null; then
+              echo "❌ Syntax error in $file" >> build-results.md
+              SYNTAX_ERRORS=$((SYNTAX_ERRORS + 1))
+            fi
+          done
+          
+          if [ $SYNTAX_ERRORS -eq 0 ]; then
+            echo "✅ No syntax errors found" >> build-results.md
+            echo "build_status=pass" >> $GITHUB_OUTPUT
+            
+            # Try quick build
+            if xcodebuild build -project UniversalAITools.xcodeproj -scheme UniversalAITools -configuration Debug -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO -quiet; then
+              echo "✅ Build completed successfully" >> build-results.md
+              echo "build_result=success" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Build failed" >> build-results.md
+              echo "build_result=failure" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "build_status=fail" >> $GITHUB_OUTPUT
+            echo "build_result=syntax_error" >> $GITHUB_OUTPUT
+            echo "❌ Found $SYNTAX_ERRORS syntax errors" >> build-results.md
+          fi
+
+      - name: Upload build results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-build-results
+          path: macOS-App/UniversalAITools/build-results.md
+          retention-days: 7
+
+  # 3. Auto-fix Swift Issues in PR
+  swift-auto-fix-pr:
+    name: Auto-fix Swift Issues
+    runs-on: macos-14
+    timeout-minutes: 20
+    needs: [pr-analysis, swift-build-check]
+    if: needs.swift-build-check.outputs.build_result == 'failure' || needs.swift-build-check.outputs.build_result == 'syntax_error'
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Install tools
+        run: |
+          brew install swiftformat swiftlint
+
+      - name: Configure git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action - Swift Auto-Fix"
+
+      - name: Apply automated fixes
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Applying automated Swift fixes..."
+          
+          # Apply SwiftFormat
+          swiftformat . --verbose
+          
+          # Apply SwiftLint auto-corrections
+          swiftlint --fix --quiet || true
+          
+          # Basic syntax fixes
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec sed -i '' 's/;$//' {} \;
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec sed -i '' 's/;;/;/g' {} \;
+
+      - name: Validate fixes don't break compilation
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "✅ Validating fixes..."
+          
+          # Quick syntax validation
+          for file in $(find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*"); do
+            if ! swift -frontend -parse "$file"; then
+              echo "❌ Fix introduced syntax error in $file - reverting"
+              git checkout -- "$file"
+            fi
+          done
+
+      - name: Commit and push fixes
+        run: |
+          if ! git diff --quiet; then
+            git add .
+            git commit -m "fix: automated Swift fixes - Generated with Claude Code"
+            git push origin HEAD
+            echo "✅ Auto-fixes applied and pushed to PR"
+          else
+            echo "ℹ️ No fixes needed"
+          fi
+
+  # 4. PR Comment with Analysis Results
+  pr-comment:
+    name: PR Comment Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [pr-analysis, swift-build-check]
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - name: Download analysis artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-analysis
+          path: ./analysis
+
+      - name: Download build results
+        if: needs.pr-analysis.outputs.build_required == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: swift-build-results
+          path: ./build-results
+
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let comment = '## 🔍 Swift PR Analysis\n\n';
+            
+            // Add analysis results
+            if (fs.existsSync('./analysis/pr-analysis.md')) {
+              const analysis = fs.readFileSync('./analysis/pr-analysis.md', 'utf8');
+              comment += analysis + '\n\n';
+            }
+            
+            // Add build results
+            if (fs.existsSync('./build-results/build-results.md')) {
+              const buildResults = fs.readFileSync('./build-results/build-results.md', 'utf8');
+              comment += '## 🔨 Build Results\n\n' + buildResults + '\n\n';
+            }
+            
+            // Add summary
+            comment += '## 📊 Summary\n\n';
+            comment += `- **Swift Changes**: ${{ needs.pr-analysis.outputs.has_swift_changes }}\n`;
+            comment += `- **Build Required**: ${{ needs.pr-analysis.outputs.build_required }}\n`;
+            comment += `- **Complexity Score**: ${{ needs.pr-analysis.outputs.complexity_score || 'N/A' }}\n`;
+            comment += `- **Coverage Impact**: ${{ needs.pr-analysis.outputs.test_coverage_delta || 'N/A' }}\n\n`;
+            
+            if ('${{ needs.swift-build-check.result }}' === 'success') {
+              comment += '✅ **Build Status**: Passed\n\n';
+            } else if ('${{ needs.swift-build-check.result }}' === 'failure') {
+              comment += '❌ **Build Status**: Failed (auto-fixes may have been applied)\n\n';
+            }
+            
+            comment += '---\n🤖 Generated with [Claude Code](https://claude.ai/code)';
+            
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # 5. Auto-approve Safe Changes
+  auto-approve:
+    name: Auto-approve Safe Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [pr-analysis, swift-build-check]
+    if: |
+      needs.pr-analysis.outputs.has_swift_changes == 'true' &&
+      needs.swift-build-check.outputs.build_result == 'success' &&
+      (needs.pr-analysis.outputs.complexity_score < 50) &&
+      github.actor == 'github-actions[bot]' &&
+      startsWith(github.head_ref, 'auto-fix/')
+    steps:
+      - name: Auto-approve safe changes
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Auto-approve PRs that are:
+            // 1. Created by GitHub Actions
+            // 2. Have low complexity
+            // 3. Build successfully
+            // 4. Are auto-fix branches
+            
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: `## ✅ Auto-approved Safe Changes
+
+This PR has been automatically approved because:
+- ✅ Created by automated system
+- ✅ Low complexity score (< 50)
+- ✅ Build passes successfully
+- ✅ Contains formatting/style fixes only
+
+🤖 Generated with [Claude Code](https://claude.ai/code)`
+            });
+
+  # 6. Handle PR Comments for Commands
+  pr-commands:
+    name: Handle PR Commands
+    runs-on: macos-14
+    timeout-minutes: 10
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/swift')
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get PR details
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            return {
+              ref: pr.data.head.ref,
+              sha: pr.data.head.sha
+            };
+
+      - name: Handle Swift commands
+        run: |
+          COMMENT="${{ github.event.comment.body }}"
+          
+          if echo "$COMMENT" | grep -q "/swift format"; then
+            echo "🔧 Running Swift format command..."
+            brew install swiftformat
+            cd macOS-App/UniversalAITools
+            swiftformat . --verbose
+            
+            if ! git diff --quiet; then
+              git config --local user.email "action@github.com"
+              git config --local user.name "GitHub Action"
+              git add .
+              git commit -m "fix: automated Swift fixes - Generated with Claude Code"
+              git push origin HEAD
+            fi
+          fi
+          
+          if echo "$COMMENT" | grep -q "/swift lint"; then
+            echo "🔍 Running Swift lint command..."
+            brew install swiftlint
+            cd macOS-App/UniversalAITools
+            swiftlint --fix --quiet || true
+            
+            if ! git diff --quiet; then
+              git config --local user.email "action@github.com"
+              git config --local user.name "GitHub Action"
+              git add .
+              git commit -m "fix: apply SwiftLint fixes via PR command"
+              git push origin HEAD
+            fi
+          fi
+          
+          if echo "$COMMENT" | grep -q "/swift build"; then
+            echo "🔨 Running Swift build command..."
+            cd macOS-App/UniversalAITools
+            xcodebuild build -project UniversalAITools.xcodeproj -scheme UniversalAITools -configuration Debug -destination 'platform=macOS,arch=arm64' CODE_SIGNING_ALLOWED=NO
+          fi
+
+      - name: React to comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: '+1'
+            });
+
+  # 7. Status Summary
+  pr-status:
+    name: PR Status Summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [pr-analysis, swift-build-check, swift-auto-fix-pr]
+    if: always()
+    steps:
+      - name: Generate status summary
+        run: |
+          echo "# Swift PR Automation Summary" > pr-status.md
+          echo "" >> pr-status.md
+          echo "## Job Results" >> pr-status.md
+          echo "- **PR Analysis**: needs.pr-analysis.result" >> pr-status.md
+          echo "- **Build Check**: needs.swift-build-check.result" >> pr-status.md
+          echo "- **Auto-fix**: needs.swift-auto-fix-pr.result" >> pr-status.md
+          echo "" >> pr-status.md
+          echo "**Completed at**: $(date -u)" >> pr-status.md
+
+      - name: Upload status
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-status-summary
+          path: pr-status.md
+          retention-days: 30

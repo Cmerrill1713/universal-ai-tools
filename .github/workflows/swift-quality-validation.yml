@@ -1,0 +1,420 @@
+# Universal AI Tools - Swift Quality Validation Workflow
+# Comprehensive validation for macOS app code quality, architecture, and performance
+
+name: Swift Quality Validation
+
+on:
+  push:
+    branches: [ master, develop, feature/* ]
+    paths:
+      - 'macOS-App/**/*.swift'
+      - 'macOS-App/**/*.yml'
+      - 'macOS-App/**/.swiftlint.yml'
+      - '.github/workflows/swift-quality-validation.yml'
+  pull_request:
+    branches: [ master, develop ]
+    paths:
+      - 'macOS-App/**/*.swift'
+      - 'macOS-App/**/*.yml'
+      - 'macOS-App/**/.swiftlint.yml'
+
+env:
+  XCODE_VERSION: '16.0'
+  MACOS_VERSION: '15.0'
+  SWIFT_VERSION: '6.0'
+
+jobs:
+  # Job 1: SwiftLint Analysis
+  swiftlint-analysis:
+    name: SwiftLint Analysis
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ env.XCODE_VERSION }}
+    
+    - name: Install SwiftLint
+      run: |
+        brew install swiftlint
+        swiftlint version
+    
+    - name: Cache SwiftLint Results
+      uses: actions/cache@v3
+      with:
+        path: |
+          macOS-App/UniversalAITools/.build
+          macOS-App/UniversalAITools/swiftlint-cache
+        key: swiftlint-${{ runner.os }}-${{ hashFiles('macOS-App/UniversalAITools/.swiftlint.yml') }}
+    
+    - name: Run SwiftLint Analysis
+      working-directory: macOS-App/UniversalAITools
+      run: |
+        echo "Running SwiftLint with custom Universal AI Tools configuration..."
+        
+        # Generate detailed SwiftLint report
+        swiftlint lint --reporter github-actions-logging > swiftlint-github-report.txt 2>&1 || true
+        swiftlint lint --reporter json > swiftlint-results.json 2>&1 || true
+        swiftlint lint --reporter html > swiftlint-report.html 2>&1 || true
+        
+        # Count violations by severity
+        ERROR_COUNT=$(cat swiftlint-results.json | jq '[.[] | select(.severity == "error")] | length' 2>/dev/null || echo "0")
+        WARNING_COUNT=$(cat swiftlint-results.json | jq '[.[] | select(.severity == "warning")] | length' 2>/dev/null || echo "0")
+        
+        echo "SwiftLint Results:"
+        echo "- Errors: $ERROR_COUNT"
+        echo "- Warnings: $WARNING_COUNT"
+        
+        # Set outputs for subsequent jobs
+        echo "error_count=$ERROR_COUNT" >> $GITHUB_OUTPUT
+        echo "warning_count=$WARNING_COUNT" >> $GITHUB_OUTPUT
+        
+        # Fail if there are errors
+        if [ "$ERROR_COUNT" -gt 0 ]; then
+          echo "❌ SwiftLint found $ERROR_COUNT errors that must be fixed"
+          exit 1
+        fi
+        
+        if [ "$WARNING_COUNT" -gt 10 ]; then
+          echo "⚠️ Warning: $WARNING_COUNT SwiftLint warnings detected"
+        fi
+    
+    - name: Upload SwiftLint Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: swiftlint-reports
+        path: |
+          macOS-App/UniversalAITools/swiftlint-*.txt
+          macOS-App/UniversalAITools/swiftlint-*.json
+          macOS-App/UniversalAITools/swiftlint-*.html
+        retention-days: 30
+
+  # Job 2: Build Error Pattern Detection
+  build-error-detection:
+    name: Build Error Pattern Detection
+    runs-on: macos-latest
+    needs: swiftlint-analysis
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ env.XCODE_VERSION }}
+    
+    - name: Build and Capture Output
+      working-directory: macOS-App/UniversalAITools
+      run: |
+        echo "Building Universal AI Tools to detect error patterns..."
+        
+        # Clean build to get fresh error output
+        xcodebuild clean -project UniversalAITools.xcodeproj -scheme UniversalAITools
+        
+        # Build and capture all output for analysis
+        set +e  # Don't exit on build errors
+        xcodebuild build -project UniversalAITools.xcodeproj -scheme UniversalAITools \
+          -configuration Debug \
+          -derivedDataPath build \
+          -destination "platform=macOS" 2>&1 | tee build-output.log
+        BUILD_RESULT=$?
+        set -e
+        
+        echo "Build completed with exit code: $BUILD_RESULT"
+        
+        # Run error pattern analysis
+        if [ -f "Scripts/build-error-patterns.swift" ]; then
+          echo "Running build error pattern analysis..."
+          swift Scripts/build-error-patterns.swift build-output.log || true
+        fi
+        
+        # Set output for next jobs
+        echo "build_success=$([[ $BUILD_RESULT -eq 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+    
+    - name: Upload Build Analysis
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: build-analysis
+        path: |
+          macOS-App/UniversalAITools/build-output.log
+          macOS-App/UniversalAITools/build-error-analysis.md
+        retention-days: 30
+
+  # Job 3: Performance Validation
+  performance-validation:
+    name: Performance Validation
+    runs-on: macos-latest
+    needs: swiftlint-analysis
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Run Performance Analysis
+      working-directory: macOS-App/UniversalAITools
+      run: |
+        echo "Running performance validation for Universal AI Tools..."
+        
+        if [ -f "Scripts/performance-validator.swift" ]; then
+          swift Scripts/performance-validator.swift . || true
+          
+          # Check for critical performance issues
+          if [ -f "performance-analysis.md" ]; then
+            CRITICAL_COUNT=$(grep -c "🔴.*Critical" performance-analysis.md || echo "0")
+            HIGH_IMPACT_COUNT=$(grep -c "⚡.*High" performance-analysis.md || echo "0")
+            
+            echo "Performance Analysis Results:"
+            echo "- Critical Issues: $CRITICAL_COUNT"
+            echo "- High Impact Issues: $HIGH_IMPACT_COUNT"
+            
+            # Set outputs
+            echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+            echo "high_impact_count=$HIGH_IMPACT_COUNT" >> $GITHUB_OUTPUT
+            
+            if [ "$CRITICAL_COUNT" -gt 0 ]; then
+              echo "❌ Critical performance issues detected"
+              exit 1
+            fi
+          fi
+        else
+          echo "Performance validator script not found"
+        fi
+    
+    - name: Upload Performance Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-analysis
+        path: |
+          macOS-App/UniversalAITools/performance-analysis.md
+        retention-days: 30
+
+  # Job 4: Architecture Compliance
+  architecture-validation:
+    name: Architecture Compliance
+    runs-on: macos-latest
+    needs: swiftlint-analysis
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Run Architecture Validation
+      working-directory: macOS-App/UniversalAITools
+      run: |
+        echo "Running architecture compliance validation..."
+        
+        if [ -f "Scripts/architecture-validator.swift" ]; then
+          swift Scripts/architecture-validator.swift . || true
+          
+          # Check for architecture violations
+          if [ -f "architecture-compliance-report.md" ]; then
+            ERROR_COUNT=$(grep -c "🔴.*Error" architecture-compliance-report.md || echo "0")
+            WARNING_COUNT=$(grep -c "🟡.*Warning" architecture-compliance-report.md || echo "0")
+            
+            echo "Architecture Compliance Results:"
+            echo "- Errors: $ERROR_COUNT"
+            echo "- Warnings: $WARNING_COUNT"
+            
+            # Set outputs
+            echo "error_count=$ERROR_COUNT" >> $GITHUB_OUTPUT
+            echo "warning_count=$WARNING_COUNT" >> $GITHUB_OUTPUT
+            
+            if [ "$ERROR_COUNT" -gt 0 ]; then
+              echo "❌ Architecture compliance errors detected"
+              exit 1
+            fi
+          fi
+        else
+          echo "Architecture validator script not found"
+        fi
+    
+    - name: Upload Architecture Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: architecture-compliance
+        path: |
+          macOS-App/UniversalAITools/architecture-compliance-report.md
+        retention-days: 30
+
+  # Job 5: Auto-Fix Suggestions (PR only)
+  auto-fix-suggestions:
+    name: Auto-Fix Suggestions
+    runs-on: macos-latest
+    needs: [swiftlint-analysis, performance-validation, architecture-validation]
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Generate Auto-Fix Suggestions
+      working-directory: macOS-App/UniversalAITools
+      run: |
+        echo "Generating auto-fix suggestions..."
+        
+        if [ -f "Scripts/auto-fix-patterns.swift" ]; then
+          # Run in dry-run mode to generate suggestions
+          swift Scripts/auto-fix-patterns.swift . --dry-run > auto-fix-suggestions.md 2>&1 || true
+          
+          # Generate migration scripts
+          swift Scripts/auto-fix-patterns.swift --generate-migrations || true
+        fi
+    
+    - name: Comment PR with Suggestions
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            const suggestionsPath = 'macOS-App/UniversalAITools/auto-fix-suggestions.md';
+            if (fs.existsSync(suggestionsPath)) {
+              const suggestions = fs.readFileSync(suggestionsPath, 'utf8');
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🔧 Auto-Fix Suggestions\n\n${suggestions}\n\n---\n*Generated by Universal AI Tools Quality Validation*`
+              });
+            }
+          } catch (error) {
+            console.log('No auto-fix suggestions file found');
+          }
+    
+    - name: Upload Auto-Fix Artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: auto-fix-suggestions
+        path: |
+          macOS-App/UniversalAITools/auto-fix-suggestions.md
+          macOS-App/UniversalAITools/migrate-*.sh
+        retention-days: 30
+
+  # Job 6: Quality Summary Report
+  quality-summary:
+    name: Quality Summary
+    runs-on: macos-latest
+    needs: [swiftlint-analysis, build-error-detection, performance-validation, architecture-validation]
+    if: always()
+    
+    steps:
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: quality-reports
+    
+    - name: Generate Quality Summary
+      run: |
+        echo "# Universal AI Tools - Quality Validation Summary" > quality-summary.md
+        echo "Generated: $(date)" >> quality-summary.md
+        echo "" >> quality-summary.md
+        
+        echo "## Validation Results" >> quality-summary.md
+        echo "" >> quality-summary.md
+        
+        # SwiftLint Results
+        echo "### 🧹 SwiftLint Analysis" >> quality-summary.md
+        echo "- Status: ${{ needs.swiftlint-analysis.result }}" >> quality-summary.md
+        echo "" >> quality-summary.md
+        
+        # Build Results
+        echo "### 🔨 Build Validation" >> quality-summary.md
+        echo "- Status: ${{ needs.build-error-detection.result }}" >> quality-summary.md
+        echo "" >> quality-summary.md
+        
+        # Performance Results
+        echo "### ⚡ Performance Analysis" >> quality-summary.md
+        echo "- Status: ${{ needs.performance-validation.result }}" >> quality-summary.md
+        echo "" >> quality-summary.md
+        
+        # Architecture Results
+        echo "### 🏗️ Architecture Compliance" >> quality-summary.md
+        echo "- Status: ${{ needs.architecture-validation.result }}" >> quality-summary.md
+        echo "" >> quality-summary.md
+        
+        # Overall Status
+        if [[ "${{ needs.swiftlint-analysis.result }}" == "success" && 
+              "${{ needs.build-error-detection.result }}" == "success" && 
+              "${{ needs.performance-validation.result }}" == "success" && 
+              "${{ needs.architecture-validation.result }}" == "success" ]]; then
+          echo "## ✅ Overall Status: PASS" >> quality-summary.md
+        else
+          echo "## ❌ Overall Status: FAIL" >> quality-summary.md
+        fi
+        
+        echo "" >> quality-summary.md
+        echo "## Reports Available" >> quality-summary.md
+        echo "- SwiftLint Analysis" >> quality-summary.md
+        echo "- Build Error Detection" >> quality-summary.md
+        echo "- Performance Analysis" >> quality-summary.md
+        echo "- Architecture Compliance" >> quality-summary.md
+        echo "" >> quality-summary.md
+        echo "Download artifacts from this workflow run to view detailed reports." >> quality-summary.md
+    
+    - name: Upload Quality Summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: quality-summary
+        path: quality-summary.md
+        retention-days: 90
+    
+    - name: Set Status Check
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const success = [
+            '${{ needs.swiftlint-analysis.result }}',
+            '${{ needs.build-error-detection.result }}', 
+            '${{ needs.performance-validation.result }}',
+            '${{ needs.architecture-validation.result }}'
+          ].every(result => result === 'success');
+          
+          const state = success ? 'success' : 'failure';
+          const description = success ? 
+            'All quality validations passed' : 
+            'Quality validation failures detected';
+          
+          await github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: state,
+            description: description,
+            context: 'Universal AI Tools Quality Validation'
+          });
+
+# Workflow dispatch for manual runs
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Target branch for validation'
+        required: false
+        default: 'master'
+      validation_scope:
+        description: 'Validation scope'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+        - full
+        - lint-only
+        - performance-only
+        - architecture-only

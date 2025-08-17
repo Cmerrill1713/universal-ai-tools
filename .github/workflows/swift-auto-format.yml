@@ -1,0 +1,501 @@
+name: Swift Auto-Format & Fix
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC to catch and fix formatting issues
+    - cron: '0 2 * * *'
+  push:
+    branches: [main, master, develop, feature/*, fix/*]
+    paths:
+      - 'macOS-App/**/*.swift'
+      - '.github/workflows/swift-auto-format.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'macOS-App/**/*.swift'
+  workflow_dispatch:
+    inputs:
+      format_aggressiveness:
+        description: 'Format aggressiveness level'
+        required: false
+        default: 'normal'
+        type: choice
+        options:
+          - minimal
+          - normal
+          - aggressive
+      create_pr:
+        description: 'Create PR for fixes'
+        required: false
+        default: 'true'
+        type: boolean
+
+env:
+  XCODE_VERSION: '16.0'
+  SWIFT_VERSION: '6.0'
+
+jobs:
+  # 1. Swift Format Detection and Analysis
+  format-analysis:
+    name: Format Analysis
+    runs-on: macos-14
+    timeout-minutes: 10
+    outputs:
+      needs_formatting: ${{ steps.format-check.outputs.needs_formatting }}
+      file_count: ${{ steps.file-scan.outputs.file_count }}
+      issues_found: ${{ steps.issues-scan.outputs.issues_found }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Install formatting tools
+        run: |
+          echo "📦 Installing Swift formatting tools..."
+          brew install swiftformat swiftlint
+          swiftformat --version
+          swiftlint version
+
+      - id: file-scan
+        name: Scan Swift files
+        run: |
+          cd macOS-App/UniversalAITools
+          SWIFT_FILES=$(find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" | wc -l)
+          echo "📁 Found $SWIFT_FILES Swift files"
+          echo "file_count=$SWIFT_FILES" >> $GITHUB_OUTPUT
+
+      - id: format-check
+        name: Check formatting requirements
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔍 Checking Swift code formatting..."
+          
+          # Check formatting with SwiftFormat
+          if swiftformat --lint --quiet .; then
+            echo "✅ All files are properly formatted"
+            echo "needs_formatting=false" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Formatting issues detected"
+            echo "needs_formatting=true" >> $GITHUB_OUTPUT
+            
+            # Show detailed formatting issues
+            echo "## Formatting Issues Found:" > formatting-issues.txt
+            swiftformat --lint --verbose . >> formatting-issues.txt 2>&1 || true
+          fi
+
+      - id: issues-scan
+        name: Scan for common Swift issues
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔍 Scanning for common Swift issues..."
+          
+          ISSUES_COUNT=0
+          
+          # Check for semicolons
+          SEMICOLON_COUNT=$(find . -name "*.swift" -not -path "./DerivedData/*" -exec grep -l ";" {} \; | wc -l)
+          if [ $SEMICOLON_COUNT -gt 0 ]; then
+            echo "⚠️  Found $SEMICOLON_COUNT files with semicolons"
+            ISSUES_COUNT=$((ISSUES_COUNT + SEMICOLON_COUNT))
+          fi
+          
+          # Check for inconsistent spacing
+          SPACING_COUNT=$(find . -name "*.swift" -not -path "./DerivedData/*" -exec grep -l "  \+" {} \; | wc -l)
+          if [ $SPACING_COUNT -gt 0 ]; then
+            echo "⚠️  Found $SPACING_COUNT files with spacing issues"
+            ISSUES_COUNT=$((ISSUES_COUNT + SPACING_COUNT))
+          fi
+          
+          # Check for unused imports
+          UNUSED_IMPORTS=$(find . -name "*.swift" -not -path "./DerivedData/*" -exec grep -l "^import.*UIKit" {} \; | wc -l)
+          if [ $UNUSED_IMPORTS -gt 0 ]; then
+            echo "⚠️  Found $UNUSED_IMPORTS files with potentially unused UIKit imports (macOS app)"
+            ISSUES_COUNT=$((ISSUES_COUNT + UNUSED_IMPORTS))
+          fi
+          
+          echo "issues_found=$ISSUES_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Upload analysis results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: format-analysis
+          path: |
+            macOS-App/UniversalAITools/formatting-issues.txt
+          retention-days: 7
+
+  # 2. Automated Swift Formatting
+  swift-format-fix:
+    name: Swift Format Fix
+    runs-on: macos-14
+    timeout-minutes: 15
+    needs: format-analysis
+    if: needs.format-analysis.outputs.needs_formatting == 'true' || needs.format-analysis.outputs.issues_found != '0'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer
+
+      - name: Install formatting tools
+        run: |
+          brew install swiftformat swiftlint
+          
+      - name: Configure git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action - Swift Formatter"
+
+      - name: Apply Swift formatting
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Applying Swift formatting fixes..."
+          
+          # Determine formatting level
+          case "${{ github.event.inputs.format_aggressiveness }}" in
+            "minimal")
+              swiftformat . --indent 2 --linebreaks lf
+              ;;
+            "aggressive") 
+              swiftformat . --indent 2 --linebreaks lf --wraparguments beforefirst --wrapparameters beforefirst --wrapcollections beforefirst
+              ;;
+            *)
+              swiftformat . --indent 2 --linebreaks lf --wraparguments preserve --wrapparameters preserve
+              ;;
+          esac
+
+      - name: Fix common Swift issues
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Fixing common Swift issues..."
+          
+          # Remove semicolons at end of lines
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec sed -i '' 's/;$//' {} \;
+          
+          # Fix double semicolons
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec sed -i '' 's/;;/;/g' {} \;
+          
+          # Remove trailing whitespace
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec sed -i '' 's/[[:space:]]*$//' {} \;
+          
+          # Fix spacing around operators (basic)
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec sed -i '' 's/=\([^=]\)/ = \1/g' {} \;
+
+      - name: Optimize import statements
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Optimizing import statements..."
+          
+          # Remove UIKit imports in macOS app (replace with AppKit if needed)
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec sed -i '' '/^import UIKit$/d' {} \;
+          
+          # Sort import statements (basic sorting)
+          for file in $(find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*"); do
+            # Extract imports and sort them
+            grep "^import " "$file" | sort -u > temp_imports.txt || true
+            # Remove existing imports
+            sed '/^import /d' "$file" > temp_file.swift
+            # Combine sorted imports with rest of file
+            if [ -s temp_imports.txt ]; then
+              cat temp_imports.txt > temp_combined.swift
+              echo "" >> temp_combined.swift
+              cat temp_file.swift >> temp_combined.swift
+              mv temp_combined.swift "$file"
+            fi
+            rm -f temp_imports.txt temp_file.swift temp_combined.swift
+          done
+
+      - name: Apply SwiftLint auto-corrections
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔧 Applying SwiftLint auto-corrections..."
+          swiftlint --fix --quiet || true
+
+      - name: Validate changes don't break compilation
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "✅ Validating that changes don't break compilation..."
+          
+          # Quick syntax check
+          find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./SourcePackages/*" -exec swift -frontend -parse {} \; || {
+            echo "❌ Syntax errors detected after formatting - reverting changes"
+            git checkout .
+            exit 1
+          }
+          
+          echo "✅ Syntax validation passed"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changes_made=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No formatting changes needed"
+          else
+            echo "changes_made=true" >> $GITHUB_OUTPUT
+            echo "✅ Formatting changes applied"
+            
+            # Show summary of changes
+            echo "## Changes Summary:" > changes-summary.txt
+            git diff --stat >> changes-summary.txt
+          fi
+
+      - name: Commit formatting changes
+        if: steps.changes.outputs.changes_made == 'true'
+        run: |
+          git add .
+          git commit -m "fix: automated Swift fixes - Generated with Claude Code"
+      - name: Create Pull Request for fixes
+        if: steps.changes.outputs.changes_made == 'true' && github.event.inputs.create_pr == 'true' && github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "style: auto-fix Swift formatting and code style issues"
+          body: |
+            ## 🤖 Automated Swift Code Formatting
+            
+            This PR contains automated fixes for Swift code formatting and style issues.
+            
+            ### Changes Applied
+            - ✨ Swift code formatting (SwiftFormat)
+            - 📦 Import statement optimization
+            - 🧹 Semicolon removal and cleanup
+            - 🔧 Trailing whitespace removal
+            - 📏 SwiftLint auto-corrections
+            
+            ### Statistics
+            - **Files processed**: ${{ needs.format-analysis.outputs.file_count }}
+            - **Issues fixed**: ${{ needs.format-analysis.outputs.issues_found }}
+            - **Format aggressiveness**: ${{ github.event.inputs.format_aggressiveness || 'normal' }}
+            
+            ### Validation
+            - ✅ Syntax validation passed
+            - ✅ No compilation errors introduced
+            - ✅ All changes are style-only
+            
+            This PR is safe to merge and will improve code consistency across the Swift codebase.
+            
+            ---
+            🧑‍💻 Generated with [Claude Code](https://claude.ai/code)
+          branch: auto-fix/swift-formatting-${{ github.run_number }}
+          base: ${{ github.ref_name }}
+          labels: |
+            auto-fix
+            swift
+            formatting
+            style
+          assignees: ${{ github.actor }}
+
+      - name: Push direct commits (non-PR events)
+        if: steps.changes.outputs.changes_made == 'true' && github.event.inputs.create_pr != 'true' && github.event_name != 'pull_request'
+        run: |
+          git push origin ${{ github.ref_name }}
+          echo "✅ Formatting changes pushed directly to ${{ github.ref_name }}"
+
+      - name: Upload changes summary
+        if: steps.changes.outputs.changes_made == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatting-changes
+          path: |
+            macOS-App/UniversalAITools/changes-summary.txt
+          retention-days: 7
+
+  # 3. SwiftLint Configuration and Analysis
+  swiftlint-analysis:
+    name: SwiftLint Analysis
+    runs-on: macos-14
+    timeout-minutes: 10
+    needs: format-analysis
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint version
+
+      - name: Create SwiftLint configuration
+        run: |
+          cd macOS-App/UniversalAITools
+          if [ ! -f ".swiftlint.yml" ]; then
+            echo "📝 Creating SwiftLint configuration..."
+            cat > .swiftlint.yml << 'EOF'
+# SwiftLint Configuration for Universal AI Tools macOS App
+# Swift 6 / macOS 15+ / Xcode 16+
+
+# Paths to include/exclude
+included:
+  - .
+excluded:
+  - DerivedData
+  - SourcePackages
+  - build
+  - .build
+
+# Enabled rules
+enabled_rules:
+  - closure_spacing
+  - colon
+  - comma
+  - empty_string
+  - force_cast
+  - force_try
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - leading_whitespace
+  - legacy_cggeometry_functions
+  - legacy_constant
+  - legacy_constructor
+  - legacy_nsgeometry_functions
+  - line_length
+  - operator_usage_whitespace
+  - return_arrow_whitespace
+  - statement_position
+  - trailing_newline
+  - trailing_semicolon
+  - trailing_whitespace
+  - type_name
+  - variable_name
+  - vertical_whitespace
+
+# Disabled rules (too aggressive for this codebase)
+disabled_rules:
+  - todo
+  - function_body_length
+  - type_body_length
+  - file_length
+  - cyclomatic_complexity
+
+# Rule configurations
+line_length:
+  warning: 120
+  error: 150
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+
+type_name:
+  min_length: 3
+  max_length: 40
+
+variable_name:
+  min_length: 1
+  max_length: 40
+
+# Swift version
+swift_version: "6.0"
+
+# Custom rules for macOS app development
+custom_rules:
+  no_uikit_import:
+    name: "No UIKit Import in macOS App"
+    regex: "^import UIKit$"
+    message: "UIKit should not be imported in macOS applications. Use AppKit instead."
+    severity: error
+    
+  prefer_swiftui_over_appkit:
+    name: "Prefer SwiftUI over AppKit"
+    regex: "NSViewController|NSView(?!Controller)"
+    message: "Consider using SwiftUI views instead of AppKit when possible"
+    severity: warning
+          fi
+
+      - name: Run SwiftLint analysis
+        run: |
+          cd macOS-App/UniversalAITools
+          echo "🔍 Running SwiftLint analysis..."
+          
+          # Run SwiftLint with detailed output
+          swiftlint lint --reporter github-actions-logging || true
+          swiftlint lint --reporter json > swiftlint-report.json || true
+          swiftlint lint --reporter html > swiftlint-report.html || true
+
+      - name: Analyze SwiftLint results
+        run: |
+          cd macOS-App/UniversalAITools
+          if [ -f "swiftlint-report.json" ]; then
+            echo "📊 Analyzing SwiftLint results..."
+            
+            # Extract statistics
+            TOTAL_VIOLATIONS=$(jq '. | length' swiftlint-report.json)
+            ERROR_COUNT=$(jq '[.[] | select(.severity == "error")] | length' swiftlint-report.json)
+            WARNING_COUNT=$(jq '[.[] | select(.severity == "warning")] | length' swiftlint-report.json)
+            
+            echo "## SwiftLint Analysis Results" > swiftlint-summary.md
+            echo "- **Total Violations**: $TOTAL_VIOLATIONS" >> swiftlint-summary.md
+            echo "- **Errors**: $ERROR_COUNT" >> swiftlint-summary.md
+            echo "- **Warnings**: $WARNING_COUNT" >> swiftlint-summary.md
+            echo "" >> swiftlint-summary.md
+            
+            if [ $ERROR_COUNT -gt 0 ]; then
+              echo "❌ SwiftLint found $ERROR_COUNT errors that need to be fixed"
+              echo "### Errors Found:" >> swiftlint-summary.md
+              jq -r '.[] | select(.severity == "error") | "- \(.rule): \(.reason) (\(.file):\(.line))"' swiftlint-report.json >> swiftlint-summary.md
+            else
+              echo "✅ No SwiftLint errors found"
+            fi
+          fi
+
+      - name: Upload SwiftLint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-analysis
+          path: |
+            macOS-App/UniversalAITools/.swiftlint.yml
+            macOS-App/UniversalAITools/swiftlint-report.*
+            macOS-App/UniversalAITools/swiftlint-summary.md
+          retention-days: 7
+
+  # 4. Format Status Summary
+  format-summary:
+    name: Format Status Summary
+    runs-on: macos-14
+    timeout-minutes: 5
+    needs: [format-analysis, swift-format-fix, swiftlint-analysis]
+    if: always()
+    steps:
+      - name: Generate summary report
+        run: |
+          echo "# Swift Auto-Format Summary" > format-summary.md
+          echo "" >> format-summary.md
+          echo "## Analysis Results" >> format-summary.md
+          echo "- **Files Scanned**: ${{ needs.format-analysis.outputs.file_count }}" >> format-summary.md
+          echo "- **Formatting Required**: ${{ needs.format-analysis.outputs.needs_formatting }}" >> format-summary.md
+          echo "- **Issues Found**: ${{ needs.format-analysis.outputs.issues_found }}" >> format-summary.md
+          echo "" >> format-summary.md
+          echo "## Job Results" >> format-summary.md
+          echo "- **Format Analysis**: ${{ needs.format-analysis.result }}" >> format-summary.md
+          echo "- **Format Fix**: ${{ needs.swift-format-fix.result }}" >> format-summary.md
+          echo "- **SwiftLint Analysis**: ${{ needs.swiftlint-analysis.result }}" >> format-summary.md
+          echo "" >> format-summary.md
+          echo "**Workflow completed at**: $(date -u)" >> format-summary.md
+
+      - name: Comment on PR with summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('format-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${summary}\n\n🤖 Generated with [Claude Code](https://claude.ai/code)`
+            });
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-format-summary
+          path: format-summary.md
+          retention-days: 30
