@@ -4,56 +4,13 @@ import OSLog
 import SwiftUI
 
 // MARK: - Change Event Types
-public enum ChangeEventType: String, Codable, CaseIterable {
-    case appStateChange = "app_state_change"
-    case userInteraction = "user_interaction"
-    case viewNavigation = "view_navigation"
-    case settingsChange = "settings_change"
-    case connectionChange = "connection_change"
-    case agentActivity = "agent_activity"
-    case chatActivity = "chat_activity"
-    case voiceActivity = "voice_activity"
-    case systemEvent = "system_event"
-    case errorEvent = "error_event"
-    case performanceEvent = "performance_event"
-    case featureUsage = "feature_usage"
-    case workflowStep = "workflow_step"
-}
+// ChangeEventType is already defined in LoggingTypes.swift
 
-// MARK: - Change Event
-public struct ChangeEvent: Codable, Identifiable {
-    public let id: UUID
-    public let timestamp: Date
-    public let type: ChangeEventType
-    public let source: String
-    public let action: String
-    public let previousValue: String?
-    public let newValue: String?
-    public let metadata: [String: String]
-    public let userID: String?
-    public let sessionID: String
-    
-    public init(
-        type: ChangeEventType,
-        source: String,
-        action: String,
-        previousValue: String? = nil,
-        newValue: String? = nil,
-        metadata: [String: String] = [:],
-        userID: String? = nil
-    ) {
-        self.id = UUID()
-        self.timestamp = Date()
-        self.type = type
-        self.source = source
-        self.action = action
-        self.previousValue = previousValue
-        self.newValue = newValue
-        self.metadata = metadata
-        self.userID = userID
-        self.sessionID = ChangeTracker.shared.sessionID
-    }
-}
+// MARK: - Feature Usage
+// FeatureUsage is already defined in LoggingTypes.swift
+
+// MARK: - Change Event (Using from SharedTypes.swift)
+// Note: ChangeEvent is defined in SharedTypes.swift to avoid conflicts
 
 // MARK: - User Interaction Types
 public enum UserInteractionType: String, Codable, CaseIterable {
@@ -73,25 +30,7 @@ public enum UserInteractionType: String, Codable, CaseIterable {
 }
 
 // MARK: - Feature Usage Tracking
-public struct FeatureUsage: Codable {
-    public let featureName: String
-    public let usageCount: Int
-    public let totalDuration: TimeInterval
-    public let averageDuration: TimeInterval
-    public let lastUsed: Date
-    public let firstUsed: Date
-    public let metadata: [String: String]
-    
-    public init(featureName: String) {
-        self.featureName = featureName
-        self.usageCount = 0
-        self.totalDuration = 0
-        self.averageDuration = 0
-        self.lastUsed = Date()
-        self.firstUsed = Date()
-        self.metadata = [:]
-    }
-}
+// Note: FeatureUsage is defined in LoggingTypes.swift to avoid conflicts
 
 // MARK: - Workflow Step Tracking
 public struct WorkflowStep: Codable, Identifiable {
@@ -126,27 +65,22 @@ public struct WorkflowStep: Codable, Identifiable {
     }
 }
 
-// MARK: - Change Pattern Detection
-public struct ChangePattern: Codable {
-    public let name: String
-    public let description: String
-    public let conditions: [PatternCondition]
-    public let frequency: TimeInterval
-    public let confidence: Double
-    public let lastDetected: Date?
-    public let occurrenceCount: Int
-    
-    public struct PatternCondition: Codable {
-        public let eventType: ChangeEventType
-        public let source: String?
-        public let action: String?
-        public let timeWindow: TimeInterval
-        public let minOccurrences: Int
-    }
+// MARK: - Change Pattern Detection (Using from SharedTypes.swift)
+// Note: ChangePattern is defined in SharedTypes.swift to avoid conflicts
+
+public struct PatternCondition: Codable {
+    public let eventType: ChangeEventType
+    public let source: String?
+    public let action: String?
+    public let timeWindow: TimeInterval
+    public let minOccurrences: Int
 }
 
-// MARK: - Analytics Data
-public struct AnalyticsSnapshot: Codable {
+// MARK: - Analytics Data (Using from SharedTypes.swift)
+// Note: AnalyticsSnapshot is defined in SharedTypes.swift to avoid conflicts
+
+// Extended analytics data specific to ChangeTracker
+public struct DetailedAnalyticsSnapshot: Codable {
     public let timestamp: Date
     public let sessionDuration: TimeInterval
     public let eventCounts: [ChangeEventType: Int]
@@ -328,16 +262,12 @@ public class MemoryChangeStorage: ChangeStorage {
                     }
                 }
                 
+                // Create a simplified analytics snapshot using the shared type
                 let snapshot = AnalyticsSnapshot(
                     timestamp: now,
-                    sessionDuration: sessionDuration,
-                    eventCounts: eventCounts,
-                    featureUsage: featureUsage,
-                    userInteractionCounts: interactionCounts,
-                    mostUsedFeatures: Array(mostUsedFeatures),
-                    commonWorkflows: commonWorkflows,
-                    errorPatterns: errorPatterns,
-                    performanceMetrics: performanceMetrics
+                    metrics: ["total_events": Double(self.events.count)],
+                    events: Array(self.events.suffix(10).map { $0.type.rawValue }),
+                    healthStatus: .healthy
                 )
                 
                 continuation.resume(returning: snapshot)
@@ -434,12 +364,11 @@ public class ChangeTracker: ObservableObject {
         
         let event = ChangeEvent(
             type: type,
-            source: source,
-            action: action,
-            previousValue: previousValue,
-            newValue: newValue,
+            description: "\(source): \(action)",
+            timestamp: Date(),
             metadata: metadata,
-            userID: userID
+            source: source,
+            action: action
         )
         
         Task {
@@ -475,7 +404,7 @@ public class ChangeTracker: ObservableObject {
         }
         
         track(
-            type: .userInteraction,
+            type: ChangeEventType.userInteraction,
             source: component,
             action: type.rawValue,
             metadata: enrichedMetadata
@@ -497,7 +426,7 @@ public class ChangeTracker: ObservableObject {
         enrichedMetadata["from_view"] = fromView
         
         track(
-            type: .viewNavigation,
+            type: ChangeEventType.navigation,
             source: "navigation",
             action: "navigate",
             previousValue: fromView,
@@ -515,7 +444,7 @@ public class ChangeTracker: ObservableObject {
         guard isEnabled else { return }
         
         track(
-            type: .settingsChange,
+            type: ChangeEventType.stateChange,
             source: "settings",
             action: "change",
             previousValue: oldValue,
@@ -537,7 +466,7 @@ public class ChangeTracker: ObservableObject {
         enrichedMetadata["connected"] = String(connected)
         
         track(
-            type: .connectionChange,
+            type: ChangeEventType.stateChange,
             source: service,
             action: connected ? "connected" : "disconnected",
             previousValue: previousState.map(String.init),
@@ -563,7 +492,7 @@ public class ChangeTracker: ObservableObject {
         }
         
         track(
-            type: .agentActivity,
+            type: ChangeEventType.stateChange,
             source: agentName,
             action: activity,
             metadata: enrichedMetadata
@@ -586,7 +515,7 @@ public class ChangeTracker: ObservableObject {
         }
         
         track(
-            type: .chatActivity,
+            type: ChangeEventType.userInteraction,
             source: "chat",
             action: "session_end",
             metadata: enrichedMetadata
@@ -608,7 +537,7 @@ public class ChangeTracker: ObservableObject {
         }
         
         track(
-            type: .voiceActivity,
+            type: ChangeEventType.userInteraction,
             source: "voice_system",
             action: activity,
             metadata: enrichedMetadata
@@ -628,7 +557,7 @@ public class ChangeTracker: ObservableObject {
         enrichedMetadata["error_message"] = errorMessage
         
         track(
-            type: .errorEvent,
+            type: ChangeEventType.error,
             source: source,
             action: "error_occurred",
             newValue: errorMessage,
@@ -649,7 +578,7 @@ public class ChangeTracker: ObservableObject {
         enrichedMetadata["value"] = String(value)
         
         track(
-            type: .performanceEvent,
+            type: ChangeEventType.performance,
             source: source,
             action: "metric_recorded",
             newValue: String(value),
@@ -665,7 +594,7 @@ public class ChangeTracker: ObservableObject {
         featureStartTimes[featureName] = Date()
         
         track(
-            type: .featureUsage,
+            type: ChangeEventType.userInteraction,
             source: featureName,
             action: "feature_started"
         )
@@ -678,7 +607,7 @@ public class ChangeTracker: ObservableObject {
         featureStartTimes.removeValue(forKey: featureName)
         
         track(
-            type: .featureUsage,
+            type: ChangeEventType.userInteraction,
             source: featureName,
             action: "feature_ended",
             metadata: [
@@ -723,7 +652,7 @@ public class ChangeTracker: ObservableObject {
         activeWorkflows[workflowName] = session
         
         track(
-            type: .workflowStep,
+            type: ChangeEventType.stateChange,
             source: workflowName,
             action: "workflow_started"
         )
@@ -759,7 +688,7 @@ public class ChangeTracker: ObservableObject {
         }
         
         track(
-            type: .workflowStep,
+            type: ChangeEventType.stateChange,
             source: workflowName,
             action: "step_completed",
             newValue: stepName,
@@ -777,7 +706,7 @@ public class ChangeTracker: ObservableObject {
         let duration = Date().timeIntervalSince(session.startTime)
         
         track(
-            type: .workflowStep,
+            type: ChangeEventType.stateChange,
             source: workflowName,
             action: "workflow_ended",
             metadata: [
@@ -869,13 +798,10 @@ public class ChangeTracker: ObservableObject {
         for (source, errors) in errorsBySource {
             if errors.count >= 5 {
                 let pattern = ChangePattern(
-                    name: "Frequent Errors",
-                    description: "Multiple errors from \(source)",
-                    conditions: [],
-                    frequency: 3600,
+                    pattern: "Frequent Errors from \(source)",
+                    frequency: errors.count,
                     confidence: min(1.0, Double(errors.count) / 10.0),
-                    lastDetected: errors.last?.timestamp,
-                    occurrenceCount: errors.count
+                    lastSeen: errors.last?.timestamp ?? Date()
                 )
                 patterns.append(pattern)
             }
@@ -893,13 +819,10 @@ public class ChangeTracker: ObservableObject {
         
         if slowEvents.count >= 3 {
             let pattern = ChangePattern(
-                name: "Performance Degradation",
-                description: "Multiple slow operations detected",
-                conditions: [],
-                frequency: 3600,
+                pattern: "Performance Degradation",
+                frequency: slowEvents.count,
                 confidence: min(1.0, Double(slowEvents.count) / 5.0),
-                lastDetected: slowEvents.last?.timestamp,
-                occurrenceCount: slowEvents.count
+                lastSeen: slowEvents.last?.timestamp ?? Date()
             )
             patterns.append(pattern)
         }
@@ -911,7 +834,7 @@ public class ChangeTracker: ObservableObject {
         if !patterns.isEmpty {
             logger.warning("Detected \(patterns.count) change patterns", 
                           category: .monitoring,
-                          metadata: ["patterns": patterns.map { $0.name }.joined(separator: ", ")])
+                          metadata: ["patterns": patterns.map { $0.pattern }.joined(separator: ", ")])
         }
     }
     
@@ -956,7 +879,7 @@ public class ChangeTracker: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.track(
-                type: .systemEvent,
+                type: ChangeEventType.systemEvent,
                 source: "application",
                 action: "will_terminate"
             )
@@ -968,7 +891,7 @@ public class ChangeTracker: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.track(
-                type: .systemEvent,
+                type: ChangeEventType.systemEvent,
                 source: "application",
                 action: "became_active"
             )
@@ -980,7 +903,7 @@ public class ChangeTracker: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.track(
-                type: .systemEvent,
+                type: ChangeEventType.systemEvent,
                 source: "application",
                 action: "resigned_active"
             )
