@@ -126,12 +126,12 @@ enum ContextPriority: String, Codable, CaseIterable {
 
 // MARK: - Graph Context Data
 struct GraphContextData: Codable {
-    let nodes: [GraphNode]
+    let nodes: [ContextGraphNode]
     let edges: [GraphEdge]
     let clusters: [GraphCluster]
     let metadata: GraphMetadata
     
-    struct GraphNode: Codable, Identifiable {
+    struct ContextGraphNode: Codable, Identifiable {
         let id: String
         let label: String
         let type: String

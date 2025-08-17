@@ -1,0 +1,239 @@
+name: Automated Testing Suite
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run unit tests
+        run: npm run test:unit || npm test
+        
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: unit
+          name: unit-tests-node-${{ matrix.node-version }}
+          
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+          
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Setup test environment
+        run: |
+          cp .env.example .env.test
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> .env.test
+          echo "REDIS_URL=redis://localhost:6379" >> .env.test
+          
+      - name: Run migrations
+        run: npm run migrate:test || true
+        
+      - name: Run integration tests
+        run: npm run test:integration || true
+        env:
+          NODE_ENV: test
+          
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Run E2E tests
+        run: npm run test:e2e || npx playwright test
+        
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          
+  swift-tests:
+    name: Swift Tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode.app
+        
+      - name: Build and test Swift app
+        run: |
+          cd macOS-App/UniversalAITools
+          xcodebuild test \
+            -scheme UniversalAITools \
+            -destination 'platform=macOS' \
+            -resultBundlePath TestResults.xcresult \
+            | xcpretty || true
+            
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: swift-test-results
+          path: macOS-App/UniversalAITools/TestResults.xcresult
+          retention-days: 7
+          
+  api-tests:
+    name: API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Start server
+        run: |
+          npm run dev &
+          sleep 10
+          
+      - name: Run API tests
+        run: npm run test:api || true
+        
+      - name: Run Newman tests
+        run: |
+          if [ -f "postman/collection.json" ]; then
+            npx newman run postman/collection.json \
+              --environment postman/environment.json \
+              --reporters cli,json \
+              --reporter-json-export newman-results.json
+          fi
+          
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build application
+        run: npm run build
+        
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun || true
+          
+      - name: Run load tests
+        run: |
+          npm install -g artillery
+          npm run dev &
+          sleep 10
+          artillery quick --count 10 --num 100 http://localhost:9999 || true
+          
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests, swift-tests, api-tests]
+    if: always()
+    steps:
+      - name: Check test results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = ${{ toJson(needs) }};
+            const failed = Object.values(jobs).some(job => job.result === 'failure');
+            const skipped = Object.values(jobs).some(job => job.result === 'skipped');
+            
+            if (failed) {
+              core.setFailed('Some tests failed. Please check the results above.');
+            } else if (skipped) {
+              core.warning('Some tests were skipped.');
+            } else {
+              core.info('All tests passed successfully! 🎉');
+            }

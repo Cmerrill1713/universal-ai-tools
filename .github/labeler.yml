@@ -1,0 +1,124 @@
+# Configuration for auto-labeler action
+# Add labels based on file paths
+
+# Frontend labels
+frontend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - frontend/**/*
+      - public/**/*
+      - '*.html'
+      - '*.css'
+
+# Swift/macOS labels
+swift:
+  - changed-files:
+    - any-glob-to-any-file:
+      - macOS-App/**/*.swift
+      - macOS-App/**/*.xcodeproj
+      - macOS-App/**/*.xcworkspace
+
+macos:
+  - changed-files:
+    - any-glob-to-any-file:
+      - macOS-App/**/*
+
+# Backend labels
+backend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/**/*.ts
+      - src/**/*.js
+      - server.ts
+      - '*.ts'
+      - '*.js'
+
+# API labels
+api:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/routers/**/*
+      - src/api/**/*
+      - src/graphql/**/*
+
+# Agent system labels
+agents:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/agents/**/*
+      - agents/**/*
+
+# Service labels
+services:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/services/**/*
+
+# Testing labels
+testing:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.test.js'
+      - '**/*.spec.ts'
+      - '**/*.spec.js'
+      - tests/**/*
+      - __tests__/**/*
+      - jest.config.*
+      - playwright.config.*
+
+# Documentation labels
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - docs/**/*
+      - README.md
+      - CONTRIBUTING.md
+
+# Configuration labels
+configuration:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.json'
+      - '*.yml'
+      - '*.yaml'
+      - .env*
+      - .github/**/*
+
+# Docker labels
+docker:
+  - changed-files:
+    - any-glob-to-any-file:
+      - Dockerfile*
+      - docker-compose*.yml
+      - .dockerignore
+
+# Dependencies labels
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - package.json
+      - package-lock.json
+      - yarn.lock
+      - pnpm-lock.yaml
+      - requirements.txt
+      - Pipfile
+      - Pipfile.lock
+
+# CI/CD labels
+ci-cd:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/workflows/**/*
+      - .gitlab-ci.yml
+      - .circleci/**/*
+
+# Database labels
+database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - supabase/**/*
+      - migrations/**/*
+      - '**/*.sql'
+      - prisma/**/*

@@ -3,15 +3,72 @@
 ## Project Overview
 This is a sophisticated SwiftUI-based macOS application that serves as the primary frontend for the Universal AI Tools platform. The app features 70+ advanced UI components, real-time data visualization, and comprehensive AI orchestration capabilities.
 
+## 🛠️ MCP Xcode Build Tools Available
+
+Claude Code has access to powerful MCP (Model Context Protocol) Xcode build tools for this project. These tools provide comprehensive Swift/Xcode development capabilities:
+
+### Build & Run Tools
+- **mcp__XcodeBuildMCP__build_mac_proj** - Build macOS app from project file
+- **mcp__XcodeBuildMCP__build_run_mac_proj** - Build and run macOS app in one step
+- **mcp__XcodeBuildMCP__build_sim_name_proj** - Build for specific simulator by name
+- **mcp__XcodeBuildMCP__clean_proj** - Clean build artifacts
+
+### Project Management
+- **mcp__XcodeBuildMCP__discover_projs** - Find all Xcode projects in workspace
+- **mcp__XcodeBuildMCP__list_schems_proj** - List available schemes
+- **mcp__XcodeBuildMCP__show_build_set_proj** - Show build settings
+
+### Testing Tools
+- **mcp__XcodeBuildMCP__test_macos_proj** - Run macOS tests
+- **mcp__XcodeBuildMCP__test_sim_name_proj** - Run tests on simulator
+
+### Simulator Management
+- **mcp__XcodeBuildMCP__list_sims** - List available simulators
+- **mcp__XcodeBuildMCP__boot_sim** - Boot a simulator
+- **mcp__XcodeBuildMCP__install_app_sim** - Install app on simulator
+- **mcp__XcodeBuildMCP__launch_app_sim** - Launch app on simulator
+- **mcp__XcodeBuildMCP__screenshot** - Take simulator screenshot
+
+### UI Automation
+- **mcp__XcodeBuildMCP__describe_ui** - Get UI element hierarchy with coordinates
+- **mcp__XcodeBuildMCP__tap** - Tap at specific coordinates
+- **mcp__XcodeBuildMCP__type_text** - Type text into fields
+- **mcp__XcodeBuildMCP__swipe** - Perform swipe gestures
+
+### Device Management
+- **mcp__XcodeBuildMCP__list_devices** - List connected physical devices
+- **mcp__XcodeBuildMCP__install_app_device** - Install on physical device
+- **mcp__XcodeBuildMCP__launch_app_device** - Launch on physical device
+
+### Swift Package Management
+- **mcp__XcodeBuildMCP__swift_package_build** - Build Swift packages
+- **mcp__XcodeBuildMCP__swift_package_test** - Test Swift packages
+- **mcp__XcodeBuildMCP__swift_package_run** - Run Swift package executables
+
+### Diagnostic Tools
+- **mcp__XcodeBuildMCP__diagnostic** - Get MCP server environment info
+- **mcp__XcodeBuildMCP__discover_tools** - Enable relevant development workflows
+
+**Usage Example:**
+```bash
+# Discover and build the project
+mcp__XcodeBuildMCP__discover_projs workspaceRoot="/Users/christianmerrill/Desktop/universal-ai-tools"
+mcp__XcodeBuildMCP__build_mac_proj projectPath="macOS-App/UniversalAITools/UniversalAITools.xcodeproj" scheme="UniversalAITools"
+
+# Run tests
+mcp__XcodeBuildMCP__test_macos_proj projectPath="macOS-App/UniversalAITools/UniversalAITools.xcodeproj" scheme="UniversalAITools"
+```
+
 ## Architecture Guidelines
 
 ### Technology Stack
 - **Language**: Swift 6.0+
-- **UI Framework**: SwiftUI (primary), AppKit (only when necessary)
+- **UI Framework**: SwiftUI (primary), AppKit (only when necessary), Arc UI Components
 - **Minimum Target**: macOS 14.0 (Sonoma)
 - **Architecture Pattern**: MVVM with @Observable
 - **Concurrency**: Swift Concurrency (async/await, actors, Task)
 - **Testing**: XCTest with SwiftUI ViewInspector
+- **Arc UI Integration**: Custom Arc browser-inspired UI components for modern interface design
 
 ### Core Principles
 1. **SwiftUI First**: Build all functionality using SwiftUI unless there's a feature only supported in AppKit
@@ -25,6 +82,10 @@ This is a sophisticated SwiftUI-based macOS application that serves as the prima
 
 ```
 UniversalAITools/
+├── Arc/                # Arc UI-inspired components
+│   ├── Components/     # Arc-style UI elements
+│   ├── Themes/        # Arc theming system
+│   └── Animations/    # Arc-style animations
 ├── Views/              # SwiftUI Views and UI components
 │   ├── Components/     # Reusable UI components
 │   ├── Chat/          # Chat interface views
@@ -35,6 +96,15 @@ UniversalAITools/
 ├── Utils/             # Helper functions and extensions
 └── Tests/             # Unit and UI tests
 ```
+
+### Arc UI Components
+The app includes Arc browser-inspired UI components located in the `Arc/` directory:
+- **Arc Sidebar**: Collapsible sidebar with smooth animations
+- **Arc Tab Bar**: Space-efficient tab management
+- **Arc Command Palette**: Quick action launcher (⌘K)
+- **Arc Boost Controls**: Custom UI enhancement controls
+- **Arc Theme System**: Dynamic color theming inspired by Arc
+- **Arc Gestures**: Fluid gesture controls and animations
 
 ## Code Style Guidelines
 

@@ -1,0 +1,98 @@
+name: Auto Label PRs and Issues
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize]
+  issues:
+    types: [opened, edited]
+
+jobs:
+  label-pr:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - uses: actions/labeler@v4
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+
+  label-size:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - name: Size Label
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_max_size: 10
+          s_max_size: 100
+          m_max_size: 500
+          l_max_size: 1000
+          fail_if_xl: false
+          
+  label-by-content:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR/Issue Content
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { issue, pull_request } = context.payload;
+            const item = issue || pull_request;
+            if (!item) return;
+            
+            const body = item.body || '';
+            const title = item.title || '';
+            const labels = [];
+            
+            // Bug detection
+            if (/bug|error|issue|problem|crash|fail/i.test(title + body)) {
+              labels.push('bug');
+            }
+            
+            // Feature detection
+            if (/feature|enhancement|improve|add|new/i.test(title)) {
+              labels.push('enhancement');
+            }
+            
+            // Documentation detection
+            if (/doc|readme|guide|tutorial/i.test(title + body)) {
+              labels.push('documentation');
+            }
+            
+            // Swift/macOS detection
+            if (/swift|swiftui|macos|xcode/i.test(title + body)) {
+              labels.push('swift');
+              labels.push('macos');
+            }
+            
+            // AI/ML detection
+            if (/ai|ml|llm|gpt|claude|agent|rag/i.test(title + body)) {
+              labels.push('ai-ml');
+            }
+            
+            // Performance detection
+            if (/performance|speed|slow|optimize|memory|cpu/i.test(title + body)) {
+              labels.push('performance');
+            }
+            
+            // Security detection
+            if (/security|vulnerability|cve|auth|token|password/i.test(title + body)) {
+              labels.push('security');
+              labels.push('priority-high');
+            }
+            
+            // Testing detection
+            if (/test|spec|coverage|jest|playwright/i.test(title + body)) {
+              labels.push('testing');
+            }
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: item.number,
+                labels: labels
+              });
+            }

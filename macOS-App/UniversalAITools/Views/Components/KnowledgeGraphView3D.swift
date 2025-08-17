@@ -926,30 +926,41 @@ struct KnowledgeGraphView3D: View {
         logger.info("Setting up 3D knowledge graph")
         
         // Setup WebSocket callbacks
-        webSocketService.onNodeUpdate = { node in
-            graphState.addNode(node)
-        }
-        
-        webSocketService.onEdgeUpdate = { edge in
-            graphState.addEdge(edge)
-        }
-        
-        webSocketService.onClusterUpdate = { cluster in
-            var clusters = graphState.clusters
-            if let index = clusters.firstIndex(where: { $0.id == cluster.id }) {
-                clusters[index] = cluster
-            } else {
-                clusters.append(cluster)
+        webSocketService.onNodeUpdate = { [weak graphState] node in
+            Task { @MainActor in
+                graphState?.addNode(node)
             }
-            graphState.updateClusters(clusters)
         }
         
-        webSocketService.onQueryResult = { result in
-            handleQueryResult(result)
+        webSocketService.onEdgeUpdate = { [weak graphState] edge in
+            Task { @MainActor in
+                graphState?.addEdge(edge)
+            }
         }
         
-        webSocketService.onLayoutUpdate = { positions in
-            handleLayoutUpdate(positions)
+        webSocketService.onClusterUpdate = { [weak graphState] cluster in
+            Task { @MainActor in
+                guard let graphState = graphState else { return }
+                var clusters = graphState.clusters
+                if let index = clusters.firstIndex(where: { $0.id == cluster.id }) {
+                    clusters[index] = cluster
+                } else {
+                    clusters.append(cluster)
+                }
+                graphState.updateClusters(clusters)
+            }
+        }
+        
+        webSocketService.onQueryResult = { [weak self] result in
+            Task { @MainActor in
+                self?.handleQueryResult(result)
+            }
+        }
+        
+        webSocketService.onLayoutUpdate = { [weak self] positions in
+            Task { @MainActor in
+                self?.handleLayoutUpdate(positions)
+            }
         }
         
         // Connect to backend

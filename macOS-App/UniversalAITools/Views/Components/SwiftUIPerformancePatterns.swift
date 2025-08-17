@@ -317,7 +317,7 @@ extension NSImage {
 
 /// High-performance graph component for large datasets
 struct PerformantGraphView: View {
-    let nodes: [GraphNode]
+    let nodes: [PerformanceGraphNode]
     let connections: [GraphConnection]
     let maxVisibleNodes: Int
     
@@ -326,7 +326,7 @@ struct PerformantGraphView: View {
     @State private var lastUpdateTime: Date = Date()
     @StateObject private var stateContainer = PerformantStateContainer<GraphViewState>(GraphViewState())
     
-    init(nodes: [GraphNode], connections: [GraphConnection], maxVisibleNodes: Int = 500) {
+    init(nodes: [PerformanceGraphNode], connections: [GraphConnection], maxVisibleNodes: Int = 500) {
         self.nodes = nodes
         self.connections = connections
         self.maxVisibleNodes = maxVisibleNodes
@@ -361,7 +361,7 @@ struct PerformantGraphView: View {
         }
     }
     
-    private var visibleNodesList: [GraphNode] {
+    private var visibleNodesList: [PerformanceGraphNode] {
         nodes.filter { visibleNodes.contains($0.id) }
     }
     
@@ -403,7 +403,7 @@ struct PerformantGraphView: View {
         }
     }
     
-    private func nodeOpacity(for node: GraphNode) -> Double {
+    private func nodeOpacity(for node: PerformanceGraphNode) -> Double {
         visibleNodes.contains(node.id) ? 1.0 : 0.0
     }
 }
@@ -414,7 +414,7 @@ struct GraphViewState: Equatable {
     var selectedNodes: Set<UUID> = []
 }
 
-struct GraphNode: Identifiable {
+struct PerformanceGraphNode: Identifiable {
     let id = UUID()
     let position: CGPoint
     let title: String
@@ -448,7 +448,7 @@ struct GraphConnection {
 }
 
 struct NodeView: View {
-    let node: GraphNode
+    let node: PerformanceGraphNode
     
     var body: some View {
         Circle()
@@ -640,7 +640,7 @@ struct DataItem: Identifiable {
 @MainActor
 class LargeDatasetManager: ObservableObject {
     @Published var items: [DataItem] = []
-    @Published var graphNodes: [GraphNode] = []
+    @Published var graphNodes: [PerformanceGraphNode] = []
     @Published var connections: [GraphConnection] = []
     
     init() {
@@ -659,7 +659,7 @@ class LargeDatasetManager: ObservableObject {
         
         // Generate graph nodes
         graphNodes = (0..<1000).map { index in
-            GraphNode(
+            PerformanceGraphNode(
                 position: CGPoint(
                     x: Double.random(in: 0...2000),
                     y: Double.random(in: 0...2000)

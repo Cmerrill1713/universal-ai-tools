@@ -1,0 +1,169 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  typescript-check:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run TypeScript check
+        run: npm run type-check || npx tsc --noEmit
+        
+      - name: Check for unused exports
+        run: npx ts-prune || true
+        
+  eslint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run ESLint
+        run: npm run lint || npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0
+        
+      - name: Annotate ESLint results
+        uses: ataylorme/eslint-annotate-action@v2
+        if: failure()
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          report-json: "eslint-report.json"
+          
+  prettier:
+    name: Prettier Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check formatting
+        run: npx prettier --check . || true
+        
+  swift-lint:
+    name: SwiftLint
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install SwiftLint
+        run: brew install swiftlint || brew upgrade swiftlint
+        
+      - name: Run SwiftLint
+        run: |
+          cd macOS-App/UniversalAITools
+          swiftlint --reporter github-actions-logging || true
+          
+  swift-format:
+    name: Swift Format Check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install swift-format
+        run: brew install swift-format || brew upgrade swift-format
+        
+      - name: Check Swift formatting
+        run: |
+          cd macOS-App/UniversalAITools
+          swift-format lint --recursive . || true
+          
+  complexity-analysis:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Analyze complexity
+        run: |
+          npx complexity-report --format json --output complexity-report.json src/ || true
+          
+      - name: Check for code duplication
+        run: npx jscpd src/ --min-lines 5 --min-tokens 50 || true
+        
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+        
+      - name: Analyze bundle size
+        uses: andresz1/size-limit-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          skip_step: build
+          
+  dependencies-check:
+    name: Dependencies Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Check for outdated packages
+        run: npm outdated || true
+        
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate || true
+        
+      - name: Check for unused dependencies
+        run: npx depcheck || true

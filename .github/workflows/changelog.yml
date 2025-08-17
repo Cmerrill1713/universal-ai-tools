@@ -1,0 +1,103 @@
+name: Changelog Generation
+
+on:
+  push:
+    branches: [main, master]
+  release:
+    types: [created, published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v3
+        id: git-cliff
+        with:
+          config: .github/cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+          
+      - name: Update CHANGELOG.md
+        run: |
+          if [ -f "CHANGELOG.md" ]; then
+            cp CHANGELOG.md CHANGELOG.old.md
+          fi
+          echo "${{ steps.git-cliff.outputs.changelog }}" > CHANGELOG.md
+          
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update CHANGELOG.md [skip ci]"
+          file_pattern: CHANGELOG.md
+          
+  release-notes:
+    name: Generate Release Notes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Generate release notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: commits } = await github.rest.repos.compareCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: context.payload.release.target_commitish,
+              head: context.sha
+            });
+            
+            const features = [];
+            const fixes = [];
+            const others = [];
+            
+            for (const commit of commits.commits) {
+              const message = commit.commit.message;
+              if (message.startsWith('feat:') || message.startsWith('feature:')) {
+                features.push(`- ${message.replace(/^feat(ure)?:\s*/i, '')}`);
+              } else if (message.startsWith('fix:') || message.startsWith('bugfix:')) {
+                fixes.push(`- ${message.replace(/^(bug)?fix:\s*/i, '')}`);
+              } else if (!message.startsWith('chore:') && !message.startsWith('docs:')) {
+                others.push(`- ${message.split('\n')[0]}`);
+              }
+            }
+            
+            let body = '## What\'s Changed\n\n';
+            
+            if (features.length > 0) {
+              body += '### 🚀 Features\n' + features.join('\n') + '\n\n';
+            }
+            
+            if (fixes.length > 0) {
+              body += '### 🐛 Bug Fixes\n' + fixes.join('\n') + '\n\n';
+            }
+            
+            if (others.length > 0) {
+              body += '### 📝 Other Changes\n' + others.join('\n') + '\n\n';
+            }
+            
+            body += `**Full Changelog**: https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${context.payload.release.target_commitish}...${context.payload.release.tag_name}`;
+            
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+              body: body
+            });

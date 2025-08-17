@@ -1,0 +1,138 @@
+name: Auto Format Code
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  format-javascript:
+    name: Format JavaScript/TypeScript
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run Prettier
+        run: |
+          npx prettier --write "**/*.{js,jsx,ts,tsx,json,md,yml,yaml}" || true
+          
+      - name: Run ESLint fix
+        run: |
+          npx eslint . --ext .js,.jsx,.ts,.tsx --fix || true
+          
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format code with Prettier and ESLint 🎨"
+          commit_options: '--no-verify'
+          file_pattern: '*.js *.jsx *.ts *.tsx *.json *.md *.yml *.yaml'
+          
+  format-swift:
+    name: Format Swift Code
+    runs-on: macos-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          
+      - name: Install SwiftFormat
+        run: brew install swiftformat || brew upgrade swiftformat
+        
+      - name: Run SwiftFormat
+        run: |
+          cd macOS-App/UniversalAITools
+          swiftformat . --swiftversion 5.9 || true
+          
+      - name: Run SwiftLint autocorrect
+        run: |
+          brew install swiftlint || brew upgrade swiftlint
+          cd macOS-App/UniversalAITools
+          swiftlint --fix || true
+          
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format Swift code 🎨"
+          commit_options: '--no-verify'
+          file_pattern: '*.swift'
+          
+  format-python:
+    name: Format Python Code
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'python')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install formatters
+        run: |
+          pip install black isort autopep8
+          
+      - name: Run Black
+        run: black . --line-length 100 || true
+        
+      - name: Run isort
+        run: isort . --profile black || true
+        
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format Python code with Black and isort 🎨"
+          commit_options: '--no-verify'
+          file_pattern: '*.py'
+          
+  organize-imports:
+    name: Organize Imports
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Organize TypeScript imports
+        run: |
+          npx organize-imports-cli "src/**/*.{ts,tsx}" || true
+          
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: organize imports 📦"
+          commit_options: '--no-verify'
+          file_pattern: '*.ts *.tsx'

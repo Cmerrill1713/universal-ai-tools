@@ -5,20 +5,7 @@ import SwiftUI
 
 // KnowledgeGraphView3D is implemented in Views/Components/KnowledgeGraphView3D.swift
 
-struct AgentOrchestrationDashboard: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
-            Text("Agent Orchestration")
-                .font(.title2)
-            Text("Agent orchestration dashboard coming soon")
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
+// AgentOrchestrationDashboard is implemented in Views/Components/AgentOrchestrationDashboard.swift
 
 // ContextFlowDashboard is implemented in Views/Components/ContextFlowDashboard.swift
 
@@ -218,15 +205,7 @@ extension View {
     }
 }
 
-struct AnimatedGradientBackground: View {
-    var body: some View {
-        LinearGradient(
-            colors: [Color.blue.opacity(0.1), Color.purple.opacity(0.1)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-}
+// AnimatedGradientBackground is defined in Utils/AppTheme.swift
 
 struct PlaceholderView: View {
     let title: String

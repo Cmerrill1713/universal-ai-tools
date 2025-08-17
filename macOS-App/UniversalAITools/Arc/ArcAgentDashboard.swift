@@ -247,7 +247,7 @@ struct ArcAgentDashboard: View {
         }
     }
     
-    private func workflowCard(_ workflow: AgentWorkflow) -> some View {
+    private func workflowCard(_ workflow: ArcAgentWorkflow) -> some View {
         VStack(alignment: .leading, spacing: ArcDesign.Spacing.xs) {
             HStack {
                 Circle()
@@ -771,7 +771,7 @@ struct AgentPerformancePoint {
     let responseTime: Double
 }
 
-struct AgentWorkflow: Identifiable {
+struct ArcAgentWorkflow: Identifiable {
     let id = UUID()
     let name: String
     let status: WorkflowStatus
@@ -834,7 +834,7 @@ class AgentDashboardViewModel: ObservableObject {
     @Published var averageResponseTime: Double = 0
     @Published var successRate: Double = 0
     @Published var totalTokens: Int = 0
-    @Published var activeWorkflows: [AgentWorkflow] = []
+    @Published var activeWorkflows: [ArcAgentWorkflow] = []
     
     private var monitoringTimer: Timer?
     
@@ -857,19 +857,19 @@ class AgentDashboardViewModel: ObservableObject {
         // Generate sample workflows
         if activeWorkflows.isEmpty {
             activeWorkflows = [
-                AgentWorkflow(
+                ArcAgentWorkflow(
                     name: "Data Processing Pipeline",
                     status: .running,
                     progress: 0.65,
                     agents: []
                 ),
-                AgentWorkflow(
+                ArcAgentWorkflow(
                     name: "Content Generation Flow",
                     status: .paused,
                     progress: 0.42,
                     agents: []
                 ),
-                AgentWorkflow(
+                ArcAgentWorkflow(
                     name: "Quality Assurance Check",
                     status: .completed,
                     progress: 1.0,
