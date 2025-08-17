@@ -52,6 +52,13 @@ class AppState: ObservableObject {
     @Published var darkMode: Bool = false
     @Published var viewMode: ViewMode = .native
     @Published var backendConnected: Bool = false
+    
+    // Onboarding and Feature Discovery
+    @Published var showOnboarding: Bool = false
+    @Published var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    @Published var isFirstTimeUser: Bool = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    @Published var featureDiscoveryManager = FeatureDiscoveryManager()
+    @Published var enhancedNavigationService: EnhancedNavigationService?
     @Published var showNotification: Bool = false
     @Published var notificationType: String = "info"
     @Published var sidebarVisible: Bool = true
@@ -60,6 +67,7 @@ class AppState: ObservableObject {
     @Published var showGlobalSearch: Bool = false
     
     // System State
+    @Published var isLoading: Bool = false
     @Published var systemMetrics: SystemMetrics?
     @Published var availableAgents: [Agent] = []
     @Published var apiServiceStatus: APIServiceStatus = .disconnected
@@ -96,8 +104,25 @@ class AppState: ObservableObject {
         setupServices()
         setupBindings()
         loadPersistedData()
+        setupOnboarding()
         
         logger.info("AppState initialized")
+    }
+    
+    private func setupOnboarding() {
+        featureDiscoveryManager.loadDiscoveredFeatures()
+        
+        // Show onboarding for new users
+        if !hasCompletedOnboarding {
+            showOnboarding = true
+        }
+    }
+    
+    func completeOnboarding() {
+        hasCompletedOnboarding = true
+        isFirstTimeUser = false
+        showOnboarding = false
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
     }
     
     // MARK: - Service Setup

@@ -21,6 +21,17 @@ struct ContentView: View {
 
     var body: some View {
         mainView
+            .overlay(
+                // Onboarding overlay
+                Group {
+                    if appState.showOnboarding {
+                        OnboardingFlow {
+                            appState.completeOnboarding()
+                        }
+                        .zIndex(1000)
+                    }
+                }
+            )
             .onAppear {
                 Log.userInterface.info("ContentView appeared")
                 updateColumnVisibility(for: appState.selectedSidebarItem)
@@ -75,60 +86,83 @@ struct ContentView: View {
         .navigationSplitViewStyle(.balanced)
         .background(.ultraThinMaterial)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
                 Button(action: { 
-                    openWindow(id: "agent-activity", value: "main")
+                    appState.showOnboarding = true
                 }) {
-                    Image(systemName: "brain.head.profile")
-                        .foregroundColor(.accentColor)
-                        .glow(color: .accentColor, radius: 4)
+                    Image(systemName: "questionmark.circle")
+                        .foregroundColor(.blue)
                 }
+                .help("Show Feature Tour")
+                
+                EnhancedUIComponents.EnhancedActionButton(
+                    title: "",
+                    icon: "brain.head.profile",
+                    action: { 
+                        openWindow(id: "agent-activity", value: "main")
+                    },
+                    style: .primary
+                )
                 .help("Agent Activity")
-                .neumorphism(cornerRadius: 8)
-                .frame(width: 32, height: 32)
             }
         }
     }
 
     @ViewBuilder
     private var detailView: some View {
-        Group {
-            switch appState.selectedSidebarItem ?? .chat {
-            case .chat:
-                SimpleChatView()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-            case .claude:
-                ClaudeAIChatView()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-            case .knowledge:
-                KnowledgeGraphView3D()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-            case .objectives:
-                AgentManagementView()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-            case .orchestration:
-                AgentOrchestrationDashboard()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-            case .analytics:
-                ContextFlowDashboard()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
-            case .tools:
-                ToolsView()
-                    .environmentObject(appState)
-                    .environmentObject(apiService)
+        ZStack {
+            Group {
+                switch appState.selectedSidebarItem ?? .chat {
+                case .chat:
+                    SimpleChatView()
+                        .environmentObject(appState)
+                        .environmentObject(apiService)
+                case .claude:
+                    ClaudeAIChatView()
+                        .environmentObject(appState)
+                        .environmentObject(apiService)
+                case .knowledge:
+                    KnowledgeGraphView3D()
+                        .environmentObject(appState)
+                        .environmentObject(apiService)
+                case .objectives:
+                    AgentManagementView()
+                        .environmentObject(appState)
+                        .environmentObject(apiService)
+                case .orchestration:
+                    AgentOrchestrationDashboard()
+                        .environmentObject(appState)
+                        .environmentObject(apiService)
+                case .analytics:
+                    ContextFlowDashboard()
+                        .environmentObject(appState)
+                        .environmentObject(apiService)
+                case .tools:
+                    ToolsView()
+                        .environmentObject(appState)
+                        .environmentObject(apiService)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(AnimatedGradientBackground())
+            .clipped() // Ensure content doesn't extend beyond bounds
+            .transition(.scale.combined(with: .opacity))
+            .id(appState.selectedSidebarItem?.rawValue ?? "chat") // Force view refresh when selection changes
+            
+            // Enhanced loading overlay
+            if appState.isLoading {
+                ZStack {
+                    Color.black.opacity(0.3)
+                        .edgesIgnoringSafeArea(.all)
+                    
+                    EnhancedUIComponents.EnhancedLoadingIndicator(
+                        message: "Loading Universal AI Tools..."
+                    )
+                    .frame(width: 200, height: 120)
+                }
+                .transition(.opacity)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AnimatedGradientBackground())
-        .clipped() // Ensure content doesn't extend beyond bounds
-        .transition(.scale.combined(with: .opacity))
-        .id(appState.selectedSidebarItem?.rawValue ?? "chat") // Force view refresh when selection changes
     }
 
     private func toggleSidebar() {
@@ -145,10 +179,19 @@ struct ContentView: View {
 
     // MARK: - Data Loading
     private func loadInitialData() async {
+        // Show enhanced loading state
+        await MainActor.run {
+            appState.isLoading = true
+        }
+        
         do {
             let agents = try await apiService.getAgents()
-            await MainActor.run { appState.availableAgents = agents }
-        } catch { /* ignore for now */ }
+            await MainActor.run { 
+                appState.availableAgents = agents
+            }
+        } catch { 
+            Log.api.error("Failed to load agents: \(error)")
+        }
 
         do {
             let metrics = try await apiService.getMetrics()
@@ -156,7 +199,13 @@ struct ContentView: View {
                 appState.systemMetrics = metrics
                 appState.backendConnected = true
             }
-        } catch { /* ignore for now */ }
+        } catch { 
+            Log.api.error("Failed to load metrics: \(error)")
+        }
+        
+        await MainActor.run {
+            appState.isLoading = false
+        }
     }
 }
 

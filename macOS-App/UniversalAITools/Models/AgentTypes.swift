@@ -55,7 +55,7 @@ class AgentWebSocketObserver: ObservableObject {
 struct AgentNetwork: Codable {
     let nodes: [AgentNode]
     let connections: [AgentConnection]
-    let topology: NetworkTopology
+    let topology: NetworkTopologyType
     let healthScore: Double
     let averageLatency: Double
     let lastUpdated: Date
@@ -67,7 +67,7 @@ struct AgentNetwork: Codable {
     static let empty = AgentNetwork(
         nodes: [],
         connections: [],
-        topology: .hierarchical,
+        topology: NetworkTopologyType.hierarchical,
         healthScore: 0.0,
         averageLatency: 0.0,
         lastUpdated: Date()
@@ -76,7 +76,7 @@ struct AgentNetwork: Codable {
     static let sample = AgentNetwork(
         nodes: AgentNode.sampleNodes,
         connections: AgentConnection.sampleConnections,
-        topology: .hierarchical,
+        topology: NetworkTopologyType.hierarchical,
         healthScore: 0.85,
         averageLatency: 12.5,
         lastUpdated: Date()
@@ -179,7 +179,7 @@ enum ConnectionType: String, CaseIterable, Codable {
 }
 
 // MARK: - Network Topology
-enum NetworkTopology: String, CaseIterable, Codable {
+enum NetworkTopologyType: String, CaseIterable, Codable {
     case hierarchical = "hierarchical"
     case mesh = "mesh"
     case star = "star"
@@ -259,7 +259,6 @@ struct AgentWorkflow: Identifiable, Codable {
     let priority: AgentWorkflowPriority
     let createdAt: Date
     var estimatedDuration: TimeInterval = 0
-    
     
     init(name: String, steps: [AgentWorkflowStep], executionState: AgentWorkflowExecutionState, priority: AgentWorkflowPriority) {
         self.id = UUID().uuidString

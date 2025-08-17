@@ -26,7 +26,8 @@ public class APIService: ObservableObject {
     @Published var isAuthenticated = false
     @Published var localLLMAvailable = false
     @Published var availableModels: [String] = []
-    @Published var lastError: String?
+    @Published var lastError: APIError?
+    @Published var isRefreshingToken = false
 
     private var baseURL: String
     private var localLLMURL: String = "http://localhost:9999"
@@ -39,7 +40,15 @@ public class APIService: ObservableObject {
     private var reconnectAttempt = 0
     private let maxReconnectDelay: TimeInterval = 60
     private let reconnectBackoff = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 60.0]
+    
+    // Integration with new services
+    private let authService = AuthenticationService.shared
     private let keyManager = SecureKeyManager.shared
+    
+    // Enhanced error handling
+    // private let errorRecovery = ErrorRecoveryManager()
+    private var retryContext: [String: RetryContext] = [:]
+    private let maxRetryAttempts = 3
 
     init() {
         // Check for the actual running backend port (9998 during development)
@@ -50,11 +59,12 @@ public class APIService: ObservableObject {
         self.session = URLSession(configuration: config)
 
         startNetworkMonitoring()
+        setupAuthenticationObserver()
 
         // Initial connection attempt with secure authentication
         Task {
             logger.info("🚀 APIService initializing...")
-            await loadSecureAuthToken()
+            await initializeAuthentication()
             await connectToBackend()
             
             // Test Ollama availability on startup
@@ -63,8 +73,99 @@ public class APIService: ObservableObject {
         }
     }
 
-    // MARK: - Authentication
+    // MARK: - Authentication Integration
+    
+    /// Setup observer for authentication state changes
+    private func setupAuthenticationObserver() {
+        authService.$isAuthenticated
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isAuthenticated in
+                self?.isAuthenticated = isAuthenticated
+                if isAuthenticated {
+                    self?.authToken = self?.authService.currentToken
+                } else {
+                    self?.authToken = nil
+                }
+            }
+            .store(in: &cancellables)
+            
+        authService.$currentToken
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] token in
+                self?.authToken = token
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Initialize authentication using the new AuthenticationService
+    private func initializeAuthentication() async {
+        do {
+            // Try to restore existing session
+            try await authService.restoreSession()
+            
+            if !authService.isAuthenticated {
+                // If no stored session, try development authentication for local setup
+                await loadSecureAuthToken()
+            }
+        } catch {
+            logger.warning("Failed to restore session, falling back to legacy auth: \(error)")
+            await loadSecureAuthToken()
+        }
+    }
+    
+    /// Authenticate a request with automatic token refresh
+    private func authenticateRequest(_ request: inout URLRequest) async throws {
+        // Try to get current token
+        guard let token = authService.currentToken ?? authToken else {
+            // No token available, try to authenticate
+            if baseURL.contains("localhost") {
+                // For local development, allow unauthenticated requests
+                logger.warning("⚠️ No authentication token available for local request")
+                return
+            } else {
+                throw APIError.authenticationRequired
+            }
+        }
+        
+        // Check if token is about to expire and refresh if needed
+        if authService.isTokenNearExpiry {
+            await refreshTokenIfNeeded()
+        }
+        
+        // Add authentication header
+        if token.hasPrefix("ey") { // JWT token
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else { // API key
+            request.setValue(token, forHTTPHeaderField: "X-API-Key")
+        }
+    }
+    
+    /// Refresh token if needed
+    private func refreshTokenIfNeeded() async {
+        guard !isRefreshingToken else { return }
+        
+        await MainActor.run {
+            isRefreshingToken = true
+        }
+        
+        defer {
+            Task { @MainActor in
+                isRefreshingToken = false
+            }
+        }
+        
+        do {
+            try await authService.refreshToken()
+            logger.info("✅ Token refreshed successfully")
+        } catch {
+            logger.error("❌ Token refresh failed: \(error)")
+            await MainActor.run {
+                lastError = APIError.authenticationFailed(error)
+            }
+        }
+    }
 
+    /// Legacy authentication method for backward compatibility
     private func loadSecureAuthToken() async {
         logger.debug("🔐 Loading secure authentication token")
 
@@ -193,24 +294,54 @@ public class APIService: ObservableObject {
     }
 
     func setAuthToken(_ token: String) async -> Bool {
-        let success = await keyManager.setBackendAPIKey(token)
-        if success {
-            await MainActor.run {
-                authToken = token
-                isAuthenticated = true
+        do {
+            // Use the new authentication service for JWT tokens
+            if token.hasPrefix("ey") { // JWT token
+                try await authService.authenticate(username: "api", password: token)
+            } else {
+                // Legacy API key storage
+                let success = await keyManager.setBackendAPIKey(token)
+                if success {
+                    await MainActor.run {
+                        authToken = token
+                        isAuthenticated = true
+                    }
+                }
+                return success
             }
+            
             logger.info("✅ Authentication token updated securely")
+            return true
+        } catch {
+            logger.error("Failed to set auth token: \(error)")
+            return false
         }
-        return success
     }
 
     func clearAuthToken() async {
+        do {
+            await authService.logout()
+        } catch {
+            logger.error("Error during logout: \(error)")
+        }
+        
         _ = await keyManager.removeKey(for: "universal_ai_backend")
         await MainActor.run {
             authToken = nil
             isAuthenticated = false
         }
         logger.info("🗑️ Authentication token cleared")
+    }
+    
+    /// Get current authentication status
+    var currentAuthStatus: AuthenticationStatus {
+        if isRefreshingToken {
+            return .refreshing
+        } else if isAuthenticated {
+            return .authenticated
+        } else {
+            return .unauthenticated
+        }
     }
 
     func setBackendURL(_ url: String) {
@@ -511,6 +642,13 @@ public class APIService: ObservableObject {
     func sendChatMessage(_ message: String, chatId: String) async throws -> Message {
         logger.debug("🔥 Sending chat message: \(message.prefix(50))...")
         
+        return try await executeWithRetry("sendChatMessage") {
+            try await self.performChatRequest(message, chatId: chatId)
+        }
+    }
+    
+    /// Perform the actual chat request with enhanced error handling
+    private func performChatRequest(_ message: String, chatId: String) async throws -> Message {
         let endpoint = "\(baseURL)/api/v1/assistant/chat"
         guard let url = URL(string: endpoint) else {
             logger.error("❌ Invalid chat endpoint URL: \(endpoint)")
@@ -521,13 +659,8 @@ public class APIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Enhanced authentication handling
-        if let apiKey = authToken, !apiKey.isEmpty {
-            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
-            logger.debug("✅ Using authentication token for chat request")
-        } else {
-            logger.warning("⚠️ No authentication token available - attempting unauthenticated request")
-        }
+        // Enhanced authentication with automatic refresh
+        try await authenticateRequest(&request)
 
         let body: [String: Any] = [
             "message": message,
@@ -552,28 +685,13 @@ public class APIService: ObservableObject {
 
         logger.debug("📥 Chat response status: \(httpResponse.statusCode)")
 
+        // Handle authentication errors with token refresh
         if httpResponse.statusCode == 401 {
-            logger.error("❌ Authentication failed - token may be invalid or expired")
-            
-            // Try to refresh authentication
-            await loadSecureAuthToken()
-            
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
+            logger.warning("🔄 Authentication failed, attempting token refresh...")
+            throw APIError.authenticationRequired
         }
 
-        guard httpResponse.statusCode == 200 else {
-            let errorData = String(data: data, encoding: .utf8) ?? "No error data"
-            logger.error("❌ Chat API error (\(httpResponse.statusCode)): \(errorData)")
-            
-            // Log detailed error for common issues
-            if httpResponse.statusCode == 500 {
-                logger.error("❌ Server error - check backend logs for Ollama connection issues")
-            } else if httpResponse.statusCode == 403 {
-                logger.error("❌ Forbidden - check API key permissions")
-            }
-            
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
-        }
+        try validateHTTPResponse(httpResponse, data: data)
 
         // Parse the assistant/chat endpoint response
         struct AssistantChatResponse: Codable {
@@ -613,15 +731,19 @@ public class APIService: ObservableObject {
     // MARK: - Voice Methods
 
     func getAgents() async throws -> [Agent] {
+        return try await executeWithRetry("getAgents") {
+            try await self.performGetAgentsRequest()
+        }
+    }
+    
+    private func performGetAgentsRequest() async throws -> [Agent] {
         let endpoint = "\(baseURL)/api/v1/agents"
         guard let url = URL(string: endpoint) else {
             throw APIError.invalidURL
         }
 
         var request = URLRequest(url: url)
-        if let apiKey = authToken {
-            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
-        }
+        try await authenticateRequest(&request)
 
         let (data, response) = try await session.data(for: request)
 
@@ -629,9 +751,11 @@ public class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
 
-        guard httpResponse.statusCode == 200 else {
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
         }
+        
+        try validateHTTPResponse(httpResponse, data: data)
 
         struct AgentsResponse: Codable {
             let success: Bool
@@ -675,15 +799,19 @@ public class APIService: ObservableObject {
     }
 
     func getDetailedHealth() async throws -> SystemMetrics {
+        return try await executeWithRetry("getDetailedHealth") {
+            try await self.performGetDetailedHealthRequest()
+        }
+    }
+    
+    private func performGetDetailedHealthRequest() async throws -> SystemMetrics {
         let endpoint = "\(baseURL)/api/v1/health/detailed"
         guard let url = URL(string: endpoint) else {
             throw APIError.invalidURL
         }
 
         var request = URLRequest(url: url)
-        if let apiKey = authToken {
-            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
-        }
+        try await authenticateRequest(&request)
 
         let (data, response) = try await session.data(for: request)
 
@@ -691,9 +819,11 @@ public class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
 
-        guard httpResponse.statusCode == 200 else {
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
         }
+        
+        try validateHTTPResponse(httpResponse, data: data)
 
         let apiMetrics = try JSONDecoder().decode(APISystemMetrics.self, from: data)
         return SystemMetrics(
@@ -704,15 +834,19 @@ public class APIService: ObservableObject {
     }
 
     func getMetrics() async throws -> SystemMetrics {
+        return try await executeWithRetry("getMetrics") {
+            try await self.performGetMetricsRequest()
+        }
+    }
+    
+    private func performGetMetricsRequest() async throws -> SystemMetrics {
         let endpoint = "\(baseURL)/api/v1/system/metrics"
         guard let url = URL(string: endpoint) else {
             throw APIError.invalidURL
         }
 
         var request = URLRequest(url: url)
-        if let apiKey = authToken {
-            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
-        }
+        try await authenticateRequest(&request)
 
         let (data, response) = try await session.data(for: request)
 
@@ -720,9 +854,11 @@ public class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
 
-        guard httpResponse.statusCode == 200 else {
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
         }
+        
+        try validateHTTPResponse(httpResponse, data: data)
 
         struct MetricsResponse: Codable {
             let success: Bool
@@ -757,7 +893,390 @@ public class APIService: ObservableObject {
         )
     }
 
-    // MARK: - Agent Lifecycle
+    // MARK: - Agent Orchestration API
+    
+    /// Get real-time agent status and health monitoring
+    func getOrchestrationStatus() async throws -> AgentOrchestrationStatus {
+        return try await executeWithRetry("getOrchestrationStatus") {
+            try await self.performGetOrchestrationStatusRequest()
+        }
+    }
+    
+    private func performGetOrchestrationStatusRequest() async throws -> AgentOrchestrationStatus {
+        let endpoint = "\(baseURL)/api/v1/agent-orchestration/status"
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        try await authenticateRequest(&request)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(AgentOrchestrationStatus.self, from: data)
+    }
+    
+    /// Get network topology for visualization
+    func getOrchestrationTopology() async throws -> NetworkTopology {
+        return try await executeWithRetry("getOrchestrationTopology") {
+            try await self.performGetOrchestrationTopologyRequest()
+        }
+    }
+    
+    private func performGetOrchestrationTopologyRequest() async throws -> NetworkTopology {
+        let endpoint = "\(baseURL)/api/v1/agent-orchestration/topology"
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        try await authenticateRequest(&request)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        struct TopologyResponse: Codable {
+            let success: Bool
+            let data: NetworkTopology
+        }
+        
+        let topologyResponse = try JSONDecoder().decode(TopologyResponse.self, from: data)
+        return topologyResponse.data
+    }
+    
+    /// Get agent performance metrics and analytics
+    func getOrchestrationMetrics(timeRange: String = "1h", agentName: String? = nil) async throws -> AgentMetricsResponse {
+        return try await executeWithRetry("getOrchestrationMetrics") {
+            try await self.performGetOrchestrationMetricsRequest(timeRange: timeRange, agentName: agentName)
+        }
+    }
+    
+    private func performGetOrchestrationMetricsRequest(timeRange: String, agentName: String?) async throws -> AgentMetricsResponse {
+        var endpoint = "\(baseURL)/api/v1/agent-orchestration/metrics?timeRange=\(timeRange)"
+        if let agentName = agentName {
+            endpoint += "&agentName=\(agentName)"
+        }
+        
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        try await authenticateRequest(&request)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(AgentMetricsResponse.self, from: data)
+    }
+    
+    /// Create new agent task assignment
+    func createAgentTask(agentName: String, type: String, context: [String: Any], priority: Int = 1, estimatedDuration: TimeInterval? = nil) async throws -> AgentTaskResponse {
+        return try await executeWithRetry("createAgentTask") {
+            try await self.performCreateAgentTaskRequest(agentName: agentName, type: type, context: context, priority: priority, estimatedDuration: estimatedDuration)
+        }
+    }
+    
+    private func performCreateAgentTaskRequest(agentName: String, type: String, context: [String: Any], priority: Int, estimatedDuration: TimeInterval?) async throws -> AgentTaskResponse {
+        let endpoint = "\(baseURL)/api/v1/agent-orchestration/tasks"
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        try await authenticateRequest(&request)
+
+        var body: [String: Any] = [
+            "agentName": agentName,
+            "type": type,
+            "context": context,
+            "priority": priority
+        ]
+        
+        if let estimatedDuration = estimatedDuration {
+            body["estimatedDuration"] = estimatedDuration
+        }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(AgentTaskResponse.self, from: data)
+    }
+    
+    /// Get active and historical tasks
+    func getAgentTasks(status: String? = nil, agentName: String? = nil, limit: Int = 100) async throws -> AgentTasksResponse {
+        return try await executeWithRetry("getAgentTasks") {
+            try await self.performGetAgentTasksRequest(status: status, agentName: agentName, limit: limit)
+        }
+    }
+    
+    private func performGetAgentTasksRequest(status: String?, agentName: String?, limit: Int) async throws -> AgentTasksResponse {
+        var endpoint = "\(baseURL)/api/v1/agent-orchestration/tasks?limit=\(limit)"
+        if let status = status {
+            endpoint += "&status=\(status)"
+        }
+        if let agentName = agentName {
+            endpoint += "&agentName=\(agentName)"
+        }
+        
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        try await authenticateRequest(&request)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(AgentTasksResponse.self, from: data)
+    }
+    
+    /// Request agent collaboration
+    func requestAgentCollaboration(task: String, requiredCapabilities: [String], teamSize: Int = 3, priority: String = "medium") async throws -> CollaborationResponse {
+        return try await executeWithRetry("requestAgentCollaboration") {
+            try await self.performRequestAgentCollaborationRequest(task: task, requiredCapabilities: requiredCapabilities, teamSize: teamSize, priority: priority)
+        }
+    }
+    
+    private func performRequestAgentCollaborationRequest(task: String, requiredCapabilities: [String], teamSize: Int, priority: String) async throws -> CollaborationResponse {
+        let endpoint = "\(baseURL)/api/v1/agent-orchestration/collaborate"
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        try await authenticateRequest(&request)
+
+        let body: [String: Any] = [
+            "task": task,
+            "requiredCapabilities": requiredCapabilities,
+            "teamSize": teamSize,
+            "priority": priority
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(CollaborationResponse.self, from: data)
+    }
+    
+    /// Get A2A communication history and tracking
+    func getAgentCommunications(limit: Int = 100, agentName: String? = nil, messageType: String? = nil) async throws -> CommunicationsResponse {
+        return try await executeWithRetry("getAgentCommunications") {
+            try await self.performGetAgentCommunicationsRequest(limit: limit, agentName: agentName, messageType: messageType)
+        }
+    }
+    
+    private func performGetAgentCommunicationsRequest(limit: Int, agentName: String?, messageType: String?) async throws -> CommunicationsResponse {
+        var endpoint = "\(baseURL)/api/v1/agent-orchestration/communications?limit=\(limit)"
+        if let agentName = agentName {
+            endpoint += "&agentName=\(agentName)"
+        }
+        if let messageType = messageType {
+            endpoint += "&messageType=\(messageType)"
+        }
+        
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        try await authenticateRequest(&request)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(CommunicationsResponse.self, from: data)
+    }
+    
+    /// Get resource usage monitoring per agent
+    func getAgentResources(agentName: String? = nil) async throws -> ResourceUsageResponse {
+        return try await executeWithRetry("getAgentResources") {
+            try await self.performGetAgentResourcesRequest(agentName: agentName)
+        }
+    }
+    
+    private func performGetAgentResourcesRequest(agentName: String?) async throws -> ResourceUsageResponse {
+        var endpoint = "\(baseURL)/api/v1/agent-orchestration/resources"
+        if let agentName = agentName {
+            endpoint += "?agentName=\(agentName)"
+        }
+        
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        try await authenticateRequest(&request)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(ResourceUsageResponse.self, from: data)
+    }
+    
+    /// Orchestrate complex multi-agent workflows
+    func orchestrateAgents(primaryAgent: String, supportingAgents: [String] = [], context: [String: Any], workflow: [String: Any]? = nil) async throws -> OrchestrationResponse {
+        return try await executeWithRetry("orchestrateAgents") {
+            try await self.performOrchestrateAgentsRequest(primaryAgent: primaryAgent, supportingAgents: supportingAgents, context: context, workflow: workflow)
+        }
+    }
+    
+    private func performOrchestrateAgentsRequest(primaryAgent: String, supportingAgents: [String], context: [String: Any], workflow: [String: Any]?) async throws -> OrchestrationResponse {
+        let endpoint = "\(baseURL)/api/v1/agent-orchestration/orchestrate"
+        guard let url = URL(string: endpoint) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        try await authenticateRequest(&request)
+
+        var body: [String: Any] = [
+            "primaryAgent": primaryAgent,
+            "supportingAgents": supportingAgents,
+            "context": context
+        ]
+        
+        if let workflow = workflow {
+            body["workflow"] = workflow
+        }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw APIError.authenticationRequired
+        }
+        
+        try validateHTTPResponse(httpResponse, data: data)
+        
+        return try JSONDecoder().decode(OrchestrationResponse.self, from: data)
+    }
+    
+    /// Connect to orchestration WebSocket for real-time updates
+    func connectOrchestrationWebSocket() async throws -> String {
+        let wsURL = baseURL.replacingOccurrences(of: "http", with: "ws") + "/ws/agent-orchestration"
+        guard let url = URL(string: wsURL) else {
+            throw APIError.invalidURL
+        }
+
+        var options = ConnectionOptions.default
+        if let token = authToken {
+            options = ConnectionOptions(
+                sessionConfiguration: options.sessionConfiguration,
+                enableCompression: options.enableCompression,
+                enableEncryption: options.enableEncryption,
+                timeout: options.timeout,
+                headers: ["Authorization": "Bearer \(token)"]
+            )
+        }
+
+        let connectionId = try await EnhancedWebSocketManager.shared.connect(to: wsURL, options: options)
+        logger.info("✅ Connected to orchestration WebSocket: \(connectionId)")
+        
+        return connectionId
+    }
+    
+    /// Subscribe to orchestration events
+    func subscribeToOrchestrationEvents(connectionId: String) -> AnyPublisher<[String: Any], Never> {
+        guard let connection = EnhancedWebSocketManager.shared.activeConnections[connectionId] else {
+            return Empty<[String: Any], Never>().eraseToAnyPublisher()
+        }
+        
+        return connection.messageSubject
+            .filter { message in
+                // Filter for orchestration-related messages
+                if let type = message["type"] as? String {
+                    return ["agent_loaded", "agent_unloaded", "agent_communication", "periodic_update",
+                           "task_created", "task_started", "task_completed", "task_failed",
+                           "collaboration_started", "orchestration_completed"].contains(type)
+                }
+                return false
+            }
+            .eraseToAnyPublisher()
+    }
+
+    // MARK: - Legacy Agent Lifecycle (maintained for compatibility)
     func activateAgent(id: String) async throws {
         let endpoint = "\(baseURL)/api/v1/agents/\(id)/activate"
         guard let url = URL(string: endpoint) else {
@@ -1405,7 +1924,89 @@ public class APIService: ObservableObject {
         pathMonitor.cancel()
         websocket?.cancel(with: .normalClosure, reason: nil)
         websocket = nil
+        cancellables.removeAll()
         logger.debug("APIService deinitialized and resources cleaned up")
+    }
+}
+
+// MARK: - Authentication Status
+enum AuthenticationStatus {
+    case unauthenticated
+    case authenticated
+    case refreshing
+    
+    var description: String {
+        switch self {
+        case .unauthenticated: return "Not authenticated"
+        case .authenticated: return "Authenticated"
+        case .refreshing: return "Refreshing token"
+        }
+    }
+    
+    // MARK: - HTTP Response Validation
+    
+    /// Validate HTTP response and throw appropriate errors
+    private func validateHTTPResponse(_ response: HTTPURLResponse, data: Data) throws {
+        switch response.statusCode {
+        case 200...299:
+            // Success
+            return
+            
+        case 400...499:
+            // Client errors
+            let errorMessage = parseErrorMessage(from: data) ?? "Client error"
+            
+            switch response.statusCode {
+            case 401:
+                throw APIError.authenticationRequired
+            case 403:
+                throw APIError.clientError(response.statusCode, "Forbidden: \(errorMessage)")
+            case 404:
+                throw APIError.clientError(response.statusCode, "Not found: \(errorMessage)")
+            case 429:
+                let retryAfter = parseRetryAfter(from: response)
+                throw APIError.rateLimited(retryAfter: retryAfter)
+            default:
+                throw APIError.clientError(response.statusCode, errorMessage)
+            }
+            
+        case 500...599:
+            // Server errors
+            let errorMessage = parseErrorMessage(from: data) ?? "Server error"
+            throw APIError.serverError(response.statusCode, errorMessage)
+            
+        default:
+            throw APIError.httpError(statusCode: response.statusCode)
+        }
+    }
+    
+    /// Parse error message from response data
+    private func parseErrorMessage(from data: Data) -> String? {
+        guard let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return String(data: data, encoding: .utf8)
+        }
+        
+        // Try common error message fields
+        if let message = jsonObject["message"] as? String {
+            return message
+        }
+        if let error = jsonObject["error"] as? String {
+            return error
+        }
+        if let detail = jsonObject["detail"] as? String {
+            return detail
+        }
+        
+        return nil
+    }
+    
+    /// Parse retry-after header for rate limiting
+    private func parseRetryAfter(from response: HTTPURLResponse) -> TimeInterval? {
+        if let retryAfterString = response.value(forHTTPHeaderField: "Retry-After"),
+           let retryAfterSeconds = TimeInterval(retryAfterString) {
+            return retryAfterSeconds
+        }
+        return nil
     }
 }
 
@@ -1415,7 +2016,7 @@ extension APIService {
     // MARK: - Voice Chat Endpoint Integration
     
     /// Send a voice message to the voice chat endpoint
-    func sendVoiceMessage(_ message: String, voiceSettings: VoiceSettings? = nil) async throws -> VoiceResponse {
+    func sendVoiceMessage(_ message: String, voiceSettings: APIVoiceSettings? = nil) async throws -> VoiceResponse {
         logger.debug("🎙️ Sending voice message: \(message.prefix(50))...")
         
         let endpoint = "\(baseURL)/api/v1/voice/chat"
@@ -1800,12 +2401,35 @@ extension APIService {
         logger.error("❌ Voice operation failed after \(maxRetries) attempts")
         throw lastError ?? APIError.requestFailed("Maximum retries exceeded")
     }
+    
+    /// Record error for analytics and recovery
+    private func recordError(_ error: Error, for operation: String) async {
+        let context = RetryContext(
+            operation: operation,
+            lastError: error,
+            attemptCount: (retryContext[operation]?.attemptCount ?? 0) + 1,
+            lastAttempt: Date()
+        )
+        
+        retryContext[operation] = context
+        
+        await MainActor.run {
+            if let apiError = error as? APIError {
+                self.lastError = apiError
+            } else {
+                self.lastError = APIError.networkError(error)
+            }
+        }
+        
+        // Log error for monitoring
+        logger.error("❌ \(operation) failed: \(error)")
+    }
 }
 
 // MARK: - Voice Response Types
 
-/// Voice settings for customizing voice output
-struct VoiceSettings: Codable {
+/// Voice settings for API communication
+struct APIVoiceSettings: Codable {
     let voice: String
     let speed: Double
     let pitch: Double
@@ -2023,13 +2647,477 @@ struct ChatResponseMetadata: Codable {
     let agentName: String?
 }
 
+    // MARK: - Enhanced Error Handling & Retry Logic
+    
+    /// Execute a request with automatic retry and error recovery
+    private func executeWithRetry<T>(
+        _ operationName: String,
+        operation: @escaping () async throws -> T
+    ) async throws -> T {
+        var lastError: Error?
+        
+        for attempt in 0..<maxRetryAttempts {
+            do {
+                let result = try await operation()
+                
+                // Success - clear any previous retry context
+                retryContext.removeValue(forKey: operationName)
+                
+                return result
+            } catch {
+                lastError = error
+                
+                // Check if error is retryable
+                guard isRetryableError(error) else {
+                    await recordError(error, for: operationName)
+                    throw error
+                }
+                
+                // Handle specific errors
+                if let apiError = error as? APIError {
+                    switch apiError {
+                    case .authenticationRequired:
+                        // Attempt token refresh before retrying
+                        await refreshTokenIfNeeded()
+                        
+                    case .rateLimited(let retryAfter):
+                        // Respect rate limit delay
+                        let delay = retryAfter ?? calculateBackoffDelay(attempt: attempt)
+                        logger.info("⏳ Rate limited, waiting \(delay)s before retry")
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                        
+                    default:
+                        break
+                    }
+                }
+                
+                // Wait before retrying (except for last attempt)
+                if attempt < maxRetryAttempts - 1 {
+                    let delay = calculateBackoffDelay(attempt: attempt)
+                    logger.warning("⚠️ \(operationName) failed (attempt \(attempt + 1)/\(maxRetryAttempts)), retrying in \(delay)s: \(error)")
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+            }
+        }
+        
+        // All retries failed
+        let finalError = lastError ?? APIError.requestFailed("Unknown error")
+        await recordError(finalError, for: operationName)
+        throw finalError
+    }
+    
+    /// Determine if an error is retryable
+    private func isRetryableError(_ error: Error) -> Bool {
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .networkError, .serverError, .rateLimited, .authenticationRequired:
+                return true
+            case .invalidURL, .invalidResponse, .decodingError, .clientError, .authenticationFailed:
+                return false
+            case .httpError(let statusCode):
+                // Retry on server errors (5xx) and some client errors
+                return statusCode >= 500 || statusCode == 408 || statusCode == 429
+            case .requestFailed:
+                return true
+            }
+        }
+        
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost:
+                return true
+            default:
+                return false
+            }
+        }
+        
+        return false
+    }
+    
+    /// Calculate exponential backoff delay
+    private func calculateBackoffDelay(attempt: Int) -> TimeInterval {
+        let baseDelay = 1.0
+        let maxDelay = 60.0
+        let exponentialDelay = min(baseDelay * pow(2.0, Double(attempt)), maxDelay)
+        let jitter = Double.random(in: 0...1) * exponentialDelay * 0.1
+        return exponentialDelay + jitter
+    }
+
+// MARK: - Agent Orchestration Response Types
+
+/// Agent orchestration status response
+struct AgentOrchestrationStatus: Codable {
+    let success: Bool
+    let data: AgentOrchestrationData
+    let message: String
+}
+
+struct AgentOrchestrationData: Codable {
+    let agents: [APIAgentStatus]
+    let meshStatus: MeshStatus
+    let summary: AgentSummary
+}
+
+struct APIAgentStatus: Codable {
+    let name: String
+    let category: String
+    let description: String
+    let priority: Double
+    let capabilities: [String]
+    let isLoaded: Bool
+    let status: String
+    let lastSeen: String?
+    let trustLevel: Double
+    let collaborationScore: Double
+    let queueLength: Int
+    let metrics: AgentMetrics?
+    let dependencies: [String]
+    let maxLatencyMs: Int
+    let retryAttempts: Int
+}
+
+struct MeshStatus: Codable {
+    let activeConnections: Int
+    let totalMessages: Int
+    let activeCollaborations: Int
+    let meshHealth: Double
+}
+
+struct AgentSummary: Codable {
+    let totalAgents: Int
+    let loadedAgents: Int
+    let onlineAgents: Int
+    let busyAgents: Int
+    let offlineAgents: Int
+    let totalCollaborations: Int
+    let meshHealth: Double
+}
+
+struct AgentMetrics: Codable {
+    let agentName: String
+    let totalRequests: Int
+    let averageResponseTime: Double
+    let successRate: Double
+    let errorCount: Int
+    let lastActive: String
+    let cpuUsage: Double
+    let memoryUsage: Double
+    let queueLength: Int
+    let collaborationCount: Int
+}
+
+/// Network topology response
+struct NetworkTopology: Codable {
+    let nodes: [NetworkNode]
+    let edges: [NetworkEdge]
+}
+
+struct NetworkNode: Codable, Identifiable {
+    let id: String
+    let name: String
+    let category: String
+    let status: String
+    let capabilities: [String]
+    let trustLevel: Double
+    let collaborationScore: Double
+    let position: NodePosition?
+}
+
+struct NodePosition: Codable {
+    let x: Double
+    let y: Double
+}
+
+struct NetworkEdge: Codable, Identifiable {
+    let id: String
+    let source: String
+    let target: String
+    let type: String
+    let weight: Double
+    let lastActive: String
+    
+    enum CodingKeys: String, CodingKey {
+        case source, target, type, weight, lastActive
+    }
+    
+    // Custom decoder to generate ID from source and target
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        source = try container.decode(String.self, forKey: .source)
+        target = try container.decode(String.self, forKey: .target)
+        type = try container.decode(String.self, forKey: .type)
+        weight = try container.decode(Double.self, forKey: .weight)
+        lastActive = try container.decode(String.self, forKey: .lastActive)
+        id = "\(source)-\(target)-\(type)"
+    }
+}
+
+/// Agent metrics response
+struct AgentMetricsResponse: Codable {
+    let success: Bool
+    let data: AgentMetricsData
+    let message: String
+}
+
+struct AgentMetricsData: Codable {
+    let metrics: [AgentMetrics]
+    let aggregates: AgentAggregates
+    let timeRange: String
+    let timestamp: String
+}
+
+struct AgentAggregates: Codable {
+    let totalRequests: Int
+    let averageResponseTime: Double
+    let averageSuccessRate: Double
+    let totalErrors: Int
+    let averageCpuUsage: Double
+    let averageMemoryUsage: Double
+    let totalActiveAgents: Int
+}
+
+/// Agent task response
+struct AgentTaskResponse: Codable {
+    let success: Bool
+    let data: AgentTaskData
+    let message: String
+}
+
+struct AgentTaskData: Codable {
+    let taskId: String
+    let task: AgentTask
+}
+
+struct AgentTask: Codable, Identifiable {
+    let id: String
+    let agentName: String
+    let type: String
+    let status: String
+    let priority: Int
+    let startTime: String?
+    let endTime: String?
+    let estimatedDuration: Double?
+    let context: [String: AnyHashable]
+    let result: [String: AnyHashable]?
+    let error: String?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, agentName, type, status, priority, startTime, endTime, estimatedDuration, context, result, error
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        agentName = try container.decode(String.self, forKey: .agentName)
+        type = try container.decode(String.self, forKey: .type)
+        status = try container.decode(String.self, forKey: .status)
+        priority = try container.decode(Int.self, forKey: .priority)
+        startTime = try container.decodeIfPresent(String.self, forKey: .startTime)
+        endTime = try container.decodeIfPresent(String.self, forKey: .endTime)
+        estimatedDuration = try container.decodeIfPresent(Double.self, forKey: .estimatedDuration)
+        
+        // Handle dynamic context and result as AnyHashable
+        if let contextData = try? container.decode(Data.self, forKey: .context) {
+            context = (try? JSONSerialization.jsonObject(with: contextData) as? [String: AnyHashable]) ?? [:]
+        } else {
+            context = [:]
+        }
+        
+        if let resultData = try? container.decodeIfPresent(Data.self, forKey: .result) {
+            result = (try? JSONSerialization.jsonObject(with: resultData) as? [String: AnyHashable])
+        } else {
+            result = nil
+        }
+        
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+    }
+}
+
+/// Agent tasks response
+struct AgentTasksResponse: Codable {
+    let success: Bool
+    let data: AgentTasksData
+    let message: String
+}
+
+struct AgentTasksData: Codable {
+    let tasks: [AgentTask]
+    let summary: TaskSummary
+}
+
+struct TaskSummary: Codable {
+    let total: Int
+    let pending: Int
+    let running: Int
+    let completed: Int
+    let failed: Int
+}
+
+/// Collaboration response
+struct CollaborationResponse: Codable {
+    let success: Bool
+    let data: CollaborationData
+    let message: String
+}
+
+struct CollaborationData: Codable {
+    let sessionId: String
+}
+
+/// Communications response
+struct CommunicationsResponse: Codable {
+    let success: Bool
+    let data: CommunicationsData
+    let message: String
+}
+
+struct CommunicationsData: Codable {
+    let communications: [Communication]
+    let meshStatus: MeshStatus
+    let summary: CommunicationSummary
+}
+
+struct Communication: Codable, Identifiable {
+    let id: String
+    let participants: [String]
+    let task: String
+    let status: String
+    let startTime: String
+    let messageCount: Int
+    let type: String
+}
+
+struct CommunicationSummary: Codable {
+    let totalCommunications: Int
+    let activeSessions: Int
+    let completedSessions: Int
+    let failedSessions: Int
+}
+
+/// Resource usage response
+struct ResourceUsageResponse: Codable {
+    let success: Bool
+    let data: ResourceUsageData
+    let message: String
+}
+
+struct ResourceUsageData: Codable {
+    let resources: [AgentResource]
+    let systemResources: SystemResources
+    let timestamp: String
+}
+
+struct AgentResource: Codable {
+    let agentName: String
+    let status: String
+    let cpuUsage: Double
+    let memoryUsage: Double
+    let queueLength: Int
+    let lastActive: String
+    let collaborationScore: Double
+    let trustLevel: Double
+}
+
+struct SystemResources: Codable {
+    let totalAgents: Int
+    let totalCpuUsage: Double
+    let totalMemoryUsage: Double
+    let averageCpuUsage: Double
+    let averageMemoryUsage: Double
+    let totalQueueLength: Int
+    let meshHealth: Double
+}
+
+/// Orchestration response
+struct OrchestrationResponse: Codable {
+    let success: Bool
+    let data: OrchestrationData
+    let message: String
+}
+
+struct OrchestrationData: Codable {
+    let result: OrchestrationResult
+    let executionTime: Double
+    let participatingAgents: [String]
+}
+
+struct OrchestrationResult: Codable {
+    let primary: AgentResult?
+    let supporting: [AgentResult]
+}
+
+struct AgentResult: Codable {
+    let agentName: String
+    let result: [String: AnyHashable]?
+    let error: String?
+    let executionTime: Double
+    
+    private enum CodingKeys: String, CodingKey {
+        case agentName, result, error, executionTime
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        agentName = try container.decode(String.self, forKey: .agentName)
+        error = try container.decodeIfPresent(String.self, forKey: .error)
+        executionTime = try container.decode(Double.self, forKey: .executionTime)
+        
+        // Handle dynamic result as AnyHashable
+        if let resultData = try? container.decodeIfPresent(Data.self, forKey: .result) {
+            result = (try? JSONSerialization.jsonObject(with: resultData) as? [String: AnyHashable])
+        } else {
+            result = nil
+        }
+    }
+}
+
+// MARK: - Supporting Types
+
+/// Context for tracking retry attempts
+struct RetryContext {
+    let operation: String
+    let lastError: Error
+    let attemptCount: Int
+    let lastAttempt: Date
+}
+
+/// Error recovery manager
+class ErrorRecoveryManager {
+    func shouldRetry(_ error: Error, attempt: Int) -> Bool {
+        // Implement sophisticated retry logic based on error patterns
+        return attempt < 3
+    }
+    
+    func suggestRecoveryAction(for error: Error) -> String? {
+        if error is URLError {
+            return "Check your internet connection"
+        }
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .authenticationRequired:
+                return "Please sign in again"
+            case .rateLimited:
+                return "Too many requests, please wait"
+            default:
+                return nil
+            }
+        }
+        return nil
+    }
+}
+
 enum APIError: LocalizedError {
     case invalidURL
     case invalidResponse
     case httpError(statusCode: Int)
+    case clientError(Int, String)
+    case serverError(Int, String)
     case decodingError(Error)
     case networkError(Error)
     case requestFailed(String)
+    case authenticationRequired
+    case authenticationFailed(Error)
+    case rateLimited(retryAfter: TimeInterval?)
 
     var errorDescription: String? {
         switch self {
@@ -2039,12 +3127,39 @@ enum APIError: LocalizedError {
             return "Invalid response from server"
         case .httpError(let statusCode):
             return "HTTP error: \(statusCode)"
+        case .clientError(let statusCode, let message):
+            return "Client error (\(statusCode)): \(message)"
+        case .serverError(let statusCode, let message):
+            return "Server error (\(statusCode)): \(message)"
         case .decodingError(let error):
             return "Decoding error: \(error.localizedDescription)"
         case .networkError(let error):
             return "Network error: \(error.localizedDescription)"
         case .requestFailed(let message):
             return "Request failed: \(message)"
+        case .authenticationRequired:
+            return "Authentication required"
+        case .authenticationFailed(let error):
+            return "Authentication failed: \(error.localizedDescription)"
+        case .rateLimited(let retryAfter):
+            if let delay = retryAfter {
+                return "Rate limited. Try again in \(Int(delay)) seconds"
+            } else {
+                return "Rate limited. Please try again later"
+            }
+        }
+    }
+    
+    var isRecoverable: Bool {
+        switch self {
+        case .networkError, .serverError, .rateLimited, .authenticationRequired:
+            return true
+        case .invalidURL, .decodingError, .clientError, .authenticationFailed:
+            return false
+        case .httpError(let statusCode):
+            return statusCode >= 500
+        case .invalidResponse, .requestFailed:
+            return true
         }
     }
 }

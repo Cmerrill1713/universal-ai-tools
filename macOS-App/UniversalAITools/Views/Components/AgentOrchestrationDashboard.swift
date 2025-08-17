@@ -1,9 +1,11 @@
 import SwiftUI
 import Combine
+import Pow
 
 /// Comprehensive Agent Orchestration Control Center Dashboard
 struct AgentOrchestrationDashboard: View {
     @StateObject private var webSocketService = AgentWebSocketService()
+    @StateObject private var orchestrationService = EnhancedAgentOrchestrationService()
     @EnvironmentObject var appState: AppState
     @State private var selectedTab: OrchestrationTab = .overview
     @State private var showConnectionSettings = false
@@ -58,6 +60,27 @@ struct AgentOrchestrationDashboard: View {
         } message: {
             Text(alertMessage ?? "")
         }
+        .overlay(
+            // Error recovery overlay
+            Group {
+                if webSocketService.showErrorRecovery, let error = webSocketService.currentError {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .edgesIgnoringSafeArea(.all)
+                        
+                        ErrorRecoveryView(
+                            error: error,
+                            onRetry: {
+                                webSocketService.retryConnection()
+                            },
+                            onDismiss: {
+                                webSocketService.dismissError()
+                            }
+                        )
+                    }
+                }
+            }
+        )
         .sheet(isPresented: $showConnectionSettings) {
             ConnectionSettingsView(webSocketService: webSocketService)
                 .frame(minWidth: 400, idealWidth: 500, maxWidth: 600,
@@ -81,16 +104,20 @@ struct AgentOrchestrationDashboard: View {
     
     private var connectionStatusBanner: some View {
         HStack {
-            ConnectionStatusIndicator(status: webSocketService.connectionStatus)
+            EnhancedUIComponents.AnimatedConnectionStatus(status: webSocketService.connectionStatus)
             
             if webSocketService.connectionStatus == .disconnected || webSocketService.connectionStatus == .failed {
                 Spacer()
-                Button("Connect") {
-                    Task {
-                        await webSocketService.connect()
-                    }
-                }
-                .buttonStyle(.bordered)
+                EnhancedUIComponents.EnhancedActionButton(
+                    title: "Connect",
+                    icon: "wifi",
+                    action: {
+                        Task {
+                            await webSocketService.connect()
+                        }
+                    },
+                    style: .primary
+                )
             }
         }
         .padding(.horizontal)
@@ -111,27 +138,38 @@ struct AgentOrchestrationDashboard: View {
                         .foregroundColor(AppTheme.accentOrange)
                         .glow(color: AppTheme.accentOrange, radius: 4)
                     
-                    Text("Agent Orchestration Control Center")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                    HStack {
+                        Text("Agent Orchestration Control Center")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        if let feature = appState.featureDiscoveryManager.availableFeatures.first(where: { $0.id == "agent-orchestration" }) {
+                            FeatureDiscoveryBadge(
+                                feature: feature,
+                                discoveryManager: appState.featureDiscoveryManager
+                            )
+                        }
+                    }
                 }
                 
                 HStack(spacing: 12) {
-                    ConnectionStatusIndicator(status: webSocketService.connectionStatus)
+                    EnhancedUIComponents.AnimatedConnectionStatus(status: webSocketService.connectionStatus)
                     
-                    Text("|\(webSocketService.agentNetwork.nodes.count) Agents")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    EnhancedUIComponents.EnhancedStatusBadge(
+                        status: "\(webSocketService.agentNetwork.nodes.count) Agents",
+                        type: .info
+                    )
                     
-                    Text("|\(webSocketService.activeWorkflows.count) Workflows")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    EnhancedUIComponents.EnhancedStatusBadge(
+                        status: "\(webSocketService.activeWorkflows.count) Workflows",
+                        type: .active
+                    )
                     
                     if let lastError = webSocketService.lastError {
-                        Text("| Error: \(lastError)")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .lineLimit(1)
+                        EnhancedUIComponents.EnhancedStatusBadge(
+                            status: "Error: \(lastError)",
+                            type: .error
+                        )
                     }
                 }
             }
@@ -156,19 +194,20 @@ struct AgentOrchestrationDashboard: View {
                 .help("Connection settings")
                 
                 // Create workflow
-                Button(action: { showWorkflowCreator = true }) {
-                    Image(systemName: "plus.circle")
-                        .font(.title3)
-                }
-                .help("Create new workflow")
+                EnhancedUIComponents.EnhancedActionButton(
+                    title: "New Workflow",
+                    icon: "plus.circle",
+                    action: { showWorkflowCreator = true },
+                    style: .secondary
+                )
                 
                 // Emergency stop
-                Button(action: { emergencyStopAllAgents() }) {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.title3)
-                        .foregroundColor(.red)
-                }
-                .help("Emergency stop all agents")
+                EnhancedUIComponents.EnhancedActionButton(
+                    title: "Emergency Stop",
+                    icon: "stop.circle.fill",
+                    action: { emergencyStopAllAgents() },
+                    style: .destructive
+                )
             }
         }
         .padding()
@@ -261,15 +300,12 @@ struct AgentOrchestrationDashboard: View {
                     color: .blue
                 )
                 
-                Button(action: { connectToService() }) {
-                    Text(webSocketService.isConnected ? "Reconnect" : "Connect")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(webSocketService.isConnected ? .orange : .blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(4)
-                }
+                EnhancedUIComponents.EnhancedActionButton(
+                    title: webSocketService.isConnected ? "Reconnect" : "Connect",
+                    icon: webSocketService.isConnected ? "arrow.clockwise" : "wifi",
+                    action: { connectToService() },
+                    style: webSocketService.isConnected ? .secondary : .primary
+                )
                 .disabled(isConnecting)
             }
         }
@@ -699,24 +735,12 @@ struct QuickStatCard: View {
     let color: Color
     
     var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-            
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-            
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        EnhancedUIComponents.ParticleDataCard(
+            title: title,
+            value: value,
+            trend: .rising, // Default to rising for demo
+            color: color
+        )
     }
 }
 

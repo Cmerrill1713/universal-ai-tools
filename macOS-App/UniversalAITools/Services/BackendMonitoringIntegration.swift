@@ -755,6 +755,21 @@ public class BackendMonitoringIntegration: ObservableObject {
     }
 }
 
+// MARK: - Missing Constants and Extensions
+
+// MARK: - Notification Names
+extension Notification.Name {
+    public static let remoteLoggingConnected = Notification.Name("RemoteLoggingConnected")
+    public static let remoteLoggingDisconnected = Notification.Name("RemoteLoggingDisconnected")
+    public static let failurePredicted = Notification.Name("FailurePredicted")
+}
+
+// MARK: - Notification Payload Keys
+public struct NotificationPayloadKeys {
+    public static let alertData = "alertData"
+    public static let predictionData = "predictionData"
+}
+
 // MARK: - Supporting Types
 
 // Note: SyncStatus and EndpointHealth are defined in LoggingTypes.swift to avoid duplication

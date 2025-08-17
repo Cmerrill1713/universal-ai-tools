@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import UniversalAIToolsServer from '@/server';
+import UniversalAIToolsServer from '../../src/server';
 
 describe('Offline mode API behavior', () => {
   let server: UniversalAIToolsServer;

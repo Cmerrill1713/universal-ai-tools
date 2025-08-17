@@ -5,7 +5,8 @@ import OSLog
 import SwiftUI
 import SystemConfiguration
 
-// Note: HealthStatus is now defined in LoggingTypes.swift to avoid conflicts
+// Import types from LoggingTypes.swift
+// Note: HealthStatus, HealthCheckResult, LoggingService etc. are defined in LoggingTypes.swift and other files
 
 // MARK: - System Performance Metrics
 public struct SystemPerformanceMetrics: Codable {
@@ -110,35 +111,10 @@ public protocol HealthCheck {
     var name: String { get }
     var category: String { get }
     
-    func check() async -> MonitoringHealthCheckResult
+    func check() async -> HealthCheckResult
 }
 
-public struct MonitoringHealthCheckResult: Codable {
-    public let name: String
-    public let category: String
-    public let status: HealthStatus
-    public let message: String
-    public let metadata: [String: String]
-    public let timestamp: Date
-    public let duration: TimeInterval
-    
-    public init(
-        name: String,
-        category: String,
-        status: HealthStatus,
-        message: String,
-        metadata: [String: String] = [:],
-        duration: TimeInterval
-    ) {
-        self.name = name
-        self.category = category
-        self.status = status
-        self.message = message
-        self.metadata = metadata
-        self.timestamp = Date()
-        self.duration = duration
-    }
-}
+// Using HealthCheckResult from LoggingTypes.swift
 
 // MARK: - Built-in Health Checks
 public class BackendHealthCheck: HealthCheck {
@@ -152,23 +128,23 @@ public class BackendHealthCheck: HealthCheck {
         // Placeholder implementation
     }
     
-    public func check() async -> MonitoringHealthCheckResult {
+    public func check() async -> HealthCheckResult {
         let startTime = CFAbsoluteTimeGetCurrent()
         
         // Placeholder health check - would implement actual backend check
         let isHealthy = true // Placeholder
         let duration = CFAbsoluteTimeGetCurrent() - startTime
         
-        return MonitoringHealthCheckResult(
+        return HealthCheckResult(
             name: name,
-            category: category,
-            status: isHealthy ? .healthy : .critical,
+            status: isHealthy ? .passed : .failed,
             message: isHealthy ? "Backend is responding" : "Backend is not responding",
-            metadata: [
+            duration: duration,
+            category: category,
+            details: [
                 "connected": "true", // Placeholder
                 "authenticated": "true" // Placeholder
-            ],
-            duration: duration
+            ]
         )
     }
 }
@@ -177,24 +153,24 @@ public class MemoryHealthCheck: HealthCheck {
     public let name = "Memory Usage"
     public let category = "performance"
     
-    public func check() async -> MonitoringHealthCheckResult {
+    public func check() async -> HealthCheckResult {
         let startTime = CFAbsoluteTimeGetCurrent()
         
         let memoryInfo = getMemoryInfo()
         let usagePercentage = (Double(memoryInfo.used) / Double(memoryInfo.total)) * 100
         
-        let status: HealthStatus
+        let status: HealthCheckStatus
         if usagePercentage > 90 {
-            status = .critical
+            status = .failed
         } else if usagePercentage > 75 {
             status = .warning
         } else {
-            status = .healthy
+            status = .passed
         }
         
         let duration = CFAbsoluteTimeGetCurrent() - startTime
         
-        return MonitoringHealthCheckResult(
+        return HealthCheckResult(
             name: name,
             category: category,
             status: status,
@@ -231,7 +207,7 @@ public class DiskSpaceHealthCheck: HealthCheck {
     public let name = "Disk Space"
     public let category = "performance"
     
-    public func check() async -> MonitoringHealthCheckResult {
+    public func check() async -> HealthCheckResult {
         let startTime = CFAbsoluteTimeGetCurrent()
         
         do {
@@ -249,18 +225,18 @@ public class DiskSpaceHealthCheck: HealthCheck {
             let usedSpace = total - available
             let usagePercentage = (Double(usedSpace) / Double(total)) * 100
             
-            let status: HealthStatus
+            let status: HealthCheckStatus
             if usagePercentage > 95 {
-                status = .critical
+                status = .failed
             } else if usagePercentage > 85 {
                 status = .warning
             } else {
-                status = .healthy
+                status = .passed
             }
             
             let duration = CFAbsoluteTimeGetCurrent() - startTime
             
-            return MonitoringHealthCheckResult(
+            return HealthCheckResult(
                 name: name,
                 category: category,
                 status: status,
@@ -274,10 +250,10 @@ public class DiskSpaceHealthCheck: HealthCheck {
             )
         } catch {
             let duration = CFAbsoluteTimeGetCurrent() - startTime
-            return MonitoringHealthCheckResult(
+            return HealthCheckResult(
                 name: name,
                 category: category,
-                status: .unknown,
+                status: .error,
                 message: "Unable to check disk space: \(error.localizedDescription)",
                 metadata: ["error": error.localizedDescription],
                 duration: duration
@@ -296,7 +272,7 @@ public class MonitoringService: ObservableObject {
     @Published public var performanceMetrics: SystemPerformanceMetrics?
     @Published public var connectionHealth: ServiceConnectionHealth?
     @Published public var applicationHealth: ApplicationHealth?
-    @Published public var healthCheckResults: [MonitoringHealthCheckResult] = []
+    @Published public var healthCheckResults: [HealthCheckResult] = []
     @Published public var alerts: [ServiceAlert] = []
     
     private let logger = LoggingService.shared
@@ -367,7 +343,7 @@ public class MonitoringService: ObservableObject {
         
         logger.debug("Running \(healthChecks.count) health checks", category: .monitoring)
         
-        var results: [MonitoringHealthCheckResult] = []
+        var results: [HealthCheckResult] = []
         
         for healthCheck in healthChecks {
             do {
@@ -378,7 +354,7 @@ public class MonitoringService: ObservableObject {
                            category: .monitoring,
                            metadata: ["duration": String(format: "%.3f", result.duration)])
             } catch {
-                let errorResult = MonitoringHealthCheckResult(
+                let errorResult = HealthCheckResult(
                     name: healthCheck.name,
                     category: healthCheck.category,
                     status: .critical,
@@ -698,11 +674,11 @@ public class MonitoringService: ObservableObject {
     private func updateOverallHealth() {
         let statuses = healthCheckResults.map { $0.status }
         
-        if statuses.contains(.critical) {
+        if statuses.contains(.failed) || statuses.contains(.error) {
             currentHealth = .critical
         } else if statuses.contains(.warning) {
             currentHealth = .warning
-        } else if statuses.allSatisfy({ $0 == .healthy }) {
+        } else if statuses.allSatisfy({ $0 == .passed }) {
             currentHealth = .healthy
         } else {
             currentHealth = .unknown

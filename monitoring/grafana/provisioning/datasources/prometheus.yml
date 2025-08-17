@@ -7,3 +7,10 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: true
+    jsonData:
+      httpMethod: POST
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: jaeger
+          urlDisplayLabel: 'View trace'
+          url: 'http://jaeger:16686/trace/${__value.raw}'

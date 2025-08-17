@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import request from 'supertest';
 
-import UniversalAIToolsServer from '@/server';
+import UniversalAIToolsServer from '../../src/server';
 
 let server: UniversalAIToolsServer;
 let app: any;

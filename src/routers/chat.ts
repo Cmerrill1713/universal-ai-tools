@@ -10,7 +10,10 @@ import { z } from 'zod';
 import type AgentRegistry from '@/agents/agent-registry';
 import { authenticate } from '@/middleware/auth';
 import { validateParams } from '@/middleware/validation';
+import { type EnhancedChatRequest,enhancedChatRequestSchema } from '@/middleware/validation-schemas';
 import { zodValidate } from '@/middleware/zod-validate';
+import { codeContextScanner } from '@/services/code-context-scanner';
+import { enhancedContextManager } from '@/services/enhanced-context-manager';
 import { singleFileAgentBridge } from '@/services/single-file-agent-bridge';
 import type { AgentContext } from '@/types';
 import { log, LogContext } from '@/utils/logger';
@@ -27,6 +30,14 @@ interface ChatMessage {
     error?: string;
     processingMode?: string;
     userId?: string;
+    codeContext?: {
+      enabled: boolean;
+      filesIncluded: number;
+      filesScanned: number;
+      totalTokens: number;
+      workspacePath: string;
+      contextTruncated: boolean;
+    };
   };
 }
 
@@ -267,23 +278,23 @@ router.post(
 
 /**
  * POST /api/v1/chat
- * Send a message and get AI response
+ * Send a message and get AI response (enhanced with optional code context)
  */
 router.post(
   '/',
   authenticate,
-  zodValidate(
-    z.object({
-      message: z.string(),
-      conversationId: z.string().uuid().optional(),
-      agentName: z.string().optional(),
-      context: z.record(z.any()).optional(),
-    })
-  ),
+  zodValidate(enhancedChatRequestSchema),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
-      const { message, conversationId, agentName: requestedAgentName = 'personal_assistant', context = {} } = req.body;
+      const { 
+        message, 
+        conversationId, 
+        agentName: requestedAgentName = 'personal_assistant', 
+        context = {},
+        includeCodeContext = false,
+        codeContextOptions
+      } = req.body as EnhancedChatRequest;
 
       // Get or create conversation
       let conversation: Conversation;
@@ -326,20 +337,95 @@ router.post(
         conversations.set(conversation.id, conversation);
       }
 
-      // Add user message
+      // Initialize enhanced message content
+      let enhancedMessage = message;
+      let codeContextMetadata: {
+        enabled: boolean;
+        filesIncluded: number;
+        filesScanned: number;
+        totalTokens: number;
+        workspacePath: string;
+        contextTruncated: boolean;
+      } | undefined;
+
+      // Scan for code context if requested
+      if (includeCodeContext) {
+        try {
+          log.info('🔍 Scanning code context', LogContext.CONTEXT_INJECTION, {
+            userId,
+            conversationId: conversation.id,
+            workspacePath: codeContextOptions?.workspacePath
+          });
+
+          const codeContextResult = await codeContextScanner.scanCodeContext(message, {
+            workspacePath: codeContextOptions?.workspacePath,
+            maxFiles: codeContextOptions?.maxFiles,
+            maxTokensForCode: codeContextOptions?.maxTokensForCode
+          });
+
+          // Format code context for chat
+          const formattedCodeContext = codeContextScanner.formatCodeContextForChat(
+            codeContextResult, 
+            message
+          );
+
+          if (formattedCodeContext) {
+            enhancedMessage = message + formattedCodeContext;
+          }
+
+          codeContextMetadata = {
+            enabled: true,
+            filesIncluded: codeContextResult.files.length,
+            filesScanned: codeContextResult.filesScanned,
+            totalTokens: codeContextResult.totalTokens,
+            workspacePath: codeContextResult.workspacePath,
+            contextTruncated: codeContextResult.contextTruncated
+          };
+
+          log.info('✅ Code context added to message', LogContext.CONTEXT_INJECTION, {
+            userId,
+            originalMessageLength: message.length,
+            enhancedMessageLength: enhancedMessage.length,
+            filesIncluded: codeContextResult.files.length,
+            codeTokens: codeContextResult.totalTokens
+          });
+
+        } catch (error) {
+          log.error('❌ Code context scanning failed', LogContext.CONTEXT_INJECTION, {
+            error: error instanceof Error ? error.message : String(error),
+            userId,
+            workspacePath: codeContextOptions?.workspacePath
+          });
+
+          codeContextMetadata = {
+            enabled: true,
+            filesIncluded: 0,
+            filesScanned: 0,
+            totalTokens: 0,
+            workspacePath: codeContextOptions?.workspacePath || process.cwd(),
+            contextTruncated: false
+          };
+        }
+      }
+
+      // Add user message with enhanced content and metadata
       const userMessage: ChatMessage = {
         id: uuidv4(),
         role: 'user',
-        content: message,
+        content: enhancedMessage,
         timestamp: new Date().toISOString(),
+        metadata: {
+          userId,
+          codeContext: codeContextMetadata
+        }
       };
       conversation.messages.push(userMessage);
 
       // Prepare agent context with conversation history (moved up for scope)
       const agentContext: AgentContext = {
-        userRequest: message,
+        userRequest: enhancedMessage,
         requestId: (req.headers['x-request-id'] as string) || uuidv4(),
-        workingDirectory: process.cwd(),
+        workingDirectory: codeContextMetadata?.workspacePath || process.cwd(),
         userId,
         conversationHistory: conversation.messages.map((msg) => ({
           role: msg.role,
@@ -359,18 +445,18 @@ router.post(
         });
       }
 
-      if (message.length > 10000) {
+      if (enhancedMessage.length > 100000) { // Increased limit for code context
         return res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Message too long (max 10,000 characters)',
+            message: 'Enhanced message too long (max 100,000 characters)',
           },
         });
       }
 
       // Sanitize message content
-      const sanitizedMessage = message.trim();
+      const sanitizedMessage = enhancedMessage.trim();
       if (!sanitizedMessage) {
         return res.status(400).json({
           success: false,
@@ -404,6 +490,7 @@ router.post(
               tokens: Math.floor(executionTime / 10),
               processingMode: 'fast',
               userId: userId, // Include user context for security
+              codeContext: codeContextMetadata
             },
           };
         } else {
@@ -427,6 +514,7 @@ router.post(
                   processingMode: 'full',
                   userId: userId,
                   error: result?.error,
+                  codeContext: codeContextMetadata
                 },
               };
             } else {
@@ -457,6 +545,7 @@ router.post(
             processingMode: 'fallback',
             userId: userId,
             error: 'Agent processing failed',
+            codeContext: codeContextMetadata
           },
         };
       }
@@ -486,12 +575,14 @@ router.post(
             tokens: assistantMessage.metadata?.tokens || 0,
             executionTime: `${Date.now() - startTime}ms`,
           },
+          codeContext: codeContextMetadata || { enabled: false },
         },
         metadata: {
           timestamp: new Date().toISOString(),
           requestId: agentContext.requestId,
           agentName: assistantMessage.metadata?.agentName,
           userId: userId,
+          enhancedChat: includeCodeContext,
         },
       });
     } catch (error) {
@@ -504,6 +595,326 @@ router.post(
         error: {
           code: 'CHAT_ERROR',
           message: 'Failed to process chat message',
+          details: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/chat/enhanced
+ * Enhanced chat endpoint with optional code context scanning
+ */
+router.post(
+  '/enhanced',
+  authenticate,
+  zodValidate(enhancedChatRequestSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id || 'anonymous';
+      const { 
+        message, 
+        conversationId, 
+        agentName: requestedAgentName = 'personal_assistant', 
+        context = {},
+        includeCodeContext = false,
+        codeContextOptions
+      } = req.body as EnhancedChatRequest;
+
+      const startTime = Date.now();
+
+      log.info('🚀 Enhanced chat request received', LogContext.API, {
+        userId,
+        messageLength: message.length,
+        includeCodeContext,
+        agentName: requestedAgentName,
+        workspacePath: codeContextOptions?.workspacePath
+      });
+
+      // Get or create conversation
+      let conversation: Conversation;
+      if (conversationId) {
+        conversation = conversations.get(conversationId)!;
+        if (!conversation) {
+          return res.status(404).json({
+            success: false,
+            error: {
+              code: 'CONVERSATION_NOT_FOUND',
+              message: 'Conversation not found',
+            },
+          });
+        }
+
+        // Check authorization
+        if (conversation.userId !== userId) {
+          return res.status(403).json({
+            success: false,
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'You do not have access to this conversation',
+            },
+          });
+        }
+      } else {
+        // Create new conversation
+        conversation = {
+          id: uuidv4(),
+          userId,
+          title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          metadata: {
+            totalTokens: 0,
+            agentUsage: {},
+          },
+        };
+        conversations.set(conversation.id, conversation);
+      }
+
+      // Initialize enhanced message content
+      let enhancedMessage = message;
+      let codeContextMetadata: {
+        enabled: boolean;
+        filesIncluded: number;
+        filesScanned: number;
+        totalTokens: number;
+        workspacePath: string;
+        contextTruncated: boolean;
+      } | undefined;
+
+      // Scan for code context if requested
+      if (includeCodeContext) {
+        try {
+          log.info('🔍 Scanning code context', LogContext.CONTEXT_INJECTION, {
+            userId,
+            conversationId: conversation.id,
+            workspacePath: codeContextOptions?.workspacePath
+          });
+
+          const codeContextResult = await codeContextScanner.scanCodeContext(message, {
+            workspacePath: codeContextOptions?.workspacePath,
+            maxFiles: codeContextOptions?.maxFiles,
+            maxTokensForCode: codeContextOptions?.maxTokensForCode
+          });
+
+          // Format code context for chat
+          const formattedCodeContext = codeContextScanner.formatCodeContextForChat(
+            codeContextResult, 
+            message
+          );
+
+          if (formattedCodeContext) {
+            enhancedMessage = message + formattedCodeContext;
+          }
+
+          codeContextMetadata = {
+            enabled: true,
+            filesIncluded: codeContextResult.files.length,
+            filesScanned: codeContextResult.filesScanned,
+            totalTokens: codeContextResult.totalTokens,
+            workspacePath: codeContextResult.workspacePath,
+            contextTruncated: codeContextResult.contextTruncated
+          };
+
+          log.info('✅ Code context added to message', LogContext.CONTEXT_INJECTION, {
+            userId,
+            originalMessageLength: message.length,
+            enhancedMessageLength: enhancedMessage.length,
+            filesIncluded: codeContextResult.files.length,
+            codeTokens: codeContextResult.totalTokens
+          });
+
+        } catch (error) {
+          log.error('❌ Code context scanning failed', LogContext.CONTEXT_INJECTION, {
+            error: error instanceof Error ? error.message : String(error),
+            userId,
+            workspacePath: codeContextOptions?.workspacePath
+          });
+
+          codeContextMetadata = {
+            enabled: true,
+            filesIncluded: 0,
+            filesScanned: 0,
+            totalTokens: 0,
+            workspacePath: codeContextOptions?.workspacePath || process.cwd(),
+            contextTruncated: false
+          };
+        }
+      }
+
+      // Add user message with enhanced content and metadata
+      const userMessage: ChatMessage = {
+        id: uuidv4(),
+        role: 'user',
+        content: enhancedMessage,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          userId,
+          codeContext: codeContextMetadata
+        }
+      };
+      conversation.messages.push(userMessage);
+
+      // Store message in enhanced context manager for persistence
+      const sessionId = conversation.id;
+      await enhancedContextManager.addMessage(sessionId, {
+        role: 'user',
+        content: enhancedMessage,
+        metadata: { userId, includeCodeContext, codeContext: codeContextMetadata }
+      });
+
+      // Prepare agent context with conversation history
+      const agentContext: AgentContext = {
+        userRequest: enhancedMessage,
+        requestId: (req.headers['x-request-id'] as string) || uuidv4(),
+        workingDirectory: codeContextMetadata?.workspacePath || process.cwd(),
+        userId,
+        conversationHistory: conversation.messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        ...context,
+      };
+
+      // Input validation and sanitization
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Message is required and must be a string',
+          },
+        });
+      }
+
+      if (enhancedMessage.length > 100000) { // Increased limit for code context
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Enhanced message too long (max 100,000 characters)',
+          },
+        });
+      }
+
+      // Process with agent
+      let result: any;
+      let assistantMessage: ChatMessage;
+
+      try {
+        // Use full agent processing for enhanced chat
+        const { container, SERVICE_NAMES } = await import('@/utils/dependency-container');
+        const agentRegistry = container.get<AgentRegistry>(SERVICE_NAMES.AGENT_REGISTRY);
+        
+        if (agentRegistry) {
+          result = await singleFileAgentBridge.processRequest(requestedAgentName, agentContext);
+          
+          const executionTime = Date.now() - startTime;
+          assistantMessage = {
+            id: uuidv4(),
+            role: 'assistant',
+            content: result?.response || 'I apologize, but I encountered an issue processing your request. Please try again.',
+            timestamp: new Date().toISOString(),
+            metadata: {
+              agentName: result?.agentName || requestedAgentName,
+              confidence: result?.confidence || 0.9,
+              tokens: result?.usage?.tokens || Math.floor(executionTime / 10),
+              processingMode: 'enhanced',
+              userId: userId,
+              error: result?.error,
+              codeContext: codeContextMetadata
+            },
+          };
+        } else {
+          throw new Error('Agent registry not available');
+        }
+      } catch (error) {
+        log.error('Agent processing failed in enhanced chat', LogContext.API, {
+          error: error instanceof Error ? error.message : String(error),
+          userId,
+          messageLength: enhancedMessage.length,
+          includeCodeContext
+        });
+        
+        const executionTime = Date.now() - startTime;
+        assistantMessage = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: 'I apologize, but I encountered an issue processing your request. Please try again later.',
+          timestamp: new Date().toISOString(),
+          metadata: {
+            agentName: 'error-fallback',
+            confidence: 0.5,
+            tokens: Math.floor(executionTime / 10),
+            processingMode: 'enhanced-fallback',
+            userId: userId,
+            error: 'Agent processing failed',
+            codeContext: codeContextMetadata
+          },
+        };
+      }
+
+      // Store assistant response in enhanced context manager
+      await enhancedContextManager.addMessage(sessionId, {
+        role: 'assistant',
+        content: assistantMessage.content,
+        metadata: assistantMessage.metadata
+      });
+
+      // Update conversation
+      conversation.messages.push(assistantMessage);
+      conversation.updatedAt = new Date().toISOString();
+      conversation.metadata.totalTokens += assistantMessage.metadata?.tokens || 0;
+      const usedAgentName = assistantMessage.metadata?.agentName || 'unknown';
+      conversation.metadata.agentUsage[usedAgentName] = (conversation.metadata.agentUsage[usedAgentName] || 0) + 1;
+
+      const totalExecutionTime = Date.now() - startTime;
+
+      log.info('✅ Enhanced chat message processed successfully', LogContext.API, {
+        userId,
+        conversationId: conversation.id,
+        agentName: assistantMessage.metadata?.agentName,
+        processingMode: assistantMessage.metadata?.processingMode,
+        executionTime: totalExecutionTime,
+        includeCodeContext,
+        codeFilesIncluded: codeContextMetadata?.filesIncluded || 0,
+        originalMessageLength: message.length,
+        enhancedMessageLength: enhancedMessage.length
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          conversationId: conversation.id,
+          message: assistantMessage,
+          usage: {
+            tokens: assistantMessage.metadata?.tokens || 0,
+            executionTime: `${totalExecutionTime}ms`,
+          },
+          codeContext: codeContextMetadata || { enabled: false },
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: agentContext.requestId,
+          agentName: assistantMessage.metadata?.agentName,
+          userId: userId,
+          enhancedChat: true,
+        },
+      });
+    } catch (error) {
+      log.error('Enhanced chat processing error', LogContext.API, {
+        error: error instanceof Error ? error.message : String(error),
+        userId: (req as any).user?.id || 'anonymous',
+        includeCodeContext: req.body?.includeCodeContext
+      });
+
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'ENHANCED_CHAT_ERROR',
+          message: 'Failed to process enhanced chat message',
           details: error instanceof Error ? error.message : String(error),
         },
       });

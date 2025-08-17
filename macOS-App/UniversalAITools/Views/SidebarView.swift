@@ -88,14 +88,11 @@ struct OptimizedSidebarItemView: View {
             Spacer()
 
             if hasAppeared, let badge = cachedBadge {
-                Text(badge)
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(badgeColor)
-                    .foregroundColor(.white)
-                    .clipShape(Capsule())
-                    .transition(.scale.combined(with: .opacity))
+                EnhancedUIComponents.EnhancedStatusBadge(
+                    status: badge,
+                    type: badgeType
+                )
+                .transition(.scale.combined(with: .opacity))
             }
         }
         .padding(.vertical, 4)
@@ -137,6 +134,19 @@ struct OptimizedSidebarItemView: View {
             return !appState.activeObjectives.isEmpty ? "\(appState.activeObjectives.count)" : nil
         default:
             return item.featureLevel.badge
+        }
+    }
+    
+    private var badgeType: EnhancedUIComponents.EnhancedStatusBadge.BadgeType {
+        if item.featureLevel == .advanced {
+            return .active
+        }
+        
+        switch item {
+        case .chat, .objectives:
+            return .info
+        default:
+            return .success
         }
     }
     

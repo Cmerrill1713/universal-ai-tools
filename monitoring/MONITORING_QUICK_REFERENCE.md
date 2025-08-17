@@ -32,6 +32,7 @@ docker-compose -f docker-compose.telemetry.yml logs -f [service-name]
 ## 🔍 Common Prometheus Queries
 
 ### System Health
+
 ```promql
 # Service uptime
 up{job="universal-ai-tools"}
@@ -53,6 +54,7 @@ rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]
 ```
 
 ### Sweet Athena Metrics
+
 ```promql
 # Athena interaction rate
 rate(athena_interactions_total[5m])
@@ -68,6 +70,7 @@ athena_sweetness_level
 ```
 
 ### Database Performance
+
 ```promql
 # Active connections
 database_connections_active
@@ -90,6 +93,7 @@ rate(database_errors_total[5m])
 - **CLI**: `curl -s http://localhost:9090/api/v1/rules | jq`
 
 ### Test Alert
+
 ```bash
 # Trigger a test alert
 curl -XPOST http://localhost:9093/api/v1/alerts \
@@ -108,6 +112,7 @@ curl -XPOST http://localhost:9093/api/v1/alerts \
 ## 📋 Health Check Procedures
 
 ### Daily Health Check
+
 ```bash
 # 1. Check all services are running
 ./check-monitoring-health.sh
@@ -126,6 +131,7 @@ docker stats --no-stream
 ```
 
 ### Weekly Maintenance
+
 ```bash
 # 1. Clean up old metrics data (if needed)
 # Prometheus retains data for 30 days by default
@@ -144,6 +150,7 @@ du -sh logs/
 ### Common Issues
 
 **Issue: Metrics not showing in Grafana**
+
 ```bash
 # Check Prometheus is scraping the API
 curl http://localhost:9090/api/v1/targets
@@ -156,6 +163,7 @@ curl -u admin:password http://localhost:3003/api/datasources
 ```
 
 **Issue: Alerts not firing**
+
 ```bash
 # Check alert rules are loaded
 curl http://localhost:9090/api/v1/rules
@@ -168,6 +176,7 @@ curl http://localhost:9093/api/v1/status
 ```
 
 **Issue: High memory usage**
+
 ```bash
 # Check container memory usage
 docker stats
@@ -180,6 +189,7 @@ docker system prune -f
 ```
 
 ### Service Restart Commands
+
 ```bash
 # Restart individual services
 docker-compose -f docker-compose.telemetry.yml restart prometheus
@@ -193,6 +203,7 @@ docker-compose -f docker-compose.telemetry.yml restart
 ## 📈 Performance Monitoring
 
 ### Key Metrics to Watch
+
 1. **API Response Time**: < 2 seconds (95th percentile)
 2. **Error Rate**: < 1%
 3. **Sweet Athena Response Time**: < 5 seconds
@@ -202,6 +213,7 @@ docker-compose -f docker-compose.telemetry.yml restart
 7. **Disk Usage**: < 85%
 
 ### Performance Dashboards
+
 - **Overview**: Universal AI Tools Dashboard
 - **Sweet Athena**: Sweet Athena Dashboard
 - **System**: System Performance Dashboard
@@ -209,12 +221,14 @@ docker-compose -f docker-compose.telemetry.yml restart
 ## 🔐 Security Monitoring
 
 ### Security Alerts to Monitor
+
 - Authentication failures
 - Rate limiting hits
 - Suspicious activity
 - Unusual traffic patterns
 
 ### Security Queries
+
 ```promql
 # Authentication failures
 rate(authentication_attempts_total{status="failed"}[5m])
@@ -229,11 +243,13 @@ rate(security_events_total[5m])
 ## 📱 Mobile/Remote Access
 
 ### Grafana Mobile App
+
 1. Download Grafana mobile app
 2. Add server: http://your-server:3003
 3. Login with admin credentials
 
 ### Alert Notifications
+
 - **Slack**: Configure webhook in .env.monitoring
 - **Email**: Configure SMTP settings in .env.monitoring
 - **PagerDuty**: Configure integration key in .env.monitoring
@@ -241,6 +257,7 @@ rate(security_events_total[5m])
 ## 🔄 Backup and Recovery
 
 ### Backup Important Data
+
 ```bash
 # Backup Prometheus data
 docker run --rm -v prometheus_data:/data -v $(pwd):/backup alpine tar czf /backup/prometheus-backup-$(date +%Y%m%d).tar.gz -C /data .
@@ -253,6 +270,7 @@ docker exec grafana grafana-cli admin export-dashboard > dashboards-backup-$(dat
 ```
 
 ### Restore Data
+
 ```bash
 # Restore Prometheus data
 docker run --rm -v prometheus_data:/data -v $(pwd):/backup alpine tar xzf /backup/prometheus-backup.tar.gz -C /data
@@ -264,12 +282,14 @@ docker run --rm -v grafana_data:/data -v $(pwd):/backup alpine tar xzf /backup/g
 ## 📞 Emergency Contacts
 
 ### Escalation Path
+
 1. **Level 1**: Check dashboards and alerts
 2. **Level 2**: Review logs and metrics
 3. **Level 3**: Contact development team
 4. **Level 4**: Contact infrastructure team
 
 ### Emergency Commands
+
 ```bash
 # Emergency service restart
 docker-compose -f docker-compose.telemetry.yml -f docker-compose.yml restart

@@ -24,7 +24,16 @@
   "jest.rootPath": ".",
 
   "files.associations": {
-    "*.cjs": "javascript"
+    "*.cjs": "javascript",
+    "*.swift": "swift",
+    "*.xcodeproj": "xml",
+    "*.xcworkspace": "xml",
+    "*.plist": "xml",
+    "*.entitlements": "xml",
+    "*.pbxproj": "javascript",
+    "*.xcconfig": "properties",
+    "*.strings": "properties",
+    "*.stringsdict": "xml"
   },
   "files.exclude": {
     "**/dist": true,
@@ -33,7 +42,13 @@
     "**/.next": true,
     "**/coverage": true,
     "**/venv": true,
-    "**/node_modules": true
+    "**/node_modules": true,
+    // Xcode/Swift specific exclusions
+    "**/DerivedData": true,
+    "**/.build": true,
+    "**/xcuserdata": true,
+    "**/*.xcworkspace/xcshareddata": false,
+    "**/*.xcodeproj/xcshareddata": false
   },
   "files.watcherExclude": {
     "**/dist/**": true,
@@ -47,7 +62,10 @@
     "**/build": true,
     "**/coverage": true,
     "**/node_modules": true,
-    "**/venv": true
+    "**/venv": true,
+    "**/DerivedData": true,
+    "**/.build": true,
+    "**/xcuserdata": true
   },
 
   "yaml.schemas": {
@@ -152,9 +170,47 @@
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.pytestArgs": ["src/services/dspy-orchestrator"],
+  // === SWIFT/iOS DEVELOPMENT CONFIGURATION ===
   "[swift]": {
-    "editor.defaultFormatter": "vknabel.vscode-apple-swift-format"
+    "editor.defaultFormatter": "vknabel.vscode-apple-swift-format",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.detectIndentation": false,
+    "editor.trimAutoWhitespace": true,
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 100,
+    "editor.rulers": [100],
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
   },
+
+  // Swift Language Server Configuration
+  "swift.diagnostics": true,
+  "swift.path": "",
+  "swift.sourcekit-lsp.serverPath": "",
+  "swift.sourcekit-lsp.toolchainPath": "",
+  "swift.sourcekit-lsp.enable": true,
+  "swift.sourcekit-lsp.disable-swiftpm-integration": false,
+  "swift.sourcekit-lsp.trace.server": "off",
+
+  // Swift Format Configuration
+  "swift-format.enable": true,
+  "swift-format.onlyFormatOnSave": false,
+  "swift-format.path": "",
+
+  // Apple Swift Format Configuration
+  "apple-swift-format.enable": true,
+  "apple-swift-format.configSearchPaths": [
+    ".swift-format"
+  ],
+  "apple-swift-format.onlyEnableOnSwiftPMProjects": false,
+  "apple-swift-format.onlyEnableWithConfig": false,
+
+  // Xcode Integration (file associations and exclusions defined above)
   "cursorpyright.analysis.autoImportCompletions": false,
   "cursorpyright.analysis.autoSearchPaths": false,
   "cursorpyright.analysis.diagnosticMode": "openFilesOnly",
@@ -189,5 +245,36 @@
   "cursorpyright.analysis.inlayHints.functionReturnTypes": false,
   "cursorpyright.analysis.inlayHints.variableTypes": false,
   "cursorpyright.analysis.stubPath": "typings",
-  "cursorpyright.analysis.typeCheckingMode": "off"
+  "cursorpyright.analysis.typeCheckingMode": "off",
+
+  // === AI ASSISTANT CONFIGURATION ===
+  "ai.assistant.projectContext": {
+    "name": "Universal AI Tools",
+    "type": "full-stack-ai-platform",
+    "languages": ["typescript", "swift", "python"],
+    "frameworks": ["express", "swiftui", "dspy"],
+    "debugConfigurations": [
+      "Debug Server (Development)",
+      "Debug Universal AI Tools (macOS)", 
+      "Python: DSPy Orchestrator",
+      "Full Stack Debug"
+    ],
+    "buildTasks": [
+      "npm: build",
+      "swift: Build Debug",
+      "swift: Build Release",
+      "Type Check",
+      "Lint"
+    ]
+  },
+
+  // Extension-aware AI assistance
+  "ai.assistant.extensionContext": true,
+  "ai.assistant.showAvailableCommands": true,
+  "ai.assistant.includeProjectStructure": true,
+
+  // AI code suggestions context
+  "ai.codeCompletion.includeExtensions": true,
+  "ai.codeCompletion.multiLanguage": true,
+  "ai.codeCompletion.projectAware": true
 }

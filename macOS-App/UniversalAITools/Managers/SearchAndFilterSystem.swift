@@ -603,7 +603,7 @@ class FilterBuilder {
         self.manager = manager
     }
     
-    func where(_ field: String, _ operator: FilterOperator, _ value: String) -> FilterBuilder {
+    func `where`(_ field: String, _ operator: FilterOperator, _ value: String) -> FilterBuilder {
         conditions.append(FilterCondition(field: field, operator: `operator`, value: value))
         return self
     }

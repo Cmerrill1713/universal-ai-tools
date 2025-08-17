@@ -14,20 +14,16 @@ services:
     restart: always
     ports:
       - '9998:9999'
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=9999
-      # Load from .env file
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
       - REDIS_URL=redis://redis:6379
+      - PROMETHEUS_URL=http://prometheus:9090
       - ENABLE_METAL_OPTIMIZATION=true
+      - CONTAINER_NAME=universal-ai-tools-api
     volumes:
       - ./logs:/app/logs:rw
       - ./cache:/app/cache:rw
@@ -39,6 +35,12 @@ services:
         condition: service_started
     networks:
       - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -120,19 +122,32 @@ services:
     ports:
       - '80:80'
       - '443:443'
+      - '127.0.0.1:8080:8080'  # Monitoring endpoint
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
       - nginx_cache:/var/cache/nginx
+      - nginx_logs:/var/log/nginx
+    environment:
+      - NGINX_WORKER_PROCESSES=auto
+      - NGINX_WORKER_CONNECTIONS=1024
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - ai-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/nginx_status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     logging:
       driver: 'json-file'
       options:
         max-size: '5m'
-        max-file: '2'
+        max-file: '3'
 
   # Prometheus Monitoring
   prometheus:
@@ -196,6 +211,8 @@ volumes:
   grafana_data:
     driver: local
   nginx_cache:
+    driver: local
+  nginx_logs:
     driver: local
 
 networks:

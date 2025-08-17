@@ -225,183 +225,132 @@ class AgentWorkflowService: ObservableObject {
                 action: AgentAction(type: .analyzeData),
                 order: 1
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Architecture Design",
-                description: "Design system architecture and components",
-                requiredAgent: .orchestration,
-                estimatedDuration: 600, // 10 minutes
-                dependencies: [],
-                tools: ["design", "modeling"]
+                agentId: "orchestration-agent",
+                action: AgentAction(type: .processWorkflow),
+                order: 2
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Code Generation",
-                description: "Generate code based on requirements and design",
-                requiredAgent: .coding,
-                estimatedDuration: 1800, // 30 minutes
-                dependencies: [],
-                tools: ["code-generation", "debugging"]
+                agentId: "coding-agent",
+                action: AgentAction(type: .executeTask),
+                order: 3
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Testing & Validation",
-                description: "Test generated code and validate functionality",
-                requiredAgent: .monitoring,
-                estimatedDuration: 900, // 15 minutes
-                dependencies: [],
-                tools: ["testing", "validation"]
+                agentId: "monitoring-agent",
+                action: AgentAction(type: .monitorSystem),
+                order: 4
             )
         ]
     }
     
-    private func generateCreativeSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
+    private func generateCreativeSteps(for objective: Objective) -> [AgentWorkflowStep] {
         return [
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Content Planning",
-                description: "Plan creative content and visual elements",
-                requiredAgent: .orchestration,
-                estimatedDuration: 600,
-                dependencies: [],
-                tools: ["vision", "design"]
+                agentId: "orchestration-agent", 
+                action: AgentAction(type: .executeTask),
+                order: 1
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Asset Creation",
-                description: "Create visual assets and content",
-                requiredAgent: .chat,
-                estimatedDuration: 1800,
-                dependencies: [],
-                tools: ["vision", "image-processing"]
+                agentId: "chat-agent",
+                action: AgentAction(type: .executeTask),
+                order: 2
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Style Application",
-                description: "Apply consistent styling and branding",
-                requiredAgent: .analysis,
-                estimatedDuration: 900,
-                dependencies: [],
-                tools: ["vision", "style-transfer"]
+                agentId: "analysis-agent",
+                action: AgentAction(type: .executeTask),
+                order: 3
             )
         ]
     }
     
-    private func generateAnalysisSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
+    private func generateAnalysisSteps(for objective: Objective) -> [AgentWorkflowStep] {
         return [
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Data Collection",
-                description: "Gather and prepare data for analysis",
-                requiredAgent: .research,
-                estimatedDuration: 600,
-                dependencies: [],
-                tools: ["data-extraction", "preprocessing"]
+                agentId: "research-agent",
+                action: AgentAction(type: .analyzeData),
+                order: 1
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Statistical Analysis",
-                description: "Perform statistical analysis on collected data",
-                requiredAgent: .analysis,
-                estimatedDuration: 1200,
-                dependencies: [],
-                tools: ["analytics", "visualization"]
+                agentId: "analysis-agent",
+                action: AgentAction(type: .analyzeData),
+                order: 2
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Report Generation",
-                description: "Generate comprehensive analysis report",
-                requiredAgent: .chat,
-                estimatedDuration: 900,
-                dependencies: [],
-                tools: ["reporting", "documentation"]
+                agentId: "chat-agent",
+                action: AgentAction(type: .executeTask),
+                order: 3
             )
         ]
     }
     
-    private func generateOrganizationSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
+    private func generateOrganizationSteps(for objective: Objective) -> [AgentWorkflowStep] {
         return [
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Content Scanning",
-                description: "Scan and categorize files or content",
-                requiredAgent: .analysis,
-                estimatedDuration: 900,
-                dependencies: [],
-                tools: ["file-analysis", "categorization"]
+                agentId: "analysis-agent",
+                action: AgentAction(type: .analyzeData),
+                order: 1
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Smart Sorting",
-                description: "Organize content using AI-powered sorting",
-                requiredAgent: .orchestration,
-                estimatedDuration: 600,
-                dependencies: [],
-                tools: ["organization", "file-management"]
+                agentId: "orchestration-agent",
+                action: AgentAction(type: .processWorkflow),
+                order: 2
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Duplicate Removal",
-                description: "Identify and handle duplicate content",
-                requiredAgent: .monitoring,
-                estimatedDuration: 300,
-                dependencies: [],
-                tools: ["deduplication", "cleanup"]
+                agentId: "monitoring-agent",
+                action: AgentAction(type: .executeTask),
+                order: 3
             )
         ]
     }
     
-    private func generateResearchSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
+    private func generateResearchSteps(for objective: Objective) -> [AgentWorkflowStep] {
         return [
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Source Discovery",
-                description: "Find and validate research sources",
-                requiredAgent: .research,
-                estimatedDuration: 1200,
-                dependencies: [],
-                tools: ["web-scraping", "source-validation"]
+                agentId: "research-agent",
+                action: AgentAction(type: .analyzeData),
+                order: 1
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Information Synthesis",
-                description: "Analyze and synthesize research findings",
-                requiredAgent: .analysis,
-                estimatedDuration: 1800,
-                dependencies: [],
-                tools: ["text-analysis", "synthesis"]
+                agentId: "analysis-agent",
+                action: AgentAction(type: .analyzeData),
+                order: 2
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Documentation",
-                description: "Document research findings and citations",
-                requiredAgent: .chat,
-                estimatedDuration: 900,
-                dependencies: [],
-                tools: ["documentation", "citation"]
+                agentId: "chat-agent",
+                action: AgentAction(type: .executeTask),
+                order: 3
             )
         ]
     }
     
-    private func generateGenericSteps(for objective: Objective) -> [AgentWorkflowStepDefinition] {
+    private func generateGenericSteps(for objective: Objective) -> [AgentWorkflowStep] {
         return [
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Task Planning",
-                description: "Plan approach and break down tasks",
-                requiredAgent: .orchestration,
-                estimatedDuration: 300,
-                dependencies: [],
-                tools: ["planning", "task-management"]
+                agentId: "orchestration-agent",
+                action: AgentAction(type: .processWorkflow),
+                order: 1
             ),
-            AgentWorkflowStepDefinition(
-                id: UUID().uuidString,
+            AgentWorkflowStep(
                 name: "Execution",
-                description: "Execute planned tasks",
-                requiredAgent: .chat,
-                estimatedDuration: 1200,
-                dependencies: [],
-                tools: ["general-tools"]
+                agentId: "chat-agent",
+                action: AgentAction(type: .executeTask),
+                order: 2
             )
         ]
     }
@@ -434,8 +383,9 @@ class AgentWorkflowService: ObservableObject {
         }
     }
     
-    private func estimateDuration(for steps: [AgentWorkflowStepDefinition]) -> TimeInterval {
-        return steps.reduce(0) { $0 + $1.estimatedDuration }
+    private func estimateDuration(for steps: [AgentWorkflowStep]) -> TimeInterval {
+        // Since AgentWorkflowStep doesn't have estimatedDuration, use a default estimate
+        return TimeInterval(steps.count * 300) // 5 minutes per step
     }
     
     private func generateTags(for objective: Objective) -> [String] {
@@ -705,13 +655,13 @@ class WorkflowExecutionEngine {
         }
     }
     
-    private func executeStep(_ step: WorkflowStep) async throws {
+    private func executeStep(_ step: AgentWorkflowStep) async throws {
         // Simulate step execution
         // In a real implementation, this would delegate to appropriate agents
         print("Executing step: \(step.name)")
         
-        // Simulate varying execution times
-        let executionTime = UInt64(step.estimatedDuration * 1_000_000_000) // Convert to nanoseconds
+        // Simulate varying execution times (default 5 seconds per step)
+        let executionTime = UInt64(5_000_000_000) // 5 seconds in nanoseconds
         try await Task.sleep(nanoseconds: executionTime)
         
         print("Completed step: \(step.name)")

@@ -1,9 +1,19 @@
 {
   "recommendations": [
+    // === SWIFT/iOS DEVELOPMENT ===
+    "sswg.swift-lang",
+    "vknabel.vscode-apple-swift-format",
+    "swift-server.swift-syntax-language-server",
+    "jebbs.markdown-extended",
+    "vadimcn.vscode-lldb",
+    
+    // === TypeScript & JavaScript ===
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
     "Orta.vscode-jest",
     "ms-playwright.playwright",
+    
+    // === Development Tools ===
     "ms-azuretools.vscode-docker",
     "eamodio.gitlens",
     "EditorConfig.EditorConfig",
@@ -14,6 +24,8 @@
     "streetsidesoftware.code-spell-checker",
     "supabase-community.supabase-vscode",
     "bierner.markdown-mermaid",
+    
+    // === Python ===
     "ms-python.python",
     "ms-python.vscode-pylance",
     "charliermarsh.ruff",

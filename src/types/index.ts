@@ -575,3 +575,128 @@ export const apiResponse = {
     }
   })
 }
+
+//
+// Agent Orchestration Types for Arc UI
+//
+
+export interface AgentOrchestrationMetrics {
+  agentName: string;
+  totalRequests: number;
+  averageResponseTime: number;
+  successRate: number;
+  errorCount: number;
+  lastActive: Date;
+  cpuUsage: number;
+  memoryUsage: number;
+  queueLength: number;
+  collaborationCount: number;
+}
+
+export interface AgentNetworkNode {
+  id: string;
+  name: string;
+  category: AgentCategory;
+  status: 'online' | 'busy' | 'offline';
+  capabilities: string[];
+  trustLevel: number;
+  collaborationScore: number;
+  position?: { x: number; y: number };
+}
+
+export interface AgentNetworkEdge {
+  source: string;
+  target: string;
+  type: 'communication' | 'dependency' | 'collaboration';
+  weight: number;
+  lastActive: Date;
+}
+
+export interface AgentNetworkTopology {
+  nodes: AgentNetworkNode[];
+  edges: AgentNetworkEdge[];
+}
+
+export interface AgentOrchestrationTask {
+  id: string;
+  agentName: string;
+  type: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  priority: number;
+  startTime?: Date;
+  endTime?: Date;
+  estimatedDuration?: number;
+  context: any;
+  result?: any;
+  error?: string;
+}
+
+export interface AgentResourceUsage {
+  agentName: string;
+  status: 'online' | 'busy' | 'offline';
+  cpuUsage: number;
+  memoryUsage: number;
+  queueLength: number;
+  lastActive: Date;
+  collaborationScore: number;
+  trustLevel: number;
+}
+
+export interface AgentOrchestrationStatus {
+  name: string;
+  category: AgentCategory;
+  description: string;
+  priority: number;
+  capabilities: string[];
+  isLoaded: boolean;
+  status: 'online' | 'busy' | 'offline';
+  lastSeen?: Date;
+  trustLevel: number;
+  collaborationScore: number;
+  queueLength: number;
+  metrics?: AgentOrchestrationMetrics;
+  dependencies: string[];
+  maxLatencyMs: number;
+  retryAttempts: number;
+}
+
+export interface AgentMeshStatus {
+  totalAgents: number;
+  onlineAgents: number;
+  activeCollaborations: number;
+  messagesInQueue: number;
+  meshHealth: number;
+}
+
+export interface AgentCommunication {
+  id: string;
+  participants: string[];
+  task: string;
+  status: 'active' | 'completed' | 'failed';
+  startTime: Date;
+  messageCount: number;
+  type: 'collaboration' | 'communication' | 'knowledge_share';
+}
+
+export interface OrchestrationWebSocketMessage {
+  type: 'initial_state' | 'agent_loaded' | 'agent_unloaded' | 'agent_communication' | 
+        'periodic_update' | 'task_created' | 'task_started' | 'task_completed' | 
+        'task_failed' | 'collaboration_started' | 'orchestration_completed';
+  data: any;
+  timestamp?: Date;
+}
+
+// WebSocket and real-time broadcasting types
+export type {
+  AgentStateMessage,
+  BroadcastMessage,
+  MemoryTimelineData,
+  PerformanceMetric,
+  SubscriptionPreferences,
+  SubscriptionRoom,
+  SystemAlert,
+  UniversalAIWebSocketClient,
+  WebSocketClientConfig,
+  WebSocketEventHandlers,
+  WorkflowExecutionUpdate,
+} from './websocket-client';

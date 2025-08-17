@@ -162,7 +162,6 @@
 		DFF1AEB82F74B87DA91D4F3A /* ClaudeAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1033CB5A9253037C9C5DAD6B /* ClaudeAIService.swift */; };
 		E00E1EFB6E8F792AFB8BD393 /* RAGSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41BE9CBC06A987B6C2E93314 /* RAGSettings.swift */; };
 		E0DC53A78C2427A425A2629F /* ContextFlowService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E336929A0964D5E485D0E107 /* ContextFlowService.swift */; };
-		E15D291A2FCA524B394AF6DF /* CLAUDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 3953BD2EDF01ED0D66821C8A /* CLAUDE.md */; };
 		E1B2908D56B9EDB69935B71B /* ComponentTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B972C2F10F73623BDFDE512 /* ComponentTester.swift */; };
 		E2B2945501CD5E364F7E99D0 /* Cursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6089237C767F954063BF435B /* Cursor.swift */; };
 		E58E4D490999DAAFC7954654 /* ViewModeSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FAE8A58BACC73FC8B5A0C1 /* ViewModeSelector.swift */; };
@@ -239,7 +238,6 @@
 		379CD003B26BB26E23A8E9DC /* ConversationAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationAnalytics.swift; sourceTree = "<group>"; };
 		38149C40BC7600922530C6E8 /* VoiceCommandHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCommandHandler.swift; sourceTree = "<group>"; };
 		391CAEC37EC5778BF4E5736E /* STTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTService.swift; sourceTree = "<group>"; };
-		3953BD2EDF01ED0D66821C8A /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		39A8BD0B95BB8B7CD4BF8302 /* ExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportManager.swift; sourceTree = "<group>"; };
 		3BA2ABAB21B7FD3DA2F3FE60 /* VoiceAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgent.swift; sourceTree = "<group>"; };
 		3C6BEB004C12F34DB55E91E8 /* ABMCTSTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ABMCTSTreeView.swift; sourceTree = "<group>"; };
@@ -661,7 +659,6 @@
 				646B83A7E6A438291BB7D5B8 /* APIService.swift */,
 				DBE35E68DA54F0A3477EBA6A /* BackendMonitoringIntegration.swift */,
 				5C51240F8484332FAC418A78 /* ChangeTracker.swift */,
-				3953BD2EDF01ED0D66821C8A /* CLAUDE.md */,
 				1033CB5A9253037C9C5DAD6B /* ClaudeAIService.swift */,
 				379CD003B26BB26E23A8E9DC /* ConversationAnalytics.swift */,
 				9DE97F9B34F9FBF2C3E8D932 /* ConversationIntegration.swift */,
@@ -769,7 +766,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				96FFD18B54929D04E771D0B8 /* Assets.xcassets in Resources */,
-				E15D291A2FCA524B394AF6DF /* CLAUDE.md in Resources */,
 				4F1309051DE22570321DF0E0 /* CLAUDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

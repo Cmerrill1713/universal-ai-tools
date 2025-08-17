@@ -11,9 +11,11 @@ class AgentWebSocketService: NSObject, ObservableObject {
     @Published var isConnected = false
     @Published var connectionStatus: ConnectionStatus = .disconnected
     @Published var lastError: String?
+    @Published var currentError: AppError?
+    @Published var showErrorRecovery = false
     
     // Agent orchestration data
-    @Published var orchestrationNetwork: OrchestrationNetwork = OrchestrationNetwork()
+    @Published var agentNetwork: AgentNetwork = AgentNetwork(nodes: [], connections: [], topology: .hierarchical, healthScore: 0.0, averageLatency: 0.0, lastUpdated: Date())
     @Published var agentPerformanceMetrics: [String: AgentPerformanceMetric] = [:]
     @Published var abmctsTree: ABMCTSNode?
     @Published var activeWorkflows: [AgentWorkflow] = []
@@ -44,7 +46,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
     private let maxQueueSize = 50 // Prevent unbounded memory growth
     
     // MARK: - Initialization
-    init(serverURL: URL = URL(string: "ws://localhost:3001/agents/orchestration")!, apiKey: String? = nil) {
+    init(serverURL: URL = URL(string: "ws://localhost:9999/ws/orchestration")!, apiKey: String? = nil) {
         self.serverURL = serverURL
         self.apiKey = apiKey
         super.init()
@@ -217,7 +219,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
             realtimeAgentUpdates.insert(update, at: 0)
             
             // Update agent network with new status
-            if let _ = orchestrationNetwork.nodes.firstIndex(where: { $0.agentId == update.agentId }) {
+            if let _ = agentNetwork.nodes.firstIndex(where: { $0.agentId == update.agentId }) {
                 // Update would be applied here based on the update data
                 Log.network.info("Updated agent status for: \(update.agentId)")
             }
@@ -239,11 +241,7 @@ class AgentWebSocketService: NSObject, ObservableObject {
             
             // Smooth transition for network updates
             withAnimation(.easeInOut(duration: 0.5)) {
-                orchestrationNetwork.nodes = networkUpdate.nodes
-                orchestrationNetwork.connections = networkUpdate.connections
-                orchestrationNetwork.topology = networkUpdate.topology
-                orchestrationNetwork.healthScore = networkUpdate.healthScore
-                orchestrationNetwork.lastUpdated = networkUpdate.lastUpdated
+                agentNetwork = networkUpdate
             }
             
             Log.network.info("Updated agent network topology: \(networkUpdate.nodes.count) nodes, \(networkUpdate.connections.count) connections")
@@ -495,12 +493,29 @@ class AgentWebSocketService: NSObject, ObservableObject {
         isConnected = false
         lastError = error.localizedDescription
         
+        // Convert to user-friendly error
+        currentError = AppError.fromConnectionError(error)
+        showErrorRecovery = true
+        
         if connectionStatus != .disconnecting {
             connectionStatus = .reconnecting
             reconnect()
         }
         
         Log.network.error("Agent orchestration WebSocket error: \(error)")
+    }
+    
+    /// Retry connection from error recovery
+    func retryConnection() {
+        currentError = nil
+        showErrorRecovery = false
+        connect()
+    }
+    
+    /// Dismiss error recovery dialog
+    func dismissError() {
+        currentError = nil
+        showErrorRecovery = false
     }
     
     private func processMessageQueue() async {

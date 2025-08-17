@@ -26,6 +26,7 @@ interface ContextEntry {
   source: string;
   userId: string;
   projectPath?: string;
+  importance?: number;
   metadata?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
@@ -38,6 +39,9 @@ interface StoredContext {
   source: string;
   userId: string;
   projectPath: string | null;
+  tags: string[];
+  importance: number;
+  access_count: number;
   metadata: Record<string, any> | null;
   created_at: string;
   updated_at: string;
@@ -48,6 +52,29 @@ export class ContextStorageService {
 
   constructor() {
     this.supabase = createClient(config.supabase.url, config.supabase.serviceKey);
+  }
+
+  /**
+   * Get context by ID
+   */
+  async getContextById(id: string): Promise<StoredContext | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('context_storage')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        log.error('Failed to get context by ID', LogContext.AI, { error: error.message, id });
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      log.error('Unexpected error getting context by ID', LogContext.AI, { error, id });
+      return null;
+    }
   }
 
   /**
@@ -428,6 +455,7 @@ export class ContextStorageService {
       return 0;
     }
   }
+
 
   /**
    * Get contexts by IDs

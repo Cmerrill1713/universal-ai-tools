@@ -37,6 +37,10 @@ interface JwtPayload {
   trusted?: boolean;
   iat?: number;
   exp?: number;
+  iss?: string; // issuer
+  aud?: string; // audience
+  jti?: string; // JWT ID for revocation tracking
+  sub?: string; // subject
 }
 
 /**
@@ -130,12 +134,52 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       throw new Error('Authentication system not properly configured');
     }
 
-    // Verify JWT token
-    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
+    // Verify JWT token with enhanced validation
+    const decoded = jwt.verify(token, jwtSecret, {
+      algorithms: ['HS256'], // Explicitly specify allowed algorithms
+      clockTolerance: 30, // Allow 30 seconds clock skew
+      maxAge: '24h', // Maximum token age
+      issuer: process.env.JWT_ISSUER || 'universal-ai-tools', // Validate issuer
+      audience: process.env.JWT_AUDIENCE || 'universal-ai-tools-api' // Validate audience
+    }) as JwtPayload;
+
+    // Additional security validations
+    if (!decoded.userId) {
+      throw new Error('Token missing required userId claim');
+    }
+
+    // Validate token structure and required claims
+    if (typeof decoded.userId !== 'string' || decoded.userId.length === 0) {
+      throw new Error('Invalid userId claim in token');
+    }
+
+    // Check for token replay attacks (optional: implement jti blacklist)
+    if (decoded.jti) {
+      try {
+        const redis = await getRedisService();
+        if (redis && redis.isConnected()) {
+          const isBlacklisted = await redis.get(`blacklist:jti:${decoded.jti}`);
+          if (isBlacklisted) {
+            throw new Error('Token has been revoked');
+          }
+        }
+      } catch (error) {
+        log.warn('Failed to check token blacklist', LogContext.SECURITY, { error });
+        // Continue without blacklist check if Redis is unavailable
+      }
+    }
+
+    // Check for user-level revocation (logout from all devices)
+    const userRevoked = await isUserRevoked(decoded);
+    if (userRevoked) {
+      throw new Error('All user tokens have been revoked');
+    }
 
     log.info('🔐 JWT token verified successfully', LogContext.API, {
       userId: decoded.userId,
-      permissions: decoded.permissions
+      permissions: decoded.permissions,
+      deviceId: decoded.deviceId ? decoded.deviceId.substring(0, 8) + '...' : undefined,
+      tokenAge: decoded.iat ? Math.floor((Date.now() / 1000) - decoded.iat) : undefined
     });
 
     req.user = {
@@ -281,28 +325,114 @@ async function getFailureCount(ip: string): Promise<number> {
 
 async function recordAuthFailure(req: Request): Promise<void> {
   const ip = getClientIp(req);
+  const userAgent = req.get('User-Agent') || 'unknown';
+  const authHeader = req.headers.authorization ? 'present' : 'missing';
   const redis = await getRedisService();
   const failKey = `auth:fail:${ip}`;
   const lockKey = `auth:lock:${ip}`;
 
+  // Enhanced security logging
+  log.warn('🚨 Authentication failure recorded', LogContext.SECURITY, {
+    ip,
+    userAgent: userAgent.substring(0, 100), // Truncate for security
+    authHeader,
+    path: req.path,
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    event: 'auth_failure'
+  });
+
   if (redis && redis.isConnected()) {
     const cur = await redis.get(failKey);
     const count = (typeof cur === 'number' ? cur : Number(cur?.count || cur) || 0) + 1;
-    await redis.set(failKey, { count, ts: Date.now() }, FAILURE_WINDOW_SEC);
+    
+    // Store enhanced failure data
+    const failureData = {
+      count,
+      ts: Date.now(),
+      lastUserAgent: userAgent,
+      lastPath: req.path,
+      lastMethod: req.method
+    };
+    
+    await redis.set(failKey, failureData, FAILURE_WINDOW_SEC);
+    
+    // Create security audit entry
+    const auditEntry = {
+      type: 'auth_failure',
+      ip,
+      userAgent,
+      path: req.path,
+      method: req.method,
+      count,
+      timestamp: Date.now()
+    };
+    await redis.lpush('security:audit:auth_failures', JSON.stringify(auditEntry));
+    await redis.expire('security:audit:auth_failures', 30 * 24 * 60 * 60); // 30 days
+    
     if (count >= LOCKOUT_THRESHOLD) {
       await redis.set(lockKey, { until: Date.now() + LOCKOUT_TTL_SEC * 1000 }, LOCKOUT_TTL_SEC);
+      
+      // Alert on lockout
+      log.error('🚨 IP address locked out due to repeated auth failures', LogContext.SECURITY, {
+        ip,
+        failureCount: count,
+        lockoutDuration: LOCKOUT_TTL_SEC,
+        userAgent,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Store lockout audit entry
+      const lockoutAudit = {
+        type: 'auth_lockout',
+        ip,
+        failureCount: count,
+        lockoutUntil: Date.now() + LOCKOUT_TTL_SEC * 1000,
+        userAgent,
+        timestamp: Date.now()
+      };
+      await redis.lpush('security:audit:lockouts', JSON.stringify(lockoutAudit));
+      await redis.expire('security:audit:lockouts', 30 * 24 * 60 * 60); // 30 days
     }
+    
+    // Track patterns for advanced threat detection
+    const hourlyKey = `auth_failures:hourly:${Math.floor(Date.now() / (60 * 60 * 1000))}`;
+    await redis.incr(hourlyKey);
+    await redis.expire(hourlyKey, 60 * 60); // 1 hour
+    
+    const hourlyCount = await redis.get(hourlyKey);
+    if (Number(hourlyCount) >= 100) { // High failure rate threshold
+      log.error('🚨 High authentication failure rate detected', LogContext.SECURITY, {
+        hourlyFailures: hourlyCount,
+        threshold: 100,
+        window: '1 hour'
+      });
+    }
+    
     return;
   }
 
-  // Fallback in-memory
+  // Fallback in-memory with enhanced data
   const current = authFailures.get(ip) || { count: 0, ts: Date.now() };
-  const updated = { count: current.count + 1, ts: Date.now() } as { count: number; ts: number };
+  const updated = { 
+    count: current.count + 1, 
+    ts: Date.now(),
+    lastUserAgent: userAgent,
+    lastPath: req.path 
+  } as { count: number; ts: number; lastUserAgent: string; lastPath: string };
+  
   authFailures.set(ip, updated);
   setTimeout(() => authFailures.delete(ip), FAILURE_WINDOW_SEC * 1000);
+  
   if (updated.count >= LOCKOUT_THRESHOLD) {
     authLockouts.set(ip, { until: Date.now() + LOCKOUT_TTL_SEC * 1000 });
     setTimeout(() => authLockouts.delete(ip), LOCKOUT_TTL_SEC * 1000);
+    
+    log.error('🚨 IP address locked out (in-memory)', LogContext.SECURITY, {
+      ip,
+      failureCount: updated.count,
+      lockoutDuration: LOCKOUT_TTL_SEC
+    });
   }
 }
 
@@ -406,31 +536,159 @@ function isIpLockedOutSync(ip: string): boolean {
 }
 
 /**
- * Validate API key against stored keys
+ * Record successful API key authentication for audit purposes
+ */
+async function recordAPIKeySuccess(service: string, keyField: string): Promise<void> {
+  try {
+    const { LogContext, log } = await import('../utils/logger');
+    log.info('🔑 API key authentication successful', LogContext.SECURITY, {
+      service,
+      keyField,
+      timestamp: new Date().toISOString(),
+      event: 'api_key_success'
+    });
+
+    // Store in security audit log if available
+    try {
+      const redis = await getRedisService();
+      if (redis && redis.isConnected()) {
+        const auditEntry = {
+          type: 'api_key_success',
+          service,
+          keyField,
+          timestamp: Date.now()
+        };
+        await redis.lpush('security:audit:api_keys', JSON.stringify(auditEntry));
+        await redis.expire('security:audit:api_keys', 30 * 24 * 60 * 60); // 30 days
+      }
+    } catch (error) {
+      // Audit logging failure shouldn't break authentication
+      log.warn('Failed to store API key success audit log', LogContext.SECURITY, { error });
+    }
+  } catch (error) {
+    // Even logging failure shouldn't break authentication
+    console.error('API key success logging failed:', error);
+  }
+}
+
+/**
+ * Record failed API key authentication for audit and security monitoring
+ */
+async function recordAPIKeyFailure(category: string, reason: string): Promise<void> {
+  try {
+    const { LogContext, log } = await import('../utils/logger');
+    log.warn('🚨 API key authentication failed', LogContext.SECURITY, {
+      category,
+      reason,
+      timestamp: new Date().toISOString(),
+      event: 'api_key_failure'
+    });
+
+    // Store in security audit log if available
+    try {
+      const redis = await getRedisService();
+      if (redis && redis.isConnected()) {
+        const auditEntry = {
+          type: 'api_key_failure',
+          category,
+          reason,
+          timestamp: Date.now()
+        };
+        await redis.lpush('security:audit:api_key_failures', JSON.stringify(auditEntry));
+        await redis.expire('security:audit:api_key_failures', 30 * 24 * 60 * 60); // 30 days
+
+        // Track failure patterns for alerting
+        const failureKey = `api_key_failures:${category}:${reason}`;
+        await redis.incr(failureKey);
+        await redis.expire(failureKey, 60 * 60); // 1 hour window
+
+        const count = await redis.get(failureKey);
+        if (Number(count) >= 10) { // Alert threshold
+          log.error('🚨 High API key failure rate detected', LogContext.SECURITY, {
+            category,
+            reason,
+            count,
+            window: '1 hour'
+          });
+        }
+      }
+    } catch (error) {
+      // Audit logging failure shouldn't break authentication
+      log.warn('Failed to store API key failure audit log', LogContext.SECURITY, { error });
+    }
+  } catch (error) {
+    // Even logging failure shouldn't break authentication
+    console.error('API key failure logging failed:', error);
+  }
+}
+
+/**
+ * Validate API key against stored keys with timing-safe comparison
+ * Prevents timing attacks by using constant-time comparison
  */
 export async function authenticateAPIKey(apiKey: string): Promise<boolean> {
+  const crypto = await import('crypto');
+  
   try {
-    if (!apiKey || apiKey.length < 32) {
+    // Input validation with consistent timing
+    if (!apiKey) {
+      // Perform dummy operation to maintain consistent timing
+      crypto.timingSafeEqual(Buffer.from('dummy32charlengthstringforsecurity'), Buffer.from('dummy32charlengthstringforsecurity'));
+      await recordAPIKeyFailure('invalid_input', 'missing_api_key');
       return false;
     }
-
-    // Note: No development bypasses for security
+    
+    if (apiKey.length < 32) {
+      // Perform dummy operation to maintain consistent timing
+      crypto.timingSafeEqual(Buffer.from('dummy32charlengthstringforsecurity'), Buffer.from('dummy32charlengthstringforsecurity'));
+      await recordAPIKeyFailure('invalid_input', 'key_too_short');
+      return false;
+    }
 
     // Validate against Vault-backed service configuration
     const services = await secretsManager.getAvailableServices();
     
     // If no services are available, return false
     if (!services || services.length === 0) {
+      // Perform dummy operation to maintain consistent timing
+      crypto.timingSafeEqual(Buffer.from('dummy32charlengthstringforsecurity'), Buffer.from('dummy32charlengthstringforsecurity'));
+      await recordAPIKeyFailure('config_error', 'no_services_available');
       return false;
     }
 
-    // Check if any service has this API key
+    let validKeyFound = false;
+    
+    // Check if any service has this API key using timing-safe comparison
     for (const service of services) {
       try {
         // Check service configuration for API key
         const serviceConfig = await secretsManager.getServiceConfig(service);
-        if (serviceConfig?.api_key === apiKey || serviceConfig?.apiKey === apiKey) {
-          return true;
+        
+        if (serviceConfig?.api_key) {
+          // Use timing-safe comparison to prevent timing attacks
+          const storedKey = Buffer.from(serviceConfig.api_key, 'utf8');
+          const providedKey = Buffer.from(apiKey, 'utf8');
+          
+          // Ensure both buffers are the same length for comparison
+          if (storedKey.length === providedKey.length && 
+              crypto.timingSafeEqual(storedKey, providedKey)) {
+            validKeyFound = true;
+            await recordAPIKeySuccess(service, 'api_key_field');
+            break;
+          }
+        }
+        
+        if (serviceConfig?.apiKey) {
+          // Check alternative field name with timing-safe comparison
+          const storedKey = Buffer.from(serviceConfig.apiKey, 'utf8');
+          const providedKey = Buffer.from(apiKey, 'utf8');
+          
+          if (storedKey.length === providedKey.length && 
+              crypto.timingSafeEqual(storedKey, providedKey)) {
+            validKeyFound = true;
+            await recordAPIKeySuccess(service, 'apiKey_field');
+            break;
+          }
         }
       } catch (error) {
         // Log error but continue checking other services
@@ -442,23 +700,36 @@ export async function authenticateAPIKey(apiKey: string): Promise<boolean> {
       }
     }
     
-    // Check dedicated API gateway service
-    try {
-      const apiServiceCfg = await secretsManager.getServiceConfig('api_gateway');
-      if (apiServiceCfg?.api_key === apiKey) {
-        return true;
+    // Check dedicated API gateway service with timing-safe comparison
+    if (!validKeyFound) {
+      try {
+        const apiServiceCfg = await secretsManager.getServiceConfig('api_gateway');
+        if (apiServiceCfg?.api_key) {
+          const storedKey = Buffer.from(apiServiceCfg.api_key, 'utf8');
+          const providedKey = Buffer.from(apiKey, 'utf8');
+          
+          if (storedKey.length === providedKey.length && 
+              crypto.timingSafeEqual(storedKey, providedKey)) {
+            validKeyFound = true;
+            await recordAPIKeySuccess('api_gateway', 'api_key_field');
+          }
+        }
+      } catch (error) {
+        // Log but don't fail - this is optional
+        const { LogContext, log } = await import('../utils/logger');
+        log.debug('API gateway service not configured', LogContext.API);
       }
-    } catch (error) {
-      // Log but don't fail - this is optional
-      const { LogContext, log } = await import('../utils/logger');
-      log.debug('API gateway service not configured', LogContext.API);
     }
 
-    // Otherwise, deny by default (no dev/test bypass)
-    return false;
+    if (!validKeyFound) {
+      await recordAPIKeyFailure('authentication', 'invalid_api_key');
+    }
+
+    return validKeyFound;
   } catch (error) {
     const { LogContext, log } = await import('../utils/logger');
     log.error('API key validation failed', LogContext.API, { error });
+    await recordAPIKeyFailure('system_error', 'validation_exception');
     return false;
   }
 }
@@ -475,6 +746,105 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
 
 // Export authenticateRequest for backward compatibility
 export const authenticateRequest = authenticate;
+
+/**
+ * Token revocation function for secure logout
+ */
+export async function revokeToken(token: string): Promise<boolean> {
+  try {
+    // Decode token without verification to get jti
+    const decoded = jwt.decode(token) as JwtPayload | null;
+    
+    if (!decoded || !decoded.jti) {
+      log.warn('Attempted to revoke token without jti', LogContext.SECURITY);
+      return false;
+    }
+
+    const redis = await getRedisService();
+    if (redis && redis.isConnected()) {
+      // Add token to blacklist
+      const expiry = decoded.exp ? decoded.exp * 1000 : Date.now() + 24 * 60 * 60 * 1000; // 24h default
+      const ttl = Math.max(0, Math.floor((expiry - Date.now()) / 1000));
+      
+      await redis.set(`blacklist:jti:${decoded.jti}`, 'revoked', ttl);
+      
+      log.info('🔐 Token successfully revoked', LogContext.SECURITY, {
+        jti: decoded.jti,
+        userId: decoded.userId,
+        ttl
+      });
+      
+      return true;
+    }
+    
+    log.warn('Token revocation failed - Redis unavailable', LogContext.SECURITY);
+    return false;
+  } catch (error) {
+    log.error('Token revocation error', LogContext.SECURITY, { error });
+    return false;
+  }
+}
+
+/**
+ * Revoke all tokens for a user (logout from all devices)
+ */
+export async function revokeAllUserTokens(userId: string): Promise<boolean> {
+  try {
+    const redis = await getRedisService();
+    if (redis && redis.isConnected()) {
+      // Set a user-level revocation timestamp
+      const revocationTime = Date.now();
+      await redis.set(`user:revoke:${userId}`, revocationTime, 24 * 60 * 60); // 24 hours
+      
+      log.info('🔐 All tokens revoked for user', LogContext.SECURITY, {
+        userId,
+        revocationTime: new Date(revocationTime).toISOString()
+      });
+      
+      return true;
+    }
+    
+    log.warn('User token revocation failed - Redis unavailable', LogContext.SECURITY);
+    return false;
+  } catch (error) {
+    log.error('User token revocation error', LogContext.SECURITY, { error });
+    return false;
+  }
+}
+
+/**
+ * Check if user has been globally revoked (for all-device logout)
+ */
+async function isUserRevoked(decoded: JwtPayload): Promise<boolean> {
+  try {
+    if (!decoded.userId || !decoded.iat) {
+      return false;
+    }
+
+    const redis = await getRedisService();
+    if (redis && redis.isConnected()) {
+      const revocationTime = await redis.get(`user:revoke:${decoded.userId}`);
+      if (revocationTime) {
+        const tokenIssuedAt = decoded.iat * 1000; // Convert to milliseconds
+        const userRevokedAt = Number(revocationTime);
+        
+        if (tokenIssuedAt < userRevokedAt) {
+          log.warn('Token issued before user revocation', LogContext.SECURITY, {
+            userId: decoded.userId,
+            tokenIssuedAt: new Date(tokenIssuedAt).toISOString(),
+            userRevokedAt: new Date(userRevokedAt).toISOString()
+          });
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    log.warn('Failed to check user revocation status', LogContext.SECURITY, { error });
+    return false; // Fail open if we can't check
+  }
+}
 
 /**
  * JWT authentication function for testing

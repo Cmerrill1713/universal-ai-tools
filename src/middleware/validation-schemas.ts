@@ -70,6 +70,20 @@ export const chatRequestSchema = z.object({
   stream: z.boolean().default(false).describe('Whether to stream response')
 });
 
+// Enhanced chat request schema with code context support
+export const enhancedChatRequestSchema = z.object({
+  message: z.string().min(1).max(50000).describe('Chat message'),
+  conversationId: z.string().uuid().optional().describe('Optional conversation ID'),
+  agentName: z.string().optional().describe('Agent to use'),
+  context: z.record(z.any()).optional().describe('Optional context'),
+  includeCodeContext: z.boolean().default(false).describe('Include code context from workspace'),
+  codeContextOptions: z.object({
+    workspacePath: z.string().optional().describe('Path to workspace/project directory'),
+    maxFiles: z.number().int().min(1).max(50).default(10).describe('Maximum number of files to include'),
+    maxTokensForCode: z.number().int().min(1000).max(20000).default(10000).describe('Maximum tokens to use for code context')
+  }).optional().describe('Code context configuration')
+});
+
 // ============================================================================
 // Agent Schemas
 // ============================================================================
@@ -163,6 +177,108 @@ export const searchSchema = z.object({
   query: z.string().min(1).max(500).describe('Search query'),
   filters: z.record(z.any()).optional().describe('Search filters'),
   ...paginationSchema.shape
+});
+
+// ============================================================================
+// Workflow Management Schemas
+// ============================================================================
+
+export const workflowStepConfigSchema = z.object({
+  instruction: z.string().optional(),
+  url: z.string().url().optional(),
+  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional(),
+  headers: z.record(z.string()).optional(),
+  body: z.any().optional(),
+  condition: z.string().optional(),
+  delayMs: z.number().int().min(0).max(3600000).optional(), // Max 1 hour
+  retryAttempts: z.number().int().min(0).max(10).optional(),
+  timeout: z.number().int().min(1000).max(300000).optional(), // 1s to 5min
+  onSuccess: z.array(z.string()).optional(),
+  onFailure: z.array(z.string()).optional()
+}).passthrough();
+
+export const workflowStepSchema = z.object({
+  id: z.string().min(1).max(255),
+  name: z.string().min(1).max(255),
+  type: z.enum(['agent_task', 'http_request', 'condition', 'delay', 'parallel', 'sequential', 'loop', 'webhook']),
+  agentId: z.string().optional(),
+  config: workflowStepConfigSchema,
+  dependencies: z.array(z.string()).default([]),
+  metadata: z.record(z.any()).optional()
+});
+
+export const workflowParameterSchema = z.object({
+  name: z.string().min(1).max(255),
+  type: z.enum(['string', 'number', 'boolean', 'object', 'array']),
+  required: z.boolean().default(false),
+  defaultValue: z.any().optional(),
+  description: z.string().max(1000).optional()
+});
+
+export const workflowTriggerSchema = z.object({
+  type: z.enum(['manual', 'scheduled', 'webhook', 'event']),
+  config: z.record(z.any()).default({})
+});
+
+export const retryPolicySchema = z.object({
+  maxAttempts: z.number().int().min(0).max(10).default(3),
+  backoffStrategy: z.enum(['fixed', 'exponential', 'linear']).default('exponential'),
+  delayMs: z.number().int().min(100).max(60000).default(1000)
+});
+
+export const createWorkflowSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().max(2000).default(''),
+  version: z.string().min(1).max(50).default('1.0.0'),
+  steps: z.array(workflowStepSchema).min(1).max(100),
+  parameters: z.array(workflowParameterSchema).default([]),
+  triggers: z.array(workflowTriggerSchema).default([{ type: 'manual', config: {} }]),
+  timeout: z.number().int().min(1000).max(86400000).default(3600000), // Default 1 hour
+  retryPolicy: retryPolicySchema.default({
+    maxAttempts: 3,
+    backoffStrategy: 'exponential',
+    delayMs: 1000
+  }),
+  concurrencyLimit: z.number().int().min(1).max(100).default(10),
+  tags: z.array(z.string().max(50)).default([]),
+  metadata: z.record(z.any()).optional()
+});
+
+export const updateWorkflowSchema = createWorkflowSchema.partial();
+
+export const executeWorkflowSchema = z.object({
+  parameters: z.record(z.any()).default({}),
+  context: z.record(z.any()).default({}),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+  metadata: z.record(z.any()).optional()
+});
+
+export const createWorkflowTemplateSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().max(2000).default(''),
+  category: z.string().min(1).max(100),
+  workflowId: z.string().uuid(),
+  isPublic: z.boolean().default(false),
+  metadata: z.record(z.any()).optional()
+});
+
+export const workflowQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(['draft', 'active', 'paused', 'completed', 'failed', 'cancelled']).optional(),
+  tags: z.string().optional(), // Comma-separated tags
+  search: z.string().max(255).optional(),
+  sortBy: z.enum(['name', 'createdAt', 'updatedAt', 'status']).default('updatedAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc')
+});
+
+export const workflowExecutionQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(['draft', 'active', 'paused', 'completed', 'failed', 'cancelled']).optional(),
+  workflowId: z.string().uuid().optional(),
+  sortBy: z.enum(['startTime', 'endTime', 'progress', 'status']).default('startTime'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc')
 });
 
 // ============================================================================
@@ -269,6 +385,7 @@ export const rateLimitConfigSchema = z.object({
 export type FlashAttentionOptimizeRequest = z.infer<typeof flashAttentionOptimizeSchema>;
 export type FlashAttentionConfigRequest = z.infer<typeof flashAttentionConfigSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
+export type EnhancedChatRequest = z.infer<typeof enhancedChatRequestSchema>;
 export type AgentRequest = z.infer<typeof agentRequestSchema>;
 export type SystemMetricsQuery = z.infer<typeof systemMetricsQuerySchema>;
 export type SearchQuery = z.infer<typeof searchSchema>;

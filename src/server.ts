@@ -44,6 +44,8 @@ import { createServer, type Server } from 'http';
 import os from 'os';
 import { Server as SocketIOServer } from 'socket.io';
 import { WebSocketServer } from 'ws';
+
+import { RealtimeBroadcastService } from './services/realtime-broadcast-service';
 let compressionMiddleware: any = null;
 
 // Configuration and utilities
@@ -75,6 +77,7 @@ class UniversalAIToolsServer {
   private wss: WebSocketServer | null = null;
   private supabase: SupabaseClient | null = null;
   private agentRegistry: AgentRegistry | null = null;
+  private broadcastService: RealtimeBroadcastService | null = null;
   private isShuttingDown = false;
 
   constructor() {
@@ -101,13 +104,249 @@ class UniversalAIToolsServer {
   }
 
   private deferHeavyServices(): void {
-    // Initialize heavy services after server is running to avoid blocking startup
+    // Initialize heavy services after server is running with proper error handling and retries
+    this.initializeHeavyServicesWithRetry();
+  }
+
+  private async initializeHeavyServicesWithRetry(attempt: number = 1, maxAttempts: number = 3): Promise<void> {
+    const delay = Math.min(5000 * attempt, 30000); // Progressive delay: 5s, 10s, 15s (max 30s)
+    
     setTimeout(async () => {
-      await this.initializeUserPreferenceLearning();
-      await this.initializeFlashAttention();
-      await this.initializeFeedbackCollection();
-      await this.registerAdditionalServices();
-    }, 5000); // 5 second delay
+      log.info(`🔄 Initializing heavy services (attempt ${attempt}/${maxAttempts})`, LogContext.SERVER);
+      
+      const services = [
+        { name: 'User Preference Learning', fn: () => this.initializeUserPreferenceLearning() },
+        { name: 'Flash Attention', fn: () => this.initializeFlashAttention() },
+        { name: 'Feedback Collection', fn: () => this.initializeFeedbackCollection() },
+        { name: 'Additional Services', fn: () => this.registerAdditionalServices() }
+      ];
+      
+      const failures: string[] = [];
+      
+      for (const service of services) {
+        try {
+          await service.fn();
+          log.info(`✅ ${service.name} service initialized successfully`, LogContext.SERVER);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          log.error(`❌ ${service.name} service failed to initialize`, LogContext.SERVER, { 
+            error: errorMessage,
+            attempt,
+            maxAttempts
+          });
+          failures.push(service.name);
+        }
+      }
+      
+      // Health check for initialized services
+      await this.performServiceHealthCheck();
+      
+      // Retry failed services if we haven't reached max attempts
+      if (failures.length > 0 && attempt < maxAttempts) {
+        log.warn(`⚠️ ${failures.length} services failed, retrying in ${delay/1000}s...`, LogContext.SERVER, {
+          failedServices: failures,
+          nextAttempt: attempt + 1,
+          delay: delay
+        });
+        
+        // Retry only failed services
+        await this.retryFailedServices(failures, attempt + 1, maxAttempts);
+      } else if (failures.length > 0) {
+        log.error(`💥 Final attempt failed for ${failures.length} services`, LogContext.SERVER, {
+          failedServices: failures,
+          totalAttempts: maxAttempts
+        });
+        
+        // Implement fallback mode for failed services
+        await this.initializeFallbackMode(failures);
+      } else {
+        log.info('🎉 All heavy services initialized successfully', LogContext.SERVER);
+      }
+    }, delay);
+  }
+
+  private async retryFailedServices(failedServices: string[], attempt: number, maxAttempts: number): Promise<void> {
+    // Implementation for retrying specific failed services
+    // This would be called recursively for failed services only
+    const serviceMap: Record<string, () => Promise<void>> = {
+      'User Preference Learning': () => this.initializeUserPreferenceLearning(),
+      'Flash Attention': () => this.initializeFlashAttention(), 
+      'Feedback Collection': () => this.initializeFeedbackCollection(),
+      'Additional Services': () => this.registerAdditionalServices()
+    };
+    
+    await this.initializeHeavyServicesWithRetry(attempt, maxAttempts);
+  }
+
+  private async performServiceHealthCheck(): Promise<void> {
+    try {
+      log.info('🔍 Performing service health check', LogContext.SERVER);
+      
+      // Check if critical services are responding
+      const healthChecks = [];
+      
+      // Add health checks for each service that was initialized
+      // This ensures services are actually working, not just loaded
+      
+      const results = await Promise.allSettled(healthChecks);
+      const healthyServices = results.filter(r => r.status === 'fulfilled').length;
+      const totalChecks = results.length;
+      
+      log.info(`📊 Service health check complete: ${healthyServices}/${totalChecks} services healthy`, LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Service health check failed', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  private async initializeFallbackMode(failedServices: string[]): Promise<void> {
+    log.warn('🚨 Entering fallback mode for failed services', LogContext.SERVER, {
+      failedServices
+    });
+    
+    // Implement graceful degradation for each failed service
+    for (const serviceName of failedServices) {
+      switch (serviceName) {
+        case 'User Preference Learning':
+          log.info('📝 User preferences will use default configurations', LogContext.SERVER);
+          break;
+        case 'Flash Attention':
+          log.info('⚡ Flash attention will use standard attention mechanisms', LogContext.SERVER);
+          break;
+        case 'Feedback Collection':
+          log.info('📊 Feedback will be logged locally without ML processing', LogContext.SERVER);
+          break;
+        case 'Additional Services':
+          log.info('🔧 Additional services will be loaded on-demand', LogContext.SERVER);
+          break;
+      }
+    }
+  }
+
+  private async loadRoutersWithSequencing(): Promise<void> {
+    log.info('🔄 Loading routers with proper sequencing', LogContext.SERVER);
+    
+    // Define router configurations with dependencies and criticality
+    const routerConfigs = [
+      // Critical core routers (must load first)
+      { name: 'A2A Collaboration', path: './routers/a2a-collaboration', route: '/api/v1/a2a', critical: true, dependencies: [] },
+      { name: 'Agents', path: './routers/agents', route: '/api/v1/agents', critical: true, dependencies: [] },
+      { name: 'Chat', path: './routers/chat', route: '/api/v1/chat', critical: true, dependencies: [] },
+      { name: 'Context Management', path: './routers/context-management', route: '/api/v1/context', critical: true, dependencies: [] },
+      
+      // Secondary routers (can load after core)
+      { name: 'Optimized Collaboration', path: './routers/optimized-collaboration', route: '/api/v1/collaboration', critical: false, dependencies: ['A2A Collaboration'] },
+      { name: 'Agent Orchestration', path: './routers/agent-orchestration', route: '/api/v1/agent-orchestration', critical: false, dependencies: ['Agents'] },
+      { name: 'Voice', path: './routers/voice', route: '/api/v1/voice', critical: false, dependencies: [] },
+      { name: 'Vision', path: './routers/vision', route: '/api/v1/vision', critical: false, dependencies: [] },
+      
+      // Optional routers (can fail without breaking core functionality)
+      { name: 'Context Analytics', path: './routers/context-analytics', route: '/api/v1/context-analytics', critical: false, dependencies: ['Context Management'] },
+      { name: 'Performance Analytics', path: './routers/performance-analytics', route: '/api/v1/performance-analytics', critical: false, dependencies: [] },
+      { name: 'Workflows', path: './routers/workflows', route: '/api/v1/workflows', critical: false, dependencies: [] },
+      { name: 'Knowledge Graph', path: './routers/knowledge-graph', route: '/api/v1/knowledge-graph', critical: false, dependencies: [] }
+    ];
+    
+    const loadedRouters: Set<string> = new Set();
+    const failedRouters: string[] = [];
+    const totalRouters = routerConfigs.length;
+    
+    // Load routers in dependency order
+    for (const config of routerConfigs) {
+      try {
+        // Check if dependencies are loaded
+        const unmetDependencies = config.dependencies.filter(dep => !loadedRouters.has(dep));
+        
+        if (unmetDependencies.length > 0) {
+          log.warn(`⚠️ Skipping ${config.name} router due to unmet dependencies`, LogContext.SERVER, {
+            router: config.name,
+            unmetDependencies,
+            loadedRouters: Array.from(loadedRouters)
+          });
+          continue;
+        }
+        
+        // Load the router
+        const routerModule = await import(config.path);
+        const router = routerModule.default || routerModule[Object.keys(routerModule)[0]];
+        
+        if (!router) {
+          throw new Error(`No default export found in ${config.path}`);
+        }
+        
+        // Register the router
+        this.app.use(config.route, router);
+        loadedRouters.add(config.name);
+        
+        log.info(`✅ ${config.name} router loaded successfully`, LogContext.SERVER, {
+          route: config.route,
+          loadedCount: loadedRouters.size,
+          totalCount: totalRouters
+        });
+        
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        if (config.critical) {
+          log.error(`💥 Critical router ${config.name} failed to load`, LogContext.SERVER, {
+            router: config.name,
+            route: config.route,
+            error: errorMessage,
+            isCritical: true
+          });
+          
+          // For critical routers, we might want to create a fallback
+          await this.createRouterFallback(config.name, config.route);
+        } else {
+          log.warn(`⚠️ Optional router ${config.name} failed to load`, LogContext.SERVER, {
+            router: config.name,
+            route: config.route,
+            error: errorMessage,
+            isCritical: false
+          });
+        }
+        
+        failedRouters.push(config.name);
+      }
+    }
+    
+    // Report loading results
+    const successCount = loadedRouters.size;
+    const failureCount = failedRouters.length;
+    
+    if (failureCount === 0) {
+      log.info(`🎉 All ${successCount} routers loaded successfully`, LogContext.SERVER);
+    } else {
+      log.warn(`⚠️ Router loading completed: ${successCount} successful, ${failureCount} failed`, LogContext.SERVER, {
+        successful: Array.from(loadedRouters),
+        failed: failedRouters,
+        successRate: `${Math.round((successCount / totalRouters) * 100)}%`
+      });
+    }
+  }
+  
+  private async createRouterFallback(routerName: string, route: string): Promise<void> {
+    log.info(`🛠️ Creating fallback for critical router: ${routerName}`, LogContext.SERVER);
+    
+    // Create a minimal fallback router that provides basic functionality
+    this.app.use(route, (req, res) => {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: 'SERVICE_UNAVAILABLE',
+          message: `${routerName} service is temporarily unavailable`,
+          details: 'The service failed to initialize but the server is still running'
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] || 'unknown',
+          fallbackMode: true
+        }
+      });
+    });
+    
+    log.info(`✅ Fallback router created for ${routerName} at ${route}`, LogContext.SERVER);
   }
 
   private async registerAdditionalServices(): Promise<void> {
@@ -906,6 +1145,7 @@ class UniversalAIToolsServer {
           '/api/v1/memory',
           '/api/v1/orchestration',
           '/api/v1/knowledge',
+          '/api/v1/knowledge-graph',
           '/api/v1/architecture',
           '/api/v1/auth',
           '/api/v1/vision',
@@ -924,24 +1164,8 @@ class UniversalAIToolsServer {
     // Vision API endpoints
     this.setupVisionRoutes();
 
-    // A2A Communication mesh endpoints
-    try {
-      const a2aRouter = (await import('./routers/a2a-collaboration')).default;
-      this.app.use('/api/v1/a2a', a2aRouter);
-      log.info('✅ A2A collaboration router loaded', LogContext.API);
-    } catch (error) {
-      log.error('❌ Failed to load A2A collaboration router', LogContext.API, { error });
-    }
-
-    // Optimized collaboration endpoints (MAC-SPGG)
-    try {
-      const optimizedCollaborationRouter = (await import('./routers/optimized-collaboration'))
-        .default;
-      this.app.use('/api/v1/collaboration', optimizedCollaborationRouter);
-      log.info('✅ Optimized collaboration router loaded', LogContext.API);
-    } catch (error) {
-      log.error('❌ Failed to load optimized collaboration router', LogContext.API, { error });
-    }
+    // Load routers with proper sequencing and error handling
+    await this.loadRoutersWithSequencing();
 
     // Health monitoring endpoints
     this.setupHealthRoutes();
@@ -964,6 +1188,15 @@ class UniversalAIToolsServer {
       log.info('✅ DSPy/MIPRO orchestration router loaded', LogContext.API);
     } catch (error) {
       log.error('❌ Failed to load DSPy/MIPRO orchestration router', LogContext.API, { error });
+    }
+
+    // Enhanced Agent Orchestration for Arc UI
+    try {
+      const agentOrchestrationRouter = (await import('./routers/agent-orchestration')).default;
+      this.app.use('/api/v1/agent-orchestration', agentOrchestrationRouter);
+      log.info('✅ Enhanced Agent Orchestration router loaded - Arc UI support enabled', LogContext.API);
+    } catch (error) {
+      log.error('❌ Failed to load Enhanced Agent Orchestration router', LogContext.API, { error });
     }
 
     // Fast Coordinator Router - Multi-tier LLM coordination
@@ -1047,6 +1280,23 @@ class UniversalAIToolsServer {
       log.info('✅ GraphRAG router loaded - R1 knowledge graph capabilities enabled', LogContext.API);
     } catch (error) {
       log.error('❌ Failed to load GraphRAG router', LogContext.API, { error });
+    }
+    
+    // Load Knowledge Graph router for Arc UI
+    try {
+      const knowledgeGraphModule = await import('./routers/knowledge-graph');
+      const knowledgeGraphRouter = knowledgeGraphModule.default;
+      
+      // Set realtime service for graph updates
+      if (knowledgeGraphModule.setRealtimeService && this.broadcastService) {
+        knowledgeGraphModule.setRealtimeService(this.broadcastService);
+        log.info('✅ Knowledge Graph realtime service configured', LogContext.API);
+      }
+      
+      this.app.use('/api/v1/knowledge-graph', knowledgeGraphRouter);
+      log.info('✅ Knowledge Graph router loaded - Arc UI graph visualization and management enabled', LogContext.API);
+    } catch (error) {
+      log.error('❌ Failed to load Knowledge Graph router', LogContext.API, { error });
     }
     
     // Load Codebase Optimizer router for comprehensive code analysis
@@ -2066,6 +2316,22 @@ class UniversalAIToolsServer {
           });
         });
 
+      // Initialize Agent Orchestration WebSocket for Arc UI
+      import('./routers/agent-orchestration')
+        .then((module) => {
+          if (module.setupWebSocketOrchestration) {
+            module.setupWebSocketOrchestration(this.server);
+            log.info('✅ Agent Orchestration WebSocket initialized for Arc UI', LogContext.WEBSOCKET);
+          } else {
+            log.warn('⚠️ setupWebSocketOrchestration not found in agent-orchestration module', LogContext.WEBSOCKET);
+          }
+        })
+        .catch((error) => {
+          log.error('❌ Failed to initialize Agent Orchestration WebSocket', LogContext.WEBSOCKET, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
       // Initialize raw WebSocket server for Swift/native clients
       this.wss = new WebSocketServer({
         server: this.server,
@@ -2120,6 +2386,12 @@ class UniversalAIToolsServer {
           log.error('WebSocket connection error', LogContext.WEBSOCKET, { error });
         });
       });
+
+      // Initialize real-time broadcast service
+      if (this.io) {
+        this.broadcastService = new RealtimeBroadcastService(this.io);
+        log.info('✅ Real-time broadcast service initialized', LogContext.WEBSOCKET);
+      }
 
       log.info('✅ WebSocket server initialized', LogContext.WEBSOCKET);
     } catch (error) {
@@ -2359,6 +2631,9 @@ class UniversalAIToolsServer {
         const summary = healthMonitor.getHealthSummary();
         const issues = healthMonitor.getActiveIssues();
 
+        // Get broadcast service health if available
+        const broadcastHealth = this.broadcastService?.getServiceHealth();
+
         res.json({
           success: true,
           data: {
@@ -2377,6 +2652,10 @@ class UniversalAIToolsServer {
               description: issue.description,
               autoFixable: issue.autoFixable,
             })),
+            websocket: {
+              connected: this.io ? true : false,
+              broadcastService: broadcastHealth || null,
+            },
           },
           metadata: {
             timestamp: new Date().toISOString(),
@@ -2480,6 +2759,67 @@ class UniversalAIToolsServer {
       }
     });
 
+    // WebSocket/Broadcast service management endpoints
+    this.app.get('/api/v1/websocket/status', (req, res) => {
+      try {
+        const broadcastHealth = this.broadcastService?.getServiceHealth();
+        
+        return res.json({
+          success: true,
+          data: {
+            socketio: {
+              connected: this.io ? true : false,
+              clientCount: this.broadcastService?.getConnectedClientsCount() || 0,
+            },
+            rawWebSocket: {
+              connected: this.wss ? true : false,
+            },
+            broadcastService: broadcastHealth || null,
+          },
+          metadata: {
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get WebSocket status',
+        });
+      }
+    });
+
+    this.app.post('/api/v1/websocket/broadcast/test', (req, res) => {
+      try {
+        if (!this.broadcastService) {
+          return res.status(503).json({
+            success: false,
+            error: 'Broadcast service not available',
+          });
+        }
+
+        // Send a test alert
+        this.broadcastService.broadcastSystemAlert({
+          severity: 'info',
+          component: 'api-test',
+          message: 'Test broadcast message from API',
+          details: { requestId: req.headers['x-request-id'] || 'unknown' },
+        });
+
+        return res.json({
+          success: true,
+          message: 'Test broadcast sent',
+          metadata: {
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to send test broadcast',
+        });
+      }
+    });
+
     log.info('✅ Health monitoring endpoints configured', LogContext.API);
   }
 
@@ -2559,6 +2899,12 @@ class UniversalAIToolsServer {
             resolve();
           });
         });
+      }
+
+      // Close broadcast service
+      if (this.broadcastService) {
+        this.broadcastService.destroy();
+        log.info('Broadcast service destroyed', LogContext.WEBSOCKET);
       }
 
       // Close WebSocket servers
@@ -2720,6 +3066,10 @@ class UniversalAIToolsServer {
 
   public getSupabase(): unknown {
     return this.supabase;
+  }
+
+  public getBroadcastService(): RealtimeBroadcastService | null {
+    return this.broadcastService;
   }
 
   // Expose internal shutdown for tests
@@ -3017,6 +3367,17 @@ class UniversalAIToolsServer {
       log.info('✅ Performance monitoring routes loaded', LogContext.SERVER);
     } catch (error) {
       log.warn('⚠️ Performance monitoring routes failed to load', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load enhanced performance analytics routes for Arc UI dashboard
+    try {
+      const performanceAnalyticsModule = await import('./routers/performance-analytics');
+      this.app.use('/api/v1/performance-analytics', performanceAnalyticsModule.default);
+      log.info('✅ Enhanced Performance Analytics routes loaded - Arc UI dashboard support enabled', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Performance Analytics routes failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }

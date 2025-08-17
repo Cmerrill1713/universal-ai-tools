@@ -339,6 +339,131 @@
         "reveal": "always",
         "panel": "new"
       }
+    },
+    {
+      "label": "swift: Build Debug",
+      "type": "shell",
+      "command": "xcodebuild",
+      "args": [
+        "-project",
+        "${workspaceFolder}/macOS-App/UniversalAITools/UniversalAITools.xcodeproj",
+        "-scheme",
+        "UniversalAITools",
+        "-configuration",
+        "Debug",
+        "build"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$swift"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/macOS-App/UniversalAITools"
+      }
+    },
+    {
+      "label": "swift: Build Release",
+      "type": "shell",
+      "command": "xcodebuild",
+      "args": [
+        "-project",
+        "${workspaceFolder}/macOS-App/UniversalAITools/UniversalAITools.xcodeproj",
+        "-scheme",
+        "UniversalAITools",
+        "-configuration",
+        "Release",
+        "build"
+      ],
+      "group": "build",
+      "problemMatcher": ["$swift"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/macOS-App/UniversalAITools"
+      }
+    },
+    {
+      "label": "swift: Clean",
+      "type": "shell",
+      "command": "xcodebuild",
+      "args": [
+        "-project",
+        "${workspaceFolder}/macOS-App/UniversalAITools/UniversalAITools.xcodeproj",
+        "-scheme",
+        "UniversalAITools",
+        "clean"
+      ],
+      "group": "build",
+      "problemMatcher": ["$swift"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/macOS-App/UniversalAITools"
+      }
+    },
+    {
+      "label": "swift: Run Tests",
+      "type": "shell",
+      "command": "xcodebuild",
+      "args": [
+        "-project",
+        "${workspaceFolder}/macOS-App/UniversalAITools/UniversalAITools.xcodeproj",
+        "-scheme",
+        "UniversalAITools",
+        "-configuration",
+        "Debug",
+        "test"
+      ],
+      "group": "test",
+      "problemMatcher": ["$swift"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/macOS-App/UniversalAITools"
+      }
+    },
+    {
+      "label": "swift: Format Code",
+      "type": "shell",
+      "command": "swift-format",
+      "args": [
+        "--in-place",
+        "--recursive",
+        "${workspaceFolder}/macOS-App/UniversalAITools"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/macOS-App/UniversalAITools"
+      }
+    },
+    {
+      "label": "swift: Run App",
+      "type": "shell",
+      "command": "open",
+      "args": [
+        "${workspaceFolder}/macOS-App/UniversalAITools/DerivedData/UniversalAITools/Build/Products/Debug/UniversalAITools.app"
+      ],
+      "group": "build",
+      "dependsOn": "swift: Build Debug",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
     }
   ]
 }

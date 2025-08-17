@@ -37,6 +37,7 @@ export class HealthMonitorService extends EventEmitter {
   private monitoringInterval: NodeJS.Timeout | null = null;
   private healingInterval: NodeJS.Timeout | null = null;
   private isMonitoring = false;
+  private isRegisteringAgents = false;
 
   constructor() {
     super();
@@ -64,6 +65,14 @@ export class HealthMonitorService extends EventEmitter {
       return;
     }
 
+    // Prevent concurrent registration attempts
+    if (this.isRegisteringAgents) {
+      log.debug('Agent registration already in progress, skipping', LogContext.AGENT);
+      return;
+    }
+
+    this.isRegisteringAgents = true;
+
     try {
       log.info('🚀 Force registering core agents in mesh...', LogContext.AGENT);
       
@@ -80,6 +89,19 @@ export class HealthMonitorService extends EventEmitter {
       ];
 
       const {a2aMesh} = await import('@/services/a2a-communication-mesh');
+      
+      if (!a2aMesh) {
+        throw new Error('A2A communication mesh import failed - a2aMesh is undefined');
+      }
+      
+      if (typeof a2aMesh.getAgentConnections !== 'function') {
+        throw new Error('A2A communication mesh missing getAgentConnections method');
+      }
+      
+      if (typeof a2aMesh.registerAgent !== 'function') {
+        throw new Error('A2A communication mesh missing registerAgent method');
+      }
+      
       const existingConnections = a2aMesh.getAgentConnections();
       const registeredAgentNames = existingConnections.map(conn => conn.agentName);
 
@@ -94,7 +116,15 @@ export class HealthMonitorService extends EventEmitter {
               trustLevel: agentDef.trustLevel
             });
           } catch (error) {
-            log.warn(`⚠️ Failed to register core agent ${agentDef.name} in mesh`, LogContext.AGENT, { error });
+            const agentErrorDetails = {
+              agentName: agentDef.name,
+              capabilities: agentDef.capabilities,
+              message: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined
+            };
+            log.warn(`⚠️ Failed to register core agent ${agentDef.name} in mesh`, LogContext.AGENT, { 
+              error: agentErrorDetails 
+            });
           }
         } else {
           log.debug(`Core agent already registered: ${agentDef.name}`, LogContext.AGENT);
@@ -110,7 +140,35 @@ export class HealthMonitorService extends EventEmitter {
       }
 
     } catch (error) {
-      log.error('❌ Failed to force register agents in mesh', LogContext.AGENT, { error });
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
+        code: (error as any)?.code,
+        errno: (error as any)?.errno,
+        path: (error as any)?.path
+      };
+      
+      log.error('❌ Failed to force register agents in mesh', LogContext.AGENT, { 
+        error: errorDetails,
+        errorType: typeof error,
+        errorKeys: error && typeof error === 'object' ? Object.keys(error) : []
+      });
+      
+      // Also try to identify specific failure causes
+      if (error instanceof Error) {
+        if (error.message.includes('Cannot find module') || error.message.includes('MODULE_NOT_FOUND')) {
+          log.error('❌ Module import error during agent registration', LogContext.AGENT, {
+            suggestion: 'Check if all required modules are properly built and accessible'
+          });
+        } else if (error.message.includes('registerAgent')) {
+          log.error('❌ A2A mesh registration method error', LogContext.AGENT, {
+            suggestion: 'Check if a2aMesh.registerAgent method is working correctly'
+          });
+        }
+      }
+    } finally {
+      this.isRegisteringAgents = false;
     }
   }
 

@@ -98,39 +98,68 @@ export class A2ACommunicationMesh extends EventEmitter {
    * Register an agent in the mesh
    */
   public registerAgent(agentName: string, capabilities: string[], trustLevel = 0.8): void {
-    const connection: AgentConnection = {
-      agentName,
-      capabilities,
-      status: 'online',
-      lastSeen: new Date(),
-      messageQueue: [],
-      collaborationScore: 0.0,
-      trustLevel,
-    };
+    try {
+      // Validate inputs
+      if (!agentName || typeof agentName !== 'string' || agentName.trim() === '') {
+        throw new Error('Agent name must be a non-empty string');
+      }
+      
+      if (!Array.isArray(capabilities)) {
+        throw new Error('Capabilities must be an array');
+      }
+      
+      if (typeof trustLevel !== 'number' || trustLevel < 0 || trustLevel > 1) {
+        throw new Error('Trust level must be a number between 0 and 1');
+      }
 
-    this.agents.set(agentName, connection);
-    this.messageQueue.set(agentName, []);
-    this.updateKnowledgeGraph(agentName, capabilities);
-
-    log.info(`🤝 Agent registered in mesh: ${agentName}`, LogContext.AI, {
-      capabilities: capabilities.length,
-      trustLevel,
-    });
-
-    // Notify other agents of new member
-    this.broadcastMessage({
-      id: this.generateMessageId(),
-      from: 'mesh_system',
-      to: 'broadcast',
-      type: 'notification',
-      payload: {
-        event: 'agent_joined',
+      const connection: AgentConnection = {
         agentName,
         capabilities,
-      },
-      priority: 'medium',
-      timestamp: new Date(),
-    });
+        status: 'online',
+        lastSeen: new Date(),
+        messageQueue: [],
+        collaborationScore: 0.0,
+        trustLevel,
+      };
+
+      this.agents.set(agentName, connection);
+      this.messageQueue.set(agentName, []);
+      this.updateKnowledgeGraph(agentName, capabilities);
+
+      log.info(`🤝 Agent registered in mesh: ${agentName}`, LogContext.AI, {
+        capabilities: capabilities.length,
+        trustLevel,
+      });
+
+      // Notify other agents of new member (with error handling)
+      try {
+        this.broadcastMessage({
+          id: this.generateMessageId(),
+          from: 'mesh_system',
+          to: 'broadcast',
+          type: 'notification',
+          payload: {
+            event: 'agent_joined',
+            agentName,
+            capabilities,
+          },
+          priority: 'medium',
+          timestamp: new Date(),
+        });
+      } catch (broadcastError) {
+        log.warn(`Failed to broadcast agent registration for ${agentName}`, LogContext.AI, {
+          error: broadcastError instanceof Error ? broadcastError.message : String(broadcastError)
+        });
+        // Don't throw - registration itself succeeded
+      }
+    } catch (error) {
+      log.error(`Failed to register agent ${agentName} in mesh`, LogContext.AI, {
+        error: error instanceof Error ? error.message : String(error),
+        capabilities: capabilities?.length || 0,
+        trustLevel
+      });
+      throw error; // Re-throw to let caller handle
+    }
   }
 
   /**

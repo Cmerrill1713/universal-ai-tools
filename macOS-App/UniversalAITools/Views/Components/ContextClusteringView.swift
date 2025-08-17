@@ -554,12 +554,12 @@ struct ContextClusteringView: View {
                 .foregroundColor(AppTheme.primaryText)
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                StatCard(title: "Birth Rate", value: "2.3/hr", color: .green)
-                StatCard(title: "Death Rate", value: "1.1/hr", color: .red)
-                StatCard(title: "Merge Rate", value: "0.8/hr", color: .blue)
-                StatCard(title: "Split Rate", value: "0.5/hr", color: .orange)
-                StatCard(title: "Stability", value: "73%", color: .purple)
-                StatCard(title: "Growth Rate", value: "+12%", color: .cyan)
+                StatCard(title: "Birth Rate", value: "2.3/hr", icon: "plus.circle", color: .green)
+                StatCard(title: "Death Rate", value: "1.1/hr", icon: "minus.circle", color: .red)
+                StatCard(title: "Merge Rate", value: "0.8/hr", icon: "arrow.triangle.merge", color: .blue)
+                StatCard(title: "Split Rate", value: "0.5/hr", icon: "arrow.triangle.branch", color: .orange)
+                StatCard(title: "Stability", value: "73%", icon: "chart.line.uptrend.xyaxis", color: .purple)
+                StatCard(title: "Growth Rate", value: "+12%", icon: "chart.bar.fill", color: .cyan)
             }
         }
         .padding(16)
@@ -595,10 +595,10 @@ struct ContextClusteringView: View {
                 .foregroundColor(AppTheme.primaryText)
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
-                StatCard(title: "Total Clusters", value: "\(filteredClusters.count)", color: .blue)
-                StatCard(title: "Avg Coherence", value: String(format: "%.1f%%", averageCoherence * 100), color: .green)
-                StatCard(title: "Largest Cluster", value: "\(largestClusterSize)", color: .orange)
-                StatCard(title: "Isolation Score", value: String(format: "%.2f", clusterIsolationScore), color: .purple)
+                StatCard(title: "Total Clusters", value: "\(filteredClusters.count)", icon: "circle.grid.3x3", color: .blue)
+                StatCard(title: "Avg Coherence", value: String(format: "%.1f%%", averageCoherence * 100), icon: "checkmark.seal", color: .green)
+                StatCard(title: "Largest Cluster", value: "\(largestClusterSize)", icon: "circle.fill", color: .orange)
+                StatCard(title: "Isolation Score", value: String(format: "%.2f", clusterIsolationScore), icon: "circle.dotted", color: .purple)
             }
         }
         .padding(16)
@@ -921,28 +921,7 @@ struct MetricPill: View {
     }
 }
 
-struct StatCard: View {
-    let title: String
-    let value: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(value)
-                .font(AppTheme.title2)
-                .fontWeight(.bold)
-                .foregroundColor(color)
-            
-            Text(title)
-                .font(AppTheme.caption)
-                .foregroundColor(AppTheme.secondaryText)
-                .multilineTextAlignment(.center)
-        }
-        .padding(16)
-        .background(color.opacity(0.1))
-        .cornerRadius(8)
-    }
-}
+// StatCard is defined in DebugViewComponents.swift
 
 struct QualityMetricBar: View {
     let label: String

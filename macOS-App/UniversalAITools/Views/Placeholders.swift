@@ -185,25 +185,8 @@ public struct VoiceInteraction {
     }
 }
 
-// MARK: - Missing Environment Effects
-
-extension View {
-    public func glow(color: Color, radius: CGFloat) -> some View {
-        self.shadow(color: color, radius: radius)
-    }
-    
-    public func neumorphism(cornerRadius: CGFloat) -> some View {
-        self
-    }
-    
-    public func glassMorphism(cornerRadius: CGFloat) -> some View {
-        self
-    }
-    
-    public func floating(amplitude: CGFloat, duration: TimeInterval) -> some View {
-        self
-    }
-}
+// MARK: - Visual Effects Note
+// Visual effects (glow, neumorphism, glassMorphism, floating) are implemented in Extensions/VisualEffects.swift
 
 // AnimatedGradientBackground is defined in Utils/AppTheme.swift
 
