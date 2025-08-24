@@ -1,0 +1,65 @@
+{
+  "total_examples": 23,
+  "final_fitness": 0.8769712456371495,
+  "generation_stats": [
+    {
+      "generation": 0,
+      "avg_fitness": 0.8158665820074035,
+      "max_fitness": 0.8749044541124694,
+      "min_fitness": 0.7775104499814358,
+      "population_size": 12
+    },
+    {
+      "generation": 1,
+      "avg_fitness": 0.8374082209328978,
+      "max_fitness": 0.8749044541124694,
+      "min_fitness": 0.8026968344864791,
+      "population_size": 12
+    },
+    {
+      "generation": 2,
+      "avg_fitness": 0.8532087546582415,
+      "max_fitness": 0.8749044541124694,
+      "min_fitness": 0.8414032097288676,
+      "population_size": 12
+    },
+    {
+      "generation": 3,
+      "avg_fitness": 0.8558918409502924,
+      "max_fitness": 0.8749044541124694,
+      "min_fitness": 0.8433116379236352,
+      "population_size": 12
+    },
+    {
+      "generation": 4,
+      "avg_fitness": 0.8606957915842083,
+      "max_fitness": 0.8769712456371495,
+      "min_fitness": 0.8508453247743865,
+      "population_size": 12
+    }
+  ],
+  "best_fitness_trajectory": [
+    0.8749044541124694,
+    0.8749044541124694,
+    0.8749044541124694,
+    0.8749044541124694,
+    0.8749044541124694,
+    0.8769712456371495
+  ],
+  "domain_distribution": {
+    "deployment": 4,
+    "existing": 6,
+    "development": 4,
+    "architecture": 3,
+    "ai_features": 4,
+    "performance": 2
+  },
+  "complexity_distribution": {
+    "4": 3,
+    "3": 9,
+    "2": 3,
+    "1": 4,
+    "5": 4
+  },
+  "evolution_timestamp": 1755883004.332129
+}

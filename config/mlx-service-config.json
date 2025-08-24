@@ -1,0 +1,9 @@
+{
+  "model": "mlx-community/Llama-3.1-8B-Instruct-4bit",
+  "adapter_path": "./mlx-adapters/production",
+  "max_tokens": 200,
+  "temperature": 0.7,
+  "top_p": 0.9,
+  "service_port": 8005,
+  "enabled": true
+}

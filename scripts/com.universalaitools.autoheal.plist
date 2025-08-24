@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.universalaitools.autoheal</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/christianmerrill/Desktop/universal-ai-tools/scripts/start-autoheal-daemon.sh</string>
+        <string>start</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/Users/christianmerrill/Desktop/universal-ai-tools</string>
+    
+    <key>StandardOutPath</key>
+    <string>/tmp/uat-autoheal/daemon.stdout.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/tmp/uat-autoheal/daemon.stderr.log</string>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <string>PATH</string>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin</string>
+        <string>HOME</string>
+        <string>/Users/christianmerrill</string>
+    </dict>
+    
+    <key>Nice</key>
+    <integer>10</integer>
+</dict>
+</plist>

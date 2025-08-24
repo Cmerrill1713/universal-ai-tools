@@ -1,0 +1,165 @@
+# Prometheus configuration for Go/Rust migration monitoring
+# Collects metrics from all migration components
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    migration_phase: "1"
+    environment: "development"
+
+# Rule files for alerting
+rule_files:
+  - "migration-alert-rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Go API Gateway metrics
+  - job_name: 'go-api-gateway'
+    static_configs:
+      - targets: ['go-api-gateway:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    honor_labels: true
+    honor_timestamps: true
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: go-api-gateway:9090
+      - target_label: service
+        replacement: go-api-gateway
+      - target_label: language
+        replacement: go
+
+  # Rust AI Core metrics
+  - job_name: 'rust-ai-core'
+    static_configs:
+      - targets: ['rust-ai-core:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    honor_labels: true
+    honor_timestamps: true
+    relabel_configs:
+      - target_label: service
+        replacement: rust-ai-core
+      - target_label: language
+        replacement: rust
+
+  # TypeScript server (compatibility mode)
+  - job_name: 'typescript-server'
+    static_configs:
+      - targets: ['typescript-server:9999']
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    relabel_configs:
+      - target_label: service
+        replacement: typescript-server
+      - target_label: language
+        replacement: typescript
+      - target_label: migration_status
+        replacement: compatibility
+
+  # Migration testing service
+  - job_name: 'migration-test'
+    static_configs:
+      - targets: ['migration-test:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    relabel_configs:
+      - target_label: service
+        replacement: migration-test
+      - target_label: type
+        replacement: testing
+
+  # Database monitoring
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres:5432']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    params:
+      collect[]:
+        - 'pg_stat_database'
+        - 'pg_stat_user_tables'
+        - 'pg_locks'
+    relabel_configs:
+      - target_label: service
+        replacement: postgresql
+      - target_label: type
+        replacement: database
+
+  # Redis monitoring
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    relabel_configs:
+      - target_label: service
+        replacement: redis
+      - target_label: type
+        replacement: cache
+
+  # Ollama monitoring
+  - job_name: 'ollama'
+    static_configs:
+      - targets: ['ollama:11434']
+    metrics_path: '/api/health'
+    scrape_interval: 60s
+    scrape_timeout: 10s
+    relabel_configs:
+      - target_label: service
+        replacement: ollama
+      - target_label: type
+        replacement: llm
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+    relabel_configs:
+      - target_label: service
+        replacement: system
+      - target_label: type
+        replacement: node
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Remote write (optional - for long-term storage)
+# remote_write:
+#   - url: "http://victoria-metrics:8428/api/v1/write"
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention.time: 7d
+    retention.size: 2GB
+    wal-compression: true
+
+# Federation (if needed for multi-cluster setup)
+# - job_name: 'federate'
+#   scrape_interval: 15s
+#   honor_labels: true
+#   metrics_path: '/federate'
+#   params:
+#     'match[]':
+#       - '{job=~"prometheus"}'
+#       - '{__name__=~"job:.*"}'
+#   static_configs:
+#     - targets:
+#       - 'prometheus-main:9090'

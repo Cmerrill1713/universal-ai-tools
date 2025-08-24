@@ -1,0 +1,70 @@
+# syntax=docker/dockerfile:1.6
+
+ARG NODE_VERSION=20.15.1
+
+# ========================================
+# Simple production stage
+# ========================================
+FROM node:${NODE_VERSION}-alpine AS production
+
+# Install minimal runtime dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    curl \
+    dumb-init \
+    tini \
+    libc6-compat \
+    && rm -rf /var/cache/apk/* \
+    # Create non-root user
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S universalai -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies (skip prepare script)
+RUN npm ci --frozen-lockfile --prefer-offline --ignore-scripts
+
+# Copy source code
+COPY . .
+
+# Build the application for production
+RUN npm run build
+
+# Create required directories and set permissions
+RUN mkdir -p logs tmp cache models data \
+    && chown -R universalai:nodejs logs tmp cache models data
+
+# Switch to non-root user
+USER universalai
+
+# Set optimized environment variables
+ENV NODE_ENV=production \
+    PORT=9999 \
+    DOCKER_ENV=true \
+    CONTAINER_NAME=universal-ai-tools \
+    ENABLE_CONTAINER_OPTIMIZATION=true \
+    NODE_OPTIONS="--max-old-space-size=2048 --optimize-for-size --gc-interval=100" \
+    ENABLE_PERF_LOGS=false \
+    ENABLE_CONTEXT=false \
+    MEMORY_MONITORING_INTERVAL=120000 \
+    GC_INTERVAL_MS=120000 \
+    CACHE_CLEANUP_INTERVAL_MS=180000 \
+    UV_THREADPOOL_SIZE=16
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=10s --start-period=90s --retries=3 \
+    CMD curl -f http://localhost:9999/health || exit 1
+
+# Expose port
+EXPOSE 9999
+
+# Use tini for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start the application in production mode
+CMD ["node", "dist/server.js"]

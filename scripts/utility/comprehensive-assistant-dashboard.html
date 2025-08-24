@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal AI Tools - Comprehensive AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .service-status {
+            margin-bottom: 30px;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .service-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .service-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        .status-offline {
+            background: #ff4444;
+            box-shadow: 0 0 10px #ff4444;
+        }
+
+        .conversation-list {
+            margin-bottom: 20px;
+        }
+
+        .conversation-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .conversation-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .conversation-item.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: rgba(0, 255, 136, 0.4);
+        }
+
+        .conversation-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .conversation-preview {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Main Chat Area */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .chat-header {
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .ai-model-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000000;
+            padding: 15px 20px;
+            border-radius: 20px 20px 5px 20px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            color: #ffffff;
+            padding: 15px 20px;
+            border-radius: 20px 20px 20px 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            line-height: 1.6;
+        }
+
+        .message-meta {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 8px;
+        }
+
+        .chat-input-container {
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 15px 20px;
+            color: #ffffff;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+            resize: none;
+            min-height: 50px;
+            max-height: 150px;
+        }
+
+        .chat-input:focus {
+            border-color: #00ff88;
+            box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border: none;
+            border-radius: 25px;
+            padding: 15px 25px;
+            color: #000000;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .enhanced-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.3);
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background: #00ff88;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            padding: 15px 20px;
+            border-radius: 20px 20px 20px 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #ffffff;
+            border-radius: 50%;
+            animation: typing 1.5s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .system-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .system-info h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .system-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.2; }
+            30% { opacity: 1; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>🤖 AI Assistant</h2>
+            
+            <div class="system-info">
+                <h3>System Status</h3>
+                <div class="system-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="activeServices">5</div>
+                        <div class="stat-label">Services</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="responseTime">87ms</div>
+                        <div class="stat-label">Avg Response</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="service-status">
+                <h3>Backend Services</h3>
+                <div class="service-item">
+                    <span class="service-name">🌐 API Gateway</span>
+                    <div class="status-dot" id="api-gateway-status"></div>
+                </div>
+                <div class="service-item">
+                    <span class="service-name">🗄️ Database</span>
+                    <div class="status-dot" id="database-status"></div>
+                </div>
+                <div class="service-item">
+                    <span class="service-name">🤖 ML Models</span>
+                    <div class="status-dot" id="ml-status"></div>
+                </div>
+                <div class="service-item">
+                    <span class="service-name">📚 Documentation</span>
+                    <div class="status-dot" id="docs-status"></div>
+                </div>
+                <div class="service-item">
+                    <span class="service-name">⚡ Performance</span>
+                    <div class="status-dot" id="performance-status"></div>
+                </div>
+                <div class="service-item">
+                    <span class="service-name">💬 Chat Engine</span>
+                    <div class="status-dot" id="chat-status"></div>
+                </div>
+            </div>
+            
+            <div class="conversation-list">
+                <h3>Conversations</h3>
+                <div id="conversations"></div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h1 class="chat-title">Universal AI Assistant</h1>
+                <select class="ai-model-selector" id="modelSelector">
+                    <option value="auto">Auto-Select Best Model</option>
+                    <option value="lm-studio">LM Studio (Local)</option>
+                    <option value="ollama">Ollama (Offline)</option>
+                    <option value="enhanced">HRM Enhanced</option>
+                </select>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div>👋 Hello! I'm your comprehensive AI assistant powered by Universal AI Tools.</div>
+                    <div style="margin-top: 10px;">I have access to:</div>
+                    <div style="margin-top: 5px;">• 🧠 Advanced reasoning with HRM (Hierarchical Reasoning Model)</div>
+                    <div style="margin-top: 5px;">• 🗄️ Real-time database operations and optimization</div>
+                    <div style="margin-top: 5px;">• 🤖 ML model management and training coordination</div>
+                    <div style="margin-top: 5px;">• 📚 Dynamic documentation generation</div>
+                    <div style="margin-top: 5px;">• ⚡ Performance analysis and optimization</div>
+                    <div style="margin-top: 5px;">• 🔍 System monitoring and health checks</div>
+                    <div style="margin-top: 10px;">How can I help you today?</div>
+                    <div class="message-meta">System initialized • All services online</div>
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+                <span style="margin-left: 10px;">AI is thinking...</span>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="enhanced-toggle">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="enhancedMode">
+                        <span class="slider"></span>
+                    </label>
+                    <span>Enhanced Reasoning (HRM)</span>
+                </div>
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        class="chat-input" 
+                        id="chatInput" 
+                        placeholder="Ask me anything about your AI system, performance optimization, data analysis, or get help with complex reasoning tasks..."
+                        rows="1"
+                    ></textarea>
+                    <button class="send-button" id="sendButton">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:8092/api/v1';
+        const BACKEND_SERVICES = [
+            { name: 'api-gateway', url: 'http://localhost:8080/health', element: 'api-gateway-status' },
+            { name: 'database', url: 'http://localhost:8086/health', element: 'database-status' },
+            { name: 'ml-models', url: 'http://localhost:8088/health', element: 'ml-status' },
+            { name: 'documentation', url: 'http://localhost:8087/health', element: 'docs-status' },
+            { name: 'performance', url: 'http://localhost:8085/health', element: 'performance-status' },
+            { name: 'chat-engine', url: 'http://localhost:8092/health', element: 'chat-status' }
+        ];
+
+        // Global state
+        let currentConversationId = null;
+        let conversations = [];
+        let isTyping = false;
+
+        // DOM elements
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const enhancedMode = document.getElementById('enhancedMode');
+        const modelSelector = document.getElementById('modelSelector');
+        const conversationsContainer = document.getElementById('conversations');
+
+        // Initialize the app
+        async function init() {
+            await checkServiceHealth();
+            await loadConversations();
+            setupEventListeners();
+            
+            // Start health monitoring
+            setInterval(checkServiceHealth, 30000);
+            
+            console.log('🚀 Universal AI Assistant initialized');
+        }
+
+        // Check health of all backend services
+        async function checkServiceHealth() {
+            let healthyServices = 0;
+            
+            for (const service of BACKEND_SERVICES) {
+                try {
+                    const response = await fetch(service.url, { 
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                    const statusElement = document.getElementById(service.element);
+                    
+                    if (response.ok) {
+                        statusElement.classList.remove('status-offline');
+                        healthyServices++;
+                    } else {
+                        statusElement.classList.add('status-offline');
+                    }
+                } catch (error) {
+                    const statusElement = document.getElementById(service.element);
+                    statusElement.classList.add('status-offline');
+                }
+            }
+            
+            document.getElementById('activeServices').textContent = healthyServices;
+        }
+
+        // Load conversations from backend
+        async function loadConversations() {
+            try {
+                const response = await fetch(`${API_BASE}/chat/conversations`);
+                if (response.ok) {
+                    const data = await response.json();
+                    conversations = data.data.conversations || [];
+                    renderConversations();
+                }
+            } catch (error) {
+                console.error('Failed to load conversations:', error);
+            }
+        }
+
+        // Render conversations in sidebar
+        function renderConversations() {
+            if (conversations.length === 0) {
+                conversationsContainer.innerHTML = '<div style="opacity: 0.7; font-size: 0.9rem;">No conversations yet</div>';
+                return;
+            }
+
+            conversationsContainer.innerHTML = conversations.map(conv => `
+                <div class="conversation-item ${conv.ID === currentConversationId ? 'active' : ''}" 
+                     onclick="selectConversation('${conv.ID}')">
+                    <div class="conversation-title">${conv.Title}</div>
+                    <div class="conversation-preview">${conv.LastMessage || 'No messages yet'}</div>
+                </div>
+            `).join('');
+        }
+
+        // Select a conversation
+        async function selectConversation(conversationId) {
+            currentConversationId = conversationId;
+            renderConversations();
+            
+            try {
+                const response = await fetch(`${API_BASE}/chat/history/${conversationId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    displayConversationHistory(data.data.Messages || []);
+                }
+            } catch (error) {
+                console.error('Failed to load conversation history:', error);
+            }
+        }
+
+        // Display conversation history
+        function displayConversationHistory(messages) {
+            chatMessages.innerHTML = '';
+            messages.forEach(message => {
+                addMessageToChat(message.Content, message.Role, message.Metadata);
+            });
+            scrollToBottom();
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            sendButton.addEventListener('click', sendMessage);
+            
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            chatInput.addEventListener('input', () => {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+            });
+        }
+
+        // Send message to AI
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message || isTyping) return;
+
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            chatInput.value = '';
+            chatInput.style.height = '50px';
+            
+            // Show typing indicator
+            showTyping();
+
+            try {
+                // Create conversation if needed
+                if (!currentConversationId) {
+                    await createNewConversation(message);
+                }
+
+                // Choose endpoint based on mode
+                const endpoint = enhancedMode.checked ? '/chat/enhanced' : '/chat/';
+                const modelValue = modelSelector.value;
+                
+                // Prepare request
+                const requestBody = {
+                    message: message,
+                    conversationId: currentConversationId,
+                    agentName: modelValue === 'auto' ? '' : modelValue
+                };
+
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add AI response to chat
+                    addMessageToChat(data.data.message, 'assistant', {
+                        agentName: data.metadata.agentName,
+                        performance: data.metadata.performance,
+                        enhanced: data.metadata.enhanced || enhancedMode.checked,
+                        tokens: data.data.usage?.tokens
+                    });
+                    
+                    // Update response time
+                    if (data.metadata.performance) {
+                        const responseTime = data.metadata.performance.match(/(\d+)ms/);
+                        if (responseTime) {
+                            document.getElementById('responseTime').textContent = responseTime[1] + 'ms';
+                        }
+                    }
+                } else {
+                    addMessageToChat(`Error: ${data.error?.message || 'Unknown error occurred'}`, 'assistant');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                addMessageToChat('Sorry, I encountered an error. Please check that all services are running.', 'assistant');
+            } finally {
+                hideTyping();
+            }
+        }
+
+        // Create new conversation
+        async function createNewConversation(initialMessage) {
+            try {
+                const response = await fetch(`${API_BASE}/chat/new`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: initialMessage.substring(0, 50) + (initialMessage.length > 50 ? '...' : ''),
+                        initialMessage: initialMessage
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    currentConversationId = data.data.conversationId;
+                    await loadConversations();
+                }
+            } catch (error) {
+                console.error('Failed to create conversation:', error);
+            }
+        }
+
+        // Add message to chat display
+        function addMessageToChat(content, role, metadata = {}) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            let metaInfo = '';
+            if (metadata.agentName || metadata.performance || metadata.enhanced) {
+                const parts = [];
+                if (metadata.agentName && metadata.agentName !== 'anonymous') {
+                    parts.push(`${metadata.agentName}`);
+                }
+                if (metadata.enhanced) {
+                    parts.push('Enhanced Reasoning');
+                }
+                if (metadata.performance) {
+                    parts.push(metadata.performance);
+                }
+                if (metadata.tokens) {
+                    parts.push(`${metadata.tokens} tokens`);
+                }
+                if (parts.length > 0) {
+                    metaInfo = `<div class="message-meta">${parts.join(' • ')}</div>`;
+                }
+            }
+            
+            messageDiv.innerHTML = `<div>${formatMessage(content)}</div>${metaInfo}`;
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // Format message content (handle markdown, etc.)
+        function formatMessage(content) {
+            // Simple formatting - could be enhanced with a markdown parser
+            return content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">$1</code>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // Show typing indicator
+        function showTyping() {
+            isTyping = true;
+            typingIndicator.style.display = 'flex';
+            sendButton.disabled = true;
+            scrollToBottom();
+        }
+
+        // Hide typing indicator
+        function hideTyping() {
+            isTyping = false;
+            typingIndicator.style.display = 'none';
+            sendButton.disabled = false;
+        }
+
+        // Scroll to bottom of chat
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 100);
+        }
+
+        // Initialize the app when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

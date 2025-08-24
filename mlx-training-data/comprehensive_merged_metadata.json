@@ -1,0 +1,25 @@
+{
+  "total_examples": 398,
+  "sources": {
+    "supabase": true,
+    "documentation": true,
+    "git_history": true,
+    "code_patterns": true,
+    "deap_enhanced": true
+  },
+  "categories": {
+    "architecture": 8,
+    "general": 113,
+    "rust": 22,
+    "debugging": 52,
+    "mlx": 21,
+    "go": 40,
+    "performance": 34,
+    "swift": 61,
+    "database": 29,
+    "security": 17,
+    "api": 14
+  },
+  "duplicates_removed": 65,
+  "timestamp": "1755883985.5642273"
+}

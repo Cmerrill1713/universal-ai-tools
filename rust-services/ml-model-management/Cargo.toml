@@ -1,0 +1,92 @@
+[package]
+name = "ml-model-management"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "ml-model-management"
+path = "src/main.rs"
+
+[dependencies]
+# Web Framework
+axum = { version = "0.7", features = ["multipart", "ws"] }
+tower = { version = "0.4", features = ["util", "timeout", "limit", "load-shed"] }
+tower-http = { version = "0.5", features = ["fs", "trace", "cors", "timeout"] }
+hyper = { version = "1.0", features = ["full"] }
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization & JSON
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+ron = "0.8"
+
+# HTTP Client
+reqwest = { version = "0.11", features = ["json", "stream", "multipart"] }
+
+# Database & Storage
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+
+# ML & AI Libraries (optional for basic functionality)
+# candle-core = "0.6"
+# candle-nn = "0.6"
+# candle-transformers = "0.6"
+# hf-hub = "0.3"
+# tokenizers = "0.15"
+
+# MLX Integration (for Apple Silicon) - optional
+# pyo3 = { version = "0.20", features = ["auto-initialize"] }
+
+# File System & I/O
+walkdir = "2.0"
+ignore = "0.4"
+globset = "0.4"
+tar = "0.4"
+flate2 = "1.0"
+zip = "0.6"
+
+# Async & Concurrency
+futures = "0.3"
+async-trait = "0.1"
+dashmap = "5.0"
+
+# Configuration
+config = "0.14"
+toml = "0.8"
+clap = { version = "4.0", features = ["derive"] }
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Time & UUID
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Utilities
+regex = "1.0"
+base64 = "0.21"
+sha2 = "0.10"
+md-5 = "0.10"
+num_cpus = "1.0"
+rand = "0.8"
+
+# Monitoring & Health
+prometheus = "0.13"
+metrics = "0.22"
+
+# System Integration
+sys-info = "0.9"
+
+# Docker & Container Management
+bollard = "0.16"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
+wiremock = "0.5"

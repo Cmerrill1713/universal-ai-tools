@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal AI Tools - System Test Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .service-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .service-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-indicator {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .endpoint-group {
+            margin-bottom: 20px;
+        }
+
+        .endpoint-group h4 {
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .endpoint-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .response-area {
+            margin-top: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .clear-btn {
+            background: #dc3545;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 0.8em;
+        }
+
+        .clear-btn:hover {
+            background: #c82333;
+        }
+
+        #responseOutput {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .system-overview {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .overview-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .test-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        input, textarea, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Universal AI Tools System Dashboard</h1>
+        
+        <div class="system-overview">
+            <h2>System Status Overview</h2>
+            <div class="overview-stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalServices">-</div>
+                    <div class="stat-label">Services</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="healthyServices">-</div>
+                    <div class="stat-label">Healthy</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="avgResponse">-</div>
+                    <div class="stat-label">Avg Response (ms)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="lastUpdate">-</div>
+                    <div class="stat-label">Last Update</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="services-grid">
+            <!-- API Gateway -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">🌐 API Gateway</div>
+                    <div class="status-indicator status-healthy">Port 8080</div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>System Endpoints</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-success" onclick="testEndpoint('http://localhost:8080/health', 'Gateway Health')">Health Check</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8080/api/services', 'Service Registry')">Service Registry</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8080/metrics', 'Metrics')">Metrics</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Automation Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">🗄️ Database Automation</div>
+                    <div class="status-indicator status-healthy">Port 8086</div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Health & Status</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-success" onclick="testEndpoint('http://localhost:8086/health', 'DB Health')">Health Check</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8086/api/database/health', 'DB Health Details')">Database Health</button>
+                    </div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Operations</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8086/api/migrations/status', 'Migration Status')">Migrations</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8086/api/backups/list', 'Backup List')">Backups</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8086/api/operations/history', 'Operation History')">History</button>
+                    </div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Performance</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-secondary" onclick="testEndpoint('http://localhost:8086/api/optimization/analyze', 'DB Analysis')">Analyze Performance</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ML Model Management -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">🤖 ML Model Management</div>
+                    <div class="status-indicator status-healthy">Port 8088</div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Health & Models</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-success" onclick="testEndpoint('http://localhost:8088/health', 'ML Health')">Health Check</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8088/api/models', 'Model List')">Models</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8088/api/datasets', 'Dataset List')">Datasets</button>
+                    </div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Training & Metrics</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8088/api/training/jobs', 'Training Jobs')">Training Jobs</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8088/api/metrics', 'ML Metrics')">Metrics</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8088/api/inference/history', 'Inference History')">Inference History</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documentation Generator -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">📚 Documentation Generator</div>
+                    <div class="status-indicator status-healthy">Port 8087</div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Health & Templates</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-success" onclick="testEndpoint('http://localhost:8087/health', 'Doc Health')">Health Check</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8087/api/templates/list', 'Template List')">Templates</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8087/api/export/formats', 'Export Formats')">Export Formats</button>
+                    </div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Documentation</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8087/api/documentation/history', 'Doc History')">Generation History</button>
+                        <button class="btn-secondary" onclick="showDocGenerationForm()">Generate Docs</button>
+                    </div>
+                </div>
+                <div class="test-form" id="docGenForm">
+                    <div class="form-row">
+                        <label>Project Path:</label>
+                        <input type="text" id="docProjectPath" value="/tmp" placeholder="Path to analyze">
+                    </div>
+                    <div class="form-row">
+                        <label>Output Format:</label>
+                        <select id="docFormat">
+                            <option value="markdown">Markdown</option>
+                            <option value="html">HTML</option>
+                            <option value="pdf">PDF</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Documentation Type:</label>
+                        <select id="docType">
+                            <option value="api">API</option>
+                            <option value="architecture">Architecture</option>
+                            <option value="comprehensive">Comprehensive</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="generateDocumentation()">Generate</button>
+                    <button class="btn-secondary" onclick="hideDocGenerationForm()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Performance Optimizer -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">⚡ Performance Optimizer</div>
+                    <div class="status-indicator status-healthy">Port 8085</div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Health & Status</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-success" onclick="testEndpoint('http://localhost:8085/health', 'Perf Health')">Health Check</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8085/api/system/metrics', 'System Metrics')">System Metrics</button>
+                    </div>
+                </div>
+                <div class="endpoint-group">
+                    <h4>Optimization</h4>
+                    <div class="endpoint-buttons">
+                        <button class="btn-secondary" onclick="showOptimizationForm()">Run Optimization</button>
+                        <button class="btn-primary" onclick="testEndpoint('http://localhost:8085/api/optimization/history', 'Opt History')">History</button>
+                    </div>
+                </div>
+                <div class="test-form" id="optimizationForm">
+                    <div class="form-row">
+                        <label>Target Service:</label>
+                        <select id="optService">
+                            <option value="database-automation">Database Automation</option>
+                            <option value="ml-model-management">ML Model Management</option>
+                            <option value="documentation-generator">Documentation Generator</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>Optimization Type:</label>
+                        <select id="optType">
+                            <option value="memory">Memory</option>
+                            <option value="cpu">CPU</option>
+                            <option value="comprehensive">Comprehensive</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="runOptimization()">Optimize</button>
+                    <button class="btn-secondary" onclick="hideOptimizationForm()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="response-area">
+            <div class="response-header">
+                <h3>📊 API Response Output</h3>
+                <button class="clear-btn" onclick="clearOutput()">Clear</button>
+            </div>
+            <pre id="responseOutput">Ready to test API endpoints. Click any button above to start testing the Universal AI Tools backend services.</pre>
+        </div>
+    </div>
+
+    <script>
+        let responseCount = 0;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemOverview();
+            setInterval(loadSystemOverview, 30000); // Update every 30 seconds
+        });
+
+        async function loadSystemOverview() {
+            try {
+                const response = await fetch('http://localhost:8080/api/services');
+                const services = await response.json();
+                
+                const totalServices = services.length;
+                const healthyServices = services.filter(s => s.status === 'healthy').length;
+                const avgResponse = services.reduce((sum, s) => sum + s.response_time_ms, 0) / totalServices;
+                
+                document.getElementById('totalServices').textContent = totalServices;
+                document.getElementById('healthyServices').textContent = healthyServices;
+                document.getElementById('avgResponse').textContent = avgResponse.toFixed(1);
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                
+            } catch (error) {
+                console.error('Failed to load system overview:', error);
+            }
+        }
+
+        async function testEndpoint(url, name) {
+            const outputElement = document.getElementById('responseOutput');
+            responseCount++;
+            
+            // Add loading indicator
+            document.body.classList.add('loading');
+            
+            const timestamp = new Date().toLocaleTimeString();
+            outputElement.textContent += `\n[${responseCount}] ${timestamp} - Testing ${name}: ${url}\n`;
+            outputElement.scrollTop = outputElement.scrollHeight;
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch(url);
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+                
+                const data = await response.json();
+                
+                outputElement.textContent += `✅ SUCCESS (${response.status}) - ${responseTime}ms\n`;
+                outputElement.textContent += `${JSON.stringify(data, null, 2)}\n`;
+                outputElement.textContent += `${'='.repeat(80)}\n`;
+                
+            } catch (error) {
+                outputElement.textContent += `❌ ERROR: ${error.message}\n`;
+                outputElement.textContent += `${'='.repeat(80)}\n`;
+            } finally {
+                document.body.classList.remove('loading');
+                outputElement.scrollTop = outputElement.scrollHeight;
+            }
+        }
+
+        async function testPostEndpoint(url, name, data) {
+            const outputElement = document.getElementById('responseOutput');
+            responseCount++;
+            
+            document.body.classList.add('loading');
+            
+            const timestamp = new Date().toLocaleTimeString();
+            outputElement.textContent += `\n[${responseCount}] ${timestamp} - Testing ${name}: POST ${url}\n`;
+            outputElement.textContent += `Request Data: ${JSON.stringify(data, null, 2)}\n`;
+            outputElement.scrollTop = outputElement.scrollHeight;
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+                
+                const responseData = await response.json();
+                
+                outputElement.textContent += `✅ SUCCESS (${response.status}) - ${responseTime}ms\n`;
+                outputElement.textContent += `${JSON.stringify(responseData, null, 2)}\n`;
+                outputElement.textContent += `${'='.repeat(80)}\n`;
+                
+            } catch (error) {
+                outputElement.textContent += `❌ ERROR: ${error.message}\n`;
+                outputElement.textContent += `${'='.repeat(80)}\n`;
+            } finally {
+                document.body.classList.remove('loading');
+                outputElement.scrollTop = outputElement.scrollHeight;
+            }
+        }
+
+        function clearOutput() {
+            document.getElementById('responseOutput').textContent = 'Output cleared. Ready for new tests.';
+            responseCount = 0;
+        }
+
+        function showDocGenerationForm() {
+            document.getElementById('docGenForm').style.display = 'block';
+        }
+
+        function hideDocGenerationForm() {
+            document.getElementById('docGenForm').style.display = 'none';
+        }
+
+        function showOptimizationForm() {
+            document.getElementById('optimizationForm').style.display = 'block';
+        }
+
+        function hideOptimizationForm() {
+            document.getElementById('optimizationForm').style.display = 'none';
+        }
+
+        async function generateDocumentation() {
+            const projectPath = document.getElementById('docProjectPath').value;
+            const format = document.getElementById('docFormat').value;
+            const docType = document.getElementById('docType').value;
+            
+            const requestData = {
+                project_path: projectPath,
+                output_format: format,
+                documentation_type: docType,
+                template_style: "modern",
+                include_patterns: ["*.js", "*.ts", "*.py", "*.rs"],
+                exclude_patterns: ["node_modules", "target", "*.log"],
+                include_private: false
+            };
+            
+            await testPostEndpoint('http://localhost:8087/api/documentation/generate', 'Documentation Generation', requestData);
+            hideDocGenerationForm();
+        }
+
+        async function runOptimization() {
+            const targetService = document.getElementById('optService').value;
+            const optimizationType = document.getElementById('optType').value;
+            
+            const requestData = {
+                target_service: targetService,
+                optimization_type: optimizationType,
+                priority: "medium",
+                parameters: {}
+            };
+            
+            await testPostEndpoint('http://localhost:8085/api/optimization/optimize', 'Performance Optimization', requestData);
+            hideOptimizationForm();
+        }
+
+        // Auto-refresh system stats
+        setInterval(() => {
+            loadSystemOverview();
+        }, 10000);
+    </script>
+</body>
+</html>

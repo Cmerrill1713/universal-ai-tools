@@ -1,0 +1,149 @@
+# Prometheus Alert Rules for Universal AI Tools Distributed Tracing
+groups:
+  - name: universal-ai-tools-services
+    rules:
+      # Service Health Alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 30 seconds."
+
+      - alert: HighErrorRate
+        expr: rate(websocket_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate in {{ $labels.job }}"
+          description: "Error rate is {{ $value }} errors per second for {{ $labels.job }}."
+
+      # WebSocket Service Alerts
+      - alert: WebSocketHighConnections
+        expr: websocket_connected_clients > 800
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "WebSocket service has {{ $value }} active connections (threshold: 800)."
+
+      - alert: WebSocketConnectionsDropping
+        expr: rate(websocket_connection_duration_seconds_count{status="error"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "WebSocket connections dropping frequently"
+          description: "WebSocket connection error rate is {{ $value }} per second."
+
+      # LLM Router Alerts
+      - alert: LLMRouterHighLatency
+        expr: histogram_quantile(0.95, rate(request_duration_seconds_bucket[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM Router high latency"
+          description: "95th percentile latency is {{ $value }} seconds."
+
+      - alert: LLMProviderUnhealthy
+        expr: healthy_providers_total < 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No healthy LLM providers available"
+          description: "LLM Router has no healthy providers available."
+
+      # Infrastructure Alerts
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 80% ({{ $value | humanizePercentage }})."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80% ({{ $value | humanizePercentage }})."
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance is not responding."
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is above 80% ({{ $value | humanizePercentage }})."
+
+  - name: tracing-infrastructure
+    rules:
+      # OpenTelemetry Collector Alerts
+      - alert: OTELCollectorDown
+        expr: up{job="otel-collector"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OpenTelemetry Collector is down"
+          description: "OTEL Collector has been down for more than 1 minute."
+
+      - alert: OTELCollectorHighDropRate
+        expr: rate(otelcol_processor_dropped_spans_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OpenTelemetry Collector dropping spans"
+          description: "OTEL Collector is dropping {{ $value }} spans per second."
+
+      # Jaeger Alerts
+      - alert: JaegerDown
+        expr: up{job="jaeger"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Jaeger is down"
+          description: "Jaeger tracing backend is not available."
+
+      # Tempo Alerts
+      - alert: TempoDown
+        expr: up{job="tempo"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tempo is down"
+          description: "Tempo tracing backend is not available."
+
+      # Prometheus Alerts
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus target {{ $labels.instance }} is down"
+          description: "Prometheus target {{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."

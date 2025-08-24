@@ -1,0 +1,302 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-07-24T00:00:00.000Z",
+  "description": "Comprehensive syntax pattern definitions for automated fixing",
+  "patterns": [
+    {
+      "name": "error_property_colon",
+      "description": "Fix missing colon after 'error' in object properties",
+      "pattern": "(?<!\\/\\/.*)(?<!\\/\\*[\\s\\S]*?)\\berror\\s+(?!instanceof|=>|:|\\.|=|\\?)",
+      "flags": "g",
+      "replacement": "error:",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "critical",
+      "examples": {
+        "before": "{ error Error('message') }",
+        "after": "{ error: Error('message') }"
+      }
+    },
+    {
+      "name": "error_instanceof_space",
+      "description": "Fix missing space in 'error instanceof'",
+      "pattern": "\\berrorinstanceof\\b",
+      "flags": "g",
+      "replacement": "error instanceof",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "critical",
+      "examples": {
+        "before": "if (errorinstanceof Error)",
+        "after": "if (error instanceof Error)"
+      }
+    },
+    {
+      "name": "underscore_error_patterns",
+      "description": "Fix _error patterns to error:",
+      "pattern": "\\b_error\\b(?!\\w)",
+      "flags": "g",
+      "replacement": "error:",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "critical",
+      "examples": {
+        "before": "{ _error message }",
+        "after": "{ error: message }"
+      }
+    },
+    {
+      "name": "underscore_content_patterns",
+      "description": "Fix _content patterns",
+      "pattern": "\\b_content\\b(?!\\w)",
+      "flags": "g",
+      "replacement": "content:",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "high",
+      "examples": {
+        "before": "{ _content data }",
+        "after": "{ content: data }"
+      }
+    },
+    {
+      "name": "underscore_request_patterns",
+      "description": "Fix _request patterns",
+      "pattern": "\\b_request\\b(?!\\w)",
+      "flags": "g",
+      "replacement": "request:",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "high",
+      "examples": {
+        "before": "{ _request req }",
+        "after": "{ request: req }"
+      }
+    },
+    {
+      "name": "underscore_input_patterns",
+      "description": "Fix _input patterns",
+      "pattern": "\\b_input\\b(?!\\w)",
+      "flags": "g",
+      "replacement": "input:",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "high",
+      "examples": {
+        "before": "{ _input value }",
+        "after": "{ input: value }"
+      }
+    },
+    {
+      "name": "template_literal_backslash",
+      "description": "Fix malformed template literals with backslashes",
+      "pattern": "`([^`]*?)\\\\([^`]*?)`",
+      "flags": "g",
+      "replacement": "`$1$2`",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "high",
+      "examples": {
+        "before": "`Hello\\world`",
+        "after": "`Helloworld`"
+      }
+    },
+    {
+      "name": "missing_comma_object_literal",
+      "description": "Fix missing comma in object literals",
+      "pattern": "(\\w+:\\s*[^,}\\n]+?)(\\s+)(\\w+:)",
+      "flags": "g",
+      "replacement": "$1,$2$3",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "high",
+      "examples": {
+        "before": "{ name: 'test' value: 123 }",
+        "after": "{ name: 'test', value: 123 }"
+      }
+    },
+    {
+      "name": "unterminated_string_single",
+      "description": "Fix unterminated single quote strings",
+      "pattern": "'([^']*?)$",
+      "flags": "gm",
+      "replacement": "'$1'",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "critical",
+      "examples": {
+        "before": "const str = 'unterminated",
+        "after": "const str = 'unterminated'"
+      }
+    },
+    {
+      "name": "unterminated_string_double",
+      "description": "Fix unterminated double quote strings",
+      "pattern": "\"([^\"]*?)$",
+      "flags": "gm",
+      "replacement": "\"$1\"",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "critical",
+      "examples": {
+        "before": "const str = \"unterminated",
+        "after": "const str = \"unterminated\""
+      }
+    },
+    {
+      "name": "missing_parentheses_logger",
+      "description": "Fix missing parentheses in logger calls",
+      "pattern": "(\\w+\\.(log|error|warn|info|debug))\\s+([^(\\s])",
+      "flags": "g",
+      "replacement": "$1($3",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "high",
+      "examples": {
+        "before": "console.log 'message'",
+        "after": "console.log('message'"
+      }
+    },
+    {
+      "name": "content_length_header",
+      "description": "Fix content-length header formatting",
+      "pattern": "['\"]content[\\s_-]*length['\"]:",
+      "flags": "gi",
+      "replacement": "\"content-length\":",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "medium",
+      "examples": {
+        "before": "'content_length': 123",
+        "after": "\"content-length\": 123"
+      }
+    },
+    {
+      "name": "content_type_header",
+      "description": "Fix content-type header formatting",
+      "pattern": "['\"]content[\\s_-]*type['\"]:",
+      "flags": "gi",
+      "replacement": "\"content-type\":",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "medium",
+      "examples": {
+        "before": "'content_type': 'application/json'",
+        "after": "\"content-type\": 'application/json'"
+      }
+    },
+    {
+      "name": "missing_closing_parenthesis",
+      "description": "Fix missing closing parentheses",
+      "pattern": "(\\w+\\([^)]*?)\\s*$",
+      "flags": "gm",
+      "replacement": "$1)",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "high",
+      "examples": {
+        "before": "function test(param",
+        "after": "function test(param)"
+      }
+    },
+    {
+      "name": "semicolon_missing_statements",
+      "description": "Add missing semicolons to statements",
+      "pattern": "^(\\s*(?:import|export|const|let|var|return|throw|break|continue).*[^;{}\\s])$",
+      "flags": "gm",
+      "replacement": "$1;",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "medium",
+      "examples": {
+        "before": "const value = 123",
+        "after": "const value = 123;"
+      }
+    },
+    {
+      "name": "type_annotation_spacing",
+      "description": "Fix spacing in TypeScript type annotations",
+      "pattern": ":\\s*([A-Z][a-zA-Z]*)\\s*<",
+      "flags": "g",
+      "replacement": ": $1<",
+      "fileTypes": [".ts", ".tsx"],
+      "severity": "low",
+      "examples": {
+        "before": ": Promise<string>",
+        "after": ": Promise<string>"
+      }
+    },
+    {
+      "name": "import_spacing",
+      "description": "Fix import statement spacing",
+      "pattern": "import\\s*{\\s*([^}]+)\\s*}\\s*from",
+      "flags": "g",
+      "replacement": "import { $1 } from",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "low",
+      "examples": {
+        "before": "import{something}from 'module'",
+        "after": "import { something } from 'module'"
+      }
+    },
+    {
+      "name": "export_default_spacing",
+      "description": "Fix export default spacing",
+      "pattern": "export\\s+default\\s+{",
+      "flags": "g",
+      "replacement": "export default {",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "low",
+      "examples": {
+        "before": "export  default  {",
+        "after": "export default {"
+      }
+    },
+    {
+      "name": "object_property_spacing",
+      "description": "Fix object property spacing",
+      "pattern": "(\\w+)\\s*:\\s*([^,}\\n]+)",
+      "flags": "g",
+      "replacement": "$1: $2",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "low",
+      "examples": {
+        "before": "name:'test'",
+        "after": "name: 'test'"
+      }
+    },
+    {
+      "name": "arrow_function_spacing",
+      "description": "Fix arrow function spacing",
+      "pattern": "=>\\s*{",
+      "flags": "g",
+      "replacement": "=> {",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "low",
+      "examples": {
+        "before": "()=>{",
+        "after": "() => {"
+      }
+    },
+    {
+      "name": "trailing_comma_arrays",
+      "description": "Fix trailing commas in arrays",
+      "pattern": ",\\s*]",
+      "flags": "g",
+      "replacement": "]",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "low",
+      "examples": {
+        "before": "[1, 2, 3,]",
+        "after": "[1, 2, 3]"
+      }
+    },
+    {
+      "name": "duplicate_imports",
+      "description": "Remove duplicate import statements",
+      "pattern": "(import\\s+{[^}]+}\\s+from\\s+['\"][^'\"]+['\"];?)\\s*\\n\\s*\\1",
+      "flags": "g",
+      "replacement": "$1",
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+      "severity": "medium",
+      "examples": {
+        "before": "import { test } from 'module';\nimport { test } from 'module';",
+        "after": "import { test } from 'module';"
+      }
+    }
+  ],
+  "metadata": {
+    "totalPatterns": 22,
+    "criticPatterns": 4,
+    "highPatterns": 6,
+    "mediumPatterns": 6,
+    "lowPatterns": 6,
+    "supportedFileTypes": [".ts", ".tsx", ".js", ".jsx"],
+    "lastValidated": "2025-07-24T00:00:00.000Z"
+  }
+}

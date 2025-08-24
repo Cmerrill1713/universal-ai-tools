@@ -1,0 +1,1 @@
+export { mlxFineTuning as default } from '../migration/compatibility-stubs';

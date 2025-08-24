@@ -1,0 +1,13 @@
+# Grafana Dashboard Provisioning for Distributed Tracing
+apiVersion: 1
+
+providers:
+  - name: 'distributed-tracing-dashboards'
+    orgId: 1
+    folder: 'Distributed Tracing'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

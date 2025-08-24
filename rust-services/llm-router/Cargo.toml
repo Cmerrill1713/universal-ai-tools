@@ -1,0 +1,49 @@
+[package]
+name = "llm-router"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "llm-router"
+path = "src/main_jwt.rs"
+
+[dependencies]
+# Web framework
+tokio = { version = "1.0", features = ["full"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# UUID generation
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "json", "uuid", "chrono"] }
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# JWT Authentication
+jsonwebtoken = "9.2"
+base64 = "0.21"
+
+# Memory allocator (already there, but ensuring it's available)
+tikv-jemallocator = "0.5"
+
+# Metrics and observability
+prometheus = "0.13"
+
+# OpenTelemetry tracing (extending existing setup)
+opentelemetry = "0.21"
+opentelemetry_sdk = { version = "0.21", features = ["trace"] }
+opentelemetry-otlp = { version = "0.14", features = ["grpc-tonic"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "0.22"

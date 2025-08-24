@@ -1,0 +1,41 @@
+{
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "tsx": false,
+      "decorators": true,
+      "dynamicImport": true,
+      "errorRecovery": true,
+      "allowSyntaxError": true
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": true
+    },
+    "target": "es2022",
+    "loose": false,
+    "externalHelpers": false,
+    "keepClassNames": false,
+    "experimental": {
+      "cacheRoot": ".swc"
+    }
+  },
+  "module": {
+    "type": "es6",
+    "strict": false,
+    "strictMode": false,
+    "lazy": false,
+    "noInterop": false
+  },
+  "minify": false,
+  "sourceMaps": false,
+  "inlineSourcesContent": false,
+  "isModule": true,
+  "env": {
+    "targets": {
+      "node": "18"
+    },
+    "mode": "entry",
+    "coreJs": "3.36"
+  }
+}

@@ -1,0 +1,112 @@
+# Production Dockerfile for Universal AI Tools
+# Optimized multi-stage build for minimal image size
+
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
+# Install security updates and minimal dependencies
+RUN apk update && apk upgrade && \
+    apk add --no-cache libc6-compat python3 make g++ git ca-certificates && \
+    rm -rf /var/cache/apk/*
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Remove TensorFlow and prepare script for Docker build with security flags
+RUN sed -i '/@tensorflow\/tfjs-node/d' package.json && \
+    sed -i '/"prepare":/d' package.json && \
+    npm ci --omit=dev --frozen-lockfile --prefer-offline --audit=false && \
+    npm cache clean --force && \
+    rm -rf /tmp/* ~/.npm
+
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+# Install security updates and build dependencies
+RUN apk update && apk upgrade && \
+    apk add --no-cache libc6-compat python3 make g++ git ca-certificates && \
+    rm -rf /var/cache/apk/*
+WORKDIR /app
+
+# Copy package files and install all dependencies
+COPY package*.json ./
+# Remove TensorFlow and prepare script for build stage too with security flags
+RUN sed -i '/@tensorflow\/tfjs-node/d' package.json && \
+    sed -i '/"prepare":/d' package.json && \
+    npm ci --frozen-lockfile --prefer-offline --audit=false
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build:prod
+
+# Stage 3: Production Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+# Install security updates and minimal runtime dependencies
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+    libc6-compat \
+    dumb-init \
+    tini \
+    curl \
+    ca-certificates \
+    && rm -rf /var/cache/apk/* \
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S aitools -u 1001 -G nodejs
+
+# Copy production dependencies from deps stage
+COPY --from=deps --chown=aitools:nodejs /app/node_modules ./node_modules
+
+# Copy built application from builder stage
+COPY --from=builder --chown=aitools:nodejs /app/dist ./dist
+COPY --from=builder --chown=aitools:nodejs /app/package.json ./
+COPY --from=builder --chown=aitools:nodejs /app/.env.example ./.env.example
+
+# Copy schema if exists
+COPY --from=builder --chown=aitools:nodejs /app/src/schema ./schema 2>/dev/null || true
+
+# Create necessary directories with proper permissions
+RUN mkdir -p logs cache models data && \
+    chown -R aitools:nodejs . && \
+    chmod -R 755 logs cache models data && \
+    chmod -R 750 node_modules dist
+
+# Set production environment with security optimizations
+ENV NODE_ENV=production \
+    PORT=9999 \
+    DOCKER_ENV=true \
+    CONTAINER_NAME=universal-ai-tools \
+    ENABLE_CONTAINER_OPTIMIZATION=true \
+    NODE_OPTIONS="--max-old-space-size=2048 --optimize-for-size --gc-interval=100 --no-deprecation" \
+    ENABLE_PERF_LOGS=false \
+    ENABLE_CONTEXT=false \
+    MEMORY_MONITORING_INTERVAL=120000 \
+    GC_INTERVAL_MS=120000 \
+    CACHE_CLEANUP_INTERVAL_MS=180000 \
+    UV_THREADPOOL_SIZE=16 \
+    NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+
+# Switch to non-root user
+USER aitools
+
+# Expose port
+EXPOSE 9999
+
+# Health check (using correct endpoint)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:9999/health || exit 1
+
+# Use tini for proper signal handling and PID 1
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start the application
+CMD ["node", "dist/server.js"]
+
+# Labels
+LABEL org.opencontainers.image.title="Universal AI Tools"
+LABEL org.opencontainers.image.description="Production-ready AI Tools Service"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.vendor="Universal AI Tools"
+LABEL org.opencontainers.image.licenses="MIT"

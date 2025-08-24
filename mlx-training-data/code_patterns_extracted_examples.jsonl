@@ -1,0 +1,73 @@
+{"instruction": "Show Go implementation pattern for main", "input": "", "output": "Go function main implements request handling with error checking and response formatting"}
+{"instruction": "Show Go implementation pattern for truncate", "input": "", "output": "Go function truncate implements request handling with error checking and response formatting"}
+{"instruction": "What is the Go struct NewsResponse?", "input": "", "output": "NewsResponse is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct NewsItem?", "input": "", "output": "NewsItem is a Go struct for handling API data models with JSON tags"}
+{"instruction": "Show Go implementation pattern for main", "input": "", "output": "Go function main implements request handling with error checking and response formatting"}
+{"instruction": "Show Go implementation pattern for initLogger", "input": "", "output": "Go function initLogger implements request handling with error checking and response formatting"}
+{"instruction": "Show Go implementation pattern for NewDatabaseCoordinator", "input": "", "output": "Go function NewDatabaseCoordinator implements request handling with error checking and response formatting"}
+{"instruction": "Show Go implementation pattern for NewCoordinator", "input": "", "output": "Go function NewCoordinator implements request handling with error checking and response formatting"}
+{"instruction": "What is the Go struct DatabaseCoordinator?", "input": "", "output": "DatabaseCoordinator is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct DatabaseConfig?", "input": "", "output": "DatabaseConfig is a Go struct for handling API data models with JSON tags"}
+{"instruction": "Show Go implementation pattern for Load", "input": "", "output": "Go function Load implements request handling with error checking and response formatting"}
+{"instruction": "Show Go implementation pattern for setDefaults", "input": "", "output": "Go function setDefaults implements request handling with error checking and response formatting"}
+{"instruction": "What is the Go struct Config?", "input": "", "output": "Config is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct ServerConfig?", "input": "", "output": "ServerConfig is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct MemoryStatus?", "input": "", "output": "MemoryStatus is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct SystemMemory?", "input": "", "output": "SystemMemory is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct JWTClaims?", "input": "", "output": "JWTClaims is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct User?", "input": "", "output": "User is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct DatabaseHealth?", "input": "", "output": "DatabaseHealth is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct ConnectionPool?", "input": "", "output": "ConnectionPool is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct HardwareDevice?", "input": "", "output": "HardwareDevice is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct RegisterDeviceRequest?", "input": "", "output": "RegisterDeviceRequest is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct Agent?", "input": "", "output": "Agent is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct AgentPerformance?", "input": "", "output": "AgentPerformance is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct ContextEntry?", "input": "", "output": "ContextEntry is a Go struct for handling API data models with JSON tags"}
+{"instruction": "What is the Go struct SaveContextRequest?", "input": "", "output": "SaveContextRequest is a Go struct for handling API data models with JSON tags"}
+{"instruction": "How is VisionCache implemented in Rust?", "input": "", "output": "Rust implementation of VisionCache provides memory-safe operations with ownership patterns"}
+{"instruction": "Show Rust async pattern in cache", "input": "", "output": "Uses tokio async runtime with async/await for concurrent operations"}
+{"instruction": "How is VisionConfig implemented in Rust?", "input": "", "output": "Rust implementation of VisionConfig provides memory-safe operations with ownership patterns"}
+{"instruction": "How is VisionConfig implemented in Rust?", "input": "", "output": "Rust implementation of VisionConfig provides memory-safe operations with ownership patterns"}
+{"instruction": "How is VisionMetrics implemented in Rust?", "input": "", "output": "Rust implementation of VisionMetrics provides memory-safe operations with ownership patterns"}
+{"instruction": "Show Rust async pattern in main", "input": "", "output": "Uses tokio async runtime with async/await for concurrent operations"}
+{"instruction": "How is OptimizationEngine implemented in Rust?", "input": "", "output": "Rust implementation of OptimizationEngine provides memory-safe operations with ownership patterns"}
+{"instruction": "Show Rust async pattern in optimization", "input": "", "output": "Uses tokio async runtime with async/await for concurrent operations"}
+{"instruction": "Show Rust async pattern in tracing_setup", "input": "", "output": "Uses tokio async runtime with async/await for concurrent operations"}
+{"instruction": "How is Config implemented in Rust?", "input": "", "output": "Rust implementation of Config provides memory-safe operations with ownership patterns"}
+{"instruction": "How is SystemMonitor implemented in Rust?", "input": "", "output": "Rust implementation of SystemMonitor provides memory-safe operations with ownership patterns"}
+{"instruction": "Show Rust async pattern in system_monitor", "input": "", "output": "Uses tokio async runtime with async/await for concurrent operations"}
+{"instruction": "How is Metrics implemented in Rust?", "input": "", "output": "Rust implementation of Metrics provides memory-safe operations with ownership patterns"}
+{"instruction": "Show Rust async pattern in main", "input": "", "output": "Uses tokio async runtime with async/await for concurrent operations"}
+{"instruction": "How does UniversalAIToolsApp use @Observable pattern?", "input": "", "output": "@Observable macro replaces ObservableObject for modern state management in SwiftUI"}
+{"instruction": "Describe the SwiftUI MainContentView", "input": "", "output": "MainContentView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "Describe the SwiftUI DashboardDetailView", "input": "", "output": "DashboardDetailView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "How does UniversalAIToolsApp handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "How does Environment use @Observable pattern?", "input": "", "output": "@Observable macro replaces ObservableObject for modern state management in SwiftUI"}
+{"instruction": "How does Environment handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "How does PersonalInterestsManager use @Observable pattern?", "input": "", "output": "@Observable macro replaces ObservableObject for modern state management in SwiftUI"}
+{"instruction": "How does PersonalInterestsManager handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "How does BiometricAuthManager use @Observable pattern?", "input": "", "output": "@Observable macro replaces ObservableObject for modern state management in SwiftUI"}
+{"instruction": "How does BiometricAuthManager handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "How does SimpleAppState use @Observable pattern?", "input": "", "output": "@Observable macro replaces ObservableObject for modern state management in SwiftUI"}
+{"instruction": "How does SimpleAppState handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "How does AppEnvironment use @Observable pattern?", "input": "", "output": "@Observable macro replaces ObservableObject for modern state management in SwiftUI"}
+{"instruction": "How does AppEnvironment handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "Describe the SwiftUI EnhancedSettingsView", "input": "", "output": "EnhancedSettingsView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "How does EnhancedSettingsView handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "Describe the SwiftUI ServiceSettingsView", "input": "", "output": "ServiceSettingsView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "Describe the SwiftUI WebSocketTestView", "input": "", "output": "WebSocketTestView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "How does WebSocketTestView handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "Describe the SwiftUI SimpleContentView", "input": "", "output": "SimpleContentView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "Describe the SwiftUI SimpleChatView", "input": "", "output": "SimpleChatView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "How does SimpleContentView handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "Describe the SwiftUI LibrariesView", "input": "", "output": "LibrariesView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "Describe the SwiftUI LibraryDetailView", "input": "", "output": "LibraryDetailView is a SwiftUI view component using modern declarative syntax with @State and @Environment"}
+{"instruction": "How does LibrariesView handle async operations?", "input": "", "output": "Uses Swift concurrency with async/await and @MainActor for UI updates"}
+{"instruction": "How does the claude-knowledge router work?", "input": "", "output": "Express router handling REST endpoints with middleware for authentication and validation"}
+{"instruction": "How does the knowledge-graph router work?", "input": "", "output": "Express router handling REST endpoints with middleware for authentication and validation"}
+{"instruction": "How does the frontend-fixer router work?", "input": "", "output": "Express router handling REST endpoints with middleware for authentication and validation"}
+{"instruction": "What languages are used in Universal AI Tools?", "input": "", "output": "Universal AI Tools uses a hybrid architecture with Rust for performance-critical services, Go for network services, Swift for macOS/iOS clients, and TypeScript for legacy compatibility"}
+{"instruction": "How is the service architecture organized?", "input": "", "output": "Services are organized in a microservices architecture with Go API Gateway (8080), Rust LLM Router (8082), Rust AI Core (8083), MLX Service (8005), and WebSocket service for real-time communication"}
+{"instruction": "What is the database architecture?", "input": "", "output": "Uses PostgreSQL with Supabase for primary storage, Redis for caching, Neo4j for graph data, and Qdrant for vector embeddings"}
+{"instruction": "How is authentication handled?", "input": "", "output": "JWT-based authentication with Supabase Auth, hardware authentication via Bluetooth for macOS app, and API key management through Keychain"}
+{"instruction": "What monitoring is implemented?", "input": "", "output": "Comprehensive monitoring with Prometheus metrics, Grafana dashboards, OpenTelemetry tracing, and custom health check endpoints"}

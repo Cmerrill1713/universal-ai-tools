@@ -1,0 +1,28 @@
+{
+  "typescript": true,
+  "testing": true,
+  "eslint": true,
+  "prettier": true,
+  "complexity": "high",
+  "hrmDecision": {
+    "selectedSystem": "dynamic-factory",
+    "selectedLLM": "claude-3-5-sonnet",
+    "confidence": 0.5,
+    "reasoning": "HRM unavailable, using intelligent heuristic for agent creation",
+    "useExistingAgent": false,
+    "estimatedTokens": 75,
+    "resourceRequirements": {
+      "memory": "medium",
+      "cpu": "medium",
+      "complexity": "complex"
+    }
+  },
+  "dockerServices": {
+    "grounding": "http://localhost:8300",
+    "embedding": "http://localhost:8301",
+    "voice": "http://localhost:8302",
+    "vision": "http://localhost:8303"
+  },
+  "preferredService": "claude-3-5-sonnet",
+  "targetSystem": "dynamic-factory"
+}

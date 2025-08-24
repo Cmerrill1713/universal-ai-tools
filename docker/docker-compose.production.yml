@@ -1,0 +1,539 @@
+# Production Docker Compose for Universal AI Tools
+# Go/Rust Microservices Architecture with Full Observability
+
+version: '3.8'
+
+networks:
+  # Frontend network for external traffic
+  frontend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: uai-frontend
+  # Backend network for internal service communication
+  backend:
+    driver: bridge
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.name: uai-backend
+  # Monitoring network for observability stack
+  monitoring:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: uai-monitoring
+
+volumes:
+  # Persistent storage for databases
+  postgres_data:
+    driver: local
+  neo4j_data:
+    driver: local
+  redis_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  
+  # Monitoring and logging volumes
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  
+  # SSL certificates
+  ssl_certs:
+    driver: local
+
+services:
+  # ===========================================
+  # CORE MICROSERVICES (Go/Rust)
+  # ===========================================
+  
+  # LLM Router Service (Rust) - AI Model Load Balancing
+  llm-router:
+    image: universal-ai-tools/llm-router:latest
+    build:
+      context: ./rust-services/llm-router
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: uai-llm-router
+    restart: unless-stopped
+    ports:
+      - "8001:8001"   # LLM Router API
+      - "9001:9001"   # Metrics
+    networks:
+      - frontend
+      - backend
+      - monitoring
+    environment:
+      - RUST_LOG=info
+      - SERVICE_NAME=llm-router
+      - LLM_ROUTER_HOST=0.0.0.0
+      - LLM_ROUTER_PORT=8001
+      - METRICS_PORT=9001
+      - LLM_ROUTER_WORKERS=4
+      - LLM_ROUTER_MAX_CONNECTIONS=1000
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/universal_ai_tools
+      - REDIS_URL=redis://redis:6379
+      - OTEL_SERVICE_NAME=llm-router
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - postgres
+      - redis
+      - otel-collector
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8001/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  # WebSocket Service (Go) - Real-time Communication
+  websocket-service:
+    image: universal-ai-tools/websocket-service:latest
+    build:
+      context: ./rust-services/go-websocket
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: uai-websocket-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # WebSocket API
+      - "9003:9003"   # Metrics
+    networks:
+      - frontend
+      - backend
+      - monitoring
+    environment:
+      - GIN_MODE=release
+      - SERVICE_NAME=websocket-service
+      - WEBSOCKET_PORT=8080
+      - METRICS_PORT=9003
+      - WS_MAX_CONNECTIONS=10000
+      - WS_READ_BUFFER_SIZE=1024
+      - WS_WRITE_BUFFER_SIZE=1024
+      - REDIS_URL=redis://redis:6379
+      - OTEL_SERVICE_NAME=websocket-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - redis
+      - otel-collector
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  # GraphRAG Service (Rust) - Knowledge Graph & Vector Search
+  graphrag-service:
+    image: universal-ai-tools/graphrag-service:latest
+    build:
+      context: ./rust-services/graphrag
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: uai-graphrag-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"   # GraphRAG API
+      - "9000:9000"   # Metrics
+    networks:
+      - frontend
+      - backend
+      - monitoring
+    environment:
+      - RUST_LOG=info
+      - SERVICE_NAME=graphrag-service
+      - GRAPHRAG_HOST=0.0.0.0
+      - GRAPHRAG_PORT=8000
+      - METRICS_PORT=9000
+      - GRAPHRAG_WORKERS=4
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/universal_ai_tools
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - REDIS_URL=redis://redis:6379
+      - QDRANT_URL=http://qdrant:6333
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - OTEL_SERVICE_NAME=graphrag-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      - postgres
+      - neo4j
+      - redis
+      - qdrant
+      - otel-collector
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # DATABASE SERVICES
+  # ===========================================
+  
+  # PostgreSQL - Primary Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: uai-postgres
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+    environment:
+      - POSTGRES_DB=universal_ai_tools
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: [
+      "postgres",
+      "-c", "max_connections=200",
+      "-c", "shared_buffers=256MB",
+      "-c", "effective_cache_size=1GB",
+      "-c", "work_mem=16MB",
+      "-c", "maintenance_work_mem=64MB",
+      "-c", "random_page_cost=1.1",
+      "-c", "temp_file_limit=2GB",
+      "-c", "log_min_duration_statement=1000",
+      "-c", "log_connections=on",
+      "-c", "log_disconnections=on",
+      "-c", "log_lock_waits=on"
+    ]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d universal_ai_tools"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1.5G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  # Neo4j - Graph Database
+  neo4j:
+    image: neo4j:5.14-community
+    container_name: uai-neo4j
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_PLUGINS=["apoc", "graph-data-science"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=1G
+      - NEO4J_dbms_memory_pagecache_size=512m
+      - NEO4J_dbms_default__listen__address=0.0.0.0
+      - NEO4J_dbms_connector_bolt_listen__address=:7687
+      - NEO4J_dbms_connector_http_listen__address=:7474
+    volumes:
+      - neo4j_data:/data
+      - ./scripts/neo4j-init.cypher:/var/lib/neo4j/import/init.cypher:ro
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 768M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  # Redis - Caching Layer
+  redis:
+    image: redis:7-alpine
+    container_name: uai-redis
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+  
+  # Qdrant - Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: uai-qdrant
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__LOG_LEVEL=INFO
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # OBSERVABILITY STACK
+  # ===========================================
+  
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: uai-otel-collector
+    restart: unless-stopped
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Prometheus metrics
+    networks:
+      - monitoring
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:13133/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: uai-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  # Grafana - Visualization & Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: uai-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend
+      - monitoring
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # REVERSE PROXY & LOAD BALANCER
+  # ===========================================
+  
+  # Nginx - Production Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: uai-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - frontend
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ssl_certs:/etc/ssl/certs:ro
+    depends_on:
+      - llm-router
+      - websocket-service
+      - graphrag-service
+      - grafana
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ===========================================
+# PRODUCTION CONFIGURATION
+# ===========================================

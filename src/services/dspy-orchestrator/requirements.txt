@@ -1,0 +1,17 @@
+dspy-ai>=2.4.0
+torch>=2.2.0  # Latest stable with security patches
+transformers>=4.47.0  # Latest with comprehensive ReDoS fixes
+numpy>=1.26.0  # Latest stable
+pandas>=2.2.0  # Updated stable version
+scikit-learn>=1.4.0  # Updated stable
+openai>=1.52.0  # Latest stable
+anthropic>=0.40.0  # Updated version
+requests>=2.32.4  # Fixed CVE-2024-47081 credential leak
+pydantic>=2.9.0  # Latest stable
+aiohttp>=3.11.0  # Latest with security fixes
+fastapi>=0.115.0  # Updated stable
+uvicorn>=0.32.0  # Updated stable
+starlette>=0.41.0  # Latest with resource allocation fixes
+mlx>=0.20.0  # Updated if available
+mlx-lm>=0.20.0  # Updated if available
+urllib3>=2.2.3  # Security fixes for open redirect

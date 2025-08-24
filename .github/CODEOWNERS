@@ -1,0 +1,40 @@
+# CODEOWNERS for Universal AI Tools
+# Global rule - all files require review from core team
+* @universal-ai-tools/core-team
+
+# Architecture and deployment
+/.github/ @universal-ai-tools/devops-team
+/docker-compose*.yml @universal-ai-tools/devops-team
+/scripts/ @universal-ai-tools/devops-team
+/k8s/ @universal-ai-tools/devops-team
+
+# Go services  
+/go-api-gateway/ @universal-ai-tools/backend-team
+/rust-services/go-websocket/ @universal-ai-tools/backend-team
+
+# Rust services
+/rust-services/ @universal-ai-tools/rust-team
+
+# Swift macOS app
+/macOS-App/ @universal-ai-tools/ios-team
+
+# Documentation and API specs
+/docs/ @universal-ai-tools/docs-team
+/docs/openapi.yaml @universal-ai-tools/api-team
+
+# Security and monitoring
+/monitoring/ @universal-ai-tools/devops-team @universal-ai-tools/security-team
+/distributed-tracing/ @universal-ai-tools/devops-team
+
+# Database migrations and schemas
+/migrations/ @universal-ai-tools/database-team
+/scripts/*postgres* @universal-ai-tools/database-team
+/scripts/*neo4j* @universal-ai-tools/database-team
+
+# CI/CD and automation
+/.github/workflows/ @universal-ai-tools/devops-team @universal-ai-tools/core-team
+
+# Production configuration (requires extra security review)
+/docker-compose.production.yml @universal-ai-tools/devops-team @universal-ai-tools/security-team
+/.github/environments/production.yml @universal-ai-tools/devops-team @universal-ai-tools/security-team
+/scripts/production-*.sh @universal-ai-tools/devops-team @universal-ai-tools/security-team

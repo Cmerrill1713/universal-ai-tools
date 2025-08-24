@@ -1,0 +1,23 @@
+# Dockerfile using pre-built binary
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the pre-built binary
+COPY target/release/llm-router /app/llm-router
+
+# Make it executable
+RUN chmod +x /app/llm-router
+
+# Set environment variables
+ENV LLM_ROUTER_PORT=8001
+ENV OLLAMA_URL=http://host.docker.internal:11434
+
+EXPOSE 8001
+
+CMD ["./llm-router"]

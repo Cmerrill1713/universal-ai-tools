@@ -1,0 +1,391 @@
+name: universal-ai-tools
+
+services:
+  # Main Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    container_name: universal-ai-tools-app
+    restart: unless-stopped
+    ports:
+      - '9999:9999'
+    environment:
+      # Docker environment detection
+      - DOCKER_ENV=true
+      - CONTAINER_NAME=universal-ai-tools
+      - ENABLE_CONTAINER_OPTIMIZATION=true
+
+      # Performance settings
+      - MAX_CONCURRENT_REQUESTS=50
+      - REQUEST_TIMEOUT=30000
+      - MEMORY_CACHE_SIZE=512
+
+      # Memory optimization settings
+      - MEMORY_MONITORING_INTERVAL=120000
+      - GC_INTERVAL_MS=120000
+      - CACHE_CLEANUP_INTERVAL_MS=180000
+
+      # Supabase Configuration (REQUIRED - must be set via .env)
+      - SUPABASE_URL=${SUPABASE_URL:?SUPABASE_URL environment variable is required}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY environment variable is required}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY environment variable is required}
+
+      # Redis Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+
+      # JWT Configuration (REQUIRED)
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable is required}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
+
+      # AI API Keys (REQUIRED for AI features)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY environment variable is required}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY environment variable is required}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
+
+      # Application Settings
+      - NODE_ENV=production
+      - PORT=9999
+      - LOG_LEVEL=info
+      - ENABLE_PERF_LOGS=false
+      - ENABLE_CONTEXT=false
+
+      # Feature Flags
+      - DISABLE_HEAVY_SERVICES=false
+      - SKIP_STARTUP_CONTEXT=false
+      - ENABLE_CONTEXT_MIDDLEWARE=true
+      - ENABLE_MLX=true
+      - ENABLE_VISION=true
+
+      # Monitoring
+      - ENABLE_TELEMETRY=true
+      - ENABLE_HEALTH_CHECKS=true
+      - METRICS_PORT=9091
+
+      # Security (SECURE DEFAULTS)
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000,http://localhost:9999}
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=100
+
+      # Database (REQUIRED - must be set via .env)
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER environment variable is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB environment variable is required}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER environment variable is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB environment variable is required}
+
+      # Ollama
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:3b
+
+      # Memory Management
+      - MEMORY_OPTIMIZATION_ENABLED=true
+      - MEMORY_PRESSURE_THRESHOLD=80
+      - MEMORY_LEAK_DETECTION_ENABLED=true
+
+      # Development overrides for Docker
+      - DISABLE_HEAVY_SERVICES=true
+      - SKIP_STARTUP_CONTEXT=true
+      - ENABLE_CONTEXT_MIDDLEWARE=false
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./cache:/app/cache
+      - model_cache:/app/model_cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9999/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G  # Optimized from 3G
+          pids: 1024
+        reservations:
+          cpus: '1.0'
+          memory: 512M  # Optimized from 1.5G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: universal-ai-tools-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER environment variable is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB environment variable is required}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C
+      - POSTGRES_MAX_CONNECTIONS=${POSTGRES_MAX_CONNECTIONS:-200}
+      - POSTGRES_SHARED_BUFFERS=${POSTGRES_SHARED_BUFFERS:-256MB}
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=${POSTGRES_EFFECTIVE_CACHE_SIZE:-1GB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $POSTGRES_USER -d $POSTGRES_DB']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis Cache & Rate Limiting
+  redis:
+    image: redis:7.2-alpine
+    container_name: universal-ai-tools-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M  # Optimized from 2.5G
+        reservations:
+          cpus: '0.25'
+          memory: 128M  # Fixed: was higher than limit
+
+  # Ollama for Local LLM Inference
+  ollama:
+    image: ollama/ollama:0.1.29
+    container_name: universal-ai-tools-ollama
+    restart: unless-stopped
+    ports:
+      - '11435:11434'
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=3
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - ai-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 1G  # Optimized from 2G  # Optimized from 6G
+          pids: 512
+        reservations:
+          cpus: '2.0'
+          memory: 1G  # Optimized from 2G
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:11434/api/tags']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: universal-ai-tools-nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - app
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD', 'nginx', '-t']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Prometheus for Metrics (optional - use monitoring profile)
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: universal-ai-tools-prometheus
+    restart: unless-stopped
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.retention.size=1GB'
+    networks:
+      - ai-network
+    profiles:
+      - monitoring
+
+  # Grafana for Visualization (optional - use monitoring profile)
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: universal-ai-tools-grafana
+    restart: unless-stopped
+    ports:
+      - '3003:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD environment variable is required}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - ai-network
+    profiles:
+      - monitoring
+
+  # pgAdmin for Database Management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:8.5
+    container_name: universal-ai-tools-pgadmin
+    restart: unless-stopped
+    ports:
+      - '5050:80'
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@example.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:?PGADMIN_PASSWORD environment variable is required}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - ai-network
+    profiles:
+      - tools
+
+  # Redis Commander for Redis Management (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: universal-ai-tools-redis-commander
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    environment:
+      REDIS_HOSTS: 'local:redis:6379:0:'
+    depends_on:
+      - redis
+    networks:
+      - ai-network
+    profiles:
+      - tools
+
+  # MCP Servers for AI Agent Integration (temporarily disabled)
+  # mcp-servers:
+  #   build:
+  #     context: ./mcp-servers
+  #     dockerfile: Dockerfile
+  #   container_name: universal-ai-tools-mcp-servers
+  #   restart: unless-stopped
+  #   ports:
+  #     - '3001:3001'  # code-search
+  #     - '3002:3002'  # everything
+  #     - '3003:3003'  # filesystem
+  #     - '3004:3004'  # sequential-thinking
+  #     - '3005:3005'  # memory
+  #     - '3006:3006'  # time
+  #     - '3007:3007'  # git
+  #     - '3008:3008'  # fetch
+  #   environment:
+  #     - NODE_ENV=production
+  #     - ENABLE_LOGGING=true
+  #     - LOG_LEVEL=info
+  #   volumes:
+  #     - ./mcp-servers:/app/src:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   networks:
+  #     - ai-network
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   healthcheck:
+  #     test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '1.0'
+  #         memory: 1G  # Optimized from 2G
+  #       reservations:
+  #         cpus: '0.5'
+  #         memory: 1G
+  #   profiles:
+  #     - mcp
+  #     - full
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_models:
+    driver: local
+  model_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_cache:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  ai-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

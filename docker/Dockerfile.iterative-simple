@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+# Install only essential tools
+RUN apk add --no-cache bash curl git
+
+WORKDIR /iterative-loop
+
+# Copy application files
+COPY iterative-loop/package.json ./
+RUN npm install --production
+
+COPY iterative-loop/src ./src
+
+# Create directories
+RUN mkdir -p /logs /reports /workspace
+
+EXPOSE 8888 8889
+
+CMD ["node", "src/server.js"]

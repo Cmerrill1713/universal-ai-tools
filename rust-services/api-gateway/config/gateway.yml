@@ -1,0 +1,27 @@
+server:
+  port: 8080
+  host: "127.0.0.1"
+  timeout_seconds: 30
+
+gateway:
+  max_concurrent_requests: 1000
+  request_timeout_seconds: 30
+  retry_attempts: 3
+  circuit_breaker_threshold: 5
+
+load_balancer:
+  algorithm: "round_robin"
+  health_check_interval_seconds: 30
+  unhealthy_threshold: 3
+  healthy_threshold: 2
+
+health_checker:
+  interval_seconds: 30
+  timeout_seconds: 10
+  failure_threshold: 3
+  success_threshold: 2
+
+rate_limiter:
+  requests_per_minute: 1000
+  burst_size: 100
+  enabled: true

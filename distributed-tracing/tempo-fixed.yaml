@@ -1,0 +1,85 @@
+# Tempo Configuration - Fixed
+# High-performance trace storage backend
+
+stream_over_http_enabled: true
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4320
+        http:
+          endpoint: 0.0.0.0:4321
+    jaeger:
+      protocols:
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+        grpc:
+          endpoint: 0.0.0.0:14250
+        thrift_binary:
+          endpoint: 0.0.0.0:6832
+        thrift_compact:
+          endpoint: 0.0.0.0:6831
+    zipkin:
+      endpoint: 0.0.0.0:9411
+
+ingester:
+  max_block_duration: 30m
+  max_block_bytes: 1_000_000_000
+  complete_block_timeout: 15m
+
+compactor:
+  compaction:
+    window: 1h
+    max_block_bytes: 100_000_000
+    block_retention: 336h # 14 days
+    compacted_block_retention: 1h
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /tmp/tempo/traces
+    wal:
+      path: /tmp/tempo/wal
+    block:
+      bloom_filter_false_positive: .05
+      index_downsample_bytes: 1000
+      encoding: zstd
+
+querier:
+  frontend_worker:
+    frontend_address: 127.0.0.1:9095
+  max_concurrent_queries: 20
+  search:
+    query_timeout: 30s
+
+query_frontend:
+  max_outstanding_per_tenant: 2000
+  search:
+    concurrent_jobs: 1000
+    target_bytes_per_job: 104857600
+
+metrics:
+  generator:
+    registry:
+      external_labels:
+        source: tempo
+        cluster: local
+    storage:
+      path: /tmp/tempo/generator/wal
+      remote_write:
+        - url: http://prometheus:9090/api/v1/write
+          send_exemplars: true
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
+      trace_id_label_name: trace_id
+      generation_interval: 5s

@@ -1,0 +1,1 @@
+export { swiftDocs as default } from '../migration/compatibility-stubs';

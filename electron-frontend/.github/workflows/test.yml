@@ -1,0 +1,285 @@
+name: Frontend Testing Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'electron-frontend/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'electron-frontend/**'
+      - '.github/workflows/test.yml'
+
+defaults:
+  run:
+    working-directory: ./electron-frontend
+
+jobs:
+  # Unit and Integration Tests with Vitest
+  unit-tests:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: electron-frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run linting
+        run: npm run lint
+        
+      - name: Run type checking
+        run: npx tsc --noEmit
+        
+      - name: Run unit tests
+        run: npm run test:coverage
+        
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./electron-frontend/coverage
+          fail_ci_if_error: true
+          flags: frontend-unit-tests
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results-${{ matrix.node-version }}
+          path: |
+            electron-frontend/coverage/
+            electron-frontend/test-results/
+          retention-days: 7
+
+  # E2E Tests with Playwright
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        project: [electron-app, accessibility, performance]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: electron-frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Run Playwright tests
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+        env:
+          CI: true
+          
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: |
+            electron-frontend/test-results/
+            electron-frontend/playwright-report/
+          retention-days: 7
+
+  # Electron-specific tests (cross-platform)
+  electron-tests:
+    name: Electron Tests
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: electron-frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Electron app
+        run: npm run build
+        
+      - name: Install Playwright
+        run: npx playwright install chromium
+        
+      - name: Test Electron packaging
+        run: npm run pack
+        
+      - name: Upload Electron build artifacts
+        uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: electron-dist-${{ runner.os }}
+          path: electron-frontend/dist-electron/
+          retention-days: 3
+
+  # Security and Quality Checks
+  security-quality:
+    name: Security & Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: electron-frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run security audit
+        run: npm audit --audit-level=high
+        
+      - name: Check for vulnerabilities
+        run: npx audit-ci --config audit-ci.json
+        continue-on-error: true
+        
+      - name: Dependency check
+        run: npx depcheck --ignores="@types/*,eslint-*,@typescript-eslint/*"
+        
+      - name: Bundle size analysis
+        run: |
+          npm run build
+          npx bundlesize
+        continue-on-error: true
+
+  # Performance Benchmarking
+  performance-benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: electron-frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.13.x
+        
+      - name: Run Lighthouse CI
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  # Test Results Summary
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests, electron-tests, security-quality]
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        
+      - name: Generate test summary
+        run: |
+          echo "# 🧪 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Unit Tests Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+            echo "✅ **PASSED** - All unit and integration tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **FAILED** - Some unit tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## E2E Tests Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "✅ **PASSED** - All E2E tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **FAILED** - Some E2E tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Electron Tests Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.electron-tests.result }}" == "success" ]; then
+            echo "✅ **PASSED** - Electron app builds and tests pass on all platforms" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **FAILED** - Electron tests failed on some platforms" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Security & Quality Status" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.security-quality.result }}" == "success" ]; then
+            echo "✅ **PASSED** - No security vulnerabilities or quality issues detected" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **WARNING** - Some security or quality issues detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summary = `
+            # 🧪 Frontend Testing Results
+            
+            **Unit Tests**: ${{ needs.unit-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
+            **E2E Tests**: ${{ needs.e2e-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}  
+            **Electron Tests**: ${{ needs.electron-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
+            **Security & Quality**: ${{ needs.security-quality.result == 'success' && '✅ PASSED' || '⚠️ ISSUES' }}
+            
+            View detailed results in the [Actions tab](${context.payload.pull_request.html_url}/checks).
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });

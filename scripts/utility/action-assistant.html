@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal AI Tools - Action Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            color: white;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+        }
+
+        .status-indicator.offline {
+            background: #f87171;
+        }
+
+        .status-indicator.working {
+            background: #fbbf24;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            padding: 2rem;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .chat-section {
+            flex: 1;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .action-panel {
+            width: 350px;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .action-panel h2 {
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+            color: #374151;
+        }
+
+        .tool-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .tool-item {
+            background: #f3f4f6;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tool-item:hover {
+            background: #e5e7eb;
+            transform: translateX(4px);
+        }
+
+        .tool-item.active {
+            background: #ddd6fe;
+            border-left: 3px solid #7c3aed;
+        }
+
+        .tool-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+
+        .tool-description {
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: #10b981;
+            color: white;
+        }
+
+        .message.action .message-avatar {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            background: #f3f4f6;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: #ede9fe;
+        }
+
+        .message.assistant .message-content {
+            background: #d1fae5;
+        }
+
+        .message.action .message-content {
+            background: #fed7aa;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+
+        .action-result {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .action-result.success {
+            border-left: 3px solid #10b981;
+        }
+
+        .action-result.error {
+            border-left: 3px solid #ef4444;
+        }
+
+        .input-section {
+            padding: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+
+        .send-button {
+            padding: 0.75rem 1.5rem;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #6b21a8;
+            transform: translateY(-2px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-log {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .action-log h3 {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .log-entry {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .log-entry.success {
+            color: #10b981;
+        }
+
+        .log-entry.error {
+            color: #ef4444;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            padding: 0.25rem 0.75rem;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action:hover {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 0.5rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .typing-indicator.show {
+            display: block;
+        }
+
+        .typing-indicator::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Action Assistant - Fix & Execute</h1>
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-indicator" id="assistantStatus"></span>
+                <span>AI Assistant</span>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator" id="actionServerStatus"></span>
+                <span>Action Server</span>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator offline" id="modelStatus"></span>
+                <span id="modelName">No Model</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="chat-section">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <strong>Action Assistant Ready!</strong><br>
+                        I can help you fix issues, run commands, edit files, and more. Just tell me what you need!
+                        <div class="quick-actions">
+                            <button class="quick-action" onclick="sendQuickAction('Fix TypeScript errors')">Fix TypeScript Errors</button>
+                            <button class="quick-action" onclick="sendQuickAction('Run tests')">Run Tests</button>
+                            <button class="quick-action" onclick="sendQuickAction('Install dependencies')">Install Dependencies</button>
+                            <button class="quick-action" onclick="sendQuickAction('Check file structure')">Check Files</button>
+                            <button class="quick-action" onclick="sendQuickAction('Find errors in logs')">Find Errors</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">Assistant is working</div>
+            <div class="input-section">
+                <div class="input-container">
+                    <input 
+                        type="text" 
+                        class="chat-input" 
+                        id="chatInput" 
+                        placeholder="Ask me to fix something, run commands, or edit files..."
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button class="send-button" id="sendButton" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-panel">
+            <h2>Available Tools</h2>
+            <div class="tool-list" id="toolList">
+                <!-- Tools will be loaded here -->
+            </div>
+            
+            <div class="action-log">
+                <h3>Action History</h3>
+                <div id="actionLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const ACTION_SERVER = 'http://localhost:3004';
+        const ASSISTANT_SERVER = 'http://localhost:3003';
+        const LM_STUDIO = 'http://localhost:1234';
+        const OLLAMA = 'http://localhost:11434';
+        const GO_GATEWAY = 'http://localhost:8092';
+
+        // State
+        let availableTools = [];
+        let isProcessing = false;
+        let actionHistory = [];
+        let availableModels = {};
+        let activityMonitor = null;
+
+        // Initialize
+        async function initialize() {
+            console.log('🚀 Initializing Action Assistant...');
+            
+            // Open activity monitor in separate window
+            openActivityMonitor();
+            
+            // Check services
+            await checkServices();
+            
+            // Load available tools
+            await loadTools();
+            
+            // Check model availability
+            await detectModels();
+        }
+
+        // Open activity monitor window
+        function openActivityMonitor() {
+            const width = 1200;
+            const height = 800;
+            const left = window.screen.width - width - 50;
+            const top = 50;
+            
+            activityMonitor = window.open(
+                'activity-monitor.html',
+                'AIActivityMonitor',
+                `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+            );
+            
+            // Wait for monitor to be ready
+            window.addEventListener('message', (event) => {
+                if (event.data.type === 'monitor-ready') {
+                    console.log('✅ Activity Monitor connected');
+                }
+            });
+        }
+
+        // Send update to activity monitor
+        function sendToMonitor(type, data) {
+            if (activityMonitor && !activityMonitor.closed) {
+                activityMonitor.postMessage({
+                    type: type,
+                    ...data
+                }, '*');
+            }
+        }
+
+        // Check service availability
+        async function checkServices() {
+            // Check Action Server
+            try {
+                const response = await fetch(`${ACTION_SERVER}/health`);
+                if (response.ok) {
+                    document.getElementById('actionServerStatus').className = 'status-indicator';
+                    console.log('✅ Action Server connected');
+                } else {
+                    throw new Error('Action server not healthy');
+                }
+            } catch (error) {
+                document.getElementById('actionServerStatus').className = 'status-indicator offline';
+                console.log('❌ Action Server not available - starting it...');
+                addMessage('system', 'Action server not running. Please run: node action-assistant-server.js');
+            }
+
+            // Check AI services
+            const services = [
+                { url: `${LM_STUDIO}/v1/models`, name: 'LM Studio' },
+                { url: `${OLLAMA}/api/tags`, name: 'Ollama' },
+                { url: `${GO_GATEWAY}/health`, name: 'Go Gateway' }
+            ];
+
+            for (const service of services) {
+                try {
+                    const response = await fetch(service.url, { 
+                        method: 'GET',
+                        signal: AbortSignal.timeout(2000)
+                    });
+                    if (response.ok) {
+                        console.log(`✅ ${service.name} available`);
+                        document.getElementById('assistantStatus').className = 'status-indicator';
+                        availableModels[service.name] = true;
+                    }
+                } catch (error) {
+                    console.log(`❌ ${service.name} not available`);
+                }
+            }
+
+            // Update model status
+            const modelCount = Object.keys(availableModels).length;
+            if (modelCount > 0) {
+                document.getElementById('modelStatus').className = 'status-indicator';
+                document.getElementById('modelName').textContent = `${modelCount} Model${modelCount > 1 ? 's' : ''} Ready`;
+            }
+        }
+
+        // Load available tools from action server
+        async function loadTools() {
+            try {
+                const response = await fetch(`${ACTION_SERVER}/api/tools`);
+                if (response.ok) {
+                    const data = await response.json();
+                    availableTools = data.tools;
+                    displayTools();
+                }
+            } catch (error) {
+                console.error('Failed to load tools:', error);
+                // Use default tool list
+                availableTools = [
+                    { name: 'bash', description: 'Execute shell commands', parameters: ['command'] },
+                    { name: 'readFile', description: 'Read file contents', parameters: ['path'] },
+                    { name: 'writeFile', description: 'Write content to a file', parameters: ['path', 'content'] },
+                    { name: 'fixCode', description: 'Attempt to fix code issues', parameters: ['filePath', 'errorMessage'] },
+                    { name: 'runTests', description: 'Run project tests', parameters: ['directory', 'testCommand'] },
+                    { name: 'searchInFiles', description: 'Search for text in files', parameters: ['directory', 'pattern'] }
+                ];
+                displayTools();
+            }
+        }
+
+        // Display tools in panel
+        function displayTools() {
+            const toolList = document.getElementById('toolList');
+            toolList.innerHTML = '';
+            
+            availableTools.forEach(tool => {
+                const toolDiv = document.createElement('div');
+                toolDiv.className = 'tool-item';
+                toolDiv.innerHTML = `
+                    <div class="tool-name">🔧 ${tool.name}</div>
+                    <div class="tool-description">${tool.description}</div>
+                `;
+                toolDiv.onclick = () => showToolInfo(tool);
+                toolList.appendChild(toolDiv);
+            });
+        }
+
+        // Detect available models
+        async function detectModels() {
+            // Try LM Studio
+            try {
+                const response = await fetch(`${LM_STUDIO}/v1/models`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('LM Studio models:', data);
+                }
+            } catch (error) {
+                console.log('LM Studio not available');
+            }
+
+            // Try Ollama
+            try {
+                const response = await fetch(`${OLLAMA}/api/tags`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Ollama models:', data);
+                }
+            } catch (error) {
+                console.log('Ollama not available');
+            }
+        }
+
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || isProcessing) return;
+            
+            isProcessing = true;
+            input.value = '';
+            updateUI(true);
+            
+            // Add user message
+            addMessage('user', message);
+            
+            try {
+                // Process the message
+                const response = await processMessage(message);
+                
+                // Add assistant response
+                addMessage('assistant', response.message);
+                
+                // Execute any suggested actions
+                if (response.actions && response.actions.length > 0) {
+                    for (const action of response.actions) {
+                        await executeAction(action);
+                    }
+                }
+            } catch (error) {
+                addMessage('assistant', `Error: ${error.message}`);
+            } finally {
+                isProcessing = false;
+                updateUI(false);
+            }
+        }
+
+        // Process message and determine actions
+        async function processMessage(message) {
+            // Analyze message for action keywords
+            const actionKeywords = {
+                fix: ['fix', 'repair', 'correct', 'resolve'],
+                run: ['run', 'execute', 'start', 'launch'],
+                test: ['test', 'check', 'verify', 'validate'],
+                install: ['install', 'add', 'setup'],
+                find: ['find', 'search', 'locate', 'grep'],
+                read: ['read', 'show', 'display', 'cat'],
+                write: ['write', 'create', 'save', 'update']
+            };
+
+            const actions = [];
+            let responseMessage = '';
+
+            // Check for fix requests
+            if (actionKeywords.fix.some(keyword => message.toLowerCase().includes(keyword))) {
+                // Analyze what needs fixing
+                if (message.toLowerCase().includes('typescript') || message.toLowerCase().includes('ts')) {
+                    actions.push({
+                        tool: 'bash',
+                        parameters: { command: 'npm run typecheck 2>&1 | head -20' },
+                        description: 'Checking TypeScript errors'
+                    });
+                    responseMessage = "I'll check for TypeScript errors and fix them.";
+                } else if (message.toLowerCase().includes('swift') || message.toLowerCase().includes('frontend') || message.toLowerCase().includes('macos') || message.toLowerCase().includes('ios')) {
+                    // Handle Swift/frontend fixes
+                    actions.push({
+                        tool: 'bash',
+                        parameters: { command: 'cd macOS-App/UniversalAITools && xcodebuild -scheme UniversalAITools -configuration Debug 2>&1 | head -50' },
+                        description: 'Checking Swift build errors'
+                    });
+                    actions.push({
+                        tool: 'searchInFiles',
+                        parameters: { 
+                            directory: '/Users/christianmerrill/Desktop/universal-ai-tools/macOS-App',
+                            pattern: 'error|warning'
+                        },
+                        description: 'Searching for Swift errors and warnings'
+                    });
+                    actions.push({
+                        tool: 'readFile',
+                        parameters: { path: '/Users/christianmerrill/Desktop/universal-ai-tools/macOS-App/UniversalAITools/Views/ContentView.swift' },
+                        description: 'Reading main Swift view file'
+                    });
+                    responseMessage = "I'll analyze the Swift frontend issues and work on fixing them. Let me check the build status and identify any errors.";
+                } else if (message.toLowerCase().includes('test')) {
+                    actions.push({
+                        tool: 'runTests',
+                        parameters: { directory: '/Users/christianmerrill/Desktop/universal-ai-tools' },
+                        description: 'Running tests'
+                    });
+                    responseMessage = "I'll run the tests and fix any failures.";
+                } else {
+                    // General fix request - analyze the project for issues
+                    actions.push({
+                        tool: 'bash',
+                        parameters: { command: 'npm run typecheck 2>&1 | head -20' },
+                        description: 'Checking for TypeScript errors'
+                    });
+                    actions.push({
+                        tool: 'bash',
+                        parameters: { command: 'npm run lint 2>&1 | head -20' },
+                        description: 'Checking for linting issues'
+                    });
+                    actions.push({
+                        tool: 'bash',
+                        parameters: { command: 'ls -la src/services/ | head -10' },
+                        description: 'Checking service files'
+                    });
+                    responseMessage = "I'll analyze the project for issues and start fixing them. Let me check for common problems first.";
+                }
+            }
+
+            // Check for run requests
+            else if (actionKeywords.run.some(keyword => message.toLowerCase().includes(keyword))) {
+                if (message.toLowerCase().includes('test')) {
+                    actions.push({
+                        tool: 'runTests',
+                        parameters: { directory: '/Users/christianmerrill/Desktop/universal-ai-tools' },
+                        description: 'Running tests'
+                    });
+                    responseMessage = "Running the test suite...";
+                } else if (message.toLowerCase().includes('build')) {
+                    actions.push({
+                        tool: 'bash',
+                        parameters: { command: 'npm run build' },
+                        description: 'Building the project'
+                    });
+                    responseMessage = "Building the project...";
+                } else {
+                    responseMessage = "I'll execute that for you.";
+                }
+            }
+
+            // Check for install requests
+            else if (actionKeywords.install.some(keyword => message.toLowerCase().includes(keyword))) {
+                actions.push({
+                    tool: 'installDependencies',
+                    parameters: { directory: '/Users/christianmerrill/Desktop/universal-ai-tools' },
+                    description: 'Installing dependencies'
+                });
+                responseMessage = "Installing project dependencies...";
+            }
+
+            // Check for search requests
+            else if (actionKeywords.find.some(keyword => message.toLowerCase().includes(keyword))) {
+                const searchPattern = message.replace(/.*?(find|search|locate|grep)\s+(for\s+)?/i, '').trim();
+                actions.push({
+                    tool: 'searchInFiles',
+                    parameters: { 
+                        directory: '/Users/christianmerrill/Desktop/universal-ai-tools',
+                        pattern: searchPattern || 'error'
+                    },
+                    description: `Searching for "${searchPattern || 'error'}"`
+                });
+                responseMessage = `Searching for "${searchPattern || 'error'}" in the project...`;
+            }
+
+            // Check for read requests
+            else if (actionKeywords.read.some(keyword => message.toLowerCase().includes(keyword))) {
+                // Extract file path from message
+                const pathMatch = message.match(/['"](.*?)['"]/);
+                if (pathMatch) {
+                    actions.push({
+                        tool: 'readFile',
+                        parameters: { path: pathMatch[1] },
+                        description: `Reading file: ${pathMatch[1]}`
+                    });
+                    responseMessage = `Reading the file...`;
+                } else {
+                    responseMessage = "Please specify the file path in quotes.";
+                }
+            }
+
+            // Default response if no specific action
+            if (actions.length === 0 && !responseMessage) {
+                // Check if user is asking for action in a more natural way
+                const actionPhrases = ['will you', 'can you', 'could you', 'please', 'would you', 'help me', 'need to', 'want to', 'trying to'];
+                const hasActionRequest = actionPhrases.some(phrase => message.toLowerCase().includes(phrase));
+                
+                if (hasActionRequest) {
+                    // Determine what kind of action based on context
+                    if (message.toLowerCase().includes('swift') || message.toLowerCase().includes('frontend') || message.toLowerCase().includes('ui')) {
+                        actions.push({
+                            tool: 'bash',
+                            parameters: { command: 'cd macOS-App/UniversalAITools && xcodebuild -list 2>&1' },
+                            description: 'Checking Swift project configuration'
+                        });
+                        actions.push({
+                            tool: 'listDirectory',
+                            parameters: { path: '/Users/christianmerrill/Desktop/universal-ai-tools/macOS-App/UniversalAITools/Views' },
+                            description: 'Listing Swift view files'
+                        });
+                        responseMessage = "I'll help you with the Swift frontend. Let me analyze the project structure and current state.";
+                    } else if (message.toLowerCase().includes('error') || message.toLowerCase().includes('broken') || message.toLowerCase().includes('issue')) {
+                        actions.push({
+                            tool: 'bash',
+                            parameters: { command: 'npm run typecheck 2>&1 | head -30' },
+                            description: 'Checking for errors in the project'
+                        });
+                        actions.push({
+                            tool: 'searchInFiles',
+                            parameters: { 
+                                directory: '/Users/christianmerrill/Desktop/universal-ai-tools',
+                                pattern: 'error|ERROR|Error'
+                            },
+                            description: 'Searching for error patterns'
+                        });
+                        responseMessage = "I'll investigate the issues and work on fixing them.";
+                    } else {
+                        // General project analysis
+                        actions.push({
+                            tool: 'bash',
+                            parameters: { command: 'ls -la | head -20' },
+                            description: 'Checking project structure'
+                        });
+                        responseMessage = "I'll analyze your request and take appropriate action.";
+                    }
+                } else {
+                    // Try to get AI assistance if available
+                    responseMessage = await getAIResponse(message);
+                }
+            }
+
+            return { message: responseMessage, actions };
+        }
+
+        // Get AI response (fallback to available models)
+        async function getAIResponse(message) {
+            // Send to monitor
+            sendToMonitor('ai-response', {
+                message: `Processing: "${message.substring(0, 100)}..."`
+            });
+
+            // Try LM Studio first
+            if (availableModels['LM Studio']) {
+                try {
+                    sendToMonitor('ai-request', {
+                        url: `${LM_STUDIO}/v1/chat/completions`,
+                        options: { method: 'POST' },
+                        service: 'LM Studio'
+                    });
+
+                    const response = await fetch(`${LM_STUDIO}/v1/chat/completions`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: [
+                                { role: 'system', content: 'You are an action assistant that helps fix issues and execute commands.' },
+                                { role: 'user', content: message }
+                            ],
+                            temperature: 0.7,
+                            max_tokens: 500
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        sendToMonitor('ai-response', {
+                            message: `LM Studio responded with ${data.choices[0].message.content.length} chars`
+                        });
+                        return data.choices[0].message.content;
+                    }
+                } catch (error) {
+                    console.log('LM Studio request failed:', error);
+                }
+            }
+
+            // Try Ollama
+            if (availableModels['Ollama']) {
+                try {
+                    sendToMonitor('ai-request', {
+                        url: `${OLLAMA}/api/generate`,
+                        options: { method: 'POST' },
+                        service: 'Ollama'
+                    });
+
+                    const response = await fetch(`${OLLAMA}/api/generate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'llama3.2',
+                            prompt: message,
+                            stream: false
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        sendToMonitor('ai-response', {
+                            message: `Ollama responded with ${data.response.length} chars`
+                        });
+                        return data.response;
+                    }
+                } catch (error) {
+                    console.log('Ollama request failed:', error);
+                    sendToMonitor('ai-response', {
+                        message: `Ollama error: ${error.message}`
+                    });
+                }
+            }
+
+            // Fallback response
+            return "I understand your request. While I can't directly process it without the AI models, you can use the quick actions or specify commands directly.";
+        }
+
+        // Execute action
+        async function executeAction(action) {
+            console.log('Executing action:', action);
+            addMessage('action', `Executing: ${action.description}`);
+            
+            // Send to monitor
+            sendToMonitor('action-execute', {
+                tool: action.tool,
+                description: action.description,
+                parameters: action.parameters
+            });
+            
+            try {
+                const response = await fetch(`${ACTION_SERVER}/api/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tool: action.tool,
+                        parameters: action.parameters
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Action result:', result);
+                    
+                    // Add to action log
+                    addActionLog(action.description, result.success);
+                    
+                    // Display result
+                    if (result.success) {
+                        let resultMessage = 'Action completed successfully!';
+                        
+                        if (result.output) {
+                            resultMessage += `\n\nOutput:\n${result.output.substring(0, 500)}`;
+                        } else if (result.stdout) {
+                            resultMessage += `\n\n${result.stdout.substring(0, 500)}`;
+                        } else if (result.content) {
+                            resultMessage += `\n\n${result.content.substring(0, 500)}`;
+                        } else if (result.matchingFiles) {
+                            resultMessage += `\n\nFound ${result.count} matching files:\n${result.matchingFiles.slice(0, 10).join('\n')}`;
+                        }
+                        
+                        addActionResult(resultMessage, true);
+                        
+                        // Check if we need follow-up actions
+                        if (result.stdout && result.stdout.includes('error')) {
+                            // Suggest fixes
+                            const fixSuggestion = await suggestFix(result.stdout);
+                            if (fixSuggestion) {
+                                addMessage('assistant', `I found errors. Would you like me to fix them?`);
+                            }
+                        }
+                    } else {
+                        addActionResult(`Action failed: ${result.error || 'Unknown error'}`, false);
+                    }
+                } else {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Action execution failed:', error);
+                addActionResult(`Failed to execute: ${error.message}`, false);
+            }
+        }
+
+        // Suggest fix for errors
+        async function suggestFix(errorOutput) {
+            try {
+                const response = await fetch(`${ACTION_SERVER}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        error: errorOutput,
+                        context: { directory: '/Users/christianmerrill/Desktop/universal-ai-tools' }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.suggestions;
+                }
+            } catch (error) {
+                console.error('Failed to get fix suggestions:', error);
+            }
+            return null;
+        }
+
+        // UI Helper Functions
+        function addMessage(type, content) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            let avatar = '👤';
+            if (type === 'assistant') avatar = '🤖';
+            if (type === 'action') avatar = '⚡';
+            if (type === 'system') avatar = '⚙️';
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">${content.replace(/\n/g, '<br>')}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addActionResult(content, success) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const lastMessage = messagesDiv.lastElementChild;
+            
+            if (lastMessage && lastMessage.classList.contains('action')) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `action-result ${success ? 'success' : 'error'}`;
+                resultDiv.textContent = content;
+                lastMessage.querySelector('.message-content').appendChild(resultDiv);
+            }
+        }
+
+        function addActionLog(action, success) {
+            const logDiv = document.getElementById('actionLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${success ? 'success' : 'error'}`;
+            entry.textContent = `${new Date().toLocaleTimeString()} - ${action}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            
+            // Keep only last 10 entries
+            while (logDiv.children.length > 10) {
+                logDiv.removeChild(logDiv.lastChild);
+            }
+        }
+
+        function updateUI(processing) {
+            document.getElementById('sendButton').disabled = processing;
+            document.getElementById('chatInput').disabled = processing;
+            document.getElementById('typingIndicator').className = processing ? 'typing-indicator show' : 'typing-indicator';
+            
+            if (processing) {
+                document.getElementById('assistantStatus').className = 'status-indicator working';
+            } else {
+                document.getElementById('assistantStatus').className = 'status-indicator';
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                sendMessage();
+            }
+        }
+
+        function sendQuickAction(action) {
+            document.getElementById('chatInput').value = action;
+            sendMessage();
+        }
+
+        function showToolInfo(tool) {
+            const params = tool.parameters.join(', ');
+            addMessage('system', `Tool: ${tool.name}\nDescription: ${tool.description}\nParameters: ${params}`);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initialize);
+
+        // Auto-refresh service status
+        setInterval(checkServices, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,564 @@
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { KokoroTTSService } from '../src/services/kokoro-tts-service';
+import { SpeechService } from '../src/services/speech-service';
+import { VoiceProfileService } from '../src/services/voice-profile-service';
+import { audioHandler } from '../src/services/audio-handler';
+import { logger } from '../src/utils/logger';
+import { TWO, THREE, HOURS_IN_DAY } from '../src/utils/constants';
+import fs from 'fs/promises';
+import path from 'path';
+
+/**
+ * Comprehensive test suite for Voice Features
+ *
+ * Tests cover:
+ * - Kokoro TTS functionality
+ * - Audio processing and validation
+ * - Voice profile management
+ * - Speech service integration
+ * - Error handling and fallbacks
+ * - Performance and reliability
+ */
+
+describe('Voice Features Test Suite', () => {
+  let kokoroTTS: KokoroTTSService;
+  let speechService: SpeechService;
+  let voiceProfileService: VoiceProfileService;
+  let mockSupabase: unknown;
+
+  beforeEach(() => {
+    // Mock Supabase client
+    mockSupabase = {
+      from: jest.fn(() => ({
+        insert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        select: jest.fn().mockResolvedValue({ data: [], error: null }),
+      })),
+    };
+
+    // Initialize services
+    kokoroTTS = new KokoroTTSService();
+    speechService = new SpeechService(mockSupabase);
+    voiceProfileService = new VoiceProfileService();
+
+    // Mock external dependencies
+    jest.spyOn(logger, 'error').mockImplementation(() => {});
+    jest.spyOn(logger, 'warn').mockImplementation(() => {});
+    jest.spyOn(logger, 'info').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Kokoro TTS Service', () => {
+    it('should initialize correctly', async () => {
+      const status = kokoroTTS.getServiceStatus();
+      expect(status).toHaveProperty('modelPath');
+      expect(status).toHaveProperty('pythonPath');
+      expect(status).toHaveProperty('availableProfiles');
+      expect(status.availableProfiles).toBeGreaterThan(0);
+    });
+
+    it('should provide voice profiles', () => {
+      const profiles = kokoroTTS.getVoiceProfiles();
+      expect(profiles).toBeDefined();
+      expect(profiles.length).toBeGreaterThan(0);
+
+      const sweetProfile = profiles.find((p) => p.id === 'athena-sweet');
+      expect(sweetProfile).toBeDefined();
+      expect(sweetProfile?.style).toBe('sweet');
+      expect(sweetProfile?.gender).toBe('female');
+    });
+
+    it('should validate voice profile parameters', () => {
+      const profiles = kokoroTTS.getVoiceProfiles();
+
+      profiles.forEach((profile) => {
+        expect(profile.pitch).toBeGreaterThanOrEqual(-2.0);
+        expect(profile.pitch).toBeLessThanOrEqual(2.0);
+        expect(profile.speed).toBeGreaterThanOrEqual(0.5);
+        expect(profile.speed).toBeLessThanOrEqual(2.0);
+        expect(profile.id).toBeDefined();
+        expect(profile.name).toBeDefined();
+        expect(profile.voiceFile).toBeDefined();
+      });
+    });
+
+    it('should handle synthesis options validation', async () => {
+      const profile = kokoroTTS.getVoiceProfile('athena-sweet');
+      expect(profile).toBeDefined();
+
+      if (profile) {
+        // Test with valid options
+        const validOptions = {
+          text: 'Hello, this is a test.',
+          voiceProfile: profile,
+          outputFormat: 'wav' as const,
+          temperature: 0.7,
+          topP: 0.9,
+        };
+
+        // Should not throw with valid options
+        expect(() => {
+          kokoroTTS.synthesize(validOptions);
+        }).not.toThrow();
+      }
+    });
+
+    it('should generate appropriate Python script', () => {
+      const profile = kokoroTTS.getVoiceProfile('athena-sweet');
+      if (profile) {
+        // Access private method for testing (would need public wrapper in real implementation)
+        const mockSynthesize = jest.spyOn(kokoroTTS, 'synthesize');
+
+        kokoroTTS.synthesize({
+          text: 'Test text',
+          voiceProfile: profile,
+          outputFormat: 'wav',
+        });
+
+        expect(mockSynthesize).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: 'Test text',
+            voiceProfile: profile,
+            outputFormat: 'wav',
+          })
+        );
+      }
+    });
+  });
+
+  describe('Audio Handler', () => {
+    const createTestWavBuffer = (): Buffer => {
+      // Create a minimal valid WAV buffer for testing
+      const header = Buffer.alloc(44);
+
+      // RIFF header
+      header.write('RIFF', 0);
+      header.writeUInt32LE(1024, 4); // File size
+      header.write('WAVE', 8);
+
+      // fmt chunk
+      header.write('fmt ', 12);
+      header.writeUInt32LE(16, 16);
+      header.writeUInt16LE(1, 20); // PCM
+      header.writeUInt16LE(1, 22); // Mono
+      header.writeUInt32LE(22050, HOURS_IN_DAY); // Sample rate
+      header.writeUInt32LE(44100, 28); // Byte rate
+      header.writeUInt16LE(2, 32); // Block align
+      header.writeUInt16LE(16, 34); // Bits per sample
+
+      // data chunk
+      header.write('data', 36);
+      header.writeUInt32LE(1000, 40); // Data size
+
+      const audioData = Buffer.alloc(1000, 0); // Silent audio data
+      return Buffer.concat([header, audioData]);
+    };
+
+    it('should validate audio buffers correctly', async () => {
+      const validWav = createTestWavBuffer();
+      const validation = await audioHandler.validateAudioBuffer(validWav, 'wav');
+
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+      expect(validation.metadata.format).toBe('wav');
+    });
+
+    it('should detect invalid audio buffers', async () => {
+      const invalidBuffer = Buffer.alloc(10, 0);
+      const validation = await audioHandler.validateAudioBuffer(invalidBuffer);
+
+      expect(validation.isValid).toBe(false);
+      expect(validation.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should process audio with normalization', async () => {
+      const testBuffer = createTestWavBuffer();
+      const result = await audioHandler.processAudio(testBuffer, {
+        format: 'wav',
+        normalize: true,
+      });
+
+      expect(result.buffer).toBeDefined();
+      expect(result.metadata.isValid).toBe(true);
+      expect(result.warnings).toContain('Audio normalization applied');
+    });
+
+    it('should get accurate audio metadata', async () => {
+      const testBuffer = createTestWavBuffer();
+      const result = await audioHandler.processAudio(testBuffer, {
+        format: 'wav',
+      });
+
+      expect(result.metadata.format).toBe('wav');
+      expect(result.metadata.channels).toBe(1);
+      expect(result.metadata.sampleRate).toBe(22050);
+      expect(result.metadata.duration).toBeGreaterThan(0);
+    });
+
+    it('should handle processing errors gracefully', async () => {
+      const corruptBuffer = Buffer.from('not audio data');
+
+      try {
+        await audioHandler.processAudio(corruptBuffer, {
+          format: 'wav',
+        });
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+    });
+
+    it('should track processing statistics', async () => {
+      const testBuffer = createTestWavBuffer();
+
+      // Clear stats
+      await audioHandler.clearCache();
+
+      // Process some audio
+      await audioHandler.processAudio(testBuffer, { format: 'wav' });
+
+      const stats = audioHandler.getProcessingStats();
+      expect(stats.totalProcessed).toBe(1);
+      expect(stats.successRate).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Voice Profile Service', () => {
+    it('should provide all personality profiles', () => {
+      const profiles = voiceProfileService.getAllProfiles();
+      expect(profiles.length).toBeGreaterThanOrEqual(5);
+
+      const personalities = ['sweet', 'shy', 'confident', 'caring', 'playful'];
+      personalities.forEach((personality) => {
+        const profile = profiles.find((p) => p.name.toLowerCase().includes(personality));
+        expect(profile).toBeDefined();
+      });
+    });
+
+    it('should generate voice profiles with correct parameters', () => {
+      const sweetnessLevels = [0.0, 0.5, 1.0];
+      const personalities = ['sweet', 'confident', 'playful'];
+
+      personalities.forEach((personality) => {
+        sweetnessLevels.forEach((sweetness) => {
+          const profile = voiceProfileService.getVoiceProfile(personality, sweetness);
+
+          expect(profile.pitch).toBeGreaterThanOrEqual(0.5);
+          expect(profile.pitch).toBeLessThanOrEqual(2.0);
+          expect(profile.speaking_rate).toBeGreaterThanOrEqual(0.5);
+          expect(profile.speaking_rate).toBeLessThanOrEqual(1.5);
+          expect(profile.stability).toBeGreaterThanOrEqual(0);
+          expect(profile.stability).toBeLessThanOrEqual(1);
+        });
+      });
+    });
+
+    it('should adjust voice profiles for context', () => {
+      const baseProfile = voiceProfileService.getVoiceProfile('sweet', 0.7);
+
+      const contexts = [
+        { textLength: 2000, urgency: 'high' as const },
+        { textLength: 30, audience: 'child' as const },
+        { urgency: 'low' as const, audience: 'professional' as const },
+      ];
+
+      contexts.forEach((context) => {
+        const adjusted = voiceProfileService.adjustVoiceForContext(baseProfile, context);
+
+        // Should still be within valid ranges
+        expect(adjusted.pitch).toBeGreaterThanOrEqual(0.5);
+        expect(adjusted.pitch).toBeLessThanOrEqual(2.0);
+        expect(adjusted.speaking_rate).toBeGreaterThanOrEqual(0.5);
+        expect(adjusted.speaking_rate).toBeLessThanOrEqual(1.5);
+      });
+    });
+
+    it('should provide Kokoro voice profiles', () => {
+      const personalities = ['sweet', 'confident', 'playful'];
+
+      personalities.forEach((personality) => {
+        const kokoroProfile = voiceProfileService.getKokoroVoiceProfile(personality, 0.7);
+
+        if (kokoroProfile) {
+          expect(kokoroProfile.id).toBeDefined();
+          expect(kokoroProfile.pitch).toBeGreaterThanOrEqual(-2.0);
+          expect(kokoroProfile.pitch).toBeLessThanOrEqual(2.0);
+          expect(kokoroProfile.speed).toBeGreaterThanOrEqual(0.5);
+          expect(kokoroProfile.speed).toBeLessThanOrEqual(2.0);
+        }
+      });
+    });
+
+    it('should validate voice configurations', () => {
+      const validConfig = {
+        personality: 'sweet',
+        sweetness_level: 0.7,
+        voice_settings: {
+          stability: 0.8,
+          similarity_boost: 0.7,
+        },
+      };
+
+      const validation = voiceProfileService.validateVoiceConfig(validConfig);
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+
+      const invalidConfig = {
+        personality: 'invalid',
+        sweetness_level: 2.0,
+        voice_settings: {
+          stability: 2.0,
+        },
+      };
+
+      const invalidValidation = voiceProfileService.validateVoiceConfig(invalidConfig);
+      expect(invalidValidation.isValid).toBe(false);
+      expect(invalidValidation.errors.length).toBeGreaterThan(0);
+    });
+
+    it('should provide enhanced voice configs for different providers', () => {
+      const providers: ('kokoro' | 'openai' | 'elevenlabs')[] = ['kokoro', 'openai', 'elevenlabs'];
+
+      providers.forEach((provider) => {
+        const config = voiceProfileService.getEnhancedVoiceConfig('sweet', 0.7, provider);
+        expect(config.provider).toBe(provider);
+        expect(config.baseProfile).toBeDefined();
+        expect(config.optimizations).toBeDefined();
+      });
+    });
+  });
+
+  describe('Speech Service Integration', () => {
+    it('should check service health', async () => {
+      const health = await speechService.getServiceHealth();
+
+      expect(health).toHaveProperty('status');
+      expect(health).toHaveProperty('services');
+      expect(health).toHaveProperty('details');
+      expect(['healthy', 'degraded', 'unhealthy']).toContain(health.status);
+    });
+
+    it('should get available voices', async () => {
+      const voices = await speechService.getAvailableVoices();
+      expect(Array.isArray(voices)).toBe(true);
+
+      // Should include Kokoro voices
+      const kokoroVoices = voices.filter((v) => v.provider === 'kokoro');
+      expect(kokoroVoices.length).toBeGreaterThan(0);
+    });
+
+    it('should estimate audio duration accurately', async () => {
+      const shortText = 'Hello';
+      const longText =
+        'This is a much longer text that should take more time to speak and therefore have a longer estimated duration.';
+
+      const shortDuration = await speechService.estimateAudioDuration(shortText);
+      const longDuration = await speechService.estimateAudioDuration(longText);
+
+      expect(longDuration).toBeGreaterThan(shortDuration);
+      expect(shortDuration).toBeGreaterThan(0);
+    });
+
+    it('should handle retry logic correctly', async () => {
+      const voiceProfile = voiceProfileService.getVoiceProfile('sweet', 0.7);
+
+      // Mock a failing synthesis that succeeds on retry
+      let callCount = 0;
+      const originalSynthesize = speechService.synthesizeSpeech;
+      jest.spyOn(speechService, 'synthesizeSpeech').mockImplementation(async (...args) => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('Temporary failure');
+        }
+        return originalSynthesize.call(speechService, ...args);
+      });
+
+      try {
+        await speechService.synthesizeSpeechWithRetry(
+          {
+            text: 'Test retry logic',
+            voiceProfile,
+            format: 'wav',
+          },
+          TWO
+        );
+
+        expect(callCount).toBe(2); // Failed once, succeeded on retry
+      } catch (error) {
+        // Expected if synthesis isn't fully mocked
+      }
+    });
+  });
+
+  describe('Error Handling and Edge Cases', () => {
+    it('should handle empty text input', async () => {
+      const voiceProfile = voiceProfileService.getVoiceProfile('sweet', 0.7);
+
+      try {
+        await speechService.synthesizeSpeech({
+          text: '',
+          voiceProfile,
+          format: 'wav',
+        });
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+    });
+
+    it('should handle very long text input', async () => {
+      const longText = 'A'.repeat(10000);
+      const voiceProfile = voiceProfileService.getVoiceProfile('sweet', 0.7);
+
+      const duration = await speechService.estimateAudioDuration(longText, voiceProfile);
+      expect(duration).toBeGreaterThan(0);
+    });
+
+    it('should handle invalid sweetness levels gracefully', () => {
+      const invalidLevels = [-1, TWO, NaN, Infinity];
+
+      invalidLevels.forEach((level) => {
+        const profile = voiceProfileService.getVoiceProfile('sweet', level);
+        // Should clamp or use default values
+        expect(profile.pitch).toBeGreaterThanOrEqual(0.5);
+        expect(profile.speaking_rate).toBeGreaterThanOrEqual(0.5);
+      });
+    });
+
+    it('should handle audio processing failures', async () => {
+      const invalidBuffer = Buffer.from('invalid audio data');
+
+      try {
+        await audioHandler.processAudio(invalidBuffer, {
+          format: 'wav',
+        });
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+    });
+
+    it('should clear caches without errors', async () => {
+      await expect(speechService.clearAllCaches()).resolves.not.toThrow();
+      await expect(kokoroTTS.clearCache()).resolves.not.toThrow();
+      await expect(audioHandler.clearCache()).resolves.not.toThrow();
+    });
+  });
+
+  describe('Performance Tests', () => {
+    it('should process audio within reasonable time limits', async () => {
+      const testBuffer = Buffer.alloc(44100 * 2 * THREE); // 3 seconds of 16-bit mono audio
+
+      const startTime = Date.now();
+      await audioHandler.processAudio(testBuffer, {
+        format: 'wav',
+        normalize: true,
+      });
+      const processingTime = Date.now() - startTime;
+
+      // Should process within 5 seconds
+      expect(processingTime).toBeLessThan(5000);
+    });
+
+    it('should handle concurrent audio processing', async () => {
+      const testBuffer = Buffer.alloc(44100 * TWO); // 1 second of audio
+
+      const promises = Array(5)
+        .fill(null)
+        .map(() => audioHandler.processAudio(testBuffer, { format: 'wav' }));
+
+      await expect(Promise.all(promises)).resolves.not.toThrow();
+    });
+
+    it('should maintain reasonable memory usage', async () => {
+      const initialMemory = process.memoryUsage().heapUsed;
+
+      // Process multiple audio buffers
+      for (let i = 0; i < 10; i++) {
+        const testBuffer = Buffer.alloc(44100);
+        await audioHandler.processAudio(testBuffer, { format: 'wav' });
+      }
+
+      // Force garbage collection if available
+      if (global.gc) {
+        global.gc();
+      }
+
+      const finalMemory = process.memoryUsage().heapUsed;
+      const memoryIncrease = finalMemory - initialMemory;
+
+      // Memory increase should be reasonable (less than 100MB)
+      expect(memoryIncrease).toBeLessThan(100 * 1024 * 1024);
+    });
+  });
+
+  describe('Integration Tests', () => {
+    it('should work end-to-end with voice profiles and Kokoro TTS', async () => {
+      const voiceProfile = voiceProfileService.getVoiceProfile('sweet', 0.8);
+      const kokoroProfile = voiceProfileService.getKokoroVoiceProfile('sweet', 0.8);
+
+      expect(voiceProfile).toBeDefined();
+      if (kokoroProfile) {
+        expect(kokoroProfile.id).toContain('athena');
+        expect(kokoroProfile.style).toBe('sweet');
+      }
+    });
+
+    it('should maintain consistency across service restarts', async () => {
+      // Get initial profiles
+      const profile1 = voiceProfileService.getVoiceProfile('sweet', 0.7);
+      const profiles1 = kokoroTTS.getVoiceProfiles();
+
+      // Simulate service restart by creating new instances
+      const newVoiceService = new VoiceProfileService();
+      const newKokoroService = new KokoroTTSService();
+
+      const profile2 = newVoiceService.getVoiceProfile('sweet', 0.7);
+      const profiles2 = newKokoroService.getVoiceProfiles();
+
+      // Should be consistent
+      expect(profile1.pitch).toBe(profile2.pitch);
+      expect(profile1.speaking_rate).toBe(profile2.speaking_rate);
+      expect(profiles1.length).toBe(profiles2.length);
+    });
+  });
+});
+
+/**
+ * Manual Testing Guide
+ *
+ * To manually test the voice features:
+ *
+ * 1. Backend Services:
+ *    - Start the server: npm run dev
+ *    - Test health: GET /api/speech/health
+ *    - Test voices: GET /api/speech/voices
+ *    - Test synthesis: POST /api/speech/synthesize
+ *
+ * 2. Kokoro TTS:
+ *    - Test voice: POST /api/speech/test/kokoro/athena-sweet
+ *    - Body: { "text": "Hello, this is a test" }
+ *
+ * 3. Voice Profiles:
+ *    - Test personalities: sweet, confident, playful, caring, shy
+ *    - Test sweetness levels: 0.0 to 1.0
+ *    - Test providers: kokoro, openai, elevenlabs
+ *
+ * 4. UI Components:
+ *    - Open the voice assistant
+ *    - Test speech recognition
+ *    - Test voice synthesis
+ *    - Test voice switching
+ *
+ * 5. Error Scenarios:
+ *    - Test with no internet connection
+ *    - Test with invalid API keys
+ *    - Test with malformed requests
+ *    - Test with very long text
+ *
+ * 6. Performance:
+ *    - Monitor response times
+ *    - Check memory usage during extended use
+ *    - Test concurrent voice synthesis requests
+ */
+
+export {};

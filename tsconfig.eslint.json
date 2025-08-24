@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "tests/**/*",
+    "*.ts",
+    "*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "macOS-App/**/*",
+    "iOS-App/**/*",
+    "rust-services/**/*",
+    "go-services/**/*",
+    "python-services/**/*",
+    "go-api-gateway/**/*"
+  ]
+}

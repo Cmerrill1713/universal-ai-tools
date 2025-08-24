@@ -1,0 +1,39 @@
+FROM node:20-alpine
+
+# Install required tools
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    git \
+    curl \
+    bash \
+    jq \
+    make \
+    g++ \
+    docker-cli
+
+# Install global npm packages
+RUN npm install -g \
+    typescript \
+    eslint \
+    prettier \
+    ts-node \
+    tsx \
+    nodemon
+
+WORKDIR /iterative-loop
+
+# Copy the iterative loop application
+COPY iterative-loop/ ./
+
+# Install dependencies
+RUN npm install
+
+# Create necessary directories
+RUN mkdir -p /logs /reports /workspace
+
+# Expose ports
+EXPOSE 8888 9999
+
+# Start the iterative loop
+CMD ["node", "src/server.js"]

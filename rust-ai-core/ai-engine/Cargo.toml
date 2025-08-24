@@ -1,0 +1,46 @@
+[package]
+name = "ai-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# Workspace dependencies
+tokio.workspace = true
+tokio-stream.workspace = true
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+metrics.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+config.workspace = true
+
+# AI/ML specific
+candle-core.workspace = true
+candle-nn.workspace = true
+candle-transformers.workspace = true
+hf-hub.workspace = true
+tokenizers.workspace = true
+
+# HTTP client for Ollama integration
+reqwest = { version = "0.11", features = ["json", "stream"] }
+
+# Async utilities
+async-trait = "0.1"
+futures.workspace = true
+
+# Shared workspace crate
+shared = { path = "../shared" }
+
+[dev-dependencies]
+mockall.workspace = true
+tokio-test = "0.4"

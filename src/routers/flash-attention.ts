@@ -1,0 +1,1 @@
+export { flashAttention as default } from '../migration/compatibility-stubs';

@@ -1,0 +1,304 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  
+  // Enhanced error detection
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.suggest.autoImports": true,
+  "typescript.suggest.enabled": true,
+  "typescript.validate.enable": true,
+  "typescript.format.enable": true,
+  "typescript.implementationsCodeLens.enabled": true,
+  "typescript.referencesCodeLens.enabled": true,
+  "typescript.preferences.quoteStyle": "single",
+  "javascript.preferences.quoteStyle": "single",
+  
+  // Error lens for better visibility
+  "errorLens.enabled": true,
+  "errorLens.enabledDiagnosticLevels": ["error", "warning", "info", "hint"],
+  "errorLens.fontWeight": "600",
+  "errorLens.fontSize": "0.9em",
+
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+
+  "eslint.enable": true,
+  "eslint.packageManager": "npm",
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.runtime": "node",
+  "eslint.useFlatConfig": true,
+
+  "prettier.requireConfig": true,
+  "prettier.configPath": ".prettierrc.json",
+
+  "jest.enableInlineErrorMessages": true,
+  "jest.jestCommandLine": "npm test --",
+  "jest.rootPath": ".",
+
+  "files.associations": {
+    "*.cjs": "javascript",
+    "*.swift": "swift",
+    "*.xcodeproj": "xml",
+    "*.xcworkspace": "xml",
+    "*.plist": "xml",
+    "*.entitlements": "xml",
+    "*.pbxproj": "javascript",
+    "*.xcconfig": "properties",
+    "*.strings": "properties",
+    "*.stringsdict": "xml"
+  },
+  "files.exclude": {
+    "**/dist": true,
+    "**/build": true,
+    "**/.git": true,
+    "**/.next": true,
+    "**/coverage": true,
+    "**/venv": true,
+    "**/node_modules": true,
+    // Xcode/Swift specific exclusions
+    "**/DerivedData": true,
+    "**/.build": true,
+    "**/xcuserdata": true,
+    "**/*.xcworkspace/xcshareddata": false,
+    "**/*.xcodeproj/xcshareddata": false
+  },
+  "files.watcherExclude": {
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/node_modules/**": true,
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true
+  },
+  "search.exclude": {
+    "**/dist": true,
+    "**/build": true,
+    "**/coverage": true,
+    "**/node_modules": true,
+    "**/venv": true,
+    "**/DerivedData": true,
+    "**/.build": true,
+    "**/xcuserdata": true
+  },
+
+  "yaml.schemas": {
+    "kubernetes": "*.k8s.yaml"
+  },
+
+  "docker.languageserver.formatter.ignoreMultilineInstructions": true,
+
+  "gitlens.showWelcomeOnInstall": false,
+  "gitlens.showWhatsNewAfterUpgrades": false,
+
+  // TypeScript/JavaScript formatting
+  "typescript.preferences.quoteStyle": "single",
+  "javascript.preferences.quoteStyle": "single",
+  "editor.rulers": [100],
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  "typescript.suggest.paths": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.validate.enable": true,
+  "problems.showCurrentInStatus": true,
+  "typescript.reportStyleChecksAsWarnings": true,
+  "typescript.suggest.completeJSDocs": true,
+  
+  // Enhanced problem display
+  "problems.decorations.enabled": true,
+  "problems.autoReveal": true,
+  "problems.sortOrder": "severity",
+  "editor.showDeprecated": true,
+  "editor.showUnused": true,
+
+  // Python & Pylance Configuration
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.envFile": "${workspaceFolder}/.env",
+
+  // Pylance Settings (minimal)
+  "python.languageServer": "None",
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.autoImportCompletions": false,
+  "python.analysis.autoSearchPaths": false,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src/services",
+    "${workspaceFolder}/src/services/dspy-orchestrator"
+  ],
+  "python.analysis.stubPath": "typings",
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.inlayHints.functionReturnTypes": false,
+  "python.analysis.inlayHints.variableTypes": false,
+  "python.analysis.completeFunctionParens": false,
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingTypeStubs": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedVariable": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalCall": "none",
+    "reportOptionalIterable": "none",
+    "reportOptionalContextManager": "none",
+    "reportOptionalOperand": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownMemberType": "none",
+    "reportMissingParameterType": "none",
+    "reportAttributeAccessIssue": "none",
+    "reportArgumentType": "none",
+    "reportAssignmentType": "none",
+    "reportReturnType": "none",
+    "reportCallIssue": "none",
+    "reportIndexIssue": "none",
+    "reportOperatorIssue": "none"
+  },
+
+  // Python Linting/Formatting with Ruff (native server)
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.fixAll": true,
+  "ruff.organizeImports": true,
+  // removed deprecated: ruff.lint.run, ruff.lint.args
+
+  // Per-language formatting
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+
+  // Python Testing
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["src/services/dspy-orchestrator"],
+  // === SWIFT/iOS DEVELOPMENT CONFIGURATION ===
+  "[swift]": {
+    "editor.defaultFormatter": "vknabel.vscode-apple-swift-format",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.detectIndentation": false,
+    "editor.trimAutoWhitespace": true,
+    "editor.wordWrap": "bounded",
+    "editor.wordWrapColumn": 100,
+    "editor.rulers": [100],
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // Swift Language Server Configuration
+  "swift.diagnostics": true,
+  "swift.path": "",
+  "swift.sourcekit-lsp.serverPath": "",
+  "swift.sourcekit-lsp.toolchainPath": "",
+  "swift.sourcekit-lsp.enable": true,
+  "swift.sourcekit-lsp.disable-swiftpm-integration": false,
+  "swift.sourcekit-lsp.trace.server": "off",
+
+  // Swift Format Configuration
+  "swift-format.enable": true,
+  "swift-format.onlyFormatOnSave": false,
+  "swift-format.path": "",
+
+  // Apple Swift Format Configuration
+  "apple-swift-format.enable": true,
+  "apple-swift-format.configSearchPaths": [
+    ".swift-format"
+  ],
+  "apple-swift-format.onlyEnableOnSwiftPMProjects": false,
+  "apple-swift-format.onlyEnableWithConfig": false,
+
+  // Xcode Integration (file associations and exclusions defined above)
+  "cursorpyright.analysis.autoImportCompletions": false,
+  "cursorpyright.analysis.autoSearchPaths": false,
+  "cursorpyright.analysis.diagnosticMode": "openFilesOnly",
+  "cursorpyright.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingTypeStubs": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedVariable": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalCall": "none",
+    "reportOptionalIterable": "none",
+    "reportOptionalContextManager": "none",
+    "reportOptionalOperand": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownMemberType": "none",
+    "reportMissingParameterType": "none",
+    "reportAttributeAccessIssue": "none",
+    "reportArgumentType": "none",
+    "reportAssignmentType": "none",
+    "reportReturnType": "none",
+    "reportCallIssue": "none",
+    "reportIndexIssue": "none",
+    "reportOperatorIssue": "none"
+  },
+  "cursorpyright.analysis.extraPaths": [
+    "${workspaceFolder}/src/services",
+    "${workspaceFolder}/src/services/dspy-orchestrator"
+  ],
+  "cursorpyright.analysis.inlayHints.functionReturnTypes": false,
+  "cursorpyright.analysis.inlayHints.variableTypes": false,
+  "cursorpyright.analysis.stubPath": "typings",
+  "cursorpyright.analysis.typeCheckingMode": "off",
+
+  // === AI ASSISTANT CONFIGURATION ===
+  "ai.assistant.projectContext": {
+    "name": "Universal AI Tools",
+    "type": "full-stack-ai-platform",
+    "languages": ["typescript", "swift", "python"],
+    "frameworks": ["express", "swiftui", "dspy"],
+    "debugConfigurations": [
+      "Debug Server (Development)",
+      "Debug Universal AI Tools (macOS)", 
+      "Python: DSPy Orchestrator",
+      "Full Stack Debug"
+    ],
+    "buildTasks": [
+      "npm: build",
+      "swift: Build Debug",
+      "swift: Build Release",
+      "Type Check",
+      "Lint"
+    ]
+  },
+
+  // Extension-aware AI assistance
+  "ai.assistant.extensionContext": true,
+  "ai.assistant.showAvailableCommands": true,
+  "ai.assistant.includeProjectStructure": true,
+
+  // AI code suggestions context
+  "ai.codeCompletion.includeExtensions": true,
+  "ai.codeCompletion.multiLanguage": true,
+  "ai.codeCompletion.projectAware": true
+}

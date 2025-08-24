@@ -1,0 +1,55 @@
+FROM node:20-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    git \
+    curl \
+    bash \
+    docker-cli \
+    jq \
+    ripgrep \
+    fd \
+    bat
+
+# Install Python packages for analysis
+RUN pip3 install --no-cache-dir \
+    pylint \
+    mypy \
+    black \
+    flake8 \
+    bandit \
+    safety
+
+WORKDIR /fixer
+
+# Copy package files
+COPY package*.json ./
+
+# Install Node dependencies
+RUN npm ci --only=production && \
+    npm install -g \
+    typescript \
+    @typescript-eslint/eslint-plugin \
+    @typescript-eslint/parser \
+    eslint \
+    prettier \
+    jest \
+    ts-node \
+    tsx
+
+# Copy fixer application
+COPY fixer/ ./fixer/
+
+# Create directories
+RUN mkdir -p /var/log/fixer /reports /app
+
+# Set up entrypoint
+COPY scripts/fixer-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/fixer-entrypoint.sh
+
+EXPOSE 8080 9092
+
+ENTRYPOINT ["/usr/local/bin/fixer-entrypoint.sh"]
+CMD ["node", "/fixer/src/index.js"]

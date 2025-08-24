@@ -1,0 +1,281 @@
+-- Configure pg_cron for scheduled tasks
+
+-- Ensure pg_cron is installed in the postgres database
+-- Note: pg_cron must be configured in postgresql.conf
+-- shared_preload_libraries = 'pg_cron'
+-- cron.database_name = 'postgres'
+
+-- Function to safely schedule a cron job
+CREATE OR REPLACE FUNCTION schedule_cron_job(
+    p_name TEXT,
+    p_schedule TEXT,
+    p_command TEXT
+) RETURNS BIGINT AS $$
+DECLARE
+    v_job_id BIGINT;
+BEGIN
+    -- Check if job already exists
+    SELECT jobid INTO v_job_id
+    FROM cron.job
+    WHERE jobname = p_name;
+    
+    IF v_job_id IS NOT NULL THEN
+        -- Update existing job
+        PERFORM cron.alter_job(
+            job_id := v_job_id,
+            schedule := p_schedule,
+            command := p_command
+        );
+    ELSE
+        -- Create new job
+        SELECT cron.schedule(
+            job_name := p_name,
+            schedule := p_schedule,
+            command := p_command
+        ) INTO v_job_id;
+    END IF;
+    
+    -- Log job scheduling
+    INSERT INTO analytics_events (event_type, metadata)
+    VALUES ('cron_job_scheduled', jsonb_build_object(
+        'job_name', p_name,
+        'schedule', p_schedule,
+        'job_id', v_job_id
+    ));
+    
+    RETURN v_job_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Schedule all recurring jobs
+
+-- 1. Memory optimization and cleanup (every hour)
+SELECT schedule_cron_job(
+    'memory_optimization',
+    '0 * * * *',
+    $$
+    DELETE FROM memories 
+    WHERE created_at < NOW() - INTERVAL '90 days'
+    AND metadata->>'important' != 'true';
+    
+    -- Update memory embeddings for frequently accessed memories
+    UPDATE memories 
+    SET embedding = ai_generate_embedding(content)
+    WHERE embedding IS NULL
+    AND created_at > NOW() - INTERVAL '7 days';
+    $$
+);
+
+-- 2. Analytics aggregation (every 6 hours)
+SELECT schedule_cron_job(
+    'analytics_aggregation',
+    '0 */6 * * *',
+    $$
+    INSERT INTO analytics_events (event_type, metadata)
+    SELECT 
+        'usage_summary',
+        jsonb_build_object(
+            'period', '6_hours',
+            'total_requests', COUNT(*),
+            'unique_users', COUNT(DISTINCT user_id),
+            'models_used', jsonb_agg(DISTINCT llm_model_id),
+            'timestamp', NOW()
+        )
+    FROM analytics_events
+    WHERE timestamp > NOW() - INTERVAL '6 hours'
+    AND event_type IN ('llm_request', 'voice_transcription', 'voice_synthesis');
+    $$
+);
+
+-- 3. Model usage stats update (daily at 2 AM)
+SELECT schedule_cron_job(
+    'update_model_usage_stats',
+    '0 2 * * *',
+    $$
+    UPDATE llm_users.models m
+    SET usage_stats = jsonb_build_object(
+        'total_requests', COALESCE((
+            SELECT COUNT(*) 
+            FROM analytics_events 
+            WHERE llm_model_id = m.id
+        ), 0),
+        'total_tokens', COALESCE((
+            SELECT SUM((metadata->>'tokens_used')::int) 
+            FROM analytics_events 
+            WHERE llm_model_id = m.id
+        ), 0),
+        'last_7_days_requests', COALESCE((
+            SELECT COUNT(*) 
+            FROM analytics_events 
+            WHERE llm_model_id = m.id 
+            AND timestamp > NOW() - INTERVAL '7 days'
+        ), 0),
+        'last_updated', NOW()
+    );
+    $$
+);
+
+-- 4. Storage cleanup (daily at 3 AM)
+SELECT schedule_cron_job(
+    'storage_cleanup',
+    '0 3 * * *',
+    $$SELECT cleanup_old_storage_files();$$
+);
+
+-- 5. Agent health check (every 5 minutes)
+SELECT schedule_cron_job(
+    'agent_health_check',
+    '*/5 * * * *',
+    $$
+    -- Mark agents as offline if not seen for 10 minutes
+    UPDATE agent_status
+    SET status = 'offline'
+    WHERE status != 'offline'
+    AND changed_at < NOW() - INTERVAL '10 minutes';
+    
+    -- Clean up old agent status records
+    DELETE FROM agent_status
+    WHERE changed_at < NOW() - INTERVAL '24 hours';
+    $$
+);
+
+-- 6. Session cleanup (hourly)
+SELECT schedule_cron_job(
+    'session_cleanup',
+    '0 * * * *',
+    $$
+    -- Remove inactive session presence
+    DELETE FROM ai_session_presence
+    WHERE last_seen < NOW() - INTERVAL '1 hour';
+    
+    -- Archive old analytics events
+    INSERT INTO analytics_events (event_type, metadata)
+    SELECT 
+        'events_archived',
+        jsonb_build_object(
+            'count', COUNT(*),
+            'oldest_event', MIN(timestamp),
+            'newest_event', MAX(timestamp)
+        )
+    FROM analytics_events
+    WHERE timestamp < NOW() - INTERVAL '30 days';
+    
+    DELETE FROM analytics_events
+    WHERE timestamp < NOW() - INTERVAL '30 days'
+    AND event_type NOT IN ('usage_summary', 'events_archived');
+    $$
+);
+
+-- 7. Rate limit reset (every minute)
+SELECT schedule_cron_job(
+    'rate_limit_reset',
+    '* * * * *',
+    $$
+    -- Reset rate limits for models
+    -- This is handled by checking timestamps in the edge functions
+    -- But we can clean up old rate limit tracking here
+    DELETE FROM analytics_events
+    WHERE event_type = 'rate_limit_exceeded'
+    AND timestamp < NOW() - INTERVAL '1 hour';
+    $$
+);
+
+-- 8. Generate daily reports (daily at 1 AM)
+SELECT schedule_cron_job(
+    'daily_reports',
+    '0 1 * * *',
+    $$
+    INSERT INTO analytics_events (event_type, metadata)
+    SELECT 
+        'daily_report',
+        jsonb_build_object(
+            'date', CURRENT_DATE - INTERVAL '1 day',
+            'total_users', COUNT(DISTINCT user_id),
+            'total_requests', COUNT(*),
+            'top_models', (
+                SELECT jsonb_agg(row_to_json(t))
+                FROM (
+                    SELECT model_name, COUNT(*) as request_count
+                    FROM analytics_events ae
+                    JOIN llm_users.models m ON m.id = ae.llm_model_id
+                    WHERE ae.timestamp::date = CURRENT_DATE - INTERVAL '1 day'
+                    GROUP BY model_name
+                    ORDER BY request_count DESC
+                    LIMIT 5
+                ) t
+            ),
+            'total_tokens', SUM((metadata->>'tokens_used')::int),
+            'storage_used_bytes', (
+                SELECT SUM((metadata->>'size')::bigint)
+                FROM storage.objects
+            )
+        )
+    FROM analytics_events
+    WHERE timestamp::date = CURRENT_DATE - INTERVAL '1 day';
+    $$
+);
+
+-- Create view to monitor cron jobs
+CREATE OR REPLACE VIEW cron_job_status AS
+SELECT 
+    j.jobid,
+    j.jobname,
+    j.schedule,
+    j.command,
+    j.nodename,
+    j.nodeport,
+    j.database,
+    j.username,
+    j.active,
+    r.runid,
+    r.job,
+    r.status as last_run_status,
+    r.return_message,
+    r.start_time as last_run_start,
+    r.end_time as last_run_end,
+    CASE 
+        WHEN r.status = 'failed' THEN 'error'
+        WHEN r.start_time > NOW() - INTERVAL '1 hour' THEN 'recent'
+        ELSE 'ok'
+    END as health_status
+FROM cron.job j
+LEFT JOIN LATERAL (
+    SELECT *
+    FROM cron.job_run_details
+    WHERE job = j.jobid
+    ORDER BY start_time DESC
+    LIMIT 1
+) r ON true;
+
+-- Function to get cron job health summary
+CREATE OR REPLACE FUNCTION get_cron_health_summary()
+RETURNS JSONB AS $$
+DECLARE
+    v_result JSONB;
+BEGIN
+    SELECT jsonb_build_object(
+        'total_jobs', COUNT(DISTINCT jobid),
+        'active_jobs', COUNT(DISTINCT jobid) FILTER (WHERE active),
+        'failed_runs_24h', COUNT(*) FILTER (WHERE last_run_status = 'failed' AND last_run_start > NOW() - INTERVAL '24 hours'),
+        'successful_runs_24h', COUNT(*) FILTER (WHERE last_run_status = 'succeeded' AND last_run_start > NOW() - INTERVAL '24 hours'),
+        'jobs_by_status', jsonb_object_agg(
+            health_status, 
+            job_count
+        )
+    ) INTO v_result
+    FROM (
+        SELECT 
+            health_status,
+            COUNT(*) as job_count
+        FROM cron_job_status
+        GROUP BY health_status
+    ) t;
+    
+    RETURN v_result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION schedule_cron_job TO service_role;
+GRANT SELECT ON cron_job_status TO authenticated;
+GRANT EXECUTE ON FUNCTION get_cron_health_summary TO authenticated;

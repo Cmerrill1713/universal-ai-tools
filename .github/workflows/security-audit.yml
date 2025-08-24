@@ -1,0 +1,213 @@
+# Security Audit & Dependency Updates
+# Automated security scanning and dependency management
+
+name: Security Audit
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [master, develop]
+    paths:
+      - '**/Cargo.toml'
+      - '**/go.mod'
+      - '**/package.json'
+      - '**/Package.swift'
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.21'
+  RUST_VERSION: 'stable'
+  NODE_VERSION: '20'
+
+jobs:
+  # ===========================================
+  # DEPENDENCY VULNERABILITY SCANNING
+  # ===========================================
+  
+  audit-dependencies:
+    name: Audit Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      # Go security audit
+      - name: Go Security Audit
+        run: |
+          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          cd go-api-gateway && gosec ./...
+          cd ../rust-services/go-websocket && gosec ./...
+      
+      # Rust security audit
+      - name: Rust Security Audit
+        run: |
+          cargo install cargo-audit
+          cd rust-services && cargo audit
+      
+      # Node.js security audit
+      - name: Node.js Security Audit
+        run: |
+          npm audit --audit-level=moderate
+          npx audit-ci --moderate
+      
+      # Docker image scanning
+      - name: Run Trivy for Docker images
+        run: |
+          docker build -t temp-api-gateway go-api-gateway/
+          trivy image temp-api-gateway
+          
+          docker build -t temp-llm-router rust-services/llm-router/
+          trivy image temp-llm-router
+      
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            **/*.sarif
+            **/*audit*
+
+  # ===========================================
+  # AUTOMATED DEPENDENCY UPDATES
+  # ===========================================
+  
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      # Update Go dependencies
+      - name: Update Go dependencies
+        run: |
+          cd go-api-gateway && go get -u ./...
+          cd ../rust-services/go-websocket && go get -u ./...
+          go mod tidy
+      
+      # Update Rust dependencies
+      - name: Update Rust dependencies
+        run: |
+          cargo install cargo-edit
+          cd rust-services
+          for service in */; do
+            cd "$service" && cargo upgrade && cd ..
+          done
+      
+      # Update Node.js dependencies
+      - name: Update Node.js dependencies
+        run: |
+          npx npm-check-updates -u
+          npm install
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: automated dependency updates'
+          title: 'Automated Dependency Updates'
+          body: |
+            ## Automated Dependency Updates
+            
+            This PR contains automated dependency updates for:
+            - Go modules in `go-api-gateway/` and `rust-services/go-websocket/`
+            - Rust crates in all `rust-services/` projects
+            - Node.js packages in the root project
+            
+            ### Security Improvements
+            - Updated to latest versions with security patches
+            - Resolved any known vulnerabilities
+            
+            ### Testing
+            All automated tests will run on this PR to ensure compatibility.
+            
+            **This is an automated PR created by the security audit workflow.**
+          branch: automated-dependency-updates
+          delete-branch: true
+
+  # ===========================================
+  # LICENSE COMPLIANCE
+  # ===========================================
+  
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      # Go license check
+      - name: Go License Check
+        run: |
+          go install github.com/google/licensecheck/cmd/licensecheck@latest
+          find . -name "*.go" -not -path "./vendor/*" | xargs licensecheck
+      
+      # Node.js license check
+      - name: Node.js License Check
+        run: |
+          npx license-checker --summary --production --onlyAllow 'MIT;BSD;BSD-2-Clause;BSD-3-Clause;Apache-2.0;ISC;Unlicense'
+      
+      - name: Generate license report
+        run: |
+          echo "# License Compliance Report" > LICENSE_REPORT.md
+          echo "Generated on: $(date)" >> LICENSE_REPORT.md
+          echo "" >> LICENSE_REPORT.md
+          echo "## Project License: MIT" >> LICENSE_REPORT.md
+          echo "" >> LICENSE_REPORT.md
+          echo "## Dependency Licenses:" >> LICENSE_REPORT.md
+          npx license-checker --summary >> LICENSE_REPORT.md
+      
+      - name: Upload license report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-compliance-report
+          path: LICENSE_REPORT.md

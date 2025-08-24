@@ -1,0 +1,49 @@
+version: '3.8'
+
+# Test Environment for Universal AI Tools
+# Minimal setup for running tests
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: uat-postgres-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: uat_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    networks:
+      - uat-test
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: uat-redis-test
+    ports:
+      - "6380:6379"
+    networks:
+      - uat-test
+
+  neo4j-test:
+    image: neo4j:5-community
+    container_name: uat-neo4j-test
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
+    ports:
+      - "7688:7687"
+      - "7475:7474"
+    volumes:
+      - neo4j-test-data:/data
+    networks:
+      - uat-test
+
+networks:
+  uat-test:
+    driver: bridge
+
+volumes:
+  postgres-test-data:
+  neo4j-test-data:

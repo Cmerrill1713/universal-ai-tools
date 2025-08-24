@@ -1,0 +1,177 @@
+-- Set up Vault for secure API key storage
+
+-- Create function to safely store API keys in vault
+CREATE OR REPLACE FUNCTION store_api_key(
+    key_name TEXT,
+    key_value TEXT,
+    key_description TEXT DEFAULT NULL
+) RETURNS UUID AS $$
+DECLARE
+    secret_id UUID;
+BEGIN
+    -- Check if key already exists
+    SELECT id INTO secret_id 
+    FROM vault.llm_secrets 
+    WHERE name = key_name;
+    
+    IF secret_id IS NOT NULL THEN
+        -- Update existing key
+        UPDATE vault.llm_secrets
+        SET secret = key_value,
+            description = COALESCE(key_description, description),
+            updated_at = NOW()
+        WHERE id = secret_id;
+    ELSE
+        -- Insert new key
+        INSERT INTO vault.llm_secrets (name, secret, description)
+        VALUES (key_name, key_value, key_description)
+        RETURNING id INTO secret_id;
+    END IF;
+    
+    RETURN secret_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create function to retrieve API keys (service role only)
+CREATE OR REPLACE FUNCTION get_api_key(key_name TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    key_value TEXT;
+BEGIN
+    -- Only service role can retrieve keys
+    IF current_user != 'service_role' THEN
+        RAISE EXCEPTION 'Unauthorized access to vault';
+    END IF;
+    
+    SELECT secret INTO key_value
+    FROM vault.llm_secrets
+    WHERE name = key_name;
+    
+    RETURN key_value;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create function to rotate API keys
+CREATE OR REPLACE FUNCTION rotate_api_key(
+    key_name TEXT,
+    new_key_value TEXT
+) RETURNS JSONB AS $$
+DECLARE
+    old_key TEXT;
+    result JSONB;
+BEGIN
+    -- Get old key
+    SELECT secret INTO old_key
+    FROM vault.llm_secrets
+    WHERE name = key_name;
+    
+    -- Update with new key
+    UPDATE vault.llm_secrets
+    SET secret = new_key_value,
+        updated_at = NOW()
+    WHERE name = key_name;
+    
+    -- Log rotation event
+    INSERT INTO analytics_events (event_type, metadata)
+    VALUES ('api_key_rotated', jsonb_build_object(
+        'key_name', key_name,
+        'rotated_at', NOW()
+    ));
+    
+    result := jsonb_build_object(
+        'key_name', key_name,
+        'rotated', true,
+        'timestamp', NOW()
+    );
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Initialize default API keys (these should be updated with real values)
+-- Note: In production, these would be set via environment variables or secure configuration
+DO $$
+BEGIN
+    -- OpenAI keys
+    PERFORM store_api_key('openai_api_key', 'sk-placeholder', 'OpenAI API key for GPT models');
+    PERFORM store_api_key('whisper_api_key', 'sk-placeholder', 'OpenAI Whisper API key');
+    
+    -- Anthropic keys
+    PERFORM store_api_key('anthropic_api_key', 'sk-ant-placeholder', 'Anthropic API key for Claude models');
+    
+    -- ElevenLabs keys
+    PERFORM store_api_key('elevenlabs_api_key', 'xi-placeholder', 'ElevenLabs API key for voice synthesis');
+    
+    -- Local service endpoints
+    PERFORM store_api_key('local_whisper_url', 'http://localhost:8000/transcribe', 'Local Whisper service endpoint');
+    PERFORM store_api_key('local_tts_url', 'http://localhost:8001/synthesize', 'Local TTS service endpoint');
+    PERFORM store_api_key('ollama_endpoint', 'http://localhost:11434', 'Ollama local model endpoint');
+    
+    -- Service tokens
+    PERFORM store_api_key('universal_ai_tools_token', gen_random_uuid()::text, 'Internal service authentication token');
+END $$;
+
+-- Create view for safe key listing (without exposing secrets)
+CREATE OR REPLACE VIEW vault.api_keys_list AS
+SELECT 
+    id,
+    name,
+    description,
+    created_at,
+    updated_at,
+    CASE 
+        WHEN LENGTH(secret) > 0 THEN '••••••••'
+        ELSE 'Not Set'
+    END as status
+FROM vault.llm_secrets;
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION store_api_key TO service_role;
+GRANT EXECUTE ON FUNCTION get_api_key TO service_role;
+GRANT EXECUTE ON FUNCTION rotate_api_key TO service_role;
+GRANT SELECT ON vault.api_keys_list TO authenticated;
+
+-- Create function to check if all required keys are configured
+CREATE OR REPLACE FUNCTION check_api_keys_status()
+RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+    required_keys TEXT[] := ARRAY[
+        'openai_api_key',
+        'whisper_api_key',
+        'anthropic_api_key',
+        'elevenlabs_api_key',
+        'local_whisper_url',
+        'local_tts_url',
+        'ollama_endpoint'
+    ];
+    key_status JSONB := '{}';
+    key TEXT;
+BEGIN
+    FOREACH key IN ARRAY required_keys LOOP
+        key_status := key_status || jsonb_build_object(
+            key,
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 FROM vault.llm_secrets 
+                    WHERE name = key 
+                    AND secret != 'sk-placeholder' 
+                    AND secret != 'xi-placeholder'
+                    AND secret != 'sk-ant-placeholder'
+                ) THEN 'configured'
+                ELSE 'not_configured'
+            END
+        );
+    END LOOP;
+    
+    result := jsonb_build_object(
+        'status', key_status,
+        'all_configured', NOT (key_status::text LIKE '%not_configured%'),
+        'checked_at', NOW()
+    );
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION check_api_keys_status TO authenticated;

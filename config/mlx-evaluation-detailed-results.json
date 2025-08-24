@@ -1,0 +1,51 @@
+{
+  "service_health": {
+    "status": "healthy",
+    "version": "1.0.0",
+    "model_loaded": true,
+    "metal_available": true,
+    "memory_info": {
+      "device_name": "Apple M2 Ultra",
+      "memory_size_gb": 64,
+      "architecture": "applegpu_g14d"
+    },
+    "uptime_seconds": 455.00956988334656
+  },
+  "response_quality": {
+    "overall_accuracy": 28.333333333333332,
+    "category_scores": {
+      "architecture_specific": 0.0,
+      "debugging_advanced": 20.0,
+      "deployment": 60.0,
+      "operations": 20.0,
+      "swift_specific": 60.0
+    },
+    "total_tests": 5
+  },
+  "performance_metrics": {},
+  "training_data_analysis": {
+    "issues": [
+      "Inconsistent prompt formats in training data",
+      "Training/validation format mismatch"
+    ]
+  },
+  "edge_cases": {},
+  "production_readiness": {},
+  "identified_gaps": [
+    "Low accuracy in architecture_specific: 0.0%",
+    "Low accuracy in debugging_advanced: 20.0%",
+    "Low accuracy in operations: 20.0%"
+  ],
+  "improvement_recommendations": [
+    "\ud83c\udfaf Increase training iterations from 40 to 100-200 for better convergence",
+    "\ud83d\udcda Standardize training data format (remove Input: field inconsistency)",
+    "\ud83d\udd04 Add more diverse training examples (currently 25, target 50-100)",
+    "\u26a1 Increase learning rate from 5e-05 to 1e-04 for stronger adaptation",
+    "\ud83d\udcc8 Improve domain-specific training examples",
+    "\u26a1 Implement response caching for common queries",
+    "\ud83d\udcca Add detailed metrics and monitoring",
+    "\ud83d\udd04 Set up automated model retraining pipeline",
+    "\ud83c\udf9b\ufe0f  Add configuration options for different use cases",
+    "\ud83d\ude80 Create Docker containerization for easier deployment"
+  ]
+}

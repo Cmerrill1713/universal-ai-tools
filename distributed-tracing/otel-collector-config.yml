@@ -1,0 +1,172 @@
+# OpenTelemetry Collector Configuration
+# Unified telemetry data collection for Universal AI Tools
+
+receivers:
+  # OTLP receivers for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:*"
+            - "https://localhost:*"
+
+  # Prometheus metrics scraping
+  prometheus:
+    config:
+      scrape_configs:
+        # Only scrape existing/operational services
+        - job_name: 'otel-collector'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['localhost:8888']
+        
+        # Future services (commented out until deployed)
+        # - job_name: 'universal-ai-services'
+        #   scrape_interval: 15s
+        #   static_configs:
+        #     - targets: 
+        #         - 'llm-router:9001'
+        #         - 'agent-registry:9002'
+        #         - 'websocket-service:9003'
+        #         - 'analytics-service:9004'
+        #         - 'intelligent-load-balancer:9090'
+
+  # Jaeger receiver for legacy spans
+  jaeger:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:14250
+      thrift_http:
+        endpoint: 0.0.0.0:14268
+      thrift_compact:
+        endpoint: 0.0.0.0:6831
+      thrift_binary:
+        endpoint: 0.0.0.0:6832
+
+  # Zipkin receiver
+  zipkin:
+    endpoint: 0.0.0.0:9411
+
+processors:
+  # Batch processor for efficient data handling
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 256
+    spike_limit_mib: 64
+    check_interval: 5s
+
+  # Resource processor to add service metadata
+  resource:
+    attributes:
+      - key: service.namespace
+        value: "universal-ai-tools"
+        action: upsert
+      - key: deployment.environment
+        value: "production"
+        action: upsert
+
+  # Probabilistic sampler for high-volume environments
+  probabilistic_sampler:
+    hash_seed: 22
+    sampling_percentage: 25  # 25% for production efficiency, 100% for development
+
+  # Span processor for custom span modifications
+  span:
+    name:
+      to_attributes:
+        rules:
+          - "^(GET|POST|PUT|DELETE)\\s(.+)$"
+
+  # Attributes processor for adding custom attributes
+  attributes:
+    actions:
+      - key: universal_ai.version
+        value: "1.0.0"
+        action: upsert
+      - key: universal_ai.component
+        from_attribute: service.name
+        action: upsert
+
+exporters:
+  # OTLP exporter for Jaeger via OTLP receiver
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Zipkin exporter (alternative)
+  zipkin:
+    endpoint: "http://zipkin:9411/api/v2/spans"
+
+  # Tempo exporter for high-scale tracing
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Prometheus exporter for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: universal_ai
+    const_labels:
+      environment: production
+
+  # Logging exporter for debugging
+  logging:
+    loglevel: info
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+  # File exporter for backup
+  file:
+    path: ./traces.json
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # Performance profiler
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # Memory ballast for stability
+  memory_ballast:
+    size_mib: 64
+
+service:
+  extensions: [health_check, pprof, memory_ballast]
+  
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp, jaeger, zipkin]
+      processors: [memory_limiter, resource, batch, probabilistic_sampler, span, attributes]
+      exporters: [otlp/jaeger, zipkin, logging]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus, logging]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [logging]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888

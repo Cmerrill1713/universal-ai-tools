@@ -1,0 +1,91 @@
+[workspace]
+members = [
+    "ai-engine",
+    "graphrag-core", 
+    "memory-optimizer",
+    "grpc-server",
+    "shared"
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Universal AI Tools Team"]
+license = "MIT"
+repository = "https://github.com/universal-ai-tools/rust-ai-core"
+
+[workspace.dependencies]
+# Async runtime and utilities
+tokio = { version = "1.35", features = ["full"] }
+tokio-stream = "0.1"
+futures = "0.3"
+
+# HTTP and gRPC
+axum = { version = "0.7", features = ["macros", "tracing"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+tonic = { version = "0.10", features = ["gzip", "tls"] }
+prost = "0.12"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+redis = { version = "0.24", features = ["tokio-comp"] }
+neo4rs = "0.7"
+
+# AI/ML
+candle-core = "0.3"
+candle-nn = "0.3"
+candle-transformers = "0.3"
+hf-hub = "0.3"
+tokenizers = "0.15"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+opentelemetry = { version = "0.21", features = ["rt-tokio"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Utilities
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+url = "2.5"
+regex = "1.10"
+rayon = "1.8"
+
+# Configuration
+config = "0.14"
+clap = { version = "4.4", features = ["derive"] }
+
+# Security
+jsonwebtoken = "9.2"
+bcrypt = "0.15"
+
+# Memory management
+mimalloc = "0.1"
+
+# Testing
+mockall = "0.12"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"

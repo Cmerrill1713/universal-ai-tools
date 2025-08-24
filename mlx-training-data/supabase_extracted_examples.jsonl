@@ -1,0 +1,32 @@
+{"instruction": "How do you fix 'Swift 6.0 strict concurrency - sending non-Sendable data across actor boundaries'?", "input": "error:.*Sending.*actor-isolated.*non-sendable", "output": "Mark the type as Sendable or use @MainActor isolation"}
+{"instruction": "How do you fix 'Swift 6.0 data race detection'?", "input": "error:.*Data race.*accessing.*from different actor", "output": "Use proper actor isolation or @MainActor annotation"}
+{"instruction": "How do you fix 'Sendable requirement not met in concurrency context'?", "input": "error:.*Cannot convert value.*sendable requirement", "output": "Conform the type to Sendable protocol"}
+{"instruction": "How do you fix 'Potentially unsafe actor-isolated reference formation'?", "input": "warning:.*Forming.*unsafe.*actor-isolated", "output": "Review actor isolation boundaries and data access patterns"}
+{"instruction": "How do you fix 'Async call in non-async context'?", "input": "error:.*async.*function.*not supported", "output": "Mark the function as async or use Task for async operations"}
+{"instruction": "How do you fix 'Using await in non-async context'?", "input": "error:.*await.*non-async.*context", "output": "Use await only in async functions or Task blocks"}
+{"instruction": "How do you fix 'SwiftUI View protocol body requirement'?", "input": "error:.*View.*body.*computed property", "output": "Implement the body computed property returning some View"}
+{"instruction": "How do you fix 'Type mismatch with SwiftUI View protocol'?", "input": "error:.*Cannot convert.*View.*protocol", "output": "Ensure the return type conforms to View protocol"}
+{"instruction": "How do you fix 'Incorrect @State usage outside of View'?", "input": "warning:.*State.*property.*not.*View", "output": "Use @State only within SwiftUI View structs"}
+{"instruction": "How do you fix 'Missing environment key definition'?", "input": "error:.*Environment.*key.*path.*not found", "output": "Define the environment key or check the key path"}
+{"instruction": "How do you handle UI element has negative width or height?", "input": "layout", "output": "Check frame calculations and constraints"}
+{"instruction": "How do you handle Conflicting Auto Layout constraints detected?", "input": "layout", "output": "Review constraint priorities and remove conflicting constraints"}
+{"instruction": "How do you handle View content is being clipped?", "input": "layout", "output": "Increase view size or enable scroll view"}
+{"instruction": "How do you handle Memory usage warning in UI rendering?", "input": "performance", "output": "Optimize image loading and view hierarchy"}
+{"instruction": "How do you fix 'this error'?", "input": "error:.*Cannot find.*in scope", "output": "Import the missing module or check variable name spelling"}
+{"instruction": "How do you fix 'this error'?", "input": "error:.*Use of undeclared identifier", "output": "Declare the identifier or check for typos"}
+{"instruction": "How do you fix 'this error'?", "input": "error:.*Type.*does not conform to protocol", "output": "Implement the required protocol methods"}
+{"instruction": "How do you fix 'this error'?", "input": "warning:.*is deprecated", "output": "Use the recommended replacement API"}
+{"instruction": "How do you handle View has negative width or height?", "input": "", "output": "Check frame calculations and constraints"}
+{"instruction": "How do you handle Auto Layout constraint conflicts detected?", "input": "", "output": "Review constraint priorities and remove conflicting constraints"}
+{"instruction": "How do you fix 'Swift 6.0 strict concurrency - sending non-Sendable data across actor boundaries'?", "input": "error:.*Sending.*actor-isolated.*non-sendable", "output": "Mark the type as Sendable or use @MainActor isolation"}
+{"instruction": "How do you fix 'Swift 6.0 data race detection'?", "input": "error:.*Data race.*accessing.*from different actor", "output": "Use proper actor isolation or @MainActor annotation"}
+{"instruction": "How do you fix 'Sendable requirement not met in concurrency context'?", "input": "error:.*Cannot convert value.*sendable requirement", "output": "Conform the type to Sendable protocol"}
+{"instruction": "How do you fix 'Potentially unsafe actor-isolated reference formation'?", "input": "warning:.*Forming.*unsafe.*actor-isolated", "output": "Review actor isolation boundaries and data access patterns"}
+{"instruction": "How do you fix 'Async call in non-async context'?", "input": "error:.*async.*function.*not supported", "output": "Mark the function as async or use Task for async operations"}
+{"instruction": "How do you fix 'Using await in non-async context'?", "input": "error:.*await.*non-async.*context", "output": "Use await only in async functions or Task blocks"}
+{"instruction": "How do you fix 'SwiftUI View protocol body requirement'?", "input": "error:.*View.*body.*computed property", "output": "Implement the body computed property returning some View"}
+{"instruction": "How do you fix 'Type mismatch with SwiftUI View protocol'?", "input": "error:.*Cannot convert.*View.*protocol", "output": "Ensure the return type conforms to View protocol"}
+{"instruction": "How do you fix 'Variable or function not declared in scope'?", "input": "error:.*Use of undeclared identifier", "output": "Declare the identifier or check for typos"}
+{"instruction": "How do you fix 'Module or identifier not found in current scope'?", "input": "error:.*Cannot find.*in scope", "output": "Import the missing module or check variable name spelling"}
+{"instruction": "How do you handle UI element has negative width or height?", "input": "layout", "output": "Check frame calculations and constraints"}
+{"instruction": "What is Universal AI Tools - UI Development Complete?", "input": "", "output": "{'title': 'Universal AI Tools - UI Development Complete', 'timestamp': '2025-08-22T01:34:33.530Z', 'phase': 'Phase 4: UI/Frontend Pages Development', 'status': 'COMPLETED', 'completedPages': {'dashboard': {'file': 'ContentView.swift (DashboardView)', 'features': ['System status cards', 'Quick actions grid', 'Connection indicators', 'Performance metrics'], 'status': 'COMPLETE'}, 'enhancedChat': {'file': 'ContentView.swift (EnhancedChatView)', 'features': ['AI chat interface', 'Voice input/output'"}

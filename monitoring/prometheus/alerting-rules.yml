@@ -1,0 +1,469 @@
+groups:
+  # System-level alerts
+  - name: system-alerts
+    rules:
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (memory_usage_bytes{type="rss"} / 1024 / 1024 / 1024) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+          category: performance
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}GB, which is above the 2GB threshold"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/high-memory"
+          action_required: "Check for memory leaks and consider scaling"
+
+      # Critical memory usage
+      - alert: CriticalMemoryUsage
+        expr: (memory_usage_bytes{type="rss"} / 1024 / 1024 / 1024) > 4
+        for: 2m
+        labels:
+          severity: critical
+          service: system
+          category: performance
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is {{ $value }}GB, which is critically high"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/critical-memory"
+          action_required: "Immediate intervention required - restart service or scale up"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+          category: performance
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}%, which is above the 80% threshold for 10 minutes"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/high-cpu"
+
+      # Critical CPU usage
+      - alert: CriticalCPUUsage
+        expr: cpu_usage_percent > 95
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+          category: performance
+        annotations:
+          summary: "Critical CPU usage detected"
+          description: "CPU usage is {{ $value }}%, which is critically high"
+          action_required: "Check for runaway processes or scale up immediately"
+
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: disk_usage_bytes{type="percentage"} > 85
+        for: 15m
+        labels:
+          severity: warning
+          service: system
+          category: capacity
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk usage is {{ $value }}%, which is above the 85% threshold"
+          action_required: "Clean up old files or expand disk space"
+
+      # Disk space critical
+      - alert: DiskSpaceCritical
+        expr: disk_usage_bytes{type="percentage"} > 95
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+          category: capacity
+        annotations:
+          summary: "Disk space critically low"
+          description: "Disk usage is {{ $value }}%, system may become unresponsive"
+          action_required: "Immediate cleanup required or service may fail"
+
+  # Application performance alerts
+  - name: application-performance
+    rules:
+      # High response time
+      - alert: ResponseTimeHigh
+        expr: http_request_duration_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.ai_service }}"
+          category: performance
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for service {{ $labels.ai_service }}"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/high-response-time"
+
+      # Very high response time
+      - alert: ResponseTimeCritical
+        expr: http_request_duration_seconds{quantile="0.95"} > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.ai_service }}"
+          category: performance
+        annotations:
+          summary: "Critical response time detected"
+          description: "95th percentile response time is {{ $value }}s for service {{ $labels.ai_service }}"
+          action_required: "Investigate performance bottlenecks immediately"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.ai_service }}"
+          category: reliability
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }}% for service {{ $labels.ai_service }}"
+          current_value: "{{ $value }}%"
+          threshold: "5%"
+
+      # Critical error rate
+      - alert: CriticalErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 15
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.ai_service }}"
+          category: reliability
+        annotations:
+          summary: "Critical error rate detected"
+          description: "Error rate is {{ $value }}% for service {{ $labels.ai_service }}"
+          action_required: "Investigate and fix errors immediately"
+
+      # Low throughput
+      - alert: LowThroughput
+        expr: rate(http_requests_total[5m]) < 1
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.ai_service }}"
+          category: availability
+        annotations:
+          summary: "Low throughput detected"
+          description: "Request rate is {{ $value }} requests/second for service {{ $labels.ai_service }}"
+
+  # Sweet Athena specific alerts
+  - name: sweet-athena-alerts
+    rules:
+      # High Athena response time
+      - alert: AthenaResponseTimeHigh
+        expr: athena_response_time_seconds{quantile="0.95"} > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: sweet-athena
+          category: performance
+          personality_mood: "{{ $labels.personality_mood }}"
+        annotations:
+          summary: "Sweet Athena response time high"
+          description: "Athena 95th percentile response time is {{ $value }}s for mood {{ $labels.personality_mood }}"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/athena-performance"
+
+      # Athena interaction failures
+      - alert: AthenaInteractionFailures
+        expr: rate(athena_interactions_total{status="error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: high
+          service: sweet-athena
+          category: reliability
+        annotations:
+          summary: "Sweet Athena interaction failures detected"
+          description: "Athena interaction failure rate is {{ $value }} failures/second"
+          action_required: "Check AI model availability and configuration"
+
+      # Low Athena satisfaction score
+      - alert: LowAthenaSatisfaction
+        expr: avg_over_time(athena_user_satisfaction[15m]) < 6
+        for: 10m
+        labels:
+          severity: warning
+          service: sweet-athena
+          category: quality
+        annotations:
+          summary: "Low Sweet Athena user satisfaction"
+          description: "Average Athena satisfaction score is {{ $value }} over the last 15 minutes"
+          action_required: "Review personality configuration and user feedback"
+
+      # Athena avatar performance issues
+      - alert: AthenaAvatarPerformance
+        expr: athena_avatar_render_time_ms{quantile="0.95"} > 200
+        for: 5m
+        labels:
+          severity: warning
+          service: sweet-athena
+          category: performance
+        annotations:
+          summary: "Sweet Athena avatar rendering slow"
+          description: "Avatar render time is {{ $value }}ms, affecting user experience"
+
+  # Database performance alerts
+  - name: database-alerts
+    rules:
+      # Slow database queries
+      - alert: SlowDatabaseQueries
+        expr: database_query_duration_seconds{quantile="0.95"} > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+          category: performance
+          query_type: "{{ $labels.operation }}"
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time is {{ $value }}s for {{ $labels.operation }} operations on {{ $labels.table }}"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/slow-queries"
+
+      # Database connection issues
+      - alert: DatabaseConnectionFailed
+        expr: database_connections_active == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+          category: availability
+        annotations:
+          summary: "Database connection failed"
+          description: "No active database connections detected"
+          action_required: "Check database service status and connection configuration"
+
+      # High database connection usage
+      - alert: HighDatabaseConnections
+        expr: database_connections_active / database_connections_max * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+          category: capacity
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value }}%"
+          action_required: "Consider increasing connection pool size or optimizing queries"
+
+      # Database errors
+      - alert: DatabaseErrors
+        expr: rate(database_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: high
+          service: database
+          category: reliability
+        annotations:
+          summary: "Database errors detected"
+          description: "Database error rate is {{ $value }} errors/second"
+          action_required: "Check database logs and fix underlying issues"
+
+  # AI service alerts
+  - name: ai-service-alerts
+    rules:
+      # Ollama service down
+      - alert: OllamaDown
+        expr: up{job="ollama"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ollama
+          category: availability
+        annotations:
+          summary: "Ollama service is down"
+          description: "Ollama AI service is not responding"
+          action_required: "Restart Ollama service and check configuration"
+
+      # High AI inference time
+      - alert: SlowInference
+        expr: ai_model_inference_time_seconds{quantile="0.95"} > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.model_type }}"
+          category: performance
+          model_name: "{{ $labels.model_name }}"
+        annotations:
+          summary: "Slow AI inference detected"
+          description: "AI inference time is {{ $value }}s for model {{ $labels.model_name }}"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/slow-inference"
+
+      # High GPU usage
+      - alert: HighGPUUsage
+        expr: ai_model_gpu_utilization_percent > 90
+        for: 10m
+        labels:
+          severity: warning
+          service: ai
+          category: performance
+        annotations:
+          summary: "High GPU utilization"
+          description: "GPU utilization is {{ $value }}% for GPU {{ $labels.gpu_id }}"
+
+      # AI model memory usage high
+      - alert: HighAIMemoryUsage
+        expr: ai_model_memory_usage_bytes / 1024 / 1024 / 1024 > 8
+        for: 5m
+        labels:
+          severity: warning
+          service: ai
+          category: performance
+          model_name: "{{ $labels.model_name }}"
+        annotations:
+          summary: "High AI model memory usage"
+          description: "AI model {{ $labels.model_name }} is using {{ $value }}GB of memory"
+
+  # Memory system alerts
+  - name: memory-system-alerts
+    rules:
+      # Memory operation failures
+      - alert: MemoryOperationFailures
+        expr: rate(memory_operations_total{status="error"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: high
+          service: memory
+          category: reliability
+        annotations:
+          summary: "Memory operation failures detected"
+          description: "Memory operation failure rate is {{ $value }} failures/second"
+          action_required: "Check memory service and database connectivity"
+
+      # Slow memory queries
+      - alert: SlowMemoryQueries
+        expr: memory_query_time_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: memory
+          category: performance
+        annotations:
+          summary: "Slow memory queries detected"
+          description: "Memory query time is {{ $value }}s for {{ $labels.memory_type }} operations"
+
+      # Low memory search accuracy
+      - alert: LowMemorySearchAccuracy
+        expr: avg_over_time(memory_search_accuracy[10m]) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          service: memory
+          category: quality
+        annotations:
+          summary: "Low memory search accuracy"
+          description: "Memory search accuracy is {{ $value }}, below 70% threshold"
+          action_required: "Review memory embeddings and search algorithms"
+
+  # Security alerts
+  - name: security-alerts
+    rules:
+      # High authentication failures
+      - alert: HighAuthFailures
+        expr: rate(authentication_attempts_total{status="failed"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: high
+          service: security
+          category: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }} failures/second"
+          action_required: "Investigate potential brute force attack"
+
+      # Rate limiting triggered
+      - alert: RateLimitingTriggered
+        expr: rate(rate_limit_hits_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: security
+          category: security
+        annotations:
+          summary: "Rate limiting frequently triggered"
+          description: "Rate limit hits: {{ $value }} hits/second for endpoint {{ $labels.endpoint }}"
+
+      # Suspicious activity detected
+      - alert: SuspiciousActivity
+        expr: rate(security_events_total{event_type="suspicious"}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+          category: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "Suspicious security events: {{ $value }} events/second from {{ $labels.source_ip }}"
+          action_required: "Investigate immediately and consider blocking source"
+
+  # Test and development alerts
+  - name: test-alerts
+    rules:
+      # High test failure rate
+      - alert: HighTestFailureRate
+        expr: rate(test_executions_total{status="failed"}[10m]) / rate(test_executions_total[10m]) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: testing
+          category: quality
+        annotations:
+          summary: "High test failure rate"
+          description: "Test failure rate is {{ $value }}% for suite {{ $labels.test_suite }}"
+          action_required: "Review failed tests and fix issues"
+
+      # Test coverage drop
+      - alert: LowTestCoverage
+        expr: test_coverage_percent < 70
+        for: 1m
+        labels:
+          severity: warning
+          service: testing
+          category: quality
+        annotations:
+          summary: "Test coverage below threshold"
+          description: "Test coverage is {{ $value }}% for {{ $labels.coverage_type }} in {{ $labels.component }}"
+
+  # Service availability alerts
+  - name: service-availability
+    rules:
+      # Service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          category: availability
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.job }} on instance {{ $labels.instance }} is not responding"
+          action_required: "Check service status and restart if necessary"
+
+      # Service health check failing
+      - alert: ServiceHealthCheckFailing
+        expr: system_health_score < 70
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.component }}"
+          category: health
+        annotations:
+          summary: "Service health check failing"
+          description: "Health score is {{ $value }} for component {{ $labels.component }}"
+          runbook_url: "https://docs.universal-ai-tools.local/runbooks/health-check"
+
+      # Service health critical
+      - alert: ServiceHealthCritical
+        expr: system_health_score < 50
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.component }}"
+          category: health
+        annotations:
+          summary: "Service health critical"
+          description: "Health score is critically low at {{ $value }} for component {{ $labels.component }}"
+          action_required: "Immediate investigation and remediation required"

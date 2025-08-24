@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grafana Quick Links</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 { color: #f46800; }
+        .links { list-style: none; padding: 0; }
+        .links li { margin: 10px 0; }
+        .links a { 
+            display: block; 
+            padding: 15px; 
+            background: #f0f0f0; 
+            text-decoration: none; 
+            color: #333;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .links a:hover { background: #e0e0e0; }
+        .creds { 
+            background: #fff3cd; 
+            padding: 15px; 
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Grafana Quick Access</h1>
+        <div class="creds">
+            <strong>Login Credentials:</strong><br>
+            Username: <code>admin</code><br>
+            Password: <code>admin123</code>
+        </div>
+        <ul class="links">
+            <li><a href="http://localhost:3000">🏠 Grafana Home</a></li>
+            <li><a href="http://localhost:3000/d/universal-ai-overview">📊 Universal AI Dashboard</a></li>
+            <li><a href="http://localhost:3000/explore">🔍 Explore Traces</a></li>
+            <li><a href="http://localhost:3000/datasources">🔌 Data Sources</a></li>
+            <li><a href="http://localhost:16686">🔬 Jaeger UI</a></li>
+            <li><a href="http://localhost:9090">📈 Prometheus</a></li>
+            <li><a href="http://localhost:6333/dashboard">💾 Qdrant Dashboard</a></li>
+        </ul>
+    </div>
+</body>
+</html>

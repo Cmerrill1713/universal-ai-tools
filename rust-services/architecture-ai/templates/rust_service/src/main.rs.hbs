@@ -1,0 +1,56 @@
+use axum::{
+    response::Json,
+    routing::get,
+    Router,
+};
+use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
+use tracing::{info, error};
+
+mod config;
+use config::Config;
+
+#[derive(Serialize, Deserialize)]
+struct HealthResponse {
+    status: String,
+    service: String,
+    version: String,
+    timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // Initialize tracing
+    tracing_subscriber::fmt()
+        .with_env_filter("{{service_name}}=debug")
+        .init();
+
+    info!("🚀 Starting {{service_name}}");
+
+    // Load configuration
+    let config = Config::from_env()?;
+    
+    // Build application routes
+    let app = Router::new()
+        .route("/health", get(health_check));
+
+    // Start server
+    let addr = SocketAddr::from(([0, 0, 0, 0], {{port}}));
+    let listener = TcpListener::bind(&addr).await?;
+    
+    info!("🚀 {{service_name}} listening on port {{port}}");
+
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
+
+async fn health_check() -> Json<HealthResponse> {
+    Json(HealthResponse {
+        status: "healthy".to_string(),
+        service: "{{service_name}}".to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        timestamp: chrono::Utc::now(),
+    })
+}

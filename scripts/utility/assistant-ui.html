@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant - Task Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        #taskInput {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #taskInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #executeBtn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #executeBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #executeBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .quick-action {
+            padding: 10px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .quick-action:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Task Window Modal */
+        .task-window {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+        }
+
+        .task-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+
+        .task-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .task-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .task-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .task-steps {
+            list-style: none;
+        }
+
+        .task-step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .step-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .step-icon.pending {
+            background: #f0f0f0;
+            color: #999;
+        }
+
+        .step-icon.in-progress {
+            background: #ffa726;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .step-icon.completed {
+            background: #66bb6a;
+            color: white;
+        }
+
+        .step-icon.error {
+            background: #ef5350;
+            color: white;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .step-detail {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(5px);
+        }
+
+        .result-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1>
+            <span>🤖</span>
+            <span>AI Assistant</span>
+        </h1>
+        <p class="subtitle">Autonomous agent that can execute any task</p>
+
+        <div class="input-section">
+            <input 
+                type="text" 
+                id="taskInput" 
+                placeholder="What would you like me to do? (e.g., 'Add meeting to calendar at 3pm', 'Optimize database', 'Create a Python script')"
+                onkeypress="if(event.key === 'Enter') executeTask()"
+            >
+            <button id="executeBtn" onclick="executeTask()">Execute Task</button>
+        </div>
+
+        <div class="quick-actions">
+            <div class="quick-action" onclick="setTask('optimize supabase database')">
+                🗄️ Optimize Database
+            </div>
+            <div class="quick-action" onclick="setTask('add meeting to calendar at 3pm tomorrow')">
+                📅 Schedule Meeting
+            </div>
+            <div class="quick-action" onclick="setTask('create reminder to review project')">
+                ✅ Create Reminder
+            </div>
+            <div class="quick-action" onclick="setTask('create Python data analysis script')">
+                🐍 Create Python Script
+            </div>
+            <div class="quick-action" onclick="setTask('show system statistics')">
+                📊 Show Statistics
+            </div>
+            <div class="quick-action" onclick="setTask('create React todo app')">
+                ⚛️ Create React App
+            </div>
+        </div>
+
+        <div id="resultSection" class="result-section"></div>
+    </div>
+
+    <!-- Task Window Modal -->
+    <div class="overlay" id="overlay"></div>
+    <div class="task-window" id="taskWindow">
+        <div class="task-header">
+            <div class="task-title" id="taskTitle">Executing Task</div>
+            <div class="task-subtitle" id="taskSubtitle">Processing your request...</div>
+            <button class="close-btn" onclick="closeTaskWindow()">✕</button>
+        </div>
+        <div class="task-body">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+            </div>
+            <ul class="task-steps" id="taskSteps"></ul>
+        </div>
+    </div>
+
+    <script>
+        let currentTaskId = null;
+        let taskSteps = [];
+        let currentStepIndex = 0;
+
+        function setTask(task) {
+            document.getElementById('taskInput').value = task;
+        }
+
+        // Removed showTaskWindow and analyzeTask - now handled by backend
+
+        function addTaskStep(title, detail, status, index) {
+            const stepHtml = `
+                <li class="task-step" style="animation-delay: ${index * 0.1}s">
+                    <div class="step-icon ${status}" id="step-icon-${index}">
+                        ${status === 'completed' ? '✓' : status === 'error' ? '✕' : status === 'in-progress' ? '<div class="loader" style="width: 12px; height: 12px; border-width: 2px;"></div>' : (index + 1)}
+                    </div>
+                    <div class="step-content">
+                        <div class="step-title">${title}</div>
+                        <div class="step-detail" id="step-detail-${index}">${detail}</div>
+                    </div>
+                </li>
+            `;
+            document.getElementById('taskSteps').innerHTML += stepHtml;
+        }
+
+        function updateTaskStep(index, status, detail = null) {
+            const icon = document.getElementById(`step-icon-${index}`);
+            if (icon) {
+                icon.className = `step-icon ${status}`;
+                if (status === 'completed') {
+                    icon.innerHTML = '✓';
+                } else if (status === 'error') {
+                    icon.innerHTML = '✕';
+                } else if (status === 'in-progress') {
+                    icon.innerHTML = '<div class="loader" style="width: 12px; height: 12px; border-width: 2px;"></div>';
+                } else {
+                    icon.innerHTML = (index + 1).toString();
+                }
+            }
+            
+            if (detail) {
+                const detailEl = document.getElementById(`step-detail-${index}`);
+                if (detailEl) {
+                    detailEl.textContent = detail;
+                }
+            }
+        }
+
+        // Removed processNextStep - now handled by polling real backend status
+
+        function closeTaskWindow() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('taskWindow').style.display = 'none';
+        }
+
+        async function executeTask() {
+            const task = document.getElementById('taskInput').value.trim();
+            if (!task) {
+                alert('Please enter a task');
+                return;
+            }
+            
+            const executeBtn = document.getElementById('executeBtn');
+            executeBtn.disabled = true;
+            executeBtn.innerHTML = 'Processing... <div class="loader"></div>';
+            
+            // Clear any previous steps
+            taskSteps = [];
+            currentStepIndex = 0;
+            document.getElementById('taskSteps').innerHTML = '';
+            document.getElementById('progressBar').style.width = '0%';
+            
+            // Show task window
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('taskWindow').style.display = 'block';
+            document.getElementById('taskTitle').textContent = 'Executing Task';
+            document.getElementById('taskSubtitle').textContent = task;
+            
+            try {
+                // Call the backend to execute the task
+                const response = await fetch('http://localhost:5555/api/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        command: task
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.task_id) {
+                    currentTaskId = data.task_id;
+                    // Start polling for status
+                    pollTaskStatus();
+                } else if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                closeTaskWindow();
+                showResult('error', `Error: ${error.message}`);
+                executeBtn.disabled = false;
+                executeBtn.innerHTML = 'Execute Task';
+            }
+        }
+        
+        async function pollTaskStatus() {
+            if (!currentTaskId) return;
+            
+            try {
+                const response = await fetch(`http://localhost:5555/api/status/${currentTaskId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Update steps display
+                if (data.steps && data.steps.length > 0) {
+                    // Clear and redraw steps
+                    document.getElementById('taskSteps').innerHTML = '';
+                    data.steps.forEach((step, index) => {
+                        addTaskStep(step.title, step.status === 'completed' ? '✓ Complete' : 
+                                   step.status === 'in-progress' ? 'Processing...' : 'Pending', 
+                                   step.status, index);
+                    });
+                    
+                    // Update progress bar
+                    const completedSteps = data.steps.filter(s => s.status === 'completed').length;
+                    const progress = (completedSteps / data.steps.length) * 100;
+                    document.getElementById('progressBar').style.width = `${progress}%`;
+                }
+                
+                // Check if task is complete
+                if (data.status === 'completed') {
+                    if (data.result) {
+                        // Add final result step
+                        addTaskStep('Task Completed', data.result.substring(0, 100), 'completed', data.steps.length);
+                    }
+                    setTimeout(() => {
+                        closeTaskWindow();
+                        showResult('success', data.result || 'Task completed successfully!');
+                    }, 1500);
+                    document.getElementById('executeBtn').disabled = false;
+                    document.getElementById('executeBtn').innerHTML = 'Execute Task';
+                    currentTaskId = null;
+                } else if (data.status === 'error') {
+                    closeTaskWindow();
+                    showResult('error', data.error || 'Task failed');
+                    document.getElementById('executeBtn').disabled = false;
+                    document.getElementById('executeBtn').innerHTML = 'Execute Task';
+                    currentTaskId = null;
+                } else {
+                    // Continue polling
+                    setTimeout(pollTaskStatus, 500);
+                }
+                
+            } catch (error) {
+                closeTaskWindow();
+                showResult('error', `Error checking status: ${error.message}`);
+                document.getElementById('executeBtn').disabled = false;
+                document.getElementById('executeBtn').innerHTML = 'Execute Task';
+                currentTaskId = null;
+            }
+        }
+
+        function showResult(type, message) {
+            const resultSection = document.getElementById('resultSection');
+            resultSection.className = `result-section result-${type}`;
+            resultSection.style.display = 'block';
+            resultSection.innerHTML = `
+                <strong>${type === 'success' ? '✅ Success' : '❌ Error'}:</strong> ${message}
+            `;
+            
+            // Hide result after 5 seconds
+            setTimeout(() => {
+                resultSection.style.display = 'none';
+            }, 5000);
+        }
+
+        // Allow pressing Enter to execute
+        document.getElementById('taskInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                executeTask();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+{
+  "benchmark_summary": {
+    "timestamp": "2025-08-22 09:37:12",
+    "mlx_service_url": "http://localhost:8005",
+    "test_environment": {
+      "device": "Apple M2 Ultra",
+      "mlx_available": true,
+      "device_info": {
+        "resource_limit": 499000,
+        "max_buffer_length": 38654705664,
+        "architecture": "applegpu_g14d",
+        "memory_size": 68719476736,
+        "max_recommended_working_set_size": 51539607552,
+        "device_name": "Apple M2 Ultra"
+      }
+    }
+  },
+  "service_availability": {
+    "service_reachable": true,
+    "health_check": true,
+    "api_documentation": true,
+    "response_time_ms": 3.92913818359375
+  },
+  "baseline_load_time": 1.1186668872833252,
+  "performance_comparison": {
+    "baseline_results": [
+      {
+        "question": "How do you debug a Rust service that won't start?",
+        "response_length": 441,
+        "inference_time": 1.4546186923980713,
+        "tokens_per_second": 58.434557760198835
+      },
+      {
+        "question": "Describe the Universal AI Tools system architecture",
+        "response_length": 551,
+        "inference_time": 0.8837258815765381,
+        "tokens_per_second": 85.99951815875131
+      },
+      {
+        "question": "What causes Service Unavailable errors?",
+        "response_length": 481,
+        "inference_time": 0.865668773651123,
+        "tokens_per_second": 101.65550921843146
+      },
+      {
+        "question": "How do you optimize Rust service performance?",
+        "response_length": 529,
+        "inference_time": 0.8717422485351562,
+        "tokens_per_second": 88.32886111621639
+      },
+      {
+        "question": "What are modern SwiftUI patterns for macOS 15?",
+        "response_length": 437,
+        "inference_time": 0.8795139789581299,
+        "tokens_per_second": 86.41136106788139
+      }
+    ],
+    "service_results": [
+      {
+        "question": "How do you debug a Rust service that won't start?",
+        "response_length": 429,
+        "inference_time": 1.0749969482421875,
+        "tokens_per_second": 71.62811031780954,
+        "total_tokens": 89
+      },
+      {
+        "question": "Describe the Universal AI Tools system architecture",
+        "response_length": 490,
+        "inference_time": 0.8865962028503418,
+        "tokens_per_second": 90.23273474757265,
+        "total_tokens": 89
+      },
+      {
+        "question": "What causes Service Unavailable errors?",
+        "response_length": 518,
+        "inference_time": 0.8884129524230957,
+        "tokens_per_second": 95.67622778142456,
+        "total_tokens": 92
+      },
+      {
+        "question": "How do you optimize Rust service performance?",
+        "response_length": 468,
+        "inference_time": 0.8869729042053223,
+        "tokens_per_second": 85.68469187690881,
+        "total_tokens": 85
+      },
+      {
+        "question": "What are modern SwiftUI patterns for macOS 15?",
+        "response_length": 469,
+        "inference_time": 0.9633040428161621,
+        "tokens_per_second": 69.55228777420001,
+        "total_tokens": 77
+      }
+    ],
+    "comparison": {
+      "baseline_avg_time": 0.9910539150238037,
+      "service_avg_time": 0.9400566101074219,
+      "baseline_median_time": 0.8795139789581299,
+      "service_median_time": 0.8884129524230957,
+      "service_overhead": -0.05099730491638177,
+      "service_faster": true
+    }
+  },
+  "stress_test_results": {
+    "1": {
+      "total_requests": 1,
+      "successful_requests": 1,
+      "failed_requests": 0,
+      "total_time": 0.4720010757446289,
+      "avg_response_time": 0.4716639518737793,
+      "requests_per_second": 2.1186392391635973,
+      "success_rate": 100.0
+    },
+    "5": {
+      "total_requests": 5,
+      "successful_requests": 5,
+      "failed_requests": 0,
+      "total_time": 2.5948469638824463,
+      "avg_response_time": 1.6526672840118408,
+      "requests_per_second": 1.9268959093136384,
+      "success_rate": 100.0
+    },
+    "10": {
+      "total_requests": 10,
+      "successful_requests": 10,
+      "failed_requests": 0,
+      "total_time": 4.897180795669556,
+      "avg_response_time": 2.775092363357544,
+      "requests_per_second": 2.041991181710655,
+      "success_rate": 100.0
+    },
+    "20": {
+      "total_requests": 20,
+      "successful_requests": 20,
+      "failed_requests": 0,
+      "total_time": 9.62756085395813,
+      "avg_response_time": 5.149733173847198,
+      "requests_per_second": 2.077369367317736,
+      "success_rate": 100.0
+    }
+  },
+  "domain_accuracy": {
+    "overall_accuracy": 0.0,
+    "total_tests": 5,
+    "category_results": [
+      {
+        "category": "architecture",
+        "question": "What are the core services in Universal AI Tools?",
+        "keywords_found": 0,
+        "total_keywords": 5,
+        "accuracy_score": 0.0,
+        "weighted_score": 0.0,
+        "response_preview": "i don't have information on universal ai tools. can i help you with something else? \n\nhowever, i can tell you about the core services in some popular ai platforms like google cloud ai platform, micros..."
+      },
+      {
+        "category": "performance",
+        "question": "What performance improvements were achieved in the hybrid architecture?",
+        "keywords_found": 0,
+        "total_keywords": 6,
+        "accuracy_score": 0.0,
+        "weighted_score": 0.0,
+        "response_preview": "the hybrid architecture achieved a 2.5x improvement in performance compared to the original architecture, and a 1.5x improvement compared to the previous architecture. this was achieved through the us..."
+      },
+      {
+        "category": "debugging",
+        "question": "How do you troubleshoot 503 Service Unavailable errors?",
+        "keywords_found": 0,
+        "total_keywords": 5,
+        "accuracy_score": 0.0,
+        "weighted_score": 0.0,
+        "response_preview": "503 service unavailable errors can be frustrating, but they're often a sign that your server is experiencing high traffic or maintenance. here are some steps to troubleshoot 503 service unavailable er..."
+      },
+      {
+        "category": "mlx",
+        "question": "How do you optimize MLX inference performance?",
+        "keywords_found": 0,
+        "total_keywords": 5,
+        "accuracy_score": 0.0,
+        "weighted_score": 0.0,
+        "response_preview": "to optimize mlx inference performance, consider the following strategies:\n\n1.  **model pruning**: remove unnecessary weights and connections from the model to reduce computational requirements. this c..."
+      },
+      {
+        "category": "swift",
+        "question": "What are modern SwiftUI patterns for macOS 15?",
+        "keywords_found": 0,
+        "total_keywords": 5,
+        "accuracy_score": 0.0,
+        "weighted_score": 0.0,
+        "response_preview": "modern swiftui patterns for macos 15 involve using the `@stateobject` and `@observedobject` properties wrappers to manage state and behavior in views. this approach is more efficient and easier to man..."
+      }
+    ],
+    "accuracy_by_category": {
+      "architecture": 0.0,
+      "performance": 0.0,
+      "debugging": 0.0,
+      "mlx": 0.0,
+      "swift": 0.0
+    }
+  },
+  "resource_benchmark": {
+    "initial_memory_info": {
+      "device_name": "Apple M2 Ultra",
+      "memory_size_gb": 64,
+      "architecture": "applegpu_g14d"
+    },
+    "final_metrics": {
+      "requests_total": 148,
+      "tokens_generated_total": 8419,
+      "uptime_seconds": 283.37388014793396,
+      "requests_per_second": 0.5222781998211596,
+      "model_loaded": true,
+      "metal_available": true
+    },
+    "sustained_test": {
+      "total_requests": 100,
+      "successful_requests": 100,
+      "total_time": 68.35988998413086,
+      "average_throughput": 1.462846122532001,
+      "success_rate": 100.0
+    }
+  }
+}

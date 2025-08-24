@@ -1,0 +1,256 @@
+# Migration-specific alerting rules for Go/Rust transition
+# Monitors compatibility, performance, and migration health
+
+groups:
+  - name: migration.phase1
+    interval: 30s
+    rules:
+      # Service availability alerts
+      - alert: GoAPIGatewayDown
+        expr: up{service="go-api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          service: "go-api-gateway"
+        annotations:
+          summary: "Go API Gateway is down"
+          description: "Go API Gateway has been down for more than 1 minute"
+          runbook_url: "https://runbooks.example.com/go-api-gateway-down"
+
+      - alert: RustAICoreDown
+        expr: up{service="rust-ai-core"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          service: "rust-ai-core"
+        annotations:
+          summary: "Rust AI Core is down"
+          description: "Rust AI Core service has been down for more than 1 minute"
+          runbook_url: "https://runbooks.example.com/rust-ai-core-down"
+
+      - alert: TypeScriptCompatibilityDown
+        expr: up{service="typescript-server"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          service: "typescript-server"
+        annotations:
+          summary: "TypeScript compatibility service is down"
+          description: "TypeScript server (compatibility mode) has been down for more than 2 minutes"
+
+      # Performance comparison alerts
+      - alert: PerformanceRegression
+        expr: |
+          (
+            histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="go-api-gateway"}[5m])) /
+            histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="typescript-server"}[5m]))
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          type: "performance"
+        annotations:
+          summary: "Go API Gateway performance regression detected"
+          description: "Go API Gateway 95th percentile response time is {{ $value }}x slower than TypeScript server"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{service=~"go-api-gateway|rust-ai-core",status=~"5.."}[5m]) /
+            rate(http_requests_total{service=~"go-api-gateway|rust-ai-core"}[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          type: "error_rate"
+        annotations:
+          summary: "High error rate in migration services"
+          description: "Service {{ $labels.service }} has error rate above 5% for 2 minutes"
+
+      # Memory usage alerts
+      - alert: HighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes{service=~"go-api-gateway|rust-ai-core"} / 1024 / 1024) > 1024
+        for: 5m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          type: "memory"
+        annotations:
+          summary: "High memory usage in migration service"
+          description: "Service {{ $labels.service }} is using {{ $value }}MB of memory"
+
+      - alert: MemoryLeak
+        expr: |
+          increase(process_resident_memory_bytes{service=~"go-api-gateway|rust-ai-core"}[1h]) > 104857600
+        for: 0m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          type: "memory_leak"
+        annotations:
+          summary: "Potential memory leak detected"
+          description: "Service {{ $labels.service }} memory increased by {{ $value | humanize1024 }} in the last hour"
+
+      # Migration compatibility alerts
+      - alert: MigrationCompatibilityFailure
+        expr: migration_compatibility_test_failures_total > 5
+        for: 1m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          type: "compatibility"
+        annotations:
+          summary: "Migration compatibility tests failing"
+          description: "{{ $value }} migration compatibility tests have failed"
+
+      - alert: TypeScriptGoInconsistency
+        expr: |
+          abs(
+            migration_api_response_difference{endpoint_pair="typescript_go"} 
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          type: "data_consistency"
+        annotations:
+          summary: "API response inconsistency between TypeScript and Go"
+          description: "API responses differ by {{ $value }}% between TypeScript and Go services"
+
+      # Database connection alerts
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: |
+          (
+            postgres_connections_active / postgres_connections_max
+          ) > 0.9
+        for: 2m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          type: "database"
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "PostgreSQL connection pool is {{ $value | humanizePercentage }} full"
+
+      - alert: RedisConnectionFailures
+        expr: rate(redis_connection_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          type: "cache"
+        annotations:
+          summary: "Redis connection failures detected"
+          description: "Redis is experiencing {{ $value }} connection failures per second"
+
+      # Ollama AI service alerts
+      - alert: OllamaResponseTime
+        expr: ollama_request_duration_seconds_p95 > 10
+        for: 3m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          type: "ai_performance"
+        annotations:
+          summary: "Ollama AI service slow response time"
+          description: "Ollama 95th percentile response time is {{ $value }}s"
+
+      - alert: OllamaModelLoadFailure
+        expr: increase(ollama_model_load_failures_total[10m]) > 3
+        for: 0m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          type: "ai_models"
+        annotations:
+          summary: "Ollama model loading failures"
+          description: "{{ $value }} Ollama model load failures in the last 10 minutes"
+
+      # gRPC communication alerts
+      - alert: GRPCCommunicationFailure
+        expr: |
+          rate(grpc_client_requests_total{grpc_code!="OK"}[5m]) / 
+          rate(grpc_client_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          type: "grpc"
+        annotations:
+          summary: "High gRPC failure rate between Go and Rust services"
+          description: "gRPC error rate is {{ $value | humanizePercentage }} between services"
+
+      # Migration progress alerts
+      - alert: MigrationStalled
+        expr: |
+          (time() - migration_last_successful_test_timestamp) > 600
+        for: 0m
+        labels:
+          severity: warning
+          migration_phase: "1"
+          type: "migration_progress"
+        annotations:
+          summary: "Migration testing has stalled"
+          description: "No successful migration tests for {{ $value | humanizeDuration }}"
+
+      # Development environment alerts
+      - alert: DevelopmentEnvironmentUnhealthy
+        expr: |
+          count(up{job=~"go-api-gateway|rust-ai-core|typescript-server"} == 0) >= 2
+        for: 5m
+        labels:
+          severity: critical
+          migration_phase: "1"
+          type: "environment"
+        annotations:
+          summary: "Development environment is unhealthy"
+          description: "{{ $value }} critical migration services are down"
+
+  - name: migration.performance
+    interval: 60s
+    rules:
+      # Performance recording rules
+      - record: migration:request_rate_5m
+        expr: |
+          sum(rate(http_requests_total{service=~"go-api-gateway|rust-ai-core|typescript-server"}[5m])) by (service)
+
+      - record: migration:error_rate_5m
+        expr: |
+          sum(rate(http_requests_total{service=~"go-api-gateway|rust-ai-core|typescript-server",status=~"5.."}[5m])) by (service) /
+          sum(rate(http_requests_total{service=~"go-api-gateway|rust-ai-core|typescript-server"}[5m])) by (service)
+
+      - record: migration:response_time_p95_5m
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=~"go-api-gateway|rust-ai-core|typescript-server"}[5m])) by (le, service))
+
+      - record: migration:memory_usage_mb
+        expr: |
+          (process_resident_memory_bytes{service=~"go-api-gateway|rust-ai-core"} / 1024 / 1024)
+
+      - record: migration:cpu_usage_percent
+        expr: |
+          rate(process_cpu_seconds_total{service=~"go-api-gateway|rust-ai-core"}[5m]) * 100
+
+  - name: migration.sli
+    interval: 30s
+    rules:
+      # Service Level Indicators for migration
+      - record: migration:availability_5m
+        expr: |
+          avg_over_time(up{service=~"go-api-gateway|rust-ai-core"}[5m])
+
+      - record: migration:success_rate_5m
+        expr: |
+          sum(rate(http_requests_total{service=~"go-api-gateway|rust-ai-core",status!~"5.."}[5m])) /
+          sum(rate(http_requests_total{service=~"go-api-gateway|rust-ai-core"}[5m]))
+
+      - record: migration:compatibility_score
+        expr: |
+          migration_compatibility_tests_passed_total / 
+          (migration_compatibility_tests_passed_total + migration_compatibility_tests_failed_total) * 100

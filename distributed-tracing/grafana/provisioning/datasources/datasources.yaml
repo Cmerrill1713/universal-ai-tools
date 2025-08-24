@@ -1,0 +1,70 @@
+# Grafana Datasources Configuration for Distributed Tracing
+apiVersion: 1
+
+datasources:
+  # Tempo datasource for distributed tracing
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    uid: tempo-uid
+    isDefault: false
+    jsonData:
+      httpMethod: GET
+      tracesToLogs:
+        datasourceUid: 'loki-uid'
+        tags: ['job', 'instance', 'pod', 'namespace']
+        mappedTags: [{ key: 'service.name', value: 'service' }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+      tracesToMetrics:
+        datasourceUid: 'prometheus-tracing-uid'
+        tags: [{ key: 'service.name', value: 'service' }, { key: 'job' }]
+        queries:
+          - name: 'Sample query'
+            query: 'sum(rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))'
+      serviceMap:
+        datasourceUid: 'prometheus-tracing-uid'
+      search:
+        hide: false
+      nodeGraph:
+        enabled: true
+    readOnly: false
+
+  # Jaeger datasource (alternative)
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    uid: jaeger-uid
+    isDefault: false
+    jsonData:
+      tracesToLogs:
+        datasourceUid: 'loki-uid'
+      nodeGraph:
+        enabled: true
+    readOnly: false
+
+  # Prometheus for metrics correlation
+  - name: Prometheus-Tracing
+    type: prometheus
+    access: proxy
+    url: http://prometheus-tracing:9090
+    uid: prometheus-tracing-uid
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      exemplarTraceIdDestinations:
+        - name: traceId
+          datasourceUid: tempo-uid
+    readOnly: false
+
+  # Zipkin datasource (alternative)
+  - name: Zipkin
+    type: zipkin
+    access: proxy
+    url: http://zipkin:9411
+    uid: zipkin-uid
+    isDefault: false
+    readOnly: false

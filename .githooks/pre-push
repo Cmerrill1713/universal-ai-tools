@@ -1,0 +1,44 @@
+#!/bin/sh
+# Pre-push hook for Universal AI Tools
+# Ensures build passes before pushing
+
+echo "🚀 Running pre-push checks..."
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Run build
+echo "🔨 Building project..."
+npm run build > /tmp/build.log 2>&1
+
+if [ $? -ne 0 ]; then
+  echo "${RED}❌ Build failed!${NC}"
+  echo ""
+  cat /tmp/build.log | grep -E "error TS" | head -20
+  echo ""
+  echo "Push aborted. Fix build errors before pushing."
+  echo "Run 'npm run build' to see all errors."
+  exit 1
+fi
+
+echo "${GREEN}✅ Build successful${NC}"
+
+# Run tests if they exist
+if [ -f "package.json" ] && grep -q "\"test\":" package.json; then
+  echo "🧪 Running tests..."
+  npm test -- --passWithNoTests > /tmp/test.log 2>&1
+  
+  if [ $? -ne 0 ]; then
+    echo "${YELLOW}⚠️  Some tests failed${NC}"
+    echo "Consider fixing tests before pushing."
+  else
+    echo "${GREEN}✅ Tests passed${NC}"
+  fi
+fi
+
+echo ""
+echo "${GREEN}✅ Pre-push checks completed!${NC}"
+exit 0

@@ -1,0 +1,1 @@
+export { userPreferences as default } from '../migration/compatibility-stubs';

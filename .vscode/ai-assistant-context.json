@@ -1,0 +1,311 @@
+{
+  "aiAssistantContext": {
+    "projectName": "Universal AI Tools",
+    "description": "Full-stack AI platform with TypeScript backend, Swift macOS app, and comprehensive monitoring",
+    "lastUpdated": "2025-01-17",
+    "configuration": "cursor-ide-optimized"
+  },
+  
+  "installedExtensions": {
+    "core": [
+      {
+        "id": "sswg.swift-lang",
+        "name": "Swift Language Support",
+        "purpose": "Swift syntax highlighting, IntelliSense, and language features",
+        "commands": ["Swift: Build", "Swift: Test", "Swift: Clean"],
+        "fileTypes": [".swift", ".h", ".m"]
+      },
+      {
+        "id": "vknabel.vscode-apple-swift-format",
+        "name": "Apple Swift Format",
+        "purpose": "Swift code formatting using Apple's official formatter",
+        "commands": ["Swift Format: Format Document", "Swift Format: Format Selection"],
+        "settings": ["apple-swift-format.enable", "apple-swift-format.configSearchPaths"]
+      },
+      {
+        "id": "swift-server.swift-syntax-language-server",
+        "name": "Swift Syntax Language Server",
+        "purpose": "Advanced Swift language server for better code intelligence",
+        "features": ["symbol navigation", "code completion", "diagnostics"]
+      },
+      {
+        "id": "vadimcn.vscode-lldb",
+        "name": "CodeLLDB",
+        "purpose": "LLDB debugger for Swift and native code debugging",
+        "commands": ["LLDB: Attach to Process", "LLDB: Launch"],
+        "debugTypes": ["lldb", "swift-lldb"]
+      },
+      {
+        "id": "dbaeumer.vscode-eslint",
+        "name": "ESLint",
+        "purpose": "TypeScript/JavaScript linting and code quality",
+        "commands": ["ESLint: Fix All Problems", "ESLint: Restart ESLint Server"],
+        "fileTypes": [".ts", ".js", ".tsx", ".jsx"]
+      },
+      {
+        "id": "esbenp.prettier-vscode",
+        "name": "Prettier",
+        "purpose": "Code formatting for TypeScript, JavaScript, JSON, and more",
+        "commands": ["Prettier: Format Document", "Prettier: Format Selection"],
+        "fileTypes": [".ts", ".js", ".json", ".md", ".tsx", ".jsx"]
+      }
+    ],
+    
+    "development": [
+      {
+        "id": "ms-python.python",
+        "name": "Python",
+        "purpose": "Python language support for DSPy orchestrator",
+        "commands": ["Python: Select Interpreter", "Python: Run Python File"],
+        "features": ["debugging", "testing", "linting"]
+      },
+      {
+        "id": "charliermarsh.ruff",
+        "name": "Ruff",
+        "purpose": "Fast Python linter and formatter",
+        "commands": ["Ruff: Fix All", "Ruff: Organize Imports"],
+        "fileTypes": [".py"]
+      },
+      {
+        "id": "ms-azuretools.vscode-docker",
+        "name": "Docker",
+        "purpose": "Docker container management and Dockerfile support",
+        "commands": ["Docker: Build Image", "Docker: Compose Up"],
+        "fileTypes": ["Dockerfile", "docker-compose.yml"]
+      },
+      {
+        "id": "eamodio.gitlens",
+        "name": "GitLens",
+        "purpose": "Enhanced Git integration with blame, history, and more",
+        "commands": ["GitLens: Show File History", "GitLens: Show Line Blame"],
+        "features": ["git blame", "commit history", "repository insights"]
+      }
+    ],
+    
+    "ai-tools": [
+      {
+        "id": "github.copilot",
+        "name": "GitHub Copilot",
+        "purpose": "AI code completion and suggestions",
+        "commands": ["GitHub Copilot: Toggle"],
+        "note": "Optional - Cursor has built-in AI features"
+      },
+      {
+        "id": "continue.continue",
+        "name": "Continue",
+        "purpose": "Open-source AI code assistant",
+        "commands": ["Continue: Ask Question", "Continue: Generate Code"],
+        "note": "Alternative AI assistant option"
+      }
+    ],
+    
+    "specialized": [
+      {
+        "id": "supabase-community.supabase-vscode",
+        "name": "Supabase",
+        "purpose": "Supabase database integration and management",
+        "commands": ["Supabase: Connect", "Supabase: Generate Types"],
+        "features": ["database schema", "API generation", "migrations"]
+      },
+      {
+        "id": "redhat.vscode-yaml",
+        "name": "YAML",
+        "purpose": "YAML language support for configs and Docker Compose",
+        "fileTypes": [".yml", ".yaml"],
+        "features": ["schema validation", "auto-completion"]
+      },
+      {
+        "id": "humao.rest-client",
+        "name": "REST Client",
+        "purpose": "HTTP request testing directly in editor",
+        "commands": ["Rest Client: Send Request"],
+        "fileTypes": [".http", ".rest"]
+      },
+      {
+        "id": "rangav.vscode-thunder-client",
+        "name": "Thunder Client",
+        "purpose": "Advanced API testing and collection management",
+        "commands": ["Thunder Client: New Request", "Thunder Client: Import"],
+        "features": ["API collections", "environment variables", "testing"]
+      }
+    ]
+  },
+  
+  "workspaceConfiguration": {
+    "multiRoot": true,
+    "primaryLanguages": ["typescript", "swift", "python"],
+    "debugConfigurations": [
+      "Debug Server (Development)",
+      "Debug Universal AI Tools (macOS)",
+      "Python: DSPy Orchestrator",
+      "Full Stack Debug"
+    ],
+    "buildTasks": [
+      "npm: build",
+      "swift: Build Debug",
+      "swift: Build Release",
+      "Type Check",
+      "Lint"
+    ]
+  },
+  
+  "projectStructure": {
+    "backend": {
+      "path": "src/",
+      "language": "typescript",
+      "framework": "express",
+      "features": ["REST API", "GraphQL", "WebSocket", "agents", "monitoring"]
+    },
+    "macosApp": {
+      "path": "macOS-App/UniversalAITools/",
+      "language": "swift",
+      "framework": "swiftui",
+      "features": ["native UI", "system integration", "AI interface"]
+    },
+    "python": {
+      "path": "src/services/dspy-orchestrator/",
+      "language": "python",
+      "framework": "dspy",
+      "features": ["AI orchestration", "ML pipelines"]
+    },
+    "monitoring": {
+      "path": "monitoring/",
+      "type": "infrastructure",
+      "features": ["prometheus", "grafana", "alerting"]
+    }
+  },
+  
+  "commonTasks": {
+    "development": {
+      "startBackend": "npm run dev",
+      "buildMacOSApp": "swift: Build Debug",
+      "runTests": "npm test",
+      "formatCode": "npm run format",
+      "lintCode": "npm run lint"
+    },
+    "debugging": {
+      "attachToBackend": "Debug Server (Development)",
+      "debugMacOSApp": "Debug Universal AI Tools (macOS)",
+      "debugPython": "Python: DSPy Orchestrator",
+      "fullStackDebug": "Full Stack Debug"
+    },
+    "deployment": {
+      "buildProduction": "npm run build:prod",
+      "deployProduction": "./scripts/deploy-production.sh",
+      "monitoring": "./scripts/monitoring-setup.sh"
+    }
+  },
+  
+  "aiAssistantGuidance": {
+    "codeModification": {
+      "typescript": {
+        "formatter": "prettier",
+        "linter": "eslint",
+        "testFramework": "jest",
+        "buildCommand": "npm run build"
+      },
+      "swift": {
+        "formatter": "apple-swift-format",
+        "buildCommand": "xcodebuild",
+        "testCommand": "xcodebuild test",
+        "debugger": "lldb"
+      },
+      "python": {
+        "formatter": "ruff",
+        "linter": "ruff",
+        "testFramework": "pytest"
+      }
+    },
+    
+    "debugging": {
+      "backend": "Use 'Debug Server (Development)' configuration",
+      "macOS": "Use 'Debug Universal AI Tools (macOS)' with LLDB",
+      "python": "Use 'Python: DSPy Orchestrator' configuration",
+      "fullStack": "Use 'Full Stack Debug' compound configuration"
+    },
+    
+    "extensionCommands": {
+      "swift": [
+        "Swift: Build Package",
+        "Swift: Test Package", 
+        "Swift: Clean Build Folder",
+        "Swift Format: Format Document"
+      ],
+      "typescript": [
+        "TypeScript: Restart TS Server",
+        "ESLint: Fix All Problems",
+        "Prettier: Format Document"
+      ],
+      "general": [
+        "Developer: Toggle Developer Tools",
+        "View: Show Problems",
+        "Terminal: Create New Terminal"
+      ]
+    },
+    
+    "troubleshooting": {
+      "swiftLanguageServer": {
+        "issue": "Swift language features not working",
+        "solutions": [
+          "Check Swift installation: swift --version",
+          "Restart SourceKit-LSP: Cmd+Shift+P → Swift: Restart Language Server",
+          "Verify Xcode Command Line Tools: xcode-select --install"
+        ]
+      },
+      "typescriptErrors": {
+        "issue": "TypeScript errors or slow performance",
+        "solutions": [
+          "Restart TypeScript server: Cmd+Shift+P → TypeScript: Restart TS Server",
+          "Clear TypeScript cache: rm -rf node_modules/.cache",
+          "Check tsconfig.json configuration"
+        ]
+      },
+      "debuggerIssues": {
+        "issue": "Debugger not connecting",
+        "solutions": [
+          "Check debug configuration in launch.json",
+          "Verify LLDB installation: lldb --version",
+          "Ensure proper build configuration (Debug mode)"
+        ]
+      }
+    }
+  },
+  
+  "keyboardShortcuts": {
+    "swift": {
+      "build": "Cmd+Shift+B",
+      "run": "Cmd+R",
+      "test": "Cmd+U",
+      "clean": "Cmd+Shift+K",
+      "format": "Shift+Alt+F"
+    },
+    "typescript": {
+      "build": "Cmd+Shift+B",
+      "format": "Shift+Alt+F",
+      "fixProblems": "Cmd+.",
+      "goToDefinition": "F12"
+    },
+    "debugging": {
+      "toggleBreakpoint": "F9",
+      "startDebugging": "F5",
+      "stepOver": "F10",
+      "stepInto": "F11",
+      "stopDebugging": "Shift+F5"
+    }
+  },
+  
+  "environmentSetup": {
+    "required": [
+      "Node.js 18+",
+      "Swift 5.9+",
+      "Xcode Command Line Tools",
+      "Python 3.11+",
+      "Docker Desktop"
+    ],
+    "optional": [
+      "GitHub CLI",
+      "Supabase CLI",
+      "Ollama (for local LLM)"
+    ]
+  }
+}

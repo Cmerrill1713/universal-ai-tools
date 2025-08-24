@@ -1,0 +1,261 @@
+# Automation Service Registry Configuration
+# Central registry for all automation-enabled services
+
+services:
+  # Evolution & Self-Healing Services
+  evolution-healer:
+    id: evolution-healer-001
+    name: "Evolution Healer"
+    type: "evolution-healer"
+    endpoint: "http://localhost:8086"
+    health_check: "http://localhost:8086/health"
+    capabilities:
+      - problem_detection
+      - auto_healing
+      - solution_learning
+      - pattern_recognition
+    config:
+      max_retry: 3
+      timeout: 30s
+      learning_enabled: true
+
+  # Architecture AI Service
+  architecture-ai:
+    id: architecture-ai-001
+    name: "Architecture AI"
+    type: "architecture-ai"
+    endpoint: "http://localhost:8085"
+    health_check: "http://localhost:8085/health"
+    capabilities:
+      - decision_making
+      - risk_analysis
+      - migration_planning
+      - code_generation
+    config:
+      confidence_threshold: 0.7
+      max_concurrent_decisions: 10
+
+  # Technology Scanner
+  tech-scanner:
+    id: tech-scanner-001
+    name: "Technology Scanner"
+    type: "tech-scanner"
+    endpoint: "http://localhost:8084"
+    health_check: "http://localhost:8084/health"
+    capabilities:
+      - vulnerability_detection
+      - library_discovery
+      - trend_analysis
+      - github_monitoring
+    config:
+      scan_interval: 3600
+      github_token: "${GITHUB_TOKEN}"
+
+  # Chaos Engineering
+  chaos-engine:
+    id: chaos-engine-001
+    name: "Chaos Engine"
+    type: "chaos-engine"
+    endpoint: "http://localhost:8087"
+    health_check: "http://localhost:8087/health"
+    capabilities:
+      - fault_injection
+      - network_chaos
+      - resource_stress
+      - service_disruption
+    config:
+      safety_mode: true
+      max_blast_radius: 0.3
+
+  # Performance Analyzer
+  performance-analyzer:
+    id: perf-analyzer-001
+    name: "Performance Analyzer"
+    type: "performance-analyzer"
+    endpoint: "http://localhost:8088"
+    health_check: "http://localhost:8088/health"
+    capabilities:
+      - load_testing
+      - regression_detection
+      - bottleneck_analysis
+      - optimization_recommendations
+    config:
+      baseline_window: 7d
+      alert_threshold: 20
+
+  # Migration Validator
+  migration-validator:
+    id: migration-validator-001
+    name: "Migration Validator"
+    type: "migration-validator"
+    endpoint: "http://localhost:8089"
+    health_check: "http://localhost:8089/health"
+    capabilities:
+      - schema_validation
+      - rollback_planning
+      - data_integrity_check
+      - dependency_analysis
+    config:
+      dry_run_enabled: true
+      rollback_timeout: 300s
+
+  # Core Services
+  api-gateway:
+    id: api-gateway-001
+    name: "API Gateway"
+    type: "api-gateway"
+    endpoint: "http://localhost:8090"
+    health_check: "http://localhost:8090/health"
+    capabilities:
+      - request_routing
+      - authentication
+      - rate_limiting
+      - load_balancing
+
+  websocket-service:
+    id: websocket-001
+    name: "WebSocket Service"
+    type: "websocket"
+    endpoint: "ws://localhost:8080"
+    health_check: "http://localhost:8080/health"
+    capabilities:
+      - real_time_messaging
+      - event_streaming
+      - connection_management
+
+  llm-router:
+    id: llm-router-001
+    name: "LLM Router"
+    type: "llm-router"
+    endpoint: "http://localhost:8001"
+    health_check: "http://localhost:8001/health"
+    capabilities:
+      - model_selection
+      - request_routing
+      - load_balancing
+      - fallback_handling
+
+  # Monitoring Services
+  prometheus:
+    id: prometheus-001
+    name: "Prometheus"
+    type: "monitoring"
+    endpoint: "http://localhost:9090"
+    health_check: "http://localhost:9090/-/healthy"
+    capabilities:
+      - metrics_collection
+      - alerting
+      - time_series_data
+
+  grafana:
+    id: grafana-001
+    name: "Grafana"
+    type: "monitoring"
+    endpoint: "http://localhost:3000"
+    health_check: "http://localhost:3000/api/health"
+    capabilities:
+      - visualization
+      - dashboards
+      - alerting
+
+# Event Routing Rules
+event_routing:
+  problem_detected:
+    primary: evolution-healer
+    secondary: architecture-ai
+    notify:
+      - monitoring
+
+  security_vulnerability:
+    primary: evolution-healer
+    secondary: tech-scanner
+    notify:
+      - monitoring
+      - api-gateway
+
+  performance_degradation:
+    primary: performance-analyzer
+    secondary: architecture-ai
+    notify:
+      - monitoring
+      - llm-router
+
+  chaos_injection:
+    primary: chaos-engine
+    secondary: evolution-healer
+    notify:
+      - monitoring
+      - all
+
+  migration_required:
+    primary: migration-validator
+    secondary: architecture-ai
+    notify:
+      - api-gateway
+      - monitoring
+
+# Automation Workflows
+workflows:
+  auto_healing:
+    trigger: problem_detected
+    steps:
+      - service: evolution-healer
+        action: analyze_problem
+      - service: architecture-ai
+        action: decide_solution
+      - service: evolution-healer
+        action: apply_fix
+      - service: monitoring
+        action: validate_fix
+
+  chaos_testing:
+    trigger: scheduled
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    steps:
+      - service: chaos-engine
+        action: select_scenario
+      - service: chaos-engine
+        action: inject_fault
+      - service: monitoring
+        action: track_impact
+      - service: evolution-healer
+        action: auto_recover
+      - service: architecture-ai
+        action: analyze_resilience
+
+  security_patching:
+    trigger: security_vulnerability
+    steps:
+      - service: tech-scanner
+        action: assess_severity
+      - service: architecture-ai
+        action: evaluate_risk
+      - service: evolution-healer
+        action: apply_patch
+      - service: monitoring
+        action: verify_patch
+
+  performance_optimization:
+    trigger: performance_degradation
+    steps:
+      - service: performance-analyzer
+        action: identify_bottleneck
+      - service: architecture-ai
+        action: recommend_optimization
+      - service: evolution-healer
+        action: implement_optimization
+      - service: performance-analyzer
+        action: validate_improvement
+
+# Configuration
+config:
+  hub_endpoint: "http://localhost:8100"
+  event_retention: 7d
+  max_event_queue: 10000
+  health_check_interval: 30s
+  service_timeout: 30s
+  retry_policy:
+    max_attempts: 3
+    backoff: exponential
+    initial_delay: 1s
+    max_delay: 30s

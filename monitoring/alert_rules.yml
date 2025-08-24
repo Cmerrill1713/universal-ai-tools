@@ -1,0 +1,179 @@
+groups:
+  - name: universal-ai-tools-alerts
+    rules:
+      # API Health Alerts
+      - alert: APIDown
+        expr: up{job="universal-ai-tools-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Universal AI Tools API is down"
+          description: "The Universal AI Tools API has been down for more than 1 minute."
+
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="universal-ai-tools-api"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile latency is {{ $value }}s over the last 5 minutes."
+
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{job="universal-ai-tools-api",status=~"5.."}[5m]) / rate(http_requests_total{job="universal-ai-tools-api"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 10 minutes. Current value: {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85%. Current value: {{ $value }}%"
+
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Low disk space detected"
+          description: "Disk usage is above 85% on {{ $labels.device }}. Current value: {{ $value }}%"
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute."
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is above 90%. Current value: {{ $value | humanizePercentage }}"
+
+      # Container Alerts
+      - alert: ContainerDown
+        expr: up{job="cadvisor"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "Container monitoring is down"
+          description: "cAdvisor container monitoring has been down for more than 1 minute."
+
+      - alert: ContainerHighMemoryUsage
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is above 90%. Current value: {{ $value }}%"
+
+      # AI/ML Specific Alerts
+      - alert: HighRequestQueueSize
+        expr: ai_request_queue_size > 100
+        for: 2m
+        labels:
+          severity: warning
+          service: ai
+        annotations:
+          summary: "High AI request queue size"
+          description: "AI request queue has {{ $value }} pending requests."
+
+      - alert: ModelLoadingFailure
+        expr: increase(ai_model_loading_failures_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: ai
+        annotations:
+          summary: "Multiple model loading failures"
+          description: "{{ $value }} model loading failures in the last 5 minutes."
+
+      - alert: VectorSearchLatency
+        expr: histogram_quantile(0.95, rate(vector_search_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: vector
+        annotations:
+          summary: "High vector search latency"
+          description: "95th percentile vector search latency is {{ $value }}s."
+
+      # Database Alerts (Supabase)
+      - alert: DatabaseConnectionFailure
+        expr: increase(database_connection_errors_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "High database connection failures"
+          description: "{{ $value }} database connection failures in the last 5 minutes."
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile database query time is {{ $value }}s."
+
+      # Nginx/Load Balancer Alerts
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: nginx
+        annotations:
+          summary: "Nginx is down"
+          description: "Nginx load balancer has been down for more than 1 minute."
+
+      - alert: HighNginxErrorRate
+        expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: nginx
+        annotations:
+          summary: "High Nginx error rate"
+          description: "Nginx error rate is {{ $value | humanizePercentage }} over the last 5 minutes."

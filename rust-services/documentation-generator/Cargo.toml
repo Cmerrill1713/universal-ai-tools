@@ -1,0 +1,67 @@
+[package]
+name = "documentation-generator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web Framework
+axum = "0.7"
+tower = "0.4"
+tower-http = "0.5"
+hyper = { version = "1.0", features = ["full"] }
+
+# Async Runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# HTTP Client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Documentation Generation
+pulldown-cmark = "0.11"
+syntect = "5.0"
+askama = "0.12"
+
+# File Operations
+walkdir = "2.0"
+ignore = "0.4"
+globset = "0.4"
+
+# Text Processing
+regex = "1.0"
+scraper = "0.20"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Time & UUID
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Configuration
+config = "0.14"
+toml = "0.8"
+
+# Git Integration
+git2 = "0.18"
+
+# Template Engine
+handlebars = "5.0"
+
+# Archive Support
+tar = "0.4"
+flate2 = "1.0"
+
+# Additional dependencies
+md-5 = "0.10"
+num_cpus = "1.0"
+html-escape = "0.2"

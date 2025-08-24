@@ -1,0 +1,76 @@
+/** @type {import('jest').Config} */
+export default {
+  preset: 'ts-jest/presets/default-esm',
+  testEnvironment: 'node',
+  extensionsToTreatAsEsm: ['.ts'],
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  testMatch: [
+    '**/__tests__/**/*.ts',
+    '**/?(*.)+(spec|test).ts'
+  ],
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
+      useESM: true,
+    }],
+  },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '.*services/dspy-orchestrator/orchestrator$': '<rootDir>/tests/mocks/empty-module.ts',
+  },
+  modulePathIgnorePatterns: [
+    '<rootDir>/claude-flow/',
+    '<rootDir>/archive/',
+    '<rootDir>/backups/',
+    '<rootDir>/temp/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/dist/',
+    '<rootDir>/build/',
+    '<rootDir>/ui/',
+    '<rootDir>/iOS Working App/',
+    '<rootDir>/macOS-App/',
+    '<rootDir>/Universal AI Tools Native/',
+    '<rootDir>/serena/',
+    '<rootDir>/mcp-servers/',
+    '<rootDir>/enterprise-dev-toolkit/',
+    '<rootDir>/installer/',
+    '<rootDir>/integrations/',
+    '<rootDir>/models/',
+    '<rootDir>/monitoring/',
+    '<rootDir>/nginx/',
+    '<rootDir>/PRPs/',
+    '<rootDir>/public/',
+    '<rootDir>/redis/',
+    '<rootDir>/screener-output/',
+    '<rootDir>/searxng/',
+    '<rootDir>/supabase/',
+    '<rootDir>/test-reports/',
+    '<rootDir>/test-results/',
+    '<rootDir>/uploads/',
+    '<rootDir>/venv/',
+    '<rootDir>/worktrees/',
+    '<rootDir>/rust-services/',
+    '<rootDir>/go-api-gateway/',
+    '<rootDir>/go-services/',
+    '<rootDir>/distributed-tracing/',
+  ],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.ts',
+    '!src/**/*.spec.ts',
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  testTimeout: 30000,
+  verbose: true,
+  forceExit: true,
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
+  // Memory management optimizations
+  maxWorkers: 2, // Limit concurrent test workers
+  workerIdleMemoryLimit: '512MB', // Limit memory per worker
+  logHeapUsage: true, // Monitor heap usage
+};

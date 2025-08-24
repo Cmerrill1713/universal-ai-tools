@@ -1,0 +1,20 @@
+[package]
+name = "{{service_name}}"
+version = "0.1.0"
+edition = "2021"
+description = "Generated Rust microservice"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[[bin]]
+name = "{{service_name}}"
+path = "src/main.rs"

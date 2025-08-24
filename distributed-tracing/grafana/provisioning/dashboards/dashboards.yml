@@ -1,0 +1,13 @@
+# Grafana Dashboard Provisioning for Universal AI Tools
+apiVersion: 1
+
+providers:
+  - name: 'Universal AI Tools Dashboards'
+    orgId: 1
+    folder: 'Universal AI Tools'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

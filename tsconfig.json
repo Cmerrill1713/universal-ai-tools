@@ -1,0 +1,71 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": true,
+    "removeComments": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "lib": ["ES2022", "DOM"],
+    "types": ["node", "jest"],
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@/types": ["src/types"],
+      "@/utils": ["src/utils"],
+      "@/services": ["src/services"],
+      "@/middleware": ["src/middleware"],
+      "@/routers": ["src/routers"],
+      "@/agents": ["src/agents"],
+      "@/data": ["src/data"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "scripts/**/*",
+    "tests/**/*",
+    "macOS-App/**/*",
+    "iOS-App/**/*",
+    "rust-services/**/*",
+    "go-services/**/*",
+    "python-services/**/*",
+    "go-api-gateway/**/*",
+    "**/*.min.js",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "venv/**/*",
+    "logs/**/*",
+    "data/**/*",
+    "comfyui-data/**/*",
+    "*.js"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
+}

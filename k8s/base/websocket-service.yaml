@@ -1,0 +1,176 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: websocket-service
+  namespace: universal-ai-tools
+  labels:
+    app: websocket-service
+    tier: backend
+    component: realtime
+    version: v1.0.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  selector:
+    matchLabels:
+      app: websocket-service
+  template:
+    metadata:
+      labels:
+        app: websocket-service
+        tier: backend
+        component: realtime
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9003"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: websocket-service
+        image: universal-ai-tools/websocket-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: websocket
+          protocol: TCP
+        - containerPort: 9003
+          name: metrics
+          protocol: TCP
+        env:
+        - name: GIN_MODE
+          value: "release"
+        - name: SERVICE_NAME
+          value: "websocket-service"
+        - name: WEBSOCKET_PORT
+          value: "8080"
+        - name: METRICS_PORT
+          value: "9003"
+        - name: WS_MAX_CONNECTIONS
+          value: "10000"
+        - name: WS_READ_BUFFER_SIZE
+          value: "1024"
+        - name: WS_WRITE_BUFFER_SIZE
+          value: "1024"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: OTEL_SERVICE_NAME
+          value: "websocket-service"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector:4317"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "1500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: websocket-service
+  namespace: universal-ai-tools
+  labels:
+    app: websocket-service
+    tier: backend
+    component: realtime
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9003"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: websocket
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9003
+    targetPort: 9003
+    protocol: TCP
+  selector:
+    app: websocket-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: websocket-service-pdb
+  namespace: universal-ai-tools
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: websocket-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: websocket-service-hpa
+  namespace: universal-ai-tools
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: websocket-service
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Percent
+        value: 200
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60

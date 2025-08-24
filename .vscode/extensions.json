@@ -1,0 +1,50 @@
+{
+  "recommendations": [
+    // === CRITICAL EXTENSIONS (Required for error detection) ===
+    "usernamehw.errorlens",
+    "dbaeumer.vscode-eslint", 
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    
+    // === SWIFT/iOS DEVELOPMENT ===
+    "sswg.swift-lang",
+    "vknabel.vscode-apple-swift-format",
+    "vadimcn.vscode-lldb",
+    
+    // === PYTHON ===
+    "ms-python.python",
+    "charliermarsh.ruff",
+    
+    // === DEVELOPMENT TOOLS ===
+    "ms-azuretools.vscode-docker",
+    "eamodio.gitlens",
+    "EditorConfig.EditorConfig",
+    "redhat.vscode-yaml",
+    "humao.rest-client",
+    "rangav.vscode-thunder-client",
+    "streetsidesoftware.code-spell-checker",
+    "supabase-community.supabase-vscode",
+    "bierner.markdown-mermaid",
+    "mikestead.dotenv",
+    
+    // === TESTING ===
+    "Orta.vscode-jest",
+    "ms-playwright.playwright",
+    
+    // === PRODUCTIVITY ===
+    "gruntfuggly.todo-tree",
+    "aaron-bond.better-comments",
+    "christian-kohler.path-intellisense",
+    "wix.vscode-import-cost",
+    "mhutchie.git-graph",
+    
+    // === ADDITIONAL QUALITY TOOLS ===
+    "sonarsource.sonarlint-vscode",
+    "yzhang.markdown-all-in-one",
+    "graphql.vscode-graphql"
+  ],
+  "unwantedRecommendations": [
+    "HookyQR.beautify",
+    "ms-python.vscode-pylance"
+  ]
+}

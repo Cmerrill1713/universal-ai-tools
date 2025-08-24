@@ -1,0 +1,615 @@
+{
+  "best_template": "You are an expert on Universal AI Tools. {question}",
+  "best_accuracy": 0.7571428571428571,
+  "best_parameters": {
+    "format_style": "system_context",
+    "instruction_prefix": "",
+    "response_prefix": "",
+    "system_context": "You are an expert on Universal AI Tools."
+  },
+  "convergence_score": 0.9642945337168191,
+  "optimization_history": [
+    {
+      "iteration": 0,
+      "candidate_idx": 0,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 0,
+      "candidate_idx": 1,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization involves techniques to improve memory usage, reduce memory leaks, and increase performance. It includes compacting memory, releasing unused memory, and using efficient data structures. Memory optimization is crucial for maintaining system stability and ensuring smooth user experiences. Memory leaks occur when objects are allocated but not properly released, leading",
+        "Universal AI Tools provides comprehensive AI-powered automation for all your needs, including chatbot creation, workflow optimization, and intelligent document management. Key features include:\nAI-powered chatbot creation with natural language understanding (NLU) and automated conversation flows\nAutomated workflow management with AI-driven decision-making and task assignment"
+      ]
+    },
+    {
+      "iteration": 0,
+      "candidate_idx": 2,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "chat",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization involves techniques such as compacting memory, reducing object allocation, and using memory pools to improve performance. It includes using @System.Runtime.CompilerServices.InternalsVisibleTo to share memory between assemblies, compacting memory in the heap, and using memory profiling tools to identify memory leaks. Memory optimization also includes",
+        "The AI Chatbot provides comprehensive support for all user queries, including general knowledge, entertainment, education, and more. It offers advanced AI-powered chat functionality with automated responses, seamless integration with existing systems, and real-time support. The AI Chatbot includes automated workflows, AI-powered chat, and real-time"
+      ]
+    },
+    {
+      "iteration": 0,
+      "candidate_idx": 3,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "qa",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    },
+    {
+      "iteration": 0,
+      "candidate_idx": 4,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "Instruction:",
+        "response_prefix": "Response:",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization uses techniques such as caching, memory-mapped I/O, and garbage collection to improve performance by reducing memory access latency. It includes hardware and software solutions like register blocking, memory interleaving, and memory protection keys. Memory optimization also involves using memory-efficient data structures, such as linked lists and",
+        "The key features include: 1) the system uses AI for automated threat detection, 2) it includes real-time threat intelligence feeds, 3) it provides automated incident response, 4) it includes automated patch management, 5) it includes automated vulnerability management, 6) it includes"
+      ]
+    },
+    {
+      "iteration": 0,
+      "candidate_idx": 5,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "Question:",
+        "response_prefix": "Answer:",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    },
+    {
+      "iteration": 0,
+      "candidate_idx": 6,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 0,
+      "candidate_idx": 7,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 0,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 1,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 2,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "qa",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 3,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 4,
+      "accuracy": 0.7523809523809524,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "Query:",
+        "response_prefix": "Response:",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache hit rates, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, and leveraging hardware acceleration. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization techniques include using compact data types,",
+        "The AI Universal Tools suite includes: 1) AI Assistant for general knowledge, 2) AI Writer for content generation, 3) AI Chat for conversational interfaces, 4) AI Translator for language support, 5) AI Debugger for code optimization, 6) AI LLM for"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 5,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "",
+        "response_prefix": "Answer:",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization uses AI-powered algorithms to identify and release unused memory, prevent memory leaks, and optimize memory allocation for improved performance. AI-driven tools monitor system memory usage, detect patterns, and make recommendations for memory management. This includes automatic garbage collection, memory compaction, and heap optimization. AI-powered memory",
+        "Universal AI Tools provide comprehensive AI capabilities for chatbots, including natural language processing (NLP), machine learning (ML), and integration with third-party services. Key features include:\n1. AI-powered chatbot development: Rapidly build and deploy conversational interfaces with automated responses, entity recognition, and intent"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 6,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "qa",
+        "instruction_prefix": "Query:",
+        "response_prefix": "Response:",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    },
+    {
+      "iteration": 1,
+      "candidate_idx": 7,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "Instruction:",
+        "response_prefix": "Response:",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 0,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 1,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 2,
+      "accuracy": 0.7523809523809524,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "Query:",
+        "response_prefix": "Response:",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache hit rates, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, and leveraging hardware acceleration. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization techniques include using compact data types,",
+        "The AI Universal Tools suite includes: 1) AI Assistant for general knowledge, 2) AI Writer for content generation, 3) AI Chat for conversational interfaces, 4) AI Translator for language support, 5) AI Debugger for code optimization, 6) AI LLM for"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 3,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 4,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "Question:",
+        "response_prefix": "",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization involves techniques to improve memory usage, reduce memory leaks, and increase performance. It includes compacting memory, releasing unused memory, and using efficient data structures. Memory optimization is crucial for maintaining system stability and ensuring smooth user experiences. Memory leaks occur when objects are allocated but not properly released, leading",
+        "Universal AI Tools provides comprehensive AI-powered automation for all your needs, including chatbot creation, workflow optimization, and intelligent document management. Key features include:\nAI-powered chatbot creation with natural language understanding (NLU) and automated conversation flows\nAutomated workflow management with AI-driven decision-making and task assignment"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 5,
+      "accuracy": 0.7523809523809524,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "Question:",
+        "response_prefix": "",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization involves techniques to improve memory usage, reduce memory leaks, and increase performance. It includes compacting memory, releasing unused memory, and using efficient data structures. Memory optimization is crucial for maintaining system stability and ensuring smooth user experiences. Memory leaks occur when objects are allocated but not properly released, leading",
+        "The AI Universal Tools suite includes: 1) AI Assistant for automated responses, 2) AI Chat for conversational interfaces, 3) AI Router for request management, 4) AI Hub for centralized data management, 5) AI Services for automated workflows, and 6) AI Studio"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 6,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "Instruction:",
+        "response_prefix": "Response:",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization uses techniques such as caching, memory-mapped I/O, and garbage collection to improve performance by reducing memory access latency. It includes hardware and software solutions like register blocking, memory interleaving, and memory protection keys. Memory optimization also involves using memory-efficient data structures, such as linked lists and",
+        "The key features include: 1) the system uses AI for automated threat detection, 2) it includes real-time threat intelligence feeds, 3) it provides automated incident response, 4) it includes automated patch management, 5) it includes automated vulnerability management, 6) it includes"
+      ]
+    },
+    {
+      "iteration": 2,
+      "candidate_idx": 7,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "chat",
+        "instruction_prefix": "",
+        "response_prefix": "Response:",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization involves techniques such as compacting memory, reducing object allocation, and using memory pools to improve performance. It includes using @System.Runtime.CompilerServices.InternalsVisibleTo to share memory between assemblies, compacting memory in the heap, and using memory profiling tools to identify memory leaks. Memory optimization also includes",
+        "The AI Chatbot provides comprehensive support for all user queries, including general knowledge, entertainment, education, and more. It offers advanced AI-powered chat functionality with automated responses, seamless integration with existing systems, and real-time support. The AI Chatbot includes automated workflows, AI-powered chat, and real-time"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 0,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 1,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "qa",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 2,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 3,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 4,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "qa",
+        "instruction_prefix": "Query:",
+        "response_prefix": "Response:",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 5,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "Instruction:",
+        "response_prefix": "Response:",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 6,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "simple",
+        "instruction_prefix": "Question:",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is achieved through various techniques, including cache management, memory allocation, and garbage collection. The system identifies frequently used data and stores it in the fastest memory locations (cache), reduces memory allocation overhead, and periodically frees unused memory (garbage collection). This improves performance by reducing memory access latency and",
+        "The key features include: 1) the system architecture supports multiple services; 2) the system uses a hybrid approach combining AI with human expertise; 3) the system includes automated workflows; 4) the system provides real-time analytics; 5) the system includes AI-powered chatbots;"
+      ]
+    },
+    {
+      "iteration": 3,
+      "candidate_idx": 7,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "chat",
+        "instruction_prefix": "",
+        "response_prefix": "Response:",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization involves techniques such as compacting memory, reducing object allocation, and using memory pools to improve performance. It includes using @System.Runtime.CompilerServices.InternalsVisibleTo to share memory between assemblies, compacting memory in the heap, and using memory profiling tools to identify memory leaks. Memory optimization also includes",
+        "The AI Chatbot provides comprehensive support for all user queries, including general knowledge, entertainment, education, and more. It offers advanced AI-powered chat functionality with automated responses, seamless integration with existing systems, and real-time support. The AI Chatbot includes automated workflows, AI-powered chat, and real-time"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 0,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 1,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 2,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "qa",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 3,
+      "accuracy": 0.7571428571428571,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization is a critical performance improvement technique that ensures AI models use memory efficiently, reducing memory usage and improving training times. AI memory optimization involves techniques such as model pruning, knowledge distillation, quantization, and memory-aware architecture design. Memory optimization improves performance by reducing memory usage, enabling faster training times",
+        "Universal AI Tools provide comprehensive AI capabilities for automation, including natural language processing (NLP), computer vision, machine learning (ML), and robotics process automation (RPA). Key features include:\n1. Hybrid Architecture: Combines ML, NLP, and computer vision for seamless automation across services.\n2"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 4,
+      "accuracy": 0.7523809523809524,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "Query:",
+        "response_prefix": "",
+        "system_context": ""
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, minimizing garbage collection pauses, and increasing cache efficiency. This includes using value types instead of reference types, compacting memory, and implementing memory pooling. Memory optimization is crucial for real-time systems, high-performance applications, and embedded systems where memory constraints are critical",
+        "The key features include: 1) AI-powered chatbot integration, 2) automated workflows, 3) real-time collaboration, 4) hybrid learning support, 5) AI-driven analytics, 6) seamless integration with existing LMS, 7) automated grading, 8)"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 5,
+      "accuracy": 0.7190476190476192,
+      "template_params": {
+        "format_style": "system_context",
+        "instruction_prefix": "",
+        "response_prefix": "Answer:",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization involves techniques to improve memory usage, reduce memory leaks, and increase performance. It includes compacting memory, releasing unused memory, and using efficient data structures. Memory optimization is crucial for maintaining system stability and ensuring smooth user experiences. Memory leaks occur when objects are allocated but not properly released, leading",
+        "Universal AI Tools provides comprehensive AI-powered automation for all your needs, including chatbot creation, workflow optimization, and intelligent document management. Key features include:\nAI-powered chatbot creation with natural language understanding (NLU) and automated conversation flows\nAutomated workflow management with AI-driven decision-making and task assignment"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 6,
+      "accuracy": 0.6571428571428571,
+      "template_params": {
+        "format_style": "conversational",
+        "instruction_prefix": "Question:",
+        "response_prefix": "Response:",
+        "system_context": "You are an expert on Universal AI Tools."
+      },
+      "sample_responses": [
+        "Memory optimization uses AI-powered algorithms to identify and release unused memory, improve memory allocation efficiency, and prevent memory leaks. It monitors system memory usage in real-time, detects patterns of memory usage, and adjusts memory allocation accordingly. Memory optimization tools learn from user behavior, prioritize critical applications, and automatically release memory",
+        "Universal AI Tools provide comprehensive AI capabilities through hybrid architecture, including native Rust support, automatic memory management, and high-performance ML inference. Key features include native Rust support for seamless integration, automatic memory management for efficient resource allocation, high-performance ML inference for rapid model execution, and hybrid architecture for scalable AI development"
+      ]
+    },
+    {
+      "iteration": 4,
+      "candidate_idx": 7,
+      "accuracy": 0.6904761904761904,
+      "template_params": {
+        "format_style": "qa",
+        "instruction_prefix": "Question:",
+        "response_prefix": "",
+        "system_context": "You are Universal AI Tools assistant."
+      },
+      "sample_responses": [
+        "Memory optimization techniques improve performance by reducing memory usage, increasing cache efficiency, and minimizing page faults. This includes using compact data types, reducing object overhead, implementing memory pools, leveraging hardware acceleration, and employing garbage collection algorithms. Memory optimization improves system responsiveness and reduces memory-related crashes. Memory optimization is achieved through",
+        "The key features include: 1) high-performance computing, 2) AI/ML integration, 3) real-time analytics, 4) hybrid architecture, 5) edge computing, 6) IoT integration, 7) scalability, 8) security, 9) AI-driven"
+      ]
+    }
+  ],
+  "total_evaluations": 40,
+  "optimization_timestamp": 1755882717.130442
+}

@@ -1,0 +1,151 @@
+# SearXNG settings for Universal AI Tools
+# Privacy-focused search configuration
+
+general:
+  debug: false
+  instance_name: "Universal AI Tools Search"
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  enable_metrics: true
+
+search:
+  safe_search: 0
+  autocomplete: "duckduckgo"
+  default_lang: "en"
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 120
+  formats:
+    - html
+    - json
+    - csv
+    - rss
+
+server:
+  port: 8080
+  bind_address: "0.0.0.0"
+  secret_key: "ultrasecretkey"  # Change this in production
+  base_url: false
+  image_proxy: true
+  http_protocol_version: "1.1"
+  method: "POST"
+
+ui:
+  static_path: ""
+  templates_path: ""
+  default_theme: "simple"
+  default_locale: "en"
+  theme_args:
+    simple_style: "auto"
+  results_on_new_tab: false
+  advanced_search: true
+  infinite_scroll: true
+
+# Engines configuration
+engines:
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    weight: 2
+
+  - name: google
+    engine: google
+    shortcut: g
+    use_mobile_ui: false
+    weight: 1
+
+  - name: bing
+    engine: bing
+    shortcut: bi
+    weight: 1
+
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    weight: 2
+
+  - name: github
+    engine: github
+    shortcut: gh
+    weight: 1
+
+  - name: stackoverflow
+    engine: stackoverflow
+    shortcut: st
+    weight: 2
+
+  - name: arxiv
+    engine: arxiv
+    shortcut: arx
+    categories: science
+    weight: 1
+
+  - name: pubmed
+    engine: pubmed
+    shortcut: pub
+    categories: science
+    weight: 1
+
+  - name: youtube
+    engine: youtube_noapi
+    shortcut: yt
+    weight: 1
+
+  - name: reddit
+    engine: reddit
+    shortcut: re
+    weight: 1
+
+# Categories
+categories_as_tabs:
+  general:
+    - name: general
+  images:
+    - name: images
+  videos:
+    - name: videos
+  news:
+    - name: news
+  science:
+    - name: science
+
+# Privacy settings
+privacy:
+  autocomplete:
+    enabled: true
+  image_proxy:
+    enabled: true
+  query_in_title: false
+
+# Request settings
+request:
+  default_http_headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  max_request_timeout: 10
+  pool_connections: 100
+  pool_maxsize: 20
+
+# Result settings
+result:
+  results_per_page: 20
+  max_results: 1000
+
+# Outgoing requests
+outgoing:
+  request_timeout: 3.0
+  max_request_timeout: 10.0
+  useragent_suffix: ""
+  pool_connections: 100
+  pool_maxsize: 20
+  enable_http2: true
+
+# Plugin settings
+enabled_plugins:
+  - 'Hash plugin'
+  - 'Search on category select'
+  - 'Self Information'
+  - 'Tracker URL remover'
+
+# Disabled plugins
+disabled_plugins:
+  - 'Hostname replace'

@@ -1,0 +1,1227 @@
+openapi: 3.0.3
+info:
+  title: Universal AI Tools API
+  description: |
+    Comprehensive REST API for AI-powered applications using hybrid Go/Rust architecture.
+    
+    ## Features
+    - JWT Authentication
+    - Real-time Chat with Local LLMs (Ollama)
+    - Vector Search with Qdrant
+    - WebSocket Support
+    - Agent Orchestration
+    - Distributed Tracing
+    
+    ## Architecture
+    - **Go**: API Gateway, WebSocket Service (high concurrency)
+    - **Rust**: LLM Router, AI Core (high performance)
+    - **TypeScript**: Legacy compatibility layer
+    
+  version: "1.0.0"
+  contact:
+    name: Universal AI Tools
+    email: support@universal-ai-tools.com
+    url: https://docs.universal-ai-tools.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8090
+    description: Development server
+  - url: https://api.universal-ai-tools.com
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Health Endpoints
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Basic health check
+      description: Check if the API is operational (no authentication required)
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: string
+
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Detailed health check
+      description: Get detailed health information for all services
+      responses:
+        '200':
+          description: Detailed health information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  services:
+                    type: object
+                    additionalProperties:
+                      type: string
+                      enum: [healthy, unhealthy, connected, disconnected]
+
+  # Authentication Endpoints
+  /api/v1/auth/demo-token:
+    post:
+      tags: [Authentication]
+      summary: Generate demo token
+      description: Generate a JWT demo token for testing purposes
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: Application or user name
+                duration:
+                  type: string
+                  enum: ["1h", "24h", "7d", "30d"]
+                  default: "24h"
+            example:
+              name: "macOS-app"
+              duration: "24h"
+      responses:
+        '200':
+          description: Token generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: JWT token
+                      tokenType:
+                        type: string
+                        enum: [Bearer]
+                      expiresAt:
+                        type: string
+                        format: date-time
+
+  # Chat Endpoints
+  /api/v1/chat:
+    post:
+      tags: [Chat]
+      summary: Send chat message
+      description: Send a message to AI and receive response
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  description: User message
+                model:
+                  type: string
+                  default: "gemma2:2b"
+                  example: "gemma2:2b"
+                stream:
+                  type: boolean
+                  default: false
+                temperature:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  default: 0.7
+            example:
+              message: "Hello, how can you help me?"
+              model: "gemma2:2b"
+              temperature: 0.7
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  response:
+                    type: string
+                    description: AI response
+
+  /api/v1/chat/conversations:
+    get:
+      tags: [Chat]
+      summary: List conversations
+      description: Get all conversations for the authenticated user
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+
+  /api/v1/chat/new:
+    post:
+      tags: [Chat]
+      summary: Create new conversation
+      description: Create a new conversation thread
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Optional conversation title
+                model:
+                  type: string
+                  default: "gemma2:2b"
+      responses:
+        '201':
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Conversation'
+
+  /api/v1/chat/enhanced:
+    post:
+      tags: [Chat]
+      summary: Send enhanced chat message
+      description: Send a message with enhanced AI capabilities and context
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                conversationId:
+                  type: string
+                model:
+                  type: string
+                  default: "gemma2:2b"
+                useContext:
+                  type: boolean
+                  default: true
+                temperature:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  default: 0.7
+      responses:
+        '200':
+          description: Enhanced chat response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  response:
+                    type: string
+                  conversationId:
+                    type: string
+                  metadata:
+                    type: object
+
+  /api/v1/chat/{conversationId}:
+    delete:
+      tags: [Chat]
+      summary: Delete conversation
+      description: Delete a specific conversation and all its messages
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Conversation deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/chat/history/{conversationId}:
+    get:
+      tags: [Chat]
+      summary: Get conversation history
+      description: Retrieve message history for a specific conversation
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Conversation history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+
+  # Vector Search Endpoints
+  /api/v1/search:
+    post:
+      tags: [Vector Search]
+      summary: Semantic search
+      description: Perform semantic search on vector embeddings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                collection:
+                  type: string
+                  default: "universal_ai_docs"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 10
+            example:
+              query: "How does authentication work?"
+              collection: "universal_ai_docs"
+              limit: 5
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        score:
+                          type: number
+                        text:
+                          type: string
+
+  # Agent Management Endpoints
+  /api/v1/agents:
+    get:
+      tags: [Agents]
+      summary: List all agents
+      description: Get a list of all available agents in the system
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, all]
+            default: all
+        - name: type
+          in: query
+          schema:
+            type: string
+            description: Filter by agent type
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Agent'
+
+    post:
+      tags: [Agents]
+      summary: Create new agent
+      description: Create a new AI agent with specified capabilities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type, capabilities]
+              properties:
+                name:
+                  type: string
+                  description: Agent name
+                type:
+                  type: string
+                  enum: [conversational, task-based, analytical]
+                capabilities:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+                config:
+                  type: object
+                  description: Agent-specific configuration
+      responses:
+        '201':
+          description: Agent created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+
+  /api/v1/agents/available:
+    get:
+      tags: [Agents]
+      summary: Get available agents
+      description: Get currently available agents with their capabilities and status
+      responses:
+        '200':
+          description: Available agents with capabilities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      agents:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Agent'
+                      total:
+                        type: integer
+                      active:
+                        type: integer
+
+  /api/v1/agents/status:
+    get:
+      tags: [Agents]
+      summary: Get agent system status
+      description: Get overall status of the agent management system
+      responses:
+        '200':
+          description: Agent system status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      totalAgents:
+                        type: integer
+                      activeAgents:
+                        type: integer
+                      systemHealth:
+                        type: string
+                        enum: [healthy, degraded, unhealthy]
+                      lastSync:
+                        type: string
+                        format: date-time
+
+  /api/v1/agents/{agentId}:
+    get:
+      tags: [Agents]
+      summary: Get specific agent
+      description: Retrieve details of a specific agent by ID
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+
+    put:
+      tags: [Agents]
+      summary: Update agent
+      description: Update an existing agent's configuration and capabilities
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                capabilities:
+                  type: array
+                  items:
+                    type: string
+                config:
+                  type: object
+      responses:
+        '200':
+          description: Agent updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+
+    delete:
+      tags: [Agents]
+      summary: Delete agent
+      description: Delete an agent from the system
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/agents/{agentId}/activate:
+    post:
+      tags: [Agents]
+      summary: Activate agent
+      description: Activate an agent to make it available for use
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent activated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/agents/{agentId}/deactivate:
+    post:
+      tags: [Agents]
+      summary: Deactivate agent
+      description: Deactivate an agent to make it unavailable
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent deactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  # Context Management Endpoints
+  /api/v1/conversation-context:
+    get:
+      tags: [Context]
+      summary: Get context data
+      description: Retrieve conversation context data with filtering options
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            description: Filter by context category
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Context data retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContextEntry'
+
+    post:
+      tags: [Context]
+      summary: Store context data
+      description: Store new conversation context data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category, content]
+              properties:
+                category:
+                  type: string
+                  description: Context category
+                content:
+                  type: string
+                  description: Context content
+                metadata:
+                  type: object
+                  description: Additional context metadata
+                conversationId:
+                  type: string
+                  description: Associated conversation ID
+      responses:
+        '201':
+          description: Context stored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ContextEntry'
+
+  /api/v1/conversation-context/search:
+    get:
+      tags: [Context]
+      summary: Search context
+      description: Search through stored context data
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            description: Search query
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContextEntry'
+                  total:
+                    type: integer
+
+  # Hardware Authentication Endpoints
+  /api/v1/hardware-auth/devices:
+    get:
+      tags: [Hardware Authentication]
+      summary: List registered devices
+      description: Get all registered hardware authentication devices
+      responses:
+        '200':
+          description: List of registered devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HardwareDevice'
+
+  /api/v1/hardware-auth/devices/register:
+    post:
+      tags: [Hardware Authentication]
+      summary: Register new device
+      description: Register a new hardware device for authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceName, deviceType]
+              properties:
+                deviceName:
+                  type: string
+                  description: Human-readable device name
+                deviceType:
+                  type: string
+                  enum: [bluetooth, nfc, usb, biometric]
+                deviceId:
+                  type: string
+                  description: Unique device identifier
+                capabilities:
+                  type: array
+                  items:
+                    type: string
+                metadata:
+                  type: object
+      responses:
+        '201':
+          description: Device registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/HardwareDevice'
+
+  /api/v1/hardware-auth/authenticate:
+    post:
+      tags: [Hardware Authentication]
+      summary: Authenticate with hardware device
+      description: Perform hardware-based authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceId, challenge]
+              properties:
+                deviceId:
+                  type: string
+                challenge:
+                  type: string
+                  description: Authentication challenge
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Authentication result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  authenticated:
+                    type: boolean
+                  token:
+                    type: string
+                    description: JWT token if authentication successful
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Chat Schemas
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique conversation identifier
+        title:
+          type: string
+          description: Conversation title
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messageCount:
+          type: integer
+          description: Number of messages in conversation
+        model:
+          type: string
+          description: AI model used in conversation
+        status:
+          type: string
+          enum: [active, archived, deleted]
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique message identifier
+        conversationId:
+          type: string
+          description: Associated conversation ID
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          description: Message content
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          description: Additional message metadata
+
+    # Agent Schemas
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique agent identifier
+        name:
+          type: string
+          description: Agent name
+        type:
+          type: string
+          enum: [conversational, task-based, analytical]
+        description:
+          type: string
+          description: Agent description
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: List of agent capabilities
+        status:
+          type: string
+          enum: [active, inactive, busy, error]
+        config:
+          type: object
+          description: Agent configuration
+        createdAt:
+          type: string
+          format: date-time
+        lastActiveAt:
+          type: string
+          format: date-time
+        performance:
+          type: object
+          properties:
+            responseTime:
+              type: number
+              description: Average response time in milliseconds
+            successRate:
+              type: number
+              description: Success rate as percentage
+            totalRequests:
+              type: integer
+              description: Total number of requests handled
+
+    # Context Schemas
+    ContextEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique context entry identifier
+        category:
+          type: string
+          description: Context category
+        content:
+          type: string
+          description: Context content
+        metadata:
+          type: object
+          description: Additional context metadata
+        conversationId:
+          type: string
+          description: Associated conversation ID
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        relevanceScore:
+          type: number
+          description: Context relevance score
+
+    # Hardware Authentication Schemas
+    HardwareDevice:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique device identifier
+        deviceName:
+          type: string
+          description: Human-readable device name
+        deviceType:
+          type: string
+          enum: [bluetooth, nfc, usb, biometric]
+        deviceId:
+          type: string
+          description: Hardware-specific device identifier
+        status:
+          type: string
+          enum: [registered, active, inactive, error]
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: Device capabilities
+        registeredAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          description: Device-specific metadata
+        security:
+          type: object
+          properties:
+            encryptionLevel:
+              type: string
+              enum: [low, medium, high]
+            certificateStatus:
+              type: string
+              enum: [valid, expired, revoked]
+
+    # Database Schemas
+    DatabaseStatus:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Database name
+        type:
+          type: string
+          enum: [postgresql, redis, neo4j, qdrant]
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy, disconnected]
+        connections:
+          type: object
+          properties:
+            active:
+              type: integer
+            idle:
+              type: integer
+            max:
+              type: integer
+        performance:
+          type: object
+          properties:
+            responseTime:
+              type: number
+              description: Average response time in milliseconds
+            throughput:
+              type: number
+              description: Operations per second
+            errorRate:
+              type: number
+              description: Error rate as percentage
+
+    # Memory Monitoring Schemas
+    MemoryStatus:
+      type: object
+      properties:
+        systemMemory:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: Total system memory in bytes
+            used:
+              type: integer
+              description: Used system memory in bytes
+            free:
+              type: integer
+              description: Free system memory in bytes
+            usage:
+              type: number
+              description: Memory usage percentage
+        processMemory:
+          type: object
+          properties:
+            heapUsed:
+              type: integer
+              description: Heap memory used in bytes
+            heapTotal:
+              type: integer
+              description: Total heap memory in bytes
+            external:
+              type: integer
+              description: External memory usage in bytes
+            rss:
+              type: integer
+              description: Resident Set Size in bytes
+        alerts:
+          type: array
+          items:
+            type: object
+            properties:
+              level:
+                type: string
+                enum: [low, medium, high, critical]
+              message:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+
+    # Migration Schemas
+    MigrationStatus:
+      type: object
+      properties:
+        phase:
+          type: string
+          enum: [planning, in-progress, completed, failed, rollback]
+        progress:
+          type: number
+          description: Migration progress percentage
+        services:
+          type: object
+          properties:
+            typescript:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [active, migrating, deprecated]
+                routersRemaining:
+                  type: integer
+            go:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [active, scaling, optimized]
+                servicesRunning:
+                  type: integer
+            rust:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [active, scaling, optimized]
+                servicesRunning:
+                  type: integer
+        compatibility:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            mode:
+              type: string
+              enum: [full, partial, disabled]
+
+    # Error Response Schema
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              description: Additional error details
+            timestamp:
+              type: string
+              format: date-time
+
+tags:
+  - name: Health
+    description: Service health monitoring and diagnostics
+  - name: Authentication
+    description: JWT authentication and token management
+  - name: Chat
+    description: AI chat completions with local LLMs and conversation management
+  - name: Agents
+    description: AI agent management and orchestration
+  - name: Context
+    description: Conversation context storage and retrieval
+  - name: Hardware Authentication
+    description: Hardware-based device authentication and management
+  - name: Database
+    description: Database monitoring, maintenance, and analytics
+  - name: Memory Monitoring
+    description: System and application memory monitoring and optimization
+  - name: Migration
+    description: System migration status and compatibility management
+  - name: Vector Search
+    description: Semantic search with vector embeddings

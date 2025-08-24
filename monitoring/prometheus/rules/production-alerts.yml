@@ -1,0 +1,228 @@
+# Universal AI Tools - Production Alert Rules
+# Memory-optimized alerting for <1GB target deployment
+
+groups:
+  # Critical System Alerts
+  - name: critical-system-alerts
+    interval: 30s
+    rules:
+      # API Service Down (Critical)
+      - alert: APIServiceDown
+        expr: up{job="universal-ai-tools-api-prod"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+          service: api
+        annotations:
+          summary: "Universal AI Tools API is down"
+          description: "The main API service has been down for more than 1 minute"
+          runbook_url: "https://docs.yourdomain.com/runbooks/api-down"
+          action: "Check API service logs and restart if necessary"
+
+      # Database Connection Failed (Critical)
+      - alert: DatabaseConnectionFailed
+        expr: postgres_up{job="postgres-prod"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          service: database
+        annotations:
+          summary: "PostgreSQL database is unreachable"
+          description: "Database connection has been failing for more than 2 minutes"
+          runbook_url: "https://docs.yourdomain.com/runbooks/database-down"
+          action: "Check PostgreSQL service and connection settings"
+
+      # Memory Usage Critical (Target: <1GB total)
+      - alert: MemoryUsageCritical
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: critical
+          category: memory
+          memory_threshold: "85%"
+        annotations:
+          summary: "Container memory usage critically high"
+          description: "Container {{ $labels.container }} is using {{ $value }}% of allocated memory"
+          action: "Investigate memory leaks and consider scaling or optimization"
+
+  # Memory Optimization Alerts (Target: <1GB total system)
+  - name: memory-optimization-alerts
+    interval: 60s
+    rules:
+      # API Service Memory Warning (Target: 512MB)
+      - alert: APIMemoryWarning
+        expr: container_memory_usage_bytes{container=~".*api.*"} > 400000000  # 400MB
+        for: 10m
+        labels:
+          severity: warning
+          category: memory
+          service: api
+          memory_usage: "{{ $value | humanize }}B"
+          memory_threshold: "400MB"
+        annotations:
+          summary: "API service memory usage approaching limit"
+          description: "API container is using {{ $value | humanize }}B (target: <512MB)"
+          action: "Monitor for memory leaks, consider optimization"
+
+      # PostgreSQL Memory Warning (Target: 256MB)
+      - alert: PostgreSQLMemoryWarning
+        expr: container_memory_usage_bytes{container=~".*postgres.*"} > 200000000  # 200MB
+        for: 15m
+        labels:
+          severity: warning
+          category: memory
+          service: postgres
+          memory_usage: "{{ $value | humanize }}B"
+          memory_threshold: "200MB"
+        annotations:
+          summary: "PostgreSQL memory usage high"
+          description: "PostgreSQL is using {{ $value | humanize }}B (target: <256MB)"
+          action: "Review database configuration and connection pooling"
+
+      # Redis Memory Warning (Target: 64MB)
+      - alert: RedisMemoryWarning
+        expr: container_memory_usage_bytes{container=~".*redis.*"} > 50000000  # 50MB
+        for: 10m
+        labels:
+          severity: warning
+          category: memory
+          service: redis
+          memory_usage: "{{ $value | humanize }}B"
+          memory_threshold: "50MB"
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis is using {{ $value | humanize }}B (target: <64MB)"
+          action: "Check Redis configuration and memory policy"
+
+      # Total System Memory Warning (Target: <1GB)
+      - alert: TotalSystemMemoryWarning
+        expr: sum(container_memory_usage_bytes{container!=""}) > 800000000  # 800MB
+        for: 5m
+        labels:
+          severity: warning
+          category: memory
+          service: system
+          memory_usage: "{{ $value | humanize }}B"
+          memory_threshold: "800MB"
+        annotations:
+          summary: "Total system memory usage approaching 1GB limit"
+          description: "Total container memory usage is {{ $value | humanize }}B"
+          action: "Review all services for memory optimization opportunities"
+
+  # Performance and Health Alerts
+  - name: performance-alerts
+    interval: 60s
+    rules:
+      # High Response Time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+          service: api
+        annotations:
+          summary: "API response time is high"
+          description: "95th percentile response time is {{ $value }}s (target: <2s)"
+          action: "Investigate slow endpoints and optimize performance"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: errors
+          service: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          action: "Check error logs and investigate failing requests"
+
+      # SSL Certificate Expiry Warning
+      - alert: SSLCertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7  # 7 days
+        for: 1h
+        labels:
+          severity: warning
+          category: security
+          service: nginx
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate will expire in {{ $value | humanizeDuration }}"
+          action: "Renew SSL certificate before expiry"
+
+  # Service Health Monitoring
+  - name: service-health-alerts
+    interval: 30s
+    rules:
+      # Ollama LLM Service Health
+      - alert: OllamaServiceUnhealthy
+        expr: up{job="ollama-prod"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: availability
+          service: ollama
+        annotations:
+          summary: "Ollama LLM service is unhealthy"
+          description: "Local LLM service has been down for more than 5 minutes"
+          action: "Check Ollama service status and restart if needed"
+
+      # Redis Service Health
+      - alert: RedisServiceUnhealthy
+        expr: up{job="redis-prod"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          category: availability
+          service: redis
+        annotations:
+          summary: "Redis service is unhealthy"
+          description: "Redis cache service has been down for more than 3 minutes"
+          action: "Check Redis service and restart if necessary"
+
+      # Health Check Failures
+      - alert: HealthCheckFailing
+        expr: probe_success{job="universal-ai-tools-health-prod"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          service: health
+        annotations:
+          summary: "Application health check failing"
+          description: "Main application health endpoint has been failing"
+          action: "Investigate application status and dependencies"
+
+  # Security and Compliance Alerts
+  - name: security-alerts
+    interval: 300s  # 5 minutes
+    rules:
+      # Unusual Request Volume (potential DDoS)
+      - alert: UnusualRequestVolume
+        expr: rate(http_requests_total[1m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          service: api
+        annotations:
+          summary: "Unusual request volume detected"
+          description: "Request rate is {{ $value }} req/sec (normal: <50 req/sec)"
+          action: "Check for potential DDoS attack or traffic spike"
+
+      # Failed Authentication Attempts
+      - alert: HighFailedAuthRate
+        expr: rate(http_requests_total{status="401"}[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          category: security
+          service: auth
+        annotations:
+          summary: "High failed authentication rate"
+          description: "Failed auth rate is {{ $value }} attempts/sec"
+          action: "Check for brute force attacks or authentication issues"

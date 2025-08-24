@@ -1,0 +1,14 @@
+{
+  "created_at": "2025-08-22T09:22:00.784389",
+  "total_examples": 11,
+  "categories": [
+    "system_architecture",
+    "swift_macos_development",
+    "mlx_optimization",
+    "error_handling_debugging",
+    "fine_tuning_ai_optimization"
+  ],
+  "description": "Training dataset for Universal AI Tools fine-tuning with system knowledge",
+  "format": "Alpaca instruction-input-output format",
+  "use_case": "MLX fine-tuning on Apple Silicon for domain-specific AI assistance"
+}

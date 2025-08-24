@@ -1,0 +1,448 @@
+/**
+ * Accessibility CSS Utilities
+ * WCAG 2.1 AA Compliant styles and utilities
+ * 
+ * Includes:
+ * - Screen reader only classes
+ * - Focus indicators
+ * - High contrast mode styles
+ * - Reduced motion preferences
+ * - Large text support
+ * - Skip links
+ * - Color contrast utilities
+ */
+
+/* Screen Reader Only Utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sr-only:focus,
+.not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+.focus\:not-sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Skip Links */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #007acc;
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 9999;
+  font-weight: 600;
+  font-size: 14px;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 6px;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Focus Indicators - Enhanced for better visibility */
+.focus-indicators *:focus-visible,
+.focus-indicators *:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Custom focus styles for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible,
+[role="link"]:focus-visible {
+  outline: 2px solid var(--focus-color, #007acc);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 122, 204, 0.15);
+}
+
+/* Focus styles for glass cards and interactive elements */
+.glass-card-spectrum:focus-visible,
+.glass-card-warm:focus-visible,
+.glass-card-cool:focus-visible,
+.glass-card-primary:focus-visible,
+.glass-card-elevated:focus-visible,
+.glass-card-floating:focus-visible {
+  outline: 2px solid var(--focus-color, #007acc);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 122, 204, 0.15),
+              var(--glass-shadow, 0 8px 32px rgba(0, 0, 0, 0.3));
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .high-contrast {
+    --focus-color: #ffffff;
+    --text-primary: #ffffff;
+    --text-secondary: #e0e0e0;
+    --bg-primary: #000000;
+    --bg-secondary: #1a1a1a;
+    --border-color: #ffffff;
+  }
+}
+
+.high-contrast {
+  --focus-color: #ffffff;
+  --contrast-multiplier: 1.5;
+}
+
+.high-contrast * {
+  border-color: var(--border-color, currentColor) !important;
+}
+
+.high-contrast .glass-card-spectrum,
+.high-contrast .glass-card-warm,
+.high-contrast .glass-card-cool,
+.high-contrast .glass-card-primary,
+.high-contrast .glass-card-elevated,
+.high-contrast .glass-card-floating {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.high-contrast .gradient-text-primary,
+.high-contrast .gradient-text-cool,
+.high-contrast .gradient-text-warm,
+.high-contrast .gradient-text-spectrum {
+  background: none !important;
+  color: #ffffff !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+/* Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  .reduce-motion,
+  .reduce-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.reduce-motion .animate-pulse {
+  animation: none;
+}
+
+.reduce-motion [class*="animate-"] {
+  animation: none !important;
+}
+
+/* Large Text Support */
+.large-text {
+  --font-size-multiplier: 1.2;
+}
+
+.large-text * {
+  font-size: calc(1em * var(--font-size-multiplier, 1));
+}
+
+.large-text .text-xs { font-size: calc(0.75rem * var(--font-size-multiplier, 1)); }
+.large-text .text-sm { font-size: calc(0.875rem * var(--font-size-multiplier, 1)); }
+.large-text .text-base { font-size: calc(1rem * var(--font-size-multiplier, 1)); }
+.large-text .text-lg { font-size: calc(1.125rem * var(--font-size-multiplier, 1)); }
+.large-text .text-xl { font-size: calc(1.25rem * var(--font-size-multiplier, 1)); }
+.large-text .text-2xl { font-size: calc(1.5rem * var(--font-size-multiplier, 1)); }
+.large-text .text-3xl { font-size: calc(1.875rem * var(--font-size-multiplier, 1)); }
+
+/* Color Contrast Utilities */
+.contrast-aa {
+  color: var(--text-aa-compliant, #ffffff);
+  background-color: var(--bg-aa-compliant, #000000);
+}
+
+.contrast-aaa {
+  color: var(--text-aaa-compliant, #ffffff);
+  background-color: var(--bg-aaa-compliant, #000000);
+}
+
+/* Status Colors with High Contrast Support */
+.status-healthy {
+  color: #22c55e;
+}
+
+.status-degraded {
+  color: #f59e0b;
+}
+
+.status-offline {
+  color: #ef4444;
+}
+
+.high-contrast .status-healthy {
+  color: #00ff00;
+  font-weight: bold;
+}
+
+.high-contrast .status-degraded {
+  color: #ffff00;
+  font-weight: bold;
+}
+
+.high-contrast .status-offline {
+  color: #ff0000;
+  font-weight: bold;
+}
+
+/* Accessible Loading States */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .loading-spinner::after {
+    content: "Loading...";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Accessible Form Elements */
+.form-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-error::before {
+  content: "⚠ ";
+  font-weight: bold;
+}
+
+.high-contrast .form-error {
+  color: #ff0000;
+  font-weight: bold;
+  border: 1px solid #ff0000;
+  padding: 0.25rem;
+  background: rgba(255, 0, 0, 0.1);
+}
+
+input:invalid,
+select:invalid,
+textarea:invalid {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+}
+
+input:valid:not(:placeholder-shown),
+select:valid,
+textarea:valid:not(:placeholder-shown) {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
+}
+
+/* Accessible Progress Bars */
+[role="progressbar"] {
+  position: relative;
+  overflow: hidden;
+}
+
+[role="progressbar"]::after {
+  content: attr(aria-valuenow) "% complete";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.high-contrast [role="progressbar"]::after {
+  color: #000000;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.125rem 0.25rem;
+  border-radius: 2px;
+}
+
+/* Accessible Tooltips */
+[title]:hover::after,
+[aria-label]:hover::after {
+  content: attr(title) attr(aria-label);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.high-contrast [title]:hover::after,
+.high-contrast [aria-label]:hover::after {
+  background: #000000;
+  border: 1px solid #ffffff;
+}
+
+/* Accessible Button States */
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.high-contrast button:disabled,
+.high-contrast [role="button"][aria-disabled="true"] {
+  opacity: 1;
+  background: #666666 !important;
+  color: #cccccc !important;
+  border: 1px solid #999999 !important;
+}
+
+/* Accessible Link States */
+a:visited {
+  color: #9333ea;
+}
+
+.high-contrast a {
+  text-decoration: underline !important;
+  font-weight: bold !important;
+}
+
+.high-contrast a:visited {
+  color: #c084fc !important;
+}
+
+/* Focus Management for Dynamic Content */
+.focus-trap {
+  position: relative;
+}
+
+.focus-trap-active {
+  isolation: isolate;
+}
+
+.focus-trap-active *:not(.focus-trap *) {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Accessible Animations */
+.accessible-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.accessible-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accessible-fade-in,
+  .accessible-slide-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Accessible Tables */
+table th {
+  text-align: left;
+  font-weight: 600;
+}
+
+table th,
+table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.high-contrast table th,
+.high-contrast table td {
+  border: 1px solid #ffffff;
+}
+
+/* Print Styles for Accessibility */
+@media print {
+  .sr-only {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    clip: auto !important;
+    overflow: visible !important;
+  }
+  
+  .skip-link {
+    display: none;
+  }
+  
+  * {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  a, a:visited {
+    text-decoration: underline;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+}

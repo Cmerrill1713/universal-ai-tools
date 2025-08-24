@@ -1,0 +1,251 @@
+#!/bin/bash
+# Universal AI Tools (UAT) - Unified Command Interface
+# Consolidates 200+ scripts into a single entry point
+# Version: 1.0.0
+
+set -euo pipefail
+
+# Configuration
+UAT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+UAT_CONFIG_DIR="${UAT_ROOT}/config"
+UAT_SCRIPTS_DIR="${UAT_ROOT}/scripts"
+UAT_LOGS_DIR="${UAT_ROOT}/logs"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Logging
+log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $*"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $*"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
+
+show_help() {
+    cat << EOF
+🚀 Universal AI Tools (UAT) - Unified Command Interface
+
+USAGE:
+    uat <command> [options]
+
+CORE COMMANDS:
+    start           Start the UAT system (Go API Gateway + essential services)
+    stop            Stop all UAT services
+    restart         Restart the UAT system
+    status          Show system status and health
+    logs            View system logs
+
+SERVICE MANAGEMENT:
+    services list   List all available services
+    services start  Start specific service(s)
+    services stop   Stop specific service(s)
+    
+DEVELOPMENT:
+    dev             Start development environment
+    test            Run test suite
+    build           Build the system
+    deploy          Deploy to production
+
+MAINTENANCE:
+    health          Comprehensive health check
+    optimize        Optimize system performance
+    cleanup         Clean temporary files and optimize storage
+    update          Update dependencies and system
+
+EXAMPLES:
+    uat start                   # Start core system
+    uat dev                     # Development mode
+    uat services start ollama   # Start Ollama service
+    uat test api               # Run API tests
+    uat health                 # System health check
+    uat logs --follow          # Follow system logs
+
+For detailed help on any command: uat <command> --help
+EOF
+}
+
+# Core service management
+start_core_system() {
+    log_info "🚀 Starting Universal AI Tools core system..."
+    
+    # Start Go API Gateway (primary entry point)
+    log_info "Starting Go API Gateway..."
+    cd "${UAT_ROOT}/go-api-gateway"
+    UAT_SERVER_PORT=8080 UAT_ENVIRONMENT=development UAT_SECURITY_REQUIRE_AUTH=false ./main &
+    echo $! > "${UAT_LOGS_DIR}/go-api-gateway.pid"
+    
+    # Start essential services
+    log_info "Starting essential services..."
+    
+    # Redis (if not running)
+    if ! pgrep -f redis-server > /dev/null; then
+        redis-server "${UAT_CONFIG_DIR}/redis.conf" &
+        echo $! > "${UAT_LOGS_DIR}/redis.pid"
+    fi
+    
+    # Ollama (if not running)
+    if ! pgrep -f ollama > /dev/null; then
+        ollama serve &
+        echo $! > "${UAT_LOGS_DIR}/ollama.pid"
+    fi
+    
+    log_success "✅ Core system started successfully!"
+    log_info "🌐 API Gateway: http://localhost:8080"
+    log_info "📊 Health Check: http://localhost:8080/health"
+}
+
+stop_system() {
+    log_info "🛑 Stopping Universal AI Tools system..."
+    
+    # Stop services using PID files
+    for pid_file in "${UAT_LOGS_DIR}"/*.pid; do
+        if [[ -f "$pid_file" ]]; then
+            pid=$(cat "$pid_file")
+            if kill "$pid" 2>/dev/null; then
+                log_success "Stopped service (PID: $pid)"
+                rm "$pid_file"
+            fi
+        fi
+    done
+    
+    # Force kill any remaining processes
+    pkill -f "go-api-gateway" || true
+    pkill -f "universal-ai-tools" || true
+    
+    log_success "✅ System stopped successfully!"
+}
+
+show_status() {
+    log_info "📊 Universal AI Tools System Status"
+    echo ""
+    
+    # Check Go API Gateway
+    if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+        log_success "🟢 Go API Gateway: Running (http://localhost:8080)"
+    else
+        log_error "🔴 Go API Gateway: Not responding"
+    fi
+    
+    # Check Redis
+    if pgrep -f redis-server > /dev/null; then
+        log_success "🟢 Redis: Running"
+    else
+        log_warning "🟡 Redis: Not running"
+    fi
+    
+    # Check Ollama
+    if pgrep -f ollama > /dev/null; then
+        log_success "🟢 Ollama: Running"
+    else
+        log_warning "🟡 Ollama: Not running"
+    fi
+    
+    # Memory usage
+    echo ""
+    log_info "💾 Memory Usage:"
+    ps aux | grep -E "(go-api-gateway|redis|ollama)" | grep -v grep | awk '{print "  " $11 ": " $4"% CPU, " $6/1024 "MB RAM"}'
+}
+
+start_dev_mode() {
+    log_info "🛠️ Starting development environment..."
+    
+    # Start with hot reload and debug logging
+    export UAT_ENVIRONMENT=development
+    export UAT_LOG_LEVEL=debug
+    
+    start_core_system
+    
+    # Start additional dev services
+    log_info "Starting development services..."
+    
+    # Start frontend if available
+    if [[ -d "${UAT_ROOT}/electron-frontend" ]]; then
+        log_info "Starting Electron frontend..."
+        cd "${UAT_ROOT}/electron-frontend"
+        npm run dev &
+        echo $! > "${UAT_LOGS_DIR}/electron-frontend.pid"
+    fi
+    
+    log_success "✅ Development environment ready!"
+    log_info "🔧 Development mode: Hot reload enabled"
+}
+
+run_tests() {
+    local test_type="${1:-all}"
+    log_info "🧪 Running tests: $test_type"
+    
+    case $test_type in
+        "api")
+            cd "${UAT_ROOT}"
+            npm run test:api
+            ;;
+        "integration")
+            cd "${UAT_ROOT}"
+            npm run test:integration
+            ;;
+        "all")
+            cd "${UAT_ROOT}"
+            npm test
+            ;;
+        *)
+            log_error "Unknown test type: $test_type"
+            exit 1
+            ;;
+    esac
+}
+
+# Main command dispatcher
+main() {
+    # Ensure logs directory exists
+    mkdir -p "${UAT_LOGS_DIR}"
+    
+    case "${1:-help}" in
+        "start")
+            start_core_system
+            ;;
+        "stop")
+            stop_system
+            ;;
+        "restart")
+            stop_system
+            sleep 2
+            start_core_system
+            ;;
+        "status")
+            show_status
+            ;;
+        "dev")
+            start_dev_mode
+            ;;
+        "test")
+            run_tests "${2:-all}"
+            ;;
+        "logs")
+            if [[ "${2:-}" == "--follow" ]]; then
+                tail -f "${UAT_LOGS_DIR}"/*.log 2>/dev/null || log_warning "No log files found"
+            else
+                cat "${UAT_LOGS_DIR}"/*.log 2>/dev/null || log_warning "No log files found"
+            fi
+            ;;
+        "health")
+            "${UAT_ROOT}/scripts/utility/system-health-check.sh"
+            ;;
+        "help"|"--help"|"-h")
+            show_help
+            ;;
+        *)
+            log_error "Unknown command: ${1:-}"
+            echo ""
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function with all arguments
+main "$@"

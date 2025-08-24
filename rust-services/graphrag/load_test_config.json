@@ -1,0 +1,16 @@
+{
+  "service_url": "http://localhost:8000",
+  "concurrent_users": 50,
+  "test_duration": 300,
+  "requests_per_second": 2.0,
+  "scenarios": [
+    "EntityExtraction",
+    "VectorSearch", 
+    "HybridSearch",
+    "CacheTest",
+    "ConnectionPoolTest",
+    "EndToEndWorkflow"
+  ],
+  "request_timeout": 30,
+  "detailed_metrics": true
+}

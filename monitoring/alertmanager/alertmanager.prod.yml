@@ -1,0 +1,174 @@
+# Universal AI Tools - Production Alertmanager Configuration
+# Memory-optimized alerting for production deployment
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@yourdomain.com'
+  resolve_timeout: 5m
+
+# Templates for alert formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 24h
+  receiver: 'default-receiver'
+  routes:
+    # Critical production issues
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 1h
+    
+    # Memory and performance alerts
+    - match:
+        category: memory
+      receiver: 'memory-alerts'
+      group_wait: 2m
+      repeat_interval: 6h
+    
+    # Service availability alerts
+    - match:
+        category: availability
+      receiver: 'availability-alerts'
+      group_wait: 30s
+      repeat_interval: 2h
+
+# Alert receivers
+receivers:
+  # Default receiver for general alerts
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'admin@yourdomain.com'
+        subject: '[Universal AI Tools] {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+    
+    # Webhook for integration with external systems
+    webhook_configs:
+      - url: 'http://api:9999/api/webhooks/alerts'
+        send_resolved: true
+        http_config:
+          basic_auth:
+            username: 'alertmanager'
+            password: 'webhook-secret'
+
+  # Critical alerts (immediate notification)
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'critical@yourdomain.com'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        body: |
+          CRITICAL ALERT - Immediate Action Required
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          Runbook: {{ .Annotations.runbook_url }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+          
+          Please investigate immediately!
+    
+    # Slack notification for critical alerts
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#critical-alerts'
+        title: '🚨 Critical Alert - Universal AI Tools'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          Instance: {{ .Labels.instance }}
+          {{ end }}
+
+  # Memory optimization alerts
+  - name: 'memory-alerts'
+    email_configs:
+      - to: 'devops@yourdomain.com'
+        subject: '[Memory] {{ .GroupLabels.alertname }}'
+        body: |
+          Memory Alert - Universal AI Tools
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Current Usage: {{ .Labels.memory_usage }}
+          Threshold: {{ .Labels.memory_threshold }}
+          Service: {{ .Labels.service }}
+          Action: {{ .Annotations.action }}
+          {{ end }}
+
+  # Service availability alerts  
+  - name: 'availability-alerts'
+    email_configs:
+      - to: 'ops@yourdomain.com'
+        subject: '[Availability] {{ .GroupLabels.alertname }}'
+        body: |
+          Service Availability Alert
+          
+          {{ range .Alerts }}
+          Service: {{ .Labels.service }}
+          Status: {{ .Labels.status }}
+          Instance: {{ .Labels.instance }}
+          Duration: {{ .Annotations.duration }}
+          {{ end }}
+
+# Inhibition rules (prevent spam)
+inhibit_rules:
+  # Inhibit memory warnings if critical memory alert is firing
+  - source_match:
+      severity: 'critical'
+      category: 'memory'
+    target_match:
+      severity: 'warning'
+      category: 'memory'
+    equal: ['instance']
+
+  # Inhibit service warnings if service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      service: '.*'
+    equal: ['instance']
+
+# Mute/silence configuration
+mute_time_intervals:
+  # Maintenance window (adjust times as needed)
+  - name: 'maintenance-window'
+    time_intervals:
+      - times:
+          - start_time: '02:00'
+            end_time: '04:00'
+        weekdays: ['sunday']
+        months: ['1:12']
+
+# Time intervals for different notification schedules
+time_intervals:
+  # Business hours only
+  - name: 'business-hours'
+    time_intervals:
+      - times:
+          - start_time: '09:00'
+            end_time: '17:00'
+        weekdays: ['monday:friday']
+
+  # Off-hours (for less critical alerts)
+  - name: 'off-hours'
+    time_intervals:
+      - times:
+          - start_time: '17:01'
+            end_time: '08:59'
+        weekdays: ['monday:friday']
+      - weekdays: ['saturday', 'sunday']

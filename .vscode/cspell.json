@@ -1,0 +1,21 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        "ABMCTS",
+        "checkmark",
+        "exclamationmark",
+        "MCTS",
+        "Mcts",
+        "mcts",
+        "xaxis",
+        "xyaxis",
+        "xmark"
+    ],
+    "ignorePaths": [
+        "node_modules/**",
+        "dist/**",
+        "build/**",
+        ".git/**"
+    ]
+}

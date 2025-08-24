@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal AI Assistant v2 - Model Agnostic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #151932 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #00ff88;
+        }
+
+        .system-info {
+            margin-bottom: 30px;
+        }
+
+        .system-info h3 {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .system-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        /* Model Capabilities */
+        .model-capabilities {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .model-capabilities h3 {
+            font-size: 0.9rem;
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .capability-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .capability-name {
+            font-size: 0.85rem;
+        }
+
+        .capability-models {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-dot.active {
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-title {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #00ff88, #00aaff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .model-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, rgba(0, 170, 255, 0.1), rgba(0, 170, 255, 0.05));
+            border-left: 3px solid #00aaff;
+            margin-left: 50px;
+        }
+
+        .message.assistant {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 136, 0.05));
+            border-left: 3px solid #00ff88;
+            margin-right: 50px;
+        }
+
+        .message-meta {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 8px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 50px;
+            max-height: 150px;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #00ff88, #00aaff);
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Model Selection Info */
+        .model-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #888;
+            padding: 5px;
+        }
+
+        .model-status {
+            display: flex;
+            gap: 15px;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.2; }
+            30% { opacity: 1; }
+        }
+
+        /* Error State */
+        .error-banner {
+            display: none;
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            color: #ff8888;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .error-banner.active {
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>🤖 AI Assistant v2</h2>
+            
+            <div class="system-info">
+                <h3>Active Models</h3>
+                <div id="activeModels"></div>
+            </div>
+
+            <div class="model-capabilities">
+                <h3>Capability Routing</h3>
+                <div class="capability-item">
+                    <span class="capability-name">💬 General Chat</span>
+                    <span class="capability-models" id="generalModels">Auto</span>
+                </div>
+                <div class="capability-item">
+                    <span class="capability-name">💻 Code Generation</span>
+                    <span class="capability-models" id="codeModels">Auto</span>
+                </div>
+                <div class="capability-item">
+                    <span class="capability-name">🧮 Math & Logic</span>
+                    <span class="capability-models" id="mathModels">Auto</span>
+                </div>
+                <div class="capability-item">
+                    <span class="capability-name">📝 Writing</span>
+                    <span class="capability-models" id="writingModels">Auto</span>
+                </div>
+                <div class="capability-item">
+                    <span class="capability-name">🔍 Analysis</span>
+                    <span class="capability-models" id="analysisModels">Auto</span>
+                </div>
+            </div>
+            
+            <div class="system-info">
+                <h3>Performance</h3>
+                <div class="system-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgResponse">0ms</div>
+                        <div class="stat-label">Avg Response</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalMessages">0</div>
+                        <div class="stat-label">Messages</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="cacheHits">0%</div>
+                        <div class="stat-label">Cache Hits</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="draftUsage">0%</div>
+                        <div class="stat-label">Draft Usage</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h1 class="chat-title">Universal AI Assistant</h1>
+                <select class="model-selector" id="modelStrategy">
+                    <option value="auto">🤖 Auto-Select (Recommended)</option>
+                    <option value="speed">⚡ Speed Priority (Draft Models)</option>
+                    <option value="quality">🎯 Quality Priority</option>
+                    <option value="balanced">⚖️ Balanced</option>
+                    <option value="local">🏠 Local Only</option>
+                </select>
+            </div>
+
+            <div class="error-banner" id="errorBanner"></div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div>👋 Welcome to Universal AI Assistant v2!</div>
+                    <div style="margin-top: 10px;">I'm now <strong>model-agnostic</strong> and will automatically select the best AI model based on your needs:</div>
+                    <div style="margin-top: 5px;">• 🚀 Using draft models for faster initial responses</div>
+                    <div style="margin-top: 5px;">• 🧠 Intelligent capability-based routing</div>
+                    <div style="margin-top: 5px;">• 🔄 Automatic fallback to ensure reliability</div>
+                    <div style="margin-top: 5px;">• ⚡ Optimized for both speed and quality</div>
+                    <div style="margin-top: 10px;">How can I help you today?</div>
+                    <div class="message-meta">
+                        <span class="meta-item">🤖 System Ready</span>
+                        <span class="meta-item">📊 All Models Online</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+                <span style="margin-left: 10px;" id="typingText">AI is thinking...</span>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="input-wrapper">
+                    <textarea class="chat-input" id="chatInput" 
+                              placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
+                              rows="1"></textarea>
+                    <button class="send-button" id="sendButton">Send</button>
+                </div>
+                <div class="model-info">
+                    <div class="model-status">
+                        <span id="selectedModel">Model: Auto-selecting...</span>
+                        <span id="connectionStatus">
+                            <span class="status-dot active"></span> Connected
+                        </span>
+                    </div>
+                    <div>
+                        <span id="responseTime">Last: 0ms</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:8092/api/v1';
+        let currentConversationId = null;
+        let isTyping = false;
+        let messageCount = 0;
+        let totalResponseTime = 0;
+        let draftModelUsed = 0;
+        let cacheHitCount = 0;
+
+        // Model capabilities mapping
+        const modelCapabilities = {
+            'lm-studio': {
+                capabilities: ['general', 'code', 'math', 'writing', 'analysis'],
+                speed: 'medium',
+                quality: 'high',
+                available: false,
+                isDraft: false
+            },
+            'ollama': {
+                capabilities: ['general', 'code', 'writing'],
+                speed: 'fast',
+                quality: 'medium',
+                available: false,
+                isDraft: false
+            },
+            'draft-model': {
+                capabilities: ['general', 'writing'],
+                speed: 'very-fast',
+                quality: 'basic',
+                available: false,
+                isDraft: true
+            },
+            'enhanced': {
+                capabilities: ['analysis', 'math', 'code'],
+                speed: 'slow',
+                quality: 'very-high',
+                available: false,
+                isDraft: false
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkModelAvailability();
+            setupEventListeners();
+            updateStats();
+        });
+
+        // Check which models are available
+        async function checkModelAvailability() {
+            try {
+                // Check LM Studio
+                try {
+                    const lmResponse = await fetch('http://localhost:1234/v1/models', { 
+                        method: 'GET',
+                        signal: AbortSignal.timeout(2000)
+                    });
+                    if (lmResponse.ok) {
+                        modelCapabilities['lm-studio'].available = true;
+                        modelCapabilities['draft-model'].available = true; // Assume draft available with LM Studio
+                    }
+                } catch (e) {
+                    console.log('LM Studio not available');
+                }
+
+                // Check Ollama
+                try {
+                    const ollamaResponse = await fetch('http://localhost:11434/api/tags', {
+                        method: 'GET',
+                        signal: AbortSignal.timeout(2000)
+                    });
+                    if (ollamaResponse.ok) {
+                        modelCapabilities['ollama'].available = true;
+                    }
+                } catch (e) {
+                    console.log('Ollama not available');
+                }
+
+                // Enhanced is always available through our backend
+                modelCapabilities['enhanced'].available = true;
+
+                updateModelDisplay();
+            } catch (error) {
+                console.error('Error checking model availability:', error);
+            }
+        }
+
+        // Update model display
+        function updateModelDisplay() {
+            const activeModelsEl = document.getElementById('activeModels');
+            activeModelsEl.innerHTML = '';
+            
+            Object.entries(modelCapabilities).forEach(([name, info]) => {
+                const modelEl = document.createElement('div');
+                modelEl.className = 'status-indicator';
+                modelEl.style.padding = '5px 0';
+                modelEl.innerHTML = `
+                    <span class="status-dot ${info.available ? 'active' : ''}"></span>
+                    <span style="font-size: 0.85rem">${name} ${info.isDraft ? '(draft)' : ''}</span>
+                `;
+                activeModelsEl.appendChild(modelEl);
+            });
+
+            // Update capability routing display
+            updateCapabilityRouting();
+        }
+
+        // Update capability routing display
+        function updateCapabilityRouting() {
+            const availableModels = Object.entries(modelCapabilities)
+                .filter(([_, info]) => info.available)
+                .map(([name, _]) => name);
+
+            document.getElementById('generalModels').textContent = 
+                availableModels.filter(m => modelCapabilities[m].capabilities.includes('general')).join(', ') || 'None';
+            document.getElementById('codeModels').textContent = 
+                availableModels.filter(m => modelCapabilities[m].capabilities.includes('code')).join(', ') || 'None';
+            document.getElementById('mathModels').textContent = 
+                availableModels.filter(m => modelCapabilities[m].capabilities.includes('math')).join(', ') || 'None';
+            document.getElementById('writingModels').textContent = 
+                availableModels.filter(m => modelCapabilities[m].capabilities.includes('writing')).join(', ') || 'None';
+            document.getElementById('analysisModels').textContent = 
+                availableModels.filter(m => modelCapabilities[m].capabilities.includes('analysis')).join(', ') || 'None';
+        }
+
+        // Determine best model based on message content and strategy
+        function selectBestModel(message, strategy) {
+            const availableModels = Object.entries(modelCapabilities)
+                .filter(([_, info]) => info.available);
+
+            if (availableModels.length === 0) {
+                throw new Error('No models available');
+            }
+
+            // Analyze message to determine needed capabilities
+            const neededCapabilities = analyzeMessageCapabilities(message);
+            
+            // Filter models by capabilities
+            let suitableModels = availableModels.filter(([_, info]) => 
+                neededCapabilities.some(cap => info.capabilities.includes(cap))
+            );
+
+            if (suitableModels.length === 0) {
+                suitableModels = availableModels; // Fallback to any available
+            }
+
+            // Apply strategy
+            switch (strategy) {
+                case 'speed':
+                    // Prefer draft models first
+                    const draftModels = suitableModels.filter(([_, info]) => info.isDraft);
+                    if (draftModels.length > 0) {
+                        return draftModels[0][0];
+                    }
+                    // Then fastest non-draft
+                    suitableModels.sort((a, b) => {
+                        const speedOrder = ['very-fast', 'fast', 'medium', 'slow'];
+                        return speedOrder.indexOf(a[1].speed) - speedOrder.indexOf(b[1].speed);
+                    });
+                    break;
+
+                case 'quality':
+                    // Avoid draft models, prefer highest quality
+                    suitableModels = suitableModels.filter(([_, info]) => !info.isDraft);
+                    suitableModels.sort((a, b) => {
+                        const qualityOrder = ['very-high', 'high', 'medium', 'basic'];
+                        return qualityOrder.indexOf(a[1].quality) - qualityOrder.indexOf(b[1].quality);
+                    });
+                    break;
+
+                case 'balanced':
+                    // Balance between speed and quality
+                    suitableModels.sort((a, b) => {
+                        const speedScore = {'very-fast': 4, 'fast': 3, 'medium': 2, 'slow': 1};
+                        const qualityScore = {'very-high': 4, 'high': 3, 'medium': 2, 'basic': 1};
+                        const scoreA = (speedScore[a[1].speed] || 0) + (qualityScore[a[1].quality] || 0);
+                        const scoreB = (speedScore[b[1].speed] || 0) + (qualityScore[b[1].quality] || 0);
+                        return scoreB - scoreA;
+                    });
+                    break;
+
+                case 'local':
+                    // Prefer local models (ollama, lm-studio)
+                    suitableModels = suitableModels.filter(([name, _]) => 
+                        name === 'ollama' || name === 'lm-studio' || name === 'draft-model'
+                    );
+                    break;
+
+                case 'auto':
+                default:
+                    // Smart selection based on message complexity
+                    const complexity = estimateComplexity(message);
+                    if (complexity === 'simple' && suitableModels.some(([_, info]) => info.isDraft)) {
+                        // Use draft for simple queries
+                        return suitableModels.find(([_, info]) => info.isDraft)[0];
+                    } else if (complexity === 'complex') {
+                        // Use highest quality for complex
+                        suitableModels.sort((a, b) => {
+                            const qualityOrder = ['very-high', 'high', 'medium', 'basic'];
+                            return qualityOrder.indexOf(a[1].quality) - qualityOrder.indexOf(b[1].quality);
+                        });
+                    }
+                    break;
+            }
+
+            return suitableModels[0][0];
+        }
+
+        // Analyze message to determine needed capabilities
+        function analyzeMessageCapabilities(message) {
+            const capabilities = ['general']; // Always include general
+            const lowerMessage = message.toLowerCase();
+
+            if (/\b(code|program|function|class|debug|error|bug)\b/i.test(message)) {
+                capabilities.push('code');
+            }
+            if (/\b(calculate|solve|equation|math|number|formula)\b/i.test(message)) {
+                capabilities.push('math');
+            }
+            if (/\b(write|essay|story|article|document|email)\b/i.test(message)) {
+                capabilities.push('writing');
+            }
+            if (/\b(analyze|compare|evaluate|assess|review)\b/i.test(message)) {
+                capabilities.push('analysis');
+            }
+
+            return capabilities;
+        }
+
+        // Estimate message complexity
+        function estimateComplexity(message) {
+            const wordCount = message.split(/\s+/).length;
+            const hasCode = /```|`/.test(message);
+            const hasMultipleQuestions = /\?.*\?/.test(message);
+            
+            if (wordCount < 10 && !hasCode && !hasMultipleQuestions) {
+                return 'simple';
+            } else if (wordCount > 50 || hasCode || hasMultipleQuestions) {
+                return 'complex';
+            }
+            return 'medium';
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendButton');
+
+            sendButton.addEventListener('click', sendMessage);
+            
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-resize textarea
+            chatInput.addEventListener('input', () => {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+            });
+
+            // Refresh model availability every 30 seconds
+            setInterval(checkModelAvailability, 30000);
+        }
+
+        // Send message
+        async function sendMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const message = chatInput.value.trim();
+            if (!message || isTyping) return;
+
+            // Clear error banner
+            hideError();
+
+            // Add user message
+            addMessageToChat(message, 'user');
+            chatInput.value = '';
+            chatInput.style.height = '50px';
+            
+            // Show typing indicator
+            showTyping();
+
+            const startTime = Date.now();
+            const strategy = document.getElementById('modelStrategy').value;
+
+            try {
+                // Select best model
+                let selectedModel;
+                try {
+                    selectedModel = selectBestModel(message, strategy);
+                    document.getElementById('selectedModel').textContent = `Model: ${selectedModel}`;
+                    
+                    // Update typing text
+                    document.getElementById('typingText').textContent = 
+                        `${modelCapabilities[selectedModel].isDraft ? 'Draft model' : 'AI'} is thinking...`;
+                } catch (modelError) {
+                    throw new Error('No AI models available. Please start LM Studio or Ollama.');
+                }
+
+                // Create conversation if needed
+                if (!currentConversationId) {
+                    await createNewConversation(message);
+                }
+
+                // Prepare request based on selected model
+                const requestBody = {
+                    message: message,
+                    conversationId: currentConversationId || '',
+                    agentName: selectedModel === 'enhanced' ? '' : selectedModel
+                };
+
+                // Choose endpoint
+                const endpoint = selectedModel === 'enhanced' ? '/chat/enhanced' : '/chat/';
+
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                const responseTime = Date.now() - startTime;
+                
+                if (data.success) {
+                    // Track stats
+                    messageCount++;
+                    totalResponseTime += responseTime;
+                    if (modelCapabilities[selectedModel]?.isDraft) {
+                        draftModelUsed++;
+                    }
+                    
+                    // Add AI response
+                    addMessageToChat(data.data.message, 'assistant', {
+                        model: selectedModel,
+                        agentName: data.metadata?.agentName || selectedModel,
+                        responseTime: responseTime,
+                        tokens: data.data.usage?.tokens
+                    });
+                    
+                    // Update stats
+                    document.getElementById('responseTime').textContent = `Last: ${responseTime}ms`;
+                    updateStats();
+                } else {
+                    // Try fallback model if available
+                    const fallbackModels = Object.entries(modelCapabilities)
+                        .filter(([name, info]) => info.available && name !== selectedModel);
+                    
+                    if (fallbackModels.length > 0) {
+                        console.log(`Trying fallback model: ${fallbackModels[0][0]}`);
+                        requestBody.agentName = fallbackModels[0][0];
+                        
+                        const fallbackResponse = await fetch(`${API_BASE}/chat/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        const fallbackData = await fallbackResponse.json();
+                        if (fallbackData.success) {
+                            addMessageToChat(fallbackData.data.message, 'assistant', {
+                                model: fallbackModels[0][0] + ' (fallback)',
+                                responseTime: Date.now() - startTime
+                            });
+                        } else {
+                            throw new Error(data.error?.message || 'All models failed');
+                        }
+                    } else {
+                        throw new Error(data.error?.message || 'Request failed');
+                    }
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                showError(error.message || 'Failed to connect to AI service. Please check that services are running.');
+                addMessageToChat('Sorry, I encountered an error. Please check that AI services are running.', 'assistant');
+            } finally {
+                hideTyping();
+            }
+        }
+
+        // Create new conversation
+        async function createNewConversation(initialMessage) {
+            try {
+                const response = await fetch(`${API_BASE}/chat/new`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: initialMessage.substring(0, 50) + (initialMessage.length > 50 ? '...' : ''),
+                        initialMessage: initialMessage
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    currentConversationId = data.data.conversationId;
+                }
+            } catch (error) {
+                console.error('Error creating conversation:', error);
+                // Continue without conversation ID
+            }
+        }
+
+        // Add message to chat
+        function addMessageToChat(message, role, metadata = {}) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${role}`;
+            
+            let metaHtml = '';
+            if (metadata.model || metadata.agentName) {
+                metaHtml += `<span class="meta-item">🤖 ${metadata.model || metadata.agentName}</span>`;
+            }
+            if (metadata.responseTime) {
+                metaHtml += `<span class="meta-item">⏱️ ${metadata.responseTime}ms</span>`;
+            }
+            if (metadata.tokens) {
+                metaHtml += `<span class="meta-item">📊 ${metadata.tokens} tokens</span>`;
+            }
+            
+            messageEl.innerHTML = `
+                <div>${message}</div>
+                ${metaHtml ? `<div class="message-meta">${metaHtml}</div>` : ''}
+            `;
+            
+            chatMessages.appendChild(messageEl);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTyping() {
+            isTyping = true;
+            document.getElementById('typingIndicator').classList.add('active');
+            document.getElementById('sendButton').disabled = true;
+        }
+
+        // Hide typing indicator
+        function hideTyping() {
+            isTyping = false;
+            document.getElementById('typingIndicator').classList.remove('active');
+            document.getElementById('sendButton').disabled = false;
+        }
+
+        // Show error
+        function showError(message) {
+            const errorBanner = document.getElementById('errorBanner');
+            errorBanner.textContent = `⚠️ ${message}`;
+            errorBanner.classList.add('active');
+        }
+
+        // Hide error
+        function hideError() {
+            document.getElementById('errorBanner').classList.remove('active');
+        }
+
+        // Update statistics
+        function updateStats() {
+            if (messageCount > 0) {
+                const avgResponse = Math.round(totalResponseTime / messageCount);
+                document.getElementById('avgResponse').textContent = `${avgResponse}ms`;
+                document.getElementById('totalMessages').textContent = messageCount;
+                
+                const draftUsagePercent = Math.round((draftModelUsed / messageCount) * 100);
+                document.getElementById('draftUsage').textContent = `${draftUsagePercent}%`;
+                
+                const cacheHitPercent = Math.round((cacheHitCount / messageCount) * 100);
+                document.getElementById('cacheHits').textContent = `${cacheHitPercent}%`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+[package]
+name = "memory-optimizer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Memory management specific dependencies
+sysinfo = "0.30"
+procfs = "0.16"
+tikv-jemalloc-ctl = "0.5"
+
+# Metrics and monitoring
+metrics = { workspace = true }
+prometheus = "0.13"
+
+# Async utilities
+futures = { workspace = true }
+tokio-stream = { workspace = true }
+
+# Configuration
+config = { workspace = true }
+
+# Data structures
+dashmap = "5.5"
+parking_lot = "0.12"
+
+[dev-dependencies]
+mockall = { workspace = true }
+tokio-test = "0.4"
+
+[features]
+default = ["jemalloc", "system-info"]
+jemalloc = ["tikv-jemalloc-ctl"]
+system-info = ["sysinfo", "procfs"]

@@ -1,0 +1,60 @@
+# Network Access Configuration for Universal AI Tools
+# Enables remote iPhone companion app connectivity
+
+# Server Configuration
+server:
+  port: 8082
+  host: "0.0.0.0"  # Listen on all network interfaces
+  read_timeout: 30
+  write_timeout: 30
+  idle_timeout: 120
+  max_connections: 2000
+
+# Security Configuration for Network Access
+security:
+  cors_allowed_origins:
+    - "http://localhost:3000"
+    - "http://192.168.1.213:3000"
+    - "capacitor://localhost"
+    - "ionic://localhost"
+    - "http://localhost"
+    - "http://192.168.1.213"
+    - "*"  # Allow all origins for development
+  trusted_proxies:
+    - "127.0.0.1"
+    - "192.168.1.213"
+    - "192.168.0.0/16"
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+  require_auth: false  # Disable auth for initial setup
+  rate_limit_per_minute: 200  # Higher limit for mobile usage
+
+# Database Configuration (local)
+database:
+  postgresql:
+    host: "localhost"
+    port: 54322  # Supabase local port
+    database: "postgres"
+    username: "postgres" 
+    password: "postgres"
+  redis:
+    host: "localhost"
+    port: 6379
+  neo4j:
+    uri: "bolt://localhost:7687"
+    username: "neo4j"
+
+# Mobile-Optimized Settings
+migration:
+  enable_compatibility_mode: true
+  enable_testing: true
+
+# Logging
+logging:
+  level: "info"
+  format: "json"
+  enable_caller: true
+
+# Environment
+environment: "development"
+version: "1.0.0"

@@ -1,0 +1,1 @@
+export { assistant as default } from '../migration/compatibility-stubs';

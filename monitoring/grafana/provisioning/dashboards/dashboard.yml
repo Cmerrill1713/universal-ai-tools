@@ -1,0 +1,23 @@
+apiVersion: 1
+
+providers:
+  - name: 'optimization-dashboards'
+    orgId: 1
+    folder: 'Universal AI Tools Optimization'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true
+
+  - name: 'universal-ai-tools'
+    orgId: 1
+    folder: 'Universal AI Tools'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Activity Monitor - Real-time Agent & LLM Operations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            background: #0a0e27;
+            color: #00ff41;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #1a1f3a 0%, #0a0e27 100%);
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid #00ff41;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .indicator-light {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff41;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        .indicator-light.active {
+            background: #00ff41;
+            animation: pulse-fast 0.5s infinite;
+        }
+
+        .indicator-light.error {
+            background: #ff0041;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .main-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 1px;
+            background: #00ff41;
+            padding: 1px;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: #0a0e27;
+            padding: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            color: #00ff41;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            font-family: 'SF Mono', monospace;
+        }
+
+        /* Custom scrollbar */
+        .panel-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .panel-content::-webkit-scrollbar-track {
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        .panel-content::-webkit-scrollbar-thumb {
+            background: #00ff41;
+            border-radius: 3px;
+        }
+
+        /* Log entry styles */
+        .log-entry {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .timestamp {
+            color: rgba(0, 255, 65, 0.5);
+            font-size: 0.625rem;
+        }
+
+        .model-name {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .api-call {
+            color: #ffff00;
+        }
+
+        .response-preview {
+            color: rgba(0, 255, 65, 0.8);
+            margin-left: 1rem;
+            font-style: italic;
+        }
+
+        .error-msg {
+            color: #ff0041;
+            font-weight: bold;
+        }
+
+        .success-msg {
+            color: #00ff41;
+        }
+
+        .thinking {
+            color: #ff00ff;
+        }
+
+        /* Request flow visualization */
+        .flow-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: rgba(0, 255, 65, 0.05);
+            border-left: 3px solid #00ff41;
+        }
+
+        .flow-arrow {
+            color: #00ffff;
+            margin: 0 0.5rem;
+        }
+
+        /* Stats display */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .stat-item {
+            background: rgba(0, 255, 65, 0.1);
+            padding: 0.5rem;
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 4px;
+        }
+
+        .stat-label {
+            color: rgba(0, 255, 65, 0.6);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            color: #00ff41;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* Token stream visualization */
+        .token-stream {
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .token {
+            display: inline-block;
+            padding: 0 2px;
+            margin: 1px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            animation: tokenPop 0.2s ease-out;
+        }
+
+        @keyframes tokenPop {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* Clear button */
+        .clear-btn {
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.625rem;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        /* Footer */
+        .footer {
+            background: #1a1f3a;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #00ff41;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+
+        .connection-string {
+            color: rgba(0, 255, 65, 0.7);
+            font-family: monospace;
+        }
+
+        /* Blinking cursor effect */
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: #00ff41;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>📡</span>
+            AI ACTIVITY MONITOR
+        </h1>
+        <div class="status-indicators">
+            <div class="indicator">
+                <span class="indicator-light" id="lmStudioLight"></span>
+                <span>LM Studio</span>
+            </div>
+            <div class="indicator">
+                <span class="indicator-light" id="ollamaLight"></span>
+                <span>Ollama</span>
+            </div>
+            <div class="indicator">
+                <span class="indicator-light" id="gatewayLight"></span>
+                <span>Gateway</span>
+            </div>
+            <div class="indicator">
+                <span class="indicator-light active" id="activityLight"></span>
+                <span>Activity</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Request Flow Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>🔄 REQUEST FLOW</span>
+                <button class="clear-btn" onclick="clearPanel('requestFlow')">Clear</button>
+            </div>
+            <div class="panel-content" id="requestFlow">
+                <div class="log-entry">
+                    <span class="timestamp">[READY]</span> Monitoring AI operations...
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Activity Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>🤖 MODEL ACTIVITY</span>
+                <button class="clear-btn" onclick="clearPanel('modelActivity')">Clear</button>
+            </div>
+            <div class="panel-content" id="modelActivity">
+                <div class="log-entry">
+                    <span class="timestamp">[IDLE]</span> Waiting for requests...
+                </div>
+            </div>
+        </div>
+
+        <!-- Token Stream Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>💭 REASONING & TOKENS</span>
+                <button class="clear-btn" onclick="clearPanel('tokenStream')">Clear</button>
+            </div>
+            <div class="panel-content" id="tokenStream">
+                <div class="token-stream" id="tokenDisplay"></div>
+            </div>
+        </div>
+
+        <!-- Statistics Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>📊 STATISTICS</span>
+            </div>
+            <div class="panel-content">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Requests</div>
+                        <div class="stat-value" id="totalRequests">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Tokens/Sec</div>
+                        <div class="stat-value" id="tokensPerSec">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Avg Response</div>
+                        <div class="stat-value" id="avgResponse">0ms</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Active Model</div>
+                        <div class="stat-value" id="activeModel">None</div>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <div class="stat-label">Recent Errors</div>
+                    <div id="recentErrors" style="color: #ff0041; font-size: 0.75rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="connection-string">
+            WebSocket: <span id="wsStatus">Disconnected</span>
+        </div>
+        <div>
+            <span id="clock"></span>
+            <span class="cursor"></span>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const LM_STUDIO = 'http://localhost:1234';
+        const OLLAMA = 'http://localhost:11434';
+        const GO_GATEWAY = 'http://localhost:8092';
+        const ACTION_SERVER = 'http://localhost:3004';
+
+        // State
+        let stats = {
+            totalRequests: 0,
+            totalTokens: 0,
+            startTime: Date.now(),
+            responseTimes: [],
+            activeModel: 'None',
+            errors: []
+        };
+
+        let websocket = null;
+        let interceptedRequests = new Map();
+
+        // Initialize
+        function init() {
+            console.log('🚀 Activity Monitor Starting...');
+            
+            // Update clock
+            setInterval(updateClock, 1000);
+            
+            // Check service status
+            checkServices();
+            setInterval(checkServices, 5000);
+            
+            // Intercept fetch requests
+            interceptFetch();
+            
+            // Setup WebSocket for real-time updates
+            setupWebSocket();
+            
+            // Monitor keyboard shortcuts
+            setupKeyboardShortcuts();
+        }
+
+        // Intercept all fetch requests to monitor API calls
+        function interceptFetch() {
+            const originalFetch = window.fetch;
+            window.fetch = async function(...args) {
+                const [url, options = {}] = args;
+                const requestId = Math.random().toString(36).substr(2, 9);
+                const startTime = performance.now();
+                
+                // Log the request
+                logRequest(url, options, requestId);
+                
+                try {
+                    // Make the actual request
+                    const response = await originalFetch.apply(this, args);
+                    const endTime = performance.now();
+                    
+                    // Clone response to read it
+                    const responseClone = response.clone();
+                    
+                    // Log the response
+                    logResponse(url, responseClone, endTime - startTime, requestId);
+                    
+                    return response;
+                } catch (error) {
+                    logError(url, error, requestId);
+                    throw error;
+                }
+            };
+        }
+
+        // Log outgoing request
+        function logRequest(url, options, requestId) {
+            const timestamp = new Date().toLocaleTimeString();
+            const method = options.method || 'GET';
+            
+            // Detect which service
+            let service = 'Unknown';
+            let modelName = 'Unknown';
+            
+            if (url.includes(':1234')) {
+                service = 'LM Studio';
+                document.getElementById('lmStudioLight').classList.add('active');
+                setTimeout(() => document.getElementById('lmStudioLight').classList.remove('active'), 500);
+            } else if (url.includes(':11434')) {
+                service = 'Ollama';
+                document.getElementById('ollamaLight').classList.add('active');
+                setTimeout(() => document.getElementById('ollamaLight').classList.remove('active'), 500);
+            } else if (url.includes(':8092')) {
+                service = 'Go Gateway';
+                document.getElementById('gatewayLight').classList.add('active');
+                setTimeout(() => document.getElementById('gatewayLight').classList.remove('active'), 500);
+            }
+            
+            // Parse body if present
+            let bodyPreview = '';
+            if (options.body) {
+                try {
+                    const body = JSON.parse(options.body);
+                    if (body.model) modelName = body.model;
+                    if (body.messages) {
+                        const lastMessage = body.messages[body.messages.length - 1];
+                        bodyPreview = lastMessage.content.substring(0, 100);
+                    } else if (body.prompt) {
+                        bodyPreview = body.prompt.substring(0, 100);
+                    }
+                } catch (e) {
+                    bodyPreview = options.body.substring(0, 100);
+                }
+            }
+            
+            // Update request flow
+            const requestFlow = document.getElementById('requestFlow');
+            const entry = document.createElement('div');
+            entry.className = 'flow-item';
+            entry.innerHTML = `
+                <div>
+                    <span class="timestamp">[${timestamp}]</span>
+                    <span class="api-call">${method}</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="model-name">${service}</span>
+                    ${modelName !== 'Unknown' ? `<span class="flow-arrow">→</span><span style="color: #00ffff">${modelName}</span>` : ''}
+                    ${bodyPreview ? `<div class="response-preview">"${bodyPreview}..."</div>` : ''}
+                </div>
+            `;
+            requestFlow.insertBefore(entry, requestFlow.firstChild);
+            
+            // Keep only last 50 entries
+            while (requestFlow.children.length > 50) {
+                requestFlow.removeChild(requestFlow.lastChild);
+            }
+            
+            // Store request info
+            interceptedRequests.set(requestId, {
+                url,
+                service,
+                modelName,
+                startTime: Date.now()
+            });
+            
+            // Update stats
+            stats.totalRequests++;
+            document.getElementById('totalRequests').textContent = stats.totalRequests;
+            
+            // Flash activity light
+            document.getElementById('activityLight').classList.add('active');
+        }
+
+        // Log response
+        async function logResponse(url, response, duration, requestId) {
+            const timestamp = new Date().toLocaleTimeString();
+            const requestInfo = interceptedRequests.get(requestId);
+            
+            // Update model activity
+            const modelActivity = document.getElementById('modelActivity');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            if (response.ok) {
+                try {
+                    const data = await response.json();
+                    
+                    // Extract relevant info based on response type
+                    let preview = '';
+                    let tokens = 0;
+                    
+                    if (data.choices && data.choices[0]) {
+                        // OpenAI format
+                        preview = data.choices[0].message?.content || data.choices[0].text || '';
+                        tokens = data.usage?.total_tokens || 0;
+                    } else if (data.response) {
+                        // Ollama format
+                        preview = data.response;
+                        tokens = data.eval_count || 0;
+                    } else if (data.result) {
+                        // Custom format
+                        preview = JSON.stringify(data.result).substring(0, 100);
+                    }
+                    
+                    entry.innerHTML = `
+                        <span class="timestamp">[${timestamp}]</span>
+                        <span class="success-msg">✓</span>
+                        <span class="model-name">${requestInfo?.service || 'API'}</span>
+                        <span style="color: #00ffff">${duration.toFixed(0)}ms</span>
+                        ${tokens > 0 ? `<span style="color: #ffff00"> • ${tokens} tokens</span>` : ''}
+                        ${preview ? `<div class="response-preview">${preview.substring(0, 150)}...</div>` : ''}
+                    `;
+                    
+                    // Update token stream if streaming
+                    if (preview) {
+                        displayTokens(preview);
+                    }
+                    
+                    // Update stats
+                    stats.totalTokens += tokens;
+                    stats.responseTimes.push(duration);
+                    updateStats();
+                    
+                } catch (e) {
+                    entry.innerHTML = `
+                        <span class="timestamp">[${timestamp}]</span>
+                        <span class="error-msg">✗</span>
+                        Response parsing error
+                    `;
+                }
+            } else {
+                entry.innerHTML = `
+                    <span class="timestamp">[${timestamp}]</span>
+                    <span class="error-msg">✗</span>
+                    HTTP ${response.status} ${response.statusText}
+                `;
+                
+                stats.errors.push({
+                    time: timestamp,
+                    error: `HTTP ${response.status}`
+                });
+                updateErrors();
+            }
+            
+            modelActivity.insertBefore(entry, modelActivity.firstChild);
+            
+            // Keep only last 50 entries
+            while (modelActivity.children.length > 50) {
+                modelActivity.removeChild(modelActivity.lastChild);
+            }
+            
+            // Turn off activity light
+            setTimeout(() => {
+                document.getElementById('activityLight').classList.remove('active');
+            }, 100);
+            
+            // Clean up request
+            interceptedRequests.delete(requestId);
+        }
+
+        // Log errors
+        function logError(url, error, requestId) {
+            const timestamp = new Date().toLocaleTimeString();
+            const requestInfo = interceptedRequests.get(requestId);
+            
+            const modelActivity = document.getElementById('modelActivity');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                <span class="error-msg">✗ ERROR</span>
+                <span>${requestInfo?.service || url}</span>
+                <div class="error-msg">${error.message}</div>
+            `;
+            modelActivity.insertBefore(entry, modelActivity.firstChild);
+            
+            stats.errors.push({
+                time: timestamp,
+                error: error.message
+            });
+            updateErrors();
+            
+            interceptedRequests.delete(requestId);
+        }
+
+        // Display tokens as they arrive
+        function displayTokens(text) {
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            const words = text.split(/\s+/).slice(0, 50); // Show first 50 words
+            
+            tokenDisplay.innerHTML = '';
+            words.forEach((word, index) => {
+                setTimeout(() => {
+                    const span = document.createElement('span');
+                    span.className = 'token';
+                    span.textContent = word;
+                    tokenDisplay.appendChild(span);
+                    tokenDisplay.appendChild(document.createTextNode(' '));
+                }, index * 50);
+            });
+        }
+
+        // Check service availability
+        async function checkServices() {
+            // Check LM Studio
+            fetch(`${LM_STUDIO}/v1/models`, { signal: AbortSignal.timeout(1000) })
+                .then(r => r.ok && document.getElementById('lmStudioLight').classList.remove('error'))
+                .catch(() => document.getElementById('lmStudioLight').classList.add('error'));
+            
+            // Check Ollama
+            fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(1000) })
+                .then(r => r.ok && document.getElementById('ollamaLight').classList.remove('error'))
+                .catch(() => document.getElementById('ollamaLight').classList.add('error'));
+            
+            // Check Gateway
+            fetch(`${GO_GATEWAY}/health`, { signal: AbortSignal.timeout(1000) })
+                .then(r => r.ok && document.getElementById('gatewayLight').classList.remove('error'))
+                .catch(() => document.getElementById('gatewayLight').classList.add('error'));
+        }
+
+        // Setup WebSocket connection for real-time updates
+        function setupWebSocket() {
+            // Try to connect to a WebSocket endpoint if available
+            try {
+                websocket = new WebSocket('ws://localhost:8092/ws');
+                
+                websocket.onopen = () => {
+                    document.getElementById('wsStatus').textContent = 'Connected';
+                    document.getElementById('wsStatus').style.color = '#00ff41';
+                };
+                
+                websocket.onmessage = (event) => {
+                    // Handle real-time updates
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'token') {
+                        displayTokens(data.content);
+                    }
+                };
+                
+                websocket.onclose = () => {
+                    document.getElementById('wsStatus').textContent = 'Disconnected';
+                    document.getElementById('wsStatus').style.color = '#ff0041';
+                    // Retry connection after 5 seconds
+                    setTimeout(setupWebSocket, 5000);
+                };
+            } catch (e) {
+                console.log('WebSocket not available');
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            // Calculate tokens per second
+            const elapsedSeconds = (Date.now() - stats.startTime) / 1000;
+            const tokensPerSec = Math.round(stats.totalTokens / elapsedSeconds);
+            document.getElementById('tokensPerSec').textContent = tokensPerSec;
+            
+            // Calculate average response time
+            if (stats.responseTimes.length > 0) {
+                const avg = stats.responseTimes.reduce((a, b) => a + b, 0) / stats.responseTimes.length;
+                document.getElementById('avgResponse').textContent = `${avg.toFixed(0)}ms`;
+            }
+            
+            // Update active model
+            if (stats.activeModel !== 'None') {
+                document.getElementById('activeModel').textContent = stats.activeModel;
+            }
+        }
+
+        // Update error display
+        function updateErrors() {
+            const recentErrors = document.getElementById('recentErrors');
+            const lastErrors = stats.errors.slice(-3);
+            recentErrors.innerHTML = lastErrors.map(e => 
+                `[${e.time}] ${e.error}`
+            ).join('<br>');
+        }
+
+        // Clear panel
+        function clearPanel(panelId) {
+            const panel = document.getElementById(panelId);
+            panel.innerHTML = '<div class="log-entry"><span class="timestamp">[CLEARED]</span> Waiting for activity...</div>';
+        }
+
+        // Update clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString();
+        }
+
+        // Keyboard shortcuts
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'c' && e.metaKey) {
+                    // Cmd+C to clear all
+                    ['requestFlow', 'modelActivity', 'tokenStream'].forEach(clearPanel);
+                }
+            });
+        }
+
+        // Start monitoring
+        init();
+
+        // Listen for messages from other windows
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'ai-request') {
+                logRequest(event.data.url, event.data.options, Math.random().toString(36).substr(2, 9));
+            } else if (event.data.type === 'ai-response') {
+                // Handle response data
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.innerHTML = `
+                    <span class="timestamp">[${new Date().toLocaleTimeString()}]</span>
+                    <span class="thinking">💭 ${event.data.message}</span>
+                `;
+                document.getElementById('modelActivity').insertBefore(entry, document.getElementById('modelActivity').firstChild);
+            }
+        });
+
+        // Broadcast that monitor is ready
+        if (window.opener) {
+            window.opener.postMessage({ type: 'monitor-ready' }, '*');
+        }
+    </script>
+</body>
+</html>

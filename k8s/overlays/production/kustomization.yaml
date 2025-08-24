@@ -1,0 +1,169 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: universal-ai-tools-production
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Base resources
+bases:
+- ../../base
+- ../../monitoring
+- ../../ingress
+
+# Production namespace override
+namespace: universal-ai-tools
+
+# Production-specific labels
+commonLabels:
+  environment: production
+  deployment: stable
+
+# Production annotations
+commonAnnotations:
+  config.kubernetes.io/environment: production
+  deployment.kubernetes.io/revision: "1"
+
+# Production resource configurations
+resources:
+- production-storage-class.yaml
+- production-network-policies.yaml
+- production-resource-quotas.yaml
+
+# Production image tags
+images:
+- name: universal-ai-tools/llm-router
+  newName: your-registry.com/universal-ai-tools/llm-router
+  newTag: v1.0.0-prod
+- name: universal-ai-tools/websocket-service
+  newName: your-registry.com/universal-ai-tools/websocket-service
+  newTag: v1.0.0-prod
+- name: universal-ai-tools/graphrag-service
+  newName: your-registry.com/universal-ai-tools/graphrag-service
+  newTag: v1.0.0-prod
+
+# Production replicas (high availability)
+replicas:
+- name: llm-router
+  count: 5
+- name: websocket-service
+  count: 8
+- name: graphrag-service
+  count: 3
+- name: otel-collector
+  count: 3
+- name: prometheus
+  count: 1
+
+# Production-specific patches
+patchesStrategicMerge:
+- production-resource-limits.yaml
+- production-security-context.yaml
+- production-ingress-patches.yaml
+
+# JSON patches for production optimizations
+patchesJson6902:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: llm-router
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "2Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "3000m"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT
+        value: "production"
+
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: websocket-service
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "1Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "2000m"
+    - op: replace
+      path: /spec/template/spec/containers/0/env/4/value
+      value: "20000"
+
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: graphrag-service
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "4Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "4000m"
+
+# Secret generators with external references
+secretGenerator:
+- name: postgres-secret
+  envs:
+  - postgres.env
+  type: Opaque
+- name: neo4j-secret
+  envs:
+  - neo4j.env
+  type: Opaque
+- name: grafana-secret
+  envs:
+  - grafana.env
+  type: Opaque
+- name: jwt-secret
+  envs:
+  - jwt.env
+  type: Opaque
+- name: api-keys
+  envs:
+  - api-keys.env
+  type: Opaque
+
+# ConfigMap generators for production
+configMapGenerator:
+- name: nginx-config
+  files:
+  - nginx.conf=nginx-production.conf
+- name: prometheus-config
+  files:
+  - prometheus.yml=prometheus-production.yml
+  - alert-rules.yml=alert-rules-production.yml
+- name: grafana-provisioning
+  files:
+  - datasources.yml=grafana-datasources-production.yml
+  - dashboards.yml=grafana-dashboards-production.yml
+- name: otel-collector-config
+  files:
+  - otel-collector-config.yaml=otel-collector-production.yaml
+
+# Production configurations
+vars:
+- name: ENVIRONMENT
+  objref:
+    kind: ConfigMap
+    name: environment-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.environment
+- name: REGISTRY_URL
+  objref:
+    kind: ConfigMap
+    name: registry-config
+    apiVersion: v1
+  fieldref:
+    fieldpath: data.registry_url

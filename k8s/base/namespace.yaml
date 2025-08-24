@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: universal-ai-tools
+  labels:
+    name: universal-ai-tools
+    tier: production
+    project: universal-ai-tools
+  annotations:
+    prometheus.io/scrape: "true"
+    grafana.com/dashboard: "universal-ai-tools"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: uai-monitoring
+  labels:
+    name: uai-monitoring
+    tier: monitoring
+    project: universal-ai-tools
+  annotations:
+    prometheus.io/scrape: "true"

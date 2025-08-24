@@ -1,0 +1,31 @@
+template_id = "go_service"
+name = "Go Microservice"
+description = "A Go microservice with Gin web framework"
+language = "go"
+framework = "gin"
+dependencies = ["gin"]
+
+[[files]]
+source_path = "main.go.hbs"
+target_path = "main.go"
+is_template = true
+executable = false
+
+[[files]]
+source_path = "go.mod.hbs"
+target_path = "go.mod"
+is_template = true
+executable = false
+
+[[parameters]]
+name = "service_name"
+parameter_type = "string"
+description = "Name of the service"
+default_value = "my_service"
+required = true
+
+[[post_generation_steps]]
+step_type = "dependency_install"
+description = "Install Go dependencies"
+
+[post_generation_steps.parameters]

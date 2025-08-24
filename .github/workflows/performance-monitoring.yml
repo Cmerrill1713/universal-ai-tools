@@ -1,0 +1,363 @@
+# Performance Monitoring & Benchmarking
+# Automated performance regression testing and monitoring
+
+name: Performance Monitoring
+
+on:
+  schedule:
+    # Run performance tests every 4 hours
+    - cron: '0 */4 * * *'
+  push:
+    branches: [master, develop]
+    paths:
+      - 'rust-services/**'
+      - 'go-api-gateway/**'
+      - 'rust-services/go-websocket/**'
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Test duration in seconds'
+        required: false
+        default: '300'
+        type: string
+      concurrent_users:
+        description: 'Concurrent users for load testing'
+        required: false
+        default: '100'
+        type: string
+
+env:
+  GO_VERSION: '1.21'
+  RUST_VERSION: 'stable'
+  NODE_VERSION: '20'
+
+jobs:
+  # ===========================================
+  # PERFORMANCE BENCHMARKING
+  # ===========================================
+  
+  benchmark-services:
+    name: Benchmark Services
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: api-gateway
+            port: 8090
+            endpoint: /api/health
+            build_cmd: cd go-api-gateway && go build -o ../bin/api-gateway .
+            run_cmd: ./bin/api-gateway
+          - name: websocket-service
+            port: 8080
+            endpoint: /health
+            build_cmd: cd rust-services/go-websocket && go build -o ../../bin/websocket-service .
+            run_cmd: ./bin/websocket-service
+          - name: llm-router
+            port: 8001
+            endpoint: /health
+            build_cmd: cd rust-services/llm-router && cargo build --release && cp target/release/llm-router ../../bin/
+            run_cmd: ./bin/llm-router
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: universal_ai_tools_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      
+      - name: Install performance tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apache2-utils wrk curl jq
+      
+      - name: Build service
+        run: ${{ matrix.service.build_cmd }}
+      
+      - name: Start service
+        run: |
+          mkdir -p logs
+          ${{ matrix.service.run_cmd }} > logs/${{ matrix.service.name }}.log 2>&1 &
+          SERVICE_PID=$!
+          echo $SERVICE_PID > ${{ matrix.service.name }}.pid
+          
+          # Wait for service to be ready
+          timeout=60
+          while [ $timeout -gt 0 ]; do
+            if curl -f http://localhost:${{ matrix.service.port }}${{ matrix.service.endpoint }} >/dev/null 2>&1; then
+              echo "Service ${{ matrix.service.name }} is ready"
+              break
+            fi
+            echo "Waiting for service to be ready... ($timeout seconds left)"
+            sleep 2
+            timeout=$((timeout - 2))
+          done
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/universal_ai_tools_test
+          REDIS_URL: redis://localhost:6379
+      
+      - name: Run performance benchmarks
+        run: |
+          # Apache Bench tests
+          echo "=== Apache Bench Results ===" > benchmark-${{ matrix.service.name }}.txt
+          ab -n 10000 -c 100 -g ab-${{ matrix.service.name }}.dat http://localhost:${{ matrix.service.port }}${{ matrix.service.endpoint }} >> benchmark-${{ matrix.service.name }}.txt
+          
+          echo "" >> benchmark-${{ matrix.service.name }}.txt
+          echo "=== wrk Results ===" >> benchmark-${{ matrix.service.name }}.txt
+          wrk -t12 -c100 -d30s --latency http://localhost:${{ matrix.service.port }}${{ matrix.service.endpoint }} >> benchmark-${{ matrix.service.name }}.txt
+          
+          # Extract key metrics
+          REQUESTS_PER_SEC=$(grep "Requests per second" benchmark-${{ matrix.service.name }}.txt | awk '{print $4}')
+          AVG_RESPONSE_TIME=$(grep "Time per request" benchmark-${{ matrix.service.name }}.txt | head -1 | awk '{print $4}')
+          
+          echo "SERVICE_NAME=${{ matrix.service.name }}" >> performance-metrics.txt
+          echo "REQUESTS_PER_SEC=$REQUESTS_PER_SEC" >> performance-metrics.txt
+          echo "AVG_RESPONSE_TIME=$AVG_RESPONSE_TIME" >> performance-metrics.txt
+          echo "TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> performance-metrics.txt
+          echo "---" >> performance-metrics.txt
+      
+      - name: Memory and CPU profiling
+        run: |
+          SERVICE_PID=$(cat ${{ matrix.service.name }}.pid)
+          
+          # Capture memory usage
+          ps -p $SERVICE_PID -o pid,rss,vsz,pcpu,pmem,comm >> memory-usage-${{ matrix.service.name }}.txt
+          
+          # Capture file descriptors
+          lsof -p $SERVICE_PID | wc -l > fd-count-${{ matrix.service.name }}.txt
+      
+      - name: Stop service
+        if: always()
+        run: |
+          if [ -f ${{ matrix.service.name }}.pid ]; then
+            kill $(cat ${{ matrix.service.name }}.pid) || true
+          fi
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results-${{ matrix.service.name }}
+          path: |
+            benchmark-${{ matrix.service.name }}.txt
+            ab-${{ matrix.service.name }}.dat
+            memory-usage-${{ matrix.service.name }}.txt
+            fd-count-${{ matrix.service.name }}.txt
+            performance-metrics.txt
+            logs/
+
+  # ===========================================
+  # LOAD TESTING
+  # ===========================================
+  
+  load-testing:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    needs: benchmark-services
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: universal_ai_tools_test
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      
+      - name: Build all services
+        run: |
+          # Build Go services
+          cd go-api-gateway && go build -o ../bin/api-gateway . &
+          cd rust-services/go-websocket && go build -o ../../bin/websocket-service . &
+          
+          # Build Rust services
+          cd rust-services/llm-router && cargo build --release && cp target/release/llm-router ../../bin/ &
+          
+          wait
+      
+      - name: Start all services
+        run: |
+          mkdir -p logs
+          
+          # Start all services in background
+          ./bin/api-gateway > logs/api-gateway.log 2>&1 &
+          echo $! > api-gateway.pid
+          
+          ./bin/websocket-service > logs/websocket.log 2>&1 &
+          echo $! > websocket.pid
+          
+          ./bin/llm-router > logs/llm-router.log 2>&1 &
+          echo $! > llm-router.pid
+          
+          # Wait for services to be ready
+          sleep 45
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/universal_ai_tools_test
+          REDIS_URL: redis://localhost:6379
+          QDRANT_URL: http://localhost:6333
+      
+      - name: Install load testing tools
+        run: |
+          npm ci
+          pip install locust
+      
+      - name: Run comprehensive load test
+        run: |
+          # Run the integration test suite with extended load testing
+          LOAD_TEST_DURATION=${{ github.event.inputs.duration || '300' }} \
+          LOAD_TEST_USERS=${{ github.event.inputs.concurrent_users || '100' }} \
+          node tests/integration-test-suite.cjs > load-test-results.txt 2>&1
+      
+      - name: Generate performance report
+        run: |
+          echo "# Performance Test Report" > PERFORMANCE_REPORT.md
+          echo "Generated on: $(date)" >> PERFORMANCE_REPORT.md
+          echo "" >> PERFORMANCE_REPORT.md
+          echo "## Test Configuration" >> PERFORMANCE_REPORT.md
+          echo "- Duration: ${{ github.event.inputs.duration || '300' }} seconds" >> PERFORMANCE_REPORT.md
+          echo "- Concurrent Users: ${{ github.event.inputs.concurrent_users || '100' }}" >> PERFORMANCE_REPORT.md
+          echo "- GitHub SHA: ${{ github.sha }}" >> PERFORMANCE_REPORT.md
+          echo "" >> PERFORMANCE_REPORT.md
+          echo "## Results Summary" >> PERFORMANCE_REPORT.md
+          tail -50 load-test-results.txt >> PERFORMANCE_REPORT.md
+      
+      - name: Stop services
+        if: always()
+        run: |
+          [[ -f api-gateway.pid ]] && kill $(cat api-gateway.pid) || true
+          [[ -f websocket.pid ]] && kill $(cat websocket.pid) || true
+          [[ -f llm-router.pid ]] && kill $(cat llm-router.pid) || true
+      
+      - name: Upload load test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: |
+            load-test-results.txt
+            PERFORMANCE_REPORT.md
+            logs/
+
+  # ===========================================
+  # PERFORMANCE REGRESSION DETECTION
+  # ===========================================
+  
+  performance-regression:
+    name: Performance Regression Check
+    runs-on: ubuntu-latest
+    needs: [benchmark-services, load-testing]
+    if: github.event_name == 'push'
+    steps:
+      - name: Download benchmark results
+        uses: actions/download-artifact@v3
+        with:
+          path: benchmark-results/
+      
+      - name: Compare with baseline
+        run: |
+          echo "# Performance Regression Analysis" > REGRESSION_REPORT.md
+          echo "Commit: ${{ github.sha }}" >> REGRESSION_REPORT.md
+          echo "Branch: ${{ github.ref }}" >> REGRESSION_REPORT.md
+          echo "" >> REGRESSION_REPORT.md
+          
+          # Analyze each service's performance
+          for service in api-gateway websocket-service llm-router; do
+            echo "## $service Performance" >> REGRESSION_REPORT.md
+            
+            # Extract current metrics
+            if [ -f "benchmark-results/performance-results-$service/performance-metrics.txt" ]; then
+              CURRENT_RPS=$(grep "REQUESTS_PER_SEC" benchmark-results/performance-results-$service/performance-metrics.txt | cut -d= -f2)
+              CURRENT_RT=$(grep "AVG_RESPONSE_TIME" benchmark-results/performance-results-$service/performance-metrics.txt | cut -d= -f2)
+              
+              echo "- Requests per second: $CURRENT_RPS" >> REGRESSION_REPORT.md
+              echo "- Average response time: $CURRENT_RT ms" >> REGRESSION_REPORT.md
+              
+              # Set performance thresholds
+              MIN_RPS=1000  # Minimum requests per second
+              MAX_RT=100    # Maximum response time in ms
+              
+              if (( $(echo "$CURRENT_RPS < $MIN_RPS" | bc -l) )); then
+                echo "⚠️ **PERFORMANCE REGRESSION**: RPS below threshold ($CURRENT_RPS < $MIN_RPS)" >> REGRESSION_REPORT.md
+              fi
+              
+              if (( $(echo "$CURRENT_RT > $MAX_RT" | bc -l) )); then
+                echo "⚠️ **PERFORMANCE REGRESSION**: Response time above threshold ($CURRENT_RT > $MAX_RT ms)" >> REGRESSION_REPORT.md
+              fi
+            fi
+            echo "" >> REGRESSION_REPORT.md
+          done
+      
+      - name: Upload regression analysis
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-regression-analysis
+          path: REGRESSION_REPORT.md
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('REGRESSION_REPORT.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📊 Performance Analysis\n\n${report}`
+            });

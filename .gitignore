@@ -1,0 +1,163 @@
+node_modules
+**/node_modules/
+
+# Data directory (databases, models, large files)
+data/
+!data/.gitkeep
+
+# Archive directory (old scripts and docs)
+archive/
+
+# Build output directories
+dist/
+build/
+logs/
+
+# Cache directories
+.cache/
+.cache/puppeteer/
+
+# Security scanning
+.gitleaks-report.json
+
+# macOS/Xcode
+.DS_Store
+*.xcuserstate
+DerivedData/
+.derived/
+.build/
+clean-build/
+**/clean-build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+/.build/
+
+# Rust build artifacts
+target/
+**/target/
+Cargo.lock
+**/target/.fingerprint/
+**/target/debug/
+**/target/release/
+
+# Go build artifacts
+go-api-gateway/websocket-service
+**/websocket-service
+rust-services/go-websocket/go-websocket
+
+# Test artifacts
+test-results/
+test-reports/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+env/
+ENV/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.rdb
+
+# Temporary and cache files
+*.tmp
+*.temp
+*.cache
+.temp/
+tmp/
+
+# Large model files
+*.h5
+*.pt
+*.pth
+*.onnx
+*.bin
+*.gguf
+*.safetensors
+
+# Environment files (keep only examples)
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Coverage reports
+coverage/
+*.lcov
+.nyc_output/
+
+# MLX adapter files
+mlx-adapters/
+mlx-lora-training/
+
+# Process files
+.pids/
+*.pid
+.service_pids
+
+# Backup files (should not be committed)
+*.bak
+*.bak[0-9]*
+*.tmp
+*.old
+*.orig
+*~
+macOS-App/UniversalAITools/incremental-*/SourcePackages/
+macOS-App/UniversalAITools/minimal-*/SourcePackages/
+**/SourcePackages/checkouts/
+mcp-servers/
+
+# Credentials and sensitive files
+PRODUCTION_CREDENTIALS.txt
+.env.production.local
+*.key
+*.pem
+
+# Development and migration testing
+migration-examples/
+migration-testing/
+
+# Database data files
+data/
+**/data/
+data/neo4j/
+**/neo4j/data/
+*.db
+*.db.*
+
+# Migration Archive
+/archive/
+/docker/legacy/
+
+# Old TypeScript build artifacts
+*.tsbuildinfo
+src/**/*.js
+src/**/*.js.map
+
+# Legacy test files
+test-*.sh
+fix-*.sh
+autofix*.*
+.env.production

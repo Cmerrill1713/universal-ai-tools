@@ -1,0 +1,431 @@
+# CI/CD Pipeline for Go/Rust Migration Phase 1
+# Automated testing, building, and deployment for migration components
+
+name: Go/Rust Migration CI/CD
+
+on:
+  push:
+    branches:
+      - feature/go-rust-migration
+      - develop
+      - main
+    paths:
+      - 'go-api-gateway/**'
+      - 'rust-ai-core/**'
+      - 'docker-compose.migration.yml'
+      - '.github/workflows/go-rust-migration-ci.yml'
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'go-api-gateway/**'
+      - 'rust-ai-core/**'
+      - 'docker-compose.migration.yml'
+
+env:
+  REGISTRY: ghcr.io
+  GO_VERSION: '1.21'
+  RUST_VERSION: '1.75'
+  NODE_VERSION: '20'
+
+jobs:
+  # Go API Gateway CI
+  go-api-gateway:
+    name: Go API Gateway CI
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./go-api-gateway
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go-api-gateway/go.sum
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go-api-gateway/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run staticcheck
+        uses: dominikh/staticcheck-action@v1.3.0
+        with:
+          version: "2023.1.6"
+          install-go: false
+          working-directory: ./go-api-gateway
+
+      - name: Run tests
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./go-api-gateway/coverage.out
+          flags: go-api-gateway
+          name: go-api-gateway-coverage
+
+      - name: Build binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags="-X main.version=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -o bin/go-api-gateway ./cmd/main.go
+
+      - name: Run security scan
+        uses: securecodewarrior/github-action-gosec@v4
+        with:
+          args: '-no-fail -fmt sarif -out gosec-results.sarif ./...'
+          working-directory: ./go-api-gateway
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ./go-api-gateway/gosec-results.sarif
+
+  # Rust AI Core CI
+  rust-ai-core:
+    name: Rust AI Core CI
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./rust-ai-core
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./rust-ai-core -> target"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: |
+          cargo test --all-features --workspace
+          cargo test --doc --workspace
+
+      - name: Generate coverage report
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out xml --output-dir coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./rust-ai-core/coverage/cobertura.xml
+          flags: rust-ai-core
+          name: rust-ai-core-coverage
+
+      - name: Security audit
+        run: |
+          cargo install cargo-audit
+          cargo audit
+
+      - name: Build release
+        run: |
+          cargo build --release --workspace
+          mkdir -p artifacts
+          cp target/release/ai-engine artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: rust-ai-core-binaries
+          path: rust-ai-core/artifacts/
+
+  # Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [go-api-gateway, rust-ai-core]
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: universal_ai_tools_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Go API Gateway image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./go-api-gateway
+          push: false
+          tags: go-api-gateway:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Rust AI Core image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./rust-ai-core
+          push: false
+          tags: rust-ai-core:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run integration tests
+        run: |
+          # Start services with test configuration
+          docker-compose -f docker-compose.migration.yml -f docker-compose.test.yml up -d
+          
+          # Wait for services to be ready
+          timeout 120s bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+          timeout 120s bash -c 'until curl -f http://localhost:8082/health; do sleep 2; done'
+          
+          # Run integration test suite
+          npm install
+          npm run test:integration
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: Collect service logs
+        if: failure()
+        run: |
+          docker-compose -f docker-compose.migration.yml logs > integration-test-logs.txt
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-logs
+          path: integration-test-logs.txt
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker-compose -f docker-compose.migration.yml down -v
+
+  # Migration Compatibility Tests
+  migration-compatibility:
+    name: Migration Compatibility Tests
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript server (existing)
+        run: |
+          npm run start:background &
+          timeout 60s bash -c 'until curl -f http://localhost:9999/health; do sleep 2; done'
+
+      - name: Start Go/Rust services
+        run: |
+          docker-compose -f docker-compose.migration.yml up -d go-api-gateway rust-ai-core
+          timeout 120s bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+          timeout 120s bash -c 'until curl -f http://localhost:8082/health; do sleep 2; done'
+
+      - name: Run compatibility tests
+        run: |
+          npm run test:migration-compatibility
+        env:
+          TYPESCRIPT_ENDPOINT: http://localhost:9999
+          GO_ENDPOINT: http://localhost:8080
+          RUST_ENDPOINT: http://localhost:8082
+
+      - name: Generate compatibility report
+        if: always()
+        run: |
+          npm run generate:compatibility-report
+
+      - name: Upload compatibility report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: migration-compatibility-report
+          path: migration-compatibility-report.html
+
+  # Container Security Scanning
+  security-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    needs: [go-api-gateway, rust-ai-core]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner - Go
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'go-api-gateway:test'
+          format: 'sarif'
+          output: 'go-trivy-results.sarif'
+
+      - name: Run Trivy vulnerability scanner - Rust
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'rust-ai-core:test'
+          format: 'sarif'
+          output: 'rust-trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: '.'
+
+  # Build and Push Images (on main branch)
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    needs: [integration-tests, migration-compatibility]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Go API Gateway
+        id: meta-go
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/go-api-gateway
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Go API Gateway
+        uses: docker/build-push-action@v5
+        with:
+          context: ./go-api-gateway
+          push: true
+          tags: ${{ steps.meta-go.outputs.tags }}
+          labels: ${{ steps.meta-go.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for Rust AI Core
+        id: meta-rust
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/rust-ai-core
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Rust AI Core
+        uses: docker/build-push-action@v5
+        with:
+          context: ./rust-ai-core
+          push: true
+          tags: ${{ steps.meta-rust.outputs.tags }}
+          labels: ${{ steps.meta-rust.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deployment (Development Environment)
+  deploy-dev:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to development environment
+        run: |
+          echo "Deploying to development environment..."
+          # Add deployment scripts here
+          # This could trigger a webhook to your deployment system
+          
+      - name: Run post-deployment tests
+        run: |
+          echo "Running post-deployment health checks..."
+          # Add health check scripts here
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          echo "Deployment completed with status: ${{ job.status }}"
+          # Add notification logic (Slack, email, etc.)

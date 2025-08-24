@@ -1,0 +1,58 @@
+# Production Environment Configuration  
+name: production
+
+# Environment protection rules
+protection_rules:
+  required_reviewers: 2
+  prevent_self_review: true
+  dismiss_stale_reviews: true
+  require_code_owner_reviews: true
+  required_status_checks:
+    - "lint-and-security"
+    - "test-go"
+    - "test-rust"
+    - "integration-tests"
+  wait_timer: 0  # No wait time, but requires manual approval
+
+# Environment variables (non-sensitive)
+variables:
+  DEPLOYMENT_ENV: production
+  API_BASE_URL: https://api.universal-ai-tools.com
+  WEBSOCKET_URL: wss://ws.universal-ai-tools.com
+  MONITORING_URL: https://monitoring.universal-ai-tools.com
+  
+  # Production resource configuration
+  POSTGRES_MAX_CONNECTIONS: "500"
+  REDIS_MAX_MEMORY: "2gb"  
+  API_GATEWAY_WORKERS: "8"
+  LLM_ROUTER_WORKERS: "8"
+  
+  # Production feature flags (conservative)
+  ENABLE_DEBUG_LOGGING: "false"
+  ENABLE_PERFORMANCE_TRACING: "true"
+  ENABLE_EXPERIMENTAL_FEATURES: "false"
+  
+  # Production rate limiting (strict)
+  RATE_LIMIT_REQUESTS_PER_MINUTE: "500"
+  RATE_LIMIT_BURST_SIZE: "50"
+  
+  # Monitoring and alerting
+  ENABLE_ALERTS: "true"
+  ALERT_EMAIL_RECIPIENTS: "ops@universal-ai-tools.com,dev@universal-ai-tools.com"
+  PROMETHEUS_RETENTION_DAYS: "30"
+  LOG_RETENTION_DAYS: "90"
+  
+  # Performance settings
+  API_TIMEOUT_SECONDS: "30"
+  WEBSOCKET_MAX_CONNECTIONS: "10000"
+  CACHE_TTL_SECONDS: "3600"
+
+# Secrets (configured in GitHub UI)
+# - POSTGRES_PASSWORD
+# - NEO4J_PASSWORD
+# - GRAFANA_PASSWORD
+# - JWT_SECRET
+# - ENCRYPTION_KEY
+# - SSL_CERTIFICATE
+# - SSL_PRIVATE_KEY
+# - BACKUP_ENCRYPTION_KEY

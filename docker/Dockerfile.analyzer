@@ -1,0 +1,140 @@
+FROM node:20-alpine
+
+# Install analysis tools
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    git \
+    bash \
+    jq
+
+# Install code analysis tools
+RUN pip3 install --no-cache-dir \
+    pylint \
+    mypy \
+    flake8 \
+    bandit \
+    vulture \
+    radon
+
+WORKDIR /analyzer
+
+# Create analyzer script
+RUN cat <<'EOF' > /analyzer/analyze.sh
+#!/bin/bash
+set -e
+
+SCAN_DIR="${1:-/app}"
+OUTPUT_DIR="${2:-/reports}"
+
+echo "🔍 Starting code analysis..."
+mkdir -p "$OUTPUT_DIR"
+
+# TypeScript/JavaScript Analysis
+if [ -f "$SCAN_DIR/package.json" ]; then
+    echo "📊 Analyzing TypeScript/JavaScript..."
+    
+    cd "$SCAN_DIR"
+    
+    # Check for TypeScript errors
+    if [ -f "tsconfig.json" ]; then
+        npx tsc --noEmit --pretty false 2>&1 | tee "$OUTPUT_DIR/typescript-errors.log" || true
+    fi
+    
+    # ESLint analysis
+    if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ]; then
+        npx eslint . --format json > "$OUTPUT_DIR/eslint-report.json" 2>&1 || true
+    fi
+    
+    # Dependency audit
+    npm audit --json > "$OUTPUT_DIR/npm-audit.json" 2>&1 || true
+fi
+
+# Python Analysis
+find "$SCAN_DIR" -name "*.py" -type f > /tmp/python-files.txt
+if [ -s /tmp/python-files.txt ]; then
+    echo "📊 Analyzing Python code..."
+    
+    # Pylint
+    pylint --output-format=json $(cat /tmp/python-files.txt) > "$OUTPUT_DIR/pylint-report.json" 2>&1 || true
+    
+    # Flake8
+    flake8 --format=json $(cat /tmp/python-files.txt) > "$OUTPUT_DIR/flake8-report.json" 2>&1 || true
+    
+    # Security analysis with Bandit
+    bandit -r "$SCAN_DIR" -f json > "$OUTPUT_DIR/bandit-report.json" 2>&1 || true
+fi
+
+# Swift Analysis
+if find "$SCAN_DIR" -name "*.swift" -type f | head -1; then
+    echo "📊 Analyzing Swift code..."
+    
+    # SwiftLint if available
+    if command -v swiftlint &> /dev/null; then
+        swiftlint lint --path "$SCAN_DIR" --reporter json > "$OUTPUT_DIR/swiftlint-report.json" 2>&1 || true
+    fi
+fi
+
+# Docker Analysis
+if [ -f "$SCAN_DIR/Dockerfile" ]; then
+    echo "📊 Analyzing Dockerfile..."
+    
+    # Hadolint for Dockerfile
+    if command -v hadolint &> /dev/null; then
+        hadolint "$SCAN_DIR/Dockerfile" --format json > "$OUTPUT_DIR/hadolint-report.json" 2>&1 || true
+    fi
+fi
+
+# Generate summary
+echo "📝 Generating analysis summary..."
+cat <<SUMMARY > "$OUTPUT_DIR/summary.json"
+{
+  "timestamp": "$(date -Iseconds)",
+  "scan_directory": "$SCAN_DIR",
+  "reports_generated": [
+    $(ls -1 "$OUTPUT_DIR"/*.json 2>/dev/null | xargs -I {} basename {} | sed 's/^/    "/; s/$/",/' | sed '$ s/,$//')
+  ]
+}
+SUMMARY
+
+echo "✅ Analysis complete. Reports saved to $OUTPUT_DIR"
+EOF
+
+RUN chmod +x /analyzer/analyze.sh
+
+# Create monitoring script
+RUN cat <<'EOF' > /analyzer/monitor.sh
+#!/bin/bash
+set -e
+
+SCAN_INTERVAL="${SCAN_INTERVAL:-30}"
+SCAN_DIR="${1:-/app}"
+OUTPUT_DIR="${2:-/reports}"
+
+echo "🔄 Starting continuous monitoring..."
+echo "   Scan interval: ${SCAN_INTERVAL}s"
+echo "   Scan directory: $SCAN_DIR"
+echo "   Output directory: $OUTPUT_DIR"
+
+while true; do
+    echo "⏰ $(date): Starting analysis cycle..."
+    /analyzer/analyze.sh "$SCAN_DIR" "$OUTPUT_DIR"
+    
+    # Check for critical issues
+    if [ -f "$OUTPUT_DIR/typescript-errors.log" ]; then
+        ERROR_COUNT=$(grep -c "error TS" "$OUTPUT_DIR/typescript-errors.log" || echo 0)
+        if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo "⚠️  Found $ERROR_COUNT TypeScript errors"
+        fi
+    fi
+    
+    echo "😴 Sleeping for ${SCAN_INTERVAL}s..."
+    sleep "$SCAN_INTERVAL"
+done
+EOF
+
+RUN chmod +x /analyzer/monitor.sh
+
+VOLUME ["/app", "/reports"]
+
+CMD ["/analyzer/monitor.sh"]

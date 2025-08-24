@@ -1,0 +1,51 @@
+[package]
+name = "graphrag-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# Workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+neo4rs = { workspace = true }
+sqlx = { workspace = true }
+redis = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+rayon = { workspace = true }
+
+# GraphRAG specific dependencies
+petgraph = "0.6"
+ndarray = "0.15"
+linfa = "0.7"
+linfa-clustering = "0.7"
+text-splitter = "0.13"
+fastembed = "3.0"
+
+# NLP dependencies
+candle-core = { workspace = true }
+candle-nn = { workspace = true }
+tokenizers = { workspace = true }
+
+# Additional utilities
+dashmap = "5.5"
+parking_lot = "0.12"
+itertools = "0.12"
+
+[dev-dependencies]
+mockall = { workspace = true }
+tokio-test = "0.4"
+
+[features]
+default = ["neo4j", "postgres", "redis"]
+neo4j = ["neo4rs"]
+postgres = ["sqlx"]
+redis = []

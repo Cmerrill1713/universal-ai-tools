@@ -1,0 +1,51 @@
+[package]
+name = "memory-manager"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance memory management service for Universal AI Tools"
+authors = ["Universal AI Tools Team"]
+
+[dependencies]
+# Async runtime and web framework
+tokio = { version = "1.40", features = ["full"] }
+axum = { version = "0.7", features = ["macros", "ws"] }
+tower = { version = "0.5" }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Memory and system monitoring
+tikv-jemallocator = "0.6"
+sysinfo = "0.30"
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "0.22"
+opentelemetry = { version = "0.22", features = ["trace"] }
+opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.15", features = ["trace"] }
+
+# Metrics
+prometheus = "0.13"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Time and scheduling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Collections and utilities
+uuid = { version = "1.10", features = ["v4"] }
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Cross-platform utilities
+crossbeam = "0.8"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"

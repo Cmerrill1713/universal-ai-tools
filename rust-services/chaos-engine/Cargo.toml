@@ -1,0 +1,51 @@
+[package]
+name = "chaos-engine"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "chaos-engine"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { version = "0.7", features = ["json", "tower-log"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async utilities
+futures = "0.3"
+uuid = { version = "1.0", features = ["v4"] }
+
+# System monitoring and control
+sysinfo = "0.30"
+nix = "0.27"
+
+# Time utilities
+chrono = { version = "0.4", features = ["serde"] }
+
+# Configuration
+config = "0.14"
+
+# Metrics
+prometheus = { version = "0.13", features = ["process"] }
+
+# Random number generation
+rand = "0.8"

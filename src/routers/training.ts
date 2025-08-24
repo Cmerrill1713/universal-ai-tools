@@ -1,0 +1,1 @@
+export { training as default } from '../migration/compatibility-stubs';

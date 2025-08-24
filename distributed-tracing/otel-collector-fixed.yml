@@ -1,0 +1,237 @@
+# OpenTelemetry Collector Configuration - Fixed
+# Optimized for Universal AI Tools tracing pipeline
+
+receivers:
+  # OTLP receivers for all telemetry types
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 32
+        max_concurrent_streams: 100
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://*"
+            - "https://*"
+          allowed_headers:
+            - "*"
+
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['localhost:8888']
+        
+        - job_name: 'llm-router'
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['llm-router:9001']
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: 'go_.*'
+              action: drop
+        
+        - job_name: 'websocket-service'
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['websocket-service:9003']
+        
+        - job_name: 'qdrant'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['qdrant:6333']
+          metrics_path: '/metrics'
+
+processors:
+  # Batch processor for efficiency
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Resource processor for metadata
+  resource:
+    attributes:
+      - key: service.namespace
+        value: "universal-ai-tools"
+        action: upsert
+      - key: deployment.environment
+        value: "production"
+        action: upsert
+      - key: telemetry.sdk.language
+        from_attribute: telemetry.sdk.language
+        action: insert
+      - key: service.instance.id
+        from_attribute: service.instance.id
+        action: insert
+
+  # Transform processor for data enrichment
+  transform:
+    trace_statements:
+      - context: span
+        statements:
+          - set(attributes["span.kind"], "SPAN_KIND_UNSPECIFIED") where attributes["span.kind"] == nil
+          - set(attributes["http.status_code"], attributes["http.response.status_code"]) where attributes["http.response.status_code"] != nil
+    
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["service.component"], "unknown") where attributes["service.component"] == nil
+
+  # Tail sampling for production efficiency
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100
+    expected_new_traces_per_sec: 10
+    policies:
+      [
+        {
+          name: sample-errors,
+          type: status_code,
+          status_code: {status_codes: [ERROR]}
+        },
+        {
+          name: sample-slow,
+          type: latency,
+          latency: {threshold_ms: 1000}
+        },
+        {
+          name: sample-probabilistic,
+          type: probabilistic,
+          probabilistic: {sampling_percentage: 10}
+        }
+      ]
+
+  # Span metrics processor for RED metrics
+  spanmetrics:
+    metrics_exporter: prometheus
+    latency_histogram_buckets: [1ms, 2ms, 5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s, 5s]
+    dimensions:
+      - name: http.method
+      - name: http.status_code
+      - name: service.name
+
+  # Attributes processor for cleanup
+  attributes:
+    actions:
+      - key: universal_ai.version
+        value: "2.0.0"
+        action: upsert
+      - key: universal_ai.tracing_enabled
+        value: true
+        action: upsert
+      - pattern: password
+        action: delete
+      - pattern: token
+        action: delete
+      - pattern: api_key
+        action: delete
+
+exporters:
+  # Jaeger exporter via OTLP
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  # Tempo exporter for long-term storage
+  otlp/tempo:
+    endpoint: tempo:4320
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+
+  # Prometheus exporter for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: universal_ai
+    const_labels:
+      environment: production
+      cluster: local
+    resource_to_telemetry_conversion:
+      enabled: true
+    enable_open_metrics: true
+
+  # Debug exporter (disable in production)
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 100
+
+  # Logging exporter for important traces
+  logging:
+    loglevel: warn
+    sampling_initial: 2
+    sampling_thereafter: 500
+
+extensions:
+  # Health check
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: /health
+    check_collector_pipeline:
+      enabled: true
+      interval: 5s
+      exporter_failure_threshold: 5
+
+  # Performance profiler
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # Memory ballast for GC optimization
+  memory_ballast:
+    size_in_percentage: 20
+
+  # ZPages for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, memory_ballast, zpages]
+  
+  pipelines:
+    # Traces pipeline with tail sampling
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform, batch, tail_sampling, spanmetrics, attributes]
+      exporters: [otlp/jaeger, otlp/tempo, debug]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, resource, transform, batch, attributes]
+      exporters: [prometheus, debug]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch, attributes]
+      exporters: [logging]
+
+  telemetry:
+    logs:
+      level: info
+      initial_fields:
+        service: otel-collector
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888

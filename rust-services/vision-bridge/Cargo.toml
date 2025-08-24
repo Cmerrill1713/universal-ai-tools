@@ -1,0 +1,77 @@
+[package]
+name = "vision-bridge"
+version = "0.1.0"
+edition = "2021"
+authors = ["Universal AI Tools Team"]
+description = "High-performance vision processing bridge service"
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.42", features = ["full"] }
+tokio-util = "0.7"
+
+# HTTP server
+axum = { version = "0.7", features = ["macros", "multipart"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Image processing
+image = "0.25"
+imageproc = "0.25"
+base64 = "0.22"
+
+# ML/AI integration
+candle-core = "0.8"
+candle-nn = "0.8"
+candle-transformers = "0.8"
+tch = { version = "0.17", optional = true }
+
+# Python interop (optional for fallback)
+pyo3 = { version = "0.20", features = ["auto-initialize"], optional = true }
+pyo3-asyncio = { version = "0.20", features = ["tokio-runtime"], optional = true }
+
+# Caching and performance
+moka = { version = "0.12", features = ["future"] }
+parking_lot = "0.12"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Blake3 for hashing
+blake3 = "1.5"
+
+# CPU count
+num_cpus = "1.16"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Configuration
+config = "0.14"
+
+# Metrics
+prometheus = "0.13"
+
+[features]
+default = []
+pytorch = ["tch"]
+python-bridge = ["pyo3", "pyo3-asyncio"]
+candle-only = []
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

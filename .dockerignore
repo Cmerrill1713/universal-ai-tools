@@ -1,0 +1,154 @@
+# Node modules
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+build/
+*.js.map
+*.d.ts
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+__tests__/
+tests/
+cypress/
+e2e/
+
+# Documentation
+docs/
+*.md
+!README.md
+!CLAUDE.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Docker files (to avoid recursive copies)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Temporary files
+tmp/
+temp/
+cache/
+.cache/
+
+# Development files
+*.sql
+*.dump
+backups/
+migrations/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Package manager files
+.npm/
+.yarn/
+.pnp.*
+.yarn-integrity
+
+# Build tools
+.eslintcache
+.stylelintcache
+.parcel-cache/
+
+# Monitoring
+monitoring/
+grafana/
+prometheus/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Large files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.pdf
+*.psd
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# UI build files
+ui/node_modules/
+ui/dist/
+ui/build/
+ui/.next/
+ui/.nuxt/
+ui/.vuepress/dist/
+ui/.serverless/
+
+# Backup and archive directories
+src.backup*/
+archive/
+old/
+backup*/
+
+# Supabase local files
+supabase/.branches/
+supabase/.temp/
+
+# Large directories that shouldn't be in Docker context
+macOS-App/
+models/
+datasets/
+python-services/
+mcp-servers/
+nginx/

@@ -1,0 +1,65 @@
+[package]
+name = "agent-registry"
+version = "0.1.0"
+edition = "2021"
+authors = ["Universal AI Tools Team"]
+description = "High-performance agent registry and orchestration service"
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.37", features = ["full"] }
+
+# HTTP server framework
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.8", features = ["v4", "serde"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# OpenTelemetry distributed tracing
+opentelemetry = "0.22"
+opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.15", features = ["grpc-tonic"] }
+tracing-opentelemetry = "0.23"
+
+# Metrics
+prometheus = "0.13"
+
+# Memory management
+tikv-jemallocator = "0.5"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Configuration
+config = "0.14"
+
+# Concurrency
+dashmap = "5.5"
+tokio-util = "0.7"
+
+# Hashing
+blake3 = "1.5"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

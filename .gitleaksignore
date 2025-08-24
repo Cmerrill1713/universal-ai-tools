@@ -1,0 +1,43 @@
+# Gitleaks ignore file for legitimate test tokens and development files
+
+# Test Supabase JWT tokens (demo tokens safe to expose)
+.env:jwt:10
+.env:jwt:11
+.env.local:jwt:3
+.env.local:jwt:4
+.env.production:jwt:14
+.env.production:jwt:15
+
+# Test encryption keys in CI/workflows
+.github/workflows/ci.yml:generic-api-key:236
+.github/workflows/performance-test.yml:generic-api-key:133
+
+# Puppeteer chrome cache files
+.cache/puppeteer/chrome/mac_arm-138.0.7204.157/chrome-mac-arm64/resources/accessibility/reading_mode_gdocs_helper_manifest.json:generic-api-key:2
+.cache/puppeteer/chrome/mac_arm-138.0.7204.168/chrome-mac-arm64/resources/accessibility/reading_mode_gdocs_helper_manifest.json:generic-api-key:2
+
+# Test files with demo tokens
+tests/manual/test_multi_stage_search.js:jwt:11
+tests/manual/test_embeddings_simple.js:jwt:98
+tests/manual/test_full_system.js:jwt:11
+tests/manual/test_ollama_integration.js:jwt:11
+tests/manual/test_contextual_enrichment.js:jwt:10
+tests/manual/test_production_embeddings.js:jwt:14
+tests/manual/test_pydantic_docs_scraper.js:jwt:12
+tests/manual/test_pydantic_tools.js:jwt:10
+tests/manual/test_advanced_vector_system.js:jwt:10
+tests/manual/test_supabase_ecosystem_scraper.js:jwt:14
+tests/manual/test_supabase_ecosystem_scraper.js:jwt:660
+tests/manual/test_complete_system.js:jwt:287
+tests/manual/test_complete_system.js:jwt:8
+
+# Documentation with example tokens
+QUICK_START.md:generic-api-key:37
+MCP_OPTIMIZED_SETUP.md:generic-api-key:173
+MCP_OPTIMIZED_SETUP.md:github-oauth:161
+
+# MyPy cache files
+.mypy_cache/3.9/torch/distributed/checkpoint/utils.meta.json:generic-api-key:1
+
+# Test files with example API keys
+tests/test-curated-memory-search.js:curl-auth-header:16

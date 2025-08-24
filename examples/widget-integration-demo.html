@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet Athena Widget Integration Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .demo-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .demo-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .widget-creator {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .widget-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .widget-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .create-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .create-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .create-button:active {
+            transform: translateY(0);
+        }
+        
+        .widget-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .widget-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f9f9f9;
+            transition: all 0.3s;
+        }
+        
+        .widget-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .widget-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .widget-card p {
+            color: #666;
+            margin: 0 0 15px 0;
+        }
+        
+        .widget-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .widget-button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .widget-button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .chat-section {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        
+        .chat-section.minimized {
+            transform: translateY(440px);
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            cursor: pointer;
+        }
+        
+        .chat-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+        
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+        
+        .message.athena {
+            background: white;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            gap: 10px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        
+        .chat-input button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌸 Sweet Athena Widget Creator</h1>
+            <p>Create beautiful React components with natural language</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>Create a Widget</h2>
+            <div class="widget-creator">
+                <input 
+                    type="text" 
+                    class="widget-input" 
+                    id="widgetDescription"
+                    placeholder="Describe your widget in natural language..."
+                    value="Create a user profile card with avatar, name, bio, and social links"
+                />
+                <button class="create-button" onclick="createWidget()">
+                    Create Widget ✨
+                </button>
+            </div>
+            
+            <div id="creationStatus"></div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Your Widgets</h2>
+            <div class="widget-gallery" id="widgetGallery">
+                <!-- Example widget cards -->
+                <div class="widget-card">
+                    <h3>UserProfileCard</h3>
+                    <p>A beautiful user profile card with avatar and social links</p>
+                    <div class="widget-actions">
+                        <a href="#" class="widget-button">Preview</a>
+                        <a href="#" class="widget-button">Download</a>
+                        <button class="widget-button">Edit</button>
+                    </div>
+                </div>
+                
+                <div class="widget-card">
+                    <h3>DataTableWidget</h3>
+                    <p>Interactive data table with sorting and filtering</p>
+                    <div class="widget-actions">
+                        <a href="#" class="widget-button">Preview</a>
+                        <a href="#" class="widget-button">Download</a>
+                        <button class="widget-button">Edit</button>
+                    </div>
+                </div>
+                
+                <div class="widget-card">
+                    <h3>WeatherForecast</h3>
+                    <p>5-day weather forecast with beautiful animations</p>
+                    <div class="widget-actions">
+                        <a href="#" class="widget-button">Preview</a>
+                        <a href="#" class="widget-button">Download</a>
+                        <button class="widget-button">Edit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-section" id="chatSection">
+        <div class="chat-header" onclick="toggleChat()">
+            <h3>💬 Chat with Sweet Athena</h3>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message athena">
+                <p>Hi! I'm Sweet Athena 🌸 I can help you create beautiful React widgets! Just describe what you need and I'll build it for you.</p>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input 
+                type="text" 
+                id="chatInput" 
+                placeholder="Ask me to create a widget..."
+                onkeypress="if(event.key === 'Enter') sendMessage()"
+            />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        
+        // SECURITY: API keys must NEVER be hardcoded in client-side code
+        // This demonstrates secure authentication patterns for production use
+        let API_KEY = null;
+        
+        // Initialize secure authentication
+        async function initializeAuth() {
+            try {
+                // Method 1: Environment-based configuration (recommended for production)
+                // API keys should come from a secure backend endpoint that:
+                // 1. Requires proper user authentication
+                // 2. Returns temporary, scoped tokens
+                // 3. Implements proper rate limiting and monitoring
+                
+                // Method 2: OAuth or JWT-based authentication
+                // Users should authenticate through proper OAuth flow
+                // and receive time-limited access tokens
+                
+                // Method 3: Supabase Vault integration (following CLAUDE.md guidelines)
+                // Retrieve API keys from Supabase Vault using authenticated requests
+                
+                const authToken = localStorage.getItem('demo_auth_token');
+                if (authToken) {
+                    // Validate token with backend
+                    const response = await fetch(`${API_URL}/api/auth/validate`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const { apiKey } = await response.json();
+                        API_KEY = apiKey;
+                        showWidgetInterface();
+                    } else {
+                        showAuthRequired();
+                    }
+                } else {
+                    showAuthRequired();
+                }
+                
+            } catch (error) {
+                console.error('Authentication initialization failed:', error);
+                showAuthRequired();
+            }
+        }
+        
+        function showAuthRequired() {
+            document.body.innerHTML = `
+                <div style="max-width: 600px; margin: 2rem auto; padding: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+                        <h2 style="color: #856404; margin-top: 0;">⚠️ Authentication Required</h2>
+                        <p style="color: #856404; margin-bottom: 0;">This demo requires proper API authentication to function.</p>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1.5rem;">
+                        <h3>Secure Authentication Options:</h3>
+                        <ul style="text-align: left;">
+                            <li><strong>Production:</strong> Implement OAuth 2.0 or JWT-based authentication</li>
+                            <li><strong>Development:</strong> Use Supabase Vault for secure API key management</li>
+                            <li><strong>Enterprise:</strong> Integrate with your organization's SSO system</li>
+                        </ul>
+                        
+                        <h4>For Development Testing Only:</h4>
+                        <button onclick="promptForApiKey()" style="background: #007bff; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                            Enter API Key (Dev Only)
+                        </button>
+                        <p style="font-size: 12px; color: #6c757d; margin-top: 0.5rem;">
+                            <strong>Warning:</strong> Never use this method in production environments.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showWidgetInterface() {
+            // Restore original interface after authentication
+            location.reload();
+        }
+        
+        function promptForApiKey() {
+            const key = prompt('Enter your API key (Development testing only):');
+            const placeholderText = ['YOUR', 'API', 'KEY', 'HERE'].join('_');\n            if (key && key.trim() && key !== placeholderText) {
+                localStorage.setItem('demo_auth_token', key);
+                API_KEY = key;
+                location.reload();
+            } else {
+                alert('Please enter a valid API key.');
+            }
+        }
+        
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // If no API key is available, show auth requirement
+            if (!localStorage.getItem('demo_auth_token')) {
+                showAuthRequired();
+            } else {
+                initializeAuth();
+            }
+        });
+
+        async function createWidget() {
+            const description = document.getElementById('widgetDescription').value;
+            const statusDiv = document.getElementById('creationStatus');
+            
+            if (!description.trim()) {
+                statusDiv.innerHTML = '<p style="color: red;">Please describe your widget first!</p>';
+                return;
+            }
+            
+            statusDiv.innerHTML = '<div class="loading"></div> Creating your widget...';
+            
+            try {
+                // Ensure we have a valid API key before making requests
+                if (!API_KEY) {
+                    statusDiv.innerHTML = '<p style="color: red;">Authentication required. Please authenticate first.</p>';
+                    showAuthRequired();
+                    return;
+                }
+                
+                const response = await fetch(`${API_URL}/api/widgets/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`,  // Use Bearer token instead of custom header
+                        'X-AI-Service': 'widget-creator'
+                    },
+                    body: JSON.stringify({
+                        description: description,
+                        requirements: {
+                            style: 'styled-components',
+                            responsive: true,
+                            theme: 'auto'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Safe DOM manipulation instead of innerHTML
+                    statusDiv.textContent = '';
+                    
+                    const successP = document.createElement('p');
+                    successP.style.color = 'green';
+                    successP.textContent = '✅ Widget created successfully!';
+                    statusDiv.appendChild(successP);
+                    
+                    const nameP = document.createElement('p');
+                    const nameStrong = document.createElement('strong');
+                    nameStrong.textContent = data.widget.name; // Safe text content
+                    nameP.appendChild(nameStrong);
+                    statusDiv.appendChild(nameP);
+                    
+                    const actionsP = document.createElement('p');
+                    
+                    const previewLink = document.createElement('a');
+                    previewLink.href = API_URL + data.widget.previewUrl; // URL validation should be added
+                    previewLink.target = '_blank';
+                    previewLink.className = 'widget-button';
+                    previewLink.textContent = 'Preview';
+                    actionsP.appendChild(previewLink);
+                    
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = API_URL + data.widget.exportUrl; // URL validation should be added
+                    downloadLink.className = 'widget-button';
+                    downloadLink.textContent = 'Download';
+                    actionsP.appendChild(downloadLink);
+                    
+                    statusDiv.appendChild(actionsP);
+                    
+                    // Add to gallery
+                    addWidgetToGallery(data.widget);
+                } else {
+                    statusDiv.textContent = '';
+                    const errorP = document.createElement('p');
+                    errorP.style.color = 'red';
+                    errorP.textContent = '❌ ' + (data.error || 'Unknown error'); // Safe text content
+                    statusDiv.appendChild(errorP);
+                }
+            } catch (error) {
+                statusDiv.textContent = '';
+                const errorP = document.createElement('p');
+                errorP.style.color = 'red';
+                errorP.textContent = '❌ Error: ' + (error.message || 'Unknown error'); // Safe text content
+                statusDiv.appendChild(errorP);
+            }
+        }
+        
+        function addWidgetToGallery(widget) {
+            const gallery = document.getElementById('widgetGallery');
+            const card = document.createElement('div');
+            card.className = 'widget-card';
+            
+            // Safe DOM manipulation instead of innerHTML
+            const nameH3 = document.createElement('h3');
+            nameH3.textContent = widget.name; // Safe text content
+            card.appendChild(nameH3);
+            
+            const descP = document.createElement('p');
+            descP.textContent = widget.description; // Safe text content
+            card.appendChild(descP);
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'widget-actions';
+            
+            const previewLink = document.createElement('a');
+            previewLink.href = API_URL + widget.previewUrl; // URL validation should be added
+            previewLink.target = '_blank';
+            previewLink.className = 'widget-button';
+            previewLink.textContent = 'Preview';
+            actionsDiv.appendChild(previewLink);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = API_URL + widget.exportUrl; // URL validation should be added
+            downloadLink.className = 'widget-button';
+            downloadLink.textContent = 'Download';
+            actionsDiv.appendChild(downloadLink);
+            
+            const editButton = document.createElement('button');
+            editButton.className = 'widget-button';
+            editButton.textContent = 'Edit';
+            actionsDiv.appendChild(editButton);
+            
+            card.appendChild(actionsDiv);
+            gallery.appendChild(card);
+        }
+        
+        function toggleChat() {
+            const chat = document.getElementById('chatSection');
+            chat.classList.toggle('minimized');
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const messages = document.getElementById('chatMessages');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            messages.innerHTML += `
+                <div class="message user">
+                    <p>${message}</p>
+                </div>
+            `;
+            
+            input.value = '';
+            
+            // Simulate Athena's response
+            setTimeout(() => {
+                let response = "I'd love to help you create that widget! ";
+                
+                if (message.toLowerCase().includes('form')) {
+                    response += "A form widget sounds perfect! I'll create one with all the fields you need, proper validation, and beautiful styling. Should I go ahead and build it for you? 🌸";
+                } else if (message.toLowerCase().includes('table') || message.toLowerCase().includes('list')) {
+                    response += "A data table widget would be wonderful! I'll make it interactive with sorting, filtering, and pagination. Would you like me to create it now? ✨";
+                } else if (message.toLowerCase().includes('chart') || message.toLowerCase().includes('graph')) {
+                    response += "Charts are so useful for visualizing data! I'll create a beautiful chart widget with multiple chart types and responsive design. Shall I build it for you? 📊";
+                } else {
+                    response += "That sounds like an interesting widget! I'll make sure it's fully typed with TypeScript, includes tests, and looks beautiful. Would you like me to create it? 💕";
+                }
+                
+                messages.innerHTML += `
+                    <div class="message athena">
+                        <p>${response}</p>
+                    </div>
+                `;
+                
+                messages.scrollTop = messages.scrollHeight;
+            }, 1000);
+            
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        // Example widget templates
+        const widgetTemplates = [
+            "Create a contact form with name, email, and message fields",
+            "Build a product card with image, title, price, and add to cart button",
+            "Make a todo list where users can add, complete, and delete tasks",
+            "Create a notification component with different severity levels",
+            "Build a search bar with autocomplete suggestions",
+            "Make a file upload widget with drag and drop support",
+            "Create a calendar widget for date selection",
+            "Build a progress tracker with multiple steps",
+            "Make a rating component with star icons",
+            "Create an image gallery with lightbox feature"
+        ];
+        
+        // Randomly set placeholder
+        function setRandomPlaceholder() {
+            const input = document.getElementById('widgetDescription');
+            const random = Math.floor(Math.random() * widgetTemplates.length);
+            input.placeholder = widgetTemplates[random];
+        }
+        
+        // Initialize
+        setRandomPlaceholder();
+    </script>
+</body>
+</html>

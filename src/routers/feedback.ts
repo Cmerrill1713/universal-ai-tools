@@ -1,0 +1,1 @@
+export { feedback as default } from '../migration/compatibility-stubs';

@@ -1,0 +1,95 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: universal-ai-tools-base
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: universal-ai-tools
+  app.kubernetes.io/version: v1.0.0
+  app.kubernetes.io/managed-by: kustomize
+
+# Common annotations
+commonAnnotations:
+  config.kubernetes.io/origin: |
+    path: k8s/base/kustomization.yaml
+  prometheus.io/scrape: "true"
+
+# Namespace for all resources
+namespace: universal-ai-tools
+
+# Resources to include
+resources:
+- namespace.yaml
+- llm-router.yaml
+- websocket-service.yaml
+- graphrag-service.yaml
+- databases.yaml
+
+# ConfigMap generators
+configMapGenerator:
+- name: postgres-init-scripts
+  files:
+  - postgres-init.sql=../../scripts/init-postgres.sql
+- name: neo4j-init-scripts
+  files:
+  - neo4j-init.cypher=../../scripts/neo4j-init.cypher
+
+# Secret generators (placeholder - use external secret management in production)
+secretGenerator:
+- name: postgres-secret
+  literals:
+  - password=PLACEHOLDER_POSTGRES_PASSWORD
+  - database-url=postgresql://postgres:PLACEHOLDER_POSTGRES_PASSWORD@postgres:5432/universal_ai_tools
+  type: Opaque
+- name: neo4j-secret
+  literals:
+  - password=PLACEHOLDER_NEO4J_PASSWORD
+  - auth=neo4j:PLACEHOLDER_NEO4J_PASSWORD
+  type: Opaque
+
+# Image transformations
+images:
+- name: universal-ai-tools/llm-router
+  newTag: v1.0.0
+- name: universal-ai-tools/websocket-service
+  newTag: v1.0.0
+- name: universal-ai-tools/graphrag-service
+  newTag: v1.0.0
+
+# Resource patches
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: llm-router
+  spec:
+    template:
+      metadata:
+        annotations:
+          config.kubernetes.io/applied: "base"
+
+# JSON patches for fine-grained modifications
+patchesJson6902:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: llm-router
+  patch: |-
+    - op: add
+      path: /spec/template/metadata/annotations/deployment.kubernetes.io~1revision
+      value: "1"
+
+# Replica overrides (can be overridden in overlays)
+replicas:
+- name: llm-router
+  count: 3
+- name: websocket-service
+  count: 3
+- name: graphrag-service
+  count: 2

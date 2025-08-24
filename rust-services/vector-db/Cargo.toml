@@ -1,0 +1,114 @@
+[package]
+name = "vector-db"
+version = "0.1.0"
+edition = "2021"
+authors = ["Universal AI Tools Team"]
+description = "High-performance vector database service with GPU acceleration for Universal AI Tools"
+
+[lib]
+name = "vector_db"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vector-db"
+path = "src/main.rs"
+
+[dependencies]
+# Core async runtime and web framework
+tokio = { version = "1.37", features = ["full"] }
+axum = { version = "0.7", features = ["ws", "multipart", "macros"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "compression-gzip", "trace"] }
+hyper = { version = "1.3", features = ["full"] }
+
+# Serialization and data handling
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.8", features = ["v4", "serde"] }
+
+# Vector operations and SIMD acceleration
+ndarray = { version = "0.15", features = ["rayon", "serde"] }
+nalgebra = { version = "0.32", features = ["serde-serialize", "rayon"] }
+rayon = "1.10"
+
+# High-performance data structures
+dashmap = "5.5"
+parking_lot = "0.12"
+crossbeam = "0.8"
+lru = "0.12"
+
+# Database and storage
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
+sled = "0.34"
+qdrant-client = "1.7"
+
+# Observability and logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = { version = "0.22", features = ["metrics"] }
+opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.15", features = ["grpc-tonic", "metrics"] }
+tracing-opentelemetry = "0.23"
+
+# Configuration and environment
+config = "0.14"
+toml = "0.8"
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Error handling and utilities
+anyhow = "1.0"
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Metrics and monitoring
+prometheus = { version = "0.13", features = ["process"] }
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# JWT Authentication
+jsonwebtoken = "9.2"
+base64 = "0.21"
+
+# Memory allocator for performance
+tikv-jemallocator = "0.5"
+
+# GPU acceleration (Metal on Apple Silicon)
+metal = { version = "0.28", optional = true }
+objc = { version = "0.2", optional = true }
+
+# SIMD and vectorization
+simdeez = "1.0"
+
+# LSH and approximate search (implemented in vector_engine.rs)
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# System information
+num_cpus = "1.16"
+
+# Async trait support
+async-trait = "0.1"
+
+# Random number generation
+rand = "0.8"
+
+[features]
+default = ["metal-acceleration"]
+metal-acceleration = ["metal", "objc"]
+cpu-only = []
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+tempfile = "3.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.bench]
+debug = true

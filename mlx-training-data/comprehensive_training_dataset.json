@@ -1,0 +1,127 @@
+[
+  {
+    "instruction": "Describe the Universal AI Tools system architecture",
+    "input": "",
+    "output": "Universal AI Tools uses a hybrid architecture with Rust for performance-critical services (LLM router, ML inference), Go for network services (WebSocket, API gateway), Swift for macOS/iOS clients, and TypeScript for legacy compatibility. The system includes 5 core services: Go API Gateway (port 8080), Rust LLM Router (8082), Rust AI Core (8003), and supports MLX service (8004) for Apple Silicon optimization."
+  },
+  {
+    "instruction": "What are the key performance improvements achieved in the hybrid architecture?",
+    "input": "",
+    "output": "The hybrid architecture achieved significant performance improvements: 60% memory usage reduction (2.5GB to <1GB), 61% faster response times (223ms to 87ms), 10x improvement in concurrent connections (1,000 to 10,000+), and 5x throughput improvement (500 to 2,500+ req/sec). The migration consolidated 68 routers into 3 core services (95% consolidation)."
+  },
+  {
+    "instruction": "How does the auto-healing system work?",
+    "input": "",
+    "output": "The evolutionary auto-healing system monitors services every 30 seconds, detects failures through port checks and health endpoints, automatically restarts failed services, escalates to human assistance when auto-healing fails, and learns from patterns to prevent future issues. It includes circuit breaker patterns, intelligent problem surfacing, and structured training data generation for continuous improvement."
+  },
+  {
+    "instruction": "What are the modern SwiftUI architecture patterns for macOS 15?",
+    "input": "",
+    "output": "Modern SwiftUI for macOS 15 uses @Observable macro instead of ObservableObject, eliminates ViewModels in favor of @Observable business logic classes, uses @Environment for dependency injection, employs NavigationSplitView for native macOS navigation, and applies @MainActor isolation for thread safety. The pattern separates UI from business logic while maintaining reactivity."
+  },
+  {
+    "instruction": "How is secure storage implemented in the Swift macOS app?",
+    "input": "",
+    "output": "The app migrated completely from UserDefaults to Keychain storage using KeychainService.swift for all sensitive data including API keys, user credentials, and tokens. It includes hardware-based authentication via Bluetooth with RSSI proximity detection, family device management with roles, and automatic token expiry management."
+  },
+  {
+    "instruction": "What are the benefits of MLX for AI inference on Apple Silicon?",
+    "input": "",
+    "output": "MLX provides native Apple Silicon optimization with GPU acceleration, memory-efficient inference, fast model loading and switching, seamless integration with macOS applications, and support for fine-tuning on device. It achieves significant performance improvements over CPU-only inference and enables local-first AI capabilities."
+  },
+  {
+    "instruction": "How should MLX models be integrated into the existing service architecture?",
+    "input": "",
+    "output": "MLX services should run on port 8004, maintain API compatibility with existing chat completion endpoints, include proper health checks and metrics, support circuit breaker patterns, and provide monitoring integration. The service should handle model loading, inference requests, and maintain performance metrics for production monitoring."
+  },
+  {
+    "instruction": "What are common Swift concurrency errors and their solutions?",
+    "input": "",
+    "output": "Common Swift 6.0 concurrency errors include 'Sending actor-isolated non-sendable' (solution: mark types as Sendable or use @MainActor), 'Data race accessing from different actor' (solution: proper actor isolation), 'Cannot convert sendable requirement' (solution: Sendable protocol conformance), and 'async function not supported' (solution: mark function as async or use Task blocks)."
+  },
+  {
+    "instruction": "How do you debug production issues in the hybrid architecture?",
+    "input": "",
+    "output": "Debug production issues by checking service health endpoints (/health on each port), reviewing logs in /tmp/ directories, using circuit breaker status endpoints, monitoring Prometheus metrics on port 9090, checking auto-healing logs in /tmp/uat-autoheal/, and using distributed tracing with OpenTelemetry for request flow analysis."
+  },
+  {
+    "instruction": "What safety measures should be implemented for MLX fine-tuning?",
+    "input": "",
+    "output": "MLX fine-tuning safety includes regression testing against baseline models, confidence thresholds for automated actions, anti-hallucination measures through validation datasets, performance benchmarking before deployment, gradual rollout with rollback capabilities, and automated quality checks. Fine-tuning frequency should be limited to prevent overfitting and maintain stability."
+  },
+  {
+    "instruction": "How do you validate model performance after fine-tuning?",
+    "input": "",
+    "output": "Validate fine-tuned models through comprehensive test suites including functional regression tests, performance benchmarks comparing response times and accuracy, API compatibility validation, integration testing with existing services, and real-world scenario testing. Use automated scripts to ensure all functionality migrates correctly and performance meets or exceeds baseline metrics."
+  },
+  {
+    "instruction": "How do you debug a Rust service that won't start?",
+    "input": "The LLM Router service on port 8082 is failing to start with 'address already in use' error",
+    "output": "Check if another process is using port 8082 with 'lsof -i :8082', kill the process with 'kill -9 [PID]', verify Rust service configuration in Cargo.toml, check logs in /tmp/llm-router.log, restart with 'cargo run --release', and monitor with health endpoint /health."
+  },
+  {
+    "instruction": "What causes 'Service Unavailable' errors in the hybrid architecture?",
+    "input": "Getting 503 Service Unavailable from the Go API Gateway",
+    "output": "503 errors indicate backend service failure. Check: Go API Gateway logs for upstream connection errors, verify all backend services (Rust LLM Router :8082, AI Core :8083) are running, test health endpoints directly, check circuit breaker status, verify database connections (PostgreSQL :5432, Redis :6379), and restart failed services."
+  },
+  {
+    "instruction": "How do you resolve memory leaks in the Node.js legacy services?",
+    "input": "TypeScript server memory usage growing from 200MB to 4GB over time",
+    "output": "Memory leaks in TypeScript services: Use 'node --max-old-space-size=1024' flag, enable garbage collection with '--expose-gc', monitor with 'process.memoryUsage()', identify leaks with heap snapshots, check for unclosed database connections, review event listener cleanup, migrate critical services to Rust/Go for better memory management."
+  },
+  {
+    "instruction": "What steps resolve Swift macOS app crashes on startup?",
+    "input": "Universal AI Tools macOS app crashes immediately after launch",
+    "output": "Swift app startup crashes: Check Xcode console for crash logs, verify all required frameworks are linked (SwiftAnthropic, Pow, Vortex), ensure @Observable classes are properly initialized, check Keychain access permissions, verify backend service availability (localhost:9999), update to latest Xcode/macOS versions, clean build folder and rebuild."
+  },
+  {
+    "instruction": "How do you troubleshoot WebSocket connection failures?",
+    "input": "WebSocket connections dropping frequently in the Go service",
+    "output": "WebSocket troubleshooting: Check Go WebSocket service logs on port 8081, verify client connection handling in hub.go, monitor connection count and memory usage, check for proper connection cleanup, verify network timeouts and keep-alive settings, test with simple WebSocket client, restart WebSocket service if hub is corrupted."
+  },
+  {
+    "instruction": "How do you optimize Rust service performance for high load?",
+    "input": "LLM Router experiencing slow response times under 1000+ concurrent requests",
+    "output": "Rust performance optimization: Enable release mode with 'cargo build --release', use async/await with tokio runtime, implement connection pooling, add request queuing with bounded channels, monitor CPU/memory with built-in metrics, enable LTO (Link Time Optimization), consider using jemalloc allocator, scale horizontally with multiple instances."
+  },
+  {
+    "instruction": "What causes slow database queries in the hybrid architecture?",
+    "input": "PostgreSQL queries taking 2-3 seconds instead of milliseconds",
+    "output": "Database performance issues: Check query execution plans with EXPLAIN ANALYZE, verify indexes exist on frequently queried columns, monitor connection pool usage, check for lock contention, optimize N+1 query problems, consider read replicas for heavy queries, update table statistics with ANALYZE, check for disk I/O bottlenecks."
+  },
+  {
+    "instruction": "How do you resolve high CPU usage in Go services?",
+    "input": "Go API Gateway showing 90%+ CPU usage with moderate load",
+    "output": "Go CPU optimization: Profile with 'go tool pprof' to identify hotspots, check for goroutine leaks with runtime.NumGoroutine(), optimize JSON marshaling/unmarshaling, use sync.Pool for object reuse, implement proper rate limiting, check for infinite loops in handlers, consider using fasthttp for high-performance HTTP handling."
+  },
+  {
+    "instruction": "How do you configure distributed tracing across all services?",
+    "input": "Need to track requests across Go, Rust, and TypeScript services",
+    "output": "Distributed tracing setup: Configure OpenTelemetry in each service with jaeger/zipkin exporters, add trace IDs to request headers, instrument database calls and HTTP requests, use consistent service naming, set up Jaeger UI for visualization, configure sampling rates, ensure correlation IDs propagate across service boundaries."
+  },
+  {
+    "instruction": "What's the proper way to handle secrets in the hybrid architecture?",
+    "input": "API keys and database credentials need secure management across services",
+    "output": "Secrets management: Use environment variables with .env files for development, implement HashiCorp Vault or AWS Secrets Manager for production, store sensitive data in Swift Keychain for macOS app, use Docker secrets for containerized deployment, rotate credentials regularly, never commit secrets to git, use separate secrets per environment."
+  },
+  {
+    "instruction": "How do you implement circuit breakers across all services?",
+    "input": "Need fault tolerance when services fail in the distributed system",
+    "output": "Circuit breaker implementation: Use hystrix-go for Go services, implement custom circuit breakers in Rust with tokio, add health checks to all endpoints, configure failure thresholds (50% error rate), set timeout windows (30 seconds), implement graceful degradation, add monitoring and alerting, test failure scenarios regularly."
+  },
+  {
+    "instruction": "How do you handle MLX model loading failures?",
+    "input": "MLX service failing to load models with 'Out of memory' error",
+    "output": "MLX memory issues: Use 4-bit quantized models (mlx-community/*-4bit), monitor Metal GPU memory usage, implement model caching to avoid reloading, use streaming inference for large responses, configure batch size based on available memory, implement model swapping for multiple models, add memory pressure monitoring."
+  },
+  {
+    "instruction": "What causes MLX inference to be slower than expected?",
+    "input": "MLX generating responses in 10+ seconds instead of 1-2 seconds",
+    "output": "MLX performance optimization: Verify Metal GPU acceleration is enabled, use quantized models for faster inference, implement prompt caching for repeated patterns, optimize batch processing, check for memory pressure causing swapping, use appropriate model sizes for hardware, implement speculative decoding for faster generation."
+  },
+  {
+    "instruction": "How do you handle MLX fine-tuning failures?",
+    "input": "LoRA fine-tuning failing with convergence or loss explosion",
+    "output": "MLX fine-tuning troubleshooting: Reduce learning rate (1e-6 to 1e-5), increase LoRA rank cautiously (8 to 16), check training data quality and format, implement gradient clipping, use smaller batch sizes, monitor loss curves, validate training examples, implement early stopping, ensure sufficient training data diversity."
+  }
+]

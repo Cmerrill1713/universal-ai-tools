@@ -1,0 +1,118 @@
+# API Gateway Configuration
+# Production-ready configuration with all services properly configured
+
+server:
+  host: "127.0.0.1"
+  port: 8080
+  request_timeout_ms: 30000
+  keep_alive_timeout_ms: 120000
+  
+services:
+  - name: "database-automation"
+    host: "127.0.0.1"
+    port: 8086  # Fixed from 8090
+    health_endpoint: "/health"
+    weight: 1
+    max_retries: 3
+    retry_delay_ms: 1000
+    
+  - name: "documentation-generator"
+    host: "127.0.0.1"
+    port: 8087
+    health_endpoint: "/health"
+    weight: 1
+    max_retries: 3
+    retry_delay_ms: 1000
+    
+  - name: "ml-model-management"
+    host: "127.0.0.1"
+    port: 8088
+    health_endpoint: "/health"
+    weight: 1
+    max_retries: 3
+    retry_delay_ms: 1000
+
+routing_rules:
+  - path_pattern: "/api/database/*"
+    target_service: "database-automation"
+    strip_prefix: "/api/database"
+    enabled: true
+    
+  - path_pattern: "/api/documentation/*"
+    target_service: "documentation-generator"
+    strip_prefix: "/api/documentation"
+    enabled: true
+    
+  - path_pattern: "/api/ml/*"
+    target_service: "ml-model-management"
+    strip_prefix: "/api/ml"
+    enabled: true
+    
+  # New routes for additional services
+  - path_pattern: "/api/v1/llm/*"
+    target_service: "llm-router"
+    strip_prefix: "/api/v1/llm"
+    enabled: false  # Enable when LLM router is running
+    
+  - path_pattern: "/api/admin/*"
+    target_service: "gateway-admin"
+    strip_prefix: ""
+    enabled: true
+
+health_check:
+  interval_seconds: 30
+  timeout_seconds: 5
+  unhealthy_threshold: 3
+  healthy_threshold: 2
+
+rate_limiting:
+  enabled: true
+  requests_per_second: 100
+  burst_size: 200
+  per_ip: true
+
+circuit_breaker:
+  enabled: true
+  failure_threshold: 5
+  success_threshold: 2
+  timeout_seconds: 60
+  half_open_requests: 3
+
+load_balancing:
+  algorithm: "round_robin"  # Options: round_robin, least_connections, weighted, random
+  sticky_sessions: false
+  session_timeout_seconds: 3600
+
+caching:
+  enabled: true
+  ttl_seconds: 60
+  max_size_mb: 100
+  cache_control_honor: true
+
+monitoring:
+  metrics_enabled: true
+  metrics_port: 9090
+  tracing_enabled: true
+  tracing_sample_rate: 0.1
+  logging_level: "info"
+
+security:
+  cors_enabled: true
+  cors_origins: ["*"]
+  auth_enabled: false  # Enable for production
+  api_key_header: "X-API-Key"
+  rate_limit_by_api_key: true
+
+resilience:
+  retry_policy:
+    max_attempts: 3
+    backoff_multiplier: 2
+    max_backoff_seconds: 30
+  
+  timeout_policy:
+    connect_timeout_ms: 5000
+    request_timeout_ms: 30000
+    
+  bulkhead:
+    max_concurrent_requests: 1000
+    queue_size: 100

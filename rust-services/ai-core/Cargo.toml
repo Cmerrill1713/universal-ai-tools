@@ -1,0 +1,74 @@
+[package]
+name = "ai-core"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance AI processing core for Universal AI Tools"
+authors = ["Universal AI Tools Team"]
+
+[dependencies]
+# Async runtime and web framework
+tokio = { version = "1.40", features = ["full"] }
+axum = { version = "0.7", features = ["macros", "ws"] }
+tower = { version = "0.5" }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Memory management
+tikv-jemallocator = "0.6"
+
+# AI and ML (using compatible versions)
+# candle-core = { version = "0.4", features = ["metal"] }
+# candle-nn = "0.4"
+# candle-transformers = "0.4"
+# tokenizers = { version = "0.15", features = ["onig"] }
+
+# Vector operations
+ndarray = "0.15"
+nalgebra = "0.33"
+
+# Additional AI capabilities (placeholder for future ML integration)
+# Will add local inference libraries later
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "0.22"
+opentelemetry = { version = "0.22", features = ["trace"] }
+opentelemetry_sdk = { version = "0.22", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.15", features = ["trace"] }
+
+# Metrics
+prometheus = "0.13"
+
+# HTTP client for external AI services
+reqwest = { version = "0.11", features = ["json", "stream", "gzip", "brotli", "deflate"] }
+
+# Redis for high-performance caching
+redis = { version = "0.25", features = ["tokio-comp", "connection-manager"] }
+
+# Time and utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["v4"] }
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Async streams
+futures = "0.3"
+tokio-stream = "0.1"
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true

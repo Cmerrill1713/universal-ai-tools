@@ -1,0 +1,100 @@
+[package]
+name = "graphrag-service"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "minimal"
+path = "src/main_minimal.rs"
+
+[[bin]]
+name = "debug"
+path = "src/main_debug.rs"
+
+[[bin]]
+name = "test-qdrant"
+path = "src/main_test_qdrant.rs"
+
+[[bin]]
+name = "load_test"
+path = "src/bin/load_test.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Web framework
+axum = "0.7"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-full"] }
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
+neo4rs = "0.8"
+
+# Vector database
+qdrant-client = "1.15"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Utilities
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "2.0"
+regex = "1.11"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.27"
+opentelemetry = { version = "0.27", features = ["trace"] }
+opentelemetry-otlp = { version = "0.27", features = ["tonic"] }
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+# ML/NLP - Removed candle due to compilation issues, using external services instead
+# candle-core = "0.7"
+# candle-transformers = "0.7"
+# tokenizers = "0.20"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+
+# Metrics
+prometheus = "0.13"
+
+# Connection pooling
+deadpool-redis = "0.18"
+bincode = "1.3"
+
+# Concurrency
+rayon = "1.10"
+dashmap = "6.1"
+crossbeam = "0.8"
+
+# Load testing dependencies
+clap = { version = "4.4", features = ["derive"] }
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.6"
+quickcheck = "1.0"
+
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.release-with-debug]
+inherits = "release"
+strip = false
+debug = true

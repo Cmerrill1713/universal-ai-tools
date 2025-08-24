@@ -1,0 +1,21 @@
+[server]
+port = 8085
+timeout_seconds = 30
+
+[monitoring]
+cpu_warning_threshold = 80.0
+memory_warning_threshold = 85.0
+context_update_interval_seconds = 30
+suggestion_generation_interval_seconds = 120
+
+[suggestions]
+max_active_suggestions = 10
+suggestion_expiry_hours = 24
+confidence_threshold = 0.3
+
+[integrations]
+calendar_integration = false
+weather_integration = false
+ai_service_integration = false
+
+database_url = "postgresql://postgres:postgres@localhost:54322/postgres?sslmode=disable"
