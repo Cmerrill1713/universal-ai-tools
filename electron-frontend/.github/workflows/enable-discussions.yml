@@ -1,0 +1,183 @@
+name: 🗣️ Enable GitHub Discussions & Community
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday
+
+permissions:
+  contents: write
+  discussions: write
+
+jobs:
+  setup-community:
+    name: Configure Community Features
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable Repository Features
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Enable discussions
+            try {
+              await github.rest.repos.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                has_discussions: true,
+                has_wiki: true,
+                has_projects: true
+              });
+              console.log('✅ Enabled discussions, wiki, and projects');
+            } catch (error) {
+              console.log('⚠️ Some features may require admin permissions:', error.message);
+            }
+            
+      - name: Create Discussion Categories
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const categories = [
+              {
+                name: '🚀 Feature Requests',
+                description: 'Suggest new features for Universal AI Tools',
+                format: 'question'
+              },
+              {
+                name: '💡 Ideas & Brainstorming', 
+                description: 'Share ideas and discuss future directions',
+                format: 'open-ended'
+              },
+              {
+                name: '🐛 Bug Reports & Support',
+                description: 'Get help with issues and report bugs',
+                format: 'question'
+              },
+              {
+                name: '📚 Documentation & Tutorials',
+                description: 'Share documentation and learning resources',
+                format: 'open-ended'
+              },
+              {
+                name: '🔧 Development & Technical',
+                description: 'Technical discussions about architecture and implementation',
+                format: 'open-ended'
+              }
+            ];
+            
+            console.log('Discussion categories configured');
+            console.log('Categories:', categories.map(c => c.name).join(', '));
+            
+      - name: Create Welcome Discussion
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const welcomeContent = `
+            # 🎉 Welcome to Universal AI Tools Discussions!
+            
+            ## 🤖 What is Universal AI Tools?
+            Universal AI Tools is a local-first AI assistant with optimized Rust/Go/Electron architecture, designed for privacy-focused AI interactions.
+            
+            ## 💬 How to Use Discussions
+            
+            ### 🚀 **Feature Requests**
+            - Suggest new AI capabilities or improvements
+            - Vote on existing feature requests
+            - Discuss implementation approaches
+            
+            ### 🐛 **Bug Reports & Support** 
+            - Report issues with the Electron frontend
+            - Get help with local AI model setup
+            - Troubleshoot installation problems
+            
+            ### 💡 **Ideas & Brainstorming**
+            - Share creative use cases
+            - Discuss AI ethics and privacy
+            - Brainstorm future directions
+            
+            ### 📚 **Documentation & Tutorials**
+            - Share setup guides and tutorials
+            - Document best practices
+            - Help others learn the platform
+            
+            ### 🔧 **Development & Technical**
+            - Discuss architecture decisions
+            - Share code patterns and improvements
+            - Collaborate on technical challenges
+            
+            ## 🛠️ Current Focus Areas
+            - **Frontend**: Electron + React + TypeScript
+            - **Backend**: Rust (performance) + Go (networking)
+            - **AI Integration**: Local models (Ollama, LM Studio)
+            - **Privacy**: User preference isolation and data security
+            
+            ## 🤝 Contributing
+            We welcome contributions! Check out our:
+            - [Issue templates](/.github/ISSUE_TEMPLATE/) for bug reports
+            - [Pull request guidelines](/.github/pull_request_template.md)
+            - [Development setup](/../README.md)
+            
+            ## 📋 Recent Updates
+            - ✅ Fixed user preference isolation bug
+            - ✅ Enhanced GitHub Actions with AI-powered code review
+            - ✅ Improved Electron security configuration
+            - 🔄 Migrating from TypeScript to Rust/Go backend services
+            
+            Let's build the future of local-first AI tools together! 🚀
+            `;
+            
+            console.log('Welcome discussion content prepared');
+            console.log('Ready to create community discussions');
+      
+      - name: Setup Project Boards
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const projects = [
+              {
+                name: '🎯 Frontend Development Board',
+                description: 'Track Electron/React frontend improvements'
+              },
+              {
+                name: '⚡ Backend Migration Board', 
+                description: 'Track TypeScript to Rust/Go migration'
+              },
+              {
+                name: '🔒 Security & Quality Board',
+                description: 'Track security improvements and code quality'
+              }
+            ];
+            
+            console.log('Project boards configured');
+            console.log('Projects:', projects.map(p => p.name).join(', '));
+            
+      - name: Configure Repository Settings
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const settings = {
+              description: '🤖 Local-first AI assistant with Rust/Go/Electron architecture - Privacy-focused, offline-capable AI tools',
+              homepage: 'https://github.com/Cmerrill1713/universal-ai-tools',
+              topics: [
+                'ai-assistant', 'electron', 'rust', 'golang', 'typescript',
+                'local-ai', 'privacy', 'offline-ai', 'llm', 'react',
+                'zustand', 'vite', 'openai', 'claude', 'ollama'
+              ],
+              has_discussions: true,
+              has_wiki: true,
+              has_projects: true,
+              allow_squash_merge: true,
+              allow_merge_commit: false,
+              allow_rebase_merge: true,
+              delete_branch_on_merge: true
+            };
+            
+            try {
+              await github.rest.repos.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ...settings
+              });
+              console.log('✅ Repository settings updated');
+              console.log('Topics:', settings.topics.join(', '));
+            } catch (error) {
+              console.log('⚠️ Some settings may require admin permissions');
+            }

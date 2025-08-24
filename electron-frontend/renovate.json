@@ -1,0 +1,128 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "🤖 Advanced dependency management for Universal AI Tools",
+  "extends": [
+    "config:recommended",
+    "security:openssf-scorecard"
+  ],
+  "labels": ["dependencies", "automated"],
+  "assignees": ["Cmerrill1713"],
+  "reviewers": ["Cmerrill1713"],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on Monday"],
+  
+  "packageRules": [
+    {
+      "description": "🔴 Critical security updates - auto-merge",
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "!/^0\\./",
+      "automerge": true,
+      "automergeType": "pr",
+      "labels": ["security", "critical", "auto-merge"]
+    },
+    {
+      "description": "⚡ Electron updates - high priority", 
+      "matchPackageNames": ["electron", "electron-builder"],
+      "labels": ["electron", "high-priority"],
+      "reviewers": ["Cmerrill1713"],
+      "assignees": ["Cmerrill1713"]
+    },
+    {
+      "description": "⚛️ React ecosystem updates",
+      "matchPackagePatterns": ["^react", "^@types/react"],
+      "labels": ["react", "frontend"],
+      "groupName": "React ecosystem"
+    },
+    {
+      "description": "🔧 Build tools and dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": ["^@types/", "^eslint", "^typescript", "^vite"],
+      "labels": ["build-tools", "dev-dependencies"],
+      "groupName": "Development tools",
+      "schedule": ["before 6am on Saturday"]
+    },
+    {
+      "description": "🎨 UI/Design dependencies",
+      "matchPackagePatterns": ["^@heroicons/", "^framer-motion", "^tailwindcss"],
+      "labels": ["ui", "design"],
+      "groupName": "UI libraries"
+    },
+    {
+      "description": "🔐 Security-related packages",
+      "matchPackagePatterns": ["^@supabase/", "^crypto", "^helmet"],
+      "labels": ["security", "high-priority"],
+      "reviewers": ["Cmerrill1713"]
+    },
+    {
+      "description": "🐛 Pin major versions for stability",
+      "matchUpdateTypes": ["major"],
+      "enabled": false,
+      "labels": ["major-update", "manual-review-required"]
+    }
+  ],
+
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "vulnerability"],
+    "assignees": ["Cmerrill1713"],
+    "schedule": ["at any time"]
+  },
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Sunday"],
+    "labels": ["lock-file-maintenance"],
+    "commitMessageAction": "Lock file maintenance"
+  },
+
+  "prHourlyLimit": 5,
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 20,
+
+  "customManagers": [
+    {
+      "description": "🦀 Rust Cargo.toml updates",
+      "customType": "regex",
+      "fileMatch": ["(^|/)Cargo\\.toml$"],
+      "matchStrings": [
+        "(?<depName>\\S+)\\s*=\\s*\"(?<currentValue>\\S+)\""
+      ],
+      "datasourceTemplate": "crate"
+    },
+    {
+      "description": "🐹 Go mod updates", 
+      "customType": "regex",
+      "fileMatch": ["(^|/)go\\.mod$"],
+      "matchStrings": [
+        "(?<depName>\\S+)\\s+v(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "go"
+    }
+  ],
+
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageAction": "Update",
+  "commitMessageExtra": "to {{newVersion}}",
+  
+  "prTitle": "🔄 {{commitMessageAction}} {{commitMessageTopic}} {{commitMessageExtra}}",
+  "prBodyTemplate": "## 📦 Dependency Update\n\n**Package:** {{depName}}\n**From:** {{currentVersion}}\n**To:** {{newVersion}}\n\n### 🔍 Changes\n{{#if displayPendingStatus}}\n⏳ Status: {{displayPendingStatus}}\n{{/if}}\n\n### 📊 Release Notes\n{{#if releases.length}}\n{{#each releases}}\n#### {{title}}\n{{#if body}}\n{{body}}\n{{/if}}\n{{/each}}\n{{/if}}\n\n### 🤖 Automated Analysis\n- **Type:** {{updateType}}\n- **Security:** {{#if isSecurityUpdate}}🔴 Security update{{else}}✅ Regular update{{/if}}\n- **Breaking:** {{#if isMajor}}⚠️ Potential breaking changes{{else}}✅ Non-breaking{{/if}}\n\n---\n*This PR was created automatically by Renovate*",
+
+  "enabledManagers": [
+    "npm",
+    "dockerfile",
+    "github-actions",
+    "regex"
+  ],
+
+  "ignoreDeps": [
+    "node",
+    "@types/node"
+  ],
+
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/dist/**", 
+    "**/build/**",
+    "**/.git/**"
+  ]
+}

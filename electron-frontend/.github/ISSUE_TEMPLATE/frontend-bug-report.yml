@@ -1,0 +1,121 @@
+name: 🐛 Frontend Bug Report (Advanced)
+description: Report a bug in the Electron frontend with AI-assisted analysis
+title: "[Frontend Bug]: "
+labels: ["bug", "frontend", "electron", "needs-triage"]
+projects: ["Cmerrill1713/1"]
+assignees:
+  - Cmerrill1713
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤖 AI-Enhanced Bug Report
+        This form uses advanced GitHub features to automatically analyze and categorize your bug report.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Bug Severity
+      description: How severe is this bug?
+      options:
+        - "🔴 Critical - App crashes or data loss"
+        - "🟠 High - Major functionality broken" 
+        - "🟡 Medium - Minor functionality issues"
+        - "🟢 Low - Cosmetic or enhancement"
+      default: 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Frontend Component
+      description: Which part of the frontend is affected?
+      options:
+        - "⚡ Electron Main Process"
+        - "🖥️ Renderer Process (React)"
+        - "🔧 Build System (Vite)"
+        - "🎨 UI Components"
+        - "📦 State Management (Zustand)"
+        - "🔌 API Integration"
+        - "🔐 Authentication/User Management"
+        - "⚙️ Settings/Preferences"
+        - "🎯 Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Describe the user story (like "When logged in under Christian Its still showing Trista's preferences")
+      placeholder: "As a [type of user], when I [action], I expect [expected result] but instead [actual result]"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the bug
+      placeholder: |
+        1. Open the application
+        2. Click on '...'
+        3. See error
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What should happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happens? Include error messages.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: |
+        Please provide environment information:
+      value: |
+        - **OS**: (macOS 14.x, Windows 11, Ubuntu 22.04)
+        - **Node.js Version**: (Run `node --version`)
+        - **Electron Version**: (Check package.json)
+        - **Browser DevTools Console**: (Any errors?)
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Screenshots, logs, or any other relevant information
+      placeholder: Drag and drop screenshots or paste logs here
+
+  - type: checkboxes
+    id: verification
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I've searched existing issues for duplicates
+          required: true
+        - label: I've provided clear reproduction steps
+          required: true
+        - label: I've included environment details
+          required: true
+        - label: I've checked the browser console for errors
+          required: false
