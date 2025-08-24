@@ -17,6 +17,7 @@ export enum LogContext {
   MCP = 'mcp',
   SERVICE = 'service',
   CONTEXT_INJECTION = 'context_injection',
+  MIDDLEWARE = 'middleware',
 }
 
 const logLevel = process.env.LOG_LEVEL || 'info';
