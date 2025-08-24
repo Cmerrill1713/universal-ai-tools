@@ -153,6 +153,7 @@ export interface ErrorCode {
   EMBEDDING_ERROR: 'EMBEDDING_ERROR';
   SERVICE_ERROR: 'SERVICE_ERROR';
   REFINEMENT_ERROR: 'REFINEMENT_ERROR';
+  NOT_IMPLEMENTED: 'NOT_IMPLEMENTED';
 }
 
 export interface ApiResponse<T = unknown> {

@@ -221,11 +221,11 @@ async function fetchRelevantContext(req: Request, config: ContextInjectionOption
       architectureAdvisor.getTaskRecommendations(userInput, {
         limit: 2,
         minSuccessRate: 0.6
-      }).then(recommendations => ({
+      }).then((recommendations: any) => ({
         type: 'architecture_recommendations',
         content: recommendations,
         source: 'architecture_advisor'
-      })).catch(error => {
+      })).catch((error: any) => {
         log.warn('Failed to get architecture recommendations', LogContext.SERVICE, { error });
         return null;
       })

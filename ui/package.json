@@ -21,7 +21,7 @@
   "dependencies": {
     "@adobe/react-spectrum": "^3.43.0",
     "@ai-sdk/react": "^0.0.62",
-    "@amplitude/analytics-browser": "^2.20.1",
+    "@amplitude/analytics-browser": "^1.14.0",
     "@assistant-ui/react": "^0.5.80",
     "@babel/standalone": "^7.24.7",
     "@emotion/react": "^11.14.0",

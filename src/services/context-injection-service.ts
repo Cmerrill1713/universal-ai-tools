@@ -456,8 +456,8 @@ export class ContextInjectionService {
     if (context.architecturePatterns && context.architecturePatterns.length > 0) {
       prompt += `## RECOMMENDED ARCHITECTURE PATTERNS:\n`;
       context.architecturePatterns.forEach((pattern, index) => {
-        prompt += `${index + 1}. ${pattern.name} (${pattern.framework}):\n`;
-        prompt += `   - Type: ${pattern.patternType}\n`;
+        prompt += `${index + 1}. ${pattern.name} (${pattern.category}):\n`;
+        prompt += `   - Type: ${pattern.category}\n`;
         prompt += `   - Description: ${pattern.description}\n`;
         prompt += `   - Success Rate: ${(pattern.successRate * 100).toFixed(0)}%\n`;
         prompt += `   - Best For: ${pattern.useCases.slice(0, 2).join(', ')}\n`;
@@ -590,14 +590,14 @@ export class ContextInjectionService {
       };
 
       // Get relevant patterns from architecture advisor
-      const recommendations = await architectureAdvisor.getRelevantPatterns(matchingContext, {
+      const recommendations = await architectureAdvisor.getRelevantPatterns([matchingContext], {
         threshold: 0.6,
         limit: 3,
         includeRelated: false,
       });
 
       // Extract just the patterns
-      const patterns = recommendations.map(rec => rec.pattern);
+      const patterns = recommendations.map((rec: any) => rec.pattern);
 
       log.info('✅ Found architecture patterns', LogContext.CONTEXT_INJECTION, {
         patternCount: patterns.length,

@@ -13,8 +13,9 @@ interface ContextEntry {
   content: string;
   category: 'conversation' | 'project_info' | 'error_analysis' | 'code_patterns' | 'test_results' | 'architecture_patterns';
   source: string;
-  userId: string;
+  userId?: string;
   projectPath?: string;
+  title?: string;
   metadata?: Record<string, any>;
   created_at?: string;
   updated_at?: string;

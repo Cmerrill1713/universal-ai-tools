@@ -1301,7 +1301,7 @@ class UniversalAIToolsServer {
             const mockWs = {
               send: (data: string) => socket.emit('message', data),
               close: () => socket.disconnect(),
-              on: (event: string, handler: Function) => socket.on(event, handler),
+              on: (event: string, handler: (...args: any[]) => void) => socket.on(event, handler),
               readyState: 1, // OPEN
             } as any;
 
@@ -1326,9 +1326,8 @@ class UniversalAIToolsServer {
             });
           });
 
-          // Start Athena services
-          athenaWebSocket.startHeartbeat();
-          athenaWebSocket.startStatusUpdates();
+          // Athena WebSocket service is now initialized
+          log.debug('🔮 Athena WebSocket service ready', LogContext.WEBSOCKET);
 
           log.info('✅ Athena WebSocket initialized', LogContext.WEBSOCKET);
         })
