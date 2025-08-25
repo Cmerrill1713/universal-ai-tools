@@ -241,6 +241,36 @@ router.post('/sources/:sourceName/toggle', async (req: Request, res: Response) =
 });
 
 /**
+ * @route POST /api/v1/knowledge/scrape-url
+ * @desc Scrape a specific URL with browser window
+ */
+router.post('/scrape-url', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { url, extractScript } = req.body;
+
+    if (!url) {
+      return sendError(res, 'VALIDATION_ERROR', 'URL is required', 400);
+    }
+
+    log.info('🌐 Starting browser-based URL scraping', LogContext.API, { url });
+
+    // Scrape with browser window (visual feedback)
+    const result = await knowledgeScraperService.scrapeWithBrowser(url, extractScript);
+
+    sendSuccess(res, {
+      url,
+      result,
+      scrapedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error('❌ URL scraping failed', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error);
+  }
+});
+
+/**
  * @route GET /api/v1/knowledge/health
  * @desc Health check for knowledge service
  */

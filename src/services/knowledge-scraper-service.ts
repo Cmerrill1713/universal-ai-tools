@@ -10,6 +10,7 @@ import { LogContext, log } from '../utils/logger';
 import { RateLimiter } from 'limiter';
 import { THOUSAND, TWO } from '../utils/common-constants';
 import { rerankingService } from './reranking-service';
+import { browserScrapingBridge } from './browser-scraping-bridge';
 
 interface ScrapingSource {
   name: string;
@@ -142,7 +143,7 @@ export class KnowledgeScraperService {
             tagged: options.categories?.join(';'),
           },
           headers: {
-            'User-Agent': 'Universal-AI-Tools/1.0',
+            'User-Agent':'Universal-AI-Tools/1.0',
           },
         });
         data = response.data;
@@ -372,6 +373,100 @@ export class KnowledgeScraperService {
     }
 
     return results;
+  }
+
+  /**
+   * Scrape a URL using browser window (with visual feedback)
+   */
+  async scrapeWithBrowser(url: string, extractScript?: string): Promise<any> {
+    log.info('🌐 Starting browser-based scraping', LogContext.SERVICE, { url });
+
+    // Check if Electron is connected
+    if (!browserScrapingBridge.isConnected()) {
+      log.warn('Electron not connected, falling back to headless scraping', LogContext.SERVICE);
+      return this.scrapeWebPage(url);
+    }
+
+    try {
+      // Start scraping session - this will open a browser window
+      const sessionId = await browserScrapingBridge.startScrapingSession(url);
+
+      // Wait for browser to open
+      await new Promise(resolve => {
+        browserScrapingBridge.once('browser-opened', resolve);
+        setTimeout(resolve, 5000); // Timeout after 5 seconds
+      });
+
+      // Default extraction script if none provided
+      const defaultScript = `
+        (() => {
+          const title = document.title;
+          const content = document.body.innerText;
+          const links = Array.from(document.querySelectorAll('a')).map(a => ({
+            text: a.innerText,
+            href: a.href
+          }));
+          const images = Array.from(document.querySelectorAll('img')).map(img => ({
+            alt: img.alt,
+            src: img.src
+          }));
+          return {
+            title,
+            url: window.location.href,
+            content,
+            links,
+            images,
+            extractedAt: new Date().toISOString()
+          };
+        })()
+      `;
+
+      // Execute extraction script
+      const result = await browserScrapingBridge.executeInBrowser(
+        sessionId,
+        extractScript || defaultScript
+      );
+
+      // Keep window open for 3 seconds so user can see the scraping happened
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Complete the session (this will close the window)
+      await browserScrapingBridge.completeScrapingSession(sessionId, result);
+
+      log.info('✅ Browser scraping completed', LogContext.SERVICE, { url });
+      return result;
+    } catch (error) {
+      log.error('Browser scraping failed', LogContext.SERVICE, { error, url });
+      // Fall back to headless scraping
+      return this.scrapeWebPage(url);
+    }
+  }
+
+  /**
+   * Scrape web page (headless)
+   */
+  private async scrapeWebPage(url: string): Promise<any> {
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; UniversalAITools/1.0)'
+        }
+      });
+
+      const $ = cheerio.load(response.data);
+      const title = $('title').text();
+      const content = $('body').text();
+
+      return {
+        title,
+        url,
+        content: content.substring(0, 5000), // Limit content size
+        extractedAt: new Date().toISOString()
+      };
+    } catch (error) {
+      log.error('Headless scraping failed', LogContext.SERVICE, { error, url });
+      throw error;
+    }
   }
 
   /**

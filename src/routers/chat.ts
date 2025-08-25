@@ -358,12 +358,83 @@ router.post(
 
       const executionTime = Date.now() - startTime;
 
-      // Add assistant response
+      // Extract conversational content from agent response
+      let conversationalContent = '';
+      
+      // Debug logging to understand response structure
+      log.info('🔍 Agent response structure:', LogContext.API, {
+        hasResponse: !!result.response,
+        responseType: typeof result.response,
+        hasData: !!result.data,
+        dataType: typeof result.data,
+        responseKeys: result.response ? Object.keys(result.response) : null,
+        dataKeys: result.data ? Object.keys(result.data) : null,
+        fullData: result.data ? JSON.stringify(result.data, null, 2).substring(0, 1000) : null,
+        agentName
+      });
+      
+      // Handle different response formats from agents
+      if (result.response) {
+        if (typeof result.response === 'string') {
+          conversationalContent = result.response;
+        } else if (result.response && typeof result.response === 'object') {
+          // Try different common properties for conversational content
+          if (result.response.message) {
+            conversationalContent = result.response.message;
+          } else if (result.response.content) {
+            conversationalContent = result.response.content;
+          } else if (result.response.text) {
+            conversationalContent = result.response.text;
+          } else if (result.response.answer) {
+            conversationalContent = result.response.answer;
+          } else {
+            // As a last resort, try to extract from JSON
+            conversationalContent = JSON.stringify(result.response, null, 2);
+          }
+        } else {
+          conversationalContent = String(result.response);
+        }
+      } else if (result.data) {
+        // Handle enhanced agent response format
+        if (typeof result.data === 'object' && result.data.aiResponse) {
+          try {
+            // Parse the nested aiResponse structure
+            let {aiResponse} = result.data;
+            
+            // If aiResponse is a string, parse it as JSON
+            if (typeof aiResponse === 'string') {
+              aiResponse = JSON.parse(aiResponse);
+            }
+            
+            // Extract the conversational message from the structured response
+            if (aiResponse.response && aiResponse.response.message) {
+              conversationalContent = aiResponse.response.message;
+            } else if (aiResponse.message) {
+              conversationalContent = aiResponse.message;
+            } else if (aiResponse.content) {
+              conversationalContent = aiResponse.content;
+            } else {
+              // Fallback to the raw aiResponse
+              conversationalContent = typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse, null, 2);
+            }
+          } catch (parseError) {
+            log.warn('Failed to parse agent aiResponse', LogContext.API, { parseError });
+            conversationalContent = 'I apologize, but there was an error processing my response.';
+          }
+        } else if (typeof result.data === 'string') {
+          conversationalContent = result.data;
+        } else {
+          conversationalContent = JSON.stringify(result.data, null, 2);
+        }
+      } else {
+        conversationalContent = 'I apologize, but I was unable to generate a response.';
+      }
+
+      // Add assistant response with conversational content only
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
         role: 'assistant',
-        content:
-          result.response || result.data || 'I apologize, but I was unable to generate a response.',
+        content: conversationalContent,
         timestamp: new Date().toISOString(),
         metadata: {
           agentName,
