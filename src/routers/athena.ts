@@ -3,10 +3,9 @@
  * Handles Athena AI assistant API endpoints
  */
 
-import express from 'express';
-import type { Request, Response } from 'express';
-import { LogContext, log } from '../utils/logger';
-import { apiResponseMiddleware } from '../utils/api-response';
+import express, { type Request, type Response } from 'express';
+import { LogContext, log  } from '../utils/logger';
+import { apiResponseMiddleware  } from '../utils/api-response';
 
 const router = express.Router();
 
@@ -127,14 +126,14 @@ router.post('/query', async (req: Request, res: Response) => {
       domain: domain || 'general',
       results: [
         {
-          title: `Knowledge about: ${query.slice(0, 50)}`,
+          title: `Knowledge, about: ${query.slice(0, 50)}`,
           summary: 'Comprehensive information retrieved from Athena knowledge base...',
           confidence: 0.89,
           source: 'Primary Knowledge Base',
           type: 'factual'
         },
         {
-          title: `Related concepts for: ${query.slice(0, 50)}`,
+          title: `Related concepts, for: ${query.slice(0, 50)}`,
           summary: 'Additional context and related information...',
           confidence: 0.76,
           source: 'Contextual Database',

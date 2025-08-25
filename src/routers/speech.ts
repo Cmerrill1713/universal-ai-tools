@@ -3,10 +3,9 @@
  * Handles text-to-speech and speech-to-text functionality
  */
 
-import express from 'express';
-import type { Request, Response } from 'express';
-import { LogContext, log } from '../utils/logger';
-import { apiResponseMiddleware } from '../utils/api-response';
+import express, { type Request, type Response } from 'express';
+import { LogContext, log  } from '../utils/logger';
+import { apiResponseMiddleware  } from '../utils/api-response';
 
 const router = express.Router();
 

@@ -3,11 +3,10 @@
  * Handles Model Context Protocol (MCP) agent operations
  */
 
-import express from 'express';
-import type { Request, Response } from 'express';
-import { LogContext, log } from '../utils/logger';
-import { apiResponseMiddleware } from '../utils/api-response';
-import { mcpIntegrationService } from '../services/mcp-integration-service';
+import express, { type Request, type Response } from 'express';
+import { LogContext, log  } from '../utils/logger';
+import { apiResponseMiddleware  } from '../utils/api-response';
+import { mcpIntegrationService  } from '../services/mcp-integration-service';
 
 const router = express.Router();
 
@@ -124,7 +123,7 @@ router.post('/tools/:toolName/execute', async (req: Request, res: Response) => {
         serverId: serverId || 'default',
         result: {
           success: true,
-          output: `Mock execution result for tool: ${toolName}`,
+          output: `Mock execution result for, tool: ${toolName}`,
           metadata: {
             executionTime: Math.floor(Math.random() * 1000) + 100,
             timestamp: Date.now()
@@ -298,7 +297,7 @@ router.get('/resources/read', async (req: Request, res: Response) => {
       // Fallback to mock response
       const mockContent = {
         uri: uri as string,
-        content: `Mock content for resource: ${uri}`,
+        content: `Mock content for, resource: ${uri}`,
         mimeType: 'text/plain',
         size: 256,
         readAt: Date.now()

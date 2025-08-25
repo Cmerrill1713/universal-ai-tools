@@ -39,7 +39,7 @@ export const globalErrorHandler: ErrorRequestHandler = async (
   err: Error | any,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): Promise<void> => {
   try {
     const timestamp = Date.now();

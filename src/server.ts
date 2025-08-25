@@ -6,25 +6,23 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import type { Server } from 'http';
-import { createServer } from 'http';
+import { type Server, createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { createClient } from '@supabase/supabase-js';
+import { type SupabaseClient, createClient } from '@supabase/supabase-js';
 
 // Configuration and utilities
 import { config, validateConfig } from '@/config/environment';
 import { LogContext, log } from '@/utils/logger';
 import { apiResponseMiddleware } from '@/utils/api-response';
-import { getPorts, logPortConfiguration } from '@/config/ports';
-import type { EmbeddingResult } from './types';
+// import { getPorts, logPortConfiguration } from '@/config/ports'; // TODO: Remove if not needed
+import { a2aMesh } from '@/services/a2a-communication-mesh';
+// import type { EmbeddingResult } from './types'; // TODO: Remove if not needed
 
 // Middleware
 import { createRateLimiter } from '@/middleware/rate-limiter-enhanced';
-import {
-  intelligentParametersMiddleware,
+import { intelligentParametersMiddleware,
   optimizeParameters,
-} from '@/middleware/intelligent-parameters';
+ } from '@/middleware/intelligent-parameters';
 
 // Agent system
 import AgentRegistry from '@/agents/agent-registry';
@@ -110,8 +108,8 @@ class UniversalAIToolsServer {
           sourcesUsed: testContext.relevantPatterns?.length || 0,
         });
 
-        // Test context storage service
-        const storedContextId = await contextStorageService.storeContext({
+        // Test context storage service (non-blocking)
+        contextStorageService.storeContext({
           content: 'Universal AI Tools - Server startup completed with context injection enabled',
           category: 'project_info',
           source: 'server_startup',
@@ -121,13 +119,13 @@ class UniversalAIToolsServer {
             startup_time: new Date().toISOString(),
             features_enabled: ['context_injection', 'supabase_storage', 'agent_registry'],
           },
+        }).then(storedContextId => {
+          log.info('✅ Startup context stored', LogContext.DATABASE, { contextId: storedContextId });
+        }).catch(error => {
+          log.warn('⚠️ Failed to store startup context', LogContext.DATABASE, { error: error.message });
         });
 
-        if (storedContextId) {
-          log.info('✅ Context storage service initialized', LogContext.DATABASE, {
-            storedContextId,
-          });
-        }
+        log.info('✅ Context storage service initialized', LogContext.DATABASE);
       }
     } catch (error) {
       log.warn('⚠️ Context injection service initialization failed', LogContext.DATABASE, {
@@ -138,13 +136,16 @@ class UniversalAIToolsServer {
 
   private async initializeMCPService(): Promise<void> {
     try {
-      // Start MCP service for context management
-      const started = await mcpIntegrationService.start();
-      if (started) {
-        log.info('✅ MCP service initialized for context management', LogContext.MCP);
-      } else {
-        log.warn('⚠️ MCP service failed to start, using fallback mode', LogContext.MCP);
-      }
+      // Start MCP service for context management (non-blocking)
+      mcpIntegrationService.start().then(started => {
+        if (started) {
+          log.info('✅ MCP service initialized for context management', LogContext.MCP);
+        } else {
+          log.warn('⚠️ MCP service failed to start, using fallback mode', LogContext.MCP);
+        }
+      }).catch(error => {
+        log.error('❌ MCP service startup failed', LogContext.MCP, { error: error.message });
+      });
     } catch (error) {
       log.error('❌ Failed to initialize MCP service', LogContext.MCP, {
         error: error instanceof Error ? error.message : String(error),
@@ -178,8 +179,8 @@ class UniversalAIToolsServer {
           const allowedOrigins = [
             'http://localhost:5173',
             'http://localhost:3000',
-            process.env.FRONTEND_URL,
-          ].filter(Boolean);
+            'http://localhost:3007', // Electron frontend
+            process.env.FRONTEND_URL].filter(Boolean);
 
           if (allowedOrigins.includes(origin)) {
             callback(null, true);
@@ -189,7 +190,7 @@ class UniversalAIToolsServer {
         },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-AI-Service'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-AI-Service', 'X-Request-Id'],
         exposedHeaders: ['X-Request-Id'],
         maxAge: 86400, // 24 hours
       })
@@ -439,6 +440,7 @@ class UniversalAIToolsServer {
           '/api/v1/a2a',
           '/api/v1/memory',
           '/api/v1/orchestration',
+          '/api/v1/search',
           '/api/v1/knowledge',
           '/api/v1/architecture',
           '/api/v1/auth',
@@ -480,7 +482,7 @@ class UniversalAIToolsServer {
 
         // Check if execute method exists
         if (!multiTierLLM || typeof multiTierLLM.execute !== 'function') {
-          throw new Error('Multi-tier LLM service not properly configured');
+          throw new Error('Multi-tier LLM service not properly configured');;
         }
 
         const result = await multiTierLLM.execute(userRequest, context);
@@ -618,8 +620,7 @@ class UniversalAIToolsServer {
                 class: 'mock_object',
                 confidence: 0.95,
                 bbox: { x: 10, y: 10, width: 100, height: 100 },
-              },
-            ],
+              }],
             scene: {
               description: 'Mock scene analysis - Vision system ready for implementation',
               tags: ['mock', 'test', 'ready'],
@@ -967,7 +968,7 @@ class UniversalAIToolsServer {
             },
           });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage = error instanceof Error ? error.message: String(error);
           log.error('Agent execution error', LogContext.API, {
             error: errorMessage,
             agentName: req.body.agentName,
@@ -1066,7 +1067,7 @@ class UniversalAIToolsServer {
             },
           });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage = error instanceof Error ? error.message: String(error);
           log.error('Parallel agent execution error', LogContext.API, {
             error: errorMessage,
           });
@@ -1145,7 +1146,7 @@ class UniversalAIToolsServer {
             },
           });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage = error instanceof Error ? error.message: String(error);
           log.error('Agent orchestration error', LogContext.API, {
             error: errorMessage,
           });
@@ -1220,7 +1221,7 @@ class UniversalAIToolsServer {
           },
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage = error instanceof Error ? error.message: String(error);
         log.error('Agent status error', LogContext.API, {
           error: errorMessage,
         });
@@ -1253,8 +1254,7 @@ class UniversalAIToolsServer {
               'http://localhost:5173',
               'http://localhost:3000',
               'http://localhost:9999',
-              process.env.FRONTEND_URL,
-            ].filter(Boolean);
+              process.env.FRONTEND_URL].filter(Boolean);
 
             if (allowedOrigins.includes(origin)) {
               callback(null, true);
@@ -1455,10 +1455,15 @@ class UniversalAIToolsServer {
 
   public async start(): Promise<void> {
     try {
+      log.info('🚀 Starting server initialization...', LogContext.SERVER);
+      
       // Validate configuration
+      log.info('🔧 Validating configuration...', LogContext.SERVER);
       validateConfig();
+      log.info('✅ Configuration validated', LogContext.SERVER);
 
       // Initialize services first
+      log.info('🔄 Initializing services...', LogContext.SERVER);
       await this.initializeServices();
       log.info('✅ All services initialized successfully', LogContext.SERVER);
 
@@ -1486,6 +1491,10 @@ class UniversalAIToolsServer {
               port,
               healthCheck: `http://localhost:${port}/health`,
             });
+
+            // Enable A2A mesh learning after server is fully started
+            a2aMesh.enableLearning();
+            
             resolve();
           })
           .on('error', reject);
@@ -1507,18 +1516,60 @@ class UniversalAIToolsServer {
   }
 
   private async loadAsyncRoutes(): Promise<void> {
+    log.info('🔄 Starting async route loading...', LogContext.SERVER);
+    
     try {
-      // Load monitoring routes
+      log.info('📊 Loading monitoring routes...', LogContext.SERVER);
       const monitoringModule = await import('./routers/monitoring');
       this.app.use('/api/v1/monitoring', monitoringModule.default);
       log.info('✅ Monitoring routes loaded', LogContext.SERVER);
 
-      // Start automated health monitoring
+      // Start automated health monitoring (non-blocking)
+      log.info('🩺 Starting health monitor...', LogContext.SERVER);
       const { healthMonitor } = await import('./services/health-monitor');
-      await healthMonitor.start();
-      log.info('✅ Health monitor service started', LogContext.SERVER);
+      healthMonitor.start().then(() => {
+        log.info('✅ Health monitor service started', LogContext.SERVER);
+      }).catch(error => {
+        log.warn('⚠️ Health monitor failed to start', LogContext.SERVER, { error: error.message });
+      });
     } catch (error) {
       log.warn('⚠️ Monitoring routes failed to load', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    try {
+      // Load GraphQL server (make Apollo startup non-blocking)
+      const graphqlModule = await import('./routers/graphql');
+      const { setupGraphQLServer } = graphqlModule;
+      
+      // Mount GraphQL routes first
+      this.app.use('/graphql', graphqlModule.default);
+      this.app.use('/api/graphql', graphqlModule.default);
+      
+      // Setup Apollo Server with HTTP server integration (non-blocking)
+      setupGraphQLServer(this.server).then(() => {
+        log.info('✅ Apollo GraphQL Server fully initialized', LogContext.SERVER);
+      }).catch(error => {
+        log.warn('⚠️ Apollo GraphQL Server failed to initialize', LogContext.SERVER, { 
+          error: error.message 
+        });
+      });
+      
+      log.info('✅ GraphQL routes mounted (Apollo starting in background)', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ GraphQL routes failed to load', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    try {
+      // Load evolution router (self-evolving codebase)
+      const evolutionRouter = await import('./routers/evolution');
+      this.app.use('/api/v1/evolution', evolutionRouter.default);
+      log.info('✅ Evolution router loaded (self-evolving codebase)', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Evolution router failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -1687,7 +1738,7 @@ class UniversalAIToolsServer {
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message: String(error);
       log.error('❌ Failed to load MLX routes', LogContext.SERVER, {
         error: errorMessage,
         platform: process.platform,
@@ -1797,6 +1848,22 @@ class UniversalAIToolsServer {
       });
     }
 
+    // Load web search routes
+    try {
+      log.info('🌐 Loading web search router...', LogContext.SERVER);
+      const webSearchModule = await import('./routers/web-search');
+      log.info('✅ Web search module imported successfully', LogContext.SERVER, {
+        hasDefault: !!webSearchModule.default,
+        moduleType: typeof webSearchModule.default,
+      });
+      this.app.use('/api/v1/search', webSearchModule.default);
+      log.info('✅ Web search routes loaded', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load web search router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Load knowledge scraper routes
     try {
       log.info('🔄 Loading knowledge scraper router...', LogContext.SERVER);
@@ -1859,14 +1926,29 @@ class UniversalAIToolsServer {
       });
     }
 
+    // Load news router
+    try {
+      log.info('📰 Loading news router...', LogContext.SERVER);
+      const newsModule = await import('./routers/news');
+      this.app.use('/api/v1/news', newsModule.default);
+      log.info('✅ News router mounted at /api/v1/news', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load news router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Load other async routes here as needed
   }
 }
 
 // Start the server if this file is run directly
 if (import.meta.url === `file://${process.argv[1]}`) {
+  console.log('🔧 Creating UniversalAIToolsServer instance...');
   const server = new UniversalAIToolsServer();
+  console.log('✅ Server instance created, calling start()...');
   server.start();
+  console.log('🚀 start() method called');
 }
 
 export default UniversalAIToolsServer;

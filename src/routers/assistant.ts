@@ -3,10 +3,9 @@
  * Handles general AI assistant functionality and coordination
  */
 
-import express from 'express';
-import type { Request, Response } from 'express';
-import { LogContext, log } from '../utils/logger';
-import { apiResponseMiddleware } from '../utils/api-response';
+import express, { type Request, type Response } from 'express';
+import { LogContext, log  } from '../utils/logger';
+import { apiResponseMiddleware  } from '../utils/api-response';
 
 const router = express.Router();
 
@@ -126,6 +125,44 @@ router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : String(error)
     });
     res.sendError('INTERNAL_ERROR', 'Failed to get assistant session', 500);
+  }
+});
+
+/**
+ * Chat endpoint for frontend compatibility
+ */
+router.post('/chat', async (req: Request, res: Response) => {
+  try {
+    const { message, sessionId, context } = req.body;
+
+    if (!message) {
+      return res.sendError('VALIDATION_ERROR', 'Message is required', 400);
+    }
+
+    log.info('💬 Assistant chat request', LogContext.API, {
+      sessionId,
+      messageLength: message.length || 0,
+      hasContext: !!context
+    });
+
+    // Simulate chat processing
+    await new Promise(resolve => setTimeout(resolve, 750));
+
+    const response = {
+      message: generateMockResponse(message),
+      sessionId: sessionId || `chat_${Date.now()}`,
+      confidence: 0.93,
+      timestamp: Date.now(),
+      processingTime: 750,
+      success: true
+    };
+
+    res.sendSuccess(response);
+  } catch (error) {
+    log.error('❌ Failed to process chat message', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    res.sendError('INTERNAL_ERROR', 'Failed to process chat message', 500);
   }
 });
 
@@ -359,15 +396,16 @@ function getAssistantCapabilities(assistantType: string): string[] {
  */
 function generateMockResponse(request: string): string {
   const requestLower = request.toLowerCase();
+  const truncatedRequest = request.slice(0, 100) + (request.length > 100 ? '...' : '');
   
   if (requestLower.includes('code') || requestLower.includes('program')) {
-    return `I can help you with coding tasks. Based on your request about "${request.slice(0, 100)}${request.length > 100 ? '...' : ''}", I'll provide detailed technical assistance with code examples and best practices.`;
+    return `I can help you with coding tasks. Based on your request about "${truncatedRequest}", I'll provide detailed technical assistance with code examples and best practices.`;
   } else if (requestLower.includes('research') || requestLower.includes('analyze')) {
-    return `I'll help you research and analyze this topic. For "${request.slice(0, 100)}${request.length > 100 ? '...' : ''}", I can gather information from multiple sources and provide a comprehensive analysis.`;
+    return `I'll help you research and analyze this topic. For "${truncatedRequest}", I can gather information from multiple sources and provide a comprehensive analysis.`;
   } else if (requestLower.includes('write') || requestLower.includes('create')) {
-    return `I can assist with your writing and creative needs. Regarding "${request.slice(0, 100)}${request.length > 100 ? '...' : ''}", I'll help you create engaging and well-structured content.`;
+    return `I can assist with your writing and creative needs. Regarding "${truncatedRequest}", I'll help you create engaging and well-structured content.`;
   } else {
-    return `I understand you're asking about "${request.slice(0, 100)}${request.length > 100 ? '...' : ''}". I'll provide you with comprehensive assistance based on my knowledge and capabilities.`;
+    return `I understand you're asking about "${truncatedRequest}". I'll provide you with comprehensive assistance based on my knowledge and capabilities.`;
   }
 }
 

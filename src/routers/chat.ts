@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { LogContext, log } from '@/utils/logger';
 import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/middleware/express-validator';
-import { body, param, query } from 'express-validator';
+import { body, param } from 'express-validator';
 import type AgentRegistry from '@/agents/agent-registry';
 import type { AgentContext } from '@/types';
 
