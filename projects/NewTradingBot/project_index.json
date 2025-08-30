@@ -1,0 +1,167 @@
+{
+  "name": "NewTradingBot",
+  "description": "An advanced AI-powered trading system with Streamlit interface",
+  "structure": {
+    "src": {
+      "core": {
+        "diplomacy": {
+          "description": "AI swarm coordination and trust management",
+          "files": [
+            "agent_coordinator.py",
+            "trust_manager.py",
+            "consensus.py"
+          ]
+        },
+        "strategy": {
+          "description": "Trading strategy implementation",
+          "files": [
+            "strategy_base.py",
+            "momentum.py",
+            "mean_reversion.py",
+            "arbitrage.py"
+          ]
+        },
+        "risk": {
+          "description": "Risk management and position sizing",
+          "files": [
+            "risk_calculator.py",
+            "position_sizer.py",
+            "exposure_manager.py"
+          ]
+        },
+        "llm": {
+          "description": "LLM integration for trading insights",
+          "files": [
+            "startup.py",
+            "quality_assurance_agent.py",
+            "market_analyzer.py"
+          ]
+        }
+      },
+      "application": {
+        "description": "Business logic and service orchestration",
+        "files": [
+          "trading_service.py",
+          "portfolio_manager.py",
+          "order_handler.py"
+        ]
+      },
+      "data": {
+        "description": "Data processing and streaming",
+        "files": [
+          "market_data.py",
+          "stream_processor.py",
+          "data_cleaner.py"
+        ]
+      },
+      "domain": {
+        "description": "Domain entities and models",
+        "files": [
+          "trade.py",
+          "portfolio.py",
+          "order.py"
+        ]
+      },
+      "infrastructure": {
+        "description": "Database and external connections",
+        "files": [
+          "database.py",
+          "exchange_client.py",
+          "cache.py"
+        ]
+      },
+      "schemas": {
+        "description": "Pydantic models for validation",
+        "files": [
+          "trade_schemas.py",
+          "portfolio_schemas.py",
+          "order_schemas.py"
+        ]
+      },
+      "services": {
+        "description": "External integrations",
+        "files": [
+          "exchange_service.py",
+          "market_data_service.py",
+          "notification_service.py"
+        ]
+      },
+      "ui": {
+        "components": {
+          "description": "Reusable Streamlit components",
+          "files": [
+            "trading_chart.py",
+            "order_form.py",
+            "portfolio_view.py"
+          ]
+        },
+        "pages": {
+          "description": "Streamlit pages",
+          "files": [
+            "dashboard.py",
+            "portfolio.py",
+            "settings.py",
+            "analytics.py"
+          ]
+        },
+        "utils": {
+          "description": "UI utilities",
+          "files": [
+            "chart_utils.py",
+            "theme.py",
+            "formatters.py"
+          ]
+        }
+      }
+    },
+    "tests": {
+      "description": "Test suites",
+      "directories": [
+        "unit",
+        "integration",
+        "e2e"
+      ]
+    },
+    "config": {
+      "description": "Configuration files",
+      "files": [
+        "settings.py",
+        "logging.yaml",
+        "exchanges.json"
+      ]
+    }
+  },
+  "key_features": [
+    "Multi-agent trading strategy coordination",
+    "Real-time market data processing",
+    "Risk management and position sizing",
+    "Portfolio optimization",
+    "Interactive trading dashboard",
+    "Historical performance analytics",
+    "AI-powered market analysis",
+    "Automated trade execution"
+  ],
+  "dependencies": {
+    "core": [
+      "fastapi>=0.68.0",
+      "pydantic>=2.0.0",
+      "sqlalchemy>=2.0.0",
+      "asyncpg>=0.27.0",
+      "pandas>=2.0.0",
+      "numpy>=1.23.0",
+      "ccxt>=3.0.0",
+      "streamlit>=1.24.0",
+      "streamlit-elements>=0.1.0",
+      "plotly>=5.13.0",
+      "redis>=4.5.0"
+    ],
+    "dev": [
+      "pytest>=7.0.0",
+      "pytest-asyncio>=0.21.0",
+      "pytest-cov>=4.0.0",
+      "black>=23.0.0",
+      "isort>=5.12.0",
+      "mypy>=1.0.0"
+    ]
+  }
+} 

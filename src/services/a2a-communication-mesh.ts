@@ -600,6 +600,32 @@ Respond with JSON:
     return Array.from(this.activeCollaborations.values());
   }
 
+  /**
+   * Enable learning mode for the mesh
+   */
+  public enableLearning(): void {
+    log.info('🎓 Learning mode enabled for A2A mesh', LogContext.AI);
+    // Learning is implicitly enabled through message history and collaboration tracking
+  }
+
+  /**
+   * Apply learnings from collaboration sessions
+   */
+  public applyLearnings(insights: Record<string, any>): void {
+    log.info('📚 Applying learning insights to a2a_mesh', LogContext.AI, {
+      insightCount: Object.keys(insights).length
+    });
+    
+    // Update trust levels based on successful collaborations
+    for (const [agentName, connection] of this.agents.entries()) {
+      if (insights[agentName]) {
+        const performance = insights[agentName].performance || 0;
+        connection.trustLevel = Math.min(1.0, connection.trustLevel + (performance * 0.1));
+        connection.collaborationScore += performance;
+      }
+    }
+  }
+
   public async shutdown(): Promise<void> {
     log.info('🛑 Shutting down A2A communication mesh', LogContext.AI);
 

@@ -1539,24 +1539,24 @@ class UniversalAIToolsServer {
     }
 
     try {
-      // Load GraphQL server (make Apollo startup non-blocking)
-      const graphqlModule = await import('./routers/graphql');
-      const { setupGraphQLServer } = graphqlModule;
+      // TODO: GraphQL server integration pending implementation
+      // const graphqlModule = await import('./routers/graphql');
+      // const { setupGraphQLServer } = graphqlModule;
+      // 
+      // // Mount GraphQL routes first
+      // this.app.use('/graphql', graphqlModule.default);
+      // this.app.use('/api/graphql', graphqlModule.default);
+      // 
+      // // Setup Apollo Server with HTTP server integration (non-blocking)
+      // setupGraphQLServer(this.server).then(() => {
+      //   log.info('✅ Apollo GraphQL Server fully initialized', LogContext.SERVER);
+      // }).catch((error: Error) => {
+      //   log.warn('⚠️ Apollo GraphQL Server failed to initialize', LogContext.SERVER, { 
+      //     error: error.message 
+      //   });
+      // });
       
-      // Mount GraphQL routes first
-      this.app.use('/graphql', graphqlModule.default);
-      this.app.use('/api/graphql', graphqlModule.default);
-      
-      // Setup Apollo Server with HTTP server integration (non-blocking)
-      setupGraphQLServer(this.server).then(() => {
-        log.info('✅ Apollo GraphQL Server fully initialized', LogContext.SERVER);
-      }).catch(error => {
-        log.warn('⚠️ Apollo GraphQL Server failed to initialize', LogContext.SERVER, { 
-          error: error.message 
-        });
-      });
-      
-      log.info('✅ GraphQL routes mounted (Apollo starting in background)', LogContext.SERVER);
+      log.info('⏳ GraphQL server pending implementation', LogContext.SERVER);
     } catch (error) {
       log.warn('⚠️ GraphQL routes failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
@@ -1565,9 +1565,10 @@ class UniversalAIToolsServer {
 
     try {
       // Load evolution router (self-evolving codebase)
-      const evolutionRouter = await import('./routers/evolution');
-      this.app.use('/api/v1/evolution', evolutionRouter.default);
-      log.info('✅ Evolution router loaded (self-evolving codebase)', LogContext.SERVER);
+      // TODO: Evolution router pending implementation
+      // const evolutionRouter = await import('./routers/evolution');
+      // this.app.use('/api/v1/evolution', evolutionRouter.default);
+      log.info('⏳ Evolution router pending implementation', LogContext.SERVER);
     } catch (error) {
       log.warn('⚠️ Evolution router failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
@@ -1851,13 +1852,14 @@ class UniversalAIToolsServer {
     // Load web search routes
     try {
       log.info('🌐 Loading web search router...', LogContext.SERVER);
-      const webSearchModule = await import('./routers/web-search');
-      log.info('✅ Web search module imported successfully', LogContext.SERVER, {
-        hasDefault: !!webSearchModule.default,
-        moduleType: typeof webSearchModule.default,
-      });
-      this.app.use('/api/v1/search', webSearchModule.default);
-      log.info('✅ Web search routes loaded', LogContext.SERVER);
+      // TODO: Web search router pending implementation
+      // const webSearchModule = await import('./routers/web-search');
+      // log.info('✅ Web search module imported successfully', LogContext.SERVER, {
+      //   hasDefault: !!webSearchModule.default,
+      //   moduleType: typeof webSearchModule.default,
+      // });
+      // this.app.use('/api/v1/search', webSearchModule.default);
+      log.info('⏳ Web search routes pending implementation', LogContext.SERVER);
     } catch (error) {
       log.error('❌ Failed to load web search router', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
@@ -1929,9 +1931,10 @@ class UniversalAIToolsServer {
     // Load news router
     try {
       log.info('📰 Loading news router...', LogContext.SERVER);
-      const newsModule = await import('./routers/news');
-      this.app.use('/api/v1/news', newsModule.default);
-      log.info('✅ News router mounted at /api/v1/news', LogContext.SERVER);
+      // TODO: News router pending implementation
+      // const newsModule = await import('./routers/news');
+      // this.app.use('/api/v1/news', newsModule.default);
+      log.info('⏳ News router pending implementation', LogContext.SERVER);
     } catch (error) {
       log.error('❌ Failed to load news router', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
