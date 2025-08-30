@@ -13,17 +13,17 @@ export const validateChatMessage = [
     .isLength({ max: 10000 })
     .withMessage('Message too long (max 10000 characters)'),
   body('conversationId').optional().isString().trim(),
-  body('sessionId').optional().isString().trim(),
+  body('sessionId').optional().isString().trim()
 ];
 
 export const validateAgentExecution = [
   body('task').notEmpty().withMessage('Task is required'),
   body('task.type').isString().notEmpty().withMessage('Task type is required'),
-  body('task.params').optional().isObject().withMessage('Task params must be an object'),
+  body('task.params').optional().isObject().withMessage('Task params must be an object')
 ];
 
 export const validateImageUpload = [
-  body('image').optional().isString().withMessage('Image must be a base64 string'),
+  body('image').optional().isString().withMessage('Image must be a base64 string')
 ];
 
 export const validateMLXFineTune = [
@@ -37,7 +37,7 @@ export const validateMLXFineTune = [
   body('parameters.learningRate')
     .optional()
     .isFloat({ min: 0.00001, max: 0.1 })
-    .withMessage('Learning rate must be between 0.00001 and 0.1'),
+    .withMessage('Learning rate must be between 0.00001 and 0.1')
 ];
 
 // Validation middleware
@@ -51,7 +51,7 @@ export const handleValidationErrors = (
   if (!errors.isEmpty()) {
     log.warn('Validation errors', LogContext.API, {
       path: req.path,
-      errors: errors.array(),
+      errors: errors.array()
     });
 
     return res.status(400).json({
@@ -59,8 +59,8 @@ export const handleValidationErrors = (
       error: 'Validation failed',
       details: errors.array().map((err) => ({
         field: (err as any).param,
-        message: err.msg,
-      })),
+        message: err.msg
+      }))
     });
   }
 
@@ -76,7 +76,7 @@ export const validateContentType = (expectedType: string) => {
       if (!contentType || !contentType.includes(expectedType)) {
         return res.status(400).json({
           success: false,
-          error: `Content-Type must be ${expectedType}`,
+          error: `Content-Type must be ${expectedType}`
         });
       }
     }
@@ -97,7 +97,7 @@ export const validateAPIKey = (
   if (!apiKey) {
     return res.status(401).json({
       success: false,
-      error: 'API key is required',
+      error: 'API key is required'
     });
   }
 
@@ -109,12 +109,12 @@ export const validateAPIKey = (
       log.warn('Invalid API key attempt', LogContext.SECURITY, {
         apiKey: `${apiKey.substring(0, 8)}...`,
         aiService,
-        ip: req.ip,
+        ip: req.ip
       });
 
       return res.status(401).json({
         success: false,
-        error: 'Invalid API key',
+        error: 'Invalid API key'
       });
     }
   }
@@ -135,7 +135,7 @@ export const limitRequestSize = (maxSizeMB = 10) => {
     if (contentLength > maxSize) {
       return res.status(413).json({
         success: false,
-        error: `Request too large. Maximum size is ${maxSizeMB}MB`,
+        error: `Request too large. Maximum size is ${maxSizeMB}MB`
       });
     }
 
