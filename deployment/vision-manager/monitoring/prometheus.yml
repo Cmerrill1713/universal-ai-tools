@@ -1,0 +1,178 @@
+# Prometheus configuration for Vision Resource Manager monitoring
+# Comprehensive metrics collection for performance analysis and alerting
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'universal-ai-tools'
+    service: 'vision-resource-manager'
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Load alerting rules
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Rust Vision Manager backend
+  - job_name: 'vision-manager-rust'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['vision-manager-rust:3001']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'rust-backend'
+      - target_label: backend_type
+        replacement: 'rust'
+      - target_label: service
+        replacement: 'vision-resource-manager'
+
+  # TypeScript Vision Manager backend
+  - job_name: 'vision-manager-typescript'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['vision-manager-typescript:3002']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'typescript-backend'
+      - target_label: backend_type
+        replacement: 'typescript'
+      - target_label: service
+        replacement: 'vision-resource-manager'
+
+  # Nginx load balancer metrics
+  - job_name: 'nginx-proxy'
+    scrape_interval: 15s
+    metrics_path: /nginx_status
+    static_configs:
+      - targets: ['vision-proxy:80']
+    relabel_configs:
+      - target_label: component
+        replacement: 'load-balancer'
+
+  # System metrics (cAdvisor for container metrics)
+  - job_name: 'cadvisor'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['cadvisor:8080']
+    relabel_configs:
+      - target_label: component
+        replacement: 'system-metrics'
+
+  # Node exporter for host metrics
+  - job_name: 'node-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - target_label: component
+        replacement: 'host-metrics'
+
+  # Custom application metrics
+  - job_name: 'vision-app-metrics'
+    scrape_interval: 5s  # High frequency for performance analysis
+    metrics_path: /api/v1/vision/metrics
+    static_configs:
+      - targets: ['vision-proxy:80']
+    relabel_configs:
+      - target_label: component
+        replacement: 'application-metrics'
+
+  # Performance comparison endpoint
+  - job_name: 'performance-comparison'
+    scrape_interval: 60s  # Less frequent, heavy operation
+    metrics_path: /performance-comparison/metrics
+    static_configs:
+      - targets: ['vision-proxy:80']
+    relabel_configs:
+      - target_label: component
+        replacement: 'performance-analysis'
+
+  # GPU metrics (if available)
+  - job_name: 'gpu-metrics'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['nvidia-smi-exporter:9835']  # If nvidia-smi exporter is available
+    relabel_configs:
+      - target_label: component
+        replacement: 'gpu-monitoring'
+
+# Recording rules for performance analysis
+recording_rules:
+  # Task execution time percentiles
+  - name: vision_manager_performance
+    rules:
+      - record: vision_manager:task_duration_seconds:rate5m
+        expr: rate(vision_manager_task_duration_seconds_sum[5m]) / rate(vision_manager_task_duration_seconds_count[5m])
+      
+      - record: vision_manager:task_duration_seconds:p50
+        expr: histogram_quantile(0.5, rate(vision_manager_task_duration_seconds_bucket[5m]))
+      
+      - record: vision_manager:task_duration_seconds:p95
+        expr: histogram_quantile(0.95, rate(vision_manager_task_duration_seconds_bucket[5m]))
+      
+      - record: vision_manager:task_duration_seconds:p99
+        expr: histogram_quantile(0.99, rate(vision_manager_task_duration_seconds_bucket[5m]))
+
+  # Backend comparison metrics
+  - name: backend_comparison
+    rules:
+      - record: vision_manager:rust_vs_typescript_speedup
+        expr: |
+          (
+            avg(vision_manager:task_duration_seconds:rate5m{backend_type="typescript"})
+            /
+            avg(vision_manager:task_duration_seconds:rate5m{backend_type="rust"})
+          )
+      
+      - record: vision_manager:throughput_per_backend
+        expr: sum(rate(vision_manager_tasks_total[5m])) by (backend_type)
+      
+      - record: vision_manager:error_rate_per_backend
+        expr: |
+          (
+            sum(rate(vision_manager_tasks_total{status="failed"}[5m])) by (backend_type)
+            /
+            sum(rate(vision_manager_tasks_total[5m])) by (backend_type)
+          ) * 100
+
+  # Resource utilization
+  - name: resource_utilization
+    rules:
+      - record: vision_manager:vram_utilization_percent
+        expr: (vision_manager_vram_used_gb / vision_manager_vram_total_gb) * 100
+      
+      - record: vision_manager:memory_utilization_percent
+        expr: |
+          (
+            (container_memory_usage_bytes{name=~"vision-manager-.*"} / container_spec_memory_limit_bytes{name=~"vision-manager-.*"}) * 100
+          )
+      
+      - record: vision_manager:cpu_utilization_percent
+        expr: |
+          rate(container_cpu_usage_seconds_total{name=~"vision-manager-.*"}[5m]) * 100
+
+  # Model-specific metrics
+  - name: model_performance
+    rules:
+      - record: vision_manager:model_load_time_seconds:avg
+        expr: avg(vision_manager_model_load_duration_seconds) by (model_name, backend_type)
+      
+      - record: vision_manager:model_execution_time_seconds:avg
+        expr: avg(vision_manager_task_duration_seconds) by (model_name, backend_type)
+      
+      - record: vision_manager:models_loaded_count
+        expr: sum(vision_manager_models_loaded) by (backend_type)

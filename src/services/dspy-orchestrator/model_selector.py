@@ -378,7 +378,7 @@ class ModelSelector:
                     if "Remote" in provider:
                         base_url = os.environ.get("REMOTE_LLM_URL", "http://192.168.1.179:5901")
                     else:
-                        base_url = os.environ.get("LM_STUDIO_URL", "http://localhost:1234")
+                        base_url = os.environ.get("LM_STUDIO_URL", "http://localhost:5901")
 
                     lm = dspy.LM(
                         f"openai/{model_name}",

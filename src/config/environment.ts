@@ -36,6 +36,7 @@ export const config: ServiceConfig = {
     openaiApiKey: process.env.OPENAI_API_KEY,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
+    lmStudioUrl: process.env.LM_STUDIO_URL || 'http://localhost:5901',
   },
 
   vision: {

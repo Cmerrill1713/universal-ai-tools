@@ -1,0 +1,275 @@
+# Prometheus alerting rules for Vision Resource Manager
+# Comprehensive monitoring and alerting for production deployment
+
+groups:
+  # Performance Degradation Alerts
+  - name: performance_degradation
+    interval: 30s
+    rules:
+      - alert: HighTaskExecutionTime
+        expr: vision_manager:task_duration_seconds:p95 > 5.0
+        for: 2m
+        labels:
+          severity: warning
+          component: vision-manager
+        annotations:
+          summary: "Vision Manager task execution time is high"
+          description: "95th percentile task execution time is {{ $value }}s, which is above the 5s threshold"
+          
+      - alert: CriticalTaskExecutionTime
+        expr: vision_manager:task_duration_seconds:p95 > 10.0
+        for: 1m
+        labels:
+          severity: critical
+          component: vision-manager
+        annotations:
+          summary: "Vision Manager task execution time is critically high"
+          description: "95th percentile task execution time is {{ $value }}s, which is above the 10s critical threshold"
+
+      - alert: RustBackendSlowerThanExpected
+        expr: vision_manager:task_duration_seconds:rate5m{backend_type="rust"} > vision_manager:task_duration_seconds:rate5m{backend_type="typescript"} * 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: rust-backend
+        annotations:
+          summary: "Rust backend is not performing as expected"
+          description: "Rust backend average execution time ({{ $value }}s) is not significantly faster than TypeScript backend"
+
+  # Error Rate Alerts
+  - name: error_rates
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: vision_manager:error_rate_per_backend > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: vision-manager
+        annotations:
+          summary: "High error rate in Vision Manager"
+          description: "{{ $labels.backend_type }} backend error rate is {{ $value }}%, which is above 5%"
+          
+      - alert: CriticalErrorRate
+        expr: vision_manager:error_rate_per_backend > 15
+        for: 1m
+        labels:
+          severity: critical
+          component: vision-manager
+        annotations:
+          summary: "Critical error rate in Vision Manager"
+          description: "{{ $labels.backend_type }} backend error rate is {{ $value }}%, which is above 15%"
+
+      - alert: BackendTotalFailure
+        expr: up{job=~"vision-manager-.*"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: vision-manager
+        annotations:
+          summary: "Vision Manager backend is down"
+          description: "{{ $labels.job }} is completely unavailable"
+
+  # Resource Utilization Alerts
+  - name: resource_utilization
+    interval: 30s
+    rules:
+      - alert: HighVRAMUsage
+        expr: vision_manager:vram_utilization_percent > 90
+        for: 2m
+        labels:
+          severity: warning
+          component: gpu-resources
+        annotations:
+          summary: "High VRAM utilization"
+          description: "VRAM utilization is {{ $value }}%, which is above 90%"
+          
+      - alert: CriticalVRAMUsage
+        expr: vision_manager:vram_utilization_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+          component: gpu-resources
+        annotations:
+          summary: "Critical VRAM utilization"
+          description: "VRAM utilization is {{ $value }}%, which is above 95%"
+
+      - alert: HighMemoryUsage
+        expr: vision_manager:memory_utilization_percent > 85
+        for: 3m
+        labels:
+          severity: warning
+          component: system-resources
+        annotations:
+          summary: "High memory utilization in Vision Manager"
+          description: "{{ $labels.name }} memory utilization is {{ $value }}%"
+
+      - alert: HighCPUUsage
+        expr: vision_manager:cpu_utilization_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system-resources
+        annotations:
+          summary: "High CPU utilization in Vision Manager"
+          description: "{{ $labels.name }} CPU utilization is {{ $value }}%"
+
+  # Throughput and Capacity Alerts
+  - name: throughput_capacity
+    interval: 30s
+    rules:
+      - alert: LowThroughput
+        expr: sum(vision_manager:throughput_per_backend) < 1.0
+        for: 3m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Low Vision Manager throughput"
+          description: "Total throughput is {{ $value }} tasks/second, which is below expected levels"
+
+      - alert: ThroughputDrop
+        expr: |
+          (
+            sum(vision_manager:throughput_per_backend) 
+            / 
+            sum(vision_manager:throughput_per_backend offset 10m)
+          ) < 0.7
+        for: 2m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Significant throughput drop"
+          description: "Throughput has dropped by {{ (1 - $value) * 100 }}% compared to 10 minutes ago"
+
+      - alert: BackendImbalance
+        expr: |
+          abs(
+            sum(vision_manager:throughput_per_backend{backend_type="rust"}) 
+            - 
+            sum(vision_manager:throughput_per_backend{backend_type="typescript"}) * 4
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: info
+          component: load-balancing
+        annotations:
+          summary: "Load balancing may be suboptimal"
+          description: "Rust backend should handle ~4x more requests than TypeScript for optimal performance"
+
+  # Model Loading Alerts
+  - name: model_loading
+    interval: 30s
+    rules:
+      - alert: SlowModelLoading
+        expr: vision_manager:model_load_time_seconds:avg > 30
+        for: 1m
+        labels:
+          severity: warning
+          component: model-management
+        annotations:
+          summary: "Slow model loading detected"
+          description: "{{ $labels.model_name }} on {{ $labels.backend_type }} backend is taking {{ $value }}s to load"
+
+      - alert: ModelLoadingFailures
+        expr: increase(vision_manager_model_load_failures_total[5m]) > 3
+        for: 1m
+        labels:
+          severity: warning
+          component: model-management
+        annotations:
+          summary: "Multiple model loading failures"
+          description: "{{ $value }} model loading failures in the last 5 minutes"
+
+      - alert: NoModelsLoaded
+        expr: vision_manager:models_loaded_count == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: model-management
+        annotations:
+          summary: "No models are loaded"
+          description: "{{ $labels.backend_type }} backend has no models loaded"
+
+  # Network and Connectivity Alerts
+  - name: network_connectivity
+    interval: 30s
+    rules:
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(nginx_http_request_duration_seconds_bucket[5m])) > 2.0
+        for: 2m
+        labels:
+          severity: warning
+          component: network
+        annotations:
+          summary: "High HTTP response time"
+          description: "95th percentile HTTP response time is {{ $value }}s"
+
+      - alert: LoadBalancerDown
+        expr: up{job="nginx-proxy"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: load-balancer
+        annotations:
+          summary: "Load balancer is down"
+          description: "Nginx proxy is not responding"
+
+  # Deployment and Migration Alerts
+  - name: deployment_migration
+    interval: 60s
+    rules:
+      - alert: MigrationProgressStalled
+        expr: |
+          (
+            sum(rate(nginx_http_requests_total{upstream=~".*rust.*"}[5m])) 
+            / 
+            sum(rate(nginx_http_requests_total[5m]))
+          ) * 100 < 5 and ignoring() ON() hour() > 9 and ignoring() ON() hour() < 17
+        for: 10m
+        labels:
+          severity: info
+          component: migration
+        annotations:
+          summary: "Migration to Rust backend may be stalled"
+          description: "Rust backend is handling only {{ $value }}% of traffic during business hours"
+
+      - alert: UnexpectedRustBackendTraffic
+        expr: |
+          (
+            sum(rate(nginx_http_requests_total{upstream=~".*rust.*"}[5m])) 
+            / 
+            sum(rate(nginx_http_requests_total[5m]))
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: info
+          component: migration
+        annotations:
+          summary: "High traffic to Rust backend"
+          description: "Rust backend is handling {{ $value }}% of traffic - migration may be nearly complete"
+
+  # Custom Performance Alerts
+  - name: performance_comparison
+    interval: 60s
+    rules:
+      - alert: RustPerformanceRegression
+        expr: vision_manager:rust_vs_typescript_speedup < 1.5
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Rust backend performance regression"
+          description: "Rust backend is only {{ $value }}x faster than TypeScript, expected >1.5x"
+
+      - alert: ExceptionalRustPerformance
+        expr: vision_manager:rust_vs_typescript_speedup > 5.0
+        for: 2m
+        labels:
+          severity: info
+          component: performance
+        annotations:
+          summary: "Exceptional Rust backend performance"
+          description: "Rust backend is {{ $value }}x faster than TypeScript - consider increasing traffic allocation"

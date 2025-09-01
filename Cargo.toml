@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/voice-processing",
+    "crates/vision-resource-manager", 
+    "crates/redis-service",
+    "crates/llm-router",
+    "rust-services/ml-inference-service",
+    "rust-services/ab-mcts-service",
+    "rust-services/parameter-analytics-service",
+    "rust-services/multimodal-fusion-service",
+    "rust-services/intelligent-parameter-service"
+]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true

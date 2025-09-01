@@ -20,6 +20,11 @@ export interface PortConfig {
   mlxBridge: number;
   pyVisionBridge: number;
 
+  // WebSocket services
+  browserScrapingBridge: number;
+  deviceAuthWebSocket: number;
+  athenaWebSocket: number;
+
   // Infrastructure
   redis: number;
   prometheus: number;
@@ -48,6 +53,11 @@ const DEFAULT_PORTS: PortConfig = {
   dspyOrchestrator: parseInt(process.env.DSPY_PORT || '8001', 10),
   mlxBridge: parseInt(process.env.MLX_BRIDGE_PORT || '8002', 10),
   pyVisionBridge: parseInt(process.env.PYVISION_PORT || '8003', 10),
+
+  // WebSocket services
+  browserScrapingBridge: parseInt(process.env.BROWSER_SCRAPING_WS_PORT || '9998', 10),
+  deviceAuthWebSocket: parseInt(process.env.DEVICE_AUTH_WS_PORT || '8080', 10),
+  athenaWebSocket: parseInt(process.env.ATHENA_WS_PORT || '9997', 10),
 
   // Infrastructure
   redis: parseInt(process.env.REDIS_PORT || '6379', 10),
@@ -146,6 +156,11 @@ export function getServiceUrls(ports: PortConfig) {
     mlxBridge: `http://${host}:${ports.mlxBridge}`,
     pyVisionBridge: `http://${host}:${ports.pyVisionBridge}`,
 
+    // WebSocket services
+    browserScrapingBridge: `ws://${host}:${ports.browserScrapingBridge}`,
+    deviceAuthWebSocket: `ws://${host}:${ports.deviceAuthWebSocket}`,
+    athenaWebSocket: `ws://${host}:${ports.athenaWebSocket}`,
+
     // Infrastructure
     redis: `redis://${host}:${ports.redis}`,
     prometheus: `http://${host}:${ports.prometheus}`,
@@ -176,6 +191,11 @@ export function logPortConfiguration(ports: PortConfig): void {
       dspy: ports.dspyOrchestrator,
       mlx: ports.mlxBridge,
       pyVision: ports.pyVisionBridge,
+    },
+    webSocketServices: {
+      browserScraping: ports.browserScrapingBridge,
+      deviceAuth: ports.deviceAuthWebSocket,
+      athena: ports.athenaWebSocket,
     },
     infrastructure: {
       redis: ports.redis,

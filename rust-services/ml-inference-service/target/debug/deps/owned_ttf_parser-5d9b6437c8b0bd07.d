@@ -1,0 +1,8 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/rust-services/ml-inference-service/target/debug/deps/libowned_ttf_parser-5d9b6437c8b0bd07.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/convert.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/owned.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/preparse.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/rust-services/ml-inference-service/target/debug/deps/owned_ttf_parser-5d9b6437c8b0bd07.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/convert.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/owned.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/preparse.rs
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/convert.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/owned.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/owned_ttf_parser-0.15.2/src/preparse.rs:

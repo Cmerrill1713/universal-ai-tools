@@ -1,0 +1,699 @@
+{
+  "timestamp": "2025-08-31T17:23:01.327Z",
+  "systemInfo": {
+    "timestamp": "2025-08-31T17:23:01.344Z",
+    "status": "operational",
+    "uptime": 143.532269917,
+    "system": {
+      "cpu": {
+        "cores": 24,
+        "model": "Apple M2 Ultra",
+        "usage": [
+          7.1435546875,
+          8.1298828125,
+          8.40966796875
+        ],
+        "uptime": 795488
+      },
+      "memory": {
+        "total": 68719476736,
+        "used": 61225582592,
+        "free": 7493894144,
+        "percentUsed": "89.09%"
+      },
+      "platform": {
+        "type": "darwin",
+        "release": "24.6.0",
+        "arch": "arm64",
+        "hostname": "Christians-Mac-Studio.local"
+      }
+    },
+    "circuitBreakers": {
+      "lfm2-bridge": {
+        "totalRequests": 4,
+        "failedRequests": 0,
+        "successfulRequests": 4,
+        "rejectedRequests": 0,
+        "state": "CLOSED",
+        "errorRate": 0,
+        "consecutiveFailures": 0,
+        "lastSuccessTime": 1756660958507,
+        "rollingWindowMetrics": {
+          "windowSize": 60000,
+          "requestsInWindow": 2,
+          "errorsInWindow": 0
+        }
+      }
+    },
+    "models": {
+      "lfm2": {
+        "available": true,
+        "metrics": {
+          "avgResponseTime": 100,
+          "totalRequests": 0,
+          "successRate": 1,
+          "tokenThroughput": 500
+        }
+      },
+      "ollama": {
+        "available": true,
+        "models": [
+          "snowflake-arctic-embed2:latest",
+          "bge-m3:latest",
+          "gemma3:1b",
+          "gpt-oss:20b",
+          "llama3.2:3b",
+          "gpt-oss:latest",
+          "llama3.1:8b",
+          "nomic-embed-text:latest",
+          "all-minilm:latest",
+          "gemma3n:e2b",
+          "gemma:2b",
+          "devstral:24b",
+          "deepseek-r1:14b",
+          "mxbai-embed-large:latest",
+          "qwen2.5:7b",
+          "llava:7b-v1.6-mistral-q4_0",
+          "all-minilm:l6-v2",
+          "phi:2.7b-chat-v2-q4_0",
+          "nous-hermes:13b-llama2-q4_K_M"
+        ]
+      }
+    },
+    "performance": {
+      "memoryUsage": {
+        "rss": 214827008,
+        "heapTotal": 61390848,
+        "heapUsed": 57806400,
+        "external": 6514313,
+        "arrayBuffers": 386634
+      },
+      "responseTime": 8
+    }
+  },
+  "healthCheck": {
+    "success": true,
+    "status": "healthy",
+    "timestamp": "2025-08-31T17:23:01.340Z",
+    "uptime": 143.52840775,
+    "version": "1.0.0"
+  },
+  "agentSystem": {
+    "registry": {
+      "success": true,
+      "data": {
+        "total": 5,
+        "loaded": 1,
+        "agents": [
+          {
+            "name": "planner",
+            "description": "Strategic task planning and decomposition with memory integration",
+            "category": "core",
+            "priority": 1,
+            "capabilities": [
+              "planning",
+              "task_decomposition",
+              "strategy"
+            ],
+            "memoryEnabled": true,
+            "maxLatencyMs": 10000,
+            "loaded": true
+          },
+          {
+            "name": "synthesizer",
+            "description": "Advanced information synthesis and consensus building",
+            "category": "cognitive",
+            "priority": 2,
+            "capabilities": [
+              "synthesis",
+              "consensus",
+              "analysis"
+            ],
+            "memoryEnabled": true,
+            "maxLatencyMs": 8000,
+            "loaded": false
+          },
+          {
+            "name": "retriever",
+            "description": "Intelligent information retrieval and context gathering",
+            "category": "cognitive",
+            "priority": 2,
+            "capabilities": [
+              "information_retrieval",
+              "context_gathering",
+              "search"
+            ],
+            "memoryEnabled": true,
+            "maxLatencyMs": 5000,
+            "loaded": false
+          },
+          {
+            "name": "personal_assistant",
+            "description": "High-level personal AI assistant with vector memory",
+            "category": "personal",
+            "priority": 1,
+            "capabilities": [
+              "assistance",
+              "coordination",
+              "task_management"
+            ],
+            "memoryEnabled": true,
+            "maxLatencyMs": 8000,
+            "loaded": false
+          },
+          {
+            "name": "code_assistant",
+            "description": "Advanced code generation, analysis, and refactoring",
+            "category": "specialized",
+            "priority": 3,
+            "capabilities": [
+              "code_generation",
+              "code_analysis",
+              "refactoring"
+            ],
+            "memoryEnabled": true,
+            "maxLatencyMs": 15000,
+            "loaded": false
+          }
+        ]
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:01.354Z",
+        "requestId": "unknown"
+      }
+    },
+    "execution": {
+      "success": true,
+      "data": {
+        "success": true,
+        "data": {
+          "plan": {
+            "title": "Universal AI Tools System Functionality Test Plan",
+            "overview": "This plan outlines the steps to validate the Universal AI Tools system functionality in the specified working directory.",
+            "phases": [
+              {
+                "name": "Pre-Test Setup",
+                "duration": "30 minutes",
+                "tasks": [
+                  {
+                    "id": "TST-001",
+                    "title": "Navigate to working directory",
+                    "description": "Change into the /Users/christianmerrill/Desktop/universal-ai-tools directory.",
+                    "dependencies": [],
+                    "resources": [
+                      "terminal"
+                    ],
+                    "priority": "high",
+                    "estimatedHours": 0.5
+                  },
+                  {
+                    "id": "TST-002",
+                    "title": "Review project context and requirements",
+                    "description": "Understand the specific functionality to be tested.",
+                    "dependencies": [],
+                    "resources": [
+                      "project documentation"
+                    ],
+                    "priority": "high",
+                    "estimatedHours": 0.5
+                  }
+                ]
+              },
+              {
+                "name": "System Functionality Testing",
+                "duration": "2 hours",
+                "tasks": [
+                  {
+                    "id": "TST-003",
+                    "title": "Test AI model training and deployment",
+                    "description": "Verify the system can train and deploy AI models correctly.",
+                    "dependencies": [
+                      "TST-001",
+                      "TST-002"
+                    ],
+                    "resources": [
+                      "Universal AI Tools system, AI model datasets"
+                    ],
+                    "priority": "high",
+                    "estimatedHours": 1
+                  },
+                  {
+                    "id": "TST-004",
+                    "title": "Test data integration and processing",
+                    "description": "Verify the system can integrate and process data correctly.",
+                    "dependencies": [
+                      "TST-001",
+                      "TST-002"
+                    ],
+                    "resources": [
+                      "Universal AI Tools system, data sets"
+                    ],
+                    "priority": "medium",
+                    "estimatedHours": 0.5
+                  },
+                  {
+                    "id": "TST-005",
+                    "title": "Test user interface and experience",
+                    "description": "Verify the system provides a user-friendly interface.",
+                    "dependencies": [
+                      "TST-001",
+                      "TST-002"
+                    ],
+                    "resources": [
+                      "Universal AI Tools system, user accounts"
+                    ],
+                    "priority": "medium",
+                    "estimatedHours": 0.5
+                  }
+                ]
+              },
+              {
+                "name": "Post-Test Review and Analysis",
+                "duration": "30 minutes",
+                "tasks": [
+                  {
+                    "id": "TST-006",
+                    "title": "Review test results and identify issues",
+                    "description": "Analyze the test results to identify any system functionality issues.",
+                    "dependencies": [
+                      "TST-003",
+                      "TST-004",
+                      "TST-005"
+                    ],
+                    "resources": [
+                      "test results, Universal AI Tools system documentation"
+                    ],
+                    "priority": "high",
+                    "estimatedHours": 0.5
+                  },
+                  {
+                    "id": "TST-007",
+                    "title": "Document test findings and recommendations",
+                    "description": "Document the test findings and provide recommendations for improvement.",
+                    "dependencies": [
+                      "TST-006"
+                    ],
+                    "resources": [
+                      "test results, Universal AI Tools system documentation"
+                    ],
+                    "priority": "high",
+                    "estimatedHours": 0.25
+                  }
+                ]
+              }
+            ],
+            "risks": [
+              {
+                "description": "Insufficient testing resources or time",
+                "probability": "medium",
+                "impact": "high",
+                "mitigation": "Prioritize critical functionality and allocate additional resources if necessary"
+              },
+              {
+                "description": "System crashes or data loss during testing",
+                "probability": "low",
+                "impact": "high",
+                "mitigation": "Regularly backup system data and have a recovery plan in place"
+              }
+            ],
+            "success_criteria": [
+              "All critical functionality is tested and validated",
+              "No major issues are identified with the system functionality"
+            ]
+          },
+          "reasoning": "This test plan focuses on validating the Universal AI Tools system functionality by testing its core components, including AI model training and deployment, data integration and processing, and user interface. The plan assumes a 2-hour testing period, with additional time allocated for review and analysis.",
+          "confidence": 0.85,
+          "next_steps": [
+            "Navigate to the working directory /Users/christianmerrill/Desktop/universal-ai-tools",
+            "Review project context and requirements"
+          ]
+        },
+        "confidence": 1,
+        "message": "Response generated by planner",
+        "reasoning": "This test plan focuses on validating the Universal AI Tools system functionality by testing its core components, including AI model training and deployment, data integration and processing, and user interface. The plan assumes a 2-hour testing period, with additional time allocated for review and analysis.",
+        "metadata": {
+          "agentName": "planner",
+          "timestamp": "2025-08-31T17:23:20.519Z",
+          "executionTime": 19163,
+          "model": "llama3.1:8b",
+          "provider": "ollama",
+          "tokens": {
+            "prompt_tokens": 1472,
+            "completion_tokens": 967,
+            "total_tokens": 2439
+          }
+        }
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:20.519Z",
+        "requestId": "req_1756660981356",
+        "agentName": "planner"
+      }
+    }
+  },
+  "memorySystem": {
+    "storage": {
+      "success": true,
+      "data": {
+        "id": "43767d87-f3b4-49d8-b748-40a6d4a4d96d",
+        "message": "Memory created successfully",
+        "validationReport": {
+          "passed": true,
+          "violations": [
+            {
+              "ruleId": "knowledge_needs_verification",
+              "severity": "info",
+              "message": "Knowledge memory lacks verification status",
+              "suggestions": [
+                "Add verification status",
+                "Cross-check facts with reliable sources",
+                "Use AI verification system"
+              ],
+              "canAutoFix": false
+            },
+            {
+              "ruleId": "research_source_credibility",
+              "severity": "warning",
+              "message": "Questionable source credibility: functional_test",
+              "suggestions": [
+                "Verify information with additional sources",
+                "Add source credibility assessment",
+                "Include publication date and author"
+              ],
+              "canAutoFix": false
+            },
+            {
+              "ruleId": "embedding_efficiency",
+              "severity": "info",
+              "message": "No vector embedding - search performance may be limited",
+              "suggestions": [
+                "Generate vector embedding for content",
+                "Enable semantic search capabilities"
+              ],
+              "canAutoFix": false
+            }
+          ],
+          "autoFixed": false
+        }
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:20.523Z",
+        "requestId": "9053733e-b3f7-4e4f-b6b0-0bc424974416"
+      }
+    },
+    "testMemoryId": "43767d87-f3b4-49d8-b748-40a6d4a4d96d",
+    "retrieval": {
+      "success": true,
+      "data": {
+        "memories": [
+          {
+            "id": "43767d87-f3b4-49d8-b748-40a6d4a4d96d",
+            "content": "Functional test memory entry - This is a comprehensive test of the Universal AI Tools memory system with advanced validation and storage capabilities.",
+            "type": "knowledge",
+            "metadata": {
+              "source": "functional_test",
+              "testId": "test_1756661000520",
+              "timestamp": "2025-08-31T17:23:20.522Z",
+              "tags": [
+                "testing",
+                "functional",
+                "memory",
+                "validation"
+              ],
+              "importance": 0.8,
+              "accessCount": 0
+            },
+            "validationReport": []
+          },
+          {
+            "id": "97a50fb0-94a1-40eb-a8ed-7aa8c0554c93",
+            "content": "Functional test memory entry - This is a comprehensive test of the Universal AI Tools memory system with advanced validation and storage capabilities.",
+            "type": "knowledge",
+            "metadata": {
+              "source": "functional_test",
+              "testId": "test_1756660867824",
+              "timestamp": "2025-08-31T17:21:07.830Z",
+              "tags": [
+                "testing",
+                "functional",
+                "memory",
+                "validation"
+              ],
+              "importance": 0.8,
+              "accessCount": 0
+            },
+            "validationReport": []
+          }
+        ],
+        "pagination": {
+          "total": 2,
+          "limit": 5,
+          "offset": 0,
+          "hasMore": false
+        }
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:20.525Z",
+        "requestId": "8ef6f1ba-8733-4861-9422-373b53aef5b1"
+      },
+      "validationStats": {
+        "totalMemoriesChecked": 1,
+        "memoriesWithViolations": 1,
+        "totalViolations": 3,
+        "violationsByType": {
+          "accuracy": 2,
+          "performance": 1
+        },
+        "violationsBySeverity": {
+          "info": 2,
+          "warning": 1
+        }
+      }
+    },
+    "search": {
+      "success": true,
+      "data": {
+        "memories": [
+          {
+            "id": "43767d87-f3b4-49d8-b748-40a6d4a4d96d",
+            "userId": "dev-user",
+            "content": "Functional test memory entry - This is a comprehensive test of the Universal AI Tools memory system with advanced validation and storage capabilities.",
+            "type": "knowledge",
+            "metadata": {
+              "source": "functional_test",
+              "testId": "test_1756661000520",
+              "timestamp": "2025-08-31T17:23:20.522Z",
+              "tags": [
+                "testing",
+                "functional",
+                "memory",
+                "validation"
+              ],
+              "importance": 0.8,
+              "accessCount": 0
+            }
+          },
+          {
+            "id": "97a50fb0-94a1-40eb-a8ed-7aa8c0554c93",
+            "userId": "dev-user",
+            "content": "Functional test memory entry - This is a comprehensive test of the Universal AI Tools memory system with advanced validation and storage capabilities.",
+            "type": "knowledge",
+            "metadata": {
+              "source": "functional_test",
+              "testId": "test_1756660867824",
+              "timestamp": "2025-08-31T17:21:07.830Z",
+              "tags": [
+                "testing",
+                "functional",
+                "memory",
+                "validation"
+              ],
+              "importance": 0.8,
+              "accessCount": 0
+            }
+          }
+        ],
+        "query": "functional",
+        "total": 2
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:20.526Z",
+        "requestId": "83d77874-b75d-41d7-b2ab-678f1ea0daff"
+      }
+    },
+    "validation": {
+      "success": true,
+      "data": {
+        "totalMemoriesChecked": 1,
+        "memoriesWithViolations": 1,
+        "totalViolations": 3,
+        "violationsByType": {
+          "accuracy": 2,
+          "performance": 1
+        },
+        "violationsBySeverity": {
+          "info": 2,
+          "warning": 1
+        },
+        "rules": 11
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:20.528Z",
+        "requestId": "c9196362-18a0-41a9-9bdd-cc1c4d05c73e"
+      }
+    }
+  },
+  "aiServices": {
+    "fastCoordinator": {
+      "success": true,
+      "data": {
+        "routedTo": "lfm2",
+        "complexity": "medium",
+        "message": "Message routed successfully",
+        "service": "fast-llm-coordinator"
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:20.530Z",
+        "executionTime": "5ms"
+      }
+    },
+    "mlx": {
+      "success": true,
+      "data": {
+        "status": "healthy",
+        "service": "MLX Apple Silicon ML Service",
+        "healthy": true,
+        "metrics": {
+          "totalInferences": 0,
+          "totalTrainingJobs": 0,
+          "successfulInferences": 0,
+          "successfulTrainingJobs": 0,
+          "averageInferenceTime": 0,
+          "modelsLoaded": [],
+          "isInitialized": true,
+          "hardwareInfo": {
+            "device": "Apple Silicon",
+            "memory": "Unified Memory",
+            "unified": true
+          }
+        },
+        "hardware": {
+          "device": "Apple Silicon",
+          "memory": "Unified Memory",
+          "unified": true
+        },
+        "timestamp": "2025-08-31T17:23:20.541Z",
+        "responseTime": 0,
+        "version": "1.0.0"
+      },
+      "metadata": {
+        "requestId": "099796f0-59be-44fe-86f2-4e008f928431",
+        "timestamp": "2025-08-31T17:23:20.541Z",
+        "version": "1.0.0"
+      }
+    },
+    "autonomousMaster": {
+      "success": true,
+      "data": {
+        "message": "Request processed by Autonomous Master Controller",
+        "originalRequest": "Process this test request through the autonomous master controller",
+        "priority": "normal",
+        "status": "completed"
+      },
+      "metadata": {
+        "timestamp": "2025-08-31T17:23:20.547Z",
+        "processingTime": "25ms"
+      }
+    },
+    "abMcts": {
+      "success": true,
+      "data": {
+        "status": "healthy",
+        "circuitBreaker": "CLOSED",
+        "successRate": 0.95,
+        "activeSearches": 0,
+        "timestamp": 1756661000548
+      },
+      "metadata": {
+        "requestId": "97ee115d-a050-4c0e-a571-26c82d016da3",
+        "timestamp": "2025-08-31T17:23:20.548Z",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "conversationTest": {
+    "success": true,
+    "message": "I'm here to help you with coding projects, home automation, and daily tasks. What would you like me to work on?",
+    "response": "I'm here to help you with coding projects, home automation, and daily tasks. What would you like me to work on?",
+    "action": "general_fallback",
+    "sessionId": "functional-test-session",
+    "timestamp": "2025-08-31T17:23:20.539Z"
+  },
+  "visionServices": {
+    "status": {
+      "success": true,
+      "data": {
+        "service": {
+          "initialized": false,
+          "uptime": 162.731321167
+        },
+        "python": {
+          "available": false,
+          "models": []
+        },
+        "gpu": {
+          "available": true,
+          "memory": "Unified Memory"
+        },
+        "metrics": {
+          "totalRequests": 0,
+          "successRate": 0,
+          "avgResponseTime": "0ms",
+          "cacheHitRate": "0.0%"
+        }
+      }
+    }
+  },
+  "monitoring": {
+    "websocket": {
+      "success": true,
+      "status": "operational",
+      "services": {
+        "athena": {
+          "active": true,
+          "port": 9997
+        },
+        "browserScraping": {
+          "active": false,
+          "port": 9998,
+          "note": "Port conflict detected"
+        },
+        "deviceAuth": {
+          "active": true,
+          "port": 8080
+        }
+      },
+      "timestamp": "2025-08-31T17:23:20.544Z"
+    },
+    "database": {
+      "success": true,
+      "status": "connected",
+      "connections": {
+        "supabase": {
+          "active": true,
+          "type": "PostgreSQL"
+        },
+        "redis": {
+          "active": true,
+          "type": "Cache"
+        },
+        "keyring": {
+          "active": true,
+          "type": "Secrets"
+        }
+      },
+      "timestamp": "2025-08-31T17:23:20.546Z"
+    }
+  },
+  "errors": []
+}

@@ -1,0 +1,23 @@
+Vision Resource Manager Performance Benchmark Report
+Generated: Sun Aug 31 18:51:45 CDT 2025
+Configuration: 10 requests, 10 concurrent
+Target: localhost:9999
+
+================================================
+
+PERFORMANCE COMPARISON:
+
+Rust Backend:
+  - Requests/second: N/A
+  - 95th percentile: N/Ams
+
+TypeScript Backend:
+  - Requests/second: N/A  
+  - 95th percentile: N/Ams
+
+
+RECOMMENDATIONS:
+
+DETAILED RESULTS:
+See /Users/christianmerrill/Desktop/universal-ai-tools/deployment/vision-manager/scripts/../results/benchmark_report_20250831_185145.json for complete JSON data
+

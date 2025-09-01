@@ -18,6 +18,11 @@ export enum LogContext {
   SERVICE = 'service',
   CONTEXT_INJECTION = 'context_injection',
   MIDDLEWARE = 'middleware',
+  PROJECT = 'project',
+  LFM2 = 'lfm2',
+  VOICE = 'voice',
+  CALENDAR = 'calendar',
+  MONITORING = 'monitoring',
 }
 
 const logLevel = process.env.LOG_LEVEL || 'info';
@@ -81,6 +86,27 @@ export const log = {
     logger.debug(message, { context, ...meta });
   },
 };
+
+// Simple Logger class wrapper for our healing services
+export class Logger {
+  constructor(private context: string) {}
+  
+  info(message: string, meta?: Record<string, any>) {
+    log.info(`[${this.context}] ${message}`, LogContext.SYSTEM, meta);
+  }
+  
+  error(message: string, meta?: Record<string, any>) {
+    log.error(`[${this.context}] ${message}`, LogContext.SYSTEM, meta);
+  }
+  
+  warn(message: string, meta?: Record<string, any>) {
+    log.warn(`[${this.context}] ${message}`, LogContext.SYSTEM, meta);
+  }
+  
+  debug(message: string, meta?: Record<string, any>) {
+    log.debug(`[${this.context}] ${message}`, LogContext.SYSTEM, meta);
+  }
+}
 
 export { logger };
 export default logger;

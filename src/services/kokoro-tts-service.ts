@@ -134,44 +134,71 @@ export class KokoroTTSService {
   }
 
   private async startTTSServer(): Promise<void> {
-    // Create Python TTS server script
-    const pythonScript = this.createTTSServerScript();
-    const scriptPath = join(this.outputDirectory, 'kokoro_server.py');
-    writeFileSync(scriptPath, pythonScript);
+    try {
+      // Create Python TTS server script
+      const pythonScript = this.createTTSServerScript();
+      const scriptPath = join(this.outputDirectory, 'kokoro_server.py');
+      writeFileSync(scriptPath, pythonScript);
 
-    // Start Python process
-    this.pythonProcess = spawn('python3', [scriptPath], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      cwd: this.kokoroPath,
-    });
+      // Start Python process with error handling
+      // Use the virtual environment if available
+      const venvPath = join(this.kokoroPath, 'kokoro-env', 'bin', 'python');
+      const pythonCmd = existsSync(venvPath) ? venvPath : 'python3';
 
-    if (this.pythonProcess.stdout && this.pythonProcess.stderr) {
-      this.pythonProcess.stdout.on('data', (data) => {
-        const output = data.toString();
-        if (output.includes('KOKORO_READY')) {
-          this.isInitialized = true;
-        }
+      this.pythonProcess = spawn(pythonCmd, [scriptPath], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: this.kokoroPath,
       });
 
-      this.pythonProcess.stderr.on('data', (data) => {
-        log.error('❌ Kokoro TTS error', LogContext.AI, { error: data.toString() });
+      // Handle spawn errors
+      this.pythonProcess.on('error', (error) => {
+        log.warn('⚠️ Failed to start Kokoro TTS server, using mock mode', LogContext.AI, { error: error.message });
+        this.isInitialized = false;
+        this.pythonProcess = null;
       });
+
+      if (this.pythonProcess.stdout && this.pythonProcess.stderr) {
+        this.pythonProcess.stdout.on('data', (data) => {
+          const output = data.toString();
+          if (output.includes('KOKORO_READY')) {
+            this.isInitialized = true;
+          }
+        });
+
+        this.pythonProcess.stderr.on('data', (data) => {
+          log.error('❌ Kokoro TTS error', LogContext.AI, { error: data.toString() });
+        });
+      }
+    } catch (error) {
+      log.warn('⚠️ Failed to initialize Kokoro TTS server, using mock mode', LogContext.AI, { error });
+      this.isInitialized = false;
+      this.pythonProcess = null;
     }
 
-    // Wait for initialization
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Kokoro initialization timeout')), 30000);
+    // Wait for initialization (skip if in mock mode)
+    if (this.pythonProcess) {
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          log.warn('⚠️ Kokoro initialization timeout, using mock mode', LogContext.AI);
+          this.isInitialized = false;
+          resolve();
+        }, 5000); // Reduced timeout to 5 seconds
 
-      const checkInit = () => {
-        if (this.isInitialized) {
-          clearTimeout(timeout);
-          resolve(true);
-        } else {
-          setTimeout(checkInit, 100);
-        }
-      };
-      checkInit();
-    });
+        const checkInit = () => {
+          if (this.isInitialized) {
+            clearTimeout(timeout);
+            resolve();
+          } else if (!this.pythonProcess) {
+            // Process failed to start, use mock mode
+            clearTimeout(timeout);
+            resolve();
+          } else {
+            setTimeout(checkInit, 100);
+          }
+        };
+        checkInit();
+      });
+    }
   }
 
   /**
@@ -535,4 +562,5 @@ if __name__ == "__main__":
 
 // Singleton instance
 export const kokoroTTS = new KokoroTTSService();
+export const kokoroTTSService = kokoroTTS; // Add named export for router compatibility
 export default kokoroTTS;

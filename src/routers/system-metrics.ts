@@ -216,15 +216,28 @@ router.get('/agents/performance', async (req: Request, res: Response, next: Next
         }
 
         // Get agent's performance metrics
-        const metrics = 'getPerformanceMetrics' in agent && typeof agent.getPerformanceMetrics === 'function'
-          ? agent.getPerformanceMetrics()
-          : {
-              totalCalls: 0,
-              successRate: 1,
-              averageExecutionTime: 0,
-              averageConfidence: 0.8,
+        const defaultMetrics = {
+          totalCalls: 0,
+          successRate: 1,
+          averageExecutionTime: 0,
+          averageConfidence: 0.8,
+          lastUsed: null
+        };
+
+        let metrics = defaultMetrics;
+        if ('getPerformanceMetrics' in agent && typeof agent.getPerformanceMetrics === 'function') {
+          const agentMetrics = agent.getPerformanceMetrics();
+          // Check if the metrics have the expected properties
+          if (agentMetrics && typeof agentMetrics === 'object') {
+            metrics = {
+              totalCalls: ('totalCalls' in agentMetrics ? agentMetrics.totalCalls : defaultMetrics.totalCalls) as number,
+              successRate: ('successRate' in agentMetrics ? agentMetrics.successRate : defaultMetrics.successRate) as number,
+              averageExecutionTime: ('averageExecutionTime' in agentMetrics ? agentMetrics.averageExecutionTime : defaultMetrics.averageExecutionTime) as number,
+              averageConfidence: ('averageConfidence' in agentMetrics ? agentMetrics.averageConfidence : defaultMetrics.averageConfidence) as number,
               lastUsed: null
             };
+          }
+        }
 
         return {
           name: agentName,
@@ -232,7 +245,7 @@ router.get('/agents/performance', async (req: Request, res: Response, next: Next
           successRate: Math.round((metrics.successRate || 0) * 100),
           avgTime: Math.round(metrics.averageExecutionTime || 0),
           confidence: Math.round((metrics.averageConfidence || 0) * 100),
-          lastUsed: metrics.lastUsed || null,
+          lastUsed: (metrics.lastUsed as Date | null) || null,
         };
       })
     );

@@ -7,10 +7,11 @@ import type { IncomingMessage } from 'http';
 import { LogContext, log } from '../utils/logger';
 
 export interface AthenaWebSocketMessage {
-  type: 'query' | 'response' | 'error' | 'status';
+  type: 'query' | 'response' | 'error' | 'status' | 'voice_command' | 'voice_response' | 'wake_word_detected';
   data: any;
   timestamp: number;
   requestId?: string;
+  sessionId?: string;
 }
 
 export interface AthenaWebSocketHandler {
@@ -107,6 +108,9 @@ class AthenaWebSocketService {
         case 'query':
           this.handleQuery(ws, message);
           break;
+        case 'voice_command':
+          this.handleVoiceCommand(ws, message);
+          break;
         case 'status':
           this.handleStatusRequest(ws, message);
           break;
@@ -157,6 +161,191 @@ class AthenaWebSocketService {
       log.error('❌ Failed to process Athena query', LogContext.WEBSOCKET, {
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  }
+
+  /**
+   * Handle voice command message
+   */
+  private async handleVoiceCommand(ws: AthenaWebSocketHandler, message: AthenaWebSocketMessage): Promise<void> {
+    try {
+      log.info('🎙️ Processing voice command via WebSocket', LogContext.WEBSOCKET, {
+        requestId: message.requestId,
+        sessionId: message.sessionId,
+        command: message.data?.command?.slice(0, 100),
+        intent: message.data?.intent
+      });
+
+      // Extract voice command data
+      const { command, confidence, intent, entities, sessionId } = message.data || {};
+
+      if (!command || typeof command !== 'string') {
+        return this.sendError(ws, 'Voice command text is required', message.requestId);
+      }
+
+      // Process voice command (this would integrate with the voice intent service)
+      await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
+
+      // Generate mock voice response based on intent
+      const voiceResponse = this.generateVoiceResponse(intent || 'general_query', command);
+
+      // Send voice response back to client
+      this.sendMessage(ws, {
+        type: 'voice_response',
+        data: {
+          sessionId: sessionId || message.sessionId || `voice_${Date.now()}`,
+          response: voiceResponse,
+          originalCommand: command,
+          intent: intent || 'general_query',
+          confidence: confidence || 0.8,
+          processingTime: 800 + Math.random() * 400,
+          shouldSpeak: true
+        },
+        timestamp: Date.now(),
+        requestId: message.requestId,
+        sessionId: sessionId
+      });
+
+      // Broadcast wake word detection to other clients if applicable
+      if (message.data?.wakeWordDetected) {
+        this.broadcastToOthers(ws, {
+          type: 'wake_word_detected',
+          data: {
+            sessionId: sessionId,
+            timestamp: Date.now()
+          },
+          timestamp: Date.now()
+        });
+      }
+
+    } catch (error) {
+      this.sendError(ws, 'Failed to process voice command', message.requestId);
+      log.error('❌ Failed to process voice command via WebSocket', LogContext.WEBSOCKET, {
+        error: error instanceof Error ? error.message : String(error),
+        requestId: message.requestId
+      });
+    }
+  }
+
+  /**
+   * Generate voice response based on intent
+   */
+  private generateVoiceResponse(intent: string, command: string): any {
+    const responses: Record<string, any> = {
+      'system_status': {
+        text: 'System is running smoothly. All services are operational with excellent performance. CPU usage is optimal and all agents are ready to assist.',
+        audioHints: {
+          emphasis: ['smoothly', 'excellent', 'optimal'],
+          pauseAfter: ['smoothly.', 'performance.']
+        }
+      },
+      'get_news': {
+        text: 'Here are today\'s top headlines. Technology sector shows strong growth, renewable energy initiatives gain momentum, and AI breakthroughs continue worldwide.',
+        audioHints: {
+          emphasis: ['top headlines', 'strong growth', 'breakthroughs'],
+          pauseAfter: ['headlines.', 'momentum,']
+        }
+      },
+      'code_assistance': {
+        text: 'I\'m ready to help with your code. Please share what you\'re working on, and I\'ll provide detailed analysis and recommendations.',
+        audioHints: {
+          emphasis: ['ready to help', 'detailed analysis'],
+          pauseAfter: ['code.', 'recommendations.']
+        }
+      },
+      'planning': {
+        text: 'Let\'s create a comprehensive plan together. I\'ll break down your project into manageable phases with clear objectives and timelines.',
+        audioHints: {
+          emphasis: ['comprehensive plan', 'manageable phases', 'clear objectives'],
+          pauseAfter: ['together.', 'timelines.']
+        }
+      },
+      'search': {
+        text: 'I\'ll research that topic thoroughly for you. Gathering information from multiple reliable sources to give you comprehensive insights.',
+        audioHints: {
+          emphasis: ['research thoroughly', 'reliable sources', 'comprehensive insights'],
+          pauseAfter: ['you.', 'insights.']
+        }
+      },
+      'memory': {
+        text: 'I\'ve stored that information in your personal knowledge base. You can access it anytime by asking me to recall specific details.',
+        audioHints: {
+          emphasis: ['stored', 'personal knowledge base', 'anytime'],
+          pauseAfter: ['base.', 'details.']
+        }
+      },
+      'help': {
+        text: 'I can assist with system monitoring, code development, project planning, research, and memory management. Just say Hey Athena followed by your request.',
+        audioHints: {
+          emphasis: ['assist with', 'Hey Athena'],
+          pauseAfter: ['management.', 'request.']
+        }
+      },
+      'play_music': {
+        text: 'I can help you play music. Which service would you like to use - Spotify, Pandora, Apple Music, YouTube, or another music platform?',
+        audioHints: {
+          emphasis: ['play music', 'which service'],
+          pauseAfter: ['music.', 'platform?']
+        },
+        needsClarification: true
+      },
+      'open_application': {
+        text: 'I can open applications for you. Which program would you like me to launch - Chrome, VS Code, Slack, or something else?',
+        audioHints: {
+          emphasis: ['open applications', 'which program'],
+          pauseAfter: ['you.', 'else?']
+        },
+        needsClarification: true
+      },
+      'send_message': {
+        text: 'I can help send messages. Who would you like to message and should it be a text, email, or through another service?',
+        audioHints: {
+          emphasis: ['send messages', 'who would you like'],
+          pauseAfter: ['messages.', 'service?']
+        },
+        needsClarification: true
+      },
+      'check_weather': {
+        text: 'I can check the weather for you. Which location would you like the forecast for - here, or somewhere specific?',
+        audioHints: {
+          emphasis: ['check weather', 'which location'],
+          pauseAfter: ['you.', 'specific?']
+        },
+        needsClarification: true
+      },
+      'greeting': {
+        text: 'Hello! I\'m Athena, your AI assistant. I\'m here to help with development, planning, research, and system management. How can I assist you today?',
+        audioHints: {
+          emphasis: ['Hello!', 'Athena', 'assist you today'],
+          pauseAfter: ['assistant.', 'management.']
+        }
+      },
+      'goodbye': {
+        text: 'Goodbye! It was great helping you today. I\'ll be here whenever you need assistance. Have a wonderful day!',
+        audioHints: {
+          emphasis: ['Goodbye!', 'great helping', 'wonderful day'],
+          pauseAfter: ['today.', 'assistance.']
+        }
+      }
+    };
+
+    return responses[intent] || {
+      text: `I understand you said: "${command.slice(0, 50)}${command.length > 50 ? '...' : ''}". Let me help you with that request.`,
+      audioHints: {
+        emphasis: ['understand', 'help you'],
+        pauseAfter: ['request.']
+      }
+    };
+  }
+
+  /**
+   * Broadcast message to all connections except sender
+   */
+  private broadcastToOthers(sender: AthenaWebSocketHandler, message: AthenaWebSocketMessage): void {
+    for (const ws of this.connections.values()) {
+      if (ws !== sender) {
+        this.sendMessage(ws, message);
+      }
     }
   }
 

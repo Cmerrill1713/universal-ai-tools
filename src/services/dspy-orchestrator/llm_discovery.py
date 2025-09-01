@@ -131,7 +131,7 @@ class LLMDiscovery:
                 return lm, "LM Studio Remote", model
 
         # Try Local LM Studio
-        local_lm_url = os.environ.get("LM_STUDIO_URL", "http://localhost:1234")
+        local_lm_url = os.environ.get("LM_STUDIO_URL", "http://localhost:5901")
         local_models = cls.discover_openai_models(local_lm_url, "lm-studio")
 
         for model in local_models:
@@ -175,7 +175,7 @@ class LLMDiscovery:
             available["LM Studio Remote"] = remote_models
 
         # Local LM Studio
-        local_url = os.environ.get("LM_STUDIO_URL", "http://localhost:1234")
+        local_url = os.environ.get("LM_STUDIO_URL", "http://localhost:5901")
         local_models = cls.discover_openai_models(local_url, "lm-studio")
         if local_models:
             available["LM Studio Local"] = local_models

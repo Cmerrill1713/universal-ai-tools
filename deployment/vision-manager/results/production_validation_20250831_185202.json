@@ -1,0 +1,17 @@
+{
+  "validation_timestamp": "2025-08-31T18:52:02-05:00",
+  "test_configuration": {
+    "host": "localhost:9999",
+    "validation_type": "production_readiness"
+  },
+  "results": {
+    "service_availability": [{"service":"vision-proxy","description":"9999/health:Load Balancer","status_code":"200","response_time":13.427000000},{"service":"rust-backend","description":"9999/api/v1/vision/rust/metrics:Rust Backend","status_code":"200","response_time":10.431000000},{"service":"typescript-backend","description":"9999/api/v1/vision/typescript/metrics:TypeScript Backend","status_code":"200","response_time":10.328000000},{"service":"prometheus","description":"9090/-/healthy:Prometheus","status_code":"200","response_time":10.585000000},{"service":"grafana","description":"3003/api/health:Grafana","status_code":"200","response_time":9.654000000}],
+    "performance_validation": {"rust_avg_response_time": .025,"typescript_avg_response_time": .036,"performance_improvement_ratio": 1.44},
+    "load_balancing_validation": {"total_requests": 20, "rust_hits": 0, "typescript_hits": 0, "errors": 0, "rust_percentage": 0, "typescript_percentage": 0, "error_percentage": 0},
+    "resource_utilization": {"rust_cpu_percent": , "typescript_cpu_percent": , "rust_memory": "0B / 0B", "typescript_memory": "0B / 0B"},
+    "monitoring_system": {"prometheus_status": "healthy", "metrics_count": 313,"grafana_status": "unhealthy"},
+    "security_validation": {"security_headers_count":        0,"metrics_endpoint_exposed": false,"security_issues_count": 1}
+  },
+  "overall_status": "FAIL",
+  "recommendations": ["Address failing tests", "Review system configuration", "Re-run validation after fixes"]
+}

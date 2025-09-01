@@ -1,0 +1,377 @@
+groups:
+  - name: go-rust-services.rules
+    interval: 30s
+    rules:
+      # Service Health Alerts
+      - alert: ServiceDown
+        expr: up{job=~"go-.*|rust-.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 2 minutes."
+          runbook_url: "https://runbooks.example.com/service-down"
+
+      - alert: ServiceHighMemoryUsage
+        expr: process_resident_memory_bytes{job=~"go-.*|rust-.*"} > 1073741824  # 1GB
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "High memory usage for {{ $labels.job }}"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} is using {{ humanize $value }} of memory (>1GB)."
+
+      - alert: ServiceHighCPUUsage
+        expr: rate(process_cpu_seconds_total{job=~"go-.*|rust-.*"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "High CPU usage for {{ $labels.job }}"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has CPU usage above 80% for more than 5 minutes."
+
+      # Response Time Alerts
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"go-.*|rust-.*"}[5m])) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "High response time for {{ $labels.job }}"
+          description: "95th percentile response time for {{ $labels.job }} on {{ $labels.instance }} is {{ humanizeDuration $value }}."
+
+      - alert: VeryHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"go-.*|rust-.*"}[5m])) > 2.0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "Very high response time for {{ $labels.job }}"
+          description: "95th percentile response time for {{ $labels.job }} on {{ $labels.instance }} is {{ humanizeDuration $value }} (>2s)."
+
+      # Error Rate Alerts
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job=~"go-.*|rust-.*",status=~"5.."}[5m]) /
+            rate(http_requests_total{job=~"go-.*|rust-.*"}[5m])
+          ) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "High error rate for {{ $labels.job }}"
+          description: "Error rate for {{ $labels.job }} on {{ $labels.instance }} is {{ printf \"%.2f%%\" (mul $value 100) }} (>5%)."
+
+      - alert: VeryHighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job=~"go-.*|rust-.*",status=~"5.."}[5m]) /
+            rate(http_requests_total{job=~"go-.*|rust-.*"}[5m])
+          ) > 0.20
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "Very high error rate for {{ $labels.job }}"
+          description: "Error rate for {{ $labels.job }} on {{ $labels.instance }} is {{ printf \"%.2f%%\" (mul $value 100) }} (>20%)."
+
+      # Circuit Breaker Alerts
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state{job=~"go-.*|rust-.*|node-.*"} == 2
+        for: 1m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          circuit: "{{ $labels.circuit_name }}"
+        annotations:
+          summary: "Circuit breaker open for {{ $labels.circuit_name }}"
+          description: "Circuit breaker {{ $labels.circuit_name }} in {{ $labels.job }} has been open for more than 1 minute."
+
+      - alert: CircuitBreakerHighFailureRate
+        expr: circuit_breaker_failure_rate{job=~"go-.*|rust-.*|node-.*"} > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          circuit: "{{ $labels.circuit_name }}"
+        annotations:
+          summary: "High failure rate for circuit breaker {{ $labels.circuit_name }}"
+          description: "Circuit breaker {{ $labels.circuit_name }} in {{ $labels.job }} has a failure rate of {{ printf \"%.2f%%\" (mul $value 100) }}."
+
+      # Go-specific Alerts
+      - alert: GoHighGoroutineCount
+        expr: go_goroutines{job=~"go-.*"} > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "High goroutine count for {{ $labels.job }}"
+          description: "Go service {{ $labels.job }} on {{ $labels.instance }} has {{ $value }} goroutines (>10k)."
+
+      - alert: GoFrequentGC
+        expr: rate(go_gc_duration_seconds_count{job=~"go-.*"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "Frequent garbage collection for {{ $labels.job }}"
+          description: "Go service {{ $labels.job }} on {{ $labels.instance }} is running GC more than once per second."
+
+      # ML Inference Specific Alerts
+      - alert: MLInferenceHighLatency
+        expr: histogram_quantile(0.95, rate(ml_inference_duration_seconds_bucket{job=~".*ml.*"}[5m])) > 30
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          model: "{{ $labels.model_id }}"
+        annotations:
+          summary: "High ML inference latency for {{ $labels.job }}"
+          description: "ML inference P95 latency for {{ $labels.job }} model {{ $labels.model_id }} is {{ humanizeDuration $value }} (>30s)."
+
+      - alert: MLInferenceLowThroughput
+        expr: rate(ml_inference_requests_total{job=~".*ml.*"}[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "Low ML inference throughput for {{ $labels.job }}"
+          description: "ML inference service {{ $labels.job }} has very low request rate ({{ printf \"%.3f\" $value }} req/s)."
+
+      # FFI Bridge Alerts
+      - alert: FFIBridgeHighErrorRate
+        expr: |
+          (
+            rate(ffi_bridge_errors_total{job=~".*shared.*|.*ffi.*"}[5m]) /
+            rate(ffi_bridge_calls_total{job=~".*shared.*|.*ffi.*"}[5m])
+          ) > 0.10
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "ffi-bridge"
+        annotations:
+          summary: "High FFI bridge error rate for {{ $labels.job }}"
+          description: "FFI bridge error rate for {{ $labels.job }} is {{ printf \"%.2f%%\" (mul $value 100) }} (>10%)."
+
+      - alert: FFIBridgeNoActivity
+        expr: rate(ffi_bridge_calls_total{job=~".*shared.*|.*ffi.*"}[5m]) == 0
+        for: 15m
+        labels:
+          severity: info
+          service: "{{ $labels.job }}"
+          component: "ffi-bridge"
+        annotations:
+          summary: "No FFI bridge activity for {{ $labels.job }}"
+          description: "FFI bridge for {{ $labels.job }} has had no activity for 15 minutes."
+
+      # Message Broker Specific Alerts
+      - alert: MessageBrokerHighLatency
+        expr: histogram_quantile(0.95, rate(message_broker_processing_latency_seconds_bucket[5m])) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          service: "message-broker"
+          component: "processing"
+        annotations:
+          summary: "High message processing latency"
+          description: "Message broker processing latency P95 is {{ humanizeDuration $value }} (>100ms)."
+
+      - alert: MessageBrokerConnectionDrop
+        expr: decrease(message_broker_active_connections[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: "message-broker"
+          component: "connections"
+        annotations:
+          summary: "Multiple message broker connections dropped"
+          description: "Message broker lost {{ $value }} connections in the last 5 minutes."
+
+      # Cache Performance Alerts
+      - alert: CacheLowHitRate
+        expr: cache_hit_rate{job=~".*cache.*"} < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "cache"
+        annotations:
+          summary: "Low cache hit rate for {{ $labels.job }}"
+          description: "Cache hit rate for {{ $labels.job }} is {{ printf \"%.2f%%\" (mul $value 100) }} (<80%)."
+
+      - alert: CacheHighMemoryUsage
+        expr: cache_memory_usage_bytes{job=~".*cache.*"} > 1073741824  # 1GB
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "cache"
+        annotations:
+          summary: "High cache memory usage for {{ $labels.job }}"
+          description: "Cache memory usage for {{ $labels.job }} is {{ humanize $value }} (>1GB)."
+
+      # Stream Processing Alerts
+      - alert: StreamProcessorBacklog
+        expr: stream_processor_queue_size{job=~".*stream.*"} > 10000
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "queue"
+        annotations:
+          summary: "High stream processor backlog for {{ $labels.job }}"
+          description: "Stream processor queue for {{ $labels.job }} has {{ $value }} items (>10k)."
+
+      - alert: StreamProcessorLowThroughput
+        expr: rate(stream_processor_events_processed_total{job=~".*stream.*"}[5m]) < 10
+        for: 5m
+        labels:
+          severity: info
+          service: "{{ $labels.job }}"
+          component: "processing"
+        annotations:
+          summary: "Low stream processing throughput for {{ $labels.job }}"
+          description: "Stream processor {{ $labels.job }} is processing {{ printf \"%.1f\" $value }} events/s (<10/s)."
+
+      # Database Connection Alerts
+      - alert: DatabaseConnectionPoolExhausted
+        expr: database_connections_active{job=~"go-.*|rust-.*"} / database_connections_max{job=~"go-.*|rust-.*"} > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+          component: "database"
+        annotations:
+          summary: "Database connection pool nearly exhausted for {{ $labels.job }}"
+          description: "Database connection pool for {{ $labels.job }} is {{ printf \"%.1f%%\" (mul $value 100) }} full."
+
+      # Resource Exhaustion Alerts
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: "filesystem"
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space on {{ $labels.instance }} is {{ printf \"%.2f%%\" (mul $value 100) }} full."
+
+      - alert: HighFileDescriptorUsage
+        expr: process_open_fds{job=~"go-.*|rust-.*"} / process_max_fds{job=~"go-.*|rust-.*"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "{{ $labels.instance }}"
+        annotations:
+          summary: "High file descriptor usage for {{ $labels.job }}"
+          description: "File descriptor usage for {{ $labels.job }} on {{ $labels.instance }} is {{ printf \"%.1f%%\" (mul $value 100) }}."
+
+      # Performance Degradation Detection
+      - alert: ServicePerformanceDegradation
+        expr: |
+          (
+            histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"go-.*|rust-.*"}[5m])) /
+            histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"go-.*|rust-.*"}[1h] offset 1h))
+          ) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+          component: "performance"
+        annotations:
+          summary: "Performance degradation detected for {{ $labels.job }}"
+          description: "Service {{ $labels.job }} response times have increased by {{ printf \"%.1fx\" $value }} compared to 1 hour ago."
+
+  # Recording Rules for Aggregations
+  - name: go-rust-services.recording
+    interval: 15s
+    rules:
+      # Service-level SLIs
+      - record: service:http_request_rate
+        expr: rate(http_requests_total{job=~"go-.*|rust-.*"}[5m])
+
+      - record: service:http_error_rate
+        expr: |
+          rate(http_requests_total{job=~"go-.*|rust-.*",status=~"5.."}[5m]) /
+          rate(http_requests_total{job=~"go-.*|rust-.*"}[5m])
+
+      - record: service:http_request_duration_p95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"go-.*|rust-.*"}[5m]))
+
+      - record: service:http_request_duration_p99
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=~"go-.*|rust-.*"}[5m]))
+
+      # Resource utilization aggregations
+      - record: service:cpu_usage
+        expr: rate(process_cpu_seconds_total{job=~"go-.*|rust-.*"}[5m])
+
+      - record: service:memory_usage_bytes
+        expr: process_resident_memory_bytes{job=~"go-.*|rust-.*"}
+
+      - record: service:file_descriptor_usage_ratio
+        expr: process_open_fds{job=~"go-.*|rust-.*"} / process_max_fds{job=~"go-.*|rust-.*"}
+
+      # Go-specific aggregations
+      - record: go:goroutines_per_service
+        expr: go_goroutines{job=~"go-.*"}
+
+      - record: go:gc_rate
+        expr: rate(go_gc_duration_seconds_count{job=~"go-.*"}[5m])
+
+      # ML inference aggregations
+      - record: ml:inference_rate
+        expr: rate(ml_inference_requests_total{job=~".*ml.*"}[5m])
+
+      - record: ml:inference_duration_p95
+        expr: histogram_quantile(0.95, rate(ml_inference_duration_seconds_bucket{job=~".*ml.*"}[5m]))
+
+      - record: ml:inference_error_rate
+        expr: |
+          rate(ml_inference_requests_total{job=~".*ml.*",status="error"}[5m]) /
+          rate(ml_inference_requests_total{job=~".*ml.*"}[5m])
+
+      # FFI bridge aggregations
+      - record: ffi:call_rate
+        expr: rate(ffi_bridge_calls_total{job=~".*shared.*|.*ffi.*"}[5m])
+
+      - record: ffi:error_rate
+        expr: |
+          rate(ffi_bridge_errors_total{job=~".*shared.*|.*ffi.*"}[5m]) /
+          rate(ffi_bridge_calls_total{job=~".*shared.*|.*ffi.*"}[5m])
+
+      - record: ffi:throughput_bytes_per_second
+        expr: rate(ffi_bridge_bytes_transferred_total{job=~".*shared.*|.*ffi.*"}[5m])
+
+      # Overall system health
+      - record: system:services_up_ratio
+        expr: |
+          count(up{job=~"go-.*|rust-.*"} == 1) /
+          count(up{job=~"go-.*|rust-.*"})
+
+      - record: system:overall_error_rate
+        expr: |
+          sum(rate(http_requests_total{job=~"go-.*|rust-.*",status=~"5.."}[5m])) /
+          sum(rate(http_requests_total{job=~"go-.*|rust-.*"}[5m]))

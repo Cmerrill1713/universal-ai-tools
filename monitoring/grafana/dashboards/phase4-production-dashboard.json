@@ -1,0 +1,362 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Universal AI Tools - Phase 4 Production Monitoring",
+    "tags": ["universal-ai-tools", "phase4", "production"],
+    "timezone": "browser",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"universal-ai-tools\"}",
+            "legendFormat": "AI Tools",
+            "refId": "A"
+          },
+          {
+            "expr": "up{job=\"supabase\"}",
+            "legendFormat": "Database",
+            "refId": "B"
+          },
+          {
+            "expr": "up{job=\"redis\"}",
+            "legendFormat": "Cache",
+            "refId": "C"
+          },
+          {
+            "expr": "up{job=\"ollama\"}",
+            "legendFormat": "LLM",
+            "refId": "D"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "textMode": "name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "xAxis": {
+          "mode": "time"
+        }
+      },
+      {
+        "id": 3,
+        "title": "Response Time (95th Percentile)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "Median",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "Memory Usage (MB)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "yAxes": [
+          {
+            "label": "MB",
+            "min": 0
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 400,
+            "colorMode": "warning",
+            "op": "gt"
+          },
+          {
+            "value": 600,
+            "colorMode": "critical",
+            "op": "gt"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m])",
+            "legendFormat": "5xx Error Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(http_requests_total{status=~\"4..\"}[5m]) / rate(http_requests_total[5m])",
+            "legendFormat": "4xx Error Rate",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "yAxes": [
+          {
+            "label": "Error Rate",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Active Agent Coordination",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "agent_coordination_active_total",
+            "legendFormat": "Active Coordinations",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 24
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "center"
+        }
+      },
+      {
+        "id": 7,
+        "title": "AI Processing Queue",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ai_processing_queue_size",
+            "legendFormat": "Queue Size",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 24
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area"
+        }
+      },
+      {
+        "id": 8,
+        "title": "Database Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "database_connections_active",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 24
+        }
+      },
+      {
+        "id": 9,
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "cache_hits_total / (cache_hits_total + cache_misses_total)",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 24
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Project Manager Activity",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(project_manager_tasks_completed_total[5m])",
+            "legendFormat": "Tasks Completed/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "project_manager_active_projects",
+            "legendFormat": "Active Projects",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 28
+        },
+        "yAxes": [
+          {
+            "label": "Rate / Count"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "System Resource Utilization",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "CPU Usage %",
+            "refId": "A"
+          },
+          {
+            "expr": "process_open_fds",
+            "legendFormat": "Open File Descriptors",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 28
+        }
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "query": "label_values(up{job=\"universal-ai-tools\"}, instance)",
+        "refresh": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "Prometheus",
+        "enable": true,
+        "expr": "increase(process_start_time_seconds[1m])",
+        "iconColor": "blue",
+        "name": "Deployments",
+        "titleFormat": "Service Restart",
+        "textFormat": "Universal AI Tools restarted"
+      }
+    ]
+  }
+}

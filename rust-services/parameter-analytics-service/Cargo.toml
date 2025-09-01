@@ -1,0 +1,76 @@
+[workspace]
+# Empty workspace to make this package independent
+
+[package]
+name = "parameter-analytics-service"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance parameter analytics and optimization service for Universal AI Tools"
+authors = ["Universal AI Tools Team"]
+license = "MIT"
+
+[lib]
+name = "parameter_analytics_service"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = "0.7"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Mathematical operations
+nalgebra = "0.32"
+statrs = "0.16"
+ndarray = "0.15"
+ndarray-stats = "0.5"
+
+# Machine learning
+smartcore = "0.3"
+
+# Database and caching
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = "0.3"
+log = "0.4"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# FFI support
+libc = "0.2"
+
+# Random number generation
+rand = "0.8"
+rand_distr = "0.4"
+
+# Performance
+rayon = "1.7"
+crossbeam = "0.8"
+
+# Additional dependencies
+futures = "0.3"
+num-traits = "0.2"
+num_cpus = "1.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.0"
+
+[[bench]]
+name = "analytics_benchmarks"
+harness = false
+
+[features]
+default = ["ffi"]
+ffi = []

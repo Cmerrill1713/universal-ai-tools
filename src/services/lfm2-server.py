@@ -28,7 +28,8 @@ class LFM2Server:
         self.is_ready = False
         self.request_count = 0
         self.total_time = 0
-        self.model_path = "/Users/christianmerrill/Desktop/universal-ai-tools/models/agents/LFM2-1.2B-bf16"
+        # Use the MLX version from HuggingFace cache
+        self.model_path = "/Users/christianmerrill/.cache/huggingface/hub/models--lmstudio-community--LFM2-1.2B-MLX-8bit/snapshots/c8e802c0a5c18bc039b529bc5f1c7e82e4c1fcd0"
         
         # Setup logging
         logging.basicConfig(

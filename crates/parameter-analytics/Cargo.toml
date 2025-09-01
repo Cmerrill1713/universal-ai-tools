@@ -1,0 +1,63 @@
+[package]
+name = "parameter-analytics"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+parking_lot = "0.12"
+futures = "0.3"
+tracing = "0.1"
+uuid = { version = "1.0", features = ["serde", "v4"] }
+dashmap = "5.5"
+arc-swap = "1.6"
+once_cell = "1.19"
+crossbeam = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+tracing-subscriber = "0.3"
+
+# Database connectivity
+tokio-postgres = "0.7"
+deadpool-postgres = "0.10"
+postgres-types = { version = "0.2", features = ["derive"] }
+
+# Analytics and statistics
+statistical = "1.0"
+ndarray = "0.15"
+ndarray-stats = "0.5"
+linfa = { version = "0.7", features = ["serde"] }
+
+# NAPI bindings for Node.js integration
+napi = { version = "2.0", features = ["full"] }
+napi-derive = "2.0"
+
+# Performance and monitoring
+metrics = "0.21"
+histogram = "0.6"
+
+# Hashing and encoding
+blake3 = "1.5"
+base64 = "0.21"
+
+# HTTP client for external APIs
+reqwest = { version = "0.11", features = ["json"] }
+
+# Memory management and caching
+lru = "0.12"
+
+[build-dependencies]
+napi-build = "2.0"
+
+[features]
+default = []
+napi = ["dep:napi", "dep:napi-derive"]
+
+[[example]]
+name = "analytics_benchmark"
+path = "examples/analytics_benchmark.rs"

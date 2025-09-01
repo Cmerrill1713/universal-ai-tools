@@ -1,0 +1,125 @@
+# Multi-stage Dockerfile for Universal AI Tools with Rust Services
+# Optimized for production deployment with minimal image size
+
+# Stage 1: Rust Builder
+FROM rust:1.75-slim as rust-builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    build-essential \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up workspace
+WORKDIR /app
+
+# Copy Rust workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+
+# Build Rust services in release mode
+RUN cargo build --release --all
+
+# Build NAPI bindings
+RUN cargo build --release --features napi
+
+# Stage 2: Node.js Builder
+FROM node:20-alpine as node-builder
+
+# Install Python and build tools for native modules
+RUN apk add --no-cache python3 make g++ cairo-dev pango-dev
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci --only=production && \
+    npm ci --only=development
+
+# Copy source code
+COPY src ./src
+COPY scripts ./scripts
+
+# Build TypeScript
+RUN npm run build:prod
+
+# Stage 3: Python Dependencies
+FROM python:3.11-slim as python-builder
+
+WORKDIR /app
+
+# Copy Python requirements
+COPY src/services/dspy-orchestrator/requirements.txt ./dspy-requirements.txt
+COPY requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --user -r requirements.txt && \
+    pip install --no-cache-dir --user -r dspy-requirements.txt
+
+# Stage 4: Production Image
+FROM node:20-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    redis-tools \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r aitools && useradd -r -g aitools aitools
+
+WORKDIR /app
+
+# Copy Rust binaries and libraries
+COPY --from=rust-builder /app/target/release/*.so /usr/local/lib/
+COPY --from=rust-builder /app/target/release/*.node ./native/
+
+# Copy Node.js production files
+COPY --from=node-builder /app/node_modules ./node_modules
+COPY --from=node-builder /app/dist ./dist
+
+# Copy Python dependencies
+COPY --from=python-builder /root/.local /home/aitools/.local
+
+# Copy configuration and static files
+COPY config ./config
+COPY migrations ./migrations
+COPY public ./public
+
+# Copy startup scripts
+COPY docker/entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=9999 \
+    RUST_LOG=info \
+    ENABLE_RUST_SERVICES=true \
+    LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH \
+    PATH=/home/aitools/.local/bin:$PATH
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/tmp /app/cache && \
+    chown -R aitools:aitools /app
+
+# Switch to non-root user
+USER aitools
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:9999/api/v1/health || exit 1
+
+# Expose ports
+EXPOSE 9999
+
+# Start the application
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["node", "dist/server.js"]

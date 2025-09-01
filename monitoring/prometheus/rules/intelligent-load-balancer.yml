@@ -1,0 +1,265 @@
+# Intelligent Load Balancer Monitoring Rules
+groups:
+  - name: intelligent_load_balancer
+    interval: 30s
+    rules:
+      # ML Model Performance Rules
+      - alert: LowModelAccuracy
+        expr: intelligent_lb_prediction_accuracy < 0.6
+        for: 5m
+        labels:
+          severity: critical
+          component: ml-system
+          service: intelligent-load-balancer
+        annotations:
+          summary: "ML model accuracy is critically low"
+          description: "Load balancer ML model accuracy is {{ $value }}%, below 60% threshold"
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/ml-model-accuracy"
+          action_required: "Retrain model or investigate data quality"
+
+      - alert: ModelTrainingStalled
+        expr: increase(intelligent_lb_model_training_duration_seconds_count[1h]) == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: ml-system
+          service: intelligent-load-balancer
+        annotations:
+          summary: "ML model training has stalled"
+          description: "No model training has occurred in the last hour"
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/model-training"
+
+      - alert: HighRoutingLatency
+        expr: histogram_quantile(0.95, intelligent_lb_routing_latency_seconds_bucket) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: intelligent-load-balancer
+        annotations:
+          summary: "High routing decision latency"
+          description: "95th percentile routing latency is {{ $value }}s, above 100ms threshold"
+          impact: "User requests may experience delays"
+
+      # Service Health Monitoring
+      - alert: ServiceHealthDegraded
+        expr: intelligent_lb_service_health_score < 0.5
+        for: 1m
+        labels:
+          severity: critical
+          service: intelligent-load-balancer
+          health_score: "{{ $value }}"
+        annotations:
+          summary: "Service {{ $labels.service }} health is critically degraded"
+          description: "Health score is {{ $value }}, below 50% threshold"
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/service-health"
+
+      - alert: ServiceHealthWarning
+        expr: intelligent_lb_service_health_score < 0.7 and intelligent_lb_service_health_score >= 0.5
+        for: 3m
+        labels:
+          severity: warning
+          service: intelligent-load-balancer
+          health_score: "{{ $value }}"
+        annotations:
+          summary: "Service {{ $labels.service }} health is degraded"
+          description: "Health score is {{ $value }}, below 70% threshold"
+
+      # Traffic Prediction Rules
+      - alert: TrafficPredictionAnomaly
+        expr: abs(intelligent_lb_traffic_prediction - rate(intelligent_lb_routing_decisions_total[5m])) / intelligent_lb_traffic_prediction > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: intelligent-load-balancer
+        annotations:
+          summary: "Traffic prediction accuracy is poor"
+          description: "Predicted traffic differs from actual by more than 50%"
+          impact: "Load balancing decisions may be suboptimal"
+
+      - alert: HighTrafficPredicted
+        expr: intelligent_lb_traffic_prediction{time_horizon="1h"} > 100
+        for: 1m
+        labels:
+          severity: info
+          service: intelligent-load-balancer
+        annotations:
+          summary: "High traffic predicted in next hour"
+          description: "Predicted traffic is {{ $value }} RPS, consider scaling preparation"
+          action_required: "Monitor resource usage and prepare for scaling"
+
+      # Load Balancer Health
+      - alert: LoadBalancerDown
+        expr: up{job="intelligent-load-balancer"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: intelligent-load-balancer
+        annotations:
+          summary: "Intelligent Load Balancer is down"
+          description: "Load balancer service is not responding to health checks"
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/load-balancer-down"
+
+      - alert: HighErrorRate
+        expr: rate(intelligent_lb_routing_decisions_total{reason="error"}[5m]) / rate(intelligent_lb_routing_decisions_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: intelligent-load-balancer
+        annotations:
+          summary: "High error rate in routing decisions"
+          description: "Error rate is {{ $value }}%, above 5% threshold"
+
+      # Confidence Monitoring
+      - alert: LowRoutingConfidence
+        expr: rate(intelligent_lb_routing_decisions_total{confidence_level="low"}[10m]) / rate(intelligent_lb_routing_decisions_total[10m]) > 0.3
+        for: 5m
+        labels:
+          severity: warning
+          service: intelligent-load-balancer
+        annotations:
+          summary: "High proportion of low-confidence routing decisions"
+          description: "{{ $value }}% of decisions have low confidence, above 30% threshold"
+          action_required: "Check service health metrics and model accuracy"
+
+  - name: service_mesh_intelligence
+    interval: 15s
+    rules:
+      # Cross-Service Communication
+      - alert: ServiceMeshLatencyHigh
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~".*-service"}[5m])) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+          component: service-mesh
+        annotations:
+          summary: "High latency detected in service mesh"
+          description: "95th percentile latency is {{ $value }}s for service {{ $labels.job }}"
+
+      - alert: ServiceMeshErrorRateHigh
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.02
+        for: 1m
+        labels:
+          severity: critical
+          component: service-mesh
+        annotations:
+          summary: "High error rate in service mesh"
+          description: "Error rate is {{ $value }}% for service {{ $labels.job }}"
+
+      # Circuit Breaker Monitoring
+      - alert: CircuitBreakerOpen
+        expr: resilience_circuit_breaker_state == 2
+        for: 30s
+        labels:
+          severity: warning
+          component: resilience
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Circuit breaker for {{ $labels.service }} is in open state"
+          impact: "Requests are being rejected to prevent cascade failures"
+
+      - alert: HighRetryRate
+        expr: rate(resilience_retry_attempts_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: resilience
+        annotations:
+          summary: "High retry rate detected"
+          description: "Retry rate is {{ $value }} attempts/sec for service {{ $labels.service }}"
+
+  - name: ml_system_health
+    interval: 1m
+    rules:
+      # ML Service Performance
+      - alert: MLInferenceLatencyHigh
+        expr: histogram_quantile(0.95, rate(ml_inference_duration_seconds_bucket[5m])) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+          component: ml-system
+        annotations:
+          summary: "High ML inference latency"
+          description: "95th percentile inference latency is {{ $value }}s for {{ $labels.service }}"
+
+      - alert: MLServiceUnavailable
+        expr: up{job=~".*(rust-ml|go-ml).*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: ml-system
+        annotations:
+          summary: "ML service is unavailable"
+          description: "ML service {{ $labels.job }} is not responding"
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/ml-service-down"
+
+      - alert: MLMemoryUsageHigh
+        expr: ml_memory_usage_bytes / ml_memory_limit_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: ml-system
+        annotations:
+          summary: "High memory usage in ML service"
+          description: "Memory usage is {{ $value }}% for ML service {{ $labels.service }}"
+          action_required: "Consider scaling or optimizing memory usage"
+
+  - name: system_resource_intelligence
+    interval: 30s
+    rules:
+      # Intelligent Resource Monitoring
+      - alert: PredictiveResourceExhaustion
+        expr: predict_linear(node_memory_MemAvailable_bytes[1h], 4*3600) < 1024*1024*1024
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "Memory exhaustion predicted"
+          description: "Available memory predicted to be exhausted in 4 hours"
+          action_required: "Scale resources or investigate memory leaks"
+
+      - alert: CPUThrottlingDetected
+        expr: rate(container_cpu_cfs_throttled_seconds_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "CPU throttling detected"
+          description: "Container {{ $labels.name }} is being CPU throttled"
+          impact: "Performance degradation likely"
+
+      - alert: DiskIOSaturation
+        expr: rate(node_disk_io_time_seconds_total[1m]) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Disk I/O saturation"
+          description: "Disk I/O utilization is {{ $value }}% on {{ $labels.instance }}"
+
+  - name: business_metrics
+    interval: 1m
+    rules:
+      # Business-Level Monitoring
+      - alert: RequestThroughputAnomaly
+        expr: abs(rate(http_requests_total[5m]) - avg_over_time(rate(http_requests_total[5m])[1h:5m])) / avg_over_time(rate(http_requests_total[5m])[1h:5m]) > 0.3
+        for: 5m
+        labels:
+          severity: info
+          component: business-metrics
+        annotations:
+          summary: "Request throughput anomaly detected"
+          description: "Current throughput deviates by {{ $value }}% from hourly average"
+
+      - alert: UserExperienceDegraded
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{status!~"5.."}[5m])) > 5.0
+        for: 3m
+        labels:
+          severity: critical
+          component: user-experience
+        annotations:
+          summary: "User experience degraded"
+          description: "95th percentile response time is {{ $value }}s, above 5s SLA"
+          impact: "Users experiencing slow response times"

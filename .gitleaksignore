@@ -1,0 +1,16 @@
+# Ignore localhost URLs in documentation and test files - these are not secrets
+localhost-urls
+
+# Ignore test API keys and mock data
+test-*
+mock-*
+example-*
+demo-*
+
+# Ignore localhost URLs in specific files
+*.md:localhost-urls
+*.js:localhost-urls
+*.ts:localhost-urls
+*.html:localhost-urls
+*.yml:localhost-urls
+*.yaml:localhost-urls

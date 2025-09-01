@@ -10,6 +10,7 @@ import { LogContext, log } from '@/utils/logger';
 import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/middleware/express-validator';
 import { body, param, query } from 'express-validator';
+import { MemoryValidationMiddleware } from '@/middleware/memory-validation';
 
 interface Memory {
   id: string;
@@ -40,6 +41,50 @@ const memories: Map<string, Memory> = new Map();
 const router = Router();
 
 /**
+ * GET /api/v1/memory/health
+ * Health check endpoint for memory service
+ */
+router.get('/health', async (req: Request, res: Response) => {
+  try {
+    const totalMemories = memories.size;
+    const memorysByType = Array.from(memories.values()).reduce((acc, memory) => {
+      acc[memory.type] = (acc[memory.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return res.json({
+      success: true,
+      status: 'healthy',
+      data: {
+        service: 'memory',
+        totalMemories,
+        memorysByType,
+        validationRulesActive: MemoryValidationMiddleware.bestPractices ? 
+          MemoryValidationMiddleware.bestPractices.getRules().length : 0,
+        storageType: 'in-memory',
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || uuidv4(),
+      },
+    });
+  } catch (error) {
+    log.error('Memory health check failed', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return res.status(500).json({
+      success: false,
+      status: 'unhealthy',
+      error: {
+        code: 'MEMORY_HEALTH_ERROR',
+        message: 'Memory health check failed',
+      },
+    });
+  }
+});
+
+/**
  * GET /api/v1/memory
  * List all memories for a user
  */
@@ -55,6 +100,7 @@ router.get(
     query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be non-negative'),
   ],
   validateRequest,
+  MemoryValidationMiddleware.addValidationReport,
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
@@ -112,6 +158,61 @@ router.get(
     }
   }
 );
+
+/**
+ * GET /api/v1/memory/search
+ * Search memories by query (must come before /:id route)
+ */
+router.get('/search', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { query, limit = 10 } = req.query;
+    const userId = (req as any).user?.id || 'anonymous';
+
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_QUERY',
+          message: 'Search query is required',
+        },
+      });
+    }
+
+    // Simple search implementation - filter memories by content match
+    const searchResults = Array.from(memories.values())
+      .filter(memory => 
+        memory.userId === userId && 
+        memory.content.toLowerCase().includes(query.toLowerCase())
+      )
+      .sort((a, b) => new Date(b.metadata.timestamp).getTime() - new Date(a.metadata.timestamp).getTime())
+      .slice(0, Number(limit));
+
+    return res.json({
+      success: true,
+      data: {
+        memories: searchResults,
+        query,
+        total: searchResults.length,
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || uuidv4(),
+      },
+    });
+  } catch (error) {
+    log.error('Failed to search memories', LogContext.API, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'MEMORY_SEARCH_ERROR',
+        message: 'Failed to search memories',
+      },
+    });
+  }
+});
 
 /**
  * GET /api/v1/memory/:id
@@ -201,8 +302,11 @@ router.post(
       .optional()
       .isFloat({ min: 0, max: 1 })
       .withMessage('Importance must be between 0 and 1'),
+    body('enforceRules').optional().isBoolean().withMessage('Enforce rules must be boolean'),
+    body('autoFix').optional().isBoolean().withMessage('Auto fix must be boolean'),
   ],
   validateRequest,
+  MemoryValidationMiddleware.validateMemoryCreation,
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id || 'anonymous';
@@ -238,6 +342,7 @@ router.post(
         data: {
           id: memory.id,
           message: 'Memory created successfully',
+          validationReport: (req as any).memoryValidation || null,
         },
         metadata: {
           timestamp: new Date().toISOString(),
@@ -525,6 +630,39 @@ router.post(
     }
   }
 );
+
+/**
+ * GET /api/v1/memory/validation/stats
+ * Get memory validation statistics
+ */
+router.get('/validation/stats', authenticate, async (req: Request, res: Response) => {
+  try {
+    const stats = MemoryValidationMiddleware.getValidationStats();
+    
+    return res.json({
+      success: true,
+      data: {
+        ...stats,
+        rules: MemoryValidationMiddleware.bestPractices ? 
+          MemoryValidationMiddleware.bestPractices.getRules().length : 0
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || uuidv4(),
+      }
+    });
+  } catch (error) {
+    log.error('Failed to get validation stats', LogContext.API, { error });
+    
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_STATS_ERROR',
+        message: 'Failed to retrieve validation statistics'
+      }
+    });
+  }
+});
 
 /**
  * POST /api/v1/memory/bulk

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Voice AI Assistant</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f7;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status.connected { background: #d1edff; color: #0066cc; }
+        .status.disconnected { background: #ffd1d1; color: #cc0000; }
+        .status.recording { background: #ffe6cc; color: #cc6600; }
+        .status.processing { background: #e6f3ff; color: #0066cc; }
+        .status.speaking { background: #ccffcc; color: #006600; }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #007aff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover { background: #0051d5; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn.record { background: #ff3b30; }
+        .btn.record.recording { background: #ff6b60; }
+        
+        .transcript {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            min-height: 60px;
+            font-family: monospace;
+        }
+        
+        .response {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            min-height: 60px;
+        }
+        
+        .settings {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .setting-group {
+            margin: 15px 0;
+        }
+        
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .setting-group select, .setting-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .log {
+            background: #000;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .text-input-area {
+            margin: 20px 0;
+        }
+        
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .audio-player {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007aff;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Real-Time Voice AI Assistant</h1>
+        
+        <div id="status" class="status disconnected">Connecting to voice service...</div>
+        
+        <div class="controls">
+            <button id="connectBtn" class="btn">Connect</button>
+            <button id="recordBtn" class="btn record" disabled>🎤 Start Recording</button>
+            <button id="stopBtn" class="btn" disabled>⏹️ Stop</button>
+            <button id="clearBtn" class="btn">🗑️ Clear</button>
+        </div>
+        
+        <div class="text-input-area">
+            <input type="text" id="textInput" class="text-input" placeholder="Type your message or use voice..." disabled>
+            <button id="sendTextBtn" class="btn" disabled>Send Text</button>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric">
+                <div id="latency" class="metric-value">-</div>
+                <div class="metric-label">Latency (ms)</div>
+            </div>
+            <div class="metric">
+                <div id="confidence" class="metric-value">-</div>
+                <div class="metric-label">Confidence</div>
+            </div>
+            <div class="metric">
+                <div id="intent" class="metric-value">-</div>
+                <div class="metric-label">Intent</div>
+            </div>
+        </div>
+        
+        <div class="transcript">
+            <strong>Your Speech:</strong>
+            <div id="transcriptContent">Speak into your microphone...</div>
+        </div>
+        
+        <div class="response">
+            <strong>AI Response:</strong>
+            <div id="responseContent">AI will respond here...</div>
+        </div>
+        
+        <audio id="audioPlayer" class="audio-player" controls style="display:none;"></audio>
+        
+        <div class="settings">
+            <h3>⚙️ Voice Settings</h3>
+            <div class="setting-group">
+                <label>Language:</label>
+                <select id="languageSelect">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>Voice:</label>
+                <select id="voiceSelect">
+                    <option value="nari_natural">Nari Natural</option>
+                    <option value="nari_expressive">Nari Expressive</option>
+                    <option value="nari_professional">Nari Professional</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>
+                    <input type="checkbox" id="wakewordEnabled" checked> Enable Wake Word Detection
+                </label>
+            </div>
+            <button id="updateSettingsBtn" class="btn">Update Settings</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        class VoiceWebSocketClient {
+            constructor() {
+                this.ws = null;
+                this.isRecording = false;
+                this.mediaRecorder = null;
+                this.sessionId = null;
+                this.audioContext = null;
+                this.audioChunks = [];
+                
+                this.initializeUI();
+            }
+            
+            initializeUI() {
+                // Button event listeners
+                document.getElementById('connectBtn').onclick = () => this.connect();
+                document.getElementById('recordBtn').onclick = () => this.toggleRecording();
+                document.getElementById('stopBtn').onclick = () => this.stopRecording();
+                document.getElementById('clearBtn').onclick = () => this.clearAll();
+                document.getElementById('sendTextBtn').onclick = () => this.sendText();
+                document.getElementById('updateSettingsBtn').onclick = () => this.updateSettings();
+                
+                // Text input enter key
+                document.getElementById('textInput').onkeypress = (e) => {
+                    if (e.key === 'Enter') this.sendText();
+                };
+                
+                this.log('Voice WebSocket client initialized');
+            }
+            
+            async connect() {
+                try {
+                    const wsUrl = 'ws://localhost:9999/ws/voice';
+                    this.log(`Connecting to ${wsUrl}...`);
+                    
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        this.log('✅ WebSocket connected');
+                        this.updateStatus('connected', 'Connected to voice service');
+                        document.getElementById('connectBtn').disabled = true;
+                        document.getElementById('recordBtn').disabled = false;
+                        document.getElementById('textInput').disabled = false;
+                        document.getElementById('sendTextBtn').disabled = false;
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        this.handleMessage(JSON.parse(event.data));
+                    };
+                    
+                    this.ws.onclose = () => {
+                        this.log('❌ WebSocket disconnected');
+                        this.updateStatus('disconnected', 'Disconnected from voice service');
+                        this.resetUI();
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        this.log(`❌ WebSocket error: ${error}`);
+                        this.updateStatus('disconnected', 'Connection error');
+                    };
+                    
+                } catch (error) {
+                    this.log(`❌ Connection failed: ${error.message}`);
+                    this.updateStatus('disconnected', 'Failed to connect');
+                }
+            }
+            
+            handleMessage(message) {
+                this.log(`📥 Received: ${message.type}`);
+                
+                switch (message.type) {
+                    case 'connected':
+                        this.sessionId = message.sessionId;
+                        this.log(`Session ID: ${this.sessionId}`);
+                        break;
+                        
+                    case 'recording_started':
+                        this.updateStatus('recording', 'Recording audio...');
+                        break;
+                        
+                    case 'recording_stopped':
+                        this.updateStatus('processing', 'Processing audio...');
+                        break;
+                        
+                    case 'speech_recognized':
+                        const transcript = message.data.transcript;
+                        const confidence = message.data.confidence;
+                        
+                        document.getElementById('transcriptContent').textContent = transcript;
+                        document.getElementById('confidence').textContent = 
+                            (confidence * 100).toFixed(1) + '%';
+                        
+                        this.log(`🎯 Speech recognized: ${transcript} (${(confidence * 100).toFixed(1)}%)`);
+                        break;
+                        
+                    case 'text_processed':
+                        const response = message.data.response;
+                        const intent = message.data.intent;
+                        const processingTime = message.data.processingTime;
+                        
+                        document.getElementById('responseContent').textContent = response;
+                        document.getElementById('intent').textContent = intent || 'general';
+                        document.getElementById('latency').textContent = processingTime;
+                        
+                        this.updateStatus('speaking', 'AI responding...');
+                        this.log(`🤖 AI Response: ${response}`);
+                        break;
+                        
+                    case 'audio_chunk':
+                        this.handleAudioChunk(message.data);
+                        break;
+                        
+                    case 'speech_complete':
+                        this.updateStatus('connected', 'Ready for next interaction');
+                        this.playAudioResponse();
+                        break;
+                        
+                    case 'error':
+                    case 'speech_error':
+                    case 'processing_error':
+                        this.log(`❌ Error: ${message.data.message}`);
+                        this.updateStatus('connected', 'Error occurred - ready to try again');
+                        break;
+                        
+                    case 'heartbeat':
+                        // Silent heartbeat handling
+                        break;
+                        
+                    default:
+                        this.log(`📄 Unknown message type: ${message.type}`);
+                }
+            }
+            
+            async toggleRecording() {
+                if (!this.isRecording) {
+                    await this.startRecording();
+                } else {
+                    this.stopRecording();
+                }
+            }
+            
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            sampleRate: 16000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        }
+                    });
+                    
+                    this.mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: 'audio/webm;codecs=opus'
+                    });
+                    
+                    this.audioChunks = [];
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.audioChunks.push(event.data);
+                        }
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        this.sendAudioData();
+                    };
+                    
+                    // Send start recording message
+                    this.sendMessage({
+                        type: 'start_recording',
+                        sessionId: this.sessionId
+                    });
+                    
+                    this.mediaRecorder.start(100); // Collect data every 100ms
+                    this.isRecording = true;
+                    
+                    const recordBtn = document.getElementById('recordBtn');
+                    recordBtn.textContent = '🔴 Recording...';
+                    recordBtn.classList.add('recording');
+                    document.getElementById('stopBtn').disabled = false;
+                    
+                    this.log('🎤 Started recording');
+                    
+                } catch (error) {
+                    this.log(`❌ Recording failed: ${error.message}`);
+                    this.updateStatus('connected', 'Microphone access denied');
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    
+                    this.isRecording = false;
+                    
+                    const recordBtn = document.getElementById('recordBtn');
+                    recordBtn.textContent = '🎤 Start Recording';
+                    recordBtn.classList.remove('recording');
+                    document.getElementById('stopBtn').disabled = true;
+                    
+                    this.log('🔴 Stopped recording');
+                }
+            }
+            
+            async sendAudioData() {
+                if (this.audioChunks.length > 0) {
+                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                    const audioBuffer = await audioBlob.arrayBuffer();
+                    
+                    // Send stop recording message
+                    this.sendMessage({
+                        type: 'stop_recording',
+                        sessionId: this.sessionId
+                    });
+                    
+                    // Note: In a real implementation, you'd send the audio data
+                    // For this demo, the audio processing is handled by the browser's mediaRecorder
+                    this.log(`📤 Sent audio data: ${audioBuffer.byteLength} bytes`);
+                }
+            }
+            
+            sendText() {
+                const textInput = document.getElementById('textInput');
+                const text = textInput.value.trim();
+                
+                if (text && this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.sendMessage({
+                        type: 'text_input',
+                        sessionId: this.sessionId,
+                        text: text
+                    });
+                    
+                    document.getElementById('transcriptContent').textContent = text;
+                    textInput.value = '';
+                    
+                    this.log(`💬 Sent text: ${text}`);
+                    this.updateStatus('processing', 'Processing text input...');
+                }
+            }
+            
+            updateSettings() {
+                const settings = {
+                    language: document.getElementById('languageSelect').value,
+                    voice: document.getElementById('voiceSelect').value,
+                    wakewordEnabled: document.getElementById('wakewordEnabled').checked
+                };
+                
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.sendMessage({
+                        type: 'settings',
+                        sessionId: this.sessionId,
+                        settings: settings
+                    });
+                    
+                    this.log(`⚙️ Updated settings: ${JSON.stringify(settings)}`);
+                }
+            }
+            
+            handleAudioChunk(data) {
+                // Accumulate audio chunks for playback
+                if (!this.receivedAudioChunks) {
+                    this.receivedAudioChunks = [];
+                }
+                
+                this.receivedAudioChunks.push(data.chunk);
+                
+                if (data.isLast) {
+                    this.log(`🔊 Received complete audio response: ${data.totalSize} bytes`);
+                }
+            }
+            
+            playAudioResponse() {
+                if (this.receivedAudioChunks && this.receivedAudioChunks.length > 0) {
+                    try {
+                        // Combine all audio chunks
+                        const audioData = this.receivedAudioChunks.map(chunk => 
+                            Uint8Array.from(atob(chunk), c => c.charCodeAt(0))
+                        );
+                        
+                        const combinedArray = new Uint8Array(
+                            audioData.reduce((acc, curr) => acc + curr.length, 0)
+                        );
+                        
+                        let offset = 0;
+                        for (const chunk of audioData) {
+                            combinedArray.set(chunk, offset);
+                            offset += chunk.length;
+                        }
+                        
+                        const audioBlob = new Blob([combinedArray], { type: 'audio/wav' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        
+                        const audioPlayer = document.getElementById('audioPlayer');
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.style.display = 'block';
+                        audioPlayer.play().catch(error => {
+                            this.log(`❌ Audio playback failed: ${error.message}`);
+                        });
+                        
+                        this.receivedAudioChunks = [];
+                        
+                    } catch (error) {
+                        this.log(`❌ Audio processing failed: ${error.message}`);
+                    }
+                }
+            }
+            
+            sendMessage(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                }
+            }
+            
+            updateStatus(type, message) {
+                const statusEl = document.getElementById('status');
+                statusEl.className = `status ${type}`;
+                statusEl.textContent = message;
+            }
+            
+            clearAll() {
+                document.getElementById('transcriptContent').textContent = 'Speak into your microphone...';
+                document.getElementById('responseContent').textContent = 'AI will respond here...';
+                document.getElementById('textInput').value = '';
+                document.getElementById('audioPlayer').style.display = 'none';
+                document.getElementById('latency').textContent = '-';
+                document.getElementById('confidence').textContent = '-';
+                document.getElementById('intent').textContent = '-';
+                this.log('🗑️ Cleared all content');
+            }
+            
+            resetUI() {
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('recordBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('textInput').disabled = true;
+                document.getElementById('sendTextBtn').disabled = true;
+                
+                const recordBtn = document.getElementById('recordBtn');
+                recordBtn.textContent = '🎤 Start Recording';
+                recordBtn.classList.remove('recording');
+                
+                this.isRecording = false;
+                this.sessionId = null;
+            }
+            
+            log(message) {
+                const logEl = document.getElementById('log');
+                const timestamp = new Date().toLocaleTimeString();
+                logEl.innerHTML += `[${timestamp}] ${message}\n`;
+                logEl.scrollTop = logEl.scrollHeight;
+                console.log(`[Voice Client] ${message}`);
+            }
+        }
+        
+        // Initialize the client when page loads
+        const voiceClient = new VoiceWebSocketClient();
+    </script>
+</body>
+</html>

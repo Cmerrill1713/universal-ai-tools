@@ -23,6 +23,9 @@ import { createRateLimiter } from '@/middleware/rate-limiter-enhanced';
 import { intelligentParametersMiddleware,
   optimizeParameters,
  } from '@/middleware/intelligent-parameters';
+import { networkAuthenticate, developmentBypass } from '@/middleware/network-auth';
+import { validateAPIKey } from '@/middleware/request-validator';
+import { securityHeaders } from '@/middleware/security-headers';
 
 // Agent system
 import AgentRegistry from '@/agents/agent-registry';
@@ -154,6 +157,36 @@ class UniversalAIToolsServer {
     }
   }
 
+  private async initializeMemoryOptimizer(): Promise<void> {
+    try {
+      const { memoryOptimizer } = await import('./services/memory-optimizer');
+      memoryOptimizer.start();
+      
+      // Add memory stats endpoint
+      this.app.get('/api/v1/system/memory', (req, res) => {
+        const stats = memoryOptimizer.getMemoryStats();
+        const recommendations = memoryOptimizer.getOptimizationRecommendations();
+        
+        res.json({
+          success: true,
+          data: {
+            ...stats,
+            recommendations
+          },
+          metadata: {
+            timestamp: new Date().toISOString()
+          }
+        });
+      });
+      
+      log.info('🧠 Memory optimizer initialized', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Memory optimizer failed to initialize', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
   private setupMiddleware(): void {
     // Security middleware
     this.app.use(
@@ -169,7 +202,10 @@ class UniversalAIToolsServer {
       })
     );
 
-    // CORS middleware
+    // Additional security headers
+    this.app.use(securityHeaders);
+
+    // CORS middleware - Enhanced for network access
     this.app.use(
       cors({
         origin: (origin, callback) => {
@@ -180,12 +216,27 @@ class UniversalAIToolsServer {
             'http://localhost:5173',
             'http://localhost:3000',
             'http://localhost:3007', // Electron frontend
-            process.env.FRONTEND_URL].filter(Boolean);
+            'http://localhost:9999',
+            'http://localhost:10000',
+            process.env.FRONTEND_URL,
+          ].filter(Boolean);
 
-          if (allowedOrigins.includes(origin)) {
+          // Allow local network connections (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+          const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(origin);
+          
+          // Allow connections from the same machine's network IP
+          const isFromNetworkIP = origin.includes('192.168.1.213');
+
+          if (allowedOrigins.includes(origin) || isLocalNetwork || isFromNetworkIP) {
             callback(null, true);
           } else {
-            callback(null, false);
+            // In development, allow all origins with a warning
+            if (config.environment === 'development') {
+              log.warn(`CORS: Allowing origin ${origin} in development mode`, LogContext.SERVER);
+              callback(null, true);
+            } else {
+              callback(null, false);
+            }
           }
         },
         credentials: true,
@@ -202,6 +253,9 @@ class UniversalAIToolsServer {
 
     // Rate limiting middleware - Apply globally
     this.app.use(createRateLimiter());
+
+    // Network authentication middleware - protect API routes
+    this.app.use('/api', developmentBypass);
 
     // API response middleware
     this.app.use(apiResponseMiddleware);
@@ -240,71 +294,49 @@ class UniversalAIToolsServer {
     log.info('✅ Middleware setup completed', LogContext.SERVER);
   }
 
+  private async checkRedisHealth(): Promise<boolean> {
+    try {
+      const { redisService } = await import('./services/redis-service');
+      return redisService.isConnected();
+    } catch (error) {
+      return false;
+    }
+  }
+
   private async setupRoutesSync(): Promise<void> {
-    // Health check endpoint
-    this.app.get('/health', async (req, res) => {
-      try {
-        // Check MLX service health
-        let mlxHealth = false;
+    // Mount comprehensive health check router
+    try {
+      const healthCheckModule = await import('./routers/health-check');
+      this.app.use('/', healthCheckModule.default);
+      log.info('✅ Health check routes mounted', LogContext.SERVER);
+    } catch (error) {
+      // Fallback basic health endpoint
+      this.app.get('/health', async (req, res) => {
         try {
-          const { mlxService } = await import('./services/mlx-service');
-          const mlxStatus = await mlxService.healthCheck();
-          mlxHealth = mlxStatus.healthy;
+          const health = {
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            version: '1.0.0',
+            environment: config.environment,
+            services: {
+              supabase: !!this.supabase,
+              websocket: !!this.io,
+              agentRegistry: !!this.agentRegistry,
+              redis: await this.checkRedisHealth(),
+            },
+            uptime: process.uptime(),
+          };
+          res.json(health);
         } catch (error) {
-          // MLX service not available
-          mlxHealth = false;
+          res.status(500).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
-
-        const health = {
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          version: '1.0.0',
-          environment: config.environment,
-          services: {
-            supabase: !!this.supabase,
-            websocket: !!this.io,
-            agentRegistry: !!this.agentRegistry,
-            redis: false, // Will be updated when Redis is added
-            mlx: mlxHealth,
-          },
-          agents: this.agentRegistry
-            ? {
-                total: this.agentRegistry.getAvailableAgents().length,
-                loaded: this.agentRegistry.getLoadedAgents().length,
-                available: this.agentRegistry.getAvailableAgents().map((a) => a.name),
-              }
-            : null,
-          uptime: process.uptime(),
-        };
-
-        res.json(health);
-      } catch (error) {
-        // Fallback to synchronous health check if async fails
-        const health = {
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          version: '1.0.0',
-          environment: config.environment,
-          services: {
-            supabase: !!this.supabase,
-            websocket: !!this.io,
-            agentRegistry: !!this.agentRegistry,
-            redis: false,
-            mlx: false,
-          },
-          agents: this.agentRegistry
-            ? {
-                total: this.agentRegistry.getAvailableAgents().length,
-                loaded: this.agentRegistry.getLoadedAgents().length,
-                available: this.agentRegistry.getAvailableAgents().map((a) => a.name),
-              }
-            : null,
-          uptime: process.uptime(),
-        };
-
-        res.json(health);
-      }
-    });
+      });
+      log.warn('⚠️ Using fallback health endpoint', LogContext.SERVER);
+    }
 
     // System status endpoint (frontend expects this)
     this.app.get('/api/v1/status', async (req, res) => {
@@ -319,7 +351,7 @@ class UniversalAIToolsServer {
             database: this.supabase ? 'healthy' : 'unavailable',
             websocket: this.io ? 'healthy' : 'unavailable',
             agents: this.agentRegistry ? 'healthy' : 'unavailable',
-            redis: false,
+            redis: await this.checkRedisHealth() ? 'healthy' : 'unavailable',
             mlx: false,
           },
           systemInfo: {
@@ -437,6 +469,7 @@ class UniversalAIToolsServer {
           '/api/v1/agents/execute',
           '/api/v1/agents/parallel',
           '/api/v1/agents/orchestrate',
+          '/api/v1/agents/typescript-analysis',
           '/api/v1/a2a',
           '/api/v1/memory',
           '/api/v1/orchestration',
@@ -450,6 +483,8 @@ class UniversalAIToolsServer {
           '/api/v1/monitoring',
           '/api/v1/ab-mcts',
           '/api/v1/mlx',
+          '/api/v1/voice',
+          '/api/v1/athena',
         ],
       });
     });
@@ -881,7 +916,7 @@ class UniversalAIToolsServer {
 
   private setupAgentRoutes(): void {
     // List available agents
-    this.app.get('/api/v1/agents', (req, res) => {
+    this.app.get('/api/v1/agents', validateAPIKey, (req, res) => {
       if (!this.agentRegistry) {
         res.status(503).json({
           success: false,
@@ -922,6 +957,7 @@ class UniversalAIToolsServer {
     // Execute agent
     this.app.post(
       '/api/v1/agents/execute',
+      validateAPIKey,
       // Context injection middleware temporarily disabled
       intelligentParametersMiddleware(), // Apply intelligent parameters for agent tasks
       async (req, res) => {
@@ -993,6 +1029,7 @@ class UniversalAIToolsServer {
     // Parallel agent execution
     this.app.post(
       '/api/v1/agents/parallel',
+      validateAPIKey,
       /* agentContextMiddleware(), */ async (req, res) => {
         try {
           if (!this.agentRegistry) {
@@ -1087,6 +1124,7 @@ class UniversalAIToolsServer {
     // Agent orchestration
     this.app.post(
       '/api/v1/agents/orchestrate',
+      validateAPIKey,
       /* agentContextMiddleware(), */ async (req, res) => {
         try {
           if (!this.agentRegistry) {
@@ -1164,7 +1202,7 @@ class UniversalAIToolsServer {
     );
 
     // Agent status endpoint
-    this.app.get('/api/v1/agents/status', async (req, res) => {
+    this.app.get('/api/v1/agents/status', validateAPIKey, async (req, res) => {
       try {
         if (!this.agentRegistry) {
           return res.status(503).json({
@@ -1176,25 +1214,63 @@ class UniversalAIToolsServer {
           });
         }
 
-        const agents = this.agentRegistry.getAvailableAgents();
-        const loadedAgents = this.agentRegistry.getLoadedAgents();
+        // Defensive programming: ensure methods exist and return arrays
+        let agents: any[] = [];
+        let loadedAgents: string[] = [];
 
-        // Get performance metrics for each agent
+        try {
+          agents = this.agentRegistry.getAvailableAgents() || [];
+          if (!Array.isArray(agents)) {
+            agents = [];
+          }
+        } catch (error) {
+          log.warn('Failed to get available agents, using empty array', LogContext.API, { error });
+          agents = [];
+        }
+
+        try {
+          loadedAgents = this.agentRegistry.getLoadedAgents() || [];
+          if (!Array.isArray(loadedAgents)) {
+            loadedAgents = [];
+          }
+        } catch (error) {
+          log.warn('Failed to get loaded agents, using empty array', LogContext.API, { error });
+          loadedAgents = [];
+        }
+
+        // Get performance metrics for each agent with additional safety
         const agentStatus = agents.map((agent) => {
-          const isLoaded = loadedAgents.includes(agent.name);
-          return {
-            name: agent.name,
-            category: agent.category,
-            status: isLoaded ? 'active' : 'idle',
-            loaded: isLoaded,
-            health: 'healthy',
-            lastExecutionTime: null,
-            averageResponseTime: 0,
-            totalExecutions: 0,
-            successRate: 100,
-            memoryUsage: isLoaded ? Math.floor(Math.random() * 100) : 0,
-            cpuUsage: isLoaded ? Math.floor(Math.random() * 50) : 0,
-          };
+          try {
+            const isLoaded = loadedAgents.includes(agent?.name);
+            return {
+              name: agent?.name || 'unknown',
+              category: agent?.category || 'unknown',
+              status: isLoaded ? 'active' : 'idle',
+              loaded: isLoaded,
+              health: 'healthy',
+              lastExecutionTime: null,
+              averageResponseTime: 0,
+              totalExecutions: 0,
+              successRate: 100,
+              memoryUsage: isLoaded ? Math.floor(Math.random() * 100) : 0,
+              cpuUsage: isLoaded ? Math.floor(Math.random() * 50) : 0,
+            };
+          } catch (error) {
+            log.warn('Error processing agent data', LogContext.API, { agent, error });
+            return {
+              name: 'error',
+              category: 'error',
+              status: 'error',
+              loaded: false,
+              health: 'unhealthy',
+              lastExecutionTime: null,
+              averageResponseTime: 0,
+              totalExecutions: 0,
+              successRate: 0,
+              memoryUsage: 0,
+              cpuUsage: 0,
+            };
+          }
         });
 
         return res.json({
@@ -1204,8 +1280,8 @@ class UniversalAIToolsServer {
             summary: {
               total: agents.length,
               active: loadedAgents.length,
-              idle: agents.length - loadedAgents.length,
-              healthy: agents.length,
+              idle: Math.max(0, agents.length - loadedAgents.length),
+              healthy: Math.max(0, agents.length),
               unhealthy: 0,
             },
             systemHealth: {
@@ -1224,6 +1300,7 @@ class UniversalAIToolsServer {
         const errorMessage = error instanceof Error ? error.message: String(error);
         log.error('Agent status error', LogContext.API, {
           error: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
         });
 
         return res.status(500).json({
@@ -1231,6 +1308,122 @@ class UniversalAIToolsServer {
           error: {
             code: 'STATUS_ERROR',
             message: 'Failed to get agent status',
+            details: errorMessage,
+          },
+        });
+      }
+    });
+
+    // TypeScript analysis endpoint - runs both context and syntax agents in parallel
+    this.app.post('/api/v1/agents/typescript-analysis', validateAPIKey, async (req, res) => {
+      try {
+        if (!this.agentRegistry) {
+          return res.status(503).json({
+            success: false,
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Agent registry not available',
+            },
+          });
+        }
+
+        const { code, filename } = req.body;
+
+        if (!code || typeof code !== 'string') {
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'MISSING_REQUIRED_FIELD',
+              message: 'TypeScript code is required',
+            },
+          });
+        }
+
+        const requestId = (req.headers['x-request-id'] as string) || `ts_analysis_${Date.now()}`;
+        const userId = (req as any).user?.id || 'anonymous';
+
+        // Prepare parallel requests for both TypeScript agents
+        const parallelRequests = [
+          {
+            agentName: 'typescript_context',
+            context: {
+              userRequest: `Analyze the TypeScript code structure and context:\n\n${code}`,
+              requestId: `${requestId}_context`,
+              workingDirectory: process.cwd(),
+              userId,
+              metadata: {
+                filename: filename || 'code.ts',
+                analysisType: 'context',
+                codeLength: code.length,
+              },
+            },
+          },
+          {
+            agentName: 'typescript_syntax',
+            context: {
+              userRequest: `Validate TypeScript syntax and detect errors:\n\n${code}`,
+              requestId: `${requestId}_syntax`,
+              workingDirectory: process.cwd(),
+              userId,
+              metadata: {
+                filename: filename || 'code.ts',
+                analysisType: 'syntax',
+                codeLength: code.length,
+              },
+            },
+          },
+        ];
+
+        const startTime = Date.now();
+        const results = await this.agentRegistry.processParallelRequests(parallelRequests);
+        const executionTime = Date.now() - startTime;
+
+        // Structure the response for easier consumption
+        const contextResult = results.find(r => r.agentName === 'typescript_context');
+        const syntaxResult = results.find(r => r.agentName === 'typescript_syntax');
+
+        return res.json({
+          success: true,
+          data: {
+            analysis: {
+              context: {
+                success: !contextResult?.error,
+                result: contextResult?.result,
+                error: contextResult?.error,
+              },
+              syntax: {
+                success: !syntaxResult?.error,
+                result: syntaxResult?.result,
+                error: syntaxResult?.error,
+              },
+            },
+            summary: {
+              filename: filename || 'code.ts',
+              codeLength: code.length,
+              analysisTypes: ['context', 'syntax'],
+              executionTime: `${executionTime}ms`,
+              bothSuccessful: !contextResult?.error && !syntaxResult?.error,
+            },
+            rawResults: results,
+          },
+          metadata: {
+            timestamp: new Date().toISOString(),
+            requestId,
+            executionMode: 'parallel_typescript_analysis',
+            agentsUsed: ['typescript_context', 'typescript_syntax'],
+          },
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log.error('TypeScript analysis error', LogContext.API, {
+          error: errorMessage,
+        });
+
+        return res.status(500).json({
+          success: false,
+          error: {
+            code: 'TYPESCRIPT_ANALYSIS_ERROR',
+            message: 'TypeScript analysis failed',
             details: errorMessage,
           },
         });
@@ -1288,6 +1481,18 @@ class UniversalAIToolsServer {
         })
         .catch((error) => {
           log.error('❌ Failed to initialize Device Auth WebSocket', LogContext.WEBSOCKET, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+
+      // Initialize Voice WebSocket service for real-time voice streaming
+      import('./services/voice-websocket-service')
+        .then(({ voiceWebSocketService }) => {
+          voiceWebSocketService.initialize(this.server, this.agentRegistry || undefined);
+          log.info('✅ Voice WebSocket service initialized', LogContext.WEBSOCKET);
+        })
+        .catch((error) => {
+          log.error('❌ Failed to initialize Voice WebSocket service', LogContext.WEBSOCKET, {
             error: error instanceof Error ? error.message : String(error),
           });
         });
@@ -1474,22 +1679,28 @@ class UniversalAIToolsServer {
 
       // Initialize MCP service for context management
       await this.initializeMCPService();
+      await this.initializeMemoryOptimizer();
 
       // Setup error handling AFTER all routes are loaded
       await this.setupErrorHandling();
       log.info('✅ Error handling setup completed (after route loading)', LogContext.SERVER);
 
       // Use dynamic port selection to avoid conflicts
-      const port = config.port || 9999;
+      const { getPorts } = await import('./config/ports');
+      const ports = await getPorts();
+      const port = ports.mainServer;
 
-      // Start server
+      // Start server - bind to all interfaces for network access
+      const host = '0.0.0.0'; // Listen on all network interfaces
       await new Promise<void>((resolve, reject) => {
         this.server
-          .listen(port, () => {
-            log.info(`🚀 Universal AI Tools Service running on port ${port}`, LogContext.SERVER, {
+          .listen(port, host, () => {
+            log.info(`🚀 Universal AI Tools Service running on ${host}:${port}`, LogContext.SERVER, {
               environment: config.environment,
               port,
-              healthCheck: `http://localhost:${port}/health`,
+              host,
+              localAccess: `http://localhost:${port}/health`,
+              networkAccess: `http://192.168.1.213:${port}/health`,
             });
 
             // Enable A2A mesh learning after server is fully started
@@ -1539,24 +1750,30 @@ class UniversalAIToolsServer {
     }
 
     try {
-      // TODO: GraphQL server integration pending implementation
-      // const graphqlModule = await import('./routers/graphql');
-      // const { setupGraphQLServer } = graphqlModule;
-      // 
-      // // Mount GraphQL routes first
-      // this.app.use('/graphql', graphqlModule.default);
-      // this.app.use('/api/graphql', graphqlModule.default);
-      // 
-      // // Setup Apollo Server with HTTP server integration (non-blocking)
-      // setupGraphQLServer(this.server).then(() => {
-      //   log.info('✅ Apollo GraphQL Server fully initialized', LogContext.SERVER);
-      // }).catch((error: Error) => {
-      //   log.warn('⚠️ Apollo GraphQL Server failed to initialize', LogContext.SERVER, { 
-      //     error: error.message 
-      //   });
-      // });
+      const graphqlModule = await import('./routers/graphql');
+      const { setupGraphQLServer, getApolloMiddleware } = graphqlModule;
       
-      log.info('⏳ GraphQL server pending implementation', LogContext.SERVER);
+      // Mount basic GraphQL routes first
+      this.app.use('/api/graphql', graphqlModule.default);
+      
+      // Setup Apollo Server with HTTP server integration (non-blocking)
+      setupGraphQLServer(this.server).then(() => {
+        try {
+          // Mount Apollo middleware after server is ready
+          this.app.use('/graphql', getApolloMiddleware());
+          log.info('✅ Apollo GraphQL Server fully initialized', LogContext.SERVER);
+        } catch (middlewareError) {
+          log.warn('⚠️ Apollo middleware setup failed', LogContext.SERVER, { 
+            error: middlewareError instanceof Error ? middlewareError.message : String(middlewareError)
+          });
+        }
+      }).catch((error: Error) => {
+        log.warn('⚠️ Apollo GraphQL Server failed to initialize', LogContext.SERVER, { 
+          error: error.message 
+        });
+      });
+      
+      log.info('🚀 GraphQL server initialization started', LogContext.SERVER);
     } catch (error) {
       log.warn('⚠️ GraphQL routes failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
@@ -1565,10 +1782,14 @@ class UniversalAIToolsServer {
 
     try {
       // Load evolution router (self-evolving codebase)
-      // TODO: Evolution router pending implementation
-      // const evolutionRouter = await import('./routers/evolution');
-      // this.app.use('/api/v1/evolution', evolutionRouter.default);
-      log.info('⏳ Evolution router pending implementation', LogContext.SERVER);
+      log.info('🧬 Loading evolution router...', LogContext.SERVER);
+      const evolutionRouter = await import('./routers/evolution');
+      log.info('✅ Evolution module imported successfully', LogContext.SERVER, {
+        hasDefault: !!evolutionRouter.default,
+        moduleType: typeof evolutionRouter.default,
+      });
+      this.app.use('/api/v1/evolution', evolutionRouter.default);
+      log.info('✅ Evolution routes loaded - AI self-improvement system active', LogContext.SERVER);
     } catch (error) {
       log.warn('⚠️ Evolution router failed to load', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
@@ -1632,6 +1853,18 @@ class UniversalAIToolsServer {
       log.info('✅ Athena routes loaded', LogContext.SERVER);
     } catch (error) {
       log.error('❌ Failed to load Athena router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load voice commands routes - Hey Athena wake word system
+    try {
+      log.info('🎙️ Loading voice commands router...', LogContext.SERVER);
+      const voiceCommandsModule = await import('./routers/voice-commands');
+      this.app.use('/api/v1/voice', voiceCommandsModule.default);
+      log.info('✅ Voice commands routes loaded - Hey Athena system active', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load voice commands router', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -1711,6 +1944,9 @@ class UniversalAIToolsServer {
       // Initialize MLX service and check platform compatibility
       const { mlxService } = await import('./services/mlx-service');
 
+      // MLX service initializes itself in constructor
+      // No need to call initialize explicitly
+
       // Check if running on Apple Silicon
       const isAppleSilicon = process.arch === 'arm64' && process.platform === 'darwin';
       if (!isAppleSilicon) {
@@ -1749,6 +1985,36 @@ class UniversalAIToolsServer {
 
       // Don't fail server startup if MLX is unavailable
       log.info('🔄 Server continuing without MLX capabilities', LogContext.SERVER);
+    }
+
+    // Load Fast Coordinator routes for LFM2-based routing
+    try {
+      log.info('⚡ Loading Fast Coordinator routes for LFM2...', LogContext.SERVER);
+      const fastCoordinatorModule = await import('./routers/fast-coordinator');
+      this.app.use('/api/v1/fast-coordinator', fastCoordinatorModule.default);
+      log.info('✅ Fast Coordinator routes loaded - LFM2 routing active', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ Fast Coordinator routes not available', LogContext.SERVER, { error });
+    }
+
+    // Load LLM Router routes
+    try {
+      log.info('🧠 Loading LLM Router routes...', LogContext.SERVER);
+      const llmModule = await import('./routers/llm');
+      this.app.use('/api/v1/llm', llmModule.default);
+      log.info('✅ LLM Router routes loaded - LLM endpoints active', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ LLM Router routes not available', LogContext.SERVER, { error });
+    }
+
+    // Load LFM2 direct access routes
+    try {
+      log.info('🚀 Loading LFM2 direct access routes...', LogContext.SERVER);
+      const lfm2Module = await import('./routers/lfm2');
+      this.app.use('/api/v1/lfm2', lfm2Module.default);
+      log.info('✅ LFM2 routes loaded - Fast model endpoints active', LogContext.SERVER);
+    } catch (error) {
+      log.warn('⚠️ LFM2 routes not available', LogContext.SERVER, { error });
     }
 
     // Load system metrics routes
@@ -1833,6 +2099,24 @@ class UniversalAIToolsServer {
       });
     }
 
+    // Load Home Assistant routes
+    try {
+      log.info('🏠 Loading Home Assistant router...', LogContext.SERVER);
+      const homeAssistantModule = await import('./routers/home-assistant');
+      this.app.use('/api/v1/home-assistant', homeAssistantModule.default);
+      
+      // Initialize WebSocket for Home Assistant after server starts
+      if (this.server) {
+        homeAssistantModule.initHomeAssistantWebSocket(this.server);
+      }
+      
+      log.info('✅ Home Assistant routes loaded - Smart home control active', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load Home Assistant router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    
     // Load AB-MCTS orchestration routes
     try {
       log.info('🎯 Loading AB-MCTS router...', LogContext.SERVER);
@@ -1849,17 +2133,33 @@ class UniversalAIToolsServer {
       });
     }
 
+    // Load AB-MCTS Rust service routes
+    try {
+      log.info('🦀 Loading AB-MCTS Rust service router...', LogContext.SERVER);
+      const abMctsRustModule = await import('./routers/ab-mcts-rust');
+      log.info('✅ AB-MCTS Rust module imported successfully', LogContext.SERVER, {
+        hasDefault: !!abMctsRustModule.default,
+        moduleType: typeof abMctsRustModule.default,
+      });
+      this.app.use('/api/v1/ab-mcts-rust', abMctsRustModule.default);
+      log.info('✅ AB-MCTS Rust routes loaded at /api/v1/ab-mcts-rust', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load AB-MCTS Rust router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+        details: 'Rust service integration unavailable, falling back to TypeScript implementation'
+      });
+    }
+
     // Load web search routes
     try {
       log.info('🌐 Loading web search router...', LogContext.SERVER);
-      // TODO: Web search router pending implementation
-      // const webSearchModule = await import('./routers/web-search');
-      // log.info('✅ Web search module imported successfully', LogContext.SERVER, {
-      //   hasDefault: !!webSearchModule.default,
-      //   moduleType: typeof webSearchModule.default,
-      // });
-      // this.app.use('/api/v1/search', webSearchModule.default);
-      log.info('⏳ Web search routes pending implementation', LogContext.SERVER);
+      const webSearchModule = await import('./routers/web-search');
+      log.info('✅ Web search module imported successfully', LogContext.SERVER, {
+        hasDefault: !!webSearchModule.default,
+        moduleType: typeof webSearchModule.default,
+      });
+      this.app.use('/api/v1/search', webSearchModule.default);
+      log.info('✅ Web search routes loaded', LogContext.SERVER);
     } catch (error) {
       log.error('❌ Failed to load web search router', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
@@ -1914,16 +2214,78 @@ class UniversalAIToolsServer {
       });
     }
 
+    // Load TypeScript analysis router
+    try {
+      log.info('📝 Loading TypeScript analysis router...', LogContext.SERVER);
+      const typescriptAnalysisModule = await import('./routers/typescript-analysis');
+      log.info('✅ TypeScript analysis module imported successfully', LogContext.SERVER, {
+        hasDefault: !!typescriptAnalysisModule.default,
+        moduleType: typeof typescriptAnalysisModule.default,
+      });
+      this.app.use('/api/v1/typescript', typescriptAnalysisModule.default);
+      log.info('✅ TypeScript analysis routes loaded - Parallel agents active', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load TypeScript analysis router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Architecture router temporarily disabled due to cleanup
 
     // Load speech/voice router
     try {
       log.info('🎤 Loading speech router...', LogContext.SERVER);
       const speechModule = await import('./routers/speech');
-      this.app.use('/api/speech', speechModule.default);
-      log.info('✅ Speech router mounted at /api/speech', LogContext.SERVER);
+      this.app.use('/api/v1/speech', speechModule.default);
+      log.info('✅ Speech router mounted at /api/v1/speech', LogContext.SERVER);
     } catch (error) {
       log.error('❌ Failed to load speech router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load file management router
+    try {
+      log.info('🗂️ Loading file management router...', LogContext.SERVER);
+      const filesModule = await import('./routers/files');
+      this.app.use('/api/v1/files', filesModule.default);
+      log.info('✅ File management router mounted at /api/v1/files', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load file management router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load local calendar router (no external dependencies)
+    try {
+      log.info('📅 Loading local calendar router...', LogContext.SERVER);
+      const localCalendarModule = await import('./routers/local-calendar');
+      this.app.use('/api/v1/calendar', localCalendarModule.default);
+      
+      // Initialize calendar service
+      const { localCalendarService } = await import('./services/local-calendar-service');
+      await localCalendarService.initialize();
+      
+      log.info('✅ Local calendar router mounted at /api/v1/calendar', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load local calendar router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load predictive healing router - Production MLX Fine-Tuning & Error Prevention
+    try {
+      log.info('🔮 Loading predictive healing router...', LogContext.SERVER);
+      // Temporarily disabled due to TypeScript compilation errors
+      // const predictiveHealingModule = await import('./routers/predictive-healing');
+      // log.info('✅ Predictive healing module imported successfully', LogContext.SERVER, {
+      //   hasDefault: !!predictiveHealingModule.default,
+      //   moduleType: typeof predictiveHealingModule.default,
+      // });
+      // this.app.use('/api/v1/predictive-healing', predictiveHealingModule.default);
+      log.info('⏸️ Predictive healing routes temporarily disabled for compilation', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load predictive healing router', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -1931,12 +2293,71 @@ class UniversalAIToolsServer {
     // Load news router
     try {
       log.info('📰 Loading news router...', LogContext.SERVER);
-      // TODO: News router pending implementation
-      // const newsModule = await import('./routers/news');
-      // this.app.use('/api/v1/news', newsModule.default);
-      log.info('⏳ News router pending implementation', LogContext.SERVER);
+      const newsModule = await import('./routers/news');
+      log.info('✅ News module imported successfully', LogContext.SERVER, {
+        hasDefault: !!newsModule.default,
+        moduleType: typeof newsModule.default,
+      });
+      this.app.use('/api/v1/news', newsModule.default);
+      log.info('✅ News routes loaded', LogContext.SERVER);
     } catch (error) {
       log.error('❌ Failed to load news router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load Autonomous Master Controller - Central brain for all interactions
+    try {
+      log.info('🧠 Loading Autonomous Master Controller router...', LogContext.SERVER);
+      const autonomousMasterModule = await import('./routers/autonomous-master');
+      log.info('✅ Autonomous Master Controller module imported successfully', LogContext.SERVER, {
+        hasDefault: !!autonomousMasterModule.default,
+        moduleType: typeof autonomousMasterModule.default,
+      });
+      this.app.use('/api/v1/master', autonomousMasterModule.default);
+      
+      // Also load simple conversation endpoint for frontend compatibility
+      const conversationModule = await import('./routers/conversation');
+      this.app.use('/conversation', conversationModule.default);
+      this.app.use('/api/v1/conversation', conversationModule.default);
+      
+      log.info('✅ Autonomous Master Controller routes loaded - Central brain active', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load Autonomous Master Controller router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load Enterprise ML Deployment Service
+    try {
+      log.info('🤖 Loading Enterprise ML Deployment router...', LogContext.SERVER);
+      const enterpriseMLModule = await import('./routers/enterprise-ml-deployment');
+      const { initMLDeploymentWebSocket } = enterpriseMLModule;
+      
+      // Mount the router
+      this.app.use('/api/v1/ml-deployment', enterpriseMLModule.default);
+      
+      // Initialize WebSocket for real-time ML deployment updates
+      if (this.server) {
+        initMLDeploymentWebSocket(this.server);
+        log.info('✅ ML Deployment WebSocket server initialized', LogContext.SERVER);
+      }
+      
+      log.info('✅ Enterprise ML Deployment routes loaded - Advanced ML pipeline active', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load Enterprise ML Deployment router', LogContext.SERVER, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Load Multi-Modal AI router (Phase 16)
+    try {
+      log.info('🤖 Loading Multi-Modal AI router...', LogContext.SERVER);
+      const multiModalModule = await import('./routers/multi-modal-ai');
+      this.app.use('/api/v1/multi-modal', multiModalModule.default);
+      log.info('✅ Multi-Modal AI router mounted at /api/v1/multi-modal', LogContext.SERVER);
+    } catch (error) {
+      log.error('❌ Failed to load Multi-Modal AI router', LogContext.SERVER, {
         error: error instanceof Error ? error.message : String(error),
       });
     }

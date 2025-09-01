@@ -1,11 +1,13 @@
 /**
- * Supabase Vault Secrets Manager
- * Automatically fetches and manages API keys from Supabase Vault
+ * Hybrid Secrets Manager
+ * Uses system keyring as primary storage with Supabase Vault as fallback
+ * Provides secure storage of API keys and sensitive configuration
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config/environment';
 import { LogContext, log } from '../utils/logger';
+import { keyringSecretsManager } from './keyring-secrets-manager';
 
 interface SecretConfig {
   name: string;
@@ -50,7 +52,8 @@ export class SecretsManager {
   private initializeSupabase(): void {
     try {
       if (!config.supabase.url || !config.supabase.serviceKey) {
-        log.warn('⚠️ Supabase configuration missing for secrets manager', LogContext.SYSTEM);
+        log.warn('⚠️ Supabase configuration missing, using keyring-only mode', LogContext.SYSTEM);
+        this.initialized = false; // Only keyring will be used
         return;
       }
 
@@ -61,25 +64,51 @@ export class SecretsManager {
         },
       });
 
-      log.info('✅ Secrets Manager initialized with Supabase', LogContext.SYSTEM);
+      // Test Supabase connection for Vault availability (but don't fail)
+      this.testVaultConnection();
+      
+      log.info('✅ Secrets Manager initialized with Supabase (Vault may not be available)', LogContext.SYSTEM);
       this.initialized = true;
     } catch (error) {
-      log.error('❌ Failed to initialize Secrets Manager', LogContext.SYSTEM, {
+      log.warn('⚠️ Supabase initialization failed, using keyring-only mode', LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
+      this.initialized = false; // Fall back to keyring-only
+    }
+  }
+
+  private async testVaultConnection(): Promise<void> {
+    try {
+      // Test if Vault RPC functions are available
+      await (this as any).supabase.rpc('read_secret', { secret_name: 'test_connection' });
+    } catch (error: any) {
+      if (error?.message?.includes('function') || error?.message?.includes('extension')) {
+        log.warn('⚠️ Supabase Vault extension not available, secrets will use keyring only', LogContext.SYSTEM);
+        this.initialized = false;
+      }
     }
   }
 
   /**
-   * Initialize secrets in Vault from environment variables
+   * Initialize secrets from environment variables and migrate to keyring
    */
   public async initializeFromEnv(): Promise<void> {
-    if (!this.initialized || this.initializing) return;
+    if (this.initializing) return;
 
     this.initializing = true;
 
     try {
-      log.info('🔐 Initializing secrets from environment variables', LogContext.SYSTEM);
+      log.info('🔐 Initializing secrets and migrating to keyring', LogContext.SYSTEM);
+      
+      // First migrate to keyring
+      await keyringSecretsManager.migrateFromEnvironment();
+      await keyringSecretsManager.initializeDefaults();
+      
+      // Continue with Vault initialization if available
+      if (!this.initialized) {
+        log.info('Vault not available, using keyring only', LogContext.SYSTEM);
+        return;
+      }
 
       // Define the secrets to migrate
       const secretsToMigrate = [
@@ -123,16 +152,31 @@ export class SecretsManager {
   }
 
   /**
-   * Store a secret in Vault
+   * Store a secret (stores in both keyring and Vault)
    */
   public async storeSecret(config: SecretConfig): Promise<boolean> {
-    if (!this.initialized) return false;
+    // Store in keyring first
+    try {
+      await keyringSecretsManager.setSecret(config.name, config.value, {
+        description: config.description,
+        encrypt: true
+      });
+      log.info(`✅ Stored secret in keyring: ${config.name}`, LogContext.SYSTEM);
+    } catch (error) {
+      log.error(`Failed to store secret in keyring: ${config.name}`, LogContext.SYSTEM, { error });
+    }
+
+    // Also store in Vault if available
+    if (!this.initialized) return true; // Return true if keyring succeeded
 
     try {
       // Check if secret already exists
-      const { data: existing } = await (this as any).supabase
-        .rpc('read_secret', { secret_name: config.name })
-        .single();
+      const { data: existing, error: readError } = await (this as any).supabase
+        .rpc('read_secret', { secret_name: config.name });
+
+      if (readError && !readError.message?.includes('could not find')) {
+        throw readError;
+      }
 
       if (existing) {
         // Update existing secret
@@ -192,9 +236,21 @@ export class SecretsManager {
   }
 
   /**
-   * Get a secret from Vault
+   * Get a secret (tries keyring first, then Vault)
    */
   public async getSecret(name: string): Promise<string | null> {
+    // Try keyring first
+    try {
+      const keyringValue = await keyringSecretsManager.getSecret(name);
+      if (keyringValue) {
+        log.debug(`Retrieved secret from keyring: ${name}`, LogContext.SYSTEM);
+        return keyringValue;
+      }
+    } catch (error) {
+      log.warn(`Failed to get secret from keyring: ${name}`, LogContext.SYSTEM, { error });
+    }
+
+    // Fallback to Vault
     if (!this.initialized) return null;
 
     try {
@@ -204,9 +260,17 @@ export class SecretsManager {
 
       if (error) throw error;
 
+      // If found in Vault, also store in keyring for faster access
+      if (data) {
+        await keyringSecretsManager.setSecret(name, data, {
+          description: `Migrated from Vault`,
+          encrypt: true
+        });
+      }
+
       return data || null;
     } catch (error) {
-      log.error(`❌ Failed to get secret: ${name}`, LogContext.SYSTEM, {
+      log.error(`❌ Failed to get secret from Vault: ${name}`, LogContext.SYSTEM, {
         error: error instanceof Error ? error.message : String(error),
       });
       return null;

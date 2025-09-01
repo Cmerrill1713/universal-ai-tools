@@ -1,0 +1,55 @@
+# TypeScript fallback backend for Vision Resource Manager
+# Provides compatibility layer during Rust migration
+
+FROM node:20-bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libssl3 \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user for security
+RUN groupadd -r app && useradd -r -g app app
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy TypeScript source files
+COPY src/services/vision-resource-manager.ts ./src/services/
+COPY src/services/vision-resource-manager-enhanced.ts ./src/services/
+COPY src/utils/logger.ts ./src/utils/
+COPY src/types/index.ts ./src/types/
+
+# Copy TypeScript configuration
+COPY tsconfig.json ./
+
+# Install TypeScript and build
+RUN npm install -g tsx typescript
+RUN npx tsc --build
+
+# Set ownership
+RUN chown -R app:app /app
+
+# Switch to non-root user
+USER app
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3002/health || exit 1
+
+# Expose port
+EXPOSE 3002
+
+# Start the TypeScript backend
+CMD ["node", "dist/services/vision-resource-manager.js"]
+
+# Metadata
+LABEL version="1.0.0"
+LABEL description="Universal AI Tools - Vision Resource Manager (TypeScript Backend)"
+LABEL maintainer="Universal AI Tools <dev@universal-ai-tools.com>"

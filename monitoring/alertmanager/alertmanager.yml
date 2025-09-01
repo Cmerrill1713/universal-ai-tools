@@ -1,17 +1,9 @@
 global:
   smtp_smarthost: 'localhost:587'
-  smtp_from: 'alerts@universal-ai-tools.local'
-  smtp_hello: 'universal-ai-tools.local'
-  smtp_require_tls: false
-  
-  # Slack webhook URL (configure this in production)
+  smtp_from: 'alerts@universal-ai-tools.com'
+  smtp_auth_username: 'alerts@universal-ai-tools.com'
+  smtp_auth_password: 'your-smtp-password'
   slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-  
-  # PagerDuty integration key (configure this in production)  
-  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
-  
-  # Default repeat interval
-  repeat_interval: 12h
 
 # Main routing tree
 route:

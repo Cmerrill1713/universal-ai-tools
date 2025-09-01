@@ -125,6 +125,7 @@ export interface ServiceConfig {
     openaiApiKey?: string;
     anthropicApiKey?: string;
     ollamaUrl?: string;
+    lmStudioUrl?: string;
   };
   vision: {
     enableSdxlRefiner: boolean;

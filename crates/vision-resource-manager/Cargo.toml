@@ -1,0 +1,72 @@
+[package]
+name = "vision-resource-manager"
+version = "0.1.0"
+edition = "2021"
+authors = ["Universal AI Tools <dev@universal-ai-tools.com>"]
+description = "High-performance GPU/VRAM resource management for AI vision tasks"
+license = "MIT"
+
+[lib]
+name = "vision_resource_manager"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "benchmark"
+path = "src/bin/benchmark.rs"
+
+[build-dependencies]
+napi-build = "2.2.3"
+
+[dependencies]
+# Node.js bindings
+napi = { version = "2.16", features = ["napi8"] }
+napi-derive = "2.16"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Random number generation
+rand = "0.8"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Collections and utilities
+uuid = { version = "1.0", features = ["v4", "serde"] }
+dashmap = "6.0"  # Thread-safe HashMap
+parking_lot = "0.12"  # Fast synchronization primitives
+
+# Time and system
+chrono = { version = "0.4", features = ["serde"] }
+sysinfo = "0.32"  # System information (GPU, memory)
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json"] }
+
+# System monitoring (GPU-specific)
+[target.'cfg(target_os = "macos")'.dependencies]
+metal = "0.27"  # Metal framework for GPU monitoring on macOS
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nvml-wrapper = { version = "0.10", optional = true }  # NVIDIA Management Library
+
+[features]
+default = []
+gpu-nvidia = ["nvml-wrapper"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true

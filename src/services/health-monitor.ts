@@ -83,13 +83,32 @@ export class HealthMonitor {
   async start(): Promise<void> {
     log.info('🏥 Starting health monitor service', LogContext.SYSTEM);
 
-    // Run initial health check
-    await this.checkAllServices();
+    // Run initial health check with timeout to prevent server hanging
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Health monitor initialization timeout after 8 seconds')), 8000);
+      });
+      
+      const healthCheckPromise = this.checkAllServices();
+      await Promise.race([healthCheckPromise, timeoutPromise]);
+      
+      log.info('✅ Initial health check completed', LogContext.SYSTEM);
+    } catch (error) {
+      log.warn('⚠️ Initial health check timed out or failed, continuing with periodic checks', LogContext.SYSTEM, {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
 
     // Schedule periodic checks
     this.checkInterval = setInterval(async () => {
-      await this.checkAllServices();
+      try {
+        await this.checkAllServices();
+      } catch (error) {
+        log.warn('⚠️ Periodic health check failed', LogContext.SYSTEM, { error });
+      }
     }, this.CHECK_INTERVAL);
+    
+    log.info('🔄 Health monitor periodic checks scheduled', LogContext.SYSTEM);
   }
 
   stop(): void {

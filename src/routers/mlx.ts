@@ -123,6 +123,36 @@ const fineTuningJobs = new Map<
 >();
 
 /**
+ * @route GET /api/v1/mlx/status  
+ * @description Get MLX service status (alias for health check)
+ */
+router.get(
+  '/status',
+  mlxGeneralLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const startTime = Date.now();
+      const healthStatus = await mlxService.healthCheck();
+      const responseTime = Date.now() - startTime;
+
+      const response = {
+        status: healthStatus.healthy ? 'operational' : 'degraded',
+        service: 'MLX Apple Silicon ML Service',
+        ...healthStatus,
+        responseTime,
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+      };
+
+      sendSuccess(res, response);
+    } catch (error) {
+      log.error('Failed MLX status check', LogContext.API, { error });
+      next(error);
+    }
+  }
+);
+
+/**
  * @route GET /api/v1/mlx/health
  * @description Health check for MLX service
  */

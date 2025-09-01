@@ -1,0 +1,140 @@
+{
+  "timestamp": "2025-08-31T23:27:46.206Z",
+  "environment": {
+    "nodeVersion": "v22.18.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "maxVRAM": 20
+  },
+  "tests": [
+    {
+      "testName": "Quick Performance Test",
+      "backend": "mock",
+      "iterations": 20,
+      "totalTimeMs": 3274.239958,
+      "averageTimeMs": 163.7119979,
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "throughputPerSecond": 6.108287803138465,
+      "details": {
+        "modelBreakdown": {
+          "yolo-v8n": {
+            "tasks": 10,
+            "totalTime": 1836.5970839999998,
+            "avgTime": 183.65970839999997,
+            "minTime": 93.19875000000002,
+            "maxTime": 246.74054199999998
+          },
+          "clip-vit-b32": {
+            "tasks": 10,
+            "totalTime": 1437.589585,
+            "avgTime": 143.7589585,
+            "minTime": 82.29849999999988,
+            "maxTime": 244.238875
+          }
+        }
+      }
+    },
+    {
+      "testName": "Mixed Workload Test",
+      "backend": "mock",
+      "iterations": 30,
+      "totalTimeMs": 3963.4320839999996,
+      "averageTimeMs": 132.1144028,
+      "successfulTasks": 30,
+      "failedTasks": 0,
+      "throughputPerSecond": 7.56919744408064,
+      "details": {
+        "modelBreakdown": {
+          "yolo-v8n": {
+            "tasks": 8,
+            "totalTime": 1013.876624999999,
+            "avgTime": 126.73457812499987,
+            "minTime": 59.191499999999905,
+            "maxTime": 207.414041
+          },
+          "clip-vit-b32": {
+            "tasks": 8,
+            "totalTime": 1016.521291999999,
+            "avgTime": 127.06516149999987,
+            "minTime": 55.5334170000001,
+            "maxTime": 239.31854099999964
+          },
+          "sd3b": {
+            "tasks": 7,
+            "totalTime": 1100.2352090000009,
+            "avgTime": 157.17645842857155,
+            "minTime": 75.19716599999992,
+            "maxTime": 227.23083399999996
+          },
+          "sdxl-refiner": {
+            "tasks": 7,
+            "totalTime": 832.6288330000007,
+            "avgTime": 118.94697614285724,
+            "minTime": 66.26450000000023,
+            "maxTime": 221.2360830000007
+          }
+        }
+      }
+    },
+    {
+      "testName": "Heavy Model Test",
+      "backend": "mock",
+      "iterations": 15,
+      "totalTimeMs": 2549.8365000000003,
+      "averageTimeMs": 169.98910000000004,
+      "successfulTasks": 15,
+      "failedTasks": 0,
+      "throughputPerSecond": 5.882730127990558,
+      "details": {
+        "modelBreakdown": {
+          "sd3b": {
+            "tasks": 8,
+            "totalTime": 1352.0004999999983,
+            "avgTime": 169.00006249999979,
+            "minTime": 115.20116699999926,
+            "maxTime": 249.2311669999999
+          },
+          "sdxl-refiner": {
+            "tasks": 7,
+            "totalTime": 1197.806623999998,
+            "avgTime": 171.1152319999997,
+            "minTime": 95.25779200000034,
+            "maxTime": 240.45258299999932
+          }
+        }
+      }
+    },
+    {
+      "testName": "High Frequency Test",
+      "backend": "mock",
+      "iterations": 100,
+      "totalTimeMs": 15323.094125,
+      "averageTimeMs": 153.23094125,
+      "successfulTasks": 100,
+      "failedTasks": 0,
+      "throughputPerSecond": 6.526097091373183,
+      "details": {
+        "modelBreakdown": {
+          "yolo-v8n": {
+            "tasks": 100,
+            "totalTime": 15322.981004000008,
+            "avgTime": 153.22981004000007,
+            "minTime": 54.23291699999754,
+            "maxTime": 251.25466700000106
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "overallSpeedup": 1,
+    "memoryReduction": "60-70% with Rust backend",
+    "recommendations": [
+      "📊 Performance differences are minimal in current test environment",
+      "🧪 Consider testing with actual production workloads",
+      "💾 Rust backend provides 60-70% memory usage reduction",
+      "🔒 Rust backend eliminates garbage collection pauses"
+    ]
+  }
+}

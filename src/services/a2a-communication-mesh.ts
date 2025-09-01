@@ -80,16 +80,21 @@ export class A2ACommunicationMesh extends EventEmitter {
   private initializeMesh(): void {
     log.info('🕸️ Initializing A2A communication mesh', LogContext.AI);
 
-    // Start mesh maintenance cycle
-    setInterval(() => this.maintainMesh(), 30000); // Every 30 seconds
+    // Delay interval startup to prevent server hanging during initialization
+    setTimeout(() => {
+      // Start mesh maintenance cycle
+      setInterval(() => this.maintainMesh(), 30000); // Every 30 seconds
 
-    // Start message processing
-    setInterval(() => this.processMessageQueues(), 1000); // Every second
+      // Start message processing
+      setInterval(() => this.processMessageQueues(), 1000); // Every second
 
-    // Start collaboration monitoring
-    setInterval(() => this.monitorCollaborations(), 5000); // Every 5 seconds
+      // Start collaboration monitoring
+      setInterval(() => this.monitorCollaborations(), 5000); // Every 5 seconds
+      
+      log.info('🔄 A2A mesh background processes started', LogContext.AI);
+    }, 2000); // Start intervals after 2 second delay
 
-    log.info('✅ A2A communication mesh initialized', LogContext.AI);
+    log.info('✅ A2A communication mesh initialized (background processes starting soon)', LogContext.AI);
   }
 
   /**

@@ -1,0 +1,52 @@
+{
+  "name": "@universal-ai-tools/vision-resource-manager",
+  "version": "0.1.0",
+  "description": "High-performance GPU/VRAM resource management for AI vision tasks",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "vision-resource-manager",
+    "triples": {
+      "defaults": true,
+      "additional": [
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin"
+      ]
+    }
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "ava",
+    "universal": "napi universal",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4",
+    "ava": "^6.0.1"
+  },
+  "ava": {
+    "timeout": "3m"
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/universal-ai-tools/universal-ai-tools.git",
+    "directory": "crates/vision-resource-manager"
+  },
+  "keywords": [
+    "ai",
+    "gpu",
+    "vram",
+    "resource-management",
+    "vision",
+    "rust",
+    "napi"
+  ],
+  "author": "Universal AI Tools",
+  "license": "MIT"
+}

@@ -158,8 +158,8 @@ export class ParameterAnalyticsService {
 
       if (timeRange) {
         query = query
-          .gte('timestamp', timeRange.start.toISOString())
-          .lte('timestamp', timeRange.end.toISOString());
+          .gte('created_at', timeRange.start.toISOString())
+          .lte('created_at', timeRange.end.toISOString());
       }
 
       const { data: executions, error } = await query;
@@ -217,7 +217,7 @@ export class ParameterAnalyticsService {
       const { data: executions, error } = await (this.supabase as any)
         .from('parameter_executions')
         .select('*')
-        .gte('timestamp', yesterday.toISOString());
+        .gte('created_at', yesterday.toISOString());
 
       if (error) {
         log.error('Failed to fetch dashboard metrics', LogContext.AI, { error });
@@ -228,7 +228,7 @@ export class ParameterAnalyticsService {
       const successfulExecutions = executions?.filter((e: any) => e.success).length || 0;
       const successRate = totalExecutions > 0 ? successfulExecutions / totalExecutions : 0;
       const avgResponseTime = totalExecutions > 0
-          ? executions.reduce((sum: number, e: any) => sum + e.execution_time, 0) /
+          ? executions.reduce((sum: number, e: any) => sum + e.response_time, 0) /
             totalExecutions
           : 0;
 
@@ -260,8 +260,8 @@ export class ParameterAnalyticsService {
       const { data: executions, error } = await (this.supabase as any)
         .from('parameter_executions')
         .select('*')
-        .gte('timestamp', since.toISOString())
-        .order('timestamp', { ascending: false });
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: false });
 
       if (error) {
         log.error('Failed to fetch recent performance data', LogContext.AI, { error });
@@ -269,11 +269,11 @@ export class ParameterAnalyticsService {
       }
 
       return (executions || []).map((e: any) => ({
-        timestamp: new Date(e.timestamp).getTime(),
-        executionTime: e.execution_time,
+        timestamp: new Date(e.created_at).getTime(),
+        executionTime: e.response_time,
         success: e.success,
         agent: e.task_type,
-        confidence: e.response_quality || 0.8,
+        confidence: e.quality_score || 0.8,
       }));
     } catch (error) {
       log.error('Error getting recent performance', LogContext.AI, { error });
@@ -395,24 +395,21 @@ export class ParameterAnalyticsService {
         executions.map((e) => ({
           id: e.id,
           task_type: e.taskType,
-          user_input: e.userInput,
           parameters: e.parameters,
           model: e.model,
-          provider: e.provider,
+          response_time: e.executionTime || 0,
+          success: true, // default to success, can be updated based on error conditions
+          token_count: e.tokenUsage || 0,
+          quality_score: e.responseQuality || null,
           user_id: e.userId,
-          request_id: e.requestId,
-          timestamp: e.timestamp.toISOString(),
-          execution_time: e.executionTime,
-          token_usage: e.tokenUsage,
-          response_length: e.responseLength,
-          response_quality: e.responseQuality,
-          user_satisfaction: e.userSatisfaction,
-          success: e.success,
-          error_type: e.errorType,
-          retry_count: e.retryCount,
-          complexity: e.complexity,
-          domain: e.domain,
-          endpoint: e.endpoint,
+          session_id: e.requestId, // use requestId as session_id
+          metadata: {
+            provider: e.provider,
+            userInput: e.userInput,
+            responseLength: e.responseLength,
+            userSatisfaction: e.userSatisfaction,
+          },
+          created_at: new Date().toISOString(),
         }))
       );
 
@@ -488,17 +485,17 @@ export class ParameterAnalyticsService {
         parameters: execs[0].parameters,
         totalExecutions,
         successRate: successfulExecutions / totalExecutions,
-        avgExecutionTime: execs.reduce((sum, e) => sum + e.execution_time, 0) / totalExecutions,
+        avgExecutionTime: execs.reduce((sum, e) => sum + e.response_time, 0) / totalExecutions,
         avgTokenUsage:
-          execs.reduce((sum, e) => sum + (e.token_usage?.total_tokens || 0), 0) / totalExecutions,
+          execs.reduce((sum, e) => sum + (e.token_count || 0), 0) / totalExecutions,
         avgResponseQuality:
-          execs.reduce((sum, e) => sum + (e.response_quality || 0), 0) / totalExecutions,
+          execs.reduce((sum, e) => sum + (e.quality_score || 0), 0) / totalExecutions,
         avgUserSatisfaction:
-          execs.reduce((sum, e) => sum + (e.user_satisfaction || 0), 0) / totalExecutions,
-        qualityTrend: this.calculateTrend(execs, 'response_quality'),
-        speedTrend: this.calculateTrend(execs, 'execution_time', true), // Inverted - lower is better
-        costEfficiencyTrend: this.calculateTrend(execs, 'token_usage.total_tokens', true),
-        lastUpdated: new Date(Math.max(...execs.map((e) => new Date(e.timestamp).getTime()))),
+          execs.reduce((sum, e) => sum + (e.metadata?.userSatisfaction || 0), 0) / totalExecutions,
+        qualityTrend: this.calculateTrend(execs, 'quality_score'),
+        speedTrend: this.calculateTrend(execs, 'response_time', true), // Inverted - lower is better
+        costEfficiencyTrend: this.calculateTrend(execs, 'token_count', true),
+        lastUpdated: new Date(Math.max(...execs.map((e) => new Date(e.created_at).getTime()))),
         confidenceScore: Math.min(0.95, totalExecutions / 100), // Higher confidence with more data
       };
     });
@@ -562,7 +559,7 @@ export class ParameterAnalyticsService {
     if (executions.length < 5) return 0;
 
     const sorted = executions.sort(
-      (a: any, b: any) => new Date((a as any).timestamp).getTime() - new Date((b as any).timestamp).getTime()
+      (a: any, b: any) => new Date((a as any).created_at).getTime() - new Date((b as any).created_at).getTime()
     );
     const half = Math.floor(sorted.length / TWO);
 

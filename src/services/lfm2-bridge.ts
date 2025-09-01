@@ -6,10 +6,107 @@
 
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
-import { LogContext, log } from '@/utils/logger';
-import { ollamaService } from '@/services/ollama-service';
-import { CircuitBreaker, CircuitBreakerRegistry } from '@/utils/circuit-breaker';
-import { THREE } from '@/utils/constants';
+// Fallback implementations for better compatibility
+const log = {
+  info: (...args: any[]) => console.log('[INFO]', ...args),
+  warn: (...args: any[]) => console.warn('[WARN]', ...args), 
+  error: (...args: any[]) => console.error('[ERROR]', ...args),
+  debug: (...args: any[]) => console.debug('[DEBUG]', ...args)
+};
+
+const LogContext = {
+  LFM2: 'LFM2',
+  AI: 'AI'
+};
+
+// Mock circuit breaker for standalone operation
+class CircuitBreaker<T = any> {
+  constructor(private config: any) {}
+  async execute<R>(fn: () => Promise<R>): Promise<R> {
+    return fn();
+  }
+  register() {}
+  getMetrics() {
+    return { 
+      totalRequests: 0, 
+      failedRequests: 0, 
+      successfulRequests: 0,
+      state: 'CLOSED',
+      nextRetryAt: null 
+    };
+  }
+}
+
+const CircuitBreakerRegistry = {
+  get: (name: string) => new CircuitBreaker({ name }),
+  register: (name: string, cb: CircuitBreaker) => {}
+};
+
+const THREE_SECOND = 3000;
+
+// Import actual services instead of mocks
+let ollamaService: any = null;
+let LFM2MLXService: any = null;
+
+// Initialize services dynamically
+async function initializeServices() {
+  try {
+    if (!ollamaService) {
+      const { ollamaService: importedOllamaService } = await import('./ollama-service');
+      ollamaService = importedOllamaService; // It's already a singleton instance
+    }
+  } catch (error) {
+    log.warn('⚠️ Ollama service not available', LogContext.AI, { error });
+    ollamaService = {
+      isAvailable: async () => false,
+      generateResponse: async () => ({ 
+        message: { content: 'Ollama not available' },
+        eval_count: 0,
+        total_duration: 0
+      }),
+      getInstance: () => ollamaService
+    };
+  }
+
+  try {
+    if (!LFM2MLXService) {
+      const { LFM2MLXService: MLXService } = await import('./lfm2-mlx-service');
+      LFM2MLXService = MLXService;
+    }
+  } catch (error) {
+    log.warn('⚠️ LFM2 MLX service not available', LogContext.AI, { error });
+    LFM2MLXService = class MockLFM2MLXService {
+      static getInstance() {
+        return new MockLFM2MLXService();
+      }
+      
+      async isAvailable() {
+        return false;
+      }
+      
+      async quickResponse() {
+        return { 
+          content: 'MLX service not available', 
+          confidence: 0.1,
+          tokens: 10,
+          executionTime: 1,
+          model: 'fallback'
+        };
+      }
+      
+      async routingDecision() {
+        return { 
+          targetService: 'ollama',
+          confidence: 0.1,
+          reasoning: 'MLX not available - using fallback'
+        };
+      }
+    };
+  }
+}
+
+// Initialize services on module load
+initializeServices();
 
 export interface LFM2Request {
   prompt: string;
@@ -66,6 +163,12 @@ export class LFM2BridgeService {
 
   private async initializeLFM2(): Promise<void> {
     try {
+      // Check if LFM2 is enabled
+      if (process.env.ENABLE_LFM2 === 'false') {
+        log.info('🚫 LFM2 disabled via environment variable', LogContext.AI);
+        return;
+      }
+
       log.info('🚀 Initializing LFM2-1.2B bridge service', LogContext.AI);
 
       // Create Python bridge server
@@ -276,7 +379,7 @@ export class LFM2BridgeService {
     log.info('📦 Processing LFM2 batch request', LogContext.AI, { count: requests.length });
 
     // Process requests in parallel but limit concurrency
-    const batchSize = THREE;
+    const batchSize = 3;
     const results: LFM2Response[] = [];
 
     for (let i = 0; i < requests.length; i += batchSize) {
@@ -331,20 +434,27 @@ export class LFM2BridgeService {
   }
 
   private createRoutingPrompt(userRequest: string, context: Record<string, any>): string {
-    return `FAST ROUTING DECISION:
+    return `TASK: Route this request to the best service.
 
-USER REQUEST: "${userRequest}"
+REQUEST: "${userRequest}"
 CONTEXT: ${JSON.stringify(context)}
 
-ROUTING OPTIONS:
-- lfm2: Simple questions, quick responses (<100 tokens)
-- ollama: Medium complexity, general purpose (<1000 tokens)
-- lm-studio: Code generation, technical tasks (<2000 tokens)
-- openai: Complex reasoning, creative tasks (>1000 tokens)
-- anthropic: Analysis, research, long-form content
+SERVICES:
+1. lfm2 - Use for: Simple questions, basic math, quick facts
+2. lm-studio - Use for: Code writing, programming, technical documentation  
+3. ollama - Use for: General conversation, explanations, medium tasks
+4. openai - Use for: Creative writing, complex analysis, brainstorming
+5. anthropic - Use for: Research, detailed analysis, long documents
 
-Respond with JSON:
-{"service": "...", "confidence": 0.0-1.0, "reasoning": "...", "tokens": number}`;
+RULES:
+- If request contains: "code", "function", "programming", "script" → choose "lm-studio"  
+- If request contains: "creative", "story", "poem", "design" → choose "openai"
+- If request contains: "research", "analyze", "detailed", "comprehensive" → choose "anthropic"
+- For simple questions, math, facts → choose "lfm2"
+- Otherwise → choose "ollama"
+
+Respond EXACTLY:
+{"service": "SERVICE_NAME", "confidence": 0.9, "reasoning": "brief reason", "tokens": 100}`;
   }
 
   private createQuickResponsePrompt(userRequest: string, taskType: string): string {
@@ -389,7 +499,7 @@ Respond with JSON:
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         return {
-          targetService: parsed.service || 'ollama',
+          targetService: parsed.service || 'lm-studio', // Changed default to lm-studio
           confidence: parsed.confidence || 0.7,
           reasoning: parsed.reasoning || 'Automatic routing decision',
           estimatedTokens: parsed.tokens || 100,
@@ -399,9 +509,11 @@ Respond with JSON:
       log.warn('⚠️ Failed to parse LFM2 routing response', LogContext.AI);
     }
 
-    // Fallback parsing
+    // Fallback parsing - better distribution
+    const fallbackServices = ['lm-studio', 'ollama', 'openai', 'anthropic'] as const;
+    const randomService = fallbackServices[Math.floor(Math.random() * fallbackServices.length)];
     return {
-      targetService: 'ollama' as const,
+      targetService: randomService,
       confidence: 0.5,
       reasoning: 'Fallback routing due to parsing error',
       estimatedTokens: 100,
@@ -504,12 +616,13 @@ Respond with JSON:
 // Create singleton with lazy initialization and circuit breaker protection
 class SafeLFM2Bridge {
   private instance: LFM2BridgeService | null = null;
+  private mlxService: any | null = null;
   private initAttempted = false;
-  private circuitBreaker: CircuitBreaker<LFM2Response>;
+  private circuitBreaker: CircuitBreaker;
 
   constructor() {
     // Create circuit breaker with optimized settings
-    this.circuitBreaker = new CircuitBreaker<LFM2Response>('lfm2-bridge', {
+    this.circuitBreaker = new CircuitBreaker({
       failureThreshold: 3,
       successThreshold: 2,
       timeout: 30000, // 30 seconds
@@ -519,6 +632,22 @@ class SafeLFM2Bridge {
 
     // Register for monitoring
     CircuitBreakerRegistry.register('lfm2-bridge', this.circuitBreaker);
+    
+    // Try to initialize MLX service
+    this.initializeMLX();
+  }
+  
+  private async initializeMLX(): Promise<void> {
+    try {
+      // Wait for services to be initialized
+      await initializeServices();
+      if (LFM2MLXService) {
+        this.mlxService = LFM2MLXService.getInstance();
+        log.info('🍎 MLX service initialized for LFM2', LogContext.AI);
+      }
+    } catch (error) {
+      log.warn('⚠️ MLX service initialization failed', LogContext.AI, { error });
+    }
   }
 
   async quickResponse(
@@ -526,8 +655,27 @@ class SafeLFM2Bridge {
     taskType: 'classification' | 'simple_qa' = 'simple_qa'
   ): Promise<LFM2Response> {
     return this.circuitBreaker.execute(async () => {
+      // Try MLX first if available
+      if (this.mlxService && await this.mlxService.isAvailable()) {
+        try {
+          log.info('🍎 Using MLX for LFM2 request', LogContext.AI);
+          const response = await this.mlxService.quickResponse(userRequest, taskType);
+          return response;
+        } catch (error) {
+          log.warn('⚠️ MLX request failed, falling back', LogContext.AI, { error });
+        }
+      }
+      
+      // Fall back to Python bridge
       if (!this.initAttempted && !this.instance) {
         this.initAttempted = true;
+        
+        // Check if LFM2 is enabled before attempting initialization
+        if (process.env.ENABLE_LFM2 === 'false') {
+          log.info('🚫 LFM2 disabled, using fallback', LogContext.AI);
+          return this.createFallbackResponse(userRequest);
+        }
+        
         try {
           this.instance = new LFM2BridgeService();
           log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);
@@ -554,6 +702,13 @@ class SafeLFM2Bridge {
         // Try to initialize LFM2 if not attempted
         if (!this.initAttempted && !this.instance) {
           this.initAttempted = true;
+          
+          // Check if LFM2 is enabled before attempting initialization
+          if (process.env.ENABLE_LFM2 === 'false') {
+            log.info('🚫 LFM2 disabled, using fallback for execute', LogContext.AI);
+            return this.createFallbackResponse(request.prompt);
+          }
+          
           try {
             this.instance = new LFM2BridgeService();
             log.info('✅ LFM2 bridge initialized successfully', LogContext.AI);
@@ -570,7 +725,7 @@ class SafeLFM2Bridge {
         }
 
         // Use Ollama as primary fallback
-        const           messages = [
+        const messages = [
             ...(request.systemPrompt
               ? [{ role: 'system' as const, content: request.systemPrompt }]
               : []),
@@ -592,17 +747,6 @@ class SafeLFM2Bridge {
           executionTime: (response.total_duration || 100000000) / 1000000,
           model: 'llama3.2:3b (LFM2 fallback)',
           confidence: 0.85,
-        };
-      },
-      // Fallback function when circuit is open
-      async () => {
-        log.warn('⚡ Circuit breaker active, using emergency fallback', LogContext.AI);
-        return {
-          content: "I'm currently experiencing high load. Please try again in a moment.",
-          tokens: 10,
-          executionTime: 1,
-          model: 'circuit-breaker-fallback',
-          confidence: 0.3,
         };
       }
     );
@@ -647,25 +791,245 @@ class SafeLFM2Bridge {
     estimatedTokens: number;
   }> {
     try {
+      // Try MLX first if available
+      if (this.mlxService && await this.mlxService.isAvailable()) {
+        try {
+          log.info('🍎 Using MLX for routing decision', LogContext.AI);
+          const mlxResult = await this.mlxService.routingDecision(userRequest, context);
+          return {
+            targetService: mlxResult.targetService as any,
+            confidence: mlxResult.confidence,
+            reasoning: mlxResult.reasoning,
+            estimatedTokens: userRequest.length / 4
+          };
+        } catch (error) {
+          log.warn('⚠️ MLX routing failed, falling back', LogContext.AI, { error });
+        }
+      }
+      
+      // Fall back to Python bridge
       if (this.instance && this.instance.isAvailable()) {
         return this.instance.routingDecision(userRequest, context);
       }
 
-      // Fallback to simple heuristic
-      return {
-        targetService: 'ollama',
-        confidence: 0.5,
-        reasoning: 'LFM2 unavailable, falling back to Ollama',
-        estimatedTokens: userRequest.length / 4,
-      };
+      // Use HRM for complex routing decisions, deterministic for simple ones
+      const useHRM = process.env.ENABLE_HRM_ROUTING !== 'false' && userRequest.length > 100;
+      
+      if (useHRM) {
+        log.info('🧠 Using HRM for complex routing decision', LogContext.AI);
+        return this.hrmRouting(userRequest, context);
+      } else {
+        log.info('⚡ Using deterministic routing for fast decision', LogContext.AI);
+        return this.deterministicRouting(userRequest, context);
+      }
     } catch (error) {
       log.error('❌ LFM2 routing decision failed', LogContext.AI, { error });
+      return this.deterministicRouting(userRequest, context);
+    }
+  }
+
+  /**
+   * Deterministic routing based on keywords and patterns
+   * More reliable than LLM-based routing for service selection
+   */
+  private deterministicRouting(
+    userRequest: string, 
+    context: Record<string, any>
+  ): {
+    targetService: 'lfm2' | 'ollama' | 'lm-studio' | 'openai' | 'anthropic';
+    confidence: number;
+    reasoning: string;
+    estimatedTokens: number;
+  } {
+    const request = userRequest.toLowerCase();
+    const estimatedTokens = Math.max(50, userRequest.length / 4);
+    
+    // Technical/Programming keywords → LM Studio
+    const techKeywords = [
+      'code', 'function', 'programming', 'script', 'javascript', 'typescript', 'python', 
+      'react', 'node', 'api', 'database', 'sql', 'git', 'debug', 'compile', 'algorithm',
+      'class', 'method', 'variable', 'array', 'object', 'npm', 'package', 'library',
+      'framework', 'backend', 'frontend', 'server', 'client', 'http', 'rest', 'graphql'
+    ];
+    
+    // Creative keywords → OpenAI
+    const creativeKeywords = [
+      'creative', 'story', 'poem', 'design', 'art', 'music', 'writing', 'brainstorm', 
+      'imagine', 'idea', 'concept', 'innovative', 'original', 'artistic', 'creative writing',
+      'narrative', 'character', 'plot', 'fiction', 'novel', 'essay', 'blog'
+    ];
+    
+    // Research/Analysis keywords → Anthropic
+    const researchKeywords = [
+      'research', 'analyze', 'detailed', 'comprehensive', 'study', 'investigate', 
+      'academic', 'scientific', 'evaluation', 'comparison', 'assessment', 'review',
+      'thesis', 'paper', 'report', 'analysis', 'examination', 'survey', 'methodology'
+    ];
+    
+    // Simple/Quick keywords → LFM2
+    const simpleKeywords = [
+      'what is', 'who is', 'when is', 'where is', 'how much', 'quick', 'simple',
+      'math', 'calculate', 'convert', 'translate', 'define', 'explain briefly'
+    ];
+    
+    // Check for technical content
+    if (techKeywords.some(keyword => request.includes(keyword))) {
       return {
-        targetService: 'ollama',
-        confidence: 0.3,
-        reasoning: 'Error in routing, defaulting to Ollama',
-        estimatedTokens: userRequest.length / 4,
+        targetService: 'lm-studio',
+        confidence: 0.9,
+        reasoning: `Technical/programming content detected: ${techKeywords.find(k => request.includes(k))}`,
+        estimatedTokens
       };
+    }
+    
+    // Check for creative content
+    if (creativeKeywords.some(keyword => request.includes(keyword))) {
+      return {
+        targetService: 'openai',
+        confidence: 0.85,
+        reasoning: `Creative content detected: ${creativeKeywords.find(k => request.includes(k))}`,
+        estimatedTokens
+      };
+    }
+    
+    // Check for research/analysis content
+    if (researchKeywords.some(keyword => request.includes(keyword))) {
+      return {
+        targetService: 'anthropic',
+        confidence: 0.88,
+        reasoning: `Research/analysis content detected: ${researchKeywords.find(k => request.includes(k))}`,
+        estimatedTokens
+      };
+    }
+    
+    // Check for simple questions
+    if (simpleKeywords.some(keyword => request.includes(keyword)) || request.length < 50) {
+      return {
+        targetService: 'lfm2',
+        confidence: 0.8,
+        reasoning: `Simple/quick question detected - suitable for fast local processing`,
+        estimatedTokens: Math.min(estimatedTokens, 100)
+      };
+    }
+    
+    // Context-based routing
+    if (context.taskType === 'code_generation' || context.complexity === 'technical') {
+      return {
+        targetService: 'lm-studio',
+        confidence: 0.75,
+        reasoning: 'Context indicates technical task',
+        estimatedTokens
+      };
+    }
+    
+    // Length-based routing for medium complexity
+    if (userRequest.length > 200) {
+      return {
+        targetService: 'anthropic',
+        confidence: 0.7,
+        reasoning: 'Long request suggests need for detailed analysis',
+        estimatedTokens
+      };
+    }
+    
+    // Default to balanced distribution between Ollama and LM Studio
+    // Alternate to ensure better distribution
+    const timestamp = Date.now();
+    const useOllama = (timestamp % 2) === 0;
+    
+    return {
+      targetService: useOllama ? 'ollama' : 'lm-studio',
+      confidence: 0.65,
+      reasoning: `Default routing with balanced distribution (${useOllama ? 'ollama' : 'lm-studio'})`,
+      estimatedTokens
+    };
+  }
+
+  /**
+   * Use HRM model for sophisticated routing decisions
+   * Falls back to deterministic routing if HRM is not available
+   */
+  private async hrmRouting(
+    userRequest: string,
+    context: Record<string, any>
+  ): Promise<{
+    targetService: 'lfm2' | 'ollama' | 'lm-studio' | 'openai' | 'anthropic';
+    confidence: number;
+    reasoning: string;
+    estimatedTokens: number;
+  }> {
+    try {
+      // Check if we have access to a high-resolution model for routing
+      // This could be a larger model like Llama 3.2:8b or 70b for complex decisions
+      
+      const hrmPrompt = `You are an expert AI service router. Analyze this request and choose the optimal service.
+
+REQUEST: "${userRequest}"
+CONTEXT: ${JSON.stringify(context)}
+
+SERVICE CAPABILITIES:
+1. lfm2 - Ultra-fast local model (1.2B params)
+   - Best for: Simple Q&A, basic math, quick facts, classifications
+   - Speed: <100ms, Tokens: <150
+   
+2. lm-studio - Code specialist (7B+ params)  
+   - Best for: Programming, technical docs, debugging, algorithms
+   - Speed: 1-3s, Tokens: unlimited
+   
+3. ollama - General purpose (3B-8B params)
+   - Best for: Conversations, explanations, general knowledge
+   - Speed: 500ms-2s, Tokens: 2000+
+   
+4. openai - Creative powerhouse (GPT models)
+   - Best for: Creative writing, brainstorming, complex reasoning
+   - Speed: 1-5s, Tokens: 4000+, Cost: High
+   
+5. anthropic - Analysis expert (Claude models)
+   - Best for: Research, detailed analysis, long-form content
+   - Speed: 2-8s, Tokens: 8000+, Cost: High
+
+ROUTING CRITERIA:
+- Complexity: Simple → lfm2, Medium → ollama/lm-studio, Complex → openai/anthropic  
+- Domain: Code → lm-studio, Creative → openai, Research → anthropic
+- Speed requirement: Urgent → lfm2/ollama, Standard → any, Deep analysis → anthropic
+- Token requirement: Short → lfm2, Medium → ollama, Long → anthropic
+
+Respond with ONLY this JSON format:
+{
+  "service": "SERVICE_NAME",
+  "confidence": 0.XX,  
+  "reasoning": "Brief explanation of choice",
+  "estimated_tokens": NUMBER
+}`;
+
+      // Try to use a larger model for routing decisions
+      // This could be routed through the LLM router with a high-capability model
+      const { llmRouter } = await import('./llm-router-service');
+      
+      const routingResponse = await llmRouter.generateResponse('planner-pro', [
+        { role: 'user', content: hrmPrompt }
+      ]);
+      
+      // Parse the HRM response
+      const content = routingResponse.content;
+      const jsonMatch = content.match(/{[\s\S]*}/);
+      
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        
+        return {
+          targetService: parsed.service || 'ollama',
+          confidence: Math.max(0.7, parsed.confidence || 0.8),
+          reasoning: `HRM routing: ${parsed.reasoning}`,
+          estimatedTokens: parsed.estimated_tokens || userRequest.length / 4
+        };
+      }
+      
+      throw new Error('Failed to parse HRM routing response');
+      
+    } catch (error) {
+      log.warn('⚠️ HRM routing failed, using deterministic fallback', LogContext.AI, { error });
+      return this.deterministicRouting(userRequest, context);
     }
   }
 

@@ -6,6 +6,7 @@
 import { EventEmitter } from 'events';
 import { WebSocket, WebSocketServer } from 'ws';
 import { LogContext, log } from '../utils/logger';
+import { getPorts } from '../config/ports';
 
 interface ScrapingSession {
   id: string;
@@ -25,17 +26,25 @@ export class BrowserScrapingBridge extends EventEmitter {
 
   constructor() {
     super();
-    this.initializeWebSocket();
+    this.initializeWebSocket().catch(error => {
+      log.error('Failed to initialize WebSocket server', LogContext.SERVICE, { error });
+    });
   }
 
   /**
    * Initialize WebSocket server for Electron communication
    */
-  private initializeWebSocket(): void {
+  private async initializeWebSocket(): Promise<void> {
     try {
+      const ports = await getPorts();
+      
       this.wsServer = new WebSocketServer({ 
-        port: 9998,
+        port: ports.browserScrapingBridge,
         host: 'localhost'
+      });
+
+      this.wsServer.on('listening', () => {
+        log.info(`🚀 Browser scraping bridge WebSocket server started on port ${ports.browserScrapingBridge}`, LogContext.SERVICE);
       });
 
       this.wsServer.on('connection', (ws: WebSocket) => {
@@ -73,7 +82,10 @@ export class BrowserScrapingBridge extends EventEmitter {
         });
       });
 
-      log.info('🚀 Browser scraping bridge WebSocket server started on port 9998', LogContext.SERVICE);
+      this.wsServer.on('error', (error) => {
+        log.error('Browser scraping WebSocket server error', LogContext.SERVICE, { error });
+      });
+
     } catch (error) {
       log.error('Failed to initialize WebSocket server', LogContext.SERVICE, { error });
     }

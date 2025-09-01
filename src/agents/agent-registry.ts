@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { AgentCategory, type AgentConfig, type AgentDefinition } from '@/types';
 import type { BaseAgent } from './base-agent';
 import type { EnhancedBaseAgent } from './enhanced-base-agent';
+import type { MultiTierBaseAgent } from './multi-tier-base-agent';
 import { LogContext, log } from '@/utils/logger';
 import { a2aMesh } from '@/services/a2a-communication-mesh';
 import { createClient } from '@supabase/supabase-js';
@@ -13,6 +14,9 @@ import { EnhancedRetrieverAgent } from './cognitive/enhanced-retriever-agent';
 import { EnhancedSynthesizerAgent } from './cognitive/enhanced-synthesizer-agent';
 import { EnhancedPersonalAssistantAgent } from './personal/enhanced-personal-assistant-agent';
 import { EnhancedCodeAssistantAgent } from './specialized/enhanced-code-assistant-agent';
+import { EnhancedContextAgent } from './specialized/enhanced-context-agent';
+import { EnhancedSyntaxAgent } from './specialized/enhanced-syntax-agent';
+import { MultiTierPlannerAgent } from './cognitive/multi-tier-planner-agent';
 
 export interface AgentLoadingLock {
   [agentName: string]: Promise<BaseAgent | null>;
@@ -20,9 +24,9 @@ export interface AgentLoadingLock {
 
 export class AgentRegistry extends EventEmitter {
   private agentDefinitions: Map<string, AgentDefinition> = new Map();
-  private loadedAgents: Map<string, BaseAgent | EnhancedBaseAgent> = new Map();
+  private loadedAgents: Map<string, BaseAgent | EnhancedBaseAgent | MultiTierBaseAgent> = new Map();
   private agentUsage: Map<string, Date> = new Map();
-  private loadingLocks: Map<string, Promise<BaseAgent | EnhancedBaseAgent | null>> = new Map();
+  private loadingLocks: Map<string, Promise<BaseAgent | EnhancedBaseAgent | MultiTierBaseAgent | null>> = new Map();
   private supabase: unknown;
 
   constructor() {
@@ -49,8 +53,8 @@ export class AgentRegistry extends EventEmitter {
       category: AgentCategory.CORE,
       description: 'Strategic task planning and decomposition with memory integration',
       priority: 1,
-      className: 'PlannerAgent',
-      modulePath: './cognitive/planner-agent',
+      className: 'EnhancedPlannerAgent',
+      modulePath: './cognitive/enhanced-planner-agent',
       dependencies: [],
       capabilities: ['planning', 'task_decomposition', 'strategy'],
       memoryEnabled: true,
@@ -115,6 +119,147 @@ export class AgentRegistry extends EventEmitter {
       retryAttempts: 2,
     });
 
+    this.registerAgent({
+      name: 'typescript_context',
+      category: AgentCategory.SPECIALIZED,
+      description: 'TypeScript project context analysis and dependency mapping',
+      priority: 2,
+      className: 'EnhancedContextAgent',
+      modulePath: './specialized/enhanced-context-agent',
+      dependencies: [],
+      capabilities: ['typescript_analysis', 'context_analysis', 'dependency_mapping'],
+      memoryEnabled: false,
+      maxLatencyMs: 8000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'typescript_syntax',
+      category: AgentCategory.SPECIALIZED,
+      description: 'TypeScript syntax validation and error detection',
+      priority: 2,
+      className: 'EnhancedSyntaxAgent',
+      modulePath: './specialized/enhanced-syntax-agent',
+      dependencies: [],
+      capabilities: ['typescript_analysis', 'syntax_validation', 'error_detection'],
+      memoryEnabled: false,
+      maxLatencyMs: 8000,
+      retryAttempts: 2,
+    });
+
+    // Register enhanced agent aliases for compatibility
+    this.registerAgent({
+      name: 'enhanced-context-agent',
+      category: AgentCategory.SPECIALIZED,
+      description: 'TypeScript project context analysis and dependency mapping',
+      priority: 2,
+      className: 'EnhancedContextAgent',
+      modulePath: './specialized/enhanced-context-agent',
+      dependencies: [],
+      capabilities: ['typescript_analysis', 'context_analysis', 'dependency_mapping'],
+      memoryEnabled: false,
+      maxLatencyMs: 8000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'enhanced-syntax-agent',
+      category: AgentCategory.SPECIALIZED,
+      description: 'TypeScript syntax validation and error detection',
+      priority: 2,
+      className: 'EnhancedSyntaxAgent',
+      modulePath: './specialized/enhanced-syntax-agent',
+      dependencies: [],
+      capabilities: ['typescript_analysis', 'syntax_validation', 'error_detection'],
+      memoryEnabled: false,
+      maxLatencyMs: 8000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'enhanced-planner-agent',
+      category: AgentCategory.CORE,
+      description: 'Strategic task planning and decomposition with memory integration',
+      priority: 1,
+      className: 'EnhancedPlannerAgent',
+      modulePath: './cognitive/enhanced-planner-agent',
+      dependencies: [],
+      capabilities: ['planning', 'task_decomposition', 'strategy'],
+      memoryEnabled: true,
+      maxLatencyMs: 10000,
+      retryAttempts: 3,
+    });
+
+    this.registerAgent({
+      name: 'enhanced-retriever-agent',
+      category: AgentCategory.COGNITIVE,
+      description: 'Intelligent information retrieval and context gathering',
+      priority: 2,
+      className: 'EnhancedRetrieverAgent',
+      modulePath: './cognitive/enhanced-retriever-agent',
+      dependencies: [],
+      capabilities: ['information_retrieval', 'context_gathering', 'search'],
+      memoryEnabled: true,
+      maxLatencyMs: 5000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'enhanced-synthesizer-agent',
+      category: AgentCategory.COGNITIVE,
+      description: 'Advanced information synthesis and consensus building',
+      priority: 2,
+      className: 'EnhancedSynthesizerAgent',
+      modulePath: './cognitive/enhanced-synthesizer-agent',
+      dependencies: ['planner'],
+      capabilities: ['synthesis', 'consensus', 'analysis'],
+      memoryEnabled: true,
+      maxLatencyMs: 8000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'enhanced-personal-assistant-agent',
+      category: AgentCategory.PERSONAL,
+      description: 'High-level personal AI assistant with vector memory',
+      priority: 1,
+      className: 'EnhancedPersonalAssistantAgent',
+      modulePath: './personal/enhanced-personal-assistant-agent',
+      dependencies: ['planner', 'retriever'],
+      capabilities: ['assistance', 'coordination', 'task_management'],
+      memoryEnabled: true,
+      maxLatencyMs: 8000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'enhanced-code-assistant-agent',
+      category: AgentCategory.SPECIALIZED,
+      description: 'Advanced code generation, analysis, and refactoring',
+      priority: 3,
+      className: 'EnhancedCodeAssistantAgent',
+      modulePath: './specialized/enhanced-code-assistant-agent',
+      dependencies: ['planner'],
+      capabilities: ['code_generation', 'code_analysis', 'refactoring'],
+      memoryEnabled: true,
+      maxLatencyMs: 15000,
+      retryAttempts: 2,
+    });
+
+    this.registerAgent({
+      name: 'multi-tier-planner-agent',
+      category: AgentCategory.CORE,
+      description: 'Multi-tier planning agent for complex task orchestration',
+      priority: 1,
+      className: 'MultiTierPlannerAgent',
+      modulePath: './cognitive/multi-tier-planner-agent',
+      dependencies: [],
+      capabilities: ['planning', 'orchestration', 'multi_tier'],
+      memoryEnabled: true,
+      maxLatencyMs: 12000,
+      retryAttempts: 3,
+    });
+
     log.info(`Registered ${this.agentDefinitions.size} built-in agents`, LogContext.AGENT);
   }
 
@@ -123,29 +268,45 @@ export class AgentRegistry extends EventEmitter {
     this.emit('agent_registered', { agentName: definition.name, definition });
   }
 
-  private createEnhancedAgent(agentName: string, config: AgentConfig): EnhancedBaseAgent | null {
+  private createEnhancedAgent(agentName: string, config: AgentConfig): EnhancedBaseAgent | MultiTierBaseAgent | null {
     switch (agentName) {
       case 'planner':
+      case 'enhanced-planner-agent':
         return new EnhancedPlannerAgent(config);
 
       case 'retriever':
+      case 'enhanced-retriever-agent':
         return new EnhancedRetrieverAgent(config);
 
       case 'synthesizer':
+      case 'enhanced-synthesizer-agent':
         return new EnhancedSynthesizerAgent(config);
 
       case 'personal_assistant':
+      case 'enhanced-personal-assistant-agent':
         return new EnhancedPersonalAssistantAgent(config);
 
       case 'code_assistant':
+      case 'enhanced-code-assistant-agent':
         return new EnhancedCodeAssistantAgent(config);
+
+      case 'typescript_context':
+      case 'enhanced-context-agent':
+        return new EnhancedContextAgent(config);
+
+      case 'typescript_syntax':
+      case 'enhanced-syntax-agent':
+        return new EnhancedSyntaxAgent(config);
+
+      case 'multi-tier-planner-agent':
+        return new MultiTierPlannerAgent(config);
 
       default:
         return null;
     }
   }
 
-  public async getAgent(agentName: string): Promise<BaseAgent | EnhancedBaseAgent | null> {
+  public async getAgent(agentName: string): Promise<BaseAgent | EnhancedBaseAgent | MultiTierBaseAgent | null> {
     // Return loaded agent if available
     if (this.loadedAgents.has(agentName)) {
       this.agentUsage.set(agentName, new Date());

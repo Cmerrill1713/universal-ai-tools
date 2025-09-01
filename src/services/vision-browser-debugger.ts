@@ -76,6 +76,11 @@ class VisionBrowserDebugger {
   }
 
   async start(): Promise<void> {
+    if (process.env.ENABLE_VISION_DEBUG === 'false') {
+      console.log('🚫 Vision Browser Debugger disabled via environment');
+      return;
+    }
+
     if (this.isRunning) {
       console.log('⚠️ Vision Browser Debugger is already running');
       return;
@@ -213,32 +218,21 @@ class VisionBrowserDebugger {
       const imageBuffer = fs.readFileSync(imagePath);
       const imageBase64 = imageBuffer.toString('base64');
 
-      // Call our vision service with specialized prompt for dev tools
+      // Call our vision service with correct API format
       const response = await fetch(`${this.visionServiceUrl}/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image: imageBase64,
-          prompt: `Analyze this browser developer tools screenshot. Look for:
-
-1. Console tab errors (red text, error messages, warnings)
-2. Network tab failed requests (red status codes, failed requests)
-3. Performance issues (slow loading times, large file sizes)
-4. UI elements that appear broken or misaligned
-5. Any visible error dialogs or warning messages
-
-Extract and categorize each issue with coordinates if possible. Focus on actionable debugging information.
-
-Return structured data about:
-- Console errors with messages and severity
-- Network issues with URLs and status codes
-- Performance problems with metrics
-- UI/visual issues with descriptions
-- Suggested fixes for each issue`,
+          imageBase64: imageBase64,
+          options: {
+            extractText: true,
+            generateEmbedding: false,
+            detailed: true,
+          },
         }),
-        signal: AbortSignal.timeout(5000), // 5 second timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout for vision processing
       });
 
       if (response.ok) {

@@ -1,0 +1,221 @@
+# Docker Compose for Vision Resource Manager Deployment
+# Supports both development and production environments
+
+version: '3.8'
+
+services:
+  # Rust Vision Manager Service
+  vision-manager-rust:
+    build:
+      context: ../../../
+      dockerfile: deployment/vision-manager/docker/Dockerfile
+    image: universal-ai-tools/vision-manager:rust-latest
+    container_name: vision-manager-rust
+    restart: unless-stopped
+    
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - RUST_LOG=${RUST_LOG:-info}
+      - MAX_VRAM_GB=${MAX_VRAM_GB:-20.0}
+      - BACKEND_PREFERENCE=${BACKEND_PREFERENCE:-rust}
+      - ENABLE_PERFORMANCE_COMPARISON=${ENABLE_PERFORMANCE_COMPARISON:-false}
+      - METRICS_PORT=${METRICS_PORT:-3001}
+      
+    ports:
+      - "${VISION_MANAGER_PORT:-3001}:3001"
+      - "${METRICS_PORT:-9090}:9090"  # Prometheus metrics
+      
+    volumes:
+      # GPU access (if available)
+      - /dev:/dev
+      # Model cache (persistent storage)
+      - vision-models:/app/models
+      # Logs
+      - vision-logs:/app/logs
+      
+    # Resource limits for container
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+          
+    # GPU access (uncomment if GPU available)
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+      
+    networks:
+      - vision-network
+      
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # TypeScript Fallback Service (for A/B testing)
+  vision-manager-typescript:
+    build:
+      context: ../../../
+      dockerfile: deployment/vision-manager/docker/Dockerfile.typescript
+    image: universal-ai-tools/vision-manager:typescript-latest
+    container_name: vision-manager-typescript
+    restart: unless-stopped
+    
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - MAX_VRAM_GB=${MAX_VRAM_GB:-20.0}
+      - BACKEND_PREFERENCE=typescript
+      - FALLBACK_TO_RUST=true
+      - METRICS_PORT=3002
+      
+    ports:
+      - "${TS_VISION_MANAGER_PORT:-3002}:3002"
+      
+    volumes:
+      - vision-models:/app/models
+      - vision-logs:/app/logs
+      
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+          
+    networks:
+      - vision-network
+
+  # Load Balancer for Traffic Routing
+  vision-proxy:
+    image: nginx:alpine
+    container_name: vision-proxy
+    restart: unless-stopped
+    
+    ports:
+      - "${PROXY_PORT:-3000}:80"
+      
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-templates:/etc/nginx/templates:ro
+      
+    environment:
+      - RUST_BACKEND_WEIGHT=${RUST_BACKEND_WEIGHT:-10}   # 10% initially
+      - TS_BACKEND_WEIGHT=${TS_BACKEND_WEIGHT:-90}       # 90% initially
+      - RUST_BACKEND_HOST=vision-manager-rust:3001
+      - TS_BACKEND_HOST=vision-manager-typescript:3002
+      
+    depends_on:
+      - vision-manager-rust
+      - vision-manager-typescript
+      
+    networks:
+      - vision-network
+      
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vision-prometheus
+    restart: unless-stopped
+    
+    ports:
+      - "9090:9090"
+      
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+      
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      
+    networks:
+      - vision-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vision-grafana
+    restart: unless-stopped
+    
+    ports:
+      - "3003:3000"
+      
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      
+    depends_on:
+      - prometheus
+      
+    networks:
+      - vision-network
+
+  # Performance Testing Service
+  performance-tester:
+    build:
+      context: ../../../
+      dockerfile: deployment/vision-manager/docker/Dockerfile.tester
+    image: universal-ai-tools/vision-manager:tester
+    container_name: vision-performance-tester
+    restart: "no"  # Run on-demand only
+    
+    environment:
+      - TARGET_HOST=vision-proxy
+      - TARGET_PORT=80
+      - TEST_ITERATIONS=${TEST_ITERATIONS:-100}
+      - TEST_CONCURRENT=${TEST_CONCURRENT:-10}
+      
+    volumes:
+      - performance-results:/app/results
+      
+    depends_on:
+      - vision-proxy
+      
+    networks:
+      - vision-network
+      
+    profiles:
+      - testing
+
+# Named volumes for persistent data
+volumes:
+  vision-models:
+    driver: local
+  vision-logs:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  performance-results:
+    driver: local
+
+# Network for service communication
+networks:
+  vision-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16

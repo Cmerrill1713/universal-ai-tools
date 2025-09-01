@@ -1,0 +1,130 @@
+groups:
+  - name: universal-ai-tools-alerts
+    rules:
+      # Service Health Alerts
+      - alert: UniversalAIToolsDown
+        expr: up{job="universal-ai-tools"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: universal-ai-tools
+        annotations:
+          summary: "Universal AI Tools service is down"
+          description: "Universal AI Tools has been down for more than 1 minute"
+
+      - alert: HighResponseTime
+        expr: http_request_duration_seconds{quantile="0.95"} > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: universal-ai-tools
+        annotations:
+          summary: "High response times detected"
+          description: "95th percentile response time is {{ $value }}s for the last 5 minutes"
+
+      # Memory and Resource Alerts
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024) > 400
+        for: 5m
+        labels:
+          severity: warning
+          service: universal-ai-tools
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}MB, exceeding 400MB threshold"
+
+      - alert: CriticalMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024) > 600
+        for: 2m
+        labels:
+          severity: critical
+          service: universal-ai-tools
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is {{ $value }}MB, exceeding 600MB critical threshold"
+
+      # Error Rate Alerts
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: universal-ai-tools
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+      # Database Connection Alerts
+      - alert: DatabaseConnectionFailure
+        expr: up{job="supabase"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: supabase
+        annotations:
+          summary: "Database connection failure"
+          description: "Supabase database has been unreachable for more than 2 minutes"
+
+      # Redis Cache Alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been down for more than 1 minute"
+
+      # LLM Service Alerts
+      - alert: OllamaDown
+        expr: up{job="ollama"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: ollama
+        annotations:
+          summary: "Ollama LLM service is down"
+          description: "Ollama has been down for more than 2 minutes"
+
+      # Request Rate Alerts
+      - alert: UnusuallyHighTraffic
+        expr: rate(http_requests_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: universal-ai-tools
+        annotations:
+          summary: "Unusually high traffic detected"
+          description: "Request rate is {{ $value }} requests/second, which is unusually high"
+
+      - alert: NoTraffic
+        expr: rate(http_requests_total[10m]) < 0.01
+        for: 15m
+        labels:
+          severity: warning
+          service: universal-ai-tools
+        annotations:
+          summary: "No traffic detected"
+          description: "No requests received for the last 15 minutes"
+
+      # AI-Specific Alerts
+      - alert: HighAIProcessingTime
+        expr: histogram_quantile(0.95, rate(ai_processing_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: universal-ai-tools
+        annotations:
+          summary: "High AI processing times"
+          description: "95th percentile AI processing time is {{ $value }}s"
+
+      - alert: AgentCoordinationFailure
+        expr: rate(agent_coordination_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: universal-ai-tools
+        annotations:
+          summary: "Agent coordination failures detected"
+          description: "Agent coordination error rate is {{ $value }} errors/second"

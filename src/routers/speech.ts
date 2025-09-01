@@ -4,13 +4,30 @@
  */
 
 import express, { type Request, type Response } from 'express';
+import multer from 'multer';
 import { LogContext, log  } from '../utils/logger';
 import { apiResponseMiddleware  } from '../utils/api-response';
+import { voiceInterfaceService } from '../services/voice-interface-service';
+import authenticate from '../middleware/auth';
 
 const router = express.Router();
 
+// Configure multer for audio file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('audio/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed'));
+    }
+  }
+});
+
 // Apply middleware
 router.use(apiResponseMiddleware);
+router.use(authenticate); // Secure voice endpoints
 
 /**
  * Get speech service status
@@ -106,55 +123,42 @@ router.post('/tts', async (req: Request, res: Response) => {
 /**
  * Convert speech to text
  */
-router.post('/stt', async (req: Request, res: Response) => {
+router.post('/stt', upload.single('audio'), async (req: Request, res: Response) => {
   try {
-    const { audioFile, language, model } = req.body;
+    const audioFile = req.file;
+    const { language, model } = req.body;
 
     if (!audioFile) {
       return res.sendError('VALIDATION_ERROR', 'Audio file is required for STT', 400);
     }
 
     log.info('👂 Speech-to-text request', LogContext.API, {
-      hasAudioFile: !!audioFile,
+      fileSize: audioFile.size,
+      mimeType: audioFile.mimetype,
       language: language || 'auto',
       model: model || 'whisper'
     });
 
-    // Simulate STT processing
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    // Process with voice interface service
+    const sessionId = await voiceInterfaceService.startVoiceSession((req as any).user?.id);
+    const result = await voiceInterfaceService.processVoiceCommand(sessionId, audioFile.buffer);
+    await voiceInterfaceService.stopVoiceSession(sessionId);
 
     const sttResult = {
       requestId: `stt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-      transcript: 'This is a mock transcription result. The actual audio would be processed by the speech recognition engine and converted to text.',
-      confidence: 0.94,
+      transcript: result.response || 'No transcript available',
+      confidence: 0.85, // Would come from actual recognition
       language: language || 'en',
       detectedLanguage: 'en',
-      segments: [
-        {
-          start: 0.0,
-          end: 2.5,
-          text: 'This is a mock transcription result.',
-          confidence: 0.96
-        },
-        {
-          start: 2.5,
-          end: 6.8,
-          text: 'The actual audio would be processed by the speech recognition engine.',
-          confidence: 0.92
-        },
-        {
-          start: 6.8,
-          end: 8.5,
-          text: 'And converted to text.',
-          confidence: 0.94
-        }
-      ],
+      commandResult: {
+        success: result.success,
+        action: result.action,
+        requiresFollowup: result.requiresFollowup
+      },
       metadata: {
         engine: model || 'whisper',
-        duration: 8.5, // seconds
-        fileSize: 425600, // bytes
-        sampleRate: 16000,
-        processingTime: 1150,
+        fileSize: audioFile.size,
+        processingTime: Date.now() - parseInt(sessionId.split('_')[1]),
         timestamp: Date.now()
       }
     };
@@ -403,6 +407,88 @@ router.get('/metrics', async (req: Request, res: Response) => {
       error: error instanceof Error ? error.message : String(error)
     });
     res.sendError('INTERNAL_ERROR', 'Failed to get speech metrics', 500);
+  }
+});
+
+/**
+ * Start a voice conversation session
+ */
+router.post('/start-session', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const sessionId = await voiceInterfaceService.startVoiceSession(userId);
+    
+    log.info('🎙️ Voice session started', LogContext.API, { sessionId, userId });
+    
+    res.sendSuccess({
+      sessionId,
+      status: 'active',
+      config: voiceInterfaceService.getConfig()
+    });
+  } catch (error) {
+    log.error('❌ Failed to start voice session', LogContext.API, { error });
+    res.sendError('INTERNAL_ERROR', 'Failed to start voice session', 500);
+  }
+});
+
+/**
+ * Process voice command in an active session
+ */
+router.post('/command/:sessionId', upload.single('audio'), async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    const audioFile = req.file;
+
+    if (!audioFile) {
+      return res.sendError('VALIDATION_ERROR', 'Audio file is required', 400);
+    }
+
+    log.info('🎯 Processing voice command', LogContext.API, {
+      sessionId,
+      fileSize: audioFile.size
+    });
+
+    const result = await voiceInterfaceService.processVoiceCommand(sessionId, audioFile.buffer);
+    
+    res.sendSuccess(result);
+  } catch (error) {
+    log.error('❌ Failed to process voice command', LogContext.API, { error });
+    res.sendError('INTERNAL_ERROR', 'Failed to process voice command', 500);
+  }
+});
+
+/**
+ * End a voice conversation session
+ */
+router.delete('/session/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    await voiceInterfaceService.stopVoiceSession(sessionId);
+    
+    log.info('🔚 Voice session ended', LogContext.API, { sessionId });
+    
+    res.sendSuccess({ message: 'Session ended successfully' });
+  } catch (error) {
+    log.error('❌ Failed to end voice session', LogContext.API, { error });
+    res.sendError('INTERNAL_ERROR', 'Failed to end voice session', 500);
+  }
+});
+
+/**
+ * Get voice interface service status
+ */
+router.get('/voice-status', async (req: Request, res: Response) => {
+  try {
+    const status = {
+      initialized: voiceInterfaceService.isServiceInitialized(),
+      activeSessions: voiceInterfaceService.getActiveSessionsCount(),
+      config: voiceInterfaceService.getConfig()
+    };
+    
+    res.sendSuccess(status);
+  } catch (error) {
+    log.error('❌ Failed to get voice status', LogContext.API, { error });
+    res.sendError('INTERNAL_ERROR', 'Failed to get voice status', 500);
   }
 });
 

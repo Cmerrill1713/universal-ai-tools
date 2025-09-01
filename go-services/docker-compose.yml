@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  # NATS Message Queue
+  nats:
+    image: nats:latest
+    container_name: go-services-nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"  # Monitoring port
+    command: ["-js", "-m", "8222"]  # Enable JetStream
+    networks:
+      - ai-tools-network
+    volumes:
+      - nats-data:/data
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: go-services-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - ai-tools-network
+
+  # Go Message Broker
+  message-broker:
+    build:
+      context: .
+      dockerfile: Dockerfile.message-broker
+    container_name: go-message-broker
+    ports:
+      - "8081:8081"
+      - "9091:9090"  # Metrics port
+    environment:
+      - SERVICE_NAME=message-broker
+      - LOG_LEVEL=info
+      - NATS_URL=nats://nats:4222
+      - HTTP_PORT=8081
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+    depends_on:
+      - nats
+    networks:
+      - ai-tools-network
+    restart: unless-stopped
+
+  # Go Load Balancer
+  load-balancer:
+    build:
+      context: .
+      dockerfile: Dockerfile.load-balancer
+    container_name: go-load-balancer
+    ports:
+      - "8082:8082"
+      - "9092:9090"  # Metrics port
+    environment:
+      - SERVICE_NAME=load-balancer
+      - LOG_LEVEL=info
+      - HTTP_PORT=8082
+      - RUST_VISION_SERVICE_URL=http://host.docker.internal:8090
+      - RUST_AI_SERVICE_URL=http://host.docker.internal:8091
+      - RUST_ANALYTICS_SERVICE_URL=http://host.docker.internal:8092
+      - HEALTH_CHECK_INTERVAL=30
+      - REQUEST_TIMEOUT=10
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+    networks:
+      - ai-tools-network
+    restart: unless-stopped
+
+  # Go Cache Coordinator
+  cache-coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile.cache-coordinator
+    container_name: go-cache-coordinator
+    ports:
+      - "8083:8083"
+      - "9093:9090"  # Metrics port
+    environment:
+      - SERVICE_NAME=cache-coordinator
+      - LOG_LEVEL=info
+      - HTTP_PORT=8083
+      - REDIS_ADDR=redis:6379
+      - REDIS_DB=0
+      - REDIS_POOL_SIZE=10
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+    depends_on:
+      - redis
+    networks:
+      - ai-tools-network
+    restart: unless-stopped
+
+  # Go Stream Processor
+  stream-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile.stream-processor
+    container_name: go-stream-processor
+    ports:
+      - "8084:8084"
+      - "9094:9090"  # Metrics port
+    environment:
+      - SERVICE_NAME=stream-processor
+      - LOG_LEVEL=info
+      - HTTP_PORT=8084
+      - NATS_URL=nats://nats:4222
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+    depends_on:
+      - nats
+    networks:
+      - ai-tools-network
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: go-services-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - ai-tools-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: go-services-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - ai-tools-network
+    restart: unless-stopped
+
+networks:
+  ai-tools-network:
+    driver: bridge
+    name: universal-ai-tools-network
+
+volumes:
+  nats-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:

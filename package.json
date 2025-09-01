@@ -41,6 +41,7 @@
     "migrate:secrets": "tsx scripts/migrate-secrets-to-vault.ts",
     "secrets:check": "tsx scripts/check-secrets-status.ts",
     "secrets:validate": "tsx scripts/validate-production-secrets.ts",
+    "secrets:validate:vault": "tsx scripts/validate-vault-setup.ts",
     "docs:generate": "typedoc src --out docs/api",
     "docs:serve": "http-server docs -p 8080",
     "docs:build": "npm run docs:generate && npm run docs:serve",
@@ -308,6 +309,7 @@
     "monitor:alerts": "tsx scripts/continuous-monitoring.ts alerts",
     "qa": "npm run validate && npm run lint:fix && npm run format",
     "dev:https": "node ssl/https-dev-server.js",
+<<<<<<< HEAD
     "ssl:setup": "./scripts/ssl-dev-setup.sh",
     "vault:setup": "tsx scripts/setup-production-vault.ts",
     "secrets:migrate": "tsx scripts/migrate-env-to-vault.ts",
@@ -333,6 +335,9 @@
     "deploy:logs": "docker-compose -f docker-compose.production.yml logs -f --tail=100",
     "deploy:health": "curl -f http://localhost:9999/health && echo 'Health check passed'",
     "ci:pipeline": "npm run quality && npm run test:comprehensive && npm run build:prod && npm run validate:production"
+=======
+    "ssl:setup": "./scripts/ssl-dev-setup.sh"
+>>>>>>> ebef205e (feat: complete migration phase - production infrastructure & testing)
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",

@@ -52,7 +52,7 @@ class NetworkHealingService {
     { name: 'frontend-dev', port: 3000, endpoint: 'http://localhost:3000' },
     { name: 'vision-service', port: 9999, endpoint: 'http://localhost:9999/api/v1/vision/health' },
     { name: 'ollama', port: 11434, endpoint: 'http://localhost:11434/api/version' },
-    { name: 'lm-studio', port: 1234, endpoint: 'http://localhost:1234/v1/models' },
+    { name: 'lm-studio', port: 5901, endpoint: 'http://localhost:5901/v1/models' },
     { name: 'redis', port: 6379, endpoint: 'redis://localhost:6379' },
     { name: 'supabase', port: 54321, endpoint: 'http://localhost:54321/rest/v1/' },
   ];

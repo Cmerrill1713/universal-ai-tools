@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Go ML Inference Service
+  go-ml-inference:
+    build:
+      context: ./go-services/ml-inference
+      dockerfile: Dockerfile
+    container_name: go-ml-inference
+    ports:
+      - "8086:8086"
+    environment:
+      - PORT=8086
+      - REDIS_URL=redis://redis:6379
+      - METRICS_PORT=9096
+    depends_on:
+      - redis
+    networks:
+      - universal-ai-network
+    volumes:
+      - ./models:/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Rust ML Inference Service
+  rust-ml-inference:
+    build:
+      context: ./rust-services/ml-inference-service
+      dockerfile: Dockerfile
+    container_name: rust-ml-inference
+    ports:
+      - "8087:8087"
+    environment:
+      - PORT=8087
+      - REDIS_URL=redis://redis:6379
+      - METRICS_PORT=9097
+    depends_on:
+      - redis
+    networks:
+      - universal-ai-network
+    volumes:
+      - ./models:/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Update Load Balancer with ML services
+  load-balancer:
+    build:
+      context: ./go-services/load-balancer
+      dockerfile: Dockerfile
+    container_name: load-balancer
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - METRICS_PORT=9091
+      - ML_GO_SERVICE=http://go-ml-inference:8086
+      - ML_RUST_SERVICE=http://rust-ml-inference:8087
+    depends_on:
+      - go-ml-inference
+      - rust-ml-inference
+    networks:
+      - universal-ai-network
+    restart: unless-stopped
+
+networks:
+  universal-ai-network:
+    external: true
+
+volumes:
+  models:

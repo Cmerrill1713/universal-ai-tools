@@ -1,0 +1,10 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/rust-services/multimodal-fusion-service/target/release/deps/libbuilt-6cc8bed0f313c263.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/environment.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/util.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/../README.md
+
+/Users/christianmerrill/Desktop/universal-ai-tools/rust-services/multimodal-fusion-service/target/release/deps/libbuilt-6cc8bed0f313c263.rlib: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/environment.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/util.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/../README.md
+
+/Users/christianmerrill/Desktop/universal-ai-tools/rust-services/multimodal-fusion-service/target/release/deps/built-6cc8bed0f313c263.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/environment.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/util.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/../README.md
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/environment.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/util.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/built-0.7.7/src/../README.md:

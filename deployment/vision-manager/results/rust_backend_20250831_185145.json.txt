@@ -1,0 +1,43 @@
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient).....done
+
+
+Server Software:        
+Server Hostname:        localhost
+Server Port:            9999
+
+Document Path:          /api/v1/vision/rust/metrics
+Document Length:        152 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.100 seconds
+Complete requests:      10
+Failed requests:        5
+   (Connect: 0, Receive: 0, Length: 5, Exceptions: 0)
+Total transferred:      4073 bytes
+HTML transferred:       1523 bytes
+Requests per second:    100.14 [#/sec] (mean)
+Time per request:       99.856 [ms] (mean)
+Time per request:       9.986 [ms] (mean, across all concurrent requests)
+Transfer rate:          39.83 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    1   0.1      1       1
+Processing:     2   36  14.1     41      51
+Waiting:        2   36  14.1     41      51
+Total:          3   36  14.1     41      51
+
+Percentage of the requests served within a certain time (ms)
+  50%     41
+  66%     42
+  75%     46
+  80%     49
+  90%     51
+  95%     51
+  98%     51
+  99%     51
+ 100%     51 (longest request)

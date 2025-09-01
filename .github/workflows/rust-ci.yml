@@ -1,0 +1,250 @@
+name: Rust Services CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'rust-services/**'
+      - '.github/workflows/rust-ci.yml'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'rust-services/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test Rust Services
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, nightly]
+        service:
+          - ab-mcts-service
+          - parameter-analytics-service
+          - multimodal-fusion-service
+          - intelligent-parameter-service
+        exclude:
+          # Skip nightly on Windows to save CI time
+          - os: windows-latest
+            rust: nightly
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust }}
+        override: true
+        components: rustfmt, clippy
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Cache cargo build
+      uses: actions/cache@v3
+      with:
+        path: rust-services/${{ matrix.service }}/target
+        key: ${{ runner.os }}-cargo-build-${{ matrix.service }}-${{ hashFiles('rust-services/${{ matrix.service }}/Cargo.lock') }}
+    
+    - name: Check formatting
+      working-directory: rust-services/${{ matrix.service }}
+      run: cargo fmt -- --check
+      continue-on-error: ${{ matrix.rust == 'nightly' }}
+    
+    - name: Clippy
+      working-directory: rust-services/${{ matrix.service }}
+      run: cargo clippy -- -D warnings
+      continue-on-error: ${{ matrix.rust == 'nightly' }}
+    
+    - name: Build
+      working-directory: rust-services/${{ matrix.service }}
+      run: cargo build --verbose --release
+    
+    - name: Test
+      working-directory: rust-services/${{ matrix.service }}
+      run: cargo test --verbose --release
+    
+    - name: Doc tests
+      working-directory: rust-services/${{ matrix.service }}
+      run: cargo test --doc
+      if: matrix.rust == 'stable'
+
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    
+    - name: Install benchmark dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y valgrind massif-visualizer
+    
+    - name: Run benchmarks
+      run: |
+        for service in ab-mcts-service parameter-analytics-service multimodal-fusion-service intelligent-parameter-service; do
+          echo "Benchmarking $service..."
+          cd rust-services/$service
+          
+          # Run benchmarks if they exist
+          if [ -d "benches" ]; then
+            cargo bench --no-fail-fast
+          fi
+          
+          cd ../..
+        done
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: rust-services/*/target/criterion/
+
+  integration:
+    name: TypeScript Integration Tests
+    runs-on: ${{ matrix.os }}
+    needs: test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [18, 20]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node }}
+        cache: 'npm'
+    
+    - name: Build Rust services
+      run: |
+        cd rust-services
+        ./build-all.sh
+    
+    - name: Install Node dependencies
+      run: npm ci
+    
+    - name: Run integration tests
+      run: npm run test:rust-integration
+      env:
+        RUST_SERVICES_PATH: ./rust-services
+
+  release:
+    name: Build Release Artifacts
+    runs-on: ${{ matrix.os }}
+    needs: [test, integration]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: linux-x64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: darwin-x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: darwin-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: windows-x64
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        target: ${{ matrix.target }}
+        override: true
+    
+    - name: Build all services
+      run: |
+        for service in ab-mcts-service parameter-analytics-service multimodal-fusion-service intelligent-parameter-service; do
+          echo "Building $service for ${{ matrix.target }}..."
+          cd rust-services/$service
+          cargo build --release --target ${{ matrix.target }}
+          cd ../..
+        done
+    
+    - name: Package artifacts
+      run: |
+        mkdir -p dist/${{ matrix.artifact }}
+        for service in ab-mcts-service parameter-analytics-service multimodal-fusion-service intelligent-parameter-service; do
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp rust-services/$service/target/${{ matrix.target }}/release/*.dll dist/${{ matrix.artifact }}/ || true
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            cp rust-services/$service/target/${{ matrix.target }}/release/*.dylib dist/${{ matrix.artifact }}/ || true
+          else
+            cp rust-services/$service/target/${{ matrix.target }}/release/*.so dist/${{ matrix.artifact }}/ || true
+          fi
+        done
+        
+        # Create tarball
+        cd dist
+        tar -czf rust-services-${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
+    
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: rust-services-${{ matrix.artifact }}
+        path: dist/rust-services-${{ matrix.artifact }}.tar.gz
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+    
+    - name: Security audit
+      run: |
+        for service in ab-mcts-service parameter-analytics-service multimodal-fusion-service intelligent-parameter-service; do
+          echo "Auditing $service..."
+          cd rust-services/$service
+          cargo audit
+          cd ../..
+        done

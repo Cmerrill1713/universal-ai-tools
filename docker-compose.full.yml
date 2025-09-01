@@ -1,0 +1,602 @@
+version: '3.8'
+
+services:
+  # ============= Infrastructure Services =============
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: universal-ai-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: universal_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: universal-ai-redis
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: universal-ai-nats
+    command: -js -sd /data
+    volumes:
+      - nats_data:/data
+    ports:
+      - "4222:4222"  # Client connections
+      - "8222:8222"  # HTTP management
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  consul:
+    image: consul:1.17
+    container_name: universal-ai-consul
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    ports:
+      - "8500:8500"  # HTTP API & UI
+      - "8600:8600/udp"  # DNS
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - universal-ai-network
+    environment:
+      CONSUL_BIND_INTERFACE: eth0
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: universal-ai-jaeger
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: 9411
+    ports:
+      - "5775:5775/udp"  # Zipkin
+      - "6831:6831/udp"  # Jaeger compact
+      - "6832:6832/udp"  # Jaeger binary
+      - "5778:5778"      # Config
+      - "16686:16686"    # UI
+      - "14268:14268"    # Collector
+      - "14250:14250"    # gRPC
+    networks:
+      - universal-ai-network
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: universal-ai-prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - metrics-aggregator
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: universal-ai-grafana
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: redis-datasource
+    ports:
+      - "3000:3000"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - prometheus
+
+  # ============= Go Middleware Services =============
+
+  message-broker:
+    build:
+      context: ./go-services/message-broker
+      dockerfile: Dockerfile
+    container_name: go-message-broker
+    environment:
+      PORT: 8080
+      NATS_URL: nats://nats:4222
+      REDIS_URL: redis://redis:6379
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-message-broker
+    ports:
+      - "8080:8080"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - nats
+      - redis
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  load-balancer:
+    build:
+      context: ./go-services/load-balancer
+      dockerfile: Dockerfile
+    container_name: go-load-balancer
+    environment:
+      PORT: 8081
+      METRICS_PORT: 9091
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-load-balancer
+    ports:
+      - "8081:8081"
+      - "9091:9091"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cache-coordinator:
+    build:
+      context: ./go-services/cache-coordinator
+      dockerfile: Dockerfile
+    container_name: go-cache-coordinator
+    environment:
+      PORT: 8083
+      REDIS_URL: redis://redis:6379
+      LOCAL_CACHE_SIZE: 1000
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-cache-coordinator
+    ports:
+      - "8083:8083"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - redis
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  stream-processor:
+    build:
+      context: ./go-services/stream-processor
+      dockerfile: Dockerfile
+    container_name: go-stream-processor
+    environment:
+      PORT: 8084
+      REDIS_URL: redis://redis:6379
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-stream-processor
+    ports:
+      - "8084:8084"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - redis
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8084/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ml-stream-processor:
+    build:
+      context: ./go-services/ml-stream-processor
+      dockerfile: Dockerfile
+    container_name: go-ml-stream-processor
+    environment:
+      PORT: 8088
+      ML_GO_SERVICE: http://go-ml-inference:8086
+      ML_RUST_SERVICE: http://rust-ml-inference:8087
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-ml-stream-processor
+    ports:
+      - "8088:8088"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  shared-memory:
+    build:
+      context: ./go-services/shared-memory
+      dockerfile: Dockerfile
+    container_name: go-shared-memory
+    environment:
+      PORT: 8089
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-shared-memory
+    ports:
+      - "8089:8089"
+    networks:
+      - universal-ai-network
+    volumes:
+      - shared_memory:/tmp/shared
+    depends_on:
+      - consul
+      - jaeger
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8089/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  tracing-service:
+    build:
+      context: ./go-services/tracing
+      dockerfile: Dockerfile
+    container_name: go-tracing
+    environment:
+      PORT: 8090
+      TRACE_EXPORTER: jaeger
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-tracing
+      CONSUL_URL: http://consul:8500
+    ports:
+      - "8090:8090"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - jaeger
+      - consul
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  metrics-aggregator:
+    build:
+      context: ./go-services/metrics-aggregator
+      dockerfile: Dockerfile
+    container_name: go-metrics-aggregator
+    environment:
+      PORT: 8091
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-metrics-aggregator
+    ports:
+      - "8091:8091"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============= ML Services =============
+
+  go-ml-inference:
+    build:
+      context: ./go-services/ml-inference
+      dockerfile: Dockerfile
+    container_name: go-ml-inference
+    environment:
+      PORT: 8086
+      REDIS_URL: redis://redis:6379
+      METRICS_PORT: 9096
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: go-ml-inference
+    ports:
+      - "8086:8086"
+      - "9096:9096"
+    networks:
+      - universal-ai-network
+    volumes:
+      - ./models:/models
+    depends_on:
+      - redis
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  rust-ml-inference:
+    build:
+      context: ./rust-services/ml-inference-service
+      dockerfile: Dockerfile
+    container_name: rust-ml-inference
+    environment:
+      PORT: 8087
+      REDIS_URL: redis://redis:6379
+      METRICS_PORT: 9097
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: rust-ml-inference
+    ports:
+      - "8087:8087"
+      - "9097:9097"
+    networks:
+      - universal-ai-network
+    volumes:
+      - ./models:/models
+    depends_on:
+      - redis
+      - consul
+      - jaeger
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============= Rust Services =============
+
+  rust-ffi-bridge:
+    build:
+      context: ./rust-services/ffi-bridge
+      dockerfile: Dockerfile
+    container_name: rust-ffi-bridge
+    environment:
+      CONSUL_URL: http://consul:8500
+      SERVICE_NAME: rust-ffi-bridge
+    networks:
+      - universal-ai-network
+    volumes:
+      - shared_memory:/tmp/shared
+    cap_add:
+      - IPC_LOCK
+    depends_on:
+      - consul
+
+  rust-parameter-analytics:
+    build:
+      context: ./rust-services/parameter-analytics-service
+      dockerfile: Dockerfile
+    container_name: rust-parameter-analytics
+    environment:
+      PORT: 8092
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/universal_ai
+      REDIS_URL: redis://redis:6379
+      CONSUL_URL: http://consul:8500
+      SERVICE_NAME: rust-parameter-analytics
+    ports:
+      - "8092:8092"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - postgres
+      - redis
+      - consul
+
+  rust-ab-mcts:
+    build:
+      context: ./rust-services/ab-mcts-service
+      dockerfile: Dockerfile
+    container_name: rust-ab-mcts
+    environment:
+      PORT: 8093
+      REDIS_URL: redis://redis:6379
+      CONSUL_URL: http://consul:8500
+      SERVICE_NAME: rust-ab-mcts
+    ports:
+      - "8093:8093"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - redis
+      - consul
+
+  # ============= Node.js Backend =============
+
+  node-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: node-backend
+    environment:
+      NODE_ENV: production
+      PORT: 9999
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/universal_ai
+      REDIS_URL: redis://redis:6379
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      CONSUL_URL: http://consul:8500
+      JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      SERVICE_NAME: node-backend
+      # Go service URLs
+      MESSAGE_BROKER_URL: ws://message-broker:8080/ws/node_backend
+      LOAD_BALANCER_URL: http://load-balancer:8081
+      CACHE_COORDINATOR_URL: http://cache-coordinator:8083
+      STREAM_PROCESSOR_URL: http://stream-processor:8084
+      ML_STREAM_PROCESSOR_URL: http://ml-stream-processor:8088
+      ML_GO_SERVICE_URL: http://go-ml-inference:8086
+      ML_RUST_SERVICE_URL: http://rust-ml-inference:8087
+      SHARED_MEMORY_URL: http://shared-memory:8089
+      TRACING_SERVICE_URL: http://tracing-service:8090
+      METRICS_AGGREGATOR_URL: http://metrics-aggregator:8091
+    ports:
+      - "9999:9999"
+    networks:
+      - universal-ai-network
+    volumes:
+      - ./src:/app/src
+      - ./models:/app/models
+    depends_on:
+      - postgres
+      - redis
+      - consul
+      - message-broker
+      - load-balancer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============= API Gateway (Kong) =============
+
+  kong-database:
+    image: postgres:13-alpine
+    container_name: kong-database
+    environment:
+      POSTGRES_DB: kong
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: ${KONG_DB_PASSWORD:-kong}
+    volumes:
+      - kong_data:/var/lib/postgresql/data
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kong-migration:
+    image: kong:3.5
+    container_name: kong-migration
+    command: kong migrations bootstrap
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD:-kong}
+    networks:
+      - universal-ai-network
+    depends_on:
+      kong-database:
+        condition: service_healthy
+    restart: on-failure
+
+  kong:
+    image: kong:3.5
+    container_name: kong
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: ${KONG_DB_PASSWORD:-kong}
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+    ports:
+      - "8000:8000"  # Proxy
+      - "8443:8443"  # Proxy SSL
+      - "8001:8001"  # Admin API
+      - "8444:8444"  # Admin SSL
+    networks:
+      - universal-ai-network
+    depends_on:
+      kong-database:
+        condition: service_healthy
+      kong-migration:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  konga:
+    image: pantsel/konga:latest
+    container_name: konga
+    environment:
+      DB_ADAPTER: postgres
+      DB_HOST: kong-database
+      DB_USER: kong
+      DB_PASSWORD: ${KONG_DB_PASSWORD:-kong}
+      DB_DATABASE: konga
+      NODE_ENV: production
+    ports:
+      - "1337:1337"
+    networks:
+      - universal-ai-network
+    depends_on:
+      - kong
+
+networks:
+  universal-ai-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:
+  consul_data:
+  prometheus_data:
+  grafana_data:
+  kong_data:
+  shared_memory:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: size=1g,mode=1777

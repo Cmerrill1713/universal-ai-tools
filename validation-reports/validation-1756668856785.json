@@ -1,0 +1,168 @@
+{
+  "timestamp": "2025-08-31T19:34:16.784Z",
+  "environment": "development",
+  "totalTests": 24,
+  "passed": 13,
+  "failed": 1,
+  "warnings": 4,
+  "skipped": 6,
+  "duration": 45641.225792000005,
+  "results": [
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "Service Health Check",
+      "status": "PASS",
+      "duration": 16.713499999999982
+    },
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "Database Connectivity",
+      "status": "WARN",
+      "duration": 423.015166
+    },
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "Redis Cache Status",
+      "status": "PASS",
+      "duration": 13.39833299999998
+    },
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "Port Availability",
+      "status": "PASS",
+      "duration": 383.0171250000001
+    },
+    {
+      "category": "SECURITY",
+      "test": "API Authentication Check",
+      "status": "FAIL",
+      "duration": 13.642665999999963
+    },
+    {
+      "category": "SECURITY",
+      "test": "Dependency Security Audit",
+      "status": "PASS",
+      "duration": 1854.146291
+    },
+    {
+      "category": "SECURITY",
+      "test": "Environment File Security",
+      "status": "PASS",
+      "duration": 1.3564160000000811
+    },
+    {
+      "category": "SECURITY",
+      "test": "Security Headers Check",
+      "status": "WARN",
+      "duration": 16.141208000000006
+    },
+    {
+      "category": "PERFORMANCE",
+      "test": "API Response Times",
+      "status": "PASS",
+      "duration": 11.635125000000244
+    },
+    {
+      "category": "PERFORMANCE",
+      "test": "Memory Usage Analysis",
+      "status": "PASS",
+      "duration": 11.101250000000164
+    },
+    {
+      "category": "PERFORMANCE",
+      "test": "Database Query Performance",
+      "status": "PASS",
+      "duration": 19.692250000000058
+    },
+    {
+      "category": "PERFORMANCE",
+      "test": "Frontend Load Time",
+      "status": "PASS",
+      "duration": 11.186875000000327
+    },
+    {
+      "category": "AI_ML",
+      "test": "LLM Router Service",
+      "status": "PASS",
+      "duration": 18.911041999999725
+    },
+    {
+      "category": "AI_ML",
+      "test": "Agent System Coordination",
+      "status": "PASS",
+      "duration": 12.261707999999999
+    },
+    {
+      "category": "AI_ML",
+      "test": "Intelligent Parameter System",
+      "status": "SKIP",
+      "duration": 12.01700000000028
+    },
+    {
+      "category": "AI_ML",
+      "test": "MLX Fine-tuning System",
+      "status": "PASS",
+      "duration": 11.656750000000102
+    },
+    {
+      "category": "INTEGRATION",
+      "test": "API Endpoint Integration",
+      "status": "PASS",
+      "duration": 36.61141600000019
+    },
+    {
+      "category": "INTEGRATION",
+      "test": "Middleware Functionality",
+      "status": "SKIP",
+      "duration": 30010.9315
+    },
+    {
+      "category": "INTEGRATION",
+      "test": "WebSocket Connectivity",
+      "status": "SKIP",
+      "duration": 12.289333000000624
+    },
+    {
+      "category": "INTEGRATION",
+      "test": "Cross-browser E2E Tests",
+      "status": "SKIP",
+      "duration": 1746.7948340000003
+    },
+    {
+      "category": "QUALITY",
+      "test": "TypeScript Compilation",
+      "status": "WARN",
+      "duration": 2025.2932499999952
+    },
+    {
+      "category": "QUALITY",
+      "test": "ESLint Code Quality",
+      "status": "SKIP",
+      "duration": 2424.4137910000063
+    },
+    {
+      "category": "QUALITY",
+      "test": "Test Coverage Analysis",
+      "status": "SKIP",
+      "duration": 3463.748999999996
+    },
+    {
+      "category": "QUALITY",
+      "test": "Production Build Check",
+      "status": "WARN",
+      "duration": 3089.1269580000007
+    }
+  ],
+  "metrics": {
+    "coverage": 0,
+    "performance": {
+      "apiResponseTime": 0,
+      "frontendLoadTime": 0,
+      "memoryUsage": 0
+    },
+    "security": {
+      "vulnerabilities": 0,
+      "secretsExposed": false
+    }
+  }
+}

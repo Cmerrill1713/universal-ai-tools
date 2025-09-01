@@ -1,0 +1,9 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libdasp_envelope-ed6fbbe68e0f6e93.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/mod.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/ops.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/peak.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/rms.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/dasp_envelope-ed6fbbe68e0f6e93.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/mod.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/ops.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/peak.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/rms.rs
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/mod.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/ops.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/peak.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dasp_envelope-0.11.0/src/detect/rms.rs:

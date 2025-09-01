@@ -1,0 +1,43 @@
+This is ApacheBench, Version 2.3 <$Revision: 1913912 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient).....done
+
+
+Server Software:        
+Server Hostname:        localhost
+Server Port:            9999
+
+Document Path:          /api/v1/vision/typescript/metrics
+Document Length:        125 bytes
+
+Concurrency Level:      10
+Time taken for tests:   0.277 seconds
+Complete requests:      10
+Failed requests:        4
+   (Connect: 0, Receive: 0, Length: 4, Exceptions: 0)
+Total transferred:      3856 bytes
+HTML transferred:       1246 bytes
+Requests per second:    36.08 [#/sec] (mean)
+Time per request:       277.163 [ms] (mean)
+Time per request:       27.716 [ms] (mean, across all concurrent requests)
+Transfer rate:          13.59 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    1   0.2      1       1
+Processing:     6   89  53.4    119     144
+Waiting:        6   89  53.4    119     144
+Total:          6   89  53.5    120     145
+
+Percentage of the requests served within a certain time (ms)
+  50%    120
+  66%    123
+  75%    132
+  80%    141
+  90%    145
+  95%    145
+  98%    145
+  99%    145
+ 100%    145 (longest request)
