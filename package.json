@@ -299,7 +299,7 @@
     "@opentelemetry/instrumentation": "^0.53.0",
     "@opentelemetry/resources": "^1.26.0",
     "@opentelemetry/sdk-metrics": "^1.26.0",
-    "@opentelemetry/sdk-node": "^0.53.0",
+    "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/sdk-trace-base": "^1.26.0",
     "@opentelemetry/semantic-conventions": "^1.27.0",
     "@supabase/mcp-utils": "^0.2.1",
