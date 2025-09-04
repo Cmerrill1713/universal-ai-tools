@@ -290,7 +290,7 @@
     "@modelcontextprotocol/server-github": "^2025.4.8",
     "@modelcontextprotocol/server-memory": "^2025.4.25",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.50.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.62.1",
     "@opentelemetry/core": "^1.26.0",
     "@opentelemetry/exporter-jaeger": "^1.26.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.53.0",
