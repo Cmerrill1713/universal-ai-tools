@@ -1,0 +1,9 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libsocket2-291add51c73ebf04.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sockaddr.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/socket.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sockref.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sys/unix.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/socket2-291add51c73ebf04.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sockaddr.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/socket.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sockref.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sys/unix.rs
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sockaddr.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/socket.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sockref.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/socket2-0.4.10/src/sys/unix.rs:

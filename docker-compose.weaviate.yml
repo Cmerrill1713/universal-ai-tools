@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # Weaviate - Production-Ready Vector Database
+  weaviate:
+    image: semitechnologies/weaviate:1.23.0
+    container_name: universal-ai-weaviate
+    restart: unless-stopped
+    ports:
+      - "8090:8080"  # REST API (mapped to 8090 to avoid conflict)
+      - "50051:50051" # gRPC API
+    environment:
+      # Authentication & Security
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
+      AUTHENTICATION_APIKEY_ENABLED: 'true'
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: '${WEAVIATE_API_KEY:-universal-ai-key-change-me}'
+      AUTHENTICATION_APIKEY_USERS: 'admin'
+      
+      # Authorization
+      AUTHORIZATION_ADMINLIST_ENABLED: 'true'
+      AUTHORIZATION_ADMINLIST_USERS: 'admin'
+      
+      # No external vectorizer modules (manual vectors only)
+      ENABLE_MODULES: ''
+      
+      # Performance Settings
+      QUERY_DEFAULTS_LIMIT: 25
+      QUERY_MAXIMUM_RESULTS: 10000
+      
+      # Persistence
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      
+      # Cluster Configuration (Single Node)
+      CLUSTER_HOSTNAME: 'weaviate-node-1'
+      CLUSTER_GOSSIP_BIND_PORT: 7946
+      CLUSTER_DATA_BIND_PORT: 7947
+      
+      # Telemetry
+      DISABLE_TELEMETRY: 'true'
+      
+      # Logging
+      LOG_LEVEL: 'info'
+      LOG_FORMAT: 'json'
+      
+      # Memory Settings
+      GOMEMLIMIT: '6GiB'
+      GOMAXPROCS: 4
+      
+      # CORS
+      ORIGIN: '*'
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - ai-tools-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8G
+        reservations:
+          cpus: '1'
+          memory: 4G
+
+  # Weaviate Console (Optional UI)
+  weaviate-console:
+    image: semitechnologies/weaviate-console:latest
+    container_name: universal-ai-weaviate-console
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      WEAVIATE_URL: 'http://weaviate:8080'
+      WEAVIATE_API_KEY: '${WEAVIATE_API_KEY:-universal-ai-key-change-me}'
+    depends_on:
+      - weaviate
+    networks:
+      - ai-tools-network
+    profiles:
+      - console
+
+  # Text2Vec Transformers (Local Embedding Model)
+  text2vec-transformers:
+    image: semitechnologies/transformers-inference:sentence-transformers-multi-qa-MiniLM-L6-cos-v1
+    container_name: universal-ai-text2vec
+    restart: unless-stopped
+    environment:
+      ENABLE_CUDA: '0' # Set to '1' if GPU available
+      NVIDIA_VISIBLE_DEVICES: 'all'
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+    networks:
+      - ai-tools-network
+    profiles:
+      - local-embeddings
+
+  # QNA Transformers (Question Answering)
+  qna-transformers:
+    image: semitechnologies/qna-transformers:bert-large-uncased-whole-word-masking-finetuned-squad
+    container_name: universal-ai-qna
+    restart: unless-stopped
+    environment:
+      ENABLE_CUDA: '0'
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+    networks:
+      - ai-tools-network
+    profiles:
+      - qna
+
+  # Contextionary (Word Vector Model)
+  contextionary:
+    image: semitechnologies/contextionary:en0.16.0-v1.2.1
+    container_name: universal-ai-contextionary
+    restart: unless-stopped
+    ports:
+      - "9999:9999"
+    environment:
+      EXTENSIONS_STORAGE_MODE: 'weaviate'
+      EXTENSIONS_STORAGE_ORIGIN: 'http://weaviate:8080'
+      OCCURRENCE_WEIGHT_LINEAR_FACTOR: 0.75
+    networks:
+      - ai-tools-network
+    profiles:
+      - contextionary
+
+volumes:
+  weaviate_data:
+    driver: local
+
+networks:
+  ai-tools-network:
+    external: true

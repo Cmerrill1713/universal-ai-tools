@@ -1,0 +1,10 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libthiserror-69e155dcf65eacc5.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/aserror.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/display.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/var.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libthiserror-69e155dcf65eacc5.rlib: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/aserror.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/display.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/var.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/thiserror-69e155dcf65eacc5.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/aserror.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/display.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/var.rs
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/aserror.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/display.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.16/src/var.rs:

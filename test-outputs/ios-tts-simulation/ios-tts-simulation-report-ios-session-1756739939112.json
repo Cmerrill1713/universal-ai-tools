@@ -1,0 +1,169 @@
+{
+  "sessionId": "ios-session-1756739939112",
+  "timestamp": "2025-09-01T15:19:48.363Z",
+  "summary": {
+    "totalSteps": 11,
+    "successfulSteps": 9,
+    "failedSteps": 2,
+    "totalDuration": 49251,
+    "averageResponseTime": 4477
+  },
+  "results": [
+    {
+      "step": "App Launch Health Check",
+      "success": true,
+      "duration": 15,
+      "details": {
+        "status": 200,
+        "data": {
+          "status": "healthy",
+          "timestamp": "2025-09-01T15:18:59.124Z",
+          "service": "Universal AI Tools API"
+        }
+      }
+    },
+    {
+      "step": "TTS Service Availability Check",
+      "success": false,
+      "duration": 5,
+      "details": null,
+      "error": "Request failed with status code 404"
+    },
+    {
+      "step": "Authentication Validation",
+      "success": false,
+      "duration": 4003,
+      "details": null,
+      "error": "socket hang up"
+    },
+    {
+      "step": "User TTS Request",
+      "success": true,
+      "duration": 15204,
+      "details": {
+        "status": 200,
+        "ttsResponse": {
+          "success": true,
+          "data": {
+            "requestId": "tts_1756739958338_yvti8j",
+            "text": "Hello! This is a test message from the Universal AI Companion iOS app. The text-to-speech integratio...",
+            "voice": "nova",
+            "language": "en",
+            "format": "wav",
+            "audioUrl": "/api/v1/speech/audio/nari_1756739943137_brq8hpejt.wav",
+            "duration": 16,
+            "fileSize": 965004,
+            "parameters": {
+              "speed": 1,
+              "pitch": 1
+            },
+            "metadata": {
+              "engine": "nari-dia-1.6b",
+              "processingTime": 15201,
+              "executionTime": 15200,
+              "timestamp": 1756739958338
+            }
+          },
+          "metadata": {
+            "requestId": "30ebe02c-0e18-45ec-9bde-e9193b23a54d",
+            "timestamp": "2025-09-01T15:19:18.338Z",
+            "version": "1.0.0"
+          }
+        }
+      }
+    },
+    {
+      "step": "Voice Test - alloy",
+      "success": true,
+      "duration": 5004,
+      "details": {
+        "voice": "alloy",
+        "status": "no_audio"
+      }
+    },
+    {
+      "step": "Voice Test - echo",
+      "success": true,
+      "duration": 5004,
+      "details": {
+        "voice": "echo",
+        "status": "no_audio"
+      }
+    },
+    {
+      "step": "Voice Test - fable",
+      "success": true,
+      "duration": 5003,
+      "details": {
+        "voice": "fable",
+        "status": "no_audio"
+      }
+    },
+    {
+      "step": "Speed Test - 0.5x",
+      "success": true,
+      "duration": 5003,
+      "details": {
+        "speed": 0.5,
+        "success": true,
+        "hasAudio": false
+      }
+    },
+    {
+      "step": "Speed Test - 1.5x",
+      "success": true,
+      "duration": 5005,
+      "details": {
+        "speed": 1.5,
+        "success": true,
+        "hasAudio": false
+      }
+    },
+    {
+      "step": "Speed Test - 2x",
+      "success": true,
+      "duration": 5003,
+      "details": {
+        "speed": 2,
+        "success": true,
+        "hasAudio": false
+      }
+    },
+    {
+      "step": "Error Handling Test",
+      "success": true,
+      "duration": 2,
+      "details": {
+        "errorHandling": "success",
+        "status": 400,
+        "message": "Correctly rejected invalid request"
+      }
+    }
+  ],
+  "conclusions": [
+    {
+      "status": "success",
+      "finding": "iOS app can successfully connect to localhost:9999"
+    },
+    {
+      "status": "error",
+      "finding": "Authentication header validation is failing"
+    },
+    {
+      "status": "error",
+      "finding": "Audio file download or WAV validation is failing"
+    },
+    {
+      "status": "success",
+      "finding": "Multiple voice options working (3/3 voices tested successfully)"
+    },
+    {
+      "status": "success",
+      "finding": "Error handling is working correctly - invalid requests are properly rejected"
+    },
+    {
+      "status": "warning",
+      "finding": "TTS response times may be slow (avg: 15108ms)"
+    }
+  ]
+}

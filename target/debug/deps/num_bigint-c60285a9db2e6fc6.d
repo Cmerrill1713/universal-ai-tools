@@ -1,0 +1,10 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libnum_bigint-c60285a9db2e6fc6.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/macros.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/bigint.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/biguint.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/algorithms.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/monty.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/num_bigint-c60285a9db2e6fc6.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/macros.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/bigint.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/biguint.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/algorithms.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/monty.rs
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/macros.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/bigint.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/biguint.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/algorithms.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/num-bigint-0.2.6/src/monty.rs:

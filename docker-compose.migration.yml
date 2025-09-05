@@ -1,0 +1,263 @@
+version: '3.8'
+
+services:
+  # Go Services
+  api-gateway:
+    build:
+      context: ./go-services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - AUTH_SERVICE_URL=http://auth-service:8015
+      - CHAT_SERVICE_URL=http://chat-service:8016
+      - MEMORY_SERVICE_URL=http://memory-service:8017
+      - WEBSOCKET_HUB_URL=http://websocket-hub:8018
+      - WEAVIATE_CLIENT_URL=http://weaviate-client:8019
+      - VISION_SERVICE_URL=http://vision-service:3033
+      - WEAVIATE_URL=http://weaviate:8080
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    depends_on:
+      - auth-service
+      - chat-service
+      - vision-service
+    networks:
+      - ai-tools-network
+
+  auth-service:
+    build:
+      context: ./go-services/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8015:8015"
+    environment:
+      - AUTH_SERVICE_PORT=8015
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+    networks:
+      - ai-tools-network
+
+  chat-service:
+    build:
+      context: ./go-services/chat-service
+      dockerfile: Dockerfile
+    ports:
+      - "8016:8016"
+    environment:
+      - CHAT_SERVICE_PORT=8016
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOCAL_LLM_ENDPOINT=${LOCAL_LLM_ENDPOINT:-http://host.docker.internal:1234/v1}
+    networks:
+      - ai-tools-network
+
+  # Existing Go services
+  ml-inference:
+    build:
+      context: ./go-services/ml-inference
+      dockerfile: Dockerfile
+    ports:
+      - "8010:8010"
+    networks:
+      - ai-tools-network
+
+  load-balancer:
+    build:
+      context: ./go-services/enhanced-load-balancer
+      dockerfile: Dockerfile
+    ports:
+      - "8011:8011"
+    networks:
+      - ai-tools-network
+
+  cache-coordinator:
+    build:
+      context: ./go-services/cache-coordinator
+      dockerfile: Dockerfile
+    ports:
+      - "8012:8012"
+    networks:
+      - ai-tools-network
+
+  metrics-aggregator:
+    build:
+      context: ./go-services/metrics-aggregator
+      dockerfile: Dockerfile
+    ports:
+      - "8013:8013"
+    networks:
+      - ai-tools-network
+
+  service-discovery:
+    build:
+      context: ./go-services/service-discovery
+      dockerfile: Dockerfile
+    ports:
+      - "8014:8014"
+    networks:
+      - ai-tools-network
+
+  # New Go Services  
+  memory-service:
+    build:
+      context: ./go-services/memory-service
+      dockerfile: Dockerfile
+    ports:
+      - "8017:8017"
+    environment:
+      - MEMORY_SERVICE_PORT=8017
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/universal_ai_tools?sslmode=disable
+      - REDIS_ADDR=redis:6379
+      - WEAVIATE_URL=http://weaviate:8080
+      - WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-universal-ai-key}
+    depends_on:
+      - postgres
+      - redis
+      - weaviate
+    networks:
+      - ai-tools-network
+
+  websocket-hub:
+    build:
+      context: ./go-services/websocket-hub
+      dockerfile: Dockerfile
+    ports:
+      - "8018:8018"
+    environment:
+      - WEBSOCKET_PORT=8018
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+    networks:
+      - ai-tools-network
+
+  weaviate-client:
+    build:
+      context: ./go-services/weaviate-client
+      dockerfile: Dockerfile
+    ports:
+      - "8019:8019"
+    environment:
+      - WEAVIATE_CLIENT_PORT=8019
+      - WEAVIATE_URL=http://weaviate:8080
+      - WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-universal-ai-key}
+    depends_on:
+      - weaviate
+    networks:
+      - ai-tools-network
+
+  # Rust Services
+  vision-service:
+    build:
+      context: ./crates/vision-service
+      dockerfile: Dockerfile
+    ports:
+      - "3033:3033"
+    environment:
+      - RUST_LOG=info
+    networks:
+      - ai-tools-network
+
+  # Weaviate Vector Database (replacing custom vector-db)
+  weaviate:
+    image: semitechnologies/weaviate:1.23.0
+    container_name: universal-ai-weaviate
+    ports:
+      - "8090:8080"  # Changed to 8090 to avoid conflict with API Gateway
+      - "50051:50051"
+    environment:
+      - AUTHENTICATION_APIKEY_ENABLED=true
+      - AUTHENTICATION_APIKEY_ALLOWED_KEYS=${WEAVIATE_API_KEY:-universal-ai-key}
+      - ENABLE_MODULES=text2vec-openai,text2vec-transformers,generative-openai
+      - OPENAI_APIKEY=${OPENAI_API_KEY:-}
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - QUERY_DEFAULTS_LIMIT=25
+      - LOG_LEVEL=info
+      - DISABLE_TELEMETRY=true
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - ai-tools-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  fast-llm:
+    build:
+      context: ./crates/fast-llm-coordinator
+      dockerfile: Dockerfile
+    ports:
+      - "3030:3030"
+    environment:
+      - RUST_LOG=info
+    networks:
+      - ai-tools-network
+
+  llm-router:
+    build:
+      context: ./crates/llm-router
+      dockerfile: Dockerfile
+    ports:
+      - "3031:3031"
+    environment:
+      - RUST_LOG=info
+    networks:
+      - ai-tools-network
+
+  parameter-analytics:
+    build:
+      context: ./crates/parameter-analytics
+      dockerfile: Dockerfile
+    ports:
+      - "3032:3032"
+    environment:
+      - RUST_LOG=info
+    networks:
+      - ai-tools-network
+
+  # Database services
+  postgres:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=universal_ai_tools
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai-tools-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - ai-tools-network
+
+  # Legacy TypeScript service (to be phased out)
+  legacy-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    networks:
+      - ai-tools-network
+    profiles:
+      - legacy
+
+networks:
+  ai-tools-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  weaviate_data:

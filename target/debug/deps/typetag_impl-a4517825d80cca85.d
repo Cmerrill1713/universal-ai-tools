@@ -1,0 +1,8 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libtypetag_impl-a4517825d80cca85.dylib: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/parse.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/tagged_impl.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/tagged_trait.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/typetag_impl-a4517825d80cca85.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/parse.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/tagged_impl.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/tagged_trait.rs
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/parse.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/tagged_impl.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/typetag-impl-0.2.20/src/tagged_trait.rs:

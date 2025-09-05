@@ -1,0 +1,513 @@
+/* macOS Native App Styles */
+
+/* App Container */
+.macos-app-container {
+  display: flex;
+  height: 100vh;
+  background: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  color: #1d1d1f;
+  overflow: hidden;
+}
+
+/* Sidebar Navigation */
+.macos-sidebar {
+  width: 240px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset -1px 0 0 0 rgba(0, 0, 0, 0.05);
+}
+
+.macos-sidebar-header {
+  padding: 16px 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.macos-app-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.macos-app-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+/* Navigation Section */
+.macos-nav-section {
+  flex: 1;
+  padding: 20px 16px;
+  overflow-y: auto;
+}
+
+.macos-nav-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #8e8e93;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding: 0 8px;
+}
+
+.macos-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.macos-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px 12px;
+  margin-bottom: 2px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: #1d1d1f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  text-align: left;
+}
+
+.macos-nav-item:hover {
+  background: rgba(0, 122, 255, 0.08);
+  color: #007aff;
+}
+
+.macos-nav-item.macos-nav-active {
+  background: var(--accent-color, #007aff);
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.macos-nav-icon {
+  font-size: 16px;
+  margin-right: 12px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.macos-nav-label {
+  font-weight: 500;
+}
+
+/* Sidebar Footer */
+.macos-sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.macos-current-user {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  background: rgba(0, 122, 255, 0.05);
+  border-radius: 8px;
+}
+
+.macos-user-avatar-small {
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.macos-user-name-small {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1d1d1f;
+}
+
+/* Main Content Area */
+.macos-main-content {
+  flex: 1;
+  background: #ffffff;
+  overflow-y: auto;
+  position: relative;
+}
+
+.macos-view-container {
+  height: 100%;
+  width: 100%;
+}
+
+.macos-content-area {
+  padding: 32px 40px;
+  max-width: 1000px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Welcome Section */
+.macos-welcome-section {
+  margin-bottom: 48px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.macos-welcome-title {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #1d1d1f;
+  letter-spacing: -0.02em;
+}
+
+.macos-welcome-subtitle {
+  font-size: 18px;
+  color: #6e6e73;
+  line-height: 1.5;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Page Headers */
+.macos-page-header {
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.macos-page-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #1d1d1f;
+  letter-spacing: -0.01em;
+}
+
+.macos-page-subtitle {
+  font-size: 16px;
+  color: #6e6e73;
+  line-height: 1.5;
+}
+
+/* Section Titles */
+.macos-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1d1d1f;
+  letter-spacing: -0.01em;
+}
+
+/* Quick Actions Grid */
+.macos-quick-actions {
+  margin-bottom: 48px;
+}
+
+.macos-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.macos-quick-action-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.macos-quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-color, #007aff);
+}
+
+.macos-action-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+  color: var(--accent-color, #007aff);
+}
+
+.macos-action-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1d1d1f;
+}
+
+.macos-action-description {
+  font-size: 14px;
+  color: #6e6e73;
+  line-height: 1.4;
+}
+
+/* User Management */
+.macos-user-section {
+  margin-bottom: 48px;
+}
+
+.macos-user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.macos-user-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.macos-user-card:hover {
+  border-color: #007aff;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
+}
+
+.macos-user-card.macos-user-active {
+  border-color: #007aff;
+  background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.macos-user-avatar {
+  font-size: 24px;
+  margin-right: 16px;
+}
+
+.macos-user-info {
+  flex: 1;
+}
+
+.macos-user-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.macos-user-role {
+  font-size: 13px;
+  color: #6e6e73;
+  margin-bottom: 8px;
+}
+
+.macos-user-card.macos-user-active .macos-user-role {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.macos-user-status {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+  display: inline-block;
+}
+
+.macos-user-card.macos-user-active .macos-user-status {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* System Information */
+.macos-system-section {
+  margin-bottom: 32px;
+}
+
+.macos-system-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.macos-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.macos-info-item:last-child {
+  border-bottom: none;
+}
+
+.macos-info-label {
+  font-size: 14px;
+  color: #6e6e73;
+  font-weight: 500;
+}
+
+.macos-info-value {
+  font-size: 14px;
+  color: #1d1d1f;
+  font-weight: 600;
+}
+
+/* Settings Styles */
+.macos-settings-content {
+  max-width: 600px;
+}
+
+.macos-settings-section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.macos-settings-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1d1d1f;
+}
+
+.macos-settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+
+.macos-settings-item:last-child {
+  border-bottom: none;
+}
+
+/* Window Controls */
+.macos-window-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.macos-control-button {
+  padding: 10px 20px;
+  border: 1px solid #007aff;
+  background: transparent;
+  color: #007aff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.macos-control-button:hover {
+  background: #007aff;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+/* Content Wrappers */
+.macos-content-wrapper {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  min-height: 500px;
+}
+
+.macos-chat-interface,
+.macos-vision-interface,
+.macos-voice-interface {
+  height: 100%;
+  min-height: 500px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .macos-sidebar {
+    width: 200px;
+  }
+  
+  .macos-content-area {
+    padding: 20px 24px;
+  }
+  
+  .macos-welcome-title {
+    font-size: 28px;
+  }
+  
+  .macos-action-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .macos-user-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .macos-app-container {
+    background: #1c1c1e;
+    color: #ffffff;
+  }
+  
+  .macos-sidebar {
+    background: linear-gradient(180deg, #2c2c2e 0%, #1c1c1e 100%);
+    border-right-color: #38383a;
+  }
+  
+  .macos-sidebar-header {
+    border-bottom-color: #38383a;
+  }
+  
+  .macos-app-title,
+  .macos-user-name-small {
+    color: #ffffff;
+  }
+  
+  .macos-nav-item {
+    color: #ffffff;
+  }
+  
+  .macos-main-content {
+    background: #1c1c1e;
+  }
+  
+  .macos-welcome-title,
+  .macos-page-title,
+  .macos-section-title,
+  .macos-action-title,
+  .macos-user-name {
+    color: #ffffff;
+  }
+  
+  .macos-welcome-subtitle,
+  .macos-page-subtitle,
+  .macos-action-description,
+  .macos-user-role {
+    color: #8e8e93;
+  }
+  
+  .macos-quick-action-card,
+  .macos-user-card {
+    background: linear-gradient(135deg, #2c2c2e 0%, #1c1c1e 100%);
+    border-color: #38383a;
+  }
+  
+  .macos-system-info,
+  .macos-settings-section,
+  .macos-content-wrapper {
+    background: #2c2c2e;
+  }
+  
+  .macos-page-header {
+    border-bottom-color: #38383a;
+  }
+}

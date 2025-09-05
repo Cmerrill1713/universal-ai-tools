@@ -1,0 +1,10 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libtime_core-9cfe9025d2c1ed73.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/convert.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/hint.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/util.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libtime_core-9cfe9025d2c1ed73.rlib: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/convert.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/hint.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/util.rs
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/time_core-9cfe9025d2c1ed73.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/convert.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/hint.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/util.rs
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/convert.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/hint.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/time-core-0.1.5/src/util.rs:

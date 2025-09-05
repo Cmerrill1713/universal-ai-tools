@@ -1,0 +1,593 @@
+{
+  "metadata": {
+    "timestamp": "2025-09-05T02:56:40.163Z",
+    "testDuration": 46,
+    "baseUrl": "http://localhost:9999",
+    "configuration": {
+      "concurrent_users": [
+        1,
+        5,
+        10,
+        25,
+        50
+      ],
+      "test_duration_seconds": 30,
+      "warmup_requests": 10,
+      "sample_size": 100,
+      "websocket_connections": 20,
+      "stress_test_duration": 60,
+      "api_key": "test-key-123",
+      "timeout": 30000
+    }
+  },
+  "summary": {
+    "totalTests": 23,
+    "systemUnderTest": "Universal AI Tools Backend",
+    "testEnvironment": "Local Development"
+  },
+  "metrics": {
+    "api": {
+      "Health Check": {
+        "endpoint": "/health",
+        "method": "GET",
+        "samples": 100,
+        "successRate": 100,
+        "responseTime": {
+          "min": 0.411583999999948,
+          "max": 0.9731250000000387,
+          "avg": 0.6080754100000021,
+          "p50": 0.5897079999999733,
+          "p95": 0.8467920000000504,
+          "p99": 0.9731250000000387
+        }
+      },
+      "API Status": {
+        "endpoint": "/api/v1/status",
+        "method": "GET",
+        "samples": 100,
+        "successRate": 0,
+        "responseTime": {
+          "min": 0.8697919999999613,
+          "max": 3.2675420000000486,
+          "avg": 1.2239525300000071,
+          "p50": 1.1380420000000413,
+          "p95": 1.8509999999998854,
+          "p99": 3.2675420000000486
+        }
+      },
+      "API Root": {
+        "endpoint": "/api/v1",
+        "method": "GET",
+        "samples": 100,
+        "successRate": 100,
+        "responseTime": {
+          "min": 0.5505000000002838,
+          "max": 1.4619580000000951,
+          "avg": 0.7224061900000084,
+          "p50": 0.7099169999996775,
+          "p95": 0.890625,
+          "p99": 1.4619580000000951
+        }
+      },
+      "Metrics": {
+        "endpoint": "/metrics",
+        "method": "GET",
+        "samples": 100,
+        "successRate": 100,
+        "responseTime": {
+          "min": 0.7507080000000315,
+          "max": 2.7935420000003433,
+          "avg": 1.1801179900000125,
+          "p50": 1.1142500000000837,
+          "p95": 1.7767079999998714,
+          "p99": 2.7935420000003433
+        }
+      },
+      "Performance": {
+        "endpoint": "/performance",
+        "method": "GET",
+        "samples": 100,
+        "successRate": 100,
+        "responseTime": {
+          "min": 0.3317079999997077,
+          "max": 1.2709999999997308,
+          "avg": 0.5603545400000121,
+          "p50": 0.53387500000008,
+          "p95": 0.7742079999998168,
+          "p99": 1.2709999999997308
+        }
+      },
+      "System Memory": {
+        "endpoint": "/api/v1/system/memory",
+        "method": "GET",
+        "samples": 100,
+        "successRate": 100,
+        "responseTime": {
+          "min": 0.4831659999999829,
+          "max": 2.358874999999898,
+          "avg": 0.6969899599999553,
+          "p50": 0.6674160000002303,
+          "p95": 0.8077499999999418,
+          "p99": 2.358874999999898
+        }
+      }
+    },
+    "websocket": {
+      "error": "Unexpected server response: 400"
+    },
+    "ai_services": {
+      "Chat Completion": {
+        "endpoint": "/api/v1/chat",
+        "samples": 10,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.5494665000000167,
+          "min": 1.3929580000003625,
+          "max": 1.9710830000003625,
+          "p95": 1.9710830000003625
+        },
+        "errors": [
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401"
+        ]
+      },
+      "Vision Analysis": {
+        "endpoint": "/api/v1/vision/analyze",
+        "samples": 10,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.3843249000001379,
+          "min": 1.224207999999635,
+          "max": 1.803542000001471,
+          "p95": 1.803542000001471
+        },
+        "errors": [
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400"
+        ]
+      },
+      "Memory Search": {
+        "endpoint": "/api/v1/memory/search",
+        "samples": 10,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.5883165999994162,
+          "min": 1.4579169999997248,
+          "max": 1.7460409999985131,
+          "p95": 1.7460409999985131
+        },
+        "errors": [
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401",
+          "Request failed with status code 401"
+        ]
+      },
+      "TypeScript Analysis": {
+        "endpoint": "/api/v1/typescript/analyze",
+        "samples": 10,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 2.0153334000006,
+          "min": 1.6786670000001322,
+          "max": 3.4726250000021537,
+          "p95": 3.4726250000021537
+        },
+        "errors": [
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404",
+          "Request failed with status code 404"
+        ]
+      },
+      "Knowledge Search": {
+        "endpoint": "/api/v1/knowledge/search",
+        "samples": 10,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.4044041000001015,
+          "min": 1.1447919999991427,
+          "max": 2.0175410000010743,
+          "p95": 2.0175410000010743
+        },
+        "errors": [
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400",
+          "Request failed with status code 400"
+        ]
+      }
+    },
+    "database": {
+      "Memory Write": {
+        "endpoint": "/api/v1/memory",
+        "method": "POST",
+        "samples": 25,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.591643279999844,
+          "min": 0.7884170000033919,
+          "max": 3.699458000002778,
+          "p50": 1.2483749999955762,
+          "p95": 3.0245839999988675
+        }
+      },
+      "Memory Read": {
+        "endpoint": "/api/v1/memory/search",
+        "method": "POST",
+        "samples": 25,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.6338666800002102,
+          "min": 1.040500000002794,
+          "max": 3.43179100000998,
+          "p50": 1.3435000000026776,
+          "p95": 2.73995799999102
+        }
+      },
+      "Knowledge Search": {
+        "endpoint": "/api/v1/knowledge/search",
+        "method": "GET",
+        "samples": 25,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.5071367599989753,
+          "min": 0.824332999996841,
+          "max": 2.3833339999982854,
+          "p50": 1.21933400000853,
+          "p95": 2.3545840000006137
+        }
+      }
+    },
+    "memory": {
+      "monitoringDuration": 30000,
+      "snapshots": [
+        {
+          "timestamp": 1002.385000000002,
+          "success": true,
+          "data": {
+            "rss": 627.95,
+            "heapTotal": 462.56,
+            "heapUsed": 379.44,
+            "external": 38.63,
+            "arrayBuffers": 0.76,
+            "timestamp": "2025-09-05T02:56:02.008Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:02.008Z"
+          }
+        },
+        {
+          "timestamp": 2003.095208000006,
+          "success": true,
+          "data": {
+            "rss": 627.97,
+            "heapTotal": 462.56,
+            "heapUsed": 382.73,
+            "external": 38.67,
+            "arrayBuffers": 0.8,
+            "timestamp": "2025-09-05T02:56:03.009Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:03.009Z"
+          }
+        },
+        {
+          "timestamp": 3004.055916000005,
+          "success": true,
+          "data": {
+            "rss": 627.97,
+            "heapTotal": 462.56,
+            "heapUsed": 386.48,
+            "external": 38.71,
+            "arrayBuffers": 0.84,
+            "timestamp": "2025-09-05T02:56:04.010Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:04.010Z"
+          }
+        },
+        {
+          "timestamp": 4004.6868749999994,
+          "success": true,
+          "data": {
+            "rss": 627.97,
+            "heapTotal": 462.56,
+            "heapUsed": 389.18,
+            "external": 38.73,
+            "arrayBuffers": 0.86,
+            "timestamp": "2025-09-05T02:56:05.010Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:05.010Z"
+          }
+        },
+        {
+          "timestamp": 5006.337541000001,
+          "success": true,
+          "data": {
+            "rss": 627.97,
+            "heapTotal": 462.56,
+            "heapUsed": 392.03,
+            "external": 38.74,
+            "arrayBuffers": 0.88,
+            "timestamp": "2025-09-05T02:56:06.012Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:06.012Z"
+          }
+        },
+        {
+          "timestamp": 6005.884916000003,
+          "success": true,
+          "data": {
+            "rss": 627.98,
+            "heapTotal": 462.56,
+            "heapUsed": 394.75,
+            "external": 38.76,
+            "arrayBuffers": 0.9,
+            "timestamp": "2025-09-05T02:56:07.011Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:07.011Z"
+          }
+        },
+        {
+          "timestamp": 7006.439958000003,
+          "success": true,
+          "data": {
+            "rss": 627.98,
+            "heapTotal": 462.56,
+            "heapUsed": 397.5,
+            "external": 38.78,
+            "arrayBuffers": 0.92,
+            "timestamp": "2025-09-05T02:56:08.012Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:08.012Z"
+          }
+        },
+        {
+          "timestamp": 8007.491375000005,
+          "success": true,
+          "data": {
+            "rss": 627.98,
+            "heapTotal": 462.56,
+            "heapUsed": 400.24,
+            "external": 38.8,
+            "arrayBuffers": 0.94,
+            "timestamp": "2025-09-05T02:56:09.013Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:09.013Z"
+          }
+        },
+        {
+          "timestamp": 9007.755250000002,
+          "success": true,
+          "data": {
+            "rss": 627.98,
+            "heapTotal": 462.56,
+            "heapUsed": 402.97,
+            "external": 38.82,
+            "arrayBuffers": 0.95,
+            "timestamp": "2025-09-05T02:56:10.013Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:10.013Z"
+          }
+        },
+        {
+          "timestamp": 10008.229208000004,
+          "success": true,
+          "data": {
+            "rss": 628,
+            "heapTotal": 462.56,
+            "heapUsed": 405.72,
+            "external": 38.84,
+            "arrayBuffers": 0.98,
+            "timestamp": "2025-09-05T02:56:11.014Z",
+            "optimized": false,
+            "recommendations": [
+              "Increase Node.js heap size or optimize memory usage"
+            ]
+          },
+          "metadata": {
+            "timestamp": "2025-09-05T02:56:11.014Z"
+          }
+        }
+      ],
+      "heapUsage": {
+        "min": 0,
+        "max": 0,
+        "avg": 0,
+        "trend": 0
+      }
+    },
+    "concurrent": {
+      "1": {
+        "concurrentUsers": 1,
+        "totalRequests": 10,
+        "totalTime": 1026.414458000003,
+        "throughput": 9.742653098910237,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.5597668000002158,
+          "p50": 1.5705830000006245,
+          "p95": 1.8987919999999576,
+          "p99": 1.8987919999999576
+        }
+      },
+      "5": {
+        "concurrentUsers": 5,
+        "totalRequests": 50,
+        "totalTime": 1026.6163339999985,
+        "throughput": 48.70368641533817,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.8714025799997034,
+          "p50": 1.750916999997571,
+          "p95": 3.760166999993089,
+          "p99": 5.00312500000291
+        }
+      },
+      "10": {
+        "concurrentUsers": 10,
+        "totalRequests": 100,
+        "totalTime": 1032.4278330000016,
+        "throughput": 96.85907024554213,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 2.256552960000554,
+          "p50": 1.9437090000064927,
+          "p95": 5.074583000001439,
+          "p99": 7.0590420000007725
+        }
+      },
+      "25": {
+        "concurrentUsers": 25,
+        "totalRequests": 250,
+        "totalTime": 1045.2195829999982,
+        "throughput": 239.1841906391075,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 3.1717431799999614,
+          "p50": 2.824291999997513,
+          "p95": 6.380208999995375,
+          "p99": 11.084499999997206
+        }
+      },
+      "50": {
+        "concurrentUsers": 50,
+        "totalRequests": 500,
+        "totalTime": 1105.066792000005,
+        "throughput": 452.4613386445855,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 6.581094186000119,
+          "p50": 4.4742089999999735,
+          "p95": 17.569041999995534,
+          "p99": 19.995374999998603
+        }
+      }
+    },
+    "graphql": {
+      "Simple Query": {
+        "query": "\n        query {\n          systemStatus {\n            status\n            timestamp\n          }\n        }\n      ",
+        "samples": 20,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 1.9621416000009049,
+          "min": 1.1718330000003334,
+          "max": 3.281416999991052,
+          "p95": 3.281416999991052
+        }
+      },
+      "Complex Query": {
+        "query": "\n        query {\n          systemMetrics {\n            memory {\n              total\n              used\n              free\n            }\n            cpu {\n              usage\n              cores\n            }\n          }\n        }\n      ",
+        "samples": 20,
+        "successRate": 0,
+        "responseTime": {
+          "avg": 2.0823064499993054,
+          "min": 1.2971249999973224,
+          "max": 3.973167000003741,
+          "p95": 3.973167000003741
+        }
+      }
+    },
+    "rate_limiting": {
+      "totalRequests": 100,
+      "totalTime": 94.1169579999987,
+      "requestsPerSecond": 1062.5077788850908,
+      "results": {
+        "successful": 0,
+        "rateLimited": 0,
+        "errors": 100
+      },
+      "rateLimitingEffective": false
+    }
+  },
+  "recommendations": [
+    {
+      "category": "Concurrency",
+      "priority": "HIGH",
+      "issue": "Low success rate under high concurrency (0%)",
+      "recommendation": "Implement connection pooling, increase server resources, or add load balancing"
+    }
+  ],
+  "performance_scores": {
+    "api_performance": 92,
+    "concurrent_load": 50,
+    "overall": 71
+  }
+}

@@ -1,0 +1,10 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/liblz4-ce9d16243db9d221.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/liblz4.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/decoder.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/encoder.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/block/mod.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/../README.md
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/lz4-ce9d16243db9d221.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/liblz4.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/decoder.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/encoder.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/block/mod.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/../README.md
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/liblz4.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/decoder.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/encoder.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/block/mod.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/lz4-1.28.1/src/../README.md:

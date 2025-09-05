@@ -1,0 +1,258 @@
+{
+  "sessionId": "ios-session-1756740181940",
+  "timestamp": "2025-09-01T15:23:51.205Z",
+  "summary": {
+    "totalSteps": 12,
+    "successfulSteps": 11,
+    "failedSteps": 1,
+    "totalDuration": 49264,
+    "averageResponseTime": 4105
+  },
+  "results": [
+    {
+      "step": "App Launch Health Check",
+      "success": true,
+      "duration": 15,
+      "details": {
+        "status": 200,
+        "data": {
+          "status": "healthy",
+          "timestamp": "2025-09-01T15:23:01.954Z",
+          "service": "Universal AI Tools API"
+        }
+      }
+    },
+    {
+      "step": "TTS Service Availability Check",
+      "success": true,
+      "duration": 2,
+      "details": {
+        "status": 200,
+        "data": {
+          "success": true,
+          "data": {
+            "service": "speech",
+            "status": "active",
+            "version": "2.4.0",
+            "capabilities": [
+              "text-to-speech",
+              "speech-to-text",
+              "voice-synthesis",
+              "audio-processing",
+              "multi-language-support"
+            ],
+            "ttsEngines": [
+              {
+                "name": "kokoro-tts",
+                "status": "active",
+                "languages": [
+                  "en",
+                  "ja"
+                ]
+              },
+              {
+                "name": "espeak",
+                "status": "active",
+                "languages": [
+                  "en",
+                  "es",
+                  "fr",
+                  "de"
+                ]
+              },
+              {
+                "name": "festival",
+                "status": "inactive",
+                "languages": [
+                  "en"
+                ]
+              }
+            ],
+            "sttEngines": [
+              {
+                "name": "whisper",
+                "status": "active",
+                "languages": [
+                  "multi"
+                ]
+              },
+              {
+                "name": "deepspeech",
+                "status": "active",
+                "languages": [
+                  "en"
+                ]
+              }
+            ],
+            "supportedFormats": [
+              "wav",
+              "mp3",
+              "ogg",
+              "flac"
+            ],
+            "activeConnections": 7,
+            "totalRequests": 342
+          },
+          "metadata": {
+            "requestId": "23eae417-42a8-44fe-bbf8-af5e63bb660f",
+            "timestamp": "2025-09-01T15:23:01.957Z",
+            "version": "1.0.0"
+          }
+        }
+      }
+    },
+    {
+      "step": "Authentication Validation",
+      "success": false,
+      "duration": 4004,
+      "details": null,
+      "error": "socket hang up"
+    },
+    {
+      "step": "User TTS Request",
+      "success": true,
+      "duration": 15206,
+      "details": {
+        "status": 200,
+        "ttsResponse": {
+          "success": true,
+          "data": {
+            "requestId": "tts_1756740201167_vh4r2z",
+            "text": "Hello! This is a test message from the Universal AI Companion iOS app. The text-to-speech integratio...",
+            "voice": "nova",
+            "language": "en",
+            "format": "wav",
+            "audioUrl": "/api/v1/speech/audio/nari_1756740185965_ap0mvkv6f.wav",
+            "duration": 16,
+            "fileSize": 965004,
+            "parameters": {
+              "speed": 1,
+              "pitch": 1
+            },
+            "metadata": {
+              "engine": "nari-dia-1.6b",
+              "processingTime": 15202,
+              "executionTime": 15200,
+              "timestamp": 1756740201167
+            }
+          },
+          "metadata": {
+            "requestId": "4a17a256-d124-4109-b5a4-9190ed916b80",
+            "timestamp": "2025-09-01T15:23:21.167Z",
+            "version": "1.0.0"
+          }
+        },
+        "audioUrl": "/api/v1/speech/audio/nari_1756740185965_ap0mvkv6f.wav"
+      }
+    },
+    {
+      "step": "Audio File Download",
+      "success": true,
+      "duration": 8,
+      "details": {
+        "status": 200,
+        "contentType": "audio/wav",
+        "audioSize": 965004,
+        "savedTo": "/Users/christianmerrill/Desktop/universal-ai-tools/test-outputs/ios-tts-simulation/ios-tts-ios-session-1756740181940.wav",
+        "isValidWAV": true,
+        "audioHash": "1a770ca13b29b6f3f4917fc90aacd2eb"
+      }
+    },
+    {
+      "step": "Voice Test - alloy",
+      "success": true,
+      "duration": 5006,
+      "details": {
+        "voice": "alloy",
+        "audioSize": 240540,
+        "savedTo": "/Users/christianmerrill/Desktop/universal-ai-tools/test-outputs/ios-tts-simulation/voice-alloy-ios-session-1756740181940.wav"
+      }
+    },
+    {
+      "step": "Voice Test - echo",
+      "success": true,
+      "duration": 5006,
+      "details": {
+        "voice": "echo",
+        "audioSize": 233484,
+        "savedTo": "/Users/christianmerrill/Desktop/universal-ai-tools/test-outputs/ios-tts-simulation/voice-echo-ios-session-1756740181940.wav"
+      }
+    },
+    {
+      "step": "Voice Test - fable",
+      "success": true,
+      "duration": 5007,
+      "details": {
+        "voice": "fable",
+        "audioSize": 241952,
+        "savedTo": "/Users/christianmerrill/Desktop/universal-ai-tools/test-outputs/ios-tts-simulation/voice-fable-ios-session-1756740181940.wav"
+      }
+    },
+    {
+      "step": "Speed Test - 0.5x",
+      "success": true,
+      "duration": 5002,
+      "details": {
+        "speed": 0.5,
+        "success": true,
+        "hasAudio": true
+      }
+    },
+    {
+      "step": "Speed Test - 1.5x",
+      "success": true,
+      "duration": 5003,
+      "details": {
+        "speed": 1.5,
+        "success": true,
+        "hasAudio": true
+      }
+    },
+    {
+      "step": "Speed Test - 2x",
+      "success": true,
+      "duration": 5003,
+      "details": {
+        "speed": 2,
+        "success": true,
+        "hasAudio": true
+      }
+    },
+    {
+      "step": "Error Handling Test",
+      "success": true,
+      "duration": 2,
+      "details": {
+        "errorHandling": "success",
+        "status": 400,
+        "message": "Correctly rejected invalid request"
+      }
+    }
+  ],
+  "conclusions": [
+    {
+      "status": "success",
+      "finding": "iOS app can successfully connect to localhost:9999"
+    },
+    {
+      "status": "error",
+      "finding": "Authentication header validation is failing"
+    },
+    {
+      "status": "success",
+      "finding": "WAV audio files are successfully downloaded and validated"
+    },
+    {
+      "status": "success",
+      "finding": "Multiple voice options working (3/3 voices tested successfully)"
+    },
+    {
+      "status": "success",
+      "finding": "Error handling is working correctly - invalid requests are properly rejected"
+    },
+    {
+      "status": "warning",
+      "finding": "TTS response times may be slow (avg: 15113ms)"
+    }
+  ]
+}

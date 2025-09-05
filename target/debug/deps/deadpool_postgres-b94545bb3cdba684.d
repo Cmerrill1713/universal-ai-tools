@@ -1,0 +1,8 @@
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/libdeadpool_postgres-b94545bb3cdba684.rmeta: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/config.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/generic_client.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/../README.md
+
+/Users/christianmerrill/Desktop/universal-ai-tools/target/debug/deps/deadpool_postgres-b94545bb3cdba684.d: /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/lib.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/config.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/generic_client.rs /Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/../README.md
+
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/lib.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/config.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/generic_client.rs:
+/Users/christianmerrill/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deadpool-postgres-0.10.5/src/../README.md:

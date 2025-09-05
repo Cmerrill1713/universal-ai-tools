@@ -1,0 +1,481 @@
+import SwiftUI
+
+/// Mobile-optimized home view for iOS
+struct MobileHomeView: View {
+    @State private var backendService = MacOSBackendService.shared
+    @State private var conversations: [Conversation] = []
+    @State private var usageStats: UsageStats?
+    @State private var isLoadingConversations = false
+    @State private var isLoadingStats = false
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Connection status
+                    connectionStatusView
+
+                    // Welcome section
+                    welcomeSection
+
+                    // Usage stats
+                    usageStatsSection
+
+                    // Recent activity
+                    recentActivitySection
+                }
+                .padding()
+            }
+            .navigationTitle("Universal AI Tools")
+            .task {
+                await loadInitialData()
+            }
+        }
+    }
+
+    private var connectionStatusView: some View {
+        HStack {
+            Circle()
+                .fill(backendService.isConnected ? Color.green : Color.red)
+                .frame(width: 12, height: 12)
+            Text(backendService.isConnected ? "Connected to backend" : "Backend connection failed")
+                .font(.subheadline)
+                .foregroundColor(backendService.isConnected ? .green : .red)
+            Spacer()
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var welcomeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Welcome back!")
+                .font(.title2)
+                .fontWeight(.bold)
+            Text("Ready to explore AI capabilities")
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var usageStatsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Usage Statistics")
+                .font(.headline)
+
+            if isLoadingStats {
+                ProgressView("Loading stats...")
+            } else {
+                HStack(spacing: 20) {
+                    if let stats = usageStats {
+                        MobileStatCard(number: "\(stats.totalConversations)", label: "Conversations", color: .blue)
+                        MobileStatCard(number: "\(stats.totalImagesAnalyzed)", label: "Images", color: .green)
+                        MobileStatCard(number: "\(stats.totalVoiceCommands)", label: "Voice", color: .purple)
+                    } else {
+                        MobileStatCard(number: "--", label: "Conversations", color: .blue)
+                        MobileStatCard(number: "--", label: "Images", color: .green)
+                        MobileStatCard(number: "--", label: "Voice", color: .purple)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var recentActivitySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Recent Activity")
+                .font(.headline)
+
+            if isLoadingConversations {
+                ProgressView("Loading conversations...")
+            } else if conversations.isEmpty {
+                Text("No recent conversations")
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                ForEach(conversations.prefix(3)) { conversation in
+                    HStack {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 8, height: 8)
+                        VStack(alignment: .leading) {
+                            Text(conversation.title)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text(conversation.lastMessage.isEmpty ? "New conversation" :
+                          conversation.lastMessage.prefix(30) + "...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                        Text(conversation.updatedAt.formatted(.relative(presentation: .named)))
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func loadInitialData() async {
+        // Load conversations
+        isLoadingConversations = true
+        do {
+            conversations = try await backendService.getConversations()
+        } catch {
+            print("Failed to load conversations: \(error)")
+        }
+        isLoadingConversations = false
+
+        // Load usage stats
+        isLoadingStats = true
+        do {
+            usageStats = try await backendService.getUsageStats()
+        } catch {
+            print("Failed to load usage stats: \(error)")
+        }
+        isLoadingStats = false
+    }
+}
+
+/// Mobile-optimized stat card for iOS
+struct MobileStatCard: View {
+    let number: String
+    let label: String
+    let color: Color
+
+    var body: some View {
+        VStack {
+            Text(number)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// Mobile chat view for iOS
+struct MobileChatView: View {
+    @State private var message: String = ""
+    @State private var messages: [ChatMessage] = []
+    @State private var backendService = MacOSBackendService.shared
+    @State private var isConnected = false
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                // Connection status
+                HStack {
+                    Circle()
+                        .fill(isConnected ? Color.green : Color.red)
+                        .frame(width: 8, height: 8)
+                    Text(isConnected ? "Connected" : "Disconnected")
+                        .font(.caption)
+                        .foregroundColor(isConnected ? .green : .red)
+                    Spacer()
+                    Button("New Chat") {
+                        // Handle new chat
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(.horizontal)
+
+                // Messages list
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(messages) { message in
+                            MessageBubble(message: message)
+                        }
+                    }
+                    .padding()
+                }
+
+                // Message input
+                HStack {
+                    TextField("Type a message...", text: $message)
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.leading)
+
+                    Button {
+                        sendMessage()
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+                    .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .padding(.trailing)
+                }
+                .padding(.bottom)
+            }
+            .navigationTitle("AI Chat")
+            .onAppear {
+                // Test connection
+                Task {
+                    do {
+                        _ = try await backendService.getConversations()
+                        await MainActor.run {
+                            isConnected = true
+                        }
+                    } catch {
+                        await MainActor.run {
+                            isConnected = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func sendMessage() {
+        let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedMessage.isEmpty else { return }
+
+        let newMessage = ChatMessage(
+            id: UUID().uuidString,
+            role: "user",
+            content: trimmedMessage,
+            timestamp: Date(),
+            agentName: nil,
+            confidence: nil,
+            tokens: nil
+        )
+
+        messages.append(newMessage)
+        message = ""
+
+        // Simulate AI response (replace with actual backend call)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            let aiResponse = ChatMessage(
+                id: UUID().uuidString,
+                role: "assistant",
+                content: "I'm processing your message: \"\(trimmedMessage)\". This is a demo response.",
+                timestamp: Date(),
+                agentName: "Demo AI",
+                confidence: 0.95,
+                tokens: 25
+            )
+            messages.append(aiResponse)
+        }
+    }
+}
+
+/// Message bubble for chat interface
+struct MessageBubble: View {
+    let message: ChatMessage
+
+    var body: some View {
+        HStack {
+            if message.role == "user" {
+                Spacer()
+            }
+
+            VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 4) {
+                Text(message.content)
+                    .padding()
+                    .background(message.role == "user" ? Color.blue : Color.gray.opacity(0.2))
+                    .foregroundColor(message.role == "user" ? .white : .primary)
+                    .cornerRadius(16)
+
+                HStack(spacing: 8) {
+                    if let agentName = message.agentName {
+                        Text(agentName)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    if let confidence = message.confidence {
+                        Text(String(format: "%.1f%%", confidence * 100))
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text(message.timestamp.formatted(.dateTime.hour().minute()))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            if message.role != "user" {
+                Spacer()
+            }
+        }
+    }
+}
+
+/// Mobile voice view for iOS
+struct MobileVoiceView: View {
+    @State private var isRecording = false
+    @State private var transcribedText = ""
+    @State private var isProcessing = false
+    @State private var backendService = MacOSBackendService.shared
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 30) {
+                Spacer()
+
+                // Voice recording button
+                ZStack {
+                    Circle()
+                        .fill(isRecording ? Color.red : Color.blue)
+                        .frame(width: 120, height: 120)
+                        .shadow(radius: isRecording ? 10 : 5)
+
+                    Button {
+                        toggleRecording()
+                    } label: {
+                        Image(systemName: isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                // Status text
+                Text(isRecording ? "Recording..." : isProcessing ? "Processing..." : "Tap to start recording")
+                    .font(.title2)
+                    .foregroundColor(isRecording ? .red : .primary)
+
+                // Transcribed text
+                if !transcribedText.isEmpty {
+                    VStack(spacing: 16) {
+                        Text("Transcription:")
+                            .font(.headline)
+
+                        Text(transcribedText)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal)
+                }
+
+                Spacer()
+
+                // Action buttons
+                HStack(spacing: 20) {
+                    Button("Play Audio") {
+                        // Play last recorded audio
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(transcribedText.isEmpty)
+
+                    Button("Clear") {
+                        transcribedText = ""
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding()
+            .navigationTitle("Voice Assistant")
+        }
+    }
+
+    private func toggleRecording() {
+        isRecording.toggle()
+
+        if !isRecording {
+            // Stop recording and process
+            isProcessing = true
+
+            // Simulate voice processing (replace with actual backend call)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                transcribedText = "Hello! This is a demo transcription of your voice input."
+                isProcessing = false
+            }
+        }
+    }
+}
+
+/// Mobile settings view for iOS
+struct MobileSettingsView: View {
+    @State private var backendService = MacOSBackendService.shared
+    @State private var isConnected = false
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("Connection") {
+                    HStack {
+                        Text("Backend Status")
+                        Spacer()
+                        Circle()
+                            .fill(isConnected ? Color.green : Color.red)
+                            .frame(width: 12, height: 12)
+                        Text(isConnected ? "Connected" : "Disconnected")
+                            .foregroundColor(isConnected ? .green : .red)
+                    }
+
+                    Button("Test Connection") {
+                        testConnection()
+                    }
+                }
+
+                Section("AI Settings") {
+                    Picker("Default Model", selection: .constant("GPT-4")) {
+                        Text("GPT-4").tag("GPT-4")
+                        Text("GPT-3.5").tag("GPT-3.5")
+                        Text("Claude").tag("Claude")
+                    }
+
+                    Toggle("Voice Responses", isOn: .constant(true))
+                    Toggle("Auto-save Conversations", isOn: .constant(true))
+                }
+
+                Section("Privacy & Security") {
+                    Toggle("Analytics", isOn: .constant(false))
+                    Toggle("Crash Reporting", isOn: .constant(true))
+                    Toggle("Data Encryption", isOn: .constant(true))
+                }
+
+                Section("About") {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text("1.0.0")
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack {
+                        Text("Build")
+                        Spacer()
+                        Text("2024.01")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .onAppear {
+                testConnection()
+            }
+        }
+    }
+
+    private func testConnection() {
+        Task {
+            do {
+                _ = try await backendService.getConversations()
+                await MainActor.run {
+                    isConnected = true
+                }
+            } catch {
+                await MainActor.run {
+                    isConnected = false
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,391 @@
+{
+  "backend": {
+    "/health": {
+      "endpoint": "/health",
+      "sequential": {
+        "avg": 2.0058333000000013,
+        "min": 0.5004580000000018,
+        "max": 12.941624999999998,
+        "median": 0.6560420000000011,
+        "p95": 12.941624999999998,
+        "p99": 12.941624999999998
+      },
+      "concurrent": {
+        "totalTime": 2.122209000000005,
+        "successful": 5,
+        "failed": 0,
+        "throughput": 2356.035621373761
+      },
+      "errors": 0,
+      "successRate": 100
+    },
+    "/api/v1/chat": {
+      "endpoint": "/api/v1/chat",
+      "sequential": {
+        "avg": 3.9888000000000035,
+        "min": 0.6076249999999987,
+        "max": 27.363292,
+        "median": 1.1819170000000057,
+        "p95": 27.363292,
+        "p99": 27.363292
+      },
+      "concurrent": {
+        "totalTime": 3.043333000000004,
+        "successful": 5,
+        "failed": 0,
+        "throughput": 1642.9355578242648
+      },
+      "errors": 10,
+      "successRate": 0
+    },
+    "/api/v1/agents": {
+      "endpoint": "/api/v1/agents",
+      "sequential": {
+        "avg": 1.7027167999999988,
+        "min": 0.3840419999999938,
+        "max": 3.653209000000004,
+        "median": 1.3964789999999994,
+        "p95": 3.653209000000004,
+        "p99": 3.653209000000004
+      },
+      "concurrent": {
+        "totalTime": 3.7751250000000027,
+        "successful": 5,
+        "failed": 0,
+        "throughput": 1324.4594549849332
+      },
+      "errors": 0,
+      "successRate": 100
+    },
+    "/api/v1/memory": {
+      "endpoint": "/api/v1/memory",
+      "sequential": {
+        "avg": 2.094283200000004,
+        "min": 1.1166660000000093,
+        "max": 3.8784160000000014,
+        "median": 1.4506040000000056,
+        "p95": 3.8784160000000014,
+        "p99": 3.8784160000000014
+      },
+      "concurrent": {
+        "totalTime": 6.5575000000000045,
+        "successful": 5,
+        "failed": 0,
+        "throughput": 762.4857033930609
+      },
+      "errors": 10,
+      "successRate": 0
+    },
+    "/metrics": {
+      "endpoint": "/metrics",
+      "sequential": {
+        "avg": 1.7886209000000037,
+        "min": 0.9199169999999981,
+        "max": 4.684207999999984,
+        "median": 1.1994789999999966,
+        "p95": 4.684207999999984,
+        "p99": 4.684207999999984
+      },
+      "concurrent": {
+        "totalTime": 4.143624999999986,
+        "successful": 5,
+        "failed": 0,
+        "throughput": 1206.6729011433267
+      },
+      "errors": 0,
+      "successRate": 100
+    }
+  },
+  "mobile": {
+    "error": "Command failed: xcrun simctl launch 9E201695-F363-41B8-B011-613F4B0F91DE com.universalaitools.app\nAn error was encountered processing the command (domain=FBSOpenApplicationServiceErrorDomain, code=4):\nSimulator device failed to launch com.universalaitools.app.\nUnderlying error (domain=FBSOpenApplicationServiceErrorDomain, code=4):\n\tThe request to open \"com.universalaitools.app\" failed.\n"
+  },
+  "system": {
+    "memory": {
+      "availableGB": 4.615428924560547,
+      "timestamp": "2025-09-05T03:31:39.917Z"
+    },
+    "cpu": {
+      "user": 23.9,
+      "system": 36.91,
+      "idle": 39.17
+    },
+    "processes": [
+      {
+        "pid": "14292",
+        "cpu": 66.6,
+        "memory": 0.7,
+        "command": "/opt/homebrew/Cellar/node@22/22.18.0/bin/node --require /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/preflight.cjs --import file:///Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/loader.mjs src/server.ts"
+      },
+      {
+        "pid": "14291",
+        "cpu": 66.5,
+        "memory": 0.7,
+        "command": "/opt/homebrew/Cellar/node@22/22.18.0/bin/node --require /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/preflight.cjs --import file:///Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/loader.mjs src/server.ts"
+      },
+      {
+        "pid": "14340",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Users/christianmerrill/Desktop/universal-ai-tools/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.6 --ping"
+      },
+      {
+        "pid": "14335",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Users/christianmerrill/Desktop/universal-ai-tools/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.6 --ping"
+      },
+      {
+        "pid": "19127",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx watch --clear-screen=false src/server.ts"
+      },
+      {
+        "pid": "10957",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx watch --clear-screen=false src/server.ts"
+      },
+      {
+        "pid": "31957",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/opt/homebrew/Cellar/node@22/22.18.0/bin/node --require /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/preflight.cjs --import file:///Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/loader.mjs /Users/christianmerrill/Desktop/universal-ai-tools/src/mcp/supabase-mcp-server.ts"
+      },
+      {
+        "pid": "31955",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx /Users/christianmerrill/Desktop/universal-ai-tools/src/mcp/supabase-mcp-server.ts"
+      },
+      {
+        "pid": "31821",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Users/christianmerrill/Desktop/universal-ai-tools/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.6 --ping"
+      },
+      {
+        "pid": "31532",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/opt/homebrew/Cellar/node@22/22.18.0/bin/node --require /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/preflight.cjs --import file:///Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/loader.mjs src/server.ts"
+      },
+      {
+        "pid": "31518",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx watch --clear-screen=false src/server.ts"
+      },
+      {
+        "pid": "17582",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/.npm/_npx/99336612077b7094/node_modules/.bin/xcodebuildmcp"
+      },
+      {
+        "pid": "17562",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/mcp-server-github"
+      },
+      {
+        "pid": "17205",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/.cursor/extensions/dbaeumer.vscode-eslint-3.0.16-universal/server/out/eslintServer.js --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "14366",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/.npm/_npx/99336612077b7094/node_modules/.bin/xcodebuildmcp"
+      },
+      {
+        "pid": "14338",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/mcp-server-github"
+      },
+      {
+        "pid": "13552",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/.npm/_npx/99336612077b7094/node_modules/.bin/xcodebuildmcp"
+      },
+      {
+        "pid": "13513",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/mcp-server-github"
+      },
+      {
+        "pid": "13498",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/.npm/_npx/0496d3f111c50e47/node_modules/.bin/smithery run @block/code-mcp --key 470bef52-e29b-4ef8-b140-0d6ecbdda116"
+      },
+      {
+        "pid": "13411",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/.npm/_npx/0496d3f111c50e47/node_modules/.bin/smithery run @smithery-ai/github --key 470bef52-e29b-4ef8-b140-0d6ecbdda116 --config \"{\\\"githubPersonalAccessToken\\\":\\\"a2b9b7fb-0e94-4f9f-b93b-113038988bbd\\\"}\""
+      },
+      {
+        "pid": "13365",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "node /Users/christianmerrill/.npm/_npx/0496d3f111c50e47/node_modules/.bin/smithery run @upstash/context7-mcp --key 470bef52-e29b-4ef8-b140-0d6ecbdda116"
+      },
+      {
+        "pid": "13304",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/.cursor/extensions/github.vscode-github-actions-0.27.2-universal/dist/server-node.js --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "13013",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/.npm/_npx/0496d3f111c50e47/node_modules/.bin/smithery run @PhillipRt/think-mcp-server --key 470bef52-e29b-4ef8-b140-0d6ecbdda116"
+      },
+      {
+        "pid": "12844",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/.npm/_npx/0496d3f111c50e47/node_modules/.bin/smithery run @smithery-ai/server-sequential-thinking --key 470bef52-e29b-4ef8-b140-0d6ecbdda116"
+      },
+      {
+        "pid": "12738",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/.cursor/extensions/bradlc.vscode-tailwindcss-0.14.26-universal/dist/tailwindServer.js --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "12714",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Applications/Cursor.app/Contents/Resources/app/extensions/json-language-features/server/dist/node/jsonServerMain --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "12701",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/.cursor/extensions/streetsidesoftware.code-spell-checker-4.0.47-universal/packages/_server/dist/main.cjs --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "12618",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Applications/Cursor.app/Contents/Resources/app/extensions/markdown-language-features/dist/serverWorkerMain --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "12373",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/opt/homebrew/opt/node@22/bin/node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/@playwright/test/cli.js test-server -c /Users/christianmerrill/Desktop/universal-ai-tools/playwright.config.ts"
+      },
+      {
+        "pid": "12135",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/.cursor/extensions/graphql.vscode-graphql-0.13.0-universal/out/serverIpc/index.js --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "12067",
+        "cpu": 0,
+        "memory": 0.3,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) --max-old-space-size=16384 /Users/christianmerrill/.cursor/extensions/anysphere.cursorpyright-1.0.8/dist/server.js --cancellationReceive=file:9a303a3c0aaabd908f8fdbc1f269fea49cf5b908e8 --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "12050",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/.cursor/extensions/formulahendry.auto-rename-tag-0.1.10-universal/packages/server/dist/serverMain.js --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "11998",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/.cursor/extensions/redhat.vscode-yaml-1.18.0/dist/languageserver.js --node-ipc --clientProcessId=11696"
+      },
+      {
+        "pid": "11975",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Applications/Cursor.app/Contents/Frameworks/Cursor Helper (Plugin).app/Contents/MacOS/Cursor Helper (Plugin) /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/typescript/lib/typingsInstaller.js --globalTypingsCacheLocation /Users/christianmerrill/Library/Caches/typescript/5.6 --enableTelemetry --typesMapLocation /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/typescript/lib/typesMap.json --validateDefaultNpmLocation"
+      },
+      {
+        "pid": "77215",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx watch --clear-screen=false src/server.ts"
+      },
+      {
+        "pid": "47920",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx watch src/server.ts"
+      },
+      {
+        "pid": "91079",
+        "cpu": 0,
+        "memory": 0,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx watch --clear-screen=false src/server.ts"
+      },
+      {
+        "pid": "32561",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/Applications/Universal AI Tools.app/Contents/MacOS/Barmaid"
+      },
+      {
+        "pid": "21725",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "node ./benchmark-universal-ai-tools.cjs"
+      },
+      {
+        "pid": "21716",
+        "cpu": 0,
+        "memory": 0,
+        "command": "/bin/zsh -c -l source /Users/christianmerrill/.claude/shell-snapshots/snapshot-zsh-1756962944726-70i61m.sh && eval 'node ./benchmark-universal-ai-tools.cjs' \\< /dev/null && pwd -P >| /var/folders/s3/_y6rn0hn6277xsk5gczfgy_00000gn/T/claude-5ddf-cwd"
+      },
+      {
+        "pid": "18743",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "/opt/homebrew/Cellar/node@22/22.18.0/bin/node --require /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/preflight.cjs --import file:///Users/christianmerrill/Desktop/universal-ai-tools/node_modules/tsx/dist/loader.mjs /Users/christianmerrill/Desktop/universal-ai-tools/src/mcp/supabase-mcp-server.ts"
+      },
+      {
+        "pid": "18740",
+        "cpu": 0,
+        "memory": 0.1,
+        "command": "node /Users/christianmerrill/Desktop/universal-ai-tools/node_modules/.bin/tsx /Users/christianmerrill/Desktop/universal-ai-tools/src/mcp/supabase-mcp-server.ts"
+      }
+    ],
+    "disk": {
+      "readMBps": 1,
+      "writeMBps": 0
+    }
+  },
+  "summary": {
+    "totalDuration": 3.068,
+    "backend": {
+      "endpointsTested": 5,
+      "errors": 0,
+      "avgResponseTime": 2.316050840000002,
+      "overallHealth": "excellent"
+    },
+    "mobile": {
+      "tested": false,
+      "status": "failed"
+    },
+    "system": {
+      "monitored": true,
+      "processCount": 42
+    },
+    "timestamp": "2025-09-05T03:31:41.155Z",
+    "platform": "macOS",
+    "nodeVersion": "v22.18.0"
+  }
+}
