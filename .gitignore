@@ -192,3 +192,10 @@ xcuserdata/
 *.xccheckout
 *.moved-aside
 *.xcworkspace/xcshareddata
+
+# Electron build artifacts
+electron-frontend/release/
+electron-frontend/dist/
+*.dmg
+*.app
+*.asar
