@@ -80,3 +80,87 @@ updates:
           - 'torch*'
           - 'transformers*'
           - 'mlx*'
+
+  # Rust dependencies - AB-MCTS service
+  - package-ecosystem: 'cargo'
+    directory: '/rust-services/ab-mcts-service'
+    schedule:
+      interval: 'weekly'
+      day: 'friday'
+      time: '09:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'christianmerrill'
+    commit-message:
+      prefix: 'deps(rust)'
+      include: 'scope'
+
+  # Rust dependencies - Intelligent Parameter service
+  - package-ecosystem: 'cargo'
+    directory: '/rust-services/intelligent-parameter-service'
+    schedule:
+      interval: 'weekly'
+      day: 'friday'
+      time: '10:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'christianmerrill'
+    commit-message:
+      prefix: 'deps(rust)'
+      include: 'scope'
+
+  # Rust dependencies - Parameter Analytics service
+  - package-ecosystem: 'cargo'
+    directory: '/rust-services/parameter-analytics-service'
+    schedule:
+      interval: 'weekly'
+      day: 'friday'
+      time: '11:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'christianmerrill'
+    commit-message:
+      prefix: 'deps(rust)'
+      include: 'scope'
+
+  # Root Cargo workspace
+  - package-ecosystem: 'cargo'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'friday'
+      time: '12:00'
+    open-pull-requests-limit: 10
+    reviewers:
+      - 'christianmerrill'
+    commit-message:
+      prefix: 'deps(cargo)'
+      include: 'scope'
+
+  # Go dependencies - Intelligent Load Balancer
+  - package-ecosystem: 'gomod'
+    directory: '/go-services/intelligent-load-balancer'
+    schedule:
+      interval: 'weekly'
+      day: 'saturday'
+      time: '09:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'christianmerrill'
+    commit-message:
+      prefix: 'deps(go)'
+      include: 'scope'
+
+  # Root Go modules
+  - package-ecosystem: 'gomod'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'saturday'
+      time: '10:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'christianmerrill'
+    commit-message:
+      prefix: 'deps(go)'
+      include: 'scope'
