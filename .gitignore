@@ -169,3 +169,26 @@ MIGRATION_CLEANUP_PLAN.md
 *_SUMMARY.md
 *_REPORT.md
 *_ANALYSIS.md
+
+# Swift Package Manager
+.build/
+*.xcuserstate
+*.xcuserdatad/
+DerivedData/
+*.hmap
+*.ipa
+.swiftpm/
+
+# Xcode
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcworkspace/xcshareddata
