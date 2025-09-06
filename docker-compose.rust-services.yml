@@ -1,0 +1,216 @@
+version: '3.8'
+
+services:
+  # Redis for caching and state management
+  redis:
+    image: redis:7-alpine
+    container_name: uat-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # AB-MCTS Service (Rust)
+  ab-mcts-service:
+    build:
+      context: ./rust-services/ab-mcts-service
+      dockerfile: Dockerfile
+    container_name: uat-ab-mcts
+    ports:
+      - "8082:8082"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8082
+      - REDIS_URL=redis://redis:6379
+      - MAX_ITERATIONS=1000
+      - ENABLE_CORS=true
+      - ENABLE_METRICS=true
+      - RUST_LOG=ab_mcts_service=debug,actix_web=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ReVeal Evolution Service (Rust)
+  reveal-evolution-service:
+    build:
+      context: ./rust-services/reveal-evolution-service
+      dockerfile: Dockerfile
+    container_name: uat-reveal-evolution
+    ports:
+      - "8082:8082"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8082
+      - REDIS_URL=redis://redis:6379
+      - AB_MCTS_URL=http://ab-mcts-service:8082
+      - MAX_TURNS=6
+      - MIN_CONFIDENCE=0.8
+      - ENABLE_PARALLEL_VERIFICATION=true
+      - RUST_LOG=reveal_evolution_service=debug,actix_web=info
+    depends_on:
+      - redis
+      - ab-mcts-service
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Intelligent Parameter Service (Rust)
+  intelligent-parameter-service:
+    build:
+      context: ./rust-services/intelligent-parameter-service
+      dockerfile: Dockerfile
+    container_name: uat-intelligent-params
+    ports:
+      - "8022:8022"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8022
+      - REDIS_URL=redis://redis:6379
+      - LEARNING_RATE=0.01
+      - ENABLE_METRICS=true
+      - RUST_LOG=intelligent_parameter_service=debug
+    depends_on:
+      - redis
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8022/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Intelligent Load Balancer (Go)
+  intelligent-load-balancer:
+    build:
+      context: ./go-services/intelligent-load-balancer
+      dockerfile: Dockerfile
+    container_name: uat-load-balancer
+    ports:
+      - "8095:8095"
+      - "9095:9095"  # Metrics port
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8095
+      - METRICS_PORT=9095
+      - REDIS_URL=redis://redis:6379
+      - ML_LEARNING_RATE=0.01
+      - ENABLE_TRAFFIC_PREDICTION=true
+      - LOG_LEVEL=debug
+    depends_on:
+      - redis
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Main TypeScript API
+  typescript-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uat-api
+    ports:
+      - "9999:9999"
+    environment:
+      - NODE_ENV=production
+      - PORT=9999
+      # Service URLs for HTTP communication
+      - AB_MCTS_SERVICE_URL=http://ab-mcts-service:8082
+      - AB_MCTS_URL=http://ab-mcts-service:8082
+      - REVEAL_EVOLUTION_URL=http://reveal-evolution-service:8082
+      - INTELLIGENT_PARAMS_URL=http://intelligent-parameter-service:8022
+      - INTELLIGENT_PARAMETER_SERVICE_URL=http://intelligent-parameter-service:8022
+      - LOAD_BALANCER_URL=http://intelligent-load-balancer:8095
+      # Redis
+      - REDIS_URL=redis://redis:6379
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      # Ollama (if using local models)
+      - OLLAMA_URL=http://host.docker.internal:11434
+    depends_on:
+      - redis
+      - ab-mcts-service
+      - reveal-evolution-service
+      - intelligent-parameter-service
+      - intelligent-load-balancer
+    networks:
+      - ai-network
+    volumes:
+      - ./src:/app/src:ro
+      - ./models:/app/models
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: uat-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: uat-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+networks:
+  ai-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
