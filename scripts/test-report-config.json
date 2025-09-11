@@ -1,0 +1,108 @@
+{
+  "testSuites": [
+    {
+      "name": "Phase 1 Fixes",
+      "script": "tests/test-phase1-fixes.js",
+      "weight": 40,
+      "category": "critical",
+      "description": "Core infrastructure fixes required for production readiness",
+      "required": true
+    },
+    {
+      "name": "Security Validation",
+      "script": "tests/test-security-validation.js",
+      "weight": 35,
+      "category": "security",
+      "description": "Security vulnerability assessment and hardening validation",
+      "required": true
+    },
+    {
+      "name": "Performance Tests",
+      "script": "test-performance-middleware.js",
+      "weight": 15,
+      "category": "performance",
+      "description": "Performance monitoring and optimization validation",
+      "required": false
+    },
+    {
+      "name": "Integration Tests",
+      "script": "test-comprehensive-e2e.js",
+      "weight": 10,
+      "category": "integration",
+      "description": "End-to-end system integration validation",
+      "required": false
+    },
+    {
+      "name": "GraphQL Tests",
+      "script": "test-graphql.js",
+      "weight": 5,
+      "category": "api",
+      "description": "GraphQL API endpoint validation",
+      "required": false
+    },
+    {
+      "name": "Authentication Tests",
+      "script": "test-authentication-fixes.js",
+      "weight": 5,
+      "category": "security",
+      "description": "Authentication middleware and security validation",
+      "required": false
+    }
+  ],
+  "healthChecks": [
+    {
+      "name": "Server Health",
+      "endpoint": "/api/health",
+      "timeout": 5000,
+      "required": true
+    },
+    {
+      "name": "GraphQL Introspection",
+      "endpoint": "/graphql",
+      "timeout": 5000,
+      "method": "POST",
+      "body": { "query": "{ __schema { queryType { name } } }" },
+      "required": false
+    },
+    {
+      "name": "Performance Metrics",
+      "endpoint": "/api/performance/metrics",
+      "timeout": 5000,
+      "required": false
+    },
+    {
+      "name": "Security Status",
+      "endpoint": "/api/security/status",
+      "timeout": 5000,
+      "required": false
+    },
+    {
+      "name": "Agent Status",
+      "endpoint": "/api/agents",
+      "timeout": 5000,
+      "required": false
+    },
+    {
+      "name": "Memory System",
+      "endpoint": "/api/memories",
+      "timeout": 5000,
+      "required": false
+    }
+  ],
+  "scoring": {
+    "excellent": 95,
+    "good": 80,
+    "fair": 60,
+    "poor": 0
+  },
+  "phase1Requirements": {
+    "minimumPassRate": 95,
+    "requiredTests": ["Phase 1 Fixes", "Security Validation"],
+    "criticalEndpoints": ["/api/health", "/api/performance/metrics"]
+  },
+  "reportFormats": ["markdown", "json", "html"],
+  "charts": {
+    "enabled": true,
+    "types": ["health-score", "test-results", "performance-trends", "security-scores"]
+  }
+}

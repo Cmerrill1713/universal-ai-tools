@@ -1,0 +1,228 @@
+# =====================================
+# Node.js & TypeScript
+# =====================================
+node_modules/
+dist/
+build/
+*.js.map
+*.d.ts.map
+.npm
+.cache/
+.pids/
+*.pid
+*.seed
+*.pid.lock
+
+# TypeScript
+*.tsbuildinfo
+.tsc-cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# =====================================
+# Python
+# =====================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =====================================
+# Rust
+# =====================================
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# =====================================
+# Go
+# =====================================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.sum
+
+# Go binaries
+go-api-gateway
+simple-auth-service
+simple-memory-service
+simple-websocket-service
+migrate-to-weaviate
+main
+shared-memory-binary
+
+# =====================================
+# ML Models & Data
+# =====================================
+models/
+*.gguf
+*.bin
+*.pth
+*.h5
+*.pkl
+*.joblib
+*.safetensors
+mlx-vlm/
+ml-fastvlm/
+experiment_results.json
+
+# =====================================
+# IDE & Editors
+# =====================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# =====================================
+# Xcode & Swift
+# =====================================
+xcuserdata/
+*.xcuserstate
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+.build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+Carthage/Build/
+
+# =====================================
+# Testing & Coverage
+# =====================================
+coverage/
+*.lcov
+.nyc_output
+test-results/
+playwright-report/
+playwright/.cache/
+
+# =====================================
+# Documentation (Auto-generated)
+# =====================================
+docs/api/
+typedoc/
+
+# =====================================
+# Temporary files
+# =====================================
+tmp/
+temp/
+.tmp/
+*.tmp
+*.bak
+*.backup
+*.orig
+
+# =====================================
+# Docker
+# =====================================
+docker-compose.override.yml
+.dockerignore
+
+# =====================================
+# Database
+# =====================================
+*.sqlite
+*.sqlite3
+*.db
+data/
+
+# =====================================
+# Benchmarks & Reports
+# =====================================
+benchmarks/
+reports/
+*-report.json
+*-report.md
+performance-*.json
+benchmark-*.json
+
+# =====================================
+# Deployment & Build Artifacts
+# =====================================
+deployment/vision-manager/.env
+deployment/vision-manager/results/
+modern-frontend/.cache/
+modern-frontend/dist/
+modern-frontend/.dev-server.pid
+assets/
+backup-files/
+
+# =====================================
+# Submodules (if not needed)
+# =====================================
+mcp-servers/
+projects/NewTradingBot/mlx-examples/
+projects/NewTradingBot/phi-2/
+
+# =====================================
+# iOS/macOS specific
+# =====================================
+ios-client/
+macos-client/
+
+# =====================================
+# Security (Never commit these)
+# =====================================
+*.pem
+*.key
+*.cert
+*.crt
+private/
+secrets/
+vault/
+
+# =====================================
+# Package manager locks (optional)
+# =====================================
+# Uncomment if you want to ignore lock files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+# Large build artifacts and packages
+target/
+node_modules/
+UniversalAIToolsMacPackage/
+UniversalAIToolsPackage/
+universal-ai-tools/
+python-services/*/venv/
+python-services/*/__pycache__/
+*.log

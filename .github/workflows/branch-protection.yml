@@ -1,0 +1,521 @@
+name: Branch Protection & Code Quality
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  MINIMUM_COVERAGE: 80
+
+jobs:
+  # 1. Pre-flight checks
+  preflight:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      pr_number: ${{ steps.check.outputs.pr_number }}
+      base_branch: ${{ steps.check.outputs.base_branch }}
+    steps:
+      - name: Check if should run
+        id: check
+        run: |
+          if [[ "${{ github.event.pull_request.draft }}" == "true" ]]; then
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "Draft PR - skipping detailed checks"
+          else
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          fi
+          echo "pr_number=${{ github.event.number }}" >> $GITHUB_OUTPUT
+          echo "base_branch=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+
+  # 2. Code quality gate
+  code-quality-gate:
+    name: Code Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for better diff analysis
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd ui && npm ci
+
+      - name: Check code formatting (backend)
+        run: npm run format:check
+
+      - name: Check code formatting (frontend)
+        run: cd ui && npm run lint
+
+      - name: Lint backend code with detailed output
+        run: |
+          echo "Running ESLint on backend..."
+          npm run lint -- --format=json --output-file=eslint-backend.json || true
+          npm run lint
+
+      - name: Lint frontend code with detailed output
+        run: |
+          echo "Running ESLint on frontend..."
+          cd ui
+          npm run lint -- --format=json --output-file=../eslint-frontend.json || true
+          npm run lint
+
+      - name: TypeScript compilation check (backend)
+        run: npm run type-check
+
+      - name: TypeScript compilation check (frontend)
+        run: cd ui && npx tsc --noEmit
+
+      - name: Check for TODO/FIXME comments in PR
+        run: |
+          echo "Checking for TODO/FIXME comments in changed files..."
+
+          # Get changed files
+          git diff --name-only origin/${{ needs.preflight.outputs.base_branch }}...HEAD > changed_files.txt
+
+          # Check for TODO/FIXME in changed files
+          todo_count=0
+          while IFS= read -r file; do
+            if [[ -f "$file" && "$file" =~ \.(ts|tsx|js|jsx)$ ]]; then
+              todos=$(grep -n -i "todo\|fixme" "$file" || true)
+              if [[ -n "$todos" ]]; then
+                echo "⚠️ TODO/FIXME found in $file:"
+                echo "$todos"
+                ((todo_count++))
+              fi
+            fi
+          done < changed_files.txt
+
+          if [[ $todo_count -gt 5 ]]; then
+            echo "❌ Too many TODO/FIXME comments ($todo_count files). Please resolve some before merging."
+            exit 1
+          elif [[ $todo_count -gt 0 ]]; then
+            echo "⚠️ Found TODO/FIXME comments in $todo_count files. Consider resolving before merge."
+          fi
+
+      - name: Upload lint results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results-${{ github.sha }}
+          path: |
+            eslint-backend.json
+            eslint-frontend.json
+          retention-days: 7
+
+  # 3. Security quality gate
+  security-quality-gate:
+    name: Security Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: |
+          echo "Running npm audit..."
+          npm audit --audit-level=moderate
+
+      - name: Check for hardcoded secrets in PR changes
+        run: |
+          echo "Checking for potential secrets in PR changes..."
+
+          # Get changed files
+          git diff --name-only origin/${{ needs.preflight.outputs.base_branch }}...HEAD > changed_files.txt
+
+          # Check for potential secrets
+          secret_patterns=(
+            "password\s*=\s*[\"'][^\"']{8,}[\"']"
+            "api[_-]?key\s*=\s*[\"'][^\"']{20,}[\"']"
+            "secret\s*=\s*[\"'][^\"']{16,}[\"']"
+            "token\s*=\s*[\"'][^\"']{20,}[\"']"
+            "AKIA[0-9A-Z]{16}"
+            "-----BEGIN.*PRIVATE.*KEY-----"
+          )
+
+          found_secrets=false
+          while IFS= read -r file; do
+            if [[ -f "$file" ]]; then
+              for pattern in "${secret_patterns[@]}"; do
+                if grep -P "$pattern" "$file" 2>/dev/null; then
+                  echo "⚠️ Potential secret found in $file"
+                  found_secrets=true
+                fi
+              done
+            fi
+          done < changed_files.txt
+
+          if [[ "$found_secrets" == "true" ]]; then
+            echo "❌ Potential secrets detected in PR. Please review and remove any hardcoded credentials."
+            exit 1
+          fi
+
+      - name: Check for production readiness blockers
+        run: |
+          echo "Checking for production readiness blockers..."
+          npm run check:mocks || echo "Mock check completed with warnings"
+
+  # 4. Test quality gate
+  test-quality-gate:
+    name: Test Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd ui && npm ci
+
+      - name: Setup test environment
+        run: |
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "POSTGRES_HOST=localhost" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+          echo "JWT_SECRET=test-secret-key" >> $GITHUB_ENV
+
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+
+      - name: Run frontend tests
+        run: cd ui && npm run test:run
+
+      - name: Check test coverage
+        run: |
+          echo "Checking test coverage..."
+
+          if [[ -f coverage/coverage-summary.json ]]; then
+            coverage=$(jq -r '.total.lines.pct' coverage/coverage-summary.json)
+            echo "Current coverage: $coverage%"
+
+            if (( $(echo "$coverage < $MINIMUM_COVERAGE" | bc -l) )); then
+              echo "❌ Test coverage ($coverage%) is below minimum requirement ($MINIMUM_COVERAGE%)"
+              exit 1
+            else
+              echo "✅ Test coverage meets requirements"
+            fi
+          else
+            echo "⚠️ Coverage report not found"
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.sha }}
+          path: |
+            coverage/
+            ui/coverage/
+          retention-days: 7
+
+  # 5. Build quality gate
+  build-quality-gate:
+    name: Build Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd ui && npm ci
+
+      - name: Build backend
+        run: npm run build:prod
+
+      - name: Build frontend
+        run: cd ui && npm run build
+
+      - name: Check build size
+        run: |
+          echo "Checking build sizes..."
+
+          # Check backend build size
+          backend_size=$(du -sh dist | cut -f1)
+          echo "Backend build size: $backend_size"
+
+          # Check frontend build size
+          frontend_size=$(du -sh ui/dist | cut -f1)
+          echo "Frontend build size: $frontend_size"
+
+          # Store sizes for later comparison
+          echo "BACKEND_SIZE=$backend_size" >> $GITHUB_ENV
+          echo "FRONTEND_SIZE=$frontend_size" >> $GITHUB_ENV
+
+      - name: Test build startup
+        run: |
+          echo "Testing build startup..."
+
+          # Start the built application
+          npm start &
+          APP_PID=$!
+
+          # Wait for startup
+          echo "Waiting for application to start..."
+          sleep 15
+
+          # Test health endpoint
+          if curl -f http://localhost:9999/health; then
+            echo "✅ Build starts successfully"
+          else
+            echo "❌ Build fails to start properly"
+            exit 1
+          fi
+
+          # Clean up
+          kill $APP_PID 2>/dev/null || true
+
+  # 6. Change impact analysis
+  change-impact-analysis:
+    name: Change Impact Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze changed files
+        run: |
+          echo "Analyzing change impact..."
+
+          # Get changed files
+          git diff --name-only origin/${{ needs.preflight.outputs.base_branch }}...HEAD > changed_files.txt
+
+          # Categorize changes
+          backend_changes=0
+          frontend_changes=0
+          config_changes=0
+          test_changes=0
+          doc_changes=0
+          ci_changes=0
+
+          while IFS= read -r file; do
+            if [[ "$file" =~ ^src/ && ! "$file" =~ test ]]; then
+              ((backend_changes++))
+            elif [[ "$file" =~ ^ui/src/ && ! "$file" =~ test ]]; then
+              ((frontend_changes++))
+            elif [[ "$file" =~ \.(test|spec)\. ]]; then
+              ((test_changes++))
+            elif [[ "$file" =~ \.(md|txt)$ ]]; then
+              ((doc_changes++))
+            elif [[ "$file" =~ \.(yml|yaml|json)$ ]] && [[ "$file" =~ (github|\.config\.|package\.) ]]; then
+              ((config_changes++))
+            elif [[ "$file" =~ \.github/ ]]; then
+              ((ci_changes++))
+            fi
+          done < changed_files.txt
+
+          total_files=$(wc -l < changed_files.txt)
+
+          echo "Change Impact Summary:"
+          echo "- Total files changed: $total_files"
+          echo "- Backend changes: $backend_changes"
+          echo "- Frontend changes: $frontend_changes"
+          echo "- Test changes: $test_changes"
+          echo "- Documentation changes: $doc_changes"
+          echo "- Configuration changes: $config_changes"
+          echo "- CI/CD changes: $ci_changes"
+
+          # Set risk level
+          if [[ $total_files -gt 50 ]]; then
+            echo "RISK_LEVEL=high" >> $GITHUB_ENV
+            echo "⚠️ High risk: Large number of files changed ($total_files)"
+          elif [[ $backend_changes -gt 20 || $frontend_changes -gt 20 ]]; then
+            echo "RISK_LEVEL=medium" >> $GITHUB_ENV
+            echo "⚠️ Medium risk: Significant code changes"
+          else
+            echo "RISK_LEVEL=low" >> $GITHUB_ENV
+            echo "✅ Low risk: Limited scope changes"
+          fi
+
+      - name: Check for breaking changes
+        run: |
+          echo "Checking for potential breaking changes..."
+
+          # Check for API changes
+          api_changes=$(git diff origin/${{ needs.preflight.outputs.base_branch }}...HEAD --name-only | grep -E "(router|controller|api)" | wc -l)
+
+          # Check for database schema changes
+          schema_changes=$(git diff origin/${{ needs.preflight.outputs.base_branch }}...HEAD --name-only | grep -E "(migration|schema)" | wc -l)
+
+          # Check for interface/type changes
+          type_changes=$(git diff origin/${{ needs.preflight.outputs.base_branch }}...HEAD -- "*.ts" | grep -E "^-.*interface|^-.*type|^-.*export" | wc -l)
+
+          if [[ $api_changes -gt 0 || $schema_changes -gt 0 || $type_changes -gt 5 ]]; then
+            echo "⚠️ Potential breaking changes detected:"
+            echo "- API changes: $api_changes files"
+            echo "- Schema changes: $schema_changes files"
+            echo "- Type/Interface changes: $type_changes lines"
+            echo "BREAKING_CHANGES=true" >> $GITHUB_ENV
+          else
+            echo "✅ No obvious breaking changes detected"
+            echo "BREAKING_CHANGES=false" >> $GITHUB_ENV
+          fi
+
+  # 7. Final quality gate
+  final-quality-gate:
+    name: Final Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      [
+        preflight,
+        code-quality-gate,
+        security-quality-gate,
+        test-quality-gate,
+        build-quality-gate,
+        change-impact-analysis,
+      ]
+    if: needs.preflight.outputs.should_run == 'true'
+    steps:
+      - name: Evaluate quality gates
+        run: |
+          echo "Evaluating all quality gates..."
+
+          # Check all gate results
+          gates=(
+            "code-quality-gate:${{ needs.code-quality-gate.result }}"
+            "security-quality-gate:${{ needs.security-quality-gate.result }}"
+            "test-quality-gate:${{ needs.test-quality-gate.result }}"
+            "build-quality-gate:${{ needs.build-quality-gate.result }}"
+            "change-impact-analysis:${{ needs.change-impact-analysis.result }}"
+          )
+
+          failed_gates=()
+          for gate in "${gates[@]}"; do
+            gate_name="${gate%:*}"
+            gate_result="${gate#*:}"
+
+            if [[ "$gate_result" != "success" ]]; then
+              failed_gates+=("$gate_name")
+            fi
+          done
+
+          if [[ ${#failed_gates[@]} -gt 0 ]]; then
+            echo "❌ The following quality gates failed:"
+            printf '- %s\n' "${failed_gates[@]}"
+            echo "PR is not ready for merge"
+            exit 1
+          else
+            echo "✅ All quality gates passed"
+            echo "PR is ready for merge"
+          fi
+
+      - name: Generate quality report
+        run: |
+          echo "# PR Quality Report" > quality-report.md
+          echo "Generated on: $(date)" >> quality-report.md
+          echo "PR: #${{ needs.preflight.outputs.pr_number }}" >> quality-report.md
+          echo "" >> quality-report.md
+
+          echo "## Quality Gate Results" >> quality-report.md
+          echo "- ✅ Code Quality: ${{ needs.code-quality-gate.result }}" >> quality-report.md
+          echo "- ✅ Security: ${{ needs.security-quality-gate.result }}" >> quality-report.md
+          echo "- ✅ Tests: ${{ needs.test-quality-gate.result }}" >> quality-report.md
+          echo "- ✅ Build: ${{ needs.build-quality-gate.result }}" >> quality-report.md
+          echo "- ✅ Change Impact: ${{ needs.change-impact-analysis.result }}" >> quality-report.md
+          echo "" >> quality-report.md
+
+          echo "## Risk Assessment" >> quality-report.md
+          echo "- Risk Level: ${RISK_LEVEL:-low}" >> quality-report.md
+          echo "- Breaking Changes: ${BREAKING_CHANGES:-false}" >> quality-report.md
+          echo "" >> quality-report.md
+
+          echo "## Recommendations" >> quality-report.md
+          if [[ "${RISK_LEVEL:-low}" == "high" ]]; then
+            echo "- Consider splitting this PR into smaller changes" >> quality-report.md
+            echo "- Ensure thorough testing before merge" >> quality-report.md
+          fi
+          if [[ "${BREAKING_CHANGES:-false}" == "true" ]]; then
+            echo "- Review breaking changes carefully" >> quality-report.md
+            echo "- Update documentation and migration guides" >> quality-report.md
+          fi
+
+      - name: Comment quality report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('quality-report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: ${{ needs.preflight.outputs.pr_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🎯 Quality Gate Report\n\n${report}`
+            });

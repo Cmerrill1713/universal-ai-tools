@@ -1,0 +1,43 @@
+{
+  "service_name": "ab-mcts-rust-service",
+  "version": "0.1.0",
+  "environment": "production",
+  "mcts_config": {
+    "max_iterations": 1000,
+    "max_depth": 10,
+    "exploration_constant": 1.414,
+    "discount_factor": 0.95,
+    "time_limit_ms": 5000,
+    "enable_thompson_sampling": true,
+    "enable_bayesian_learning": true,
+    "enable_caching": true,
+    "parallel_simulations": 4,
+    "node_pool_size": 2000,
+    "checkpoint_interval": 100
+  },
+  "cache_config": {
+    "redis_url": "redis://redis:6379",
+    "ttl_seconds": 3600,
+    "max_entries": 10000,
+    "compression_enabled": true,
+    "connection_pool_size": 10
+  },
+  "performance": {
+    "enable_metrics": true,
+    "metrics_interval_ms": 5000,
+    "enable_tracing": true,
+    "log_level": "info"
+  },
+  "integration": {
+    "typescript_bridge_enabled": true,
+    "api_timeout_ms": 30000,
+    "max_concurrent_requests": 100,
+    "request_queue_size": 1000
+  },
+  "monitoring": {
+    "health_check_interval_ms": 10000,
+    "performance_reporting": true,
+    "error_reporting": true,
+    "resource_monitoring": true
+  }
+}

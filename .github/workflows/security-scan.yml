@@ -1,0 +1,478 @@
+name: Security Scanning
+
+on:
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: "Type of security scan"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - full
+          - dependencies
+          - secrets
+          - code
+          - infrastructure
+
+env:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # 1. Dependency vulnerability scanning
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event.inputs.scan_type == 'dependencies' || github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd ui && npm ci
+
+      - name: Run npm audit (backend)
+        run: |
+          npm audit --audit-level=moderate --json > npm-audit-backend.json || true
+          npm audit --audit-level=moderate
+
+      - name: Run npm audit (frontend)
+        run: |
+          cd ui
+          npm audit --audit-level=moderate --json > ../npm-audit-frontend.json || true
+          npm audit --audit-level=moderate
+
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      - name: Set Snyk token
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        run: echo "SNYK_TOKEN=${{ secrets.SNYK_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Authenticate Snyk
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        run: snyk auth $SNYK_TOKEN
+
+      - name: Run Snyk test (backend)
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        run: |
+          snyk test --json > snyk-backend.json || true
+          snyk test
+
+      - name: Run Snyk test (frontend)
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        run: |
+          cd ui
+          snyk test --json > ../snyk-frontend.json || true
+          snyk test
+
+      - name: Upload vulnerability reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-reports-${{ github.sha }}
+          path: |
+            npm-audit-*.json
+            snyk-*.json
+          retention-days: 30
+
+      - name: Generate vulnerability summary
+        run: |
+          echo "# Vulnerability Scan Summary" > vulnerability-summary.md
+          echo "Generated on: $(date)" >> vulnerability-summary.md
+          echo "" >> vulnerability-summary.md
+
+          if [ -f npm-audit-backend.json ]; then
+            echo "## Backend Dependencies" >> vulnerability-summary.md
+            jq -r '.metadata | "High: \(.vulnerabilities.high), Moderate: \(.vulnerabilities.moderate), Low: \(.vulnerabilities.low)"' npm-audit-backend.json >> vulnerability-summary.md
+          fi
+
+          if [ -f npm-audit-frontend.json ]; then
+            echo "## Frontend Dependencies" >> vulnerability-summary.md
+            jq -r '.metadata | "High: \(.vulnerabilities.high), Moderate: \(.vulnerabilities.moderate), Low: \(.vulnerabilities.low)"' npm-audit-frontend.json >> vulnerability-summary.md
+          fi
+
+  # 2. Secret scanning
+  secret-scan:
+    name: Secret & Credential Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event.inputs.scan_type == 'secrets' || github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified --json > trufflehog-results.json
+
+      - name: Install GitLeaks
+        run: |
+          wget https://github.com/zricethezav/gitleaks/releases/latest/download/gitleaks_linux_x64.tar.gz
+          tar -xzf gitleaks_linux_x64.tar.gz
+          chmod +x gitleaks
+
+      - name: Run GitLeaks
+        run: |
+          ./gitleaks detect --source . --report-format json --report-path gitleaks-results.json --verbose || true
+
+      - name: Check for common credential patterns
+        run: |
+          echo "Checking for common credential patterns..."
+
+          # Check for hardcoded API keys
+          grep -r -i "api[_-]key\s*=\s*['\"][^'\"]{20,}['\"]" . --exclude-dir=node_modules --exclude-dir=.git || true
+
+          # Check for hardcoded passwords
+          grep -r -i "password\s*=\s*['\"][^'\"]{8,}['\"]" . --exclude-dir=node_modules --exclude-dir=.git || true
+
+          # Check for AWS credentials
+          grep -r -E "AKIA[0-9A-Z]{16}" . --exclude-dir=node_modules --exclude-dir=.git || true
+
+          # Check for private keys
+          grep -r "BEGIN.*PRIVATE.*KEY" . --exclude-dir=node_modules --exclude-dir=.git || true
+
+      - name: Upload secret scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-scan-results-${{ github.sha }}
+          path: |
+            trufflehog-results.json
+            gitleaks-results.json
+          retention-days: 30
+
+  # 3. Static code security analysis
+  code-security-scan:
+    name: Static Code Security Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event.inputs.scan_type == 'code' || github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript,typescript
+          queries: security-and-quality
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build:dev
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+
+      - name: Run ESLint security rules
+        run: |
+          npx eslint src --ext .ts,.tsx --format json --output-file eslint-security.json || true
+          npx eslint src --ext .ts,.tsx
+
+      - name: Install and run Semgrep
+        run: |
+          python -m pip install semgrep
+          semgrep --config=auto --json --output semgrep-results.json src/ || true
+
+      - name: Upload code analysis results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-security-results-${{ github.sha }}
+          path: |
+            eslint-security.json
+            semgrep-results.json
+          retention-days: 30
+
+  # 4. Infrastructure security scan
+  infrastructure-scan:
+    name: Infrastructure Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event.inputs.scan_type == 'infrastructure' || github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+
+      - name: Scan Docker configuration
+        run: |
+          if [ -f Dockerfile ]; then
+            trivy config --format json --output dockerfile-scan.json Dockerfile || true
+            trivy config Dockerfile
+          else
+            echo "No Dockerfile found"
+          fi
+
+      - name: Scan docker-compose files
+        run: |
+          find . -name "docker-compose*.yml" -exec trivy config --format json --output docker-compose-scan.json {} \; || true
+
+      - name: Scan Kubernetes manifests
+        run: |
+          find . -name "*.yaml" -o -name "*.yml" | grep -E "(k8s|kubernetes)" | head -10 | xargs -I {} trivy config {} || true
+
+      - name: Check for insecure configurations
+        run: |
+          echo "Checking for insecure configurations..."
+
+          # Check for weak CORS settings
+          grep -r "cors.*origin.*\*" . --include="*.ts" --include="*.js" || true
+
+          # Check for disabled security features
+          grep -r "helmet.*false\|security.*false" . --include="*.ts" --include="*.js" || true
+
+          # Check for debug mode in production configs
+          grep -r "debug.*true\|DEBUG.*true" . --include="*.ts" --include="*.js" || true
+
+      - name: Upload infrastructure scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-scan-results-${{ github.sha }}
+          path: |
+            dockerfile-scan.json
+            docker-compose-scan.json
+          retention-days: 30
+
+  # 5. License compliance scan
+  license-scan:
+    name: License Compliance Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install license-checker
+        run: npm install -g license-checker
+
+      - name: Check backend licenses
+        run: |
+          license-checker --json --out backend-licenses.json || true
+          license-checker --summary
+
+      - name: Check frontend licenses
+        run: |
+          cd ui
+          license-checker --json --out ../frontend-licenses.json || true
+          license-checker --summary
+
+      - name: Identify problematic licenses
+        run: |
+          echo "Checking for problematic licenses..."
+
+          # Check for copyleft licenses that might be problematic
+          if [ -f backend-licenses.json ]; then
+            jq -r 'to_entries[] | select(.value.licenses | contains("GPL") or contains("AGPL")) | "\(.key): \(.value.licenses)"' backend-licenses.json || true
+          fi
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-reports-${{ github.sha }}
+          path: |
+            backend-licenses.json
+            frontend-licenses.json
+          retention-days: 30
+
+  # 6. Generate comprehensive security report
+  generate-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      [
+        dependency-scan,
+        secret-scan,
+        code-security-scan,
+        infrastructure-scan,
+        license-scan,
+      ]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all scan results
+        uses: actions/download-artifact@v4
+        with:
+          path: scan-results/
+
+      - name: Generate comprehensive security report
+        run: |
+          echo "# Security Scan Report" > security-report.md
+          echo "Generated on: $(date)" >> security-report.md
+          echo "Commit: ${{ github.sha }}" >> security-report.md
+          echo "" >> security-report.md
+
+          echo "## Scan Results Summary" >> security-report.md
+          echo "- Dependency Scan: ${{ needs.dependency-scan.result }}" >> security-report.md
+          echo "- Secret Scan: ${{ needs.secret-scan.result }}" >> security-report.md
+          echo "- Code Security Scan: ${{ needs.code-security-scan.result }}" >> security-report.md
+          echo "- Infrastructure Scan: ${{ needs.infrastructure-scan.result }}" >> security-report.md
+          echo "- License Scan: ${{ needs.license-scan.result }}" >> security-report.md
+          echo "" >> security-report.md
+
+          echo "## Detailed Results" >> security-report.md
+
+          # Process vulnerability results if available
+          if [ -d "scan-results/vulnerability-reports-${{ github.sha }}" ]; then
+            echo "### Dependency Vulnerabilities" >> security-report.md
+            if [ -f "scan-results/vulnerability-reports-${{ github.sha }}/npm-audit-backend.json" ]; then
+              echo "Backend vulnerabilities found - see attached reports" >> security-report.md
+            fi
+          fi
+
+          # Add security recommendations
+          echo "" >> security-report.md
+          echo "## Recommendations" >> security-report.md
+          echo "1. Review and update vulnerable dependencies" >> security-report.md
+          echo "2. Implement additional security headers" >> security-report.md
+          echo "3. Enable security monitoring in production" >> security-report.md
+          echo "4. Regular security training for development team" >> security-report.md
+
+      - name: Upload comprehensive report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ github.sha }}
+          path: security-report.md
+          retention-days: 90
+
+      - name: Comment security report on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('security-report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🔒 Security Scan Results\n\n${report}`
+            });
+
+      - name: Create security issue on failures
+        if: needs.dependency-scan.result == 'failure' || needs.secret-scan.result == 'failure' || needs.code-security-scan.result == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Security Scan Failures - ${context.sha.substring(0, 7)}`,
+              body: `Security scans failed for commit ${context.sha}.\n\n**Failed Scans:**\n- Dependency: ${{ needs.dependency-scan.result }}\n- Secrets: ${{ needs.secret-scan.result }}\n- Code: ${{ needs.code-security-scan.result }}\n\nCheck the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.`,
+              labels: ['security', 'urgent']
+            });
+
+  # 7. Security metrics collection
+  collect-metrics:
+    name: Collect Security Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      [dependency-scan, secret-scan, code-security-scan, infrastructure-scan]
+    if: always()
+    steps:
+      - name: Calculate security score
+        run: |
+          echo "Calculating security score..."
+
+          score=100
+
+          # Deduct points for failures
+          if [[ "${{ needs.dependency-scan.result }}" == "failure" ]]; then
+            score=$((score - 25))
+          fi
+          if [[ "${{ needs.secret-scan.result }}" == "failure" ]]; then
+            score=$((score - 30))
+          fi
+          if [[ "${{ needs.code-security-scan.result }}" == "failure" ]]; then
+            score=$((score - 25))
+          fi
+          if [[ "${{ needs.infrastructure-scan.result }}" == "failure" ]]; then
+            score=$((score - 20))
+          fi
+
+          echo "Security Score: $score/100"
+          echo "SECURITY_SCORE=$score" >> $GITHUB_ENV
+
+      - name: Store security metrics
+        run: |
+          echo "Storing security metrics..."
+          cat > security-metrics.json << EOF
+          {
+            "timestamp": "$(date -Iseconds)",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "security_score": $SECURITY_SCORE,
+            "scan_results": {
+              "dependency_scan": "${{ needs.dependency-scan.result }}",
+              "secret_scan": "${{ needs.secret-scan.result }}",
+              "code_security_scan": "${{ needs.code-security-scan.result }}",
+              "infrastructure_scan": "${{ needs.infrastructure-scan.result }}"
+            }
+          }
+          EOF
+
+      - name: Upload security metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-metrics-${{ github.sha }}
+          path: security-metrics.json
+          retention-days: 365

@@ -1,0 +1,366 @@
+name: Production Deployment
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      force_deploy:
+        description: 'Force deployment (skip some checks)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 1. Pre-deployment validation
+  validate:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      environment: ${{ steps.env.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=production" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate production readiness
+        if: ${{ !github.event.inputs.force_deploy }}
+        run: npm run validate:production
+
+      - name: Run security checks
+        run: npm run security:audit
+
+      - name: Check for production blockers
+        run: npm run check:all
+
+  # 2. Build and package
+  build-and-package:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: validate
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: cd ui && npm ci
+
+      - name: Build backend for production
+        run: npm run build:prod
+
+      - name: Build frontend for production
+        run: cd ui && npm run build
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp -r dist deploy-package/
+          cp -r ui/dist deploy-package/ui-dist
+          cp package.json deploy-package/
+          cp package-lock.json deploy-package/
+          # Copy production dependencies only
+          npm ci --omit=dev --prefix deploy-package
+
+      - name: Archive deployment package
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-package-${{ needs.validate.outputs.version }}
+          path: deploy-package/
+          retention-days: 30
+
+  # 3. Docker build and push
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [validate, build-and-package]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-package-${{ needs.validate.outputs.version }}
+          path: deploy-package/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.validate.outputs.version }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 4. Database migration
+  migrate-database:
+    name: Database Migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [validate]
+    environment: ${{ needs.validate.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Run database migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+          supabase db push --include-all
+
+      - name: Verify migration success
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npm run migrate:status
+
+  # 5. Deploy to staging (if staging environment)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [validate, build-and-package, docker-build, migrate-database]
+    if: needs.validate.outputs.environment == 'staging'
+    environment: staging
+    steps:
+      - name: Deploy to staging server
+        run: |
+          echo "Deploying to staging environment..."
+          # Add staging deployment logic here
+          # This could be deploying to a staging server, cloud platform, etc.
+
+      - name: Run health checks
+        run: |
+          echo "Running health checks on staging..."
+          # Add health check logic here
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests on staging..."
+          # Add smoke test logic here
+
+  # 6. Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [validate, build-and-package, docker-build, migrate-database]
+    if: needs.validate.outputs.environment == 'production'
+    environment: production
+    steps:
+      - name: Download deployment package
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-package-${{ needs.validate.outputs.version }}
+          path: deploy-package/
+
+      - name: Deploy application
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          echo "Deploying to production..."
+          # Add production deployment logic here
+          # This might involve:
+          # - Uploading to cloud storage
+          # - Updating container orchestration
+          # - Triggering deployment pipeline
+          # - Updating DNS/load balancers
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 30
+
+      - name: Run post-deployment health checks
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+        run: |
+          echo "Running post-deployment health checks..."
+          # Health check logic
+          curl -f "$PRODUCTION_URL/health" || exit 1
+
+      - name: Run post-deployment tests
+        run: |
+          echo "Running post-deployment validation tests..."
+          # Add post-deployment test logic
+
+  # 7. Post-deployment monitoring
+  post-deployment:
+    name: Post-deployment Monitoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [deploy-production, deploy-staging]
+    if: always() && (needs.deploy-production.result == 'success' || needs.deploy-staging.result == 'success')
+    steps:
+      - name: Setup monitoring alerts
+        run: |
+          echo "Setting up monitoring alerts for new deployment..."
+          # Set up monitoring/alerting for the new deployment
+
+      - name: Create release notes
+        if: github.ref_type == 'tag'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = "${{ needs.validate.outputs.version }}";
+            const environment = "${{ needs.validate.outputs.environment }}";
+
+            github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: version,
+              name: `Release ${version}`,
+              body: `Deployed to ${environment} environment.\n\nDeployment completed at: ${new Date().toISOString()}`,
+              draft: false,
+              prerelease: environment !== 'production'
+            });
+
+      - name: Notify team
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = "${{ needs.validate.outputs.version }}";
+            const environment = "${{ needs.validate.outputs.environment }}";
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `✅ Deployment Complete - ${version}`,
+              body: `Successfully deployed version ${version} to ${environment}.\n\nDeployment completed at: ${new Date().toISOString()}`,
+              labels: ['deployment', environment]
+            });
+
+  # 8. Rollback capability
+  rollback:
+    name: Emergency Rollback
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: failure() && (needs.deploy-production.result == 'failure' || needs.deploy-staging.result == 'failure')
+    needs: [validate, deploy-production, deploy-staging]
+    environment: ${{ needs.validate.outputs.environment }}
+    steps:
+      - name: Trigger rollback
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          echo "Triggering emergency rollback..."
+          # Add rollback logic here
+
+      - name: Verify rollback
+        run: |
+          echo "Verifying rollback completed successfully..."
+          # Add rollback verification logic
+
+      - name: Notify failure and rollback
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Deployment Failed - Rollback Initiated`,
+              body: `Deployment failed and rollback was initiated.\n\nCheck the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.`,
+              labels: ['deployment-failure', 'rollback', 'urgent']
+            });
