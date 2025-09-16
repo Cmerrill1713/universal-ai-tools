@@ -4,6 +4,9 @@ use crate::config::RouterConfig;
 use crate::models::{Message, Response, Usage, GenerationOptions};
 use crate::providers::{Provider, OllamaProvider, MLXProvider, FastVLMProvider, ProviderConfig, ProviderType};
 use crate::token_manager::{TokenBudgetManager, UserTier, TokenUsage, detect_task_complexity};
+use crate::context_manager::{ContextManager, TruncationStrategy};
+use crate::librarian_context::LibrarianStrategy;
+use crate::unlimited_context::UnlimitedContextManager;
 use crate::RouterError;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -25,6 +28,9 @@ pub struct LLMRouter {
     providers: HashMap<String, Arc<dyn Provider>>,
     strategy: RoutingStrategy,
     token_manager: TokenBudgetManager,
+    context_manager: ContextManager,
+    unlimited_context_manager: Option<UnlimitedContextManager>,
+    use_unlimited_context: bool,
 }
 
 impl LLMRouter {
@@ -34,6 +40,16 @@ impl LLMRouter {
             providers: HashMap::new(),
             strategy: RoutingStrategy::RoundRobin,
             token_manager: TokenBudgetManager::new(),
+            context_manager: ContextManager::new()
+                .with_strategy(TruncationStrategy::KeepSystemAndRecent)
+                .with_librarian(
+                    "http://localhost:8080".to_string(), // Librarian service URL
+                    LibrarianStrategy::SummarizeOldKeepRecent
+                ),
+            unlimited_context_manager: Some(UnlimitedContextManager::new(
+                "http://localhost:8080".to_string()
+            )),
+            use_unlimited_context: true,
         };
 
         // Initialize Ollama provider (with default URL if not set)
@@ -98,14 +114,40 @@ impl LLMRouter {
 
         Ok(router)
     }
+    
+    async fn determine_provider_for_model(&self, model_name: Option<&str>) -> Result<String, RouterError> {
+        if let Some(model) = model_name {
+            for (provider_name, provider) in &self.providers {
+                if let Ok(available_models) = provider.list_models().await {
+                    if available_models.iter().any(|m| m == model) {
+                        return Ok(provider_name.clone());
+                    }
+                }
+            }
+        }
+        // Default to Ollama if no specific model or provider is found
+        Ok("ollama".to_string())
+    }
 
     pub fn with_strategy(mut self, strategy: RoutingStrategy) -> Self {
         self.strategy = strategy;
         self
     }
+    
+    pub fn enable_unlimited_context(mut self, librarian_url: String) -> Self {
+        self.unlimited_context_manager = Some(UnlimitedContextManager::new(librarian_url));
+        self.use_unlimited_context = true;
+        self
+    }
+    
+    pub fn disable_unlimited_context(mut self) -> Self {
+        self.unlimited_context_manager = None;
+        self.use_unlimited_context = false;
+        self
+    }
 
     pub async fn route_request(
-        &self,
+        &mut self,
         messages: Vec<Message>,
         options: Option<GenerationOptions>,
     ) -> Result<Response, RouterError> {
@@ -114,6 +156,66 @@ impl LLMRouter {
             .as_ref()
             .and_then(|o| o.model.as_ref())
             .map(|s| s.as_str());
+
+        // Get provider name first
+        let provider_name = self.determine_provider_for_model(model_name).await?;
+        
+        // Process context with unlimited context management if enabled
+        let validated_messages = if self.use_unlimited_context {
+            if let Some(ref mut unlimited_manager) = self.unlimited_context_manager {
+                // Generate session ID from messages (simple hash for now)
+                let session_id = format!("session_{}", messages.len());
+                
+                // Get context limits for the provider
+                let limits = self.context_manager.limits.get_limits_or_default(&provider_name, model_name.unwrap_or("default"));
+                
+                // Process with unlimited context
+                unlimited_manager.process_unlimited_context(
+                    &session_id,
+                    messages.clone(),
+                    limits.effective_input_limit(),
+                ).await?
+            } else {
+                // Fallback to regular context management
+                self.context_manager.validate_and_truncate(
+                    messages.clone(),
+                    &provider_name,
+                    model_name.unwrap_or("default"),
+                ).await?
+            }
+        } else {
+            // Use regular context management
+            self.context_manager.validate_and_truncate(
+                messages.clone(),
+                &provider_name,
+                model_name.unwrap_or("default"),
+            ).await?
+        };
+
+        // Log context usage statistics
+        let stats = self.context_manager.get_context_stats(
+            &validated_messages,
+            &provider_name,
+            model_name.unwrap_or("default"),
+        );
+        
+        if stats.is_critical() {
+            tracing::warn!(
+                "Critical context usage: {:.1}% ({}/{} tokens) - Dynamic management: {}",
+                stats.usage_percentage,
+                stats.estimated_tokens,
+                stats.max_tokens,
+                stats.is_dynamic_management_active
+            );
+        } else if stats.is_warning() {
+            tracing::info!(
+                "High context usage: {:.1}% ({}/{} tokens) - Dynamic threshold: {:.1}%",
+                stats.usage_percentage,
+                stats.estimated_tokens,
+                stats.max_tokens,
+                stats.dynamic_threshold_percentage
+            );
+        }
 
         // Try to find a healthy provider that supports the requested model
         let mut healthy_providers = Vec::new();
@@ -137,7 +239,7 @@ impl LLMRouter {
                 if let Ok(available_models) = provider.list_models().await {
                     if available_models.iter().any(|m| m == model) {
                         tracing::info!("Routing request for model {} to provider {}", model, name);
-                        match provider.generate(messages.clone(), options.clone()).await {
+                        match provider.generate(validated_messages.clone(), options.clone()).await {
                             Ok(response) => return Ok(response),
                             Err(e) => {
                                 tracing::warn!("Provider {} failed for model {}: {}", name, model, e);
@@ -149,7 +251,7 @@ impl LLMRouter {
             } else {
                 // No specific model requested, use this provider
                 tracing::info!("Routing request to provider {} (no specific model)", name);
-                match provider.generate(messages.clone(), options.clone()).await {
+                match provider.generate(validated_messages.clone(), options.clone()).await {
                     Ok(response) => return Ok(response),
                     Err(e) => {
                         tracing::warn!("Provider {} failed: {}", name, e);

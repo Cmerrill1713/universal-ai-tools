@@ -171,7 +171,7 @@ def get_best_available_lm() -> Optional[LM]:
     from llm_discovery import LLMDiscovery
     
     try:
-        lm, provider, model = LLMDiscovery.auto_discover()
+        lm, provider, model = LLMDiscovery.discover_and_configure()
         if lm:
             print(f"✅ Using fallback: {provider} - {model}")
             return lm

@@ -17,6 +17,15 @@ pub mod smart_router;
 pub mod intelligent_cache;
 pub mod smart_monitoring;
 pub mod token_manager;
+pub mod context_manager;
+pub mod librarian_context;
+pub mod unlimited_context;
+pub mod context_degradation;
+pub mod service_integration;
+pub mod keychain;
+
+#[cfg(test)]
+pub mod test_context;
 // pub mod edge_cases; // Temporarily disabled: incomplete implementation
 
 #[cfg(feature = "napi")]
@@ -64,6 +73,13 @@ pub enum RouterError {
 
     #[error("Network error: {0}")]
     NetworkError(String),
+
+    #[error("Context too large: {0}")]
+    ContextTooLarge(String),
+    #[error("Authentication error: {0}")]
+    AuthenticationError(String),
+    #[error("Rate limit exceeded: {0}")]
+    RateLimitExceeded(String),
 }
 
 /// Initialize the LLM Router with default configuration

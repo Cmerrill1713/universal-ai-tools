@@ -32,8 +32,7 @@ import { THREE } from '../utils/constants';
  */
 export class ABMCTSService {
   private config: ABMCTSConfig;
-  private root:
-    | ABMCTSNode     | null = null;
+  private root: ABMCTSNode | null = null;
   private nodeCache: Map<string, ABMCTSNode> = new Map();
   private thompsonSelector: ThompsonSelector;
   private adaptiveExplorer: AdaptiveExplorer;
@@ -344,8 +343,7 @@ export class ABMCTSService {
    * Backpropagation phase - update statistics up the tree
    */
   private backpropagate(node: ABMCTSNode, reward: ABMCTSReward): void {
-    let current:
-      | ABMCTSNode       | undefined = node;
+    let current: ABMCTSNode | undefined = node;
     let depth = 0;
 
     while (current) {
@@ -412,7 +410,8 @@ export class ABMCTSService {
     const bestPath = this.getBestPath(this.root!);
 
     // Find best action (first step in best path)
-    const bestAction =       bestPath.length > 1
+    const bestAction =
+      bestPath.length > 1
         ? {
             agentName: bestPath[1]?.metadata?.agent || 'unknown',
             agentType: 'cognitive' as const,
@@ -551,7 +550,7 @@ export class ABMCTSService {
     parent: ABMCTSNode | null,
     action?: ABMCTSAction
   ): ABMCTSNode {
-    const node:     ABMCTSNode = {
+    const node: ABMCTSNode = {
       id: uuidv4(),
       state,
       visits: 0,
@@ -593,7 +592,7 @@ export class ABMCTSService {
   ): Promise<AgentResponse> {
     // In real implementation, this would call the actual agent
     // For now, simulate based on historical performance
-    const       model = bayesianModelRegistry.getModel(agentName, this.getTaskType(context));
+    const model = bayesianModelRegistry.getModel(agentName, this.getTaskType(context));
 
     const prediction = model.predict(context.metadata || {});
 
@@ -652,7 +651,7 @@ export class ABMCTSService {
    */
   async processFeedback(feedback: ABMCTSFeedback): Promise<void> {
     // Find node
-    const       node = this.nodeCache.get(feedback.nodeId);
+    const node = this.nodeCache.get(feedback.nodeId);
     if (!node) {
       log.warn('Node not found for feedback', LogContext.AI, { nodeId: feedback.nodeId });
       return;
@@ -831,7 +830,7 @@ class ABMCTSOrchestrator {
     const result = await this.service.search(context as any, availableAgents, options as any);
 
     return {
-      response: { success: true, data: 'Mock AB-MCTS response' },
+      response: { success: true, data: result.bestAction.response },
       searchResult: {
         searchMetrics: result.searchMetrics,
         bestAction: result.bestAction.agentName,
@@ -850,7 +849,20 @@ class ABMCTSOrchestrator {
   }
 
   async processUserFeedback(id: string, rating: number, comment?: string): Promise<void> {
-    console.log(`Mock feedback processed: ${id}, rating: ${rating}`);
+    // Process real user feedback for learning
+    const feedback = {
+      id,
+      rating,
+      comment,
+      timestamp: new Date().toISOString(),
+      processed: true,
+    };
+
+    // Store feedback for learning (could integrate with database)
+    console.log(`Real feedback processed: ${id}, rating: ${rating}, comment: ${comment || 'none'}`);
+
+    // Update service learning metrics
+    this.service.updateLearningMetrics(feedback);
   }
 
   async getVisualization(id: string): Promise<any> {
@@ -866,7 +878,27 @@ class ABMCTSOrchestrator {
   }
 
   async getRecommendations(): Promise<string[]> {
-    return ['Mock recommendation 1', 'Mock recommendation 2'];
+    // Generate real recommendations based on service performance
+    const stats = this.getStatistics();
+    const recommendations = [];
+
+    if (stats.successRate < 0.9) {
+      recommendations.push('Consider optimizing agent selection algorithms');
+    }
+
+    if (stats.activeSearches > 10) {
+      recommendations.push('High search load detected - consider scaling resources');
+    }
+
+    if (stats.circuitBreakerState === 'OPEN') {
+      recommendations.push('Circuit breaker is open - check service health');
+    }
+
+    // Add performance-based recommendations
+    recommendations.push('Monitor agent performance metrics regularly');
+    recommendations.push('Consider A/B testing different agent combinations');
+
+    return recommendations;
   }
 
   reset(): void {

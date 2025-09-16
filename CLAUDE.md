@@ -69,13 +69,20 @@ npm run health:check       # Check all service health
 npm run ab-mcts:demo       # Demonstrate AB-MCTS orchestration
 npm run dspy:orchestrate   # Test DSPy cognitive chains
 npm run feedback:collect   # Run feedback collection system
+
+# Codebase Automation (NEW 2025)
+npm run organize:files      # Automated file organization system
+npm run organize:files:check # Preview file organization changes
+npm run cleanup:unused      # Remove unused files and directories
+npm run cleanup:unused:check # Preview cleanup changes
+npm run cleanup:all         # Complete cleanup and organization
 ```
 
 ## Advanced Architecture & Key Components
 
 ### Service-Oriented Architecture
 
-```
+```text
 src/
 ├── services/               # Advanced AI Services (Production-Ready)
 │   ├── dspy-orchestrator/  # 10-agent cognitive reasoning chains
@@ -114,30 +121,35 @@ src/
 ### Production-Ready Systems
 
 **🧠 Cognitive Orchestration:**
+
 - **DSPy Orchestrator**: 10-agent reasoning chains (user intent, devils advocate, ethics, planner, resource manager, synthesizer, executor, reflector, validator, reporter)
 - **AB-MCTS Service**: Probabilistic coordination with Bayesian optimization
 - **Agent Registry**: Dynamic agent loading with A2A communication mesh
 - **Enhanced Base Agents**: Production-ready with memory integration and LLM connectivity
 
 **🎯 MLX Integration & Fine-Tuning:**
+
 - **MLX Framework**: Apple Silicon optimized model training
 - **Fine-Tuning Service**: Custom model creation and optimization
 - **Model Lifecycle Management**: Automated training, evaluation, and deployment
 - **Parameter Analytics**: ML-based performance tracking and optimization
 
 **🤖 Intelligent Parameter Automation:**
+
 - **Automatic Parameter Selection**: ML-based optimization for all LLM calls
 - **Performance Learning**: Continuous improvement through feedback loops
 - **Distributed Caching**: Redis-based parameter cache with multi-tenant isolation
 - **Analytics Dashboard**: Real-time parameter effectiveness tracking
 
 **👁️ Advanced Vision Capabilities:**
+
 - **PyVision Bridge**: Python-TypeScript integration for image processing
 - **SDXL Refiner**: High-quality image enhancement with MLX optimization
 - **Resource Management**: GPU/VRAM optimization for 24GB hardware
 - **Batch Processing**: Efficient multi-image processing pipelines
 
 **🔧 Multi-Tier LLM Architecture:**
+
 - **Fast Coordinator**: Intelligent routing between LFM2, Ollama, external APIs
 - **Tier-Based Processing**: Small models for routing, large models for complex tasks
 - **Automatic Fallbacks**: Graceful degradation with backup services
@@ -145,7 +157,7 @@ src/
 
 ## API Structure (Production-Ready)
 
-```
+```text
 Base URL: http://localhost:9999
 
 Authentication:
@@ -173,6 +185,7 @@ Enhanced APIs:
 ## Advanced Capabilities
 
 ### 1. MLX Fine-Tuning System
+
 ```typescript
 // Custom model training with MLX
 const fineTuningJob = await mlxService.createFineTuningJob({
@@ -185,6 +198,7 @@ const fineTuningJob = await mlxService.createFineTuningJob({
 ```
 
 ### 2. Intelligent Parameter Automation
+
 ```typescript
 // Automatic parameter optimization
 const optimizedParams = await intelligentParameterService.getOptimalParameters({
@@ -196,6 +210,7 @@ const optimizedParams = await intelligentParameterService.getOptimalParameters({
 ```
 
 ### 3. AB-MCTS Orchestration
+
 ```typescript
 // Probabilistic agent coordination
 const orchestrationResult = await abMctsService.orchestrate({
@@ -207,6 +222,7 @@ const orchestrationResult = await abMctsService.orchestrate({
 ```
 
 ### 4. PyVision & SDXL Integration
+
 ```typescript
 // Advanced image processing
 const refinedImage = await pyVisionBridge.refineImage(imageBuffer, {
@@ -222,6 +238,7 @@ const refinedImage = await pyVisionBridge.refineImage(imageBuffer, {
 ### Current Agent Architecture
 
 **6 Production-Ready Agents:**
+
 - `enhanced-planner-agent` - Strategic planning with JSON-structured responses
 - `enhanced-retriever-agent` - Information research and context gathering
 - `enhanced-synthesizer-agent` - Information synthesis and consensus building
@@ -230,12 +247,14 @@ const refinedImage = await pyVisionBridge.refineImage(imageBuffer, {
 - `multi-tier-planner-agent` - Advanced multi-tier LLM planning
 
 **DSPy Cognitive Orchestration (10 Specialized Functions):**
+
 - User Intent Analysis, Devils Advocate, Ethics Check, Strategic Planning
 - Resource Management, Synthesis, Execution, Reflection, Validation, Reporting
 
 ### Agent Capabilities
 
 All enhanced agents feature:
+
 - **Structured JSON Responses**: Consistent, parseable outputs
 - **Context-Aware Prompting**: Dynamic system prompts based on task context
 - **Confidence Calculation**: ML-based confidence scoring
@@ -248,6 +267,7 @@ All enhanced agents feature:
 Uses Supabase (PostgreSQL) with comprehensive migrations:
 
 **Core Tables:**
+
 - `ai_memories` - Vector-based memory storage with embeddings
 - `ai_service_keys` - API authentication and rate limiting
 - `agent_performance_metrics` - Real-time performance tracking
@@ -259,24 +279,28 @@ Uses Supabase (PostgreSQL) with comprehensive migrations:
 ## Development Workflow
 
 ### 1. **System Architecture Understanding**
+
 - This is a **service-oriented architecture**, not individual agents
 - Services communicate through well-defined APIs and message queues
 - All systems have production-ready error handling and fallbacks
 - Advanced features like MLX and intelligent parameters are fully integrated
 
 ### 2. **Adding New Features**
+
 - Extend existing services rather than creating new agents
 - Use the intelligent parameter system for automatic optimization
 - Leverage MLX for any custom model requirements
 - Integrate with the feedback collection system for continuous improvement
 
 ### 3. **Testing & Validation**
+
 - Use comprehensive test suites with performance benchmarking
 - Test all fallback scenarios and error conditions
 - Validate with production-like data and load patterns
 - Monitor parameter effectiveness and system performance
 
 ### 4. **Critical Security Pattern: Supabase Vault for Secrets**
+
 - **ALWAYS** use Supabase Vault for storing API keys, never environment variables
 - **NEVER** commit API keys to code or configuration files
 - **RETRIEVE** secrets at runtime using the vault service
@@ -291,6 +315,7 @@ Uses Supabase (PostgreSQL) with comprehensive migrations:
 **NEVER store API keys in environment variables or code!** Universal AI Tools uses Supabase Vault for secure secrets management.
 
 #### Storing Secrets in Vault
+
 ```typescript
 // Store API keys securely in Supabase Vault
 await supabase.rpc('vault.create_secret', {
@@ -301,6 +326,7 @@ await supabase.rpc('vault.create_secret', {
 ```
 
 #### Retrieving Secrets from Vault
+
 ```typescript
 // Retrieve secrets securely at runtime
 const { data: secret } = await supabase.rpc('vault.read_secret', {
@@ -310,12 +336,14 @@ const apiKey = secret.decrypted_secret;
 ```
 
 #### Best Practices for API Key Management
+
 1. **Store Once, Retrieve at Runtime**: API keys are stored in Vault during initial setup
 2. **Namespace Your Secrets**: Use prefixes like `llm_`, `service_`, `auth_`
 3. **Rotate Regularly**: Use Vault's built-in rotation capabilities
 4. **Audit Access**: All secret access is logged in Supabase
 
 #### Migration Pattern for Existing Services
+
 ```typescript
 // Old pattern (AVOID):
 const apiKey = process.env.OPENAI_API_KEY;
@@ -373,6 +401,7 @@ API_RATE_LIMIT=1000
 ```
 
 ### Setting Up Vault Secrets (One-time Setup)
+
 ```bash
 # Use the provided script to securely store all API keys
 npm run setup:vault-secrets
@@ -386,15 +415,18 @@ npm run setup:vault-secrets
 ## Future Development Plans
 
 ### Swift Companion App (Planned)
+
 The user plans to build a Swift companion app for macOS/iOS/watchOS that will provide:
 
 **Authentication Features:**
+
 - **Bluetooth Proximity Authentication** - Unlock the AI tools when iPhone/Apple Watch is nearby
 - **Apple Watch Integration** - Use WatchConnectivity framework for seamless authentication
 - **Biometric Security** - Leverage Touch ID/Face ID through LocalAuthentication framework
 - **Secure Token Exchange** - CoreBluetooth for device communication with backend
 
 **Technical Stack:**
+
 - Swift with SwiftUI for native Apple platform development
 - CoreBluetooth for proximity detection and BLE communication
 - WatchConnectivity for Apple Watch integration
@@ -402,6 +434,7 @@ The user plans to build a Swift companion app for macOS/iOS/watchOS that will pr
 - Security/Keychain for secure credential storage
 
 **Backend Integration (Implemented):**
+
 - Device registration endpoints (`POST /api/v1/device-auth/register`)
 - Device authentication endpoints (`POST /api/v1/device-auth/challenge`, `POST /api/v1/device-auth/verify`)
 - Proximity tracking endpoints (`POST /api/v1/device-auth/proximity`)
@@ -420,26 +453,31 @@ This companion app will provide a seamless, secure authentication experience tha
 ### Why This Architecture is Superior
 
 **1. Service-Oriented Design:**
+
 - Better resource sharing and efficiency than isolated agents
 - Comprehensive error handling and recovery
 - Production-ready scalability and monitoring
 
 **2. Advanced Learning Systems:**
+
 - Intelligent parameter automation reduces manual tuning
 - AB-MCTS provides probabilistic optimization
 - Feedback loops enable continuous improvement
 
 **3. MLX Integration:**
+
 - Custom model training for specific use cases
 - Apple Silicon optimization for maximum performance
 - Automated model lifecycle management
 
 **4. Production Infrastructure:**
+
 - Health monitoring and auto-scaling
 - Comprehensive security and authentication
 - Advanced caching and performance optimization
 
 **5. Modern AI Stack:**
+
 - DSPy for cognitive orchestration
 - PyVision for advanced image processing
 - Multi-tier LLM architecture for optimal resource utilization
@@ -449,9 +487,11 @@ Focus on leveraging the sophisticated systems that are already built rather than
 ## VS Code / Cursor Development Setup
 
 ### IDE Configuration
+
 The project includes comprehensive VS Code/Cursor configuration in the `.vscode` directory:
 
 **Extensions** (`.vscode/extensions.json`):
+
 - **TypeScript/JavaScript**: ESLint, Prettier, Jest, TypeScript Next
 - **Python**: Python, Pylance, Black Formatter, Ruff (for DSPy)
 - **API Development**: REST Client, Thunder Client, OpenAPI tools
@@ -461,6 +501,7 @@ The project includes comprehensive VS Code/Cursor configuration in the `.vscode`
 - **Productivity**: TODO Tree, Error Lens, Better Comments
 
 **Settings** (`.vscode/settings.json`):
+
 - Format on save enabled with ESLint auto-fix
 - TypeScript strict mode with auto-imports
 - Python linting with Ruff for DSPy orchestrator
@@ -469,6 +510,7 @@ The project includes comprehensive VS Code/Cursor configuration in the `.vscode`
 - Spell checker with project-specific technical terms
 
 **Debugging** (`.vscode/launch.json`):
+
 - Debug configurations for dev/production server
 - Jest test debugging with coverage
 - Python DSPy orchestrator debugging
@@ -476,6 +518,7 @@ The project includes comprehensive VS Code/Cursor configuration in the `.vscode`
 - Full stack debugging (Node + Python)
 
 **Tasks** (`.vscode/tasks.json`):
+
 - Build tasks (dev/production)
 - Test runners with watch mode
 - Service launchers (Redis, Supabase, DSPy)
@@ -483,6 +526,7 @@ The project includes comprehensive VS Code/Cursor configuration in the `.vscode`
 - Security audits and production readiness checks
 
 ### Quick Setup
+
 ```bash
 # Install all VS Code/Cursor extensions
 ./install-vscode-extensions.sh
@@ -492,13 +536,16 @@ The project includes comprehensive VS Code/Cursor configuration in the `.vscode`
 ```
 
 ### Development Commands Reference
+
 All npm scripts are configured as VS Code tasks (Cmd+Shift+B):
+
 - `Start All Services` - Launches Redis, Supabase, DSPy, and dev server
 - `Run Tests` - Execute test suite with coverage
 - `Build Project` - TypeScript compilation with type checking
 - `Fix Lint Issues` - Auto-fix ESLint and format code
 
-# important-instruction-reminders
+## Important Instruction Reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.

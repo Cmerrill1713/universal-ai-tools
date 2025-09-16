@@ -1,5 +1,5 @@
 # Multi-stage Docker build for Universal AI Tools
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -11,7 +11,7 @@ RUN apk add --no-cache \
     curl \
     libc6-compat \
     dumb-init \
-    tini
+    tini  # cSpell:disable-line libc6-compat tini
 
 # Set working directory
 WORKDIR /app
@@ -25,10 +25,14 @@ COPY tsconfig*.json ./
 # ========================================
 FROM base AS development
 
+# Copy package files again for development stage
+COPY package*.json ./
+COPY tsconfig*.json ./
+
 # Install all dependencies including devDependencies
 RUN npm ci
 
-# Copy source code
+# Copy source code (excluding node_modules for better caching)
 COPY . .
 
 # Expose port
@@ -42,10 +46,14 @@ CMD ["npm", "run", "dev"]
 # ========================================
 FROM base AS build
 
-# Install all dependencies
-RUN npm ci
+# Copy package files for build stage
+COPY package*.json ./
+COPY tsconfig*.json ./
 
-# Copy source code
+# Install all dependencies
+RUN npm ci --legacy-peer-deps
+
+# Copy source code (excluding node_modules for better caching)
 COPY . .
 
 # Build the application
@@ -57,7 +65,7 @@ RUN npm prune --production
 # ========================================
 # Production stage
 # ========================================
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 # Install runtime dependencies only
 RUN apk add --no-cache \
@@ -69,7 +77,7 @@ RUN apk add --no-cache \
     libc6-compat && \
     # Create non-root user
     addgroup -g 1001 -S nodejs && \
-    adduser -S universalai -u 1001
+    adduser -S universalai -u 1001  # cSpell:disable-line addgroup adduser universalai
 
 # Set working directory
 WORKDIR /app
@@ -79,9 +87,10 @@ COPY --from=build --chown=universalai:nodejs /app/dist ./dist
 COPY --from=build --chown=universalai:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=universalai:nodejs /app/package*.json ./
 
-# Copy necessary files
-COPY --chown=universalai:nodejs public ./public 2>/dev/null || :
-COPY --chown=universalai:nodejs views ./views 2>/dev/null || :
+# Copy necessary files (create directories first if they don't exist)
+RUN mkdir -p public views
+COPY --chown=universalai:nodejs public ./public
+COPY --chown=universalai:nodejs views ./views
 
 # Create required directories
 RUN mkdir -p logs tmp cache models data && \
@@ -113,7 +122,7 @@ CMD ["node", "dist/server.js"]
 FROM base AS testing
 
 # Install all dependencies
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .

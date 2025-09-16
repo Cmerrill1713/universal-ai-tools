@@ -102,7 +102,7 @@ func registerServices() {
 
 	// Register Rust services
 	registry.Register("fast-llm", getEnvOrDefault("FAST_LLM_URL", "http://localhost:3031"))
-	registry.Register("llm-router", getEnvOrDefault("LLM_ROUTER_URL", "http://localhost:3032"))
+	registry.Register("llm-router", getEnvOrDefault("LLM_ROUTER_URL", "http://localhost:3033"))
 	registry.Register("parameter-analytics", getEnvOrDefault("PARAMETER_ANALYTICS_URL", "http://localhost:3032"))
 	registry.Register("vision-service", getEnvOrDefault("VISION_SERVICE_URL", "http://localhost:8084"))
 

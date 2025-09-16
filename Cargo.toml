@@ -18,6 +18,7 @@ members = [
     "crates/db-cli",
     # "crates/rlvr-service",  # Temporarily disabled - missing http_server module
     "crates/intelligent-librarian",
+    "crates/bmad-workflow",
     # "crates/monitoring-system",  # Temporarily disabled - missing module implementations
     # "crates/testing-framework"  # Temporarily disabled - missing module implementations
 ]

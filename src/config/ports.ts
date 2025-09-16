@@ -4,7 +4,7 @@
  */
 
 import { LogContext, log } from '../utils/logger';
-import net from 'net';
+import * as net from 'net';
 
 export interface PortConfig {
   // Main services

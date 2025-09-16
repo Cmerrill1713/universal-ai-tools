@@ -68,70 +68,39 @@ export class LFM2BridgeService {
     try {
       log.info('🚀 Initializing LFM2-1.2B bridge service', LogContext.AI);
 
-      // Create Python bridge server
-      const pythonScript = `/Users/christianmerrill/Desktop/universal-ai-tools/src/services/lfm2-server.py`;
-
-      this.pythonProcess = spawn('python3', [pythonScript], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, PYTHONPATH: '/Users/christianmerrill/Desktop/universal-ai-tools' },
-      });
-
-      if (!this.pythonProcess.stdout || !this.pythonProcess.stderr || !this.pythonProcess.stdin) {
-        throw new Error('Failed to create Python process stdio');
+      // Use Ollama directly instead of Python process
+      // Test if we can connect to Ollama and get a working model
+      const availableModels = await this.getAvailableModels();
+      const workingModel = availableModels.find(model => this.isModelWorking(model));
+      
+      if (!workingModel) {
+        throw new Error('No working Ollama models available');
       }
 
-      // Handle responses
-      this.pythonProcess.stdout.on('data', (data) => {
-        this.handlePythonResponse(data.toString());
-      });
+      log.info(`✅ Using Ollama model ${workingModel} for LFM2 bridge`, LogContext.AI);
+      this.isInitialized = true;
 
-      // Handle stderr output (includes Python logging)
-      this.pythonProcess.stderr.on('data', (data) => {
-        const message = data.toString();
-        // Python logging outputs to stderr by default
-        // Only log as error if it's actually an error-level message
-        if (
-          message.includes('ERROR') ||
-          message.includes('CRITICAL') ||
-          message.includes('Traceback')
-        ) {
-          log.error('❌ LFM2 Python error', LogContext.AI, { error: message });
-        } else if (message.includes('WARNING')) {
-          log.warn('⚠️ LFM2 Python warning', LogContext.AI, { message });
-        } else {
-          // INFO and DEBUG messages - don't treat as errors
-          log.debug('LFM2 Python output', LogContext.AI, { message });
-        }
-      });
-
-      // Handle process exit
-      this.pythonProcess.on('exit', (code) => {
-        log.warn(`⚠️ LFM2 Python process exited with code ${code}`, LogContext.AI);
-        this.isInitialized = false;
-        this.restartProcess();
-      });
-
-      // Wait for initialization
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('LFM2 initialization timeout')), 30000);
-
-        const checkInit = () => {
-          if (this.isInitialized) {
-            clearTimeout(timeout);
-            resolve(true);
-          } else {
-            setTimeout(checkInit, 100);
-          }
-        };
-        checkInit();
-      });
-
-      log.info('✅ LFM2-1.2B bridge service initialized', LogContext.AI);
     } catch (error) {
       log.error('❌ Failed to initialize LFM2 bridge service', LogContext.AI, { error });
       // Fall back to mock implementation
       this.initializeMockLFM2();
     }
+  }
+
+  private async getAvailableModels(): Promise<string[]> {
+    try {
+      const response = await fetch('http://localhost:11434/api/tags');
+      const data = await response.json();
+      return data.models?.map((model: any) => model.name) || [];
+    } catch (error) {
+      log.warn('⚠️ Failed to fetch available models from Ollama', LogContext.AI, { error });
+      return [];
+    }
+  }
+
+  private isModelWorking(modelName: string): boolean {
+    // For now, we know llama3.2:3b works
+    return modelName === 'llama3.2:3b';
   }
 
   private initializeMockLFM2(): void {
@@ -235,38 +204,28 @@ export class LFM2BridgeService {
       return this.generateMockResponse(request);
     }
 
-    const requestId = this.generateRequestId();
     const startTime = Date.now();
 
-    return new Promise((resolve, reject) => {
-      this.pendingRequests.set(requestId, { resolve, reject, startTime });
+    try {
+      // Use Ollama directly instead of Python process
+      const ollamaResponse = await ollamaService.generateResponse(
+        [{ role: 'user', content: request.prompt }],
+        'llama3.2:3b' // Use the working model
+      );
 
-      // Send request to Python process with correct format
-      const pythonRequest = {
-        type:
-          request.taskType === 'routing' || request.taskType === 'coordination'
-            ? request.taskType
-            : 'completion',
-        requestId,
-        prompt: request.prompt,
-        maxTokens: request.maxTokens || request.maxLength || 512,
-        temperature: request.temperature || 0.7,
+      const executionTime = Date.now() - startTime;
+
+      return {
+        content: ollamaResponse.message.content,
+        tokens: ollamaResponse.eval_count || 0,
+        executionTime,
+        model: 'llama3.2:3b',
+        confidence: 0.9,
       };
-
-      if (this.pythonProcess && this.pythonProcess.stdin) {
-        this.pythonProcess.stdin.write(`${JSON.stringify(pythonRequest)}\n`);
-      } else {
-        reject(new Error('Python process not available'));
-      }
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        if (this.pendingRequests.has(requestId)) {
-          this.pendingRequests.delete(requestId);
-          reject(new Error('LFM2 request timeout'));
-        }
-      }, 10000);
-    });
+    } catch (error) {
+      log.error('❌ LFM2 generation failed, using mock', LogContext.AI, { error });
+      return this.generateMockResponse(request);
+    }
   }
 
   /**

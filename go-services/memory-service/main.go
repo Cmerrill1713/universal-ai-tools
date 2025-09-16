@@ -111,17 +111,17 @@ func (s *StringSlice) Scan(value interface{}) error {
 
 // Memory represents a stored memory/context
 type Memory struct {
-	ID          string                 `json:"id" db:"id"`
-	UserID      string                 `json:"user_id" db:"user_id"`
-	Type        string                 `json:"type" db:"type"`
-	Content     string                 `json:"content" db:"content"`
-	Embedding   []float32              `json:"embedding,omitempty" db:"embedding"`
-	Metadata    JSONMap                `json:"metadata" db:"metadata"`
-	Tags        StringSlice            `json:"tags" db:"tags"`
-	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at" db:"updated_at"`
-	AccessCount int                    `json:"access_count" db:"access_count"`
-	LastAccess  *time.Time             `json:"last_access" db:"last_access"`
+	ID          string      `json:"id" db:"id"`
+	UserID      string      `json:"user_id" db:"user_id"`
+	Type        string      `json:"type" db:"type"`
+	Content     string      `json:"content" db:"content"`
+	Embedding   []float32   `json:"embedding,omitempty" db:"embedding"`
+	Metadata    JSONMap     `json:"metadata" db:"metadata"`
+	Tags        StringSlice `json:"tags" db:"tags"`
+	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
+	AccessCount int         `json:"access_count" db:"access_count"`
+	LastAccess  *time.Time  `json:"last_access" db:"last_access"`
 }
 
 // MemoryQuery represents search parameters
@@ -308,12 +308,12 @@ func storeMemoryHandler(w http.ResponseWriter, r *http.Request) {
 	if memoryService.weaviateClient != nil {
 		metadataJSON, _ := json.Marshal(memory.Metadata)
 		dataSchema := map[string]interface{}{
-			"user_id":     memory.UserID,
-			"type":        memory.Type,
-			"content":     memory.Content,
-			"tags":        []string(memory.Tags),
-			"metadata":    string(metadataJSON),
-			"created_at":  memory.CreatedAt,
+			"user_id":      memory.UserID,
+			"type":         memory.Type,
+			"content":      memory.Content,
+			"tags":         []string(memory.Tags),
+			"metadata":     string(metadataJSON),
+			"created_at":   memory.CreatedAt,
 			"access_count": memory.AccessCount,
 		}
 
@@ -732,7 +732,7 @@ func main() {
 		})
 	})
 
-	port := getEnvOrDefault("MEMORY_SERVICE_PORT", "8017")
+	port := getEnvOrDefault("MEMORY_SERVICE_PORT", "8016")
 	log.Printf("Memory Service starting on port %s", port)
 
 	server := &http.Server{

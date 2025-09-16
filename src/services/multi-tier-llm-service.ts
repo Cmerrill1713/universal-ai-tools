@@ -52,15 +52,47 @@ export class MultiTierLLMService {
   > = new Map();
 
   constructor() {
-    this.initializeModelTiers();
+    this.initializeModelTiersAsync();
     this.startPerformanceMonitoring();
   }
 
-  private initializeModelTiers(): void {
+  private async initializeModelTiersAsync(): Promise<void> {
+    try {
+      await this.initializeModelTiers();
+    } catch (error) {
+      log.warn('⚠️ Failed to initialize model tiers dynamically, using fallback', LogContext.AI, { error });
+      this.initializeFallbackModelTiers();
+    }
+  }
+
+  private async initializeModelTiers(): Promise<void> {
+    // Get available models dynamically
+    const availableModels = await this.getAvailableModels();
+    
+    // Filter to only working models (test each one)
+    const workingModels = [];
+    for (const model of availableModels) {
+      if (await this.canModelRun(model)) {
+        workingModels.push(model);
+        log.info(`✅ Model ${model} is working`, LogContext.AI);
+      } else {
+        log.warn(`❌ Model ${model} failed memory test, skipping`, LogContext.AI);
+      }
+    }
+    
+    if (workingModels.length === 0) {
+      log.error('❌ No working models found, using fallback', LogContext.AI);
+      this.initializeFallbackModelTiers();
+      return;
+    }
+    
+    // Use the working model for all tiers (since we only have one working model)
+    const primaryModel = workingModels[0];
+    
     // Tier 1: Lightning-fast routing & coordination (50-200ms)
     this.modelTiers.set(1, {
       tier: 1,
-      models: ['lfm2-1.2b'], // Your local LFM2
+      models: [primaryModel], // Use working model
       capabilities: ['routing', 'coordination', 'classification', 'simple_qa'],
       maxTokens: 256,
       avgResponseTime: 100,
@@ -70,7 +102,7 @@ export class MultiTierLLMService {
     // Tier 2: Fast general purpose (200-1000ms)
     this.modelTiers.set(2, {
       tier: 2,
-      models: ['gemma:2b', 'phi:2.7b-chat-v2-q4_0'],
+      models: [primaryModel], // Use working model
       capabilities: ['conversation', 'basic_analysis', 'summarization', 'simple_code'],
       maxTokens: 1024,
       avgResponseTime: 500,
@@ -80,7 +112,7 @@ export class MultiTierLLMService {
     // Tier 3: Advanced reasoning (1000-5000ms)
     this.modelTiers.set(3, {
       tier: 3,
-      models: ['qwen2.5:7b', 'deepseek-r1:14b', 'nous-hermes:13b-llama2-q4_K_M'],
+      models: [primaryModel], // Use working model
       capabilities: ['advanced_reasoning', 'code_generation', 'complex_analysis', 'research'],
       maxTokens: 4096,
       avgResponseTime: 2500,
@@ -90,7 +122,7 @@ export class MultiTierLLMService {
     // Tier 4: Expert-level tasks (5000ms+)
     this.modelTiers.set(4, {
       tier: 4,
-      models: ['devstral:24b'], // Your largest local model
+      models: [primaryModel], // Use working model
       capabilities: ['expert_analysis', 'complex_code', 'research', 'creative_writing'],
       maxTokens: 8192,
       avgResponseTime: 8000,
@@ -555,6 +587,117 @@ Respond with JSON:
         0
       ),
     };
+  }
+
+  /**
+   * Get available models from Ollama
+   */
+  private async getAvailableModels(): Promise<string[]> {
+    try {
+      const response = await fetch('http://localhost:11434/api/tags');
+      const data = await response.json();
+      return data.models?.map((model: any) => model.name) || [];
+    } catch (error) {
+      log.warn('⚠️ Failed to fetch available models from Ollama', LogContext.AI, { error });
+      return [];
+    }
+  }
+
+  /**
+   * Select models by size category
+   */
+  private selectModelsBySize(models: string[], size: 'small' | 'medium' | 'large', count: number): string[] {
+    // Sort models by estimated size (based on name patterns)
+    const sortedModels = models.sort((a, b) => {
+      const sizeA = this.estimateModelSize(a);
+      const sizeB = this.estimateModelSize(b);
+      return sizeA - sizeB;
+    });
+
+    // Filter by size category with memory-aware selection
+    const filteredModels = sortedModels.filter(model => {
+      const modelSize = this.estimateModelSize(model);
+      switch (size) {
+        case 'small': return modelSize <= 3; // <= 3B parameters
+        case 'medium': return modelSize > 3 && modelSize <= 7; // 3B-7B parameters (reduced from 13B)
+        case 'large': return modelSize > 7; // > 7B parameters (reduced from 13B)
+        default: return true;
+      }
+    });
+
+    // If no models match the size category, fall back to smaller models
+    if (filteredModels.length === 0) {
+      log.warn(`⚠️ No models found for size category '${size}', falling back to smaller models`, LogContext.AI);
+      return sortedModels.filter(model => this.estimateModelSize(model) <= 3).slice(0, count);
+    }
+
+    return filteredModels.slice(0, count);
+  }
+
+  /**
+   * Check if model can run with available memory
+   */
+  private async canModelRun(modelName: string): Promise<boolean> {
+    try {
+      // Test with a simple prompt to check if model loads
+      const testResponse = await ollamaService.generateResponse(
+        [{ role: 'user', content: 'Hi' }],
+        modelName
+      );
+      return true;
+    } catch (error) {
+      log.warn(`⚠️ Model ${modelName} failed memory test`, LogContext.AI, { error });
+      return false;
+    }
+  }
+
+  /**
+   * Estimate model size from name patterns
+   */
+  private estimateModelSize(modelName: string): number {
+    // Extract size from common patterns
+    const patterns = [
+      /(\d+(?:\.\d+)?)b/i, // e.g., "7b", "13.5b"
+      /(\d+(?:\.\d+)?)billion/i, // e.g., "7billion"
+      /(\d+(?:\.\d+)?)m/i, // e.g., "1.2m"
+    ];
+
+    for (const pattern of patterns) {
+      const match = modelName.match(pattern);
+      if (match) {
+        const size = parseFloat(match[1]);
+        return match[0].toLowerCase().includes('m') ? size / 1000 : size; // Convert millions to billions
+      }
+    }
+
+    // Default size estimation based on model name
+    if (modelName.includes('lfm2') || modelName.includes('1.2')) return 1.2;
+    if (modelName.includes('2b') || modelName.includes('2.7')) return 2.7;
+    if (modelName.includes('7b')) return 7;
+    if (modelName.includes('13b')) return 13;
+    if (modelName.includes('14b')) return 14;
+    if (modelName.includes('24b')) return 24;
+    if (modelName.includes('70b')) return 70;
+
+    return 7; // Default to medium size
+  }
+
+  /**
+   * Fallback initialization with empty tiers if no models are available
+   */
+  private initializeFallbackModelTiers(): void {
+    log.warn('⚠️ No models available, initializing empty tiers', LogContext.AI);
+    
+    for (let tier = 1; tier <= 4; tier++) {
+      this.modelTiers.set(tier, {
+        tier: tier as 1 | 2 | 3 | 4,
+        models: [],
+        capabilities: [],
+        maxTokens: 0,
+        avgResponseTime: 0,
+        useCase: 'No models available',
+      });
+    }
   }
 }
 

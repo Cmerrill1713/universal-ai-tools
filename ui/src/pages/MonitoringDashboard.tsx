@@ -88,7 +88,7 @@ export default function MonitoringDashboard() {
 
       // Load agents
       const agentsResponse = await api.getAgents();
-      if (agentsResponse.success && agentsResponse.data?.agents) {
+      if (agentsResponse.success && agentsResponse.data?.agents && Array.isArray(agentsResponse.data.agents)) {
         setAgents(agentsResponse.data.agents.map((agent: any) => ({
           id: agent.name || agent.id,
           name: agent.name,

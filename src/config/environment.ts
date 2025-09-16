@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import type { ServiceConfig } from '@/types';
 import { ports } from './ports';
 

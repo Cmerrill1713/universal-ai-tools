@@ -455,7 +455,7 @@ export class ReferenceBasedFineTuning {
       references: researchRefs,
       targetCapabilities: intent.capabilities,
       datasetPath: intent.suggestedDataset || 'auto-generated',
-      baseModel: intent.suggestedModel || 'qwen2.5:7b',
+      baseModel: intent.suggestedModel || 'auto-detect',
       experimentName: `${agentName}_custom_${Date.now()}`,
       combineStrategies: intent.combineStrategies,
       autoExtractParams: true,
@@ -699,7 +699,7 @@ export class ReferenceBasedFineTuning {
     // Use NLP to understand the agent's fine-tuning intent
     return {
       capabilities: ['reasoning', 'code_generation'],
-      suggestedModel: 'qwen2.5:7b',
+      suggestedModel: 'auto-detect',
       suggestedDataset: null,
       combineStrategies: false,
     };

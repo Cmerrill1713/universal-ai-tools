@@ -82,7 +82,7 @@ export default function OrchestrationDashboard() {
       setError(null);
       const response = await api.getOrchestrationHistory();
       
-      if (response.success && response.data) {
+      if (response.success && response.data && Array.isArray(response.data)) {
         const historyTasks = response.data.map((task: any, index: number) => ({
           id: task.id || `task-${index}`,
           userRequest: task.userRequest || task.request || 'Unknown request',

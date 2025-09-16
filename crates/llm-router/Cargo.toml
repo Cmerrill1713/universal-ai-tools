@@ -47,6 +47,16 @@ lru = "0.12"
 # Token counting
 tiktoken-rs = "0.5"
 
+# Web scraping dependencies
+regex = "1.0"
+html-escape = "0.2"
+base64 = "0.21"
+url = "2.0"
+
+# macOS Keychain integration
+security-framework = "2.9"
+core-foundation = "0.9"
+
 # NAPI bindings for Node.js integration (optional)
 napi = { version = "2", features = ["async", "serde-json", "tokio_rt"], optional = true }
 napi-derive = { version = "2", optional = true }

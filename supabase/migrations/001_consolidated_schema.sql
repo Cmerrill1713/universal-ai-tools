@@ -67,11 +67,13 @@ CREATE TABLE IF NOT EXISTS ai_service_keys (
     UNIQUE(service_name)
 );
 
--- AI Memories with vector support
-CREATE TABLE IF NOT EXISTS ai_memories (
+-- Unified Memories table with vector support
+CREATE TABLE IF NOT EXISTS memories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID,  -- References auth.users(id) when auth schema exists
-    agent_id TEXT,
+    agent_id UUID, -- References agents(id) when available
+    source_type TEXT DEFAULT 'ai' CHECK (source_type IN ('ai', 'agent', 'athena', 'manual', 'system')),
+    source_id TEXT, -- Flexible reference to source (can be UUID or string)
     content TEXT NOT NULL,
     embedding vector(1536), -- OpenAI embedding dimension
     context JSONB DEFAULT '{}'::jsonb,
@@ -84,6 +86,25 @@ CREATE TABLE IF NOT EXISTS ai_memories (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT check_importance CHECK (importance >= 0 AND importance <= 1)
 );
+
+-- Backward compatibility: Create ai_memories as a view
+CREATE OR REPLACE VIEW ai_memories AS
+SELECT
+    id,
+    user_id,
+    agent_id::text as agent_id,
+    content,
+    embedding,
+    context,
+    metadata,
+    importance,
+    access_count,
+    last_accessed,
+    expires_at,
+    created_at,
+    updated_at
+FROM memories
+WHERE source_type = 'ai';
 
 -- Indexes will be created after all tables
 
@@ -283,11 +304,12 @@ CREATE TABLE IF NOT EXISTS webhook_events (
 -- 9. INDEXES
 -- =====================================================
 
--- AI Memories indexes
-CREATE INDEX IF NOT EXISTS idx_memories_user_agent ON ai_memories (user_id, agent_id);
-CREATE INDEX IF NOT EXISTS idx_memories_importance ON ai_memories (importance DESC);
-CREATE INDEX IF NOT EXISTS idx_memories_created ON ai_memories (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_memories_embedding ON ai_memories USING ivfflat (embedding vector_cosine_ops) WHERE embedding IS NOT NULL;
+-- Unified Memories indexes
+CREATE INDEX IF NOT EXISTS idx_memories_user_agent ON memories (user_id, agent_id);
+CREATE INDEX IF NOT EXISTS idx_memories_source ON memories (source_type, source_id);
+CREATE INDEX IF NOT EXISTS idx_memories_importance ON memories (importance DESC);
+CREATE INDEX IF NOT EXISTS idx_memories_created ON memories (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_memories_embedding ON memories USING ivfflat (embedding vector_cosine_ops) WHERE embedding IS NOT NULL;
 
 -- Knowledge Sources indexes
 CREATE INDEX IF NOT EXISTS idx_knowledge_source_type ON knowledge_sources (source_type);
@@ -354,7 +376,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         m.id,
         m.content,
         1 - (m.embedding <=> query_embedding) as similarity,
@@ -386,18 +408,18 @@ DO $$
 DECLARE
     t text;
 BEGIN
-    FOR t IN 
-        SELECT table_name 
-        FROM information_schema.columns 
-        WHERE column_name = 'updated_at' 
+    FOR t IN
+        SELECT table_name
+        FROM information_schema.columns
+        WHERE column_name = 'updated_at'
         AND table_schema = 'public'
     LOOP
         -- Drop trigger if exists, then create
         EXECUTE format('DROP TRIGGER IF EXISTS update_%I_updated_at ON %I', t, t);
         EXECUTE format('
-            CREATE TRIGGER update_%I_updated_at 
-            BEFORE UPDATE ON %I 
-            FOR EACH ROW 
+            CREATE TRIGGER update_%I_updated_at
+            BEFORE UPDATE ON %I
+            FOR EACH ROW
             EXECUTE FUNCTION update_updated_at_column()',
             t, t
         );
@@ -409,7 +431,7 @@ END $$;
 -- =====================================================
 
 -- Enable RLS on all user-specific tables
-ALTER TABLE ai_memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mlx_fine_tuning_jobs ENABLE ROW LEVEL SECURITY;
@@ -418,17 +440,17 @@ ALTER TABLE mlx_fine_tuning_jobs ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
-        -- AI Memories policies
-        EXECUTE 'CREATE POLICY "Users can view their own memories" ON ai_memories
+        -- Unified Memories policies
+        EXECUTE 'CREATE POLICY "Users can view their own memories" ON memories
             FOR SELECT USING (auth.uid() = user_id)';
 
-        EXECUTE 'CREATE POLICY "Users can create their own memories" ON ai_memories
+        EXECUTE 'CREATE POLICY "Users can create their own memories" ON memories
             FOR INSERT WITH CHECK (auth.uid() = user_id)';
 
-        EXECUTE 'CREATE POLICY "Users can update their own memories" ON ai_memories
+        EXECUTE 'CREATE POLICY "Users can update their own memories" ON memories
             FOR UPDATE USING (auth.uid() = user_id)';
 
-        EXECUTE 'CREATE POLICY "Users can delete their own memories" ON ai_memories
+        EXECUTE 'CREATE POLICY "Users can delete their own memories" ON memories
             FOR DELETE USING (auth.uid() = user_id)';
 
         -- Knowledge Sources policies
@@ -475,7 +497,7 @@ END $$;
 
 -- Insert default AI service configurations
 INSERT INTO ai_service_keys (service_name, is_active, rate_limit, metadata)
-VALUES 
+VALUES
     ('openai', true, 1000, '{"requires_key": true}'::jsonb),
     ('anthropic', true, 1000, '{"requires_key": true}'::jsonb),
     ('ollama', true, 10000, '{"requires_key": false, "local": true}'::jsonb),
@@ -489,28 +511,28 @@ DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
         -- Add foreign key constraints to auth.users
-        ALTER TABLE ai_memories 
-            ADD CONSTRAINT fk_ai_memories_user 
-            FOREIGN KEY (user_id) 
-            REFERENCES auth.users(id) 
+        ALTER TABLE memories
+            ADD CONSTRAINT fk_memories_user
+            FOREIGN KEY (user_id)
+            REFERENCES auth.users(id)
             ON DELETE CASCADE;
-            
-        ALTER TABLE knowledge_sources 
-            ADD CONSTRAINT fk_knowledge_sources_user 
-            FOREIGN KEY (user_id) 
-            REFERENCES auth.users(id) 
+
+        ALTER TABLE knowledge_sources
+            ADD CONSTRAINT fk_knowledge_sources_user
+            FOREIGN KEY (user_id)
+            REFERENCES auth.users(id)
             ON DELETE SET NULL;
-            
-        ALTER TABLE tasks 
-            ADD CONSTRAINT fk_tasks_user 
-            FOREIGN KEY (user_id) 
-            REFERENCES auth.users(id) 
+
+        ALTER TABLE tasks
+            ADD CONSTRAINT fk_tasks_user
+            FOREIGN KEY (user_id)
+            REFERENCES auth.users(id)
             ON DELETE CASCADE;
-            
-        ALTER TABLE mlx_fine_tuning_jobs 
-            ADD CONSTRAINT fk_mlx_jobs_user 
-            FOREIGN KEY (user_id) 
-            REFERENCES auth.users(id) 
+
+        ALTER TABLE mlx_fine_tuning_jobs
+            ADD CONSTRAINT fk_mlx_jobs_user
+            FOREIGN KEY (user_id)
+            REFERENCES auth.users(id)
             ON DELETE CASCADE;
     END IF;
 END $$;

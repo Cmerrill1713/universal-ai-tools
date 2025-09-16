@@ -69,7 +69,7 @@ export default function ModelsManager() {
       // Load MLX models
       try {
         const mlxResponse = await api.getMLXModels();
-        if (mlxResponse.success && mlxResponse.data) {
+        if (mlxResponse.success && mlxResponse.data && Array.isArray(mlxResponse.data)) {
           const mlxModels = mlxResponse.data.map((model: any, index: number) => ({
             id: `mlx-${index}`,
             name: model.name || `MLX Model ${index + 1}`,
@@ -91,7 +91,7 @@ export default function ModelsManager() {
       // Load HuggingFace models
       try {
         const hfResponse = await api.getHuggingFaceModels();
-        if (hfResponse.success && hfResponse.data) {
+        if (hfResponse.success && hfResponse.data && Array.isArray(hfResponse.data)) {
           const hfModels = hfResponse.data.map((model: any, index: number) => ({
             id: `hf-${index}`,
             name: model.name || model.modelId || `HF Model ${index + 1}`,

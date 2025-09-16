@@ -1,7 +1,7 @@
-import winston from 'winston';
+import * as winston from 'winston';
 
 export enum LogContext {
-    SERVER = 'server',
+  SERVER = 'server',
   API = 'api',
   AGENT = 'agent',
   MEMORY = 'memory',

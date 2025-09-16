@@ -97,15 +97,7 @@ func (ws *WeaviateService) initSchema() error {
 			},
 		},
 		VectorIndexType: "hnsw",
-		Vectorizer:      "text2vec-openai",
-		ModuleConfig: map[string]interface{}{
-			"text2vec-openai": map[string]interface{}{
-				"model": "text-embedding-3-small",
-			},
-			"generative-openai": map[string]interface{}{
-				"model": "gpt-3.5-turbo",
-			},
-		},
+		Vectorizer:      "none",
 		InvertedIndexConfig: &weaviateModels.InvertedIndexConfig{
 			IndexTimestamps: true,
 		},
@@ -148,15 +140,7 @@ func (ws *WeaviateService) initSchema() error {
 			},
 		},
 		VectorIndexType: "hnsw",
-		Vectorizer:      "text2vec-openai",
-		ModuleConfig: map[string]interface{}{
-			"text2vec-openai": map[string]interface{}{
-				"model": "text-embedding-3-small",
-			},
-			"generative-openai": map[string]interface{}{
-				"model": "gpt-3.5-turbo",
-			},
-		},
+		Vectorizer:      "none",
 		InvertedIndexConfig: &weaviateModels.InvertedIndexConfig{
 			IndexTimestamps: true,
 		},
@@ -424,7 +408,6 @@ func (ws *WeaviateService) parseSearchResults(result *weaviateModels.GraphQLResp
 							}
 						}
 
-
 						// Parse score
 						if additional, ok := docMap["_additional"].(map[string]interface{}); ok {
 							if score, ok := additional["score"].(float64); ok {
@@ -459,7 +442,6 @@ func (ws *WeaviateService) parseMemoryResults(result *weaviateModels.GraphQLResp
 							CreatedAt:  ws.getTimeFromMap(memoryMap, "createdAt"),
 							UpdatedAt:  ws.getTimeFromMap(memoryMap, "updatedAt"),
 						}
-
 
 						// Parse score
 						if additional, ok := memoryMap["_additional"].(map[string]interface{}); ok {

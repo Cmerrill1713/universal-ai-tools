@@ -4,7 +4,7 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { LogContext, log } from '../utils/logger';
 import { sendError } from '../utils/api-response';
 import { secretsManager } from '../services/secrets-manager';

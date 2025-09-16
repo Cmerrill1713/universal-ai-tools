@@ -141,14 +141,15 @@ class LLMDiscovery:
                 logger.info(f"✅ DSPy configured with LM Studio {model} at {local_lm_url}")
                 return lm, "LM Studio Local", model
 
-        # Development fallback
-        if os.environ.get("NODE_ENV") == "development":
-            logger.warning("⚠️ No LLMs available, using development mock")
-            lm = dspy.LM(
-                "openai/gpt-3.5-turbo", api_key=os.environ.get("DEVELOPMENT_MOCK_API_KEY", "")
-            )
+        # Try to use any available Ollama model as fallback
+        ollama_models = cls.discover_ollama_models()
+        if ollama_models:
+            model = ollama_models[0]  # Use first available model
+            ollama_url = "http://localhost:11434"
+            lm = dspy.LM(f"ollama/{model}", api_base=ollama_url)
             dspy.configure(lm=lm)
-            return lm, "Development Mock", "gpt-3.5-turbo"
+            logger.info(f"✅ DSPy configured with Ollama {model} at {ollama_url}")
+            return lm, "Ollama", model
 
         return None
 

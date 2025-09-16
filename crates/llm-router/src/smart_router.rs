@@ -397,7 +397,7 @@ impl SmartLLMRouter {
         }
 
         // Route to standard LLM router
-        let router = self.base_router.read().await;
+        let mut router = self.base_router.write().await;
         let resp = router.route_request(messages.to_vec(), None).await?;
         Ok(resp.content)
     }
@@ -444,7 +444,7 @@ impl SmartLLMRouter {
             Ok(dspy_response)
         } else {
             // DSPy is optional - fall back to base router
-            let router = self.base_router.read().await;
+            let mut router = self.base_router.write().await;
             let resp = router.route_request(messages.to_vec(), None).await?;
             Ok(resp.content)
         }

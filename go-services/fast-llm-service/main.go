@@ -24,18 +24,18 @@ type HealthResponse struct {
 
 // LLMRequest represents an LLM inference request
 type LLMRequest struct {
-	Model     string `json:"model"`
-	Prompt    string `json:"prompt"`
-	MaxTokens int    `json:"max_tokens,omitempty"`
+	Model       string  `json:"model"`
+	Prompt      string  `json:"prompt"`
+	MaxTokens   int     `json:"max_tokens,omitempty"`
 	Temperature float64 `json:"temperature,omitempty"`
 }
 
 // LLMResponse represents an LLM inference response
 type LLMResponse struct {
-	Model     string `json:"model"`
-	Text      string `json:"text"`
-	Tokens    int    `json:"tokens"`
-	Duration  int64  `json:"duration_ms"`
+	Model     string    `json:"model"`
+	Text      string    `json:"text"`
+	Tokens    int       `json:"tokens"`
+	Duration  int64     `json:"duration_ms"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -129,11 +129,11 @@ func (s *FastLLMService) modelsHandler(w http.ResponseWriter, r *http.Request) {
 func (s *FastLLMService) metricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"requests_total":    1234,
+		"requests_total":      1234,
 		"requests_per_second": 45.6,
-		"average_latency_ms": 23.4,
-		"active_models":     len(s.models),
-		"uptime_seconds":    int64(time.Since(time.Now().Add(-24 * time.Hour)).Seconds()),
+		"average_latency_ms":  23.4,
+		"active_models":       len(s.models),
+		"uptime_seconds":      int64(time.Since(time.Now().Add(-24 * time.Hour)).Seconds()),
 	})
 }
 
@@ -155,7 +155,7 @@ func main() {
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3030"
+		port = "3031"
 	}
 
 	log.Printf("Fast LLM service starting on port %s", port)

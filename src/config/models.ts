@@ -16,15 +16,15 @@ export const ModelConfig = {
     embedding: process.env.VISION_EMBEDDING_MODEL || 'nomic-embed-vision:latest',
   },
 
-  // Text generation models
+  // Text generation models - dynamically configured
   text: {
-    // LFM2 as default for ultra-fast routing and simple tasks
-    routing: process.env.ROUTING_MODEL || 'lfm2:1.2b',
-    small: process.env.TEXT_SMALL_MODEL || 'lfm2:1.2b',
-    medium: process.env.TEXT_MEDIUM_MODEL || 'llama3.2:8b',
-    large: process.env.TEXT_LARGE_MODEL || 'llama3.2:70b',
-    code: process.env.CODE_MODEL || 'qwen2.5-coder:7b',
-    reasoning: process.env.REASONING_MODEL || 'deepseek-r1:8b',
+    // Use environment variables or auto-detect available models
+    routing: process.env.ROUTING_MODEL || 'auto-detect',
+    small: process.env.TEXT_SMALL_MODEL || 'auto-detect',
+    medium: process.env.TEXT_MEDIUM_MODEL || 'auto-detect',
+    large: process.env.TEXT_LARGE_MODEL || 'auto-detect',
+    code: process.env.CODE_MODEL || 'auto-detect',
+    reasoning: process.env.REASONING_MODEL || 'auto-detect',
   },
 
   // Embedding models
@@ -44,11 +44,11 @@ export const ModelConfig = {
     flux: process.env.FLUX_MODEL || 'flux-schnell',
   },
 
-  // Specialized models
+  // Specialized models - dynamically configured
   specialized: {
-    math: process.env.MATH_MODEL || 'mathstral:7b',
-    medical: process.env.MEDICAL_MODEL || 'meditron:7b',
-    finance: process.env.FINANCE_MODEL || 'nous-hermes:13b',
+    math: process.env.MATH_MODEL || 'auto-detect',
+    medical: process.env.MEDICAL_MODEL || 'auto-detect',
+    finance: process.env.FINANCE_MODEL || 'auto-detect',
   },
 
   // LM Studio configuration (replaces HuggingFace)

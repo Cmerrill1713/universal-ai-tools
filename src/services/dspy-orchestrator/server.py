@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 
 # ChainOfThought, ReAct, ProgramOfThought are accessed via dspy module
 import os
@@ -9,6 +10,9 @@ from typing import Any, Dict, List
 import dspy
 import websockets
 from dspy.teleprompt import MIPROv2
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+import uvicorn
 
 # Configure logging first
 logging.basicConfig(
@@ -83,11 +87,10 @@ except Exception as e:
         logger.info(f"   Model profile: {profile.size_category} (~{profile.estimated_params}B params)")
         logger.info(f"   Capabilities: {[c.value for c in profile.capabilities]}")
     else:
-        if os.environ.get("NODE_ENV") == "development":
-            logger.warning("⚠️ No LLMs found, using development mock mode")
-            # Use discovery fallback
-            config_result = LLMDiscovery.discover_and_configure()
-        else:
+        logger.info("🔍 No LLMs configured, discovering available models...")
+        # Use discovery fallback
+        config_result = LLMDiscovery.discover_and_configure()
+        if not config_result:
             logger.error("❌ No valid LLM configuration found")
             raise Exception(
                 "DSPy requires at least one working LLM. Please ensure Ollama, LM Studio, or OpenAI API is available."
@@ -213,6 +216,30 @@ class DSPyServer:
         self.clients = set()
         self.optimization_examples = []  # Store examples for continuous learning
         self.optimization_threshold = 100  # Optimize after collecting 100 examples
+        self._models_cache = None  # Cache for discovered models
+        self._cache_timestamp = 0  # Cache timestamp
+        self._cache_ttl = 300  # Cache TTL in seconds (5 minutes)
+
+    def get_cached_models(self) -> Dict[str, List[str]]:
+        """Get cached models or refresh cache if expired"""
+        import time
+        current_time = time.time()
+        
+        # Check if cache is valid
+        if (self._models_cache is not None and 
+            current_time - self._cache_timestamp < self._cache_ttl):
+            return self._models_cache
+        
+        # Refresh cache
+        logger.info("🔄 Refreshing models cache...")
+        self._models_cache = LLMDiscovery.get_all_available_models()
+        self._cache_timestamp = current_time
+        
+        # Log cache refresh
+        total_models = sum(len(model_list) for model_list in self._models_cache.values())
+        logger.info(f"✅ Models cache refreshed: {total_models} models from {len(self._models_cache)} providers")
+        
+        return self._models_cache
 
     async def handle_request(self, websocket, path=None):
         """Handle incoming WebSocket connections."""
@@ -574,14 +601,66 @@ class DSPyServer:
             await asyncio.Future()  # Run forever
 
 
-def main():
-    """Main entry point."""
+# Create server instance for caching
+server = DSPyServer()
+
+# Create FastAPI app for HTTP endpoints
+app = FastAPI(title="DSPy Orchestrator", version="1.0.0")
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for HTTP clients."""
+    return JSONResponse({
+        "service": "dspy-orchestrator",
+        "status": "healthy",
+        "websocket_port": int(os.environ.get("DSPY_PORT", "8766")),
+        "timestamp": asyncio.get_event_loop().time()
+    })
+
+@app.get("/models")
+async def get_models():
+    """Get available models."""
+    try:
+        # Use cached models for fast response
+        models = server.get_cached_models()
+        return JSONResponse({
+            "models": models,
+            "count": sum(len(model_list) for model_list in models.values()),
+            "cached": True,
+            "cache_age_seconds": int(time.time() - server._cache_timestamp) if server._cache_timestamp else 0
+        })
+    except Exception as e:
+        return JSONResponse({
+            "error": str(e),
+            "models": [],
+            "count": 0
+        }, status_code=500)
+
+async def start_servers():
+    """Start both WebSocket and HTTP servers."""
     # Get port from environment variable or use default
     port = int(os.environ.get("DSPY_PORT", "8766"))
     logger.info(f"Starting DSPy server on port {port}")
 
+    # Start WebSocket server in background
     server = DSPyServer()
-    asyncio.run(server.start_server(port=port))
+    websocket_task = asyncio.create_task(server.start_server(port=port))
+    
+    # Start HTTP server on port + 1
+    http_port = port + 1
+    logger.info(f"Starting HTTP server on port {http_port}")
+    
+    # Start HTTP server
+    config = uvicorn.Config(app, host="0.0.0.0", port=http_port, log_level="info")
+    server_http = uvicorn.Server(config)
+    http_task = asyncio.create_task(server_http.serve())
+    
+    # Wait for both servers
+    await asyncio.gather(websocket_task, http_task)
+
+def main():
+    """Main entry point."""
+    asyncio.run(start_servers())
 
 
 if __name__ == "__main__":

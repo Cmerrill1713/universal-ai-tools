@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Universal AI Tools Installer Script
-# This script installs and configures Universal AI Tools
+# Universal AI Tools - Installation Script
+# Supports: Linux (Ubuntu/Debian, CentOS/RHEL), macOS, Docker
 
-set -e  # Exit on error
+set -e
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,351 +12,447 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Installation directory
-INSTALL_DIR="${INSTALL_DIR:-/opt/universal-ai-tools}"
-DATA_DIR="${DATA_DIR:-/var/lib/universal-ai-tools}"
-LOG_DIR="${LOG_DIR:-/var/log/universal-ai-tools}"
-
-# Print colored output
-print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Logging functions
+log_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
 }
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+log_success() {
+    echo -e "${GREEN}✅ $1${NC}"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+log_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+log_error() {
+    echo -e "${RED}❌ $1${NC}"
 }
 
-# Banner
-cat << "EOF"
- _   _       _                          _    _    ___ 
-| | | |_ __ (_)_   _____ _ __ ___  __ _| |  / \  |_ _|
-| | | | '_ \| \ \ / / _ \ '__/ __|/ _` | | / _ \  | | 
-| |_| | | | | |\ V /  __/ |  \__ \ (_| | |/ ___ \ | | 
- \___/|_| |_|_| \_/ \___|_|  |___/\__,_|_/_/   \_\___|
-                                                       
-        Universal AI Tools Installer v1.0.0
-EOF
-
-echo ""
-print_info "Starting Universal AI Tools installation..."
-
-# Check if running as root
-if [[ $EUID -ne 0 ]]; then
-   print_error "This script must be run as root"
-   exit 1
-fi
-
-# Detect OS
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS="linux"
-    DISTRO=$(lsb_release -si 2>/dev/null || echo "Unknown")
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    OS="macos"
-else
-    print_error "Unsupported operating system: $OSTYPE"
-    exit 1
-fi
-
-print_info "Detected OS: $OS ($DISTRO)"
-
-# Check prerequisites
-check_prerequisites() {
-    print_info "Checking prerequisites..."
-    
-    # Check Node.js
-    if ! command -v node &> /dev/null; then
-        print_error "Node.js is not installed. Please install Node.js 18 or higher."
+# Detect operating system
+detect_os() {
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            OS=$NAME
+            VER=$VERSION_ID
+        else
+            log_error "Cannot detect Linux distribution"
+            exit 1
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        OS="macOS"
+        VER=$(sw_vers -productVersion)
+    else
+        log_error "Unsupported operating system: $OSTYPE"
         exit 1
     fi
-    
-    NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-    if [ "$NODE_VERSION" -lt "18" ]; then
-        print_error "Node.js 18 or higher is required. Current version: $(node -v)"
-        exit 1
-    fi
-    
-    # Check Docker (optional)
-    if command -v docker &> /dev/null; then
-        print_success "Docker detected"
-        DOCKER_AVAILABLE=true
-    else
-        print_warning "Docker not found. Docker deployment will not be available."
-        DOCKER_AVAILABLE=false
-    fi
-    
-    # Check Redis (optional)
-    if command -v redis-cli &> /dev/null; then
-        print_success "Redis detected"
-    else
-        print_warning "Redis not found. Will need to be installed separately or use Docker."
-    fi
-    
-    print_success "Prerequisites check completed"
+
+    log_info "Detected OS: $OS $VER"
 }
 
-# Create directories
-create_directories() {
-    print_info "Creating directories..."
-    
-    mkdir -p "$INSTALL_DIR"
-    mkdir -p "$DATA_DIR"/{models,cache,db}
-    mkdir -p "$LOG_DIR"
-    
-    print_success "Directories created"
+# Check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
 }
 
-# Extract installation files
-extract_files() {
-    print_info "Extracting installation files..."
-    
-    # Check if we're running from the distribution archive
-    if [ -f "universal-ai-tools.tar.gz" ]; then
-        tar -xzf universal-ai-tools.tar.gz -C "$INSTALL_DIR" --strip-components=1
-    elif [ -d "dist" ]; then
-        # Running from source directory
-        cp -r dist/* "$INSTALL_DIR/"
-        cp package.json "$INSTALL_DIR/"
-        cp .env.example "$INSTALL_DIR/"
-        [ -d "schema" ] && cp -r schema "$INSTALL_DIR/"
-    else
-        print_error "Installation files not found"
-        exit 1
-    fi
-    
-    print_success "Files extracted"
-}
-
-# Install dependencies
+# Install system dependencies
 install_dependencies() {
-    print_info "Installing Node.js dependencies..."
-    
-    cd "$INSTALL_DIR"
-    npm install --production --no-audit --no-fund
-    
-    print_success "Dependencies installed"
+    log_info "Installing system dependencies..."
+
+    case $OS in
+        "Ubuntu"*|"Debian"*)
+            sudo apt-get update
+            sudo apt-get install -y \
+                curl \
+                wget \
+                git \
+                build-essential \
+                pkg-config \
+                libssl-dev \
+                libpq-dev \
+                ca-certificates
+            ;;
+        "CentOS"*|"Red Hat"*|"Fedora"*)
+            if command_exists dnf; then
+                sudo dnf install -y \
+                    curl \
+                    wget \
+                    git \
+                    gcc \
+                    gcc-c++ \
+                    make \
+                    pkgconfig \
+                    openssl-devel \
+                    postgresql-devel \
+                    ca-certificates
+            else
+                sudo yum install -y \
+                    curl \
+                    wget \
+                    git \
+                    gcc \
+                    gcc-c++ \
+                    make \
+                    pkgconfig \
+                    openssl-devel \
+                    postgresql-devel \
+                    ca-certificates
+            fi
+            ;;
+        "macOS")
+            if ! command_exists brew; then
+                log_info "Installing Homebrew..."
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            fi
+            brew install \
+                curl \
+                wget \
+                git \
+                pkg-config \
+                openssl \
+                postgresql
+            ;;
+        *)
+            log_error "Unsupported operating system: $OS"
+            exit 1
+            ;;
+    esac
+
+    log_success "System dependencies installed"
 }
 
-# Configure environment
-configure_environment() {
-    print_info "Configuring environment..."
-    
-    if [ ! -f "$INSTALL_DIR/.env" ]; then
-        cp "$INSTALL_DIR/.env.example" "$INSTALL_DIR/.env"
-        
-        print_warning "Please edit $INSTALL_DIR/.env to configure your installation"
-        print_info "Key configuration items:"
-        echo "  - SUPABASE_URL: Your Supabase project URL"
-        echo "  - SUPABASE_SERVICE_KEY: Your Supabase service key"
-        echo "  - JWT_SECRET: A secure random string for JWT signing"
-        echo "  - REDIS_URL: Redis connection URL (default: redis://localhost:6379)"
+# Install Rust
+install_rust() {
+    if command_exists cargo; then
+        log_info "Rust is already installed: $(cargo --version)"
+        return 0
     fi
-    
-    # Set permissions
-    chmod 600 "$INSTALL_DIR/.env"
-    
-    print_success "Environment configured"
+
+    log_info "Installing Rust..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source $HOME/.cargo/env
+
+    log_success "Rust installed: $(cargo --version)"
 }
 
-# Create systemd service
-create_systemd_service() {
-    if [[ "$OS" != "linux" ]]; then
-        return
+# Install Docker
+install_docker() {
+    if command_exists docker; then
+        log_info "Docker is already installed: $(docker --version)"
+        return 0
     fi
-    
-    print_info "Creating systemd service..."
-    
-    cat > /etc/systemd/system/universal-ai-tools.service << EOF
+
+    log_info "Installing Docker..."
+
+    case $OS in
+        "Ubuntu"*|"Debian"*)
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sudo sh get-docker.sh
+            sudo usermod -aG docker $USER
+            ;;
+        "CentOS"*|"Red Hat"*|"Fedora"*)
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sudo sh get-docker.sh
+            sudo usermod -aG docker $USER
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            ;;
+        "macOS")
+            log_warning "Please install Docker Desktop from https://www.docker.com/products/docker-desktop"
+            ;;
+    esac
+
+    log_success "Docker installed"
+}
+
+# Install Docker Compose
+install_docker_compose() {
+    if command_exists docker-compose; then
+        log_info "Docker Compose is already installed: $(docker-compose --version)"
+        return 0
+    fi
+
+    log_info "Installing Docker Compose..."
+
+    case $OS in
+        "Ubuntu"*|"Debian"*|"CentOS"*|"Red Hat"*|"Fedora"*)
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            ;;
+        "macOS")
+            if command_exists brew; then
+                brew install docker-compose
+            else
+                log_warning "Please install Docker Compose from https://github.com/docker/compose/releases"
+            fi
+            ;;
+    esac
+
+    log_success "Docker Compose installed"
+}
+
+# Install PostgreSQL
+install_postgresql() {
+    if command_exists psql; then
+        log_info "PostgreSQL is already installed: $(psql --version)"
+        return 0
+    fi
+
+    log_info "Installing PostgreSQL..."
+
+    case $OS in
+        "Ubuntu"*|"Debian"*)
+            sudo apt-get install -y postgresql postgresql-contrib
+            sudo systemctl enable postgresql
+            sudo systemctl start postgresql
+            ;;
+        "CentOS"*|"Red Hat"*|"Fedora"*)
+            if command_exists dnf; then
+                sudo dnf install -y postgresql-server postgresql-contrib
+            else
+                sudo yum install -y postgresql-server postgresql-contrib
+            fi
+            sudo postgresql-setup initdb
+            sudo systemctl enable postgresql
+            sudo systemctl start postgresql
+            ;;
+        "macOS")
+            if command_exists brew; then
+                brew install postgresql
+                brew services start postgresql
+            else
+                log_warning "Please install PostgreSQL from https://www.postgresql.org/download/macos/"
+            fi
+            ;;
+    esac
+
+    log_success "PostgreSQL installed"
+}
+
+# Install Redis
+install_redis() {
+    if command_exists redis-server; then
+        log_info "Redis is already installed: $(redis-server --version)"
+        return 0
+    fi
+
+    log_info "Installing Redis..."
+
+    case $OS in
+        "Ubuntu"*|"Debian"*)
+            sudo apt-get install -y redis-server
+            sudo systemctl enable redis-server
+            sudo systemctl start redis-server
+            ;;
+        "CentOS"*|"Red Hat"*|"Fedora"*)
+            if command_exists dnf; then
+                sudo dnf install -y redis
+            else
+                sudo yum install -y redis
+            fi
+            sudo systemctl enable redis
+            sudo systemctl start redis
+            ;;
+        "macOS")
+            if command_exists brew; then
+                brew install redis
+                brew services start redis
+            else
+                log_warning "Please install Redis from https://redis.io/download"
+            fi
+            ;;
+    esac
+
+    log_success "Redis installed"
+}
+
+# Build the application
+build_application() {
+    log_info "Building Universal AI Tools..."
+
+    # Build all services
+    cargo build --release --workspace
+
+    log_success "Application built successfully"
+}
+
+# Create systemd services
+create_systemd_services() {
+    if [[ "$OS" == "macOS" ]]; then
+        log_info "Skipping systemd services on macOS"
+        return 0
+    fi
+
+    log_info "Creating systemd services..."
+
+    # Create service directory
+    sudo mkdir -p /etc/systemd/system
+
+    # LLM Router service
+    sudo tee /etc/systemd/system/universal-ai-llm-router.service > /dev/null <<EOF
 [Unit]
-Description=Universal AI Tools Service
-Documentation=https://github.com/your-org/universal-ai-tools
-After=network.target redis.service
+Description=Universal AI Tools - LLM Router
+After=network.target
 
 [Service]
 Type=simple
-User=aitools
-Group=aitools
-WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/node $INSTALL_DIR/server.js
+User=$USER
+WorkingDirectory=$(pwd)
+ExecStart=$(pwd)/target/release/llm-router
 Restart=always
-RestartSec=10
-StandardOutput=append:$LOG_DIR/service.log
-StandardError=append:$LOG_DIR/error.log
-Environment="NODE_ENV=production"
-Environment="NODE_OPTIONS=--max-old-space-size=2048"
-
-# Security
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=$DATA_DIR $LOG_DIR
+RestartSec=5
+Environment=LLM_ROUTER_PORT=3033
+Environment=OLLAMA_URL=http://localhost:11434
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-    # Create service user
-    if ! id -u aitools &>/dev/null; then
-        useradd --system --home-dir "$INSTALL_DIR" --shell /bin/false aitools
-    fi
-    
-    # Set ownership
-    chown -R aitools:aitools "$INSTALL_DIR" "$DATA_DIR" "$LOG_DIR"
-    
-    # Reload systemd
-    systemctl daemon-reload
-    
-    print_success "Systemd service created"
-}
+    # Intelligent Librarian service
+    sudo tee /etc/systemd/system/universal-ai-librarian.service > /dev/null <<EOF
+[Unit]
+Description=Universal AI Tools - Intelligent Librarian
+After=network.target postgresql.service
 
-# Setup Docker Compose (optional)
-setup_docker_compose() {
-    if [[ "$DOCKER_AVAILABLE" != "true" ]]; then
-        return
-    fi
-    
-    read -p "Do you want to set up Docker Compose? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        return
-    fi
-    
-    print_info "Setting up Docker Compose..."
-    
-    # Copy Docker files
-    if [ -f "docker-compose.prod.yml" ]; then
-        cp docker-compose.prod.yml "$INSTALL_DIR/docker-compose.yml"
-        cp Dockerfile.prod "$INSTALL_DIR/Dockerfile"
-    fi
-    
-    print_success "Docker Compose files copied"
-    print_info "To start with Docker: cd $INSTALL_DIR && docker-compose up -d"
-}
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$(pwd)
+ExecStart=$(pwd)/target/release/intelligent-librarian
+Restart=always
+RestartSec=5
+Environment=LIBRARIAN_PORT=8082
+Environment=DATABASE_URL=postgresql://postgres:password@localhost:5432/universal_ai_tools
 
-# Install Ollama (optional)
-install_ollama() {
-    read -p "Do you want to install Ollama for local LLM support? (y/n) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        return
-    fi
-    
-    print_info "Installing Ollama..."
-    
-    if [[ "$OS" == "linux" ]]; then
-        curl -fsSL https://ollama.com/install.sh | sh
-    elif [[ "$OS" == "macos" ]]; then
-        print_info "Please download Ollama from https://ollama.com/download"
-    fi
-    
-    # Pull default models
-    if command -v ollama &> /dev/null; then
-        print_info "Pulling default models..."
-        ollama pull nomic-embed-text
-        ollama pull llama3.2:3b
-    fi
-    
-    print_success "Ollama installed"
-}
-
-# Final setup
-final_setup() {
-    print_info "Performing final setup..."
-    
-    # Create start script
-    cat > "$INSTALL_DIR/start.sh" << 'EOF'
-#!/bin/bash
-cd "$(dirname "$0")"
-exec node server.js
+[Install]
+WantedBy=multi-user.target
 EOF
-    chmod +x "$INSTALL_DIR/start.sh"
-    
-    # Create management script
-    cat > /usr/local/bin/aitools << EOF
-#!/bin/bash
-# Universal AI Tools management script
 
-case "\$1" in
-    start)
-        if [[ -f /etc/systemd/system/universal-ai-tools.service ]]; then
-            systemctl start universal-ai-tools
-        else
-            cd $INSTALL_DIR && ./start.sh
-        fi
-        ;;
-    stop)
-        if [[ -f /etc/systemd/system/universal-ai-tools.service ]]; then
-            systemctl stop universal-ai-tools
-        else
-            pkill -f "node.*server.js"
-        fi
-        ;;
-    restart)
-        if [[ -f /etc/systemd/system/universal-ai-tools.service ]]; then
-            systemctl restart universal-ai-tools
-        else
-            \$0 stop
-            sleep 2
-            \$0 start
-        fi
-        ;;
-    status)
-        if [[ -f /etc/systemd/system/universal-ai-tools.service ]]; then
-            systemctl status universal-ai-tools
-        else
-            pgrep -f "node.*server.js" && echo "Running" || echo "Stopped"
-        fi
-        ;;
-    logs)
-        if [[ -f /etc/systemd/system/universal-ai-tools.service ]]; then
-            journalctl -u universal-ai-tools -f
-        else
-            tail -f $LOG_DIR/*.log
-        fi
-        ;;
-    *)
-        echo "Usage: aitools {start|stop|restart|status|logs}"
-        exit 1
-        ;;
-esac
+    # Assistant service
+    sudo tee /etc/systemd/system/universal-ai-assistant.service > /dev/null <<EOF
+[Unit]
+Description=Universal AI Tools - Assistant
+After=network.target postgresql.service redis.service universal-ai-llm-router.service universal-ai-librarian.service
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$(pwd)
+ExecStart=$(pwd)/target/release/assistantd
+Restart=always
+RestartSec=5
+Environment=ASSISTANTD_PORT=8086
+Environment=LLM_ROUTER_URL=http://localhost:3033
+Environment=LIBRARIAN_URL=http://localhost:8082
+Environment=DATABASE_URL=postgresql://postgres:password@localhost:5432/universal_ai_tools
+Environment=REDIS_URL=redis://localhost:6379
+Environment=RATE_LIMITING_ENABLED=true
+Environment=AUTHENTICATION_ENABLED=false
+Environment=CORS_ENABLED=true
+
+[Install]
+WantedBy=multi-user.target
 EOF
-    chmod +x /usr/local/bin/aitools
-    
-    print_success "Final setup completed"
+
+    # Reload systemd and enable services
+    sudo systemctl daemon-reload
+    sudo systemctl enable universal-ai-llm-router
+    sudo systemctl enable universal-ai-librarian
+    sudo systemctl enable universal-ai-assistant
+
+    log_success "Systemd services created and enabled"
 }
 
-# Main installation flow
+# Main installation function
 main() {
-    check_prerequisites
-    create_directories
-    extract_files
+    echo "🚀 Universal AI Tools - Installation Script"
+    echo "=========================================="
+    echo ""
+
+    # Parse command line arguments
+    INSTALL_DOCKER=false
+    INSTALL_SYSTEMD=false
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --docker)
+                INSTALL_DOCKER=true
+                shift
+                ;;
+            --systemd)
+                INSTALL_SYSTEMD=true
+                shift
+                ;;
+            --help)
+                echo "Usage: $0 [--docker] [--systemd] [--help]"
+                echo ""
+                echo "Options:"
+                echo "  --docker    Install Docker and Docker Compose"
+                echo "  --systemd   Create systemd services for Linux"
+                echo "  --help      Show this help message"
+                exit 0
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    # Detect OS
+    detect_os
+
+    # Install dependencies
     install_dependencies
-    configure_environment
-    create_systemd_service
-    setup_docker_compose
-    install_ollama
-    final_setup
-    
+    install_rust
+    install_postgresql
+    install_redis
+
+    # Optional installations
+    if [ "$INSTALL_DOCKER" = true ]; then
+        install_docker
+        install_docker_compose
+    fi
+
+    # Build application
+    build_application
+
+    # Create systemd services
+    if [ "$INSTALL_SYSTEMD" = true ]; then
+        create_systemd_services
+    fi
+
     echo ""
-    print_success "Universal AI Tools installation completed!"
+    log_success "Installation completed successfully!"
     echo ""
-    print_info "Next steps:"
-    echo "1. Edit configuration: $INSTALL_DIR/.env"
-    echo "2. Start the service: aitools start"
-    echo "3. Check status: aitools status"
-    echo "4. View logs: aitools logs"
+    echo "🎯 Next Steps:"
+    echo "============="
     echo ""
-    print_info "Default API endpoint: http://localhost:9999"
-    print_info "Documentation: https://github.com/your-org/universal-ai-tools"
+    echo "1. Configure your environment:"
+    echo "   cp env.example .env"
+    echo "   # Edit .env with your settings"
+    echo ""
+    echo "2. Start the services:"
+    if [ "$INSTALL_SYSTEMD" = true ]; then
+        echo "   sudo systemctl start universal-ai-llm-router"
+        echo "   sudo systemctl start universal-ai-librarian"
+        echo "   sudo systemctl start universal-ai-assistant"
+    else
+        echo "   # Start services manually or use Docker Compose"
+    fi
+    echo ""
+    if [ "$INSTALL_DOCKER" = true ]; then
+        echo "3. Or use Docker Compose:"
+        echo "   docker-compose up -d"
+    fi
+    echo ""
+    echo "4. Test the installation:"
+    echo "   curl http://localhost:8086/health"
+    echo ""
+    echo "📚 Documentation: https://github.com/your-repo/universal-ai-tools"
+    echo "🐛 Issues: https://github.com/your-repo/universal-ai-tools/issues"
 }
 
-# Run main installation
-main
+# Run main function
+main "$@"

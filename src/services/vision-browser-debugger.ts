@@ -220,7 +220,7 @@ class VisionBrowserDebugger {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image: imageBase64,
+          imageBase64: imageBase64,
           prompt: `Analyze this browser developer tools screenshot. Look for:
 
 1. Console tab errors (red text, error messages, warnings)

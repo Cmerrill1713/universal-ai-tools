@@ -331,7 +331,7 @@ async fn handle_chat(req: ChatRequest) -> Result<impl warp::Reply, warp::Rejecti
     }
 
     // Get router
-    let router = ROUTER.get().unwrap().read().await;
+    let mut router = ROUTER.get().unwrap().write().await;
 
     // Create generation options
     let options = GenerationOptions {
