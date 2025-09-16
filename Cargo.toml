@@ -1,0 +1,66 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/voice-processing",
+    "crates/vision-resource-manager",
+    "crates/vision-service",
+    # "crates/vision-processor",  # Temporarily disabled - actix-web type errors
+    "crates/ml-inference",
+    "crates/vector-db",
+    "crates/redis-service",
+    "crates/llm-router",
+    "crates/assistantd",
+    "crates/agent-orchestrator",
+    "crates/ai-orchestration-platform",
+    "crates/vm-coding-agent",
+    # "crates/dashboard-system",  # Temporarily disabled - missing bin targets
+    "crates/fast-llm-coordinator",
+    "crates/db-cli",
+    # "crates/rlvr-service",  # Temporarily disabled - missing http_server module
+    "crates/intelligent-librarian",
+    # "crates/monitoring-system",  # Temporarily disabled - missing module implementations
+    # "crates/testing-framework"  # Temporarily disabled - missing module implementations
+]
+
+[workspace.dependencies]
+# ML and Vision dependencies - consistent versions
+candle-core = "0.9"
+candle-nn = "0.9"
+candle-transformers = "0.9"
+hf-hub = "0.3"
+
+# Common async/web dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# HTTP and networking
+reqwest = { version = "0.11", features = ["json", "stream"] }
+axum = { version = "0.7", features = ["multipart", "macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Concurrency and performance
+dashmap = "5.5"
+parking_lot = "0.12"
+arc-swap = "1.6"
+once_cell = "1.19"
+futures = "0.3"
+
+# Development
+criterion = "0.5"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true

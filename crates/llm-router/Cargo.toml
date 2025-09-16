@@ -1,0 +1,67 @@
+[package]
+name = "llm-router"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "llm-router"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+async-trait = "0.1"
+parking_lot = "0.12"
+futures = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dashmap = "5.5"
+arc-swap = "1.6"
+once_cell = "1.19"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+moka = { version = "0.12", features = ["future"] }
+prometheus = "0.13"
+lazy_static = "1.4"
+
+# HTTP client for provider communication
+reqwest = { version = "0.11", features = ["json", "stream", "blocking"] }
+hyper = { version = "0.14", features = ["full"] }
+futures-util = "0.3"
+tokio-stream = "0.1"
+
+# HTTP server
+warp = "0.3"
+
+# Caching and performance
+lru = "0.12"
+
+# Metrics and monitoring
+
+# Token counting
+tiktoken-rs = "0.5"
+
+# NAPI bindings for Node.js integration (optional)
+napi = { version = "2", features = ["async", "serde-json", "tokio_rt"], optional = true }
+napi-derive = { version = "2", optional = true }
+
+[build-dependencies]
+napi-build = { version = "2", optional = true }
+
+[features]
+default = []
+napi = ["dep:napi", "dep:napi-derive", "napi-build"]
+
+[dev-dependencies]
+criterion = "0.5"
+mockito = "1.0"
+
+[[bench]]
+name = "router_benchmark"
+harness = false

@@ -1,0 +1,61 @@
+[package]
+name = "dashboard-system"
+version = "0.2.0"
+edition = "2021"
+description = "Advanced Web-Based Dashboard and Real-Time Visualization System"
+authors = ["Universal AI Tools"]
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+parking_lot = "0.12"
+dashmap = "6.0"
+futures = "0.3"
+async-trait = "0.1"
+axum = { version = "0.7", features = ["ws", "json", "query", "multipart"] }
+tower = { version = "0.4", features = ["util", "timeout", "limit"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
+hyper = { version = "1.0", features = ["full"] }
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"], optional = true }
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"], optional = true }
+tera = "1.19"
+mime_guess = "2.0"
+base64 = "0.21"
+csv = "1.3"
+plotters = { version = "0.3", features = ["all_elements", "all_series", "bitmap_backend", "svg_backend"] }
+plotters-bitmap = "0.3"
+plotters-svg = "0.3"
+image = "0.24"
+clap = { version = "4.5", features = ["derive"] }
+notify = "6.1"
+walkdir = "2.4"
+
+# Local crates
+agent-orchestrator = { path = "../agent-orchestrator" }
+llm-router = { path = "../llm-router" }
+fast-llm-coordinator = { path = "../fast-llm-coordinator" }
+# monitoring-system = { path = "../monitoring-system" }  # Temporarily disabled - missing module implementations
+# testing-framework = { path = "../testing-framework" }  # Temporarily disabled - missing module implementations
+
+[features]
+default = ["postgres", "redis", "real-time"]
+postgres = ["dep:sqlx"]
+redis = ["dep:redis"]
+real-time = []
+advanced-charts = []
+export-functionality = []
+
+[[bin]]
+name = "dashboard-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "chart-generator"
+path = "src/bin/chart_generator.rs"

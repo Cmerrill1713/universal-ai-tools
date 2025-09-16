@@ -1,0 +1,35 @@
+# Build stage
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache git
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY shared/ ./shared/
+COPY load-balancer/ ./load-balancer/
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o load-balancer ./load-balancer
+
+# Final stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates tzdata
+
+WORKDIR /root/
+
+# Copy the binary from builder
+COPY --from=builder /app/load-balancer .
+
+# Copy config if exists
+COPY --from=builder /app/load-balancer/config.yaml* ./
+
+EXPOSE 8082 9090
+
+CMD ["./load-balancer"]

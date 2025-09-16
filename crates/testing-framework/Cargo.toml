@@ -1,0 +1,69 @@
+[package]
+name = "testing-framework"
+version = "0.2.0"
+edition = "2021"
+description = "Advanced Testing Framework with Stress Testing and Synthetic Workloads"
+authors = ["Universal AI Tools"]
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+parking_lot = "0.12"
+dashmap = "6.0"
+futures = "0.3"
+async-trait = "0.1"
+reqwest = { version = "0.12", features = ["json", "stream"] }
+rand = "0.8"
+rayon = "1.10"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+quickcheck = "1.0"
+fake = { version = "2.9", features = ["derive", "chrono", "uuid"] }
+statistical = "1.0"
+plotters = { version = "0.3", features = ["all_elements", "all_series", "bitmap_backend"] }
+clap = { version = "4.5", features = ["derive"] }
+tonic = { version = "0.12", features = ["gzip"] }
+prost = "0.13"
+prometheus = "0.13"
+hdrhistogram = "7.5"
+
+# Local crates
+agent-orchestrator = { path = "../agent-orchestrator" }
+llm-router = { path = "../llm-router" }
+fast-llm-coordinator = { path = "../fast-llm-coordinator" }
+# monitoring-system = { path = "../monitoring-system" }  # Temporarily disabled - missing module implementations
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.6"
+testcontainers = "0.15"
+
+[features]
+default = ["stress-testing", "synthetic-workloads", "benchmarking"]
+stress-testing = []
+synthetic-workloads = []
+benchmarking = []
+distributed-testing = []
+gpu-testing = []
+
+[[bin]]
+name = "test-runner"
+path = "src/bin/runner.rs"
+
+[[bin]]
+name = "stress-tester"
+path = "src/bin/stress_tester.rs"
+
+[[bin]]
+name = "benchmark-runner"
+path = "src/bin/benchmark.rs"
+
+[[bin]]
+name = "workload-generator"
+path = "src/bin/workload_generator.rs"
