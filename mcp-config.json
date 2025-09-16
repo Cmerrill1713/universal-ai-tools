@@ -56,6 +56,22 @@
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
         "LIBRARIAN_URL": "http://localhost:8032"
       }
+    },
+    "agent-swarm": {
+      "command": "tsx",
+      "args": ["src/mcp/agent-swarm-mcp-server.ts"],
+      "env": {
+        "LIBRARIAN_URL": "http://localhost:8032",
+        "GITHUB_MCP_URL": "http://localhost:3000"
+      }
+    },
+    "agency-swarm-local": {
+      "command": "tsx",
+      "args": ["src/mcp/agency-swarm-local-mcp-server.ts"],
+      "env": {
+        "LIBRARIAN_URL": "http://localhost:8032",
+        "AGENCY_SWARM_SERVICE_URL": "http://localhost:8033"
+      }
     }
   }
 }
