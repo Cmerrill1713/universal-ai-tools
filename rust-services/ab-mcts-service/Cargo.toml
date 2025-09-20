@@ -1,0 +1,80 @@
+[workspace]
+# Empty workspace to make this package independent
+
+[package]
+name = "ab-mcts-service"
+version = "0.1.0"
+edition = "2021"
+authors = ["Universal AI Tools Team"]
+description = "High-performance AB-MCTS (Adaptive Bandit Monte Carlo Tree Search) service for AI orchestration"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+ffi = []
+
+[dependencies]
+# Async runtime for non-blocking operations
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+
+# Serialization for data exchange with TypeScript
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Date and time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Mathematical operations and random sampling
+nalgebra = "0.32"
+rand = { version = "0.8", features = ["std_rng"] }
+rand_distr = "0.4"
+
+# Redis client for tree persistence
+redis = { version = "0.23", features = ["tokio-comp", "connection-manager"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Global singleton pattern for bridge
+once_cell = "1.19"
+
+# Performance monitoring
+instant = "0.1"
+
+# UUID generation for node IDs
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# HashMap with better performance for tree structures
+dashmap = "5.5"
+
+# Metrics collection
+metrics = "0.21"
+
+[dev-dependencies]
+tokio-test = "0.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.0"
+approx = "0.5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+
+[profile.dev]
+opt-level = 1
+debug = true
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false

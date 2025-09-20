@@ -1,5 +1,5 @@
 # Multi-stage Docker build for Universal AI Tools
-FROM node:22-alpine AS base
+FROM node:20-alpine AS base
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -36,7 +36,7 @@ RUN npm ci
 COPY . .
 
 # Expose port
-EXPOSE 8080
+EXPOSE 9999
 
 # Development command with hot reload
 CMD ["npm", "run", "dev"]
@@ -56,6 +56,9 @@ RUN npm ci --legacy-peer-deps
 # Copy source code (excluding node_modules for better caching)
 COPY . .
 
+# Ensure knowledge directory exists for downstream stages
+RUN mkdir -p knowledge
+
 # Build the application
 RUN npm run build
 
@@ -65,7 +68,7 @@ RUN npm prune --production
 # ========================================
 # Production stage
 # ========================================
-FROM node:22-alpine AS production
+FROM node:20-alpine AS production
 
 # Install runtime dependencies only
 RUN apk add --no-cache \
@@ -86,6 +89,7 @@ WORKDIR /app
 COPY --from=build --chown=universalai:nodejs /app/dist ./dist
 COPY --from=build --chown=universalai:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=universalai:nodejs /app/package*.json ./
+COPY --from=build --chown=universalai:nodejs /app/knowledge ./knowledge
 
 # Copy necessary files (create directories first if they don't exist)
 RUN mkdir -p public views
@@ -93,8 +97,8 @@ COPY --chown=universalai:nodejs public ./public
 COPY --chown=universalai:nodejs views ./views
 
 # Create required directories
-RUN mkdir -p logs tmp cache models data && \
-    chown -R universalai:nodejs logs tmp cache models data
+RUN mkdir -p logs tmp cache models data knowledge && \
+    chown -R universalai:nodejs logs tmp cache models data knowledge
 
 # Switch to non-root user
 USER universalai
@@ -102,6 +106,9 @@ USER universalai
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV SELF_CORRECTION_LOG_PATH=/app/knowledge/self_corrections.jsonl
+
+VOLUME ["/app/knowledge"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

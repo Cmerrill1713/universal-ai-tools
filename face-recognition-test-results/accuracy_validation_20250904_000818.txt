@@ -1,0 +1,46 @@
+[0/1] Planning build
+Building for debugging...
+[0/4] Write sources
+[1/4] Write swift-version--58304C5D6DBC2206.txt
+[3/12] Emitting module UniversalAICompanionFeature
+[4/12] Compiling UniversalAICompanionFeature FaceRecognitionService.swift
+[5/12] Compiling UniversalAICompanionFeature FaceRecognitionAPIClient.swift
+[6/12] Compiling UniversalAICompanionFeature VisionService.swift
+[7/13] Compiling UniversalAICompanionFeature PlatformTypes.swift
+[8/13] Compiling UniversalAICompanionFeature VisionView.swift
+[9/13] Compiling UniversalAICompanionFeature NotificationView.swift
+[10/13] Compiling UniversalAICompanionFeature DashboardView.swift
+[11/13] Compiling UniversalAICompanionFeature FaceProfileManagementView.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:177:28: warning: value 'contactInfo' was defined but never used; consider replacing with boolean test
+175 |                         .foregroundStyle(.secondary)
+176 |                     
+177 |                     if let contactInfo = profile.contactInfo {
+    |                            `- warning: value 'contactInfo' was defined but never used; consider replacing with boolean test
+178 |                         HStack(spacing: 4) {
+179 |                             Image(systemName: "person.crop.circle")
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:308:37: error: main actor-isolated property 'profileImages' can not be referenced from a nonisolated context
+223 |     @State private var name = ""
+224 |     @State private var selectedPhotos: [PhotosPickerItem] = []
+225 |     @State private var profileImages: [PlatformImage] = []
+    |                        `- note: property declared here
+226 |     @State private var isProcessing = false
+227 |     
+    :
+306 |                                 .foregroundStyle(.blue)
+307 |                             
+308 |                             Text("\(profileImages.count) of 5 selected")
+    |                                     `- error: main actor-isolated property 'profileImages' can not be referenced from a nonisolated context
+309 |                                 .font(.caption)
+310 |                                 .foregroundStyle(.secondary)
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:321:26: error: incorrect argument label in call (have 'uiImage:', expected 'nsImage:')
+319 |             HStack(spacing: 12) {
+320 |                 ForEach(Array(profileImages.enumerated()), id: \.offset) { index, image in
+321 |                     Image(uiImage: image)
+    |                          `- error: incorrect argument label in call (have 'uiImage:', expected 'nsImage:')
+322 |                         .resizable()
+323 |                         .aspectRatio(contentMode: .fill)
+[12/15] Compiling UniversalAICompanionFeature ChatService.swift
+[13/15] Compiling UniversalAICompanionFeature ContentView.swift
+error: fatalError

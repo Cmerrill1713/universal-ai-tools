@@ -126,6 +126,11 @@ def analyze_image():
             "error": str(e)
         }), 500
 
+@app.route('/analyze', methods=['POST'])
+def analyze_image_alias():
+    """Analyze image endpoint - alias for /vision/analyze"""
+    return analyze_image()
+
 
 @app.route('/vision/ocr', methods=['POST'])
 def extract_text():

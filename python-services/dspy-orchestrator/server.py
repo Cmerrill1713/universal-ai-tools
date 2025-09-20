@@ -352,10 +352,11 @@ async def handle_client(websocket, path):
 
 async def main():
     """Start the DSPy orchestration server"""
-    logger.info("Starting DSPy Orchestration Server on port 8766")
+    port = int(os.getenv("DSPY_PORT", "8003"))
+    logger.info(f"Starting DSPy Orchestration Server on port {port}")
 
     server = await websockets.serve(
-        handle_client, "localhost", 8766, ping_interval=20, ping_timeout=10
+        handle_client, "localhost", port, ping_interval=20, ping_timeout=10
     )
 
     logger.info("DSPy server is running. Press Ctrl+C to stop.")

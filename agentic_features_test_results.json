@@ -1,0 +1,131 @@
+{
+  "timestamp": 1757803950.359244,
+  "summary": {
+    "total_tests": 15,
+    "successful_tests": 15,
+    "success_rate": 100.0
+  },
+  "results": [
+    {
+      "test": "smart_routing",
+      "case": "Simple Question",
+      "success": true,
+      "model": "unknown",
+      "duration": 26.96514129638672,
+      "response_length": 144
+    },
+    {
+      "test": "smart_routing",
+      "case": "Complex Analysis",
+      "success": true,
+      "model": "unknown",
+      "duration": 18.837928771972656,
+      "response_length": 240
+    },
+    {
+      "test": "smart_routing",
+      "case": "Code Generation",
+      "success": true,
+      "model": "unknown",
+      "duration": 21.23093605041504,
+      "response_length": 229
+    },
+    {
+      "task_id": 0,
+      "task_type": "analysis",
+      "success": true,
+      "duration": 36.87405586242676,
+      "model": "unknown",
+      "response_length": 177
+    },
+    {
+      "task_id": 1,
+      "task_type": "generation",
+      "success": true,
+      "duration": 37.89496421813965,
+      "model": "unknown",
+      "response_length": 171
+    },
+    {
+      "task_id": 2,
+      "task_type": "evaluation",
+      "success": true,
+      "duration": 42.03510284423828,
+      "model": "unknown",
+      "response_length": 178
+    },
+    {
+      "task_id": 3,
+      "task_type": "reasoning",
+      "success": true,
+      "duration": 42.36888885498047,
+      "model": "unknown",
+      "response_length": 173
+    },
+    {
+      "task_id": 4,
+      "task_type": "analysis",
+      "success": true,
+      "duration": 34.63602066040039,
+      "model": "unknown",
+      "response_length": 177
+    },
+    {
+      "task_id": 5,
+      "task_type": "generation",
+      "success": true,
+      "duration": 41.242122650146484,
+      "model": "unknown",
+      "response_length": 171
+    },
+    {
+      "task_id": 6,
+      "task_type": "evaluation",
+      "success": true,
+      "duration": 41.49293899536133,
+      "model": "unknown",
+      "response_length": 178
+    },
+    {
+      "task_id": 7,
+      "task_type": "reasoning",
+      "success": true,
+      "duration": 39.433956146240234,
+      "model": "unknown",
+      "response_length": 173
+    },
+    {
+      "task_id": 8,
+      "task_type": "analysis",
+      "success": true,
+      "duration": 38.68579864501953,
+      "model": "unknown",
+      "response_length": 177
+    },
+    {
+      "task_id": 9,
+      "task_type": "generation",
+      "success": true,
+      "duration": 41.578054428100586,
+      "model": "unknown",
+      "response_length": 171
+    },
+    {
+      "test": "memory_storage",
+      "success": true,
+      "status": 200
+    },
+    {
+      "test": "assistant_agentic",
+      "success": true,
+      "duration": 22.22585678100586,
+      "response_length": 345,
+      "quality_score": 0.3333333333333333,
+      "quality_indicators": {
+        "structured": false,
+        "detailed": false,
+        "actionable": true
+      }
+    }
+  ]
+}

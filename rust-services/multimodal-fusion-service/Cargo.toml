@@ -1,0 +1,92 @@
+[package]
+name = "multimodal-fusion-service"
+version = "0.1.0"
+edition = "2021"
+authors = ["Universal AI Tools Team"]
+description = "High-performance multimodal fusion service for unified understanding"
+license = "MIT"
+
+[lib]
+name = "multimodal_fusion_service"
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.47", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.18", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Math and ML
+nalgebra = "0.32"
+ndarray = { version = "0.15", features = ["rayon", "serde"] }
+ndarray-linalg = { version = "0.16", features = ["openblas-static"] }
+candle-core = { version = "0.3", optional = true }
+candle-nn = { version = "0.3", optional = true }
+candle-transformers = { version = "0.3", optional = true }
+
+# Parallel processing
+rayon = "1.11"
+crossbeam = "0.8"
+dashmap = "5.5"
+
+# Signal processing
+rustfft = "6.2"
+hound = "3.5"  # WAV file processing
+image = { version = "0.25", features = ["jpeg", "png"] }
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Audio processing
+symphonia = { version = "0.5", optional = true }
+rubato = { version = "0.15", optional = true }  # Resampling
+
+# Vision processing  
+imageproc = "0.25"
+opencv = { version = "0.91", optional = true }
+
+# Text processing
+tokenizers = { version = "0.19", optional = true }
+unicode-segmentation = "1.11"
+
+# FFI
+libc = "0.2"
+
+[features]
+default = ["ffi"]
+ffi = []
+candle = ["candle-core", "candle-nn", "candle-transformers"]
+audio = ["symphonia", "rubato"]
+vision = ["opencv"]
+nlp = ["tokenizers"]
+full = ["candle", "audio", "vision", "nlp"]
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.7"
+tempfile = "3.21"
+approx = "0.5"
+
+[build-dependencies]
+cc = "1.2"
+
+# [[bench]]
+# name = "fusion_benchmarks"
+# harness = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.bench]
+inherits = "release"
+
+[workspace]

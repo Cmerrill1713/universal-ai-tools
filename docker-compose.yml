@@ -8,7 +8,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
+      target: development
     container_name: universal-ai-tools-app
     restart: unless-stopped
     ports:
@@ -253,27 +253,82 @@ services:
 
   # Weaviate Vector Database
   # Supabase Local Development
-  supabase:
+  supabase-db:
     image: supabase/postgres:15.1.0.117
-    container_name: universal-ai-tools-supabase
+    container_name: universal-ai-tools-supabase-db
     restart: unless-stopped
     ports:
       - '54321:5432'
-      - '54322:54322'
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
-      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
-      - ANON_KEY=${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
-      - SERVICE_ROLE_KEY=${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
     volumes:
       - supabase_data:/var/lib/postgresql/data
       - ./supabase/migrations:/docker-entrypoint-initdb.d
-    networks:
-      - ai-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  supabase-api:
+    image: supabase/gotrue:v2.99.0
+    container_name: universal-ai-tools-supabase-api
+    restart: unless-stopped
+    ports:
+      - '54322:9999'
+    environment:
+      - GOTRUE_API_HOST=0.0.0.0
+      - GOTRUE_API_PORT=9999
+      - API_EXTERNAL_URL=http://localhost:54322
+      - GOTRUE_DB_DRIVER=postgres
+      - GOTRUE_DB_DATABASE_URL=postgresql://postgres:postgres@supabase-db:5432/postgres
+      - GOTRUE_SITE_URL=http://localhost:3000
+      - GOTRUE_URI_ALLOW_LIST=*
+      - GOTRUE_DISABLE_SIGNUP=false
+      - GOTRUE_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - GOTRUE_JWT_EXP=3600
+      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
+      - GOTRUE_JWT_ADMIN_ROLES=service_role
+      - GOTRUE_JWT_AUD=authenticated
+      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
+      - GOTRUE_EXTERNAL_EMAIL_ENABLED=true
+      - GOTRUE_MAILER_AUTOCONFIRM=true
+      - GOTRUE_SMTP_ADMIN_EMAIL=admin@example.com
+      - GOTRUE_SMTP_HOST=supabase-mail
+      - GOTRUE_SMTP_PORT=2500
+      - GOTRUE_SMTP_USER=supabase
+      - GOTRUE_SMTP_PASS=supabase
+      - GOTRUE_SMTP_SENDER_NAME=supabase
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  supabase-rest:
+    image: postgrest/postgrest:v11.2.0
+    container_name: universal-ai-tools-supabase-rest
+    restart: unless-stopped
+    ports:
+      - '54323:3000'
+    environment:
+      - PGRST_DB_URI=postgresql://postgres:postgres@supabase-db:5432/postgres
+      - PGRST_DB_SCHEMAS=public,storage,graphql_public
+      - PGRST_DB_ANON_ROLE=anon
+      - PGRST_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - PGRST_DB_USE_LEGACY_GUCS=false
+      - PGRST_APP_SETTINGS_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - PGRST_APP_SETTINGS_JWT_EXP=3600
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 10s
       timeout: 5s
       retries: 5

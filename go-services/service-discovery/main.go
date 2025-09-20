@@ -514,7 +514,7 @@ func main() {
 	// Metrics endpoint
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	port := 8094
+	port := 8083
 	if p := getEnv("PORT", ""); p != "" {
 		fmt.Sscanf(p, "%d", &port)
 	}

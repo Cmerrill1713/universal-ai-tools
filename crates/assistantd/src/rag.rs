@@ -59,7 +59,7 @@ pub struct ReasoningPath {
 }
 
 
-pub async fn run_r1_pipeline(router: Arc<LLMRouter>, req: R1RagRequest) -> anyhow::Result<R1RagResponse> {
+pub async fn run_r1_pipeline(router: &mut LLMRouter, req: R1RagRequest) -> anyhow::Result<R1RagResponse> {
     let k = req.k.unwrap_or(5);
     let model = req.model.clone();
     let enable_multi_hop = req.enable_multi_hop.unwrap_or(false);
@@ -67,7 +67,7 @@ pub async fn run_r1_pipeline(router: Arc<LLMRouter>, req: R1RagRequest) -> anyho
     let max_paths = req.max_paths.unwrap_or(5) as i32;
 
     // Step 1: Generate query variations (simple heuristic; a single pass for now)
-    let variations = generate_query_variations(&router, &req.query, model.clone()).await.unwrap_or_else(|_| vec![req.query.clone()]);
+    let variations = generate_query_variations(router, &req.query, model.clone()).await.unwrap_or_else(|_| vec![req.query.clone()]);
 
     // Step 2: Retrieve context using multi-hop or single-hop approach
     let mut all_rows = Vec::<HybridSearchRow>::new();
@@ -157,7 +157,7 @@ pub async fn run_r1_pipeline(router: Arc<LLMRouter>, req: R1RagRequest) -> anyho
     })
 }
 
-async fn generate_query_variations(router: &Arc<LLMRouter>, query: &str, model: Option<String>) -> anyhow::Result<Vec<String>> {
+async fn generate_query_variations(router: &mut LLMRouter, query: &str, model: Option<String>) -> anyhow::Result<Vec<String>> {
     let prompt = format!("Generate 3 short alternative search queries that would help answer: '{}'. Return each on a new line, no numbering.", query);
     let messages = vec![
         Message { role: MessageRole::System, content: "You generate alternative search keyword queries.".to_string(), name: None },

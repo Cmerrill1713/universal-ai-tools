@@ -1,0 +1,274 @@
+[0/1] Planning build
+Building for debugging...
+[0/3] Write swift-version--58304C5D6DBC2206.txt
+[2/11] Compiling UniversalAICompanionFeature FaceRecognitionService.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+[3/11] Compiling UniversalAICompanionFeature VisionView.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+[4/11] Compiling UniversalAICompanionFeature DashboardView.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+[5/11] Compiling UniversalAICompanionFeature FaceRecognitionAPIClient.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+[6/11] Compiling UniversalAICompanionFeature VisionService.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+[7/11] Compiling UniversalAICompanionFeature NotificationView.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[8/11] Emitting module UniversalAICompanionFeature
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+[9/11] Compiling UniversalAICompanionFeature FaceProfileManagementView.swift
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:389:1: error: extraneous '}' at top level
+387 |         }
+388 |     }
+389 | }
+    | `- error: extraneous '}' at top level
+390 | 
+391 | // MARK: - Profile Detail View
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:177:28: warning: value 'contactInfo' was defined but never used; consider replacing with boolean test
+175 |                         .foregroundStyle(.secondary)
+176 |                     
+177 |                     if let contactInfo = profile.contactInfo {
+    |                            `- warning: value 'contactInfo' was defined but never used; consider replacing with boolean test
+178 |                         HStack(spacing: 4) {
+179 |                             Image(systemName: "person.crop.circle")
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:308:37: error: main actor-isolated property 'profileImages' can not be referenced from a nonisolated context
+223 |     @State private var name = ""
+224 |     @State private var selectedPhotos: [PhotosPickerItem] = []
+225 |     @State private var profileImages: [PlatformImage] = []
+    |                        `- note: property declared here
+226 |     @State private var isProcessing = false
+227 |     
+    :
+306 |                                 .foregroundStyle(.blue)
+307 |                             
+308 |                             Text("\(profileImages.count) of 5 selected")
+    |                                     `- error: main actor-isolated property 'profileImages' can not be referenced from a nonisolated context
+309 |                                 .font(.caption)
+310 |                                 .foregroundStyle(.secondary)
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:321:31: error: cannot find 'profileImages' in scope
+319 |         ScrollView(.horizontal, showsIndicators: false) {
+320 |             HStack(spacing: 12) {
+321 |                 ForEach(Array(profileImages.enumerated()), id: \.offset) { index, image in
+    |                               `- error: cannot find 'profileImages' in scope
+322 |                     Image(uiImage: image)
+323 |                         .resizable()
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:321:25: error: cannot convert value of type 'Array<Element>' to expected argument type 'Binding<C>'
+319 |         ScrollView(.horizontal, showsIndicators: false) {
+320 |             HStack(spacing: 12) {
+321 |                 ForEach(Array(profileImages.enumerated()), id: \.offset) { index, image in
+    |                         `- error: cannot convert value of type 'Array<Element>' to expected argument type 'Binding<C>'
+322 |                     Image(uiImage: image)
+323 |                         .resizable()
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:321:76: error: contextual closure type '(Binding<C.Element>) -> Content' expects 1 argument, but 2 were used in closure body
+319 |         ScrollView(.horizontal, showsIndicators: false) {
+320 |             HStack(spacing: 12) {
+321 |                 ForEach(Array(profileImages.enumerated()), id: \.offset) { index, image in
+    |                                                                            `- error: contextual closure type '(Binding<C.Element>) -> Content' expects 1 argument, but 2 were used in closure body
+322 |                     Image(uiImage: image)
+323 |                         .resizable()
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:321:17: error: generic parameter 'C' could not be inferred
+319 |         ScrollView(.horizontal, showsIndicators: false) {
+320 |             HStack(spacing: 12) {
+321 |                 ForEach(Array(profileImages.enumerated()), id: \.offset) { index, image in
+    |                 `- error: generic parameter 'C' could not be inferred
+322 |                     Image(uiImage: image)
+323 |                         .resizable()
+
+SwiftUICore.ForEach.init:2:8: note: in call to initializer
+1 | generic struct ForEach {
+2 | public init<C>(_ data: Binding<C>, id: KeyPath<C.Element, ID>, @ViewBuilder content: @escaping (Binding<C.Element>) -> Content) where Data == LazyMapSequence<C.Indices, (C.Index, ID)>, C : MutableCollection, C : RandomAccessCollection, C.Index : Hashable}
+  |        `- note: in call to initializer
+3 | 
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:321:64: error: cannot infer key path type from context; consider explicitly specifying a root type
+319 |         ScrollView(.horizontal, showsIndicators: false) {
+320 |             HStack(spacing: 12) {
+321 |                 ForEach(Array(profileImages.enumerated()), id: \.offset) { index, image in
+    |                                                                `- error: cannot infer key path type from context; consider explicitly specifying a root type
+322 |                     Image(uiImage: image)
+323 |                         .resizable()
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:322:26: error: extraneous argument label 'uiImage:' in call
+320 |             HStack(spacing: 12) {
+321 |                 ForEach(Array(profileImages.enumerated()), id: \.offset) { index, image in
+322 |                     Image(uiImage: image)
+    |                          `- error: extraneous argument label 'uiImage:' in call
+323 |                         .resizable()
+324 |                         .aspectRatio(contentMode: .fill)
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:341:23: error: cannot find 'name' in scope
+339 |             }
+340 |             .buttonStyle(.borderedProminent)
+341 |             .disabled(name.isEmpty || profileImages.isEmpty || isProcessing)
+    |                       `- error: cannot find 'name' in scope
+342 |             
+343 |             if isProcessing {
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:341:39: error: cannot find 'profileImages' in scope
+339 |             }
+340 |             .buttonStyle(.borderedProminent)
+341 |             .disabled(name.isEmpty || profileImages.isEmpty || isProcessing)
+    |                                       `- error: cannot find 'profileImages' in scope
+342 |             
+343 |             if isProcessing {
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:341:64: error: cannot find 'isProcessing' in scope
+339 |             }
+340 |             .buttonStyle(.borderedProminent)
+341 |             .disabled(name.isEmpty || profileImages.isEmpty || isProcessing)
+    |                                                                `- error: cannot find 'isProcessing' in scope
+342 |             
+343 |             if isProcessing {
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:343:16: error: cannot find 'isProcessing' in scope
+341 |             .disabled(name.isEmpty || profileImages.isEmpty || isProcessing)
+342 |             
+343 |             if isProcessing {
+    |                `- error: cannot find 'isProcessing' in scope
+344 |                 HStack(spacing: 8) {
+345 |                     ProgressView()
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:356:9: error: cannot find 'profileImages' in scope
+354 |     
+355 |     private func loadSelectedPhotos(_ items: [PhotosPickerItem]) async {
+356 |         profileImages.removeAll()
+    |         `- error: cannot find 'profileImages' in scope
+357 |         
+358 |         for item in items {
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:362:21: error: cannot find 'profileImages' in scope
+360 |                let image = PlatformImage(data: data) {
+361 |                 await MainActor.run {
+362 |                     profileImages.append(image)
+    |                     `- error: cannot find 'profileImages' in scope
+363 |                 }
+364 |             }
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:369:16: error: cannot find 'name' in scope
+367 |     
+368 |     private func addProfile() async {
+369 |         guard !name.isEmpty && !profileImages.isEmpty else { return }
+    |                `- error: cannot find 'name' in scope
+370 |         
+371 |         isProcessing = true
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:369:33: error: cannot find 'profileImages' in scope
+367 |     
+368 |     private func addProfile() async {
+369 |         guard !name.isEmpty && !profileImages.isEmpty else { return }
+    |                                 `- error: cannot find 'profileImages' in scope
+370 |         
+371 |         isProcessing = true
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:371:9: error: cannot find 'isProcessing' in scope
+369 |         guard !name.isEmpty && !profileImages.isEmpty else { return }
+370 |         
+371 |         isProcessing = true
+    |         `- error: cannot find 'isProcessing' in scope
+372 |         defer { isProcessing = false }
+373 |         
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:372:17: error: cannot find 'isProcessing' in scope
+370 |         
+371 |         isProcessing = true
+372 |         defer { isProcessing = false }
+    |                 `- error: cannot find 'isProcessing' in scope
+373 |         
+374 |         do {
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:375:23: error: cannot find 'faceService' in scope
+373 |         
+374 |         do {
+375 |             try await faceService.addFaceProfile(
+    |                       `- error: cannot find 'faceService' in scope
+376 |                 name: name,
+377 |                 photos: profileImages,
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:376:23: error: cannot find 'name' in scope
+374 |         do {
+375 |             try await faceService.addFaceProfile(
+376 |                 name: name,
+    |                       `- error: cannot find 'name' in scope
+377 |                 photos: profileImages,
+378 |                 contactInfo: nil
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:377:25: error: cannot find 'profileImages' in scope
+375 |             try await faceService.addFaceProfile(
+376 |                 name: name,
+377 |                 photos: profileImages,
+    |                         `- error: cannot find 'profileImages' in scope
+378 |                 contactInfo: nil
+379 |             )
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:378:30: error: 'nil' requires a contextual type
+376 |                 name: name,
+377 |                 photos: profileImages,
+378 |                 contactInfo: nil
+    |                              `- error: 'nil' requires a contextual type
+379 |             )
+380 |             
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:382:17: error: cannot find 'dismiss' in scope
+380 |             
+381 |             await MainActor.run {
+382 |                 dismiss()
+    |                 `- error: cannot find 'dismiss' in scope
+383 |             }
+384 |         } catch {
+
+/Users/christianmerrill/Desktop/universal-ai-tools/UniversalAICompanionPackage/Sources/UniversalAICompanionFeature/FaceProfileManagementView.swift:385:13: error: cannot find 'faceService' in scope
+383 |             }
+384 |         } catch {
+385 |             faceService.currentError = error as? FaceRecognitionError ?? 
+    |             `- error: cannot find 'faceService' in scope
+386 |                 FaceRecognitionError.trainingFailed(error.localizedDescription)
+387 |         }
+error: fatalError

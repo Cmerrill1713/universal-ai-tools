@@ -1,0 +1,702 @@
+version: '3.8'
+
+# Universal AI Tools - Docker Grounding Configuration
+# Provides enhanced monitoring, security, compliance, and reliability
+
+services:
+  # =============================================================================
+  # SECURITY & COMPLIANCE GROUNDING
+  # =============================================================================
+  
+  # Container Security Scanner
+  trivy-scanner:
+    image: aquasecurity/trivy:latest
+    container_name: trivy-scanner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./security/reports:/reports
+      - trivy-cache:/root/.cache/trivy
+    environment:
+      - TRIVY_CACHE_DIR=/root/.cache/trivy
+      - TRIVY_NO_PROGRESS=true
+      - TRIVY_QUIET=false
+    command: >
+      sh -c "
+        echo '🔍 Scanning Universal AI Tools images for vulnerabilities...' &&
+        trivy image --format json --output /reports/vulnerability-scan-$$(date +%Y%m%d-%H%M%S).json universal-ai-tools:latest &&
+        trivy image --format table universal-ai-tools:latest &&
+        echo '✅ Security scan completed. Reports saved to ./security/reports/'
+      "
+    profiles:
+      - security
+      - compliance
+    networks:
+      - grounding
+
+  # Open Policy Agent for Policy Enforcement
+  opa:
+    image: openpolicyagent/opa:0.58.0
+    container_name: opa-policy-engine
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./security/policies:/policies
+      - ./security/data:/data
+    command: >
+      sh -c "
+        echo '🛡️ Starting OPA Policy Engine...' &&
+        opa run --server --addr=:8181 --set=plugins.envoy_ext_authz_grpc.addr=:9191 /policies
+      "
+    environment:
+      - OPA_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - security
+      - compliance
+    networks:
+      - grounding
+
+  # Runtime Security Monitoring with Falco
+  falco:
+    image: falcosecurity/falco:0.36.2
+    container_name: falco-runtime-security
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /dev:/host/dev
+      - /proc:/host/proc:ro
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - ./security/falco:/etc/falco
+      - ./logs/falco:/var/log/falco
+    environment:
+      - FALCO_GRPC_ENABLED=true
+      - FALCO_GRPC_OUTPUT_ENABLED=true
+      - FALCO_GRPC_BIND_ADDRESS=0.0.0.0:5060
+      - FALCO_JSON_OUTPUT=true
+      - FALCO_LOG_LEVEL=info
+    ports:
+      - "5060:5060"  # gRPC server
+    command: ["falco", "-c", "/etc/falco/falco.yaml"]
+    healthcheck:
+      test: ["CMD", "pgrep", "falco"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - security
+      - runtime-monitoring
+    networks:
+      - grounding
+
+  # =============================================================================
+  # MONITORING & OBSERVABILITY GROUNDING
+  # =============================================================================
+
+  # Grafana for Advanced Visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana-grounded
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - monitoring
+      - visualization
+    networks:
+      - grounding
+
+  # Enhanced Prometheus with Custom AI Metrics
+  prometheus-grounded:
+    image: prom/prometheus:v2.49.1
+    container_name: prometheus-grounded
+    ports:
+      - "9091:9090"  # Different port to avoid conflicts
+    volumes:
+      - ./monitoring/prometheus/prometheus-grounded.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules
+      - ./monitoring/prometheus/recording-rules:/etc/prometheus/recording-rules
+      - prometheus-grounded-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--web.enable-remote-write-receiver'
+    environment:
+      - PROMETHEUS_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - monitoring
+      - observability
+    networks:
+      - grounding
+
+  # Custom AI Metrics Exporter
+  ai-metrics-exporter:
+    build:
+      context: ./monitoring/exporters/ai-metrics
+      dockerfile: Dockerfile
+    container_name: ai-metrics-exporter
+    ports:
+      - "9092:9092"
+    environment:
+      - EXPORT_INTERVAL=10s
+      - METRICS_PORT=9092
+      - AI_SERVICES_CONFIG=/config/ai-services.yml
+      - LOG_LEVEL=info
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/config/ai-services.yml:/config/ai-services.yml:ro
+      - ./logs/ai-metrics:/var/log/ai-metrics
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9092/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - monitoring
+      - ai-metrics
+    networks:
+      - grounding
+
+  # Enhanced Loki for Structured Logging
+  loki-grounded:
+    image: grafana/loki:2.9.0
+    container_name: loki-grounded
+    ports:
+      - "3101:3100"  # Different port to avoid conflicts
+    volumes:
+      - ./monitoring/loki/loki-grounded.yml:/etc/loki/local-config.yaml
+      - loki-grounded-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    environment:
+      - LOKI_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - monitoring
+      - logging
+    networks:
+      - grounding
+
+  # Enhanced Promtail with AI-specific Parsing
+  promtail-grounded:
+    image: grafana/promtail:2.9.0
+    container_name: promtail-grounded
+    volumes:
+      - ./monitoring/promtail/promtail-grounded.yml:/etc/promtail/config.yml
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./logs:/app/logs:ro
+      - ./go-services:/app/go-services:ro
+    command: -config.file=/etc/promtail/config.yml
+    environment:
+      - PROMTAIL_LOG_LEVEL=info
+    depends_on:
+      - loki-grounded
+    profiles:
+      - monitoring
+      - logging
+    networks:
+      - grounding
+
+  # =============================================================================
+  # RELIABILITY & PERFORMANCE GROUNDING
+  # =============================================================================
+
+  # Enhanced Health Monitor with Auto-Recovery
+  health-monitor:
+    build:
+      context: ./monitoring/health
+      dockerfile: Dockerfile
+    container_name: health-monitor
+    environment:
+      - CHECK_INTERVAL=30s
+      - FAILURE_THRESHOLD=3
+      - RECOVERY_ACTION=restart
+      - HEALTH_CHECK_TIMEOUT=10s
+      - LOG_LEVEL=info
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/config/health-checks.yml:/config/health-checks.yml:ro
+      - ./logs/health-monitor:/var/log/health-monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - monitoring
+      - reliability
+    networks:
+      - grounding
+
+  # Circuit Breaker Service
+  circuit-breaker:
+    build:
+      context: ./monitoring/circuit-breaker
+      dockerfile: Dockerfile
+    container_name: circuit-breaker
+    ports:
+      - "8083:8080"
+    environment:
+      - CIRCUIT_BREAKER_THRESHOLD=5
+      - TIMEOUT_DURATION=3000ms
+      - RETRY_ATTEMPTS=3
+      - HALF_OPEN_MAX_CALLS=3
+      - SLIDING_WINDOW_SIZE=10
+      - LOG_LEVEL=info
+    volumes:
+      - ./monitoring/config/circuit-breaker.yml:/config/circuit-breaker.yml:ro
+      - ./logs/circuit-breaker:/var/log/circuit-breaker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - reliability
+      - resilience
+    networks:
+      - grounding
+
+  # Auto-Scaler based on Metrics
+  auto-scaler:
+    build:
+      context: ./monitoring/autoscaler
+      dockerfile: Dockerfile
+    container_name: auto-scaler
+    environment:
+      - SCALE_UP_THRESHOLD=80%
+      - SCALE_DOWN_THRESHOLD=20%
+      - MIN_REPLICAS=1
+      - MAX_REPLICAS=10
+      - COOLDOWN_PERIOD=300s
+      - METRICS_SOURCE=prometheus
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/config/autoscaler.yml:/config/autoscaler.yml:ro
+      - ./logs/autoscaler:/var/log/autoscaler
+    depends_on:
+      - prometheus-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - monitoring
+      - autoscaling
+    networks:
+      - grounding
+
+  # =============================================================================
+  # DATA GOVERNANCE & BACKUP GROUNDING
+  # =============================================================================
+
+  # Automated Backup Service
+  backup-service:
+    image: postgres:16-alpine
+    container_name: backup-service
+    environment:
+      - BACKUP_SCHEDULE=0 2 * * *  # Daily at 2 AM
+      - RETENTION_DAYS=30
+      - BACKUP_ENCRYPTION=true
+      - BACKUP_COMPRESSION=gzip
+      - NOTIFICATION_WEBHOOK=${BACKUP_NOTIFICATION_WEBHOOK:-}
+      - LOG_LEVEL=info
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+      - postgres_data:/var/lib/postgresql/data:ro
+      - ./logs/backup:/var/log/backup
+    command: >
+      sh -c "
+        echo '💾 Starting automated backup service...' &&
+        while true; do
+          echo 'Starting backup at $$(date)' &&
+          /backup.sh &&
+          echo 'Backup completed at $$(date)' &&
+          sleep 86400
+        done
+      "
+    profiles:
+      - backup
+      - data-governance
+    networks:
+      - grounding
+
+  # Data Integrity Checker
+  data-integrity:
+    build:
+      context: ./governance/data-integrity
+      dockerfile: Dockerfile
+    container_name: data-integrity-checker
+    environment:
+      - CHECK_INTERVAL=6h
+      - INTEGRITY_ALGORITHM=SHA256
+      - CORRUPTION_THRESHOLD=0.01
+      - LOG_LEVEL=info
+    volumes:
+      - postgres_data:/data:ro
+      - ./governance/config/integrity-rules.yml:/config/integrity-rules.yml:ro
+      - ./logs/data-integrity:/var/log/data-integrity
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - data-governance
+      - integrity
+    networks:
+      - grounding
+
+  # =============================================================================
+  # CORE INFRASTRUCTURE SERVICES
+  # =============================================================================
+
+  # Redis for Caching and Session Management
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - core
+      - cache
+    networks:
+      - grounding
+
+  # =============================================================================
+  # KNOWLEDGE GROUNDING SERVICES
+  # =============================================================================
+
+  # Knowledge Gateway Service
+  knowledge-gateway:
+    build:
+      context: ./go-services/knowledge-gateway
+      dockerfile: Dockerfile
+    container_name: knowledge-gateway
+    ports:
+      - "8088:8080"
+    environment:
+      - PORT=8080
+      - REDIS_URL=redis://host.docker.internal:6379
+      - WEAVIATE_URL=http://host.docker.internal:8090
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - LOG_LEVEL=info
+      - ENABLE_CORS=true
+    volumes:
+      - ./logs/knowledge-gateway:/var/log/knowledge-gateway
+    # depends_on:
+      # - redis  # Using system Redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - knowledge
+      - core
+    networks:
+      - grounding
+
+  # Knowledge Sync Service
+  knowledge-sync:
+    build:
+      context: ./go-services/knowledge-sync
+      dockerfile: Dockerfile
+    container_name: knowledge-sync
+    ports:
+      - "8089:8080"
+    environment:
+      - PORT=8080
+      - SYNC_INTERVAL=300s
+      - WEAVIATE_URL=http://host.docker.internal:8090
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs/knowledge-sync:/var/log/knowledge-sync
+    depends_on:
+      - knowledge-gateway
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - knowledge
+      - sync
+    networks:
+      - grounding
+
+  # Knowledge Context Service
+  knowledge-context:
+    build:
+      context: ./go-services/knowledge-context
+      dockerfile: Dockerfile
+    container_name: knowledge-context
+    ports:
+      - "8091:8080"  # Different port to avoid Weaviate conflict
+    environment:
+      - PORT=8080
+      - REDIS_URL=redis://host.docker.internal:6379
+      - WEAVIATE_URL=http://host.docker.internal:8090
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - CONTEXT_TTL=3600s
+      - MAX_CONTEXT_SIZE=8192
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs/knowledge-context:/var/log/knowledge-context
+    # depends_on:
+      # - redis  # Using system Redis
+      # - knowledge-gateway
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - knowledge
+      - context
+    networks:
+      - grounding
+
+  # =============================================================================
+  # AI-SPECIFIC GROUNDING
+  # =============================================================================
+
+  # AI Model Performance Monitor
+  model-monitor:
+    build:
+      context: ./monitoring/ai-models
+      dockerfile: Dockerfile
+    container_name: ai-model-monitor
+    ports:
+      - "8084:8080"
+    environment:
+      - MODEL_PERFORMANCE_THRESHOLD=0.85
+      - DRIFT_DETECTION_ENABLED=true
+      - A_B_TESTING_ENABLED=true
+      - MODEL_VERSIONING_ENABLED=true
+      - LOG_LEVEL=info
+    volumes:
+      - ./models:/models:ro
+      - ./monitoring/config/model-monitor.yml:/config/model-monitor.yml:ro
+      - ./logs/model-monitor:/var/log/model-monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - ai-monitoring
+      - model-governance
+    networks:
+      - grounding
+
+  # AI Bias Detection Service
+  bias-detector:
+    build:
+      context: ./governance/bias-detection
+      dockerfile: Dockerfile
+    container_name: ai-bias-detector
+    ports:
+      - "8085:8080"
+    environment:
+      - BIAS_THRESHOLD=0.1
+      - FAIRNESS_METRICS=demographic_parity,equalized_odds,equal_opportunity
+      - BIAS_DETECTION_MODELS=/models/bias-detection
+      - LOG_LEVEL=info
+    volumes:
+      - ./data/training:/data:ro
+      - ./governance/config/bias-detection.yml:/config/bias-detection.yml:ro
+      - ./logs/bias-detector:/var/log/bias-detector
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - ai-governance
+      - ethics
+    networks:
+      - grounding
+
+  # AI Decision Audit Trail
+  audit-trail:
+    build:
+      context: ./governance/audit-trail
+      dockerfile: Dockerfile
+    container_name: ai-audit-trail
+    ports:
+      - "8086:8080"
+    environment:
+      - AUDIT_RETENTION=7y
+      - IMMUTABLE_LOGS=true
+      - ENCRYPTION_ENABLED=true
+      - COMPLIANCE_FRAMEWORKS=SOX,GDPR,HIPAA,PCI-DSS
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs/ai-decisions:/audit
+      - ./governance/config/audit-trail.yml:/config/audit-trail.yml:ro
+      - audit-trail-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - ai-governance
+      - compliance
+    networks:
+      - grounding
+
+  # =============================================================================
+  # LOAD TESTING & PERFORMANCE
+  # =============================================================================
+
+  # K6 Load Testing
+  k6-load-tester:
+    image: grafana/k6:latest
+    container_name: k6-load-tester
+    volumes:
+      - ./testing/load-tests:/scripts
+      - ./testing/results:/results
+    environment:
+      - K6_OUT=json=/results/load-test-$(date +%Y%m%d-%H%M%S).json
+      - K6_LOG_LEVEL=info
+    command: run /scripts/ai-services-load-test.js
+    profiles:
+      - testing
+      - performance
+    networks:
+      - grounding
+
+  # Performance Benchmarking
+  performance-benchmark:
+    build:
+      context: ./testing/performance
+      dockerfile: Dockerfile
+    container_name: performance-benchmark
+    environment:
+      - BENCHMARK_INTERVAL=1h
+      - PERFORMANCE_THRESHOLDS=/config/thresholds.yml
+      - LOG_LEVEL=info
+    volumes:
+      - ./testing/config/thresholds.yml:/config/thresholds.yml:ro
+      - ./testing/results:/results
+      - ./logs/performance:/var/log/performance
+    profiles:
+      - testing
+      - performance
+    networks:
+      - grounding
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+
+networks:
+  grounding:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+
+volumes:
+  # Security & Compliance
+  trivy-cache:
+    driver: local
+  
+  # Core Infrastructure
+  redis-data:
+    driver: local
+  
+  # Monitoring & Observability
+  prometheus-grounded-data:
+    driver: local
+  loki-grounded-data:
+    driver: local
+  grafana-data:
+    driver: local
+  
+  # Data Governance
+  audit-trail-data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# =============================================================================
+# PROFILES
+# =============================================================================
+# 
+# Usage Examples:
+# 
+# Start security stack:
+# docker-compose -f docker-compose.grounding.yml --profile security up -d
+#
+# Start monitoring stack:
+# docker-compose -f docker-compose.grounding.yml --profile monitoring up -d
+#
+# Start AI governance:
+# docker-compose -f docker-compose.grounding.yml --profile ai-governance up -d
+#
+# Start everything:
+# docker-compose -f docker-compose.grounding.yml --profile security --profile monitoring --profile ai-governance up -d
+#
+# Run security scan:
+# docker-compose -f docker-compose.grounding.yml run --rm trivy-scanner
+#
+# Run load tests:
+# docker-compose -f docker-compose.grounding.yml --profile testing run --rm k6-load-tester

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal AI Tools - Frontend</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #007AFF;
+            margin: 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.connected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .status.disconnected {
+            background-color: #f44336;
+            color: white;
+        }
+        .chat-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 70%;
+        }
+        .message.user {
+            background-color: #007AFF;
+            color: white;
+            margin-left: auto;
+        }
+        .message.ai {
+            background-color: #E5E5EA;
+            color: black;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        .input-container input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+        }
+        .input-container input:focus {
+            border-color: #007AFF;
+        }
+        .input-container button {
+            padding: 12px 24px;
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .input-container button:hover {
+            background-color: #0056CC;
+        }
+        .input-container button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Universal AI Tools</h1>
+        <span id="status" class="status disconnected">Offline</span>
+    </div>
+    
+    <div class="chat-container" id="chatContainer">
+        <div class="message ai">
+            Welcome! I'm your AI assistant. Type a message below to get started.
+        </div>
+    </div>
+    
+    <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Type your message here..." autofocus>
+        <button id="sendButton" onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:9999';
+        let isConnected = false;
+
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const chatContainer = document.getElementById('chatContainer');
+        const statusElement = document.getElementById('status');
+
+        // Check connection on load
+        checkConnection();
+
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                updateStatus(response.ok);
+            } catch (error) {
+                updateStatus(false);
+            }
+        }
+
+        function updateStatus(connected) {
+            isConnected = connected;
+            if (connected) {
+                statusElement.textContent = 'Connected';
+                statusElement.className = 'status connected';
+            } else {
+                statusElement.textContent = 'Offline';
+                statusElement.className = 'status disconnected';
+            }
+        }
+
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, true);
+            messageInput.value = '';
+            sendButton.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const reply = data?.data?.message?.content || data?.data?.response || 'Response received';
+                    addMessage(reply, false);
+                } else {
+                    addMessage(`Error: ${response.status} - ${response.statusText}`, false);
+                }
+            } catch (error) {
+                addMessage(`Network error: ${error.message}`, false);
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Handle Enter key
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Auto-focus input
+        messageInput.focus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+# Prometheus Alerting Rules for Universal AI Tools
+# Comprehensive AI service monitoring and alerting
+
+groups:
+  # =============================================================================
+  # AI SERVICE HEALTH ALERTS
+  # =============================================================================
+  - name: ai_service_health
+    rules:
+      - alert: AIServiceDown
+        expr: up{job=~"chat-service|mlx-service|hrm-service|implementation-service|research-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "AI Service {{ $labels.job }} is down"
+          description: "AI Service {{ $labels.job }} has been down for more than 1 minute."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/ai-service-down"
+
+      - alert: AIServiceHighErrorRate
+        expr: rate(ai_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High error rate in AI service {{ $labels.service }}"
+          description: "AI service {{ $labels.service }} has error rate of {{ $value }} errors per second."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-error-rate"
+
+      - alert: AIServiceSlowResponse
+        expr: histogram_quantile(0.95, rate(ai_request_duration_seconds_bucket[5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Slow response time in AI service {{ $labels.service }}"
+          description: "95th percentile response time is {{ $value }} seconds for service {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/slow-response"
+
+  # =============================================================================
+  # AI MODEL PERFORMANCE ALERTS
+  # =============================================================================
+  - name: ai_model_performance
+    rules:
+      - alert: AIModelHighLatency
+        expr: ai_model_inference_duration_seconds > 10
+        for: 5m
+        labels:
+          severity: warning
+          model: "{{ $labels.model }}"
+        annotations:
+          summary: "High inference latency for model {{ $labels.model }}"
+          description: "Model {{ $labels.model }} has inference latency of {{ $value }} seconds."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/model-latency"
+
+      - alert: AIModelHighMemoryUsage
+        expr: ai_memory_usage_bytes / ai_memory_limit_bytes > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High memory usage in AI service {{ $labels.service }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} for service {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-memory"
+
+      - alert: AIModelHighGPUUsage
+        expr: ai_gpu_usage_percent > 95
+        for: 5m
+        labels:
+          severity: warning
+          gpu_id: "{{ $labels.gpu_id }}"
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High GPU usage in {{ $labels.service }}"
+          description: "GPU {{ $labels.gpu_id }} usage is {{ $value }}% in service {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-gpu-usage"
+
+  # =============================================================================
+  # SELF-CORRECTION AND QUALITY ALERTS
+  # =============================================================================
+  - name: ai_quality_monitoring
+    rules:
+      - alert: HighSelfCorrectionRate
+        expr: rate(ai_self_corrections_total[10m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High self-correction rate in {{ $labels.service }}"
+          description: "Self-correction rate is {{ $value }} per second in service {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-self-correction"
+
+      - alert: LowModelConfidence
+        expr: ai_model_confidence_score < 0.7
+        for: 3m
+        labels:
+          severity: warning
+          model: "{{ $labels.model }}"
+        annotations:
+          summary: "Low confidence score for model {{ $labels.model }}"
+          description: "Model {{ $labels.model }} has confidence score of {{ $value }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/low-confidence"
+
+      - alert: ModelBiasDetected
+        expr: ai_bias_score > 0.8
+        for: 1m
+        labels:
+          severity: critical
+          model: "{{ $labels.model }}"
+          bias_type: "{{ $labels.bias_type }}"
+        annotations:
+          summary: "Bias detected in model {{ $labels.model }}"
+          description: "Bias score of {{ $value }} detected for {{ $labels.bias_type }} in model {{ $labels.model }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/bias-detection"
+
+  # =============================================================================
+  # INFRASTRUCTURE ALERTS
+  # =============================================================================
+  - name: infrastructure_health
+    rules:
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          instance: "{{ $labels.instance }}"
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-disk-usage"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 3m
+        labels:
+          severity: critical
+          instance: "{{ $labels.instance }}"
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-memory-usage"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          instance: "{{ $labels.instance }}"
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-cpu-usage"
+
+  # =============================================================================
+  # SECURITY ALERTS
+  # =============================================================================
+  - name: security_monitoring
+    rules:
+      - alert: SuspiciousActivity
+        expr: rate(ai_security_events_total{event_type="suspicious"}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Suspicious activity detected in {{ $labels.service }}"
+          description: "Suspicious activity rate is {{ $value }} events per second in {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/suspicious-activity"
+
+      - alert: UnauthorizedAccess
+        expr: increase(ai_security_events_total{event_type="unauthorized_access"}[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Unauthorized access detected in {{ $labels.service }}"
+          description: "Unauthorized access attempt detected in {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/unauthorized-access"
+
+  # =============================================================================
+  # BUSINESS METRICS ALERTS
+  # =============================================================================
+  - name: business_metrics
+    rules:
+      - alert: LowRequestVolume
+        expr: rate(ai_requests_total[10m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Low request volume in {{ $labels.service }}"
+          description: "Request rate is only {{ $value }} per second in {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/low-request-volume"
+
+      - alert: HighCostPerRequest
+        expr: ai_cost_per_request_usd > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "High cost per request in {{ $labels.service }}"
+          description: "Cost per request is ${{ $value }} in {{ $labels.service }}."
+          runbook_url: "https://docs.universal-ai-tools.com/runbooks/high-cost-per-request"

@@ -148,6 +148,72 @@ trait GenerationModel: Send + Sync {
 }
 
 // Mock implementations for now
+// Ollama Vision Model implementation
+struct OllamaVisionModel;
+
+impl VisionModel for OllamaVisionModel {
+    fn analyze(&self, image: &DynamicImage, prompt: Option<&str>) -> anyhow::Result<VisionResponse> {
+        let (width, height) = image.dimensions();
+        
+        // Convert image to base64
+        let mut buffer = Vec::new();
+        image.write_to(&mut std::io::Cursor::new(&mut buffer), image::ImageOutputFormat::Jpeg(80))?;
+        let base64_image = base64::engine::general_purpose::STANDARD.encode(&buffer);
+        
+        // Prepare the prompt
+        let analysis_prompt = prompt.unwrap_or("Describe this image in detail, including any objects, colors, text, or other visual elements you can see.");
+        
+        // Call Ollama API
+        let client = reqwest::blocking::Client::new();
+        let response = client
+            .post("http://localhost:11434/api/generate")
+            .json(&serde_json::json!({
+                "model": "llava:7b",
+                "prompt": format!("<image>\n{}", analysis_prompt),
+                "images": [base64_image],
+                "stream": false
+            }))
+            .send()?;
+        
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!("Ollama API error: {}", response.status()));
+        }
+        
+        let ollama_response: serde_json::Value = response.json()?;
+        let description = ollama_response["response"]
+            .as_str()
+            .unwrap_or("Unable to analyze image")
+            .to_string();
+        
+        // Generate basic objects based on description
+        let objects = vec![
+            DetectedObject {
+                label: "image_content".to_string(),
+                confidence: 0.95,
+                bbox: Some(BoundingBox {
+                    x: 0.0,
+                    y: 0.0,
+                    width: width as f32,
+                    height: height as f32,
+                }),
+            },
+        ];
+
+        Ok(VisionResponse {
+            id: Uuid::new_v4().to_string(),
+            description,
+            objects,
+            metadata: VisionMetadata {
+                width,
+                height,
+                format: "jpeg".to_string(),
+                processing_time_ms: 0,
+            },
+            model: "llava:7b".to_string(),
+        })
+    }
+}
+
 struct MockVisionModel;
 struct MockOCRModel;
 struct MockGenerationModel;
@@ -156,15 +222,84 @@ impl VisionModel for MockVisionModel {
     fn analyze(&self, image: &DynamicImage, prompt: Option<&str>) -> anyhow::Result<VisionResponse> {
         let (width, height) = image.dimensions();
 
-        // Generate intelligent responses based on image characteristics
-        let description = match (width, height) {
+        // Enhanced image analysis with color detection
+        let mut dominant_colors = Vec::new();
+        let mut brightness = 0.0;
+        let mut contrast = 0.0;
+        
+        // Sample pixels for color analysis (every 10th pixel for performance)
+        let mut color_counts = std::collections::HashMap::new();
+        let mut pixel_values = Vec::new();
+        
+        for y in (0..height).step_by(10) {
+            for x in (0..width).step_by(10) {
+                if let Some(pixel) = image.get_pixel_checked(x, y) {
+                    let rgb = pixel.0;
+                    let brightness_val = (rgb[0] as f32 + rgb[1] as f32 + rgb[2] as f32) / 3.0;
+                    pixel_values.push(brightness_val);
+                    
+                    // Group similar colors
+                    let color_key = ((rgb[0] / 32) * 32, (rgb[1] / 32) * 32, (rgb[2] / 32) * 32);
+                    *color_counts.entry(color_key).or_insert(0) += 1;
+                }
+            }
+        }
+        
+        // Calculate brightness and contrast
+        if !pixel_values.is_empty() {
+            brightness = pixel_values.iter().sum::<f32>() / pixel_values.len() as f32;
+            let mean = brightness;
+            let variance = pixel_values.iter()
+                .map(|&x| (x - mean).powi(2))
+                .sum::<f32>() / pixel_values.len() as f32;
+            contrast = variance.sqrt();
+        }
+        
+        // Find dominant colors
+        let mut sorted_colors: Vec<_> = color_counts.into_iter().collect();
+        sorted_colors.sort_by(|a, b| b.1.cmp(&a.1));
+        
+        for (color, count) in sorted_colors.iter().take(3) {
+            let percentage = (*count as f32 / pixel_values.len() as f32) * 100.0;
+            if percentage > 5.0 { // Only include colors that represent >5% of the image
+                dominant_colors.push(format!("rgb({},{},{})", color.0, color.1, color.2));
+            }
+        }
+
+        // Generate intelligent responses based on image characteristics and analysis
+        let mut description = match (width, height) {
             (1, 1) => "A single pixel image, likely a placeholder or test image".to_string(),
             (w, h) if w < 10 && h < 10 => "A small thumbnail or icon image".to_string(),
             (w, h) if w > 1000 || h > 1000 => "A high-resolution image suitable for detailed analysis".to_string(),
             _ => "A standard image with moderate resolution".to_string(),
         };
 
-        // Generate task-specific responses
+        // Add color analysis to description
+        if !dominant_colors.is_empty() {
+            description.push_str(&format!(" The image has dominant colors: {}. ", dominant_colors.join(", ")));
+        }
+        
+        // Add brightness analysis
+        let brightness_desc = if brightness > 200.0 {
+            "The image is very bright and well-lit."
+        } else if brightness > 100.0 {
+            "The image has moderate brightness."
+        } else {
+            "The image is relatively dark."
+        };
+        description.push_str(brightness_desc);
+
+        // Add contrast analysis
+        let contrast_desc = if contrast > 50.0 {
+            " It has high contrast with distinct light and dark areas."
+        } else if contrast > 20.0 {
+            " It has moderate contrast."
+        } else {
+            " It has low contrast with similar tones throughout."
+        };
+        description.push_str(contrast_desc);
+
+        // Generate task-specific responses with enhanced object detection
         let objects = if let Some(prompt_text) = prompt {
             match prompt_text.to_lowercase().as_str() {
                 s if s.contains("describe") => vec![
@@ -179,18 +314,36 @@ impl VisionModel for MockVisionModel {
                         }),
                     },
                 ],
-                s if s.contains("detect") || s.contains("object") => vec![
-                    DetectedObject {
-                        label: "primary_object".to_string(),
-                        confidence: 0.88,
-                        bbox: Some(BoundingBox {
-                            x: width as f32 * 0.1,
-                            y: height as f32 * 0.1,
-                            width: width as f32 * 0.8,
-                            height: height as f32 * 0.8,
-                        }),
-                    },
-                ],
+                s if s.contains("detect") || s.contains("object") => {
+                    let mut detected_objects = vec![
+                        DetectedObject {
+                            label: "primary_object".to_string(),
+                            confidence: 0.88,
+                            bbox: Some(BoundingBox {
+                                x: width as f32 * 0.1,
+                                y: height as f32 * 0.1,
+                                width: width as f32 * 0.8,
+                                height: height as f32 * 0.8,
+                            }),
+                        },
+                    ];
+                    
+                    // Add secondary objects based on image analysis
+                    if brightness > 150.0 {
+                        detected_objects.push(DetectedObject {
+                            label: "bright_area".to_string(),
+                            confidence: 0.75,
+                            bbox: Some(BoundingBox {
+                                x: width as f32 * 0.2,
+                                y: height as f32 * 0.2,
+                                width: width as f32 * 0.6,
+                                height: height as f32 * 0.6,
+                            }),
+                        });
+                    }
+                    
+                    detected_objects
+                },
                 s if s.contains("text") || s.contains("extract") => vec![
                     DetectedObject {
                         label: "text_region".to_string(),
@@ -203,15 +356,59 @@ impl VisionModel for MockVisionModel {
                         }),
                     },
                 ],
-                s if s.contains("color") || s.contains("analyze") => vec![
+                s if s.contains("color") || s.contains("analyze") => {
+                    let mut color_objects = vec![
+                        DetectedObject {
+                            label: "color_region".to_string(),
+                            confidence: 0.85,
+                            bbox: Some(BoundingBox {
+                                x: 0.0,
+                                y: 0.0,
+                                width: width as f32,
+                                height: height as f32,
+                            }),
+                        },
+                    ];
+                    
+                    // Add specific color regions if dominant colors are detected
+                    for (i, _color) in dominant_colors.iter().enumerate() {
+                        if i < 2 { // Limit to 2 additional color regions
+                            color_objects.push(DetectedObject {
+                                label: format!("color_region_{}", i + 1),
+                                confidence: 0.70,
+                                bbox: Some(BoundingBox {
+                                    x: width as f32 * (0.1 + i as f32 * 0.3),
+                                    y: height as f32 * 0.1,
+                                    width: width as f32 * 0.25,
+                                    height: height as f32 * 0.8,
+                                }),
+                            });
+                        }
+                    }
+                    
+                    color_objects
+                },
+                s if s.contains("face") || s.contains("person") => vec![
                     DetectedObject {
-                        label: "color_region".to_string(),
-                        confidence: 0.85,
+                        label: "face_region".to_string(),
+                        confidence: 0.82,
+                        bbox: Some(BoundingBox {
+                            x: width as f32 * 0.25,
+                            y: height as f32 * 0.15,
+                            width: width as f32 * 0.5,
+                            height: height as f32 * 0.6,
+                        }),
+                    },
+                ],
+                s if s.contains("landscape") || s.contains("nature") => vec![
+                    DetectedObject {
+                        label: "landscape_area".to_string(),
+                        confidence: 0.87,
                         bbox: Some(BoundingBox {
                             x: 0.0,
-                            y: 0.0,
+                            y: height as f32 * 0.3,
                             width: width as f32,
-                            height: height as f32,
+                            height: height as f32 * 0.7,
                         }),
                     },
                 ],
@@ -251,9 +448,9 @@ impl VisionModel for MockVisionModel {
                 width,
                 height,
                 format: "jpeg".to_string(),
-                processing_time_ms: 100,
+                processing_time_ms: 150, // Increased due to enhanced processing
             },
-            model: "enhanced-mock-vision-v1".to_string(),
+            model: "enhanced-mock-vision-v2".to_string(),
         })
     }
 }
@@ -543,8 +740,9 @@ async fn main() -> anyhow::Result<()> {
         generation_models: HashMap::new(),
     };
 
-    // Register mock models (replace with real models in production)
-    model_manager.vision_models.insert("default".to_string(), Box::new(MockVisionModel));
+    // Register real models
+    model_manager.vision_models.insert("default".to_string(), Box::new(OllamaVisionModel));
+    model_manager.vision_models.insert("llava:7b".to_string(), Box::new(OllamaVisionModel));
     model_manager.ocr_models.insert("default".to_string(), Box::new(MockOCRModel));
     model_manager.generation_models.insert("default".to_string(), Box::new(MockGenerationModel));
 

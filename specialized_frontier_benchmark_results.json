@@ -1,0 +1,202 @@
+{
+  "timestamp": "2025-09-12T13:52:58.072234",
+  "total_time": 77.67364311218262,
+  "overall_score": 8.904761904761905,
+  "comparison": "\ud83e\udd47 EXCELLENT - Matches GPT-4/Claude-3.5 performance",
+  "mathematical_reasoning": {
+    "math_tests": [
+      {
+        "problem_id": 1,
+        "response_time": 3.2676961421966553,
+        "score": 10,
+        "answer_length": 789,
+        "expected": 16
+      },
+      {
+        "problem_id": 2,
+        "response_time": 4.181519985198975,
+        "score": 10,
+        "answer_length": 1012,
+        "expected": 17
+      },
+      {
+        "problem_id": 3,
+        "response_time": 3.163818836212158,
+        "score": 10,
+        "answer_length": 878,
+        "expected": 60
+      },
+      {
+        "problem_id": 4,
+        "response_time": 4.629644155502319,
+        "score": 10,
+        "answer_length": 1011,
+        "expected": 10
+      },
+      {
+        "problem_id": 5,
+        "response_time": 3.579928159713745,
+        "score": 3,
+        "answer_length": 932,
+        "expected": 40
+      }
+    ],
+    "average_score": 8.6
+  },
+  "coding_problems": {
+    "coding_tests": [
+      {
+        "problem_id": 1,
+        "response_time": 3.4990551471710205,
+        "score": 10,
+        "code_length": 1006,
+        "language": "python"
+      },
+      {
+        "problem_id": 2,
+        "response_time": 3.652523994445801,
+        "score": 10,
+        "code_length": 1087,
+        "language": "python"
+      },
+      {
+        "problem_id": 3,
+        "response_time": 5.134481906890869,
+        "score": 10,
+        "code_length": 1582,
+        "language": "python"
+      },
+      {
+        "problem_id": 4,
+        "response_time": 3.924730062484741,
+        "score": 10,
+        "code_length": 1229,
+        "language": "python"
+      },
+      {
+        "problem_id": 5,
+        "response_time": 5.202991008758545,
+        "score": 10,
+        "code_length": 1536,
+        "language": "python"
+      }
+    ],
+    "average_score": 10
+  },
+  "multi_step_reasoning": {
+    "reasoning_tests": [
+      {
+        "problem_id": 1,
+        "category": "logical_reasoning",
+        "response_time": 5.974969863891602,
+        "score": 10,
+        "answer_length": 1840
+      },
+      {
+        "problem_id": 2,
+        "category": "word_problem",
+        "response_time": 4.947177886962891,
+        "score": 8,
+        "answer_length": 1369
+      },
+      {
+        "problem_id": 3,
+        "category": "logical_puzzle",
+        "response_time": 4.797202110290527,
+        "score": 8,
+        "answer_length": 1558
+      },
+      {
+        "problem_id": 4,
+        "category": "pattern_recognition",
+        "response_time": 4.1994171142578125,
+        "score": 10,
+        "answer_length": 1250
+      },
+      {
+        "problem_id": 5,
+        "category": "algebraic_reasoning",
+        "response_time": 3.478502035140991,
+        "score": 6,
+        "answer_length": 790
+      }
+    ],
+    "average_score": 8.4
+  },
+  "knowledge_retrieval": {
+    "knowledge_tests": [
+      {
+        "question_id": 1,
+        "category": "geography",
+        "response_time": 2.490286111831665,
+        "score": 10,
+        "answer_length": 820,
+        "expected": "Paris"
+      },
+      {
+        "question_id": 2,
+        "category": "literature",
+        "response_time": 0.8278729915618896,
+        "score": 10,
+        "answer_length": 218,
+        "expected": "Harper Lee"
+      },
+      {
+        "question_id": 3,
+        "category": "science",
+        "response_time": 2.949230909347534,
+        "score": 10,
+        "answer_length": 913,
+        "expected": "Au"
+      },
+      {
+        "question_id": 4,
+        "category": "history",
+        "response_time": 1.3496320247650146,
+        "score": 10,
+        "answer_length": 365,
+        "expected": "1945"
+      },
+      {
+        "question_id": 5,
+        "category": "astronomy",
+        "response_time": 4.100205898284912,
+        "score": 2,
+        "answer_length": 1238,
+        "expected": "Jupiter"
+      },
+      {
+        "question_id": 6,
+        "category": "art",
+        "response_time": 2.3199000358581543,
+        "score": 10,
+        "answer_length": 743,
+        "expected": "Leonardo da Vinci"
+      }
+    ],
+    "average_score": 8.666666666666666
+  },
+  "all_scores": [
+    10,
+    10,
+    10,
+    10,
+    3,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    8,
+    8,
+    10,
+    6,
+    10,
+    10,
+    10,
+    10,
+    2,
+    10
+  ]
+}

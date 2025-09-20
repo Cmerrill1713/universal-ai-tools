@@ -2,14 +2,14 @@
 
 use crate::config::RouterConfig;
 use crate::models::{Message, Response, Usage, GenerationOptions};
-use crate::providers::{Provider, OllamaProvider, MLXProvider, FastVLMProvider, ProviderConfig, ProviderType};
+use crate::providers::{Provider, OllamaProvider, MLXProvider, LMStudioProvider, FastVLMProvider, ProviderConfig, ProviderType};
 use crate::token_manager::{TokenBudgetManager, UserTier, TokenUsage, detect_task_complexity};
 use crate::context_manager::{ContextManager, TruncationStrategy};
 use crate::librarian_context::LibrarianStrategy;
 use crate::unlimited_context::UnlimitedContextManager;
 use crate::RouterError;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -87,6 +87,29 @@ impl LLMRouter {
             println!("HRM-MLX provider initialized successfully");
         } else {
             println!("HRM-MLX provider not available, skipping...");
+        }
+
+        // Initialize LM Studio provider if available
+        println!("Checking LM Studio provider availability...");
+        if let Ok(_) = reqwest::Client::new()
+            .get("http://localhost:1234/v1/models")
+            .timeout(std::time::Duration::from_secs(2))
+            .send()
+            .await
+        {
+            println!("LM Studio provider is available, initializing...");
+            let lm_studio_config = ProviderConfig {
+                provider_type: ProviderType::LMStudio,
+                api_key: None,
+                base_url: "http://localhost:1234".to_string(),
+                timeout: std::time::Duration::from_secs(60),
+                models: vec!["qwen/qwen3-30b-a3b-2507".to_string(), "text-embedding-nomic-embed-text-v1.5".to_string()],
+            };
+            let lm_studio_provider = LMStudioProvider::new(lm_studio_config);
+            router.add_provider("lm_studio".to_string(), Arc::new(lm_studio_provider));
+            println!("LM Studio provider initialized successfully");
+        } else {
+            println!("LM Studio provider not available, skipping...");
         }
 
         // Initialize FastVLM provider if available

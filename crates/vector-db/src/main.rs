@@ -370,6 +370,76 @@ async fn add_vector(
     })))
 }
 
+async fn store_document(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    // Extract text and metadata from request
+    let text = request.get("text")
+        .and_then(|v| v.as_str())
+        .ok_or(StatusCode::BAD_REQUEST)?;
+    
+    let metadata = request.get("metadata")
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect::<HashMap<String, serde_json::Value>>()
+        })
+        .unwrap_or_default();
+    
+    // Use default collection or create one
+    let collection_id = "default".to_string();
+    
+    // Check if collection exists, create if not
+    if !state.collections.contains_key(&collection_id) {
+        let dimension = 384; // Default embedding dimension
+        let index: Box<dyn VectorIndex> = Box::new(HNSWIndex::new(384, DistanceMetric::Cosine));
+    let index = Arc::new(RwLock::new(index));
+        
+        state.collections.insert(collection_id.clone(), index);
+        state.collection_info.insert(collection_id.clone(), Collection {
+            id: collection_id.clone(),
+            name: "Default Collection".to_string(),
+            dimension,
+            metric: DistanceMetric::Cosine,
+            size: 0,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        });
+    }
+    
+    // Generate embedding (simplified - in real implementation, use actual embedding service)
+    let embedding = vec![0.1; 384]; // Placeholder embedding
+    
+    // Create vector
+    let vector_id = Uuid::new_v4().to_string();
+    let vector = Vector {
+        id: vector_id.clone(),
+        vector: embedding,
+        metadata,
+        timestamp: Utc::now(),
+    };
+    
+    // Add to collection
+    let index = state.collections.get(&collection_id).unwrap();
+    let mut index = index.write();
+    index.add(vector.id.clone(), vector.vector, vector.metadata);
+    
+    // Update collection info
+    if let Some(mut info) = state.collection_info.get_mut(&collection_id) {
+        info.size = index.size();
+        info.updated_at = Utc::now();
+    }
+    
+    Ok(Json(serde_json::json!({
+        "id": vector_id,
+        "success": true,
+        "collection_id": collection_id,
+        "text": text
+    })))
+}
+
 async fn search_vectors(
     State(state): State<AppState>,
     Path(collection_id): Path<String>,
@@ -449,6 +519,21 @@ async fn health_check() -> impl IntoResponse {
         "status": "healthy",
         "service": "vector-db",
         "timestamp": Utc::now().timestamp(),
+        "endpoints": [
+            "GET /health",
+            "GET /collections",
+            "POST /collections",
+            "GET /collections/:id",
+            "POST /collections/:id/vectors",
+            "POST /collections/:id/search",
+            "DELETE /collections/:id/vectors/:vector_id",
+            "POST /embed",
+            "POST /embed/batch",
+            "GET /snapshots",
+            "POST /snapshots",
+            "GET /snapshots/:id",
+            "GET /storage/stats"
+        ]
     }))
 }
 
@@ -569,6 +654,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/collections", post(create_collection).get(list_collections))
         .route("/collections/:id", get(get_collection))
         .route("/collections/:id/vectors", post(add_vector))
+        .route("/store", post(store_document)) // Alias for storing documents
         .route("/collections/:id/search", post(search_vectors))
         .route("/collections/:id/vectors/:vector_id", delete(delete_vector))
         .route("/embed", post(embed_text))

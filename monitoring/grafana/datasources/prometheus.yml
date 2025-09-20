@@ -1,29 +1,29 @@
+# Grafana Datasource Configuration for Prometheus
 apiVersion: 1
 
 datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    url: http://prometheus-grounded:9090
     isDefault: true
     editable: true
     jsonData:
       httpMethod: POST
       queryTimeout: 60s
-      timeInterval: 15s
-      exemplarTraceIdDestinations:
-        - name: trace_id
-          datasourceUid: jaeger
+      timeInterval: 30s
     version: 1
 
-  - name: Prometheus-Local
-    type: prometheus
+  - name: Loki
+    type: loki
     access: proxy
-    url: http://localhost:9090
-    isDefault: false
+    url: http://loki-grounded:3100
     editable: true
     jsonData:
-      httpMethod: POST
-      queryTimeout: 60s
-      timeInterval: 15s
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: prometheus
+          matcherRegex: "trace_id=(\\w+)"
+          name: Trace
+          url: "$${__value.raw}"
     version: 1

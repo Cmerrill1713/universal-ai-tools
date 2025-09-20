@@ -1,0 +1,718 @@
+# Message Broker Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: message-broker
+  namespace: universal-ai
+  labels:
+    app: message-broker
+    language: go
+    component: middleware
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: message-broker
+  template:
+    metadata:
+      labels:
+        app: message-broker
+        language: go
+        component: middleware
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: message-broker
+        image: universal-ai/message-broker:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-broker
+  namespace: universal-ai
+spec:
+  selector:
+    app: message-broker
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+# Load Balancer Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-balancer
+  namespace: universal-ai
+  labels:
+    app: load-balancer
+    language: go
+    component: middleware
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: load-balancer
+  template:
+    metadata:
+      labels:
+        app: load-balancer
+        language: go
+        component: middleware
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: load-balancer
+        image: universal-ai/load-balancer:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: PORT
+          value: "8081"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: load-balancer
+  namespace: universal-ai
+spec:
+  selector:
+    app: load-balancer
+  ports:
+  - port: 8081
+    targetPort: 8081
+---
+# Cache Coordinator Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-coordinator
+  namespace: universal-ai
+  labels:
+    app: cache-coordinator
+    language: go
+    component: middleware
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cache-coordinator
+  template:
+    metadata:
+      labels:
+        app: cache-coordinator
+        language: go
+        component: middleware
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8083"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: cache-coordinator
+        image: universal-ai/cache-coordinator:latest
+        ports:
+        - containerPort: 8083
+        env:
+        - name: PORT
+          value: "8083"
+        - name: LOCAL_CACHE_SIZE
+          value: "1000"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8083
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-coordinator
+  namespace: universal-ai
+spec:
+  selector:
+    app: cache-coordinator
+  ports:
+  - port: 8083
+    targetPort: 8083
+---
+# Stream Processor Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stream-processor
+  namespace: universal-ai
+  labels:
+    app: stream-processor
+    language: go
+    component: middleware
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stream-processor
+  template:
+    metadata:
+      labels:
+        app: stream-processor
+        language: go
+        component: middleware
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8084"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: stream-processor
+        image: universal-ai/stream-processor:latest
+        ports:
+        - containerPort: 8084
+        env:
+        - name: PORT
+          value: "8084"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8084
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stream-processor
+  namespace: universal-ai
+spec:
+  selector:
+    app: stream-processor
+  ports:
+  - port: 8084
+    targetPort: 8084
+---
+# ML Stream Processor Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-stream-processor
+  namespace: universal-ai
+  labels:
+    app: ml-stream-processor
+    language: go
+    component: ml
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ml-stream-processor
+  template:
+    metadata:
+      labels:
+        app: ml-stream-processor
+        language: go
+        component: ml
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8088"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: ml-stream-processor
+        image: universal-ai/ml-stream-processor:latest
+        ports:
+        - containerPort: 8088
+        env:
+        - name: PORT
+          value: "8088"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8088
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8088
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-stream-processor
+  namespace: universal-ai
+spec:
+  selector:
+    app: ml-stream-processor
+  ports:
+  - port: 8088
+    targetPort: 8088
+---
+# Shared Memory Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shared-memory
+  namespace: universal-ai
+  labels:
+    app: shared-memory
+    language: go
+    component: ipc
+spec:
+  replicas: 1  # Single instance for shared memory
+  selector:
+    matchLabels:
+      app: shared-memory
+  template:
+    metadata:
+      labels:
+        app: shared-memory
+        language: go
+        component: ipc
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8089"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: shared-memory
+        image: universal-ai/shared-memory:latest
+        ports:
+        - containerPort: 8089
+        env:
+        - name: PORT
+          value: "8089"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+        securityContext:
+          capabilities:
+            add:
+            - IPC_LOCK
+        volumeMounts:
+        - name: shared-memory
+          mountPath: /tmp/shared
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8089
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8089
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: shared-memory
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shared-memory
+  namespace: universal-ai
+spec:
+  selector:
+    app: shared-memory
+  ports:
+  - port: 8089
+    targetPort: 8089
+---
+# Tracing Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tracing-service
+  namespace: universal-ai
+  labels:
+    app: tracing-service
+    language: go
+    component: observability
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tracing-service
+  template:
+    metadata:
+      labels:
+        app: tracing-service
+        language: go
+        component: observability
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: tracing-service
+        image: universal-ai/tracing-service:latest
+        ports:
+        - containerPort: 8090
+        env:
+        - name: PORT
+          value: "8090"
+        - name: TRACE_EXPORTER
+          value: "jaeger"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8090
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8090
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tracing-service
+  namespace: universal-ai
+spec:
+  selector:
+    app: tracing-service
+  ports:
+  - port: 8090
+    targetPort: 8090
+---
+# Metrics Aggregator Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-aggregator
+  namespace: universal-ai
+  labels:
+    app: metrics-aggregator
+    language: go
+    component: observability
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: metrics-aggregator
+  template:
+    metadata:
+      labels:
+        app: metrics-aggregator
+        language: go
+        component: observability
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8091"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: metrics-aggregator
+        image: universal-ai/metrics-aggregator:latest
+        ports:
+        - containerPort: 8091
+        env:
+        - name: PORT
+          value: "8091"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8091
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8091
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-aggregator
+  namespace: universal-ai
+spec:
+  selector:
+    app: metrics-aggregator
+  ports:
+  - port: 8091
+    targetPort: 8091
+---
+# Go ML Inference Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-ml-inference
+  namespace: universal-ai
+  labels:
+    app: go-ml-inference
+    language: go
+    component: ml
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: go-ml-inference
+  template:
+    metadata:
+      labels:
+        app: go-ml-inference
+        language: go
+        component: ml
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8086"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: go-ml-inference
+        image: universal-ai/go-ml-inference:latest
+        ports:
+        - containerPort: 8086
+        - containerPort: 9096
+        env:
+        - name: PORT
+          value: "8086"
+        - name: METRICS_PORT
+          value: "9096"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: models
+          mountPath: /models
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8086
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8086
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: models
+        emptyDir: {}  # In production, use persistent volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-ml-inference
+  namespace: universal-ai
+spec:
+  selector:
+    app: go-ml-inference
+  ports:
+  - name: http
+    port: 8086
+    targetPort: 8086
+  - name: metrics
+    port: 9096
+    targetPort: 9096
+---
+# Service Discovery
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-discovery
+  namespace: universal-ai
+  labels:
+    app: service-discovery
+    language: go
+    component: infrastructure
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: service-discovery
+  template:
+    metadata:
+      labels:
+        app: service-discovery
+        language: go
+        component: infrastructure
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8094"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: service-discovery
+        image: universal-ai/service-discovery:latest
+        ports:
+        - containerPort: 8094
+        env:
+        - name: PORT
+          value: "8094"
+        envFrom:
+        - configMapRef:
+            name: universal-ai-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8094
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8094
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-discovery
+  namespace: universal-ai
+spec:
+  selector:
+    app: service-discovery
+  ports:
+  - port: 8094
+    targetPort: 8094

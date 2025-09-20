@@ -1,0 +1,40 @@
+[package]
+name = "s3-searcher-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.40", features = ["full"] }
+axum = { version = "0.7", features = ["json", "ws"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+async-trait = "0.1"
+
+# Database and caching
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-native-tls", "uuid", "chrono", "json"] }
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# HTTP client for LLM APIs
+reqwest = { version = "0.12", features = ["json", "stream"] }
+
+# Configuration
+config = "0.14"
+dotenv = "0.15"
+
+# Math and vectors
+ndarray = "0.16"
+rand = "0.8"
+
+[dev-dependencies]
+criterion = "0.5"
+mockito = "1.5"
+
+[[bin]]
+name = "s3-searcher"
+path = "src/bin/main.rs"

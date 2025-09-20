@@ -1,0 +1,210 @@
+export interface MCTSConfig {
+    maxIterations: number;
+    maxDepth: number;
+    explorationConstant: number;
+    discountFactor: number;
+    timeLimitMs: number;
+    enableThompsonSampling: boolean;
+    enableBayesianLearning: boolean;
+    enableCaching: boolean;
+    parallelSimulations: number;
+    cacheConfig?: CacheConfig;
+}
+export interface CacheConfig {
+    redisUrl: string;
+    keyPrefix: string;
+    defaultTtlSecs: number;
+    maxRetries: number;
+    retryDelay: number;
+    compressionThreshold: number;
+}
+export interface SearchOptions {
+    maxIterations: number;
+    maxDepth: number;
+    timeLimitMs: number;
+    explorationFactor: number;
+    parallelSimulations: number;
+    enableEarlyTermination: boolean;
+}
+export interface AgentContext {
+    task: string;
+    requirements: string[];
+    constraints: string[];
+    contextData: Record<string, any>;
+    userPreferences?: UserPreferences;
+    executionContext: ExecutionContext;
+}
+export interface UserPreferences {
+    preferredAgentTypes: string[];
+    qualityWeight: number;
+    speedWeight: number;
+    costWeight: number;
+    riskTolerance: number;
+}
+export interface ExecutionContext {
+    sessionId: string;
+    userId?: string;
+    timestamp: number;
+    budget: number;
+    priority: 'low' | 'normal' | 'high' | 'urgent';
+}
+export type AgentType = 'planner' | 'retriever' | 'synthesizer' | 'personal_assistant' | 'code_assistant' | {
+    specialized: string;
+};
+export interface MCTSAction {
+    id: string;
+    agentName: string;
+    agentType: AgentType;
+    estimatedCost: number;
+    estimatedTime: number;
+    requiredCapabilities: string[];
+    parameters: Record<string, any>;
+    confidence: number;
+}
+export interface SearchResult {
+    bestPath: MCTSAction[];
+    confidence: number;
+    expectedReward: number;
+    searchStatistics: SearchStatistics;
+    agentRecommendations: AgentRecommendation[];
+    executionPlan: ExecutionPlan;
+}
+export interface SearchStatistics {
+    totalIterations: number;
+    nodesExplored: number;
+    averageDepth: number;
+    searchTimeMs: number;
+    cacheHits: number;
+    cacheMisses: number;
+    thompsonSamples: number;
+    ucbSelections: number;
+}
+export interface AgentRecommendation {
+    agentName: string;
+    agentType: AgentType;
+    confidence: number;
+    expectedPerformance: number;
+    estimatedCost: number;
+    rationale: string;
+}
+export interface ExecutionPlan {
+    steps: ExecutionStep[];
+    totalEstimatedTimeMs: number;
+    totalEstimatedCost: number;
+    riskAssessment: RiskAssessment;
+    fallbackOptions: MCTSAction[];
+}
+export interface ExecutionStep {
+    stepNumber: number;
+    action: MCTSAction;
+    dependencies: number[];
+    parallelExecution: boolean;
+    timeoutMs: number;
+    retryPolicy: RetryPolicy;
+}
+export interface RetryPolicy {
+    maxRetries: number;
+    backoffStrategy: BackoffStrategy;
+    retryConditions: string[];
+}
+export type BackoffStrategy = {
+    constant: number;
+} | {
+    linear: number;
+} | {
+    exponential: {
+        base: number;
+        multiplier: number;
+    };
+};
+export interface RiskAssessment {
+    overallRisk: number;
+    riskFactors: RiskFactor[];
+    mitigationStrategies: string[];
+}
+export interface RiskFactor {
+    factorType: string;
+    severity: number;
+    probability: number;
+    description: string;
+}
+export interface MCTSReward {
+    value: number;
+    components: RewardComponents;
+    metadata: RewardMetadata;
+}
+export interface RewardComponents {
+    quality: number;
+    speed: number;
+    cost: number;
+    userSatisfaction?: number;
+}
+export interface RewardMetadata {
+    tokensUsed: number;
+    apiCallsMade: number;
+    executionTimeMs: number;
+    agentPerformance: Record<string, number>;
+    timestamp: number;
+}
+export interface MCTSBridge {
+    initialize(): Promise<void>;
+    isReady(): boolean;
+    updateConfig(config: MCTSConfig): Promise<void>;
+    reset(): Promise<void>;
+    healthCheck(): Promise<HealthCheckResult>;
+    generateSessionId(): string;
+    searchOptimalAgents(context: AgentContext, availableAgents: string[], options?: SearchOptions): Promise<SearchResult>;
+    recommendAgents(context: AgentContext, availableAgents: string[], maxRecommendations: number): Promise<QuickRecommendationResult>;
+    updateWithFeedback(sessionId: string, agentName: string, reward: MCTSReward): Promise<void>;
+    getPerformanceStats(): Promise<PerformanceStats>;
+    validateContext(context: AgentContext): boolean;
+    getConfig(): MCTSConfig;
+}
+export interface HealthCheckResult {
+    bridgeStatus: 'healthy' | 'degraded' | 'unhealthy';
+    bridgeVersion: string;
+    configValid: boolean;
+    timestamp: number;
+    engine: {
+        status: 'healthy' | 'not_initialized' | 'error';
+        nodesInMemory?: number;
+        totalSearches?: number;
+        cacheEnabled?: boolean;
+        message?: string;
+    };
+    features: {
+        thompsonSampling: boolean;
+        bayesianLearning: boolean;
+        caching: boolean;
+        parallelSimulation: boolean;
+    };
+}
+export interface QuickRecommendationResult {
+    recommendations: AgentRecommendation[];
+    confidence: number;
+    searchTimeMs: number;
+    nodesExplored: number;
+}
+export interface PerformanceStats {
+    totalIterations: number;
+    nodesExplored: number;
+    averageDepth: number;
+    searchTimeMs: number;
+    cacheHits: number;
+    cacheMisses: number;
+    thompsonSamples: number;
+    ucbSelections: number;
+    cacheHitRate: number;
+}
+export interface BridgeError {
+    code: string;
+    message: string;
+    details?: any;
+}
+export declare namespace TestHelpers {
+    function createTestContext(task: string, sessionId?: string): AgentContext;
+    function createTestConfig(overrides?: Partial<MCTSConfig>): MCTSConfig;
+    function createSearchOptions(overrides?: Partial<SearchOptions>): SearchOptions;
+    function createTestReward(value: number, overrides?: Partial<MCTSReward>): MCTSReward;
+}
+//# sourceMappingURL=types.d.ts.map

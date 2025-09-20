@@ -105,8 +105,7 @@ class TTSEngine:
                     outputs, output_format="wav")
 
                 print(
-                    f"Speech generated successfully: {
-                        len(audio_data)} bytes")
+                    f"Speech generated successfully: {len(audio_data)} bytes")
                 return audio_data
 
             except Exception as e:

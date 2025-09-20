@@ -1,0 +1,70 @@
+# Multi-stage build for intelligent-librarian service
+FROM rust:1.75-slim as builder
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates/intelligent-librarian/Cargo.toml ./crates/intelligent-librarian/
+
+# Create dummy main file for dependency resolution
+RUN mkdir -p crates/intelligent-librarian/src
+RUN echo "fn main() {}" > crates/intelligent-librarian/src/main.rs
+
+# Build dependencies
+RUN cargo build --release -p intelligent-librarian
+RUN rm -rf crates/intelligent-librarian/src
+
+# Copy source code
+COPY crates/intelligent-librarian/ ./crates/intelligent-librarian/
+
+# Build the application
+RUN cargo build --release -p intelligent-librarian
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r librarian && useradd -r -g librarian librarian
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/target/release/intelligent-librarian /app/intelligent-librarian
+
+# Set permissions
+RUN chown -R librarian:librarian /app
+RUN chmod +x /app/intelligent-librarian
+
+# Switch to non-root user
+USER librarian
+
+# Expose port
+EXPOSE 8082
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8082/health || exit 1
+
+# Default environment variables
+ENV LIBRARIAN_PORT=8082
+ENV DATABASE_URL=postgresql://postgres:password@localhost:5432/universal_ai_tools
+
+# Run the application
+CMD ["/app/intelligent-librarian"]

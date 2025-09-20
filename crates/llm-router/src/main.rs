@@ -352,7 +352,10 @@ async fn handle_chat(req: ChatRequest) -> Result<impl warp::Reply, warp::Rejecti
         }))),
         Err(e) => {
             tracing::error!("Chat routing failed: {}", e);
-            Err(warp::reject::custom(ChatError))
+            Ok(warp::reply::json(&serde_json::json!({
+                "error": e.to_string(),
+                "status": "failed"
+            })))
         }
     }
 }
@@ -497,7 +500,10 @@ async fn handle_smart_chat(req: ChatRequest) -> Result<impl warp::Reply, warp::R
         }
         Err(e) => {
             tracing::error!("Smart routing failed: {}", e);
-            Err(warp::reject::custom(SmartChatError))
+            Ok(warp::reply::json(&serde_json::json!({
+                "error": e.to_string(),
+                "status": "failed"
+            })))
         }
     }
 }

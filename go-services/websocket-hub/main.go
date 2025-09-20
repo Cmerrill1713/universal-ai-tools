@@ -728,7 +728,7 @@ func main() {
 	router.HandleFunc("/broadcast", broadcastHandler).Methods("POST")
 
 	// Start server
-	port := getEnvOrDefault("WEBSOCKET_PORT", "8018")
+	port := getEnvOrDefault("WEBSOCKET_PORT", "8082")
 	log.Printf("WebSocket Hub starting on port %s", port)
 
 	server := &http.Server{

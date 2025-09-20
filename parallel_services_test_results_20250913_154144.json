@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-09-13T15:41:05.622532",
+  "services": {
+    "chat_service": "http://localhost:3033",
+    "assistant_service": "http://localhost:8017"
+  },
+  "tests": [
+    {
+      "test": "Parallel Requests to Both Services",
+      "total_requests": 10,
+      "chat_successful": 0,
+      "chat_total": 5,
+      "assistant_successful": 5,
+      "assistant_total": 5,
+      "total_time_seconds": 3.4026880264282227,
+      "throughput_req_per_sec": 2.9388530251175946
+    },
+    {
+      "test": "Concurrent Load Test",
+      "total_requests": 20,
+      "successful_requests": 10,
+      "success_rate": 50.0,
+      "total_time_seconds": 30.022489070892334,
+      "throughput_req_per_sec": 0.6661672838908809,
+      "avg_response_time_ms": 13683.600997924805
+    },
+    {
+      "test": "Service Communication",
+      "assistant_requests": 5,
+      "successful_requests": 5,
+      "success_rate": 100.0,
+      "communication_time_seconds": 5.411218166351318
+    }
+  ]
+}
