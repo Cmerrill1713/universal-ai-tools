@@ -33,6 +33,7 @@ struct AppState {
     memory_manager: std::sync::Arc<SimpleMemoryManager>,
     cache: std::sync::Arc<SimpleCache>,
     feedback_manager: std::sync::Arc<FeedbackManager>,
+    knowledge_context_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -100,6 +101,7 @@ async fn main() -> anyhow::Result<()> {
         memory_manager,
         cache,
         feedback_manager,
+        knowledge_context_url: std::env::var("KNOWLEDGE_CONTEXT_URL").ok(),
     };
 
     let app = Router::new()
@@ -127,7 +129,7 @@ async fn main() -> anyhow::Result<()> {
         .or_else(|_| env::var("PORT"))
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(3032);
+        .unwrap_or(8080);
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     println!("Starting assistantd server on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await?;
@@ -429,12 +431,42 @@ async fn enhanced_chat_with_rag(
         .map(|m| m.content.clone())
         .unwrap_or_default();
 
-    // Determine if we should use RAG based on the query
+    // Determine if we should use knowledge context or RAG based on the query
     let should_use_rag = should_use_rag_for_query(&last_user_message);
 
     let mut enhanced_messages = messages.clone();
     let _rag_context = String::new();
     let mut citations = Vec::new();
+
+    // Try Knowledge Context service first if configured
+    if let Some(kctx_url) = &state.knowledge_context_url {
+        if !last_user_message.is_empty() {
+            if let Ok((ctx, srcs)) = fetch_knowledge_context(&state.client, kctx_url, &last_user_message).await {
+                if !ctx.is_empty() {
+                    let sys = Message {
+                        role: MessageRole::System,
+                        content: format!(
+                            "Use the following knowledge context to answer the user's question. Cite sources with [1], [2], etc. when referencing the context.\n\nCONTEXT:\n{}",
+                            ctx
+                        ),
+                        name: None,
+                    };
+                    // Insert system context before the last user message when possible
+                    if !enhanced_messages.is_empty() {
+                        let insert_at = enhanced_messages.len() - 1;
+                        enhanced_messages.insert(insert_at, sys);
+                    } else {
+                        enhanced_messages.push(sys);
+                    }
+                }
+                if !srcs.is_empty() {
+                    citations = srcs;
+                }
+            } else {
+                tracing::warn!("Knowledge Context fetch failed, continuing without it");
+            }
+        }
+    }
 
     // If RAG is needed, retrieve relevant context
     if should_use_rag && !last_user_message.is_empty() {
@@ -501,6 +533,49 @@ fn should_use_rag_for_query(query: &str) -> bool {
 
     let query_lower = query.to_lowercase();
     rag_keywords.iter().any(|keyword| query_lower.contains(keyword))
+}
+
+#[derive(Debug, Deserialize)]
+struct KnowledgeContextResp {
+    context: String,
+    #[serde(default)]
+    sources: Vec<String>,
+}
+
+async fn fetch_knowledge_context(client: &Client, base_url: &str, message: &str) -> Result<(String, Vec<String>), anyhow::Error> {
+    let url = if base_url.ends_with('/') { format!("{}api/v1/context/build", base_url) } else { format!("{}/api/v1/context/build", base_url) };
+    let body = serde_json::json!({
+        "message": message,
+        "limit": 5
+    });
+    let resp = client
+        .post(&url)
+        .json(&body)
+        .timeout(std::time::Duration::from_secs(10))
+        .send()
+        .await?;
+    if !resp.status().is_success() {
+        return Err(anyhow::anyhow!("knowledge context returned status: {}", resp.status()));
+    }
+    // Handle flexible payloads: try structured, then generic
+    let text = resp.text().await?;
+    if let Ok(parsed) = serde_json::from_str::<KnowledgeContextResp>(&text) {
+        return Ok((parsed.context, parsed.sources));
+    }
+    // Fallback: try generic map
+    let v: serde_json::Value = serde_json::from_str(&text)?;
+    let ctx = v.get("context").and_then(|c| c.as_str()).unwrap_or("").to_string();
+    let mut sources: Vec<String> = Vec::new();
+    if let Some(srcs) = v.get("sources").and_then(|s| s.as_array()) {
+        for s in srcs {
+            if let Some(title) = s.get("title").and_then(|t| t.as_str()) {
+                sources.push(title.to_string());
+            } else if let Some(id) = s.get("id").and_then(|t| t.as_str()) {
+                sources.push(id.to_string());
+            }
+        }
+    }
+    Ok((ctx, sources))
 }
 
 // Retrieve RAG context for a query

@@ -1,369 +1,238 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
-	"os"
-	"strings"
-	"sync"
-	"time"
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+    "net/http/httputil"
+    "net/url"
+    "os"
+    "strings"
+    "sync"
+    "time"
 
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
-	"github.com/joho/godotenv"
-	"golang.org/x/time/rate"
+    "github.com/gorilla/mux"
+    "github.com/gorilla/websocket"
+    "github.com/joho/godotenv"
 )
 
-// ServiceRegistry manages backend service endpoints
+// ServiceRegistry holds information about available services
 type ServiceRegistry struct {
-	mu       sync.RWMutex
-	services map[string]*ServiceEndpoint
+	ChatService        string `json:"chat_service"`
+	MemoryService      string `json:"memory_service"`
+	LLMRouter          string `json:"llm_router"`
+	VisionService      string `json:"vision_service"`
+	MLXService         string `json:"mlx_service"`
+	WebSocketHub       string `json:"websocket_hub"`
+	ParameterAnalytics string `json:"parameter_analytics"`
 }
 
-// ServiceEndpoint represents a backend service
-type ServiceEndpoint struct {
-	Name        string
-	URL         string
-	HealthCheck string
-	Healthy     bool
-	LastCheck   time.Time
+// HealthResponse represents the health check response
+type HealthResponse struct {
+	Service   string                 `json:"service"`
+	Status    string                 `json:"status"`
+	Timestamp time.Time              `json:"timestamp"`
+	Services  map[string]interface{} `json:"services"`
 }
 
-// RateLimiter manages API rate limiting
-type RateLimiter struct {
-	mu       sync.Mutex
-	limiters map[string]*rate.Limiter
+// ProxyConfig holds proxy configuration for services
+type ProxyConfig struct {
+	Target string
+	Proxy  *httputil.ReverseProxy
 }
 
 var (
-	registry       *ServiceRegistry
-	rateLimiter    *RateLimiter
-	secretsManager *SecretsManager
-	upgrader       = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			// Configure origin checking for production
-			return true
-		},
+    serviceRegistry = ServiceRegistry{
+		ChatService:        "http://localhost:8016",
+		MemoryService:      "http://localhost:8017",
+		LLMRouter:          "http://localhost:3033",
+		VisionService:      "http://localhost:8084",
+		MLXService:         "http://localhost:8001",
+		WebSocketHub:       "http://localhost:8082",
+		ParameterAnalytics: "http://localhost:8019",
 	}
+
+    proxies  = make(map[string]*ProxyConfig)
+    upgrader = websocket.Upgrader{
+        CheckOrigin: func(r *http.Request) bool {
+            return true // Allow all origins for development
+        },
+    }
+    assistantStreamRP   *httputil.ReverseProxy
+    assistantStreamOnce sync.Once
 )
 
 func init() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Printf("Warning: .env file not found")
+		log.Println("No .env file found, using environment variables")
 	}
 
-	// Initialize service registry
-	registry = &ServiceRegistry{
-		services: make(map[string]*ServiceEndpoint),
-	}
+	// Allow env overrides for service endpoints
+	serviceRegistry.ChatService = getEnvOrDefault("CHAT_SERVICE_URL", serviceRegistry.ChatService)
+	serviceRegistry.MemoryService = getEnvOrDefault("MEMORY_SERVICE_URL", serviceRegistry.MemoryService)
+	serviceRegistry.LLMRouter = getEnvOrDefault("LLM_ROUTER_URL", serviceRegistry.LLMRouter)
+	serviceRegistry.VisionService = getEnvOrDefault("VISION_SERVICE_URL", serviceRegistry.VisionService)
+	serviceRegistry.MLXService = getEnvOrDefault("MLX_SERVICE_URL", serviceRegistry.MLXService)
+	serviceRegistry.WebSocketHub = getEnvOrDefault("WEBSOCKET_HUB_URL", serviceRegistry.WebSocketHub)
+	serviceRegistry.ParameterAnalytics = getEnvOrDefault("PARAMETER_ANALYTICS_URL", serviceRegistry.ParameterAnalytics)
 
-	// Initialize rate limiter
-	rateLimiter = &RateLimiter{
-		limiters: make(map[string]*rate.Limiter),
-	}
-
-	// Initialize secrets manager
-	secretsManager = NewSecretsManager()
-
-	// Initialize secrets in Supabase Vault
-	if err := secretsManager.InitializeSecrets(); err != nil {
-		log.Printf("Warning: Failed to initialize secrets: %v", err)
-	}
-
-	// Initialize guardrails (placeholder for future implementation)
-	// guardrails = NewGuardrailsManager()
-
-	// Register services
-	registerServices()
+    // Initialize proxies for each service
+    initProxies()
 }
 
-func registerServices() {
-	// Register Go services
-	registry.Register("ml-inference", getEnvOrDefault("ML_INFERENCE_URL", "http://localhost:8091"))
-	registry.Register("load-balancer", getEnvOrDefault("LOAD_BALANCER_URL", "http://localhost:8011"))
-	registry.Register("cache-coordinator", getEnvOrDefault("CACHE_COORDINATOR_URL", "http://localhost:8012"))
-	registry.Register("metrics-aggregator", getEnvOrDefault("METRICS_AGGREGATOR_URL", "http://localhost:8013"))
-	registry.RegisterWithHealthCheck("service-discovery", getEnvOrDefault("SERVICE_DISCOVERY_URL", "http://localhost:8094"), "http://localhost:8094/api/v1/discovery/health")
-	// Swift Auth Service (Primary)
-	registry.Register("swift-auth", getEnvOrDefault("SWIFT_AUTH_URL", "http://localhost:8016"))
-	// Go Auth Service (Legacy Fallback)
-	registry.Register("auth-service-legacy", getEnvOrDefault("AUTH_SERVICE_URL", "http://localhost:8015"))
-	registry.Register("chat-service", getEnvOrDefault("CHAT_SERVICE_URL", "http://localhost:8016"))
-	registry.Register("memory-service", getEnvOrDefault("MEMORY_SERVICE_URL", "http://localhost:8016"))
-	registry.Register("websocket-hub", getEnvOrDefault("WEBSOCKET_HUB_URL", "http://localhost:8018"))
-	registry.Register("weaviate-client", getEnvOrDefault("WEAVIATE_CLIENT_URL", "http://localhost:8020"))
+func initProxies() {
+    services := map[string]string{
+        "chat":       getEnvOrDefault("CHAT_SERVICE_URL", serviceRegistry.ChatService),
+        "memory":     getEnvOrDefault("MEMORY_SERVICE_URL", serviceRegistry.MemoryService),
+        "llm":        getEnvOrDefault("LLM_ROUTER_URL", serviceRegistry.LLMRouter),
+        "vision":     getEnvOrDefault("VISION_SERVICE_URL", serviceRegistry.VisionService),
+        "mlx":        getEnvOrDefault("MLX_SERVICE_URL", serviceRegistry.MLXService),
+        "websocket":  getEnvOrDefault("WEBSOCKET_HUB_URL", serviceRegistry.WebSocketHub),
+        "analytics":  getEnvOrDefault("PARAMETER_ANALYTICS_URL", serviceRegistry.ParameterAnalytics),
+        "assistantd": getEnvOrDefault("ASSISTANTD_URL", os.Getenv("ASSISTANTD_URL")),
+        "knowledge":  getEnvOrDefault("KNOWLEDGE_GATEWAY_URL", "http://localhost:8088"),
+        "kcontext":   getEnvOrDefault("KNOWLEDGE_CONTEXT_URL", "http://localhost:8083"),
+    }
 
-	// Register Rust services
-	registry.Register("fast-llm", getEnvOrDefault("FAST_LLM_URL", "http://localhost:3031"))
-	registry.Register("llm-router", getEnvOrDefault("LLM_ROUTER_URL", "http://localhost:3033"))
-	registry.Register("parameter-analytics", getEnvOrDefault("PARAMETER_ANALYTICS_URL", "http://localhost:3032"))
-	registry.Register("vision-service", getEnvOrDefault("VISION_SERVICE_URL", "http://localhost:8084"))
-
-	// Vector Database Services
-	registry.RegisterWithHealthCheck("weaviate", getEnvOrDefault("WEAVIATE_URL", "http://localhost:8090"), "http://localhost:8090/v1/meta")
-
-	// Legacy TypeScript services (to be migrated)
-	registry.Register("legacy-api", getEnvOrDefault("LEGACY_API_URL", "http://localhost:3001"))
-}
-
-func (sr *ServiceRegistry) Register(name, url string) {
-	sr.RegisterWithHealthCheck(name, url, url+"/health")
-}
-
-func (sr *ServiceRegistry) RegisterWithHealthCheck(name, url, healthCheck string) {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
-
-	sr.services[name] = &ServiceEndpoint{
-		Name:        name,
-		URL:         url,
-		HealthCheck: healthCheck,
-		Healthy:     true,
-		LastCheck:   time.Now(),
-	}
-}
-
-func (sr *ServiceRegistry) GetService(name string) (*ServiceEndpoint, bool) {
-	sr.mu.RLock()
-	defer sr.mu.RUnlock()
-
-	service, exists := sr.services[name]
-	return service, exists
-}
-
-func (rl *RateLimiter) GetLimiter(clientIP string) *rate.Limiter {
-	rl.mu.Lock()
-	defer rl.mu.Unlock()
-
-	if limiter, exists := rl.limiters[clientIP]; exists {
-		return limiter
-	}
-
-	// Create new limiter: 100 requests per second with burst of 200
-	limiter := rate.NewLimiter(100, 200)
-	rl.limiters[clientIP] = limiter
-	return limiter
-}
-
-// Middleware functions
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		// Log request
-		log.Printf("[%s] %s %s", r.Method, r.RequestURI, r.RemoteAddr)
-
-		// Call next handler
-		next.ServeHTTP(w, r)
-
-		// Log response time
-		log.Printf("Request completed in %v", time.Since(start))
-	})
-}
-
-func rateLimitMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clientIP := getClientIP(r)
-		limiter := rateLimiter.GetLimiter(clientIP)
-
-		if !limiter.Allow() {
-			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
-			return
+	for name, target := range services {
+		targetURL, err := url.Parse(target)
+		if err != nil {
+			log.Printf("Error parsing target URL for %s: %v", name, err)
+			continue
 		}
 
-		next.ServeHTTP(w, r)
-	})
-}
-
-func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip auth for health check and public endpoints
-		if strings.HasPrefix(r.URL.Path, "/health") ||
-			strings.HasPrefix(r.URL.Path, "/api/public") {
-			next.ServeHTTP(w, r)
-			return
+		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+		proxies[name] = &ProxyConfig{
+			Target: target,
+			Proxy:  proxy,
 		}
-
-		// Check for API key, JWT token, or User ID
-		apiKey := r.Header.Get("X-API-Key")
-		authHeader := r.Header.Get("Authorization")
-		userID := r.Header.Get("X-User-ID")
-
-		if apiKey == "" && authHeader == "" && userID == "" {
-			http.Error(w, "Unauthorized: Missing authentication", http.StatusUnauthorized)
-			return
-		}
-
-		// Validate API key against Supabase Vault
-		if apiKey != "" {
-			if !validateAPIKey(apiKey) {
-				http.Error(w, "Unauthorized: Invalid API key", http.StatusUnauthorized)
-				return
-			}
-		}
-
-		// Validate JWT token
-		if authHeader != "" {
-			if !validateJWTToken(authHeader) {
-				http.Error(w, "Unauthorized: Invalid JWT token", http.StatusUnauthorized)
-				return
-			}
-		}
-
-		// Add user context to request
-		if userID != "" {
-			r.Header.Set("X-Authenticated-User", userID)
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-// validateAPIKey checks API key against Supabase Vault
-func validateAPIKey(apiKey string) bool {
-	return secretsManager.ValidateAPIKey(apiKey)
-}
-
-// validateJWTToken validates JWT token signature and claims
-func validateJWTToken(authHeader string) bool {
-	// Extract token from "Bearer <token>" format
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return false
+		log.Printf("Initialized proxy for %s -> %s", name, target)
 	}
-
-	token := parts[1]
-
-	// SECURITY: Implement proper JWT validation
-	// For now, reject all tokens until proper validation is implemented
-	if len(token) > 10 {
-		log.Printf("SECURITY WARNING: JWT validation not implemented - rejecting token: %s...", token[:10])
-	} else {
-		log.Printf("SECURITY WARNING: JWT validation not implemented - rejecting token: %s", token)
-	}
-	return false // SECURITY: Reject all JWT tokens until proper validation
 }
 
-// Route handlers
+// Health check endpoint
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	health := map[string]interface{}{
-		"status":    "healthy",
-		"timestamp": time.Now().Unix(),
-		"services":  getServicesHealth(),
+	services := make(map[string]interface{})
+
+	// Check each service health
+	for name, config := range proxies {
+		health := checkServiceHealth(config.Target)
+		services[name] = map[string]interface{}{
+			"url":    config.Target,
+			"status": health,
+		}
+	}
+
+	response := HealthResponse{
+		Service:   "api-gateway",
+		Status:    "healthy",
+		Timestamp: time.Now(),
+		Services:  services,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	json.NewEncoder(w).Encode(response)
 }
 
-func getServicesHealth() map[string]bool {
-	registry.mu.RLock()
-	defer registry.mu.RUnlock()
-
-	health := make(map[string]bool)
-	for name, service := range registry.services {
-		health[name] = service.Healthy
+func checkServiceHealth(targetURL string) string {
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get(targetURL + "/health")
+	if err != nil {
+		return "unhealthy"
 	}
-	return health
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return "healthy"
+	}
+	return "unhealthy"
 }
 
-// Proxy handler for routing to microservices
+// Proxy handler for routing requests to services
 func proxyHandler(serviceName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		service, exists := registry.GetService(serviceName)
-		if !exists || !service.Healthy {
-			http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		config, exists := proxies[serviceName]
+		if !exists {
+			http.Error(w, fmt.Sprintf("Service %s not found", serviceName), http.StatusNotFound)
 			return
 		}
 
-		targetURL, _ := url.Parse(service.URL)
-		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+		// Add CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
 
-		// Modify the request
-		r.URL.Host = targetURL.Host
-		r.URL.Scheme = targetURL.Scheme
-		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
-		r.Host = targetURL.Host
-
-		proxy.ServeHTTP(w, r)
-	}
-}
-
-// Swift Auth handler with Go Auth fallback
-func swiftAuthHandler(w http.ResponseWriter, r *http.Request) {
-	// Try Swift Auth first (primary)
-	swiftService, swiftExists := registry.GetService("swift-auth")
-	if swiftExists && swiftService.Healthy {
-		log.Printf("Routing auth request to Swift Auth: %s %s", r.Method, r.URL.Path)
-		log.Printf("Swift Auth Service URL: %s", swiftService.URL)
-
-		// Create reverse proxy to Swift Auth
-		targetURL, err := url.Parse(swiftService.URL)
-		if err != nil {
-			log.Printf("Error parsing Swift Auth URL: %v", err)
-			http.Error(w, "Service configuration error", http.StatusInternalServerError)
+		// Handle preflight requests
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
-		proxy := httputil.NewSingleHostReverseProxy(targetURL)
 
-		// Update request path to match Swift auth service expectations
-		// Strip /api/auth prefix and ensure /auth prefix
-		originalPath := r.URL.Path
-		path := strings.TrimPrefix(r.URL.Path, "/api/auth")
-		if path == "" || path == "/" {
-			path = "/health"
-		} else if !strings.HasPrefix(path, "/auth") {
-			path = "/auth" + path
+		// Add user ID header if not present
+		if r.Header.Get("X-User-ID") == "" {
+			r.Header.Set("X-User-ID", "api-gateway-user")
 		}
-		log.Printf("Path transformation: %s -> %s", originalPath, path)
-		log.Printf("Target URL: %s, Final path: %s", targetURL.String(), path)
-		r.URL.Path = path
 
-		// Update request headers
-		r.URL.Host = targetURL.Host
-		r.URL.Scheme = targetURL.Scheme
-		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
-		r.Header.Set("X-Auth-Source", "swift-primary")
-		r.Host = targetURL.Host
-
-		proxy.ServeHTTP(w, r)
-		return
+		// Proxy the request
+		config.Proxy.ServeHTTP(w, r)
 	}
-
-	// Fallback to Go Auth (legacy)
-	goService, goExists := registry.GetService("auth-service-legacy")
-	if goExists && goService.Healthy {
-		log.Printf("Swift Auth unavailable, routing to Go Auth (legacy): %s %s", r.Method, r.URL.Path)
-
-		// Create reverse proxy to Go Auth
-		targetURL, _ := url.Parse(goService.URL)
-		proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-		// Update request headers
-		r.URL.Host = targetURL.Host
-		r.URL.Scheme = targetURL.Scheme
-		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
-		r.Header.Set("X-Auth-Source", "go-legacy")
-		r.Host = targetURL.Host
-
-		proxy.ServeHTTP(w, r)
-		return
-	}
-
-	// Both auth services unavailable
-	log.Printf("Both Swift Auth and Go Auth services unavailable")
-	http.Error(w, "Authentication service unavailable", http.StatusServiceUnavailable)
 }
 
-// WebSocket handler for real-time connections
-func wsHandler(w http.ResponseWriter, r *http.Request) {
+// Assistant chat handler (Rust assistantd)
+func assistantChatHandler(w http.ResponseWriter, r *http.Request) {
+    // CORS headers
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
+    if r.Method == "OPTIONS" {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+	assistantURL := os.Getenv("ASSISTANTD_URL")
+	if assistantURL == "" {
+		assistantURL = getEnvOrDefault("CHAT_SERVICE_URL", serviceRegistry.ChatService)
+	}
+	target := strings.TrimRight(assistantURL, "/") + "/chat"
+
+	// Read incoming body
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Forward to assistantd
+	req, err := http.NewRequest("POST", target, bytes.NewReader(bodyBytes))
+	if err != nil {
+		http.Error(w, "failed to build upstream request", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("assistantd unreachable: %v", err), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
+}
+
+// WebSocket proxy handler
+func wsProxyHandler(w http.ResponseWriter, r *http.Request) {
+	// Connect to the WebSocket hub
+	wsURL := strings.Replace(serviceRegistry.WebSocketHub, "http", "ws", 1) + "/ws/chat"
+
+	// Upgrade to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
@@ -371,119 +240,144 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// Handle WebSocket messages
+	// Connect to the target WebSocket service
+	targetConn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		log.Printf("Failed to connect to WebSocket hub: %v", err)
+		return
+	}
+	defer targetConn.Close()
+
+	// Proxy messages between connections
+	go func() {
+		for {
+			messageType, message, err := conn.ReadMessage()
+			if err != nil {
+				log.Printf("Error reading from client: %v", err)
+				return
+			}
+
+			if err := targetConn.WriteMessage(messageType, message); err != nil {
+				log.Printf("Error writing to target: %v", err)
+				return
+			}
+		}
+	}()
+
 	for {
-		messageType, message, err := conn.ReadMessage()
+		messageType, message, err := targetConn.ReadMessage()
 		if err != nil {
-			log.Printf("WebSocket read error: %v", err)
-			break
-		}
-
-		// Echo message back for now
-		if err := conn.WriteMessage(messageType, message); err != nil {
-			log.Printf("WebSocket write error: %v", err)
-			break
-		}
-	}
-}
-
-// Chat API handler (migrated from TypeScript)
-func chatHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Forward to LLM router service
-	service, exists := registry.GetService("llm-router")
-	if !exists {
-		http.Error(w, "LLM service unavailable", http.StatusServiceUnavailable)
-		return
-	}
-
-	// Create proxy request
-	proxyReq, _ := http.NewRequest("POST", service.URL+"/chat", r.Body)
-	proxyReq.Header = r.Header
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(proxyReq)
-	if err != nil {
-		http.Error(w, "Service error", http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-
-	// Copy response headers
-	for key, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
-		}
-	}
-	w.WriteHeader(resp.StatusCode)
-
-	// Copy response body
-	io.Copy(w, resp.Body)
-	if err != nil {
-		http.Error(w, "Response error", http.StatusInternalServerError)
-		return
-	}
-}
-
-// Memory API handler
-func memoryHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		// Retrieve memories
-		memories := map[string]interface{}{
-			"memories": []string{},
-			"total":    0,
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(memories)
-
-	case http.MethodPost:
-		// Store new memory
-		var memory struct {
-			Content string `json:"content"`
-			Type    string `json:"type"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&memory); err != nil {
-			http.Error(w, "Invalid request", http.StatusBadRequest)
+			log.Printf("Error reading from target: %v", err)
 			return
 		}
 
-		response := map[string]interface{}{
-			"success": true,
-			"id":      generateID(),
+		if err := conn.WriteMessage(messageType, message); err != nil {
+			log.Printf("Error writing to client: %v", err)
+			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func generateID() string {
-	return fmt.Sprintf("%d", time.Now().UnixNano())
+// Unified chat endpoint that routes to the Go chat service
+func chatHandler(w http.ResponseWriter, r *http.Request) {
+	// Add user ID header if not present
+	if r.Header.Get("X-User-ID") == "" {
+		r.Header.Set("X-User-ID", "api-gateway-user")
+	}
+
+	// Route to chat service
+	proxyHandler("chat")(w, r)
 }
 
-func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header
-	xff := r.Header.Get("X-Forwarded-For")
-	if xff != "" {
-		ips := strings.Split(xff, ",")
-		return strings.TrimSpace(ips[0])
+// Assistant streaming (SSE) passthrough -> assistantd /chat/stream
+func assistantStreamHandler(w http.ResponseWriter, r *http.Request) {
+    // CORS headers
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
+    if r.Method == "OPTIONS" {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+    assistantStreamOnce.Do(func() {
+        base := os.Getenv("ASSISTANTD_URL")
+        if base == "" {
+            base = getEnvOrDefault("CHAT_SERVICE_URL", serviceRegistry.ChatService)
+        }
+        targetURL, err := url.Parse(base)
+        if err != nil {
+            log.Printf("assistant stream proxy url parse error: %v", err)
+            return
+        }
+        rp := httputil.NewSingleHostReverseProxy(targetURL)
+        director := rp.Director
+        rp.Director = func(req *http.Request) {
+            director(req)
+            req.URL.Path = "/chat/stream"
+            req.Host = targetURL.Host
+        }
+        rp.ErrorHandler = func(rw http.ResponseWriter, req *http.Request, err error) {
+            http.Error(rw, fmt.Sprintf("assistantd stream error: %v", err), http.StatusBadGateway)
+        }
+        rp.FlushInterval = 100 * time.Millisecond
+        assistantStreamRP = rp
+    })
+    if assistantStreamRP == nil {
+        http.Error(w, "assistant stream proxy not initialized", http.StatusServiceUnavailable)
+        return
+    }
+    // Forward request; ReverseProxy will stream and flush periodically
+    assistantStreamRP.ServeHTTP(w, r)
+}
+
+// Models endpoint that aggregates models from all services
+func modelsHandler(w http.ResponseWriter, r *http.Request) {
+	models := make(map[string]interface{})
+
+	// Get models from LLM Router
+	llmModels := getModelsFromService(serviceRegistry.LLMRouter + "/models")
+	if llmModels != nil {
+		models["llm_router"] = llmModels
 	}
 
-	// Check X-Real-IP header
-	xri := r.Header.Get("X-Real-IP")
-	if xri != "" {
-		return xri
+	// Get models from MLX Service
+	mlxModels := getModelsFromService(serviceRegistry.MLXService + "/models")
+	if mlxModels != nil {
+		models["mlx"] = mlxModels
 	}
 
-	// Fall back to RemoteAddr
-	return strings.Split(r.RemoteAddr, ":")[0]
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data": map[string]interface{}{
+			"models":         models,
+			"total_services": len(models),
+		},
+		"metadata": map[string]interface{}{
+			"timestamp": time.Now().Format(time.RFC3339),
+			"service":   "api-gateway",
+		},
+	})
+}
+
+func getModelsFromService(url string) interface{} {
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil
+	}
+
+	return result
 }
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -493,186 +387,66 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-// Health check goroutine
-func healthCheckServices(ctx context.Context) {
-	// Reduced interval from 30s to 10s for faster detection
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
-	// Initial health check on startup
-	performHealthChecks()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			performHealthChecks()
-		}
-	}
-}
-
-func performHealthChecks() {
-	registry.mu.Lock()
-	services := make(map[string]*ServiceEndpoint)
-	for name, service := range registry.services {
-		services[name] = service
-	}
-	registry.mu.Unlock()
-
-	for name, service := range services {
-		go checkServiceHealth(name, service)
-	}
-}
-
-func checkServiceHealth(name string, service *ServiceEndpoint) {
-	client := &http.Client{Timeout: 3 * time.Second}
-
-	// Retry logic: 3 attempts with exponential backoff
-	var lastErr error
-	var resp *http.Response
-
-	for attempt := 1; attempt <= 3; attempt++ {
-		resp, lastErr = client.Get(service.HealthCheck)
-		if lastErr == nil && resp.StatusCode == http.StatusOK {
-			break
-		}
-
-		if attempt < 3 {
-			// Exponential backoff: 1s, 2s, 4s
-			time.Sleep(time.Duration(attempt) * time.Second)
-		}
-	}
-
-	registry.mu.Lock()
-	defer registry.mu.Unlock()
-
-	if lastErr != nil || resp == nil || resp.StatusCode != http.StatusOK {
-		if service.Healthy {
-			log.Printf("Service %s became unhealthy: %v", name, lastErr)
-		}
-		service.Healthy = false
-	} else {
-		if !service.Healthy {
-			log.Printf("Service %s became healthy", name)
-		}
-		service.Healthy = true
-	}
-	service.LastCheck = time.Now()
-
-	if resp != nil {
-		resp.Body.Close()
-	}
-}
-
 func main() {
-	// Create router
-	router := mux.NewRouter()
+    router := mux.NewRouter()
 
-	// Apply global middleware
-	router.Use(loggingMiddleware)
-	router.Use(rateLimitMiddleware)
-	// router.Use(guardrails.GuardrailsMiddleware) // Placeholder for future implementation
-
-	// Public endpoints
+	// Health check
 	router.HandleFunc("/health", healthHandler).Methods("GET")
-	// router.HandleFunc("/guardrails/metrics", guardrails.GuardrailsMetricsHandler).Methods("GET") // Placeholder
-	router.HandleFunc("/ws", wsHandler)
+	router.HandleFunc("/api/health", healthHandler).Methods("GET")
 
-	// Manual health check refresh endpoint
-	router.HandleFunc("/health/refresh", func(w http.ResponseWriter, r *http.Request) {
-		performHealthChecks()
+    // Unified API endpoints
+    router.HandleFunc("/api/v1/chat", chatHandler).Methods("POST")
+    router.HandleFunc("/api/v1/assistant/chat", assistantChatHandler).Methods("POST")
+    router.HandleFunc("/api/v1/assistant/stream", assistantStreamHandler).Methods("POST")
+    router.HandleFunc("/api/v1/models", modelsHandler).Methods("GET")
+    router.HandleFunc("/api/v1/ws", wsProxyHandler)
+
+    // Service-specific proxy endpoints
+    router.PathPrefix("/api/v1/chat/").HandlerFunc(proxyHandler("chat"))
+    router.PathPrefix("/api/v1/memory/").HandlerFunc(proxyHandler("memory"))
+    router.PathPrefix("/api/v1/llm/").HandlerFunc(proxyHandler("llm"))
+    router.PathPrefix("/api/v1/vision/").HandlerFunc(proxyHandler("vision"))
+    router.PathPrefix("/api/v1/mlx/").HandlerFunc(proxyHandler("mlx"))
+    router.PathPrefix("/api/v1/analytics/").HandlerFunc(proxyHandler("analytics"))
+    router.PathPrefix("/api/v1/assistant/").HandlerFunc(proxyHandler("assistantd"))
+    router.PathPrefix("/api/v1/knowledge/").HandlerFunc(proxyHandler("knowledge"))
+    router.PathPrefix("/api/v1/context/").HandlerFunc(proxyHandler("kcontext"))
+
+	// WebSocket endpoints
+	router.HandleFunc("/ws", wsProxyHandler)
+	router.HandleFunc("/ws/chat", wsProxyHandler)
+
+	// Root endpoint
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"message":   "Health checks triggered",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
-	}).Methods("POST")
-
-	// API routes - register directly on main router for testing (NO AUTH MIDDLEWARE)
-	router.HandleFunc("/api/test", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "API Gateway routing working",
-			"path":    r.URL.Path,
-			"method":  r.Method,
-		})
-	}).Methods("GET")
-
-	// Authentication routes - Swift Auth Primary, Go Auth Fallback (NO AUTH MIDDLEWARE)
-	router.PathPrefix("/api/auth/").HandlerFunc(swiftAuthHandler)
-
-	// Core API endpoints
-	router.Handle("/api/chat", authMiddleware(http.HandlerFunc(chatHandler))).Methods("POST")
-	router.Handle("/api/memory", authMiddleware(http.HandlerFunc(memoryHandler))).Methods("GET", "POST")
-
-	// Chat service routes
-	router.Handle("/api/conversations/{path:.*}", authMiddleware(proxyHandler("chat-service"))).Methods("GET", "POST", "DELETE")
-
-	// Memory service routes
-	router.Handle("/api/memories/{path:.*}", authMiddleware(proxyHandler("memory-service"))).Methods("GET", "POST", "PUT", "DELETE")
-	router.Handle("/api/context/{path:.*}", authMiddleware(proxyHandler("memory-service"))).Methods("GET", "POST")
-
-	// Vision service routes
-	router.Handle("/api/vision/{path:.*}", authMiddleware(proxyHandler("vision-service"))).Methods("GET", "POST", "DELETE")
-
-	// Weaviate vector database routes
-	router.Handle("/api/vectors/{path:.*}", authMiddleware(proxyHandler("weaviate-client"))).Methods("GET", "POST", "DELETE")
-	router.Handle("/api/embed/{path:.*}", authMiddleware(proxyHandler("weaviate-client"))).Methods("POST")
-	router.Handle("/api/documents/{path:.*}", authMiddleware(proxyHandler("weaviate-client"))).Methods("GET", "POST", "PUT", "DELETE")
-	router.Handle("/api/search/{path:.*}", authMiddleware(proxyHandler("weaviate-client"))).Methods("POST")
-
-	// ML service routes
-	router.Handle("/api/ml/{path:.*}", authMiddleware(proxyHandler("ml-inference"))).Methods("GET", "POST")
-	router.Handle("/api/llm/{path:.*}", authMiddleware(proxyHandler("llm-router"))).Methods("GET", "POST")
-	router.Handle("/api/analytics/{path:.*}", authMiddleware(proxyHandler("parameter-analytics"))).Methods("GET", "POST")
-
-	// Metrics and monitoring
-	router.Handle("/api/metrics/{path:.*}", authMiddleware(proxyHandler("metrics-aggregator"))).Methods("GET")
-
-	// Service discovery
-	router.Handle("/api/services/{path:.*}", authMiddleware(proxyHandler("service-discovery"))).Methods("GET", "POST")
-
-	// Legacy fallback (temporary during migration)
-	router.PathPrefix("/api/legacy/").Handler(authMiddleware(proxyHandler("legacy-api")))
-
-	// Test route on main router
-	router.HandleFunc("/api-test", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Main router test route working",
-			"path":    r.URL.Path,
-			"method":  r.Method,
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"service":  "Universal AI Tools API Gateway",
+			"version":  "1.0.0",
+			"status":   "running",
+			"services": serviceRegistry,
+			"endpoints": map[string]interface{}{
+				"health":    "/health",
+				"chat":      "/api/v1/chat",
+				"models":    "/api/v1/models",
+				"websocket": "/ws",
+			},
 		})
 	}).Methods("GET")
-
-	// Configure CORS
-	// c := cors.New(cors.Options{
-	// 	AllowedOrigins:   strings.Split(getEnvOrDefault("CORS_ORIGINS", "*"), ","),
-	// 	AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-	// 	AllowedHeaders:   []string{"*"},
-	// 	AllowCredentials: true,
-	// })
-
-	// Temporarily disable CORS for testing
-	// handler := c.Handler(router)
-	handler := router
-
-	// Start health check routine
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go healthCheckServices(ctx)
 
 	// Start server
-	port := getEnvOrDefault("PORT", "8081")
+	port := getEnvOrDefault("API_GATEWAY_PORT", "9999")
 	log.Printf("API Gateway starting on port %s", port)
+	log.Printf("Available services:")
+	for name, config := range proxies {
+		log.Printf("  %s -> %s", name, config.Target)
+	}
 
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      handler,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Handler:      router,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	if err := server.ListenAndServe(); err != nil {
