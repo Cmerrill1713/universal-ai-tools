@@ -15,11 +15,17 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
-  # Custom hook to prevent direct api.* imports
+  # Custom hooks
   - repo: local
     hooks:
-      - id: forbid-api-imports
-        name: Forbid direct 'from api.' imports
-        entry: bash -c 'if grep -r "^from api\." --include="*.py" src/ api/ 2>/dev/null; then echo "❌ Found forbidden \"from api.\" imports. Use \"from api.\" only in api_server.py or router files."; exit 1; fi'
+      - id: forbid-raw-api-imports
+        name: Forbid 'from api.' imports outside allowed dirs
+        entry: bash -lc "rg -n \"^from\\s+api\\.\" src | (! grep .)"
+        language: system
+        pass_filenames: false
+      
+      - id: test-archive-isolation
+        name: Ensure /archive is not importable
+        entry: python scripts/test_archive_isolation.py
         language: system
         pass_filenames: false
