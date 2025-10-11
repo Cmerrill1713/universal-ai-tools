@@ -1,0 +1,12 @@
+{{/*
+  Renders a single chat message bubble.
+  Data: { Role string, Text string }
+*/}}
+<div class="msg {{.Role}}">
+  <div class="avatar">{{if eq .Role "assistant"}}🤖{{else}}🧑‍💻{{end}}</div>
+  <div class="bubble">
+    <p>{{ nl2br .Text }}</p>
+  </div>
+  <div class="spacer"></div>
+</div>
+

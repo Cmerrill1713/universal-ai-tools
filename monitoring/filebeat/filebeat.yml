@@ -1,0 +1,66 @@
+filebeat.inputs:
+  # Application logs
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/*.log
+      - /var/log/app/**/*.log
+    fields:
+      service: universal-ai-tools
+      environment: development
+    fields_under_root: true
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.overwrite_keys: false
+    multiline.type: pattern
+    multiline.pattern: '^\['
+    multiline.negate: true
+    multiline.match: after
+
+  # Docker container logs
+  - type: container
+    enabled: true
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+      - decode_json_fields:
+          fields: ["message"]
+          target: ""
+          overwrite_keys: true
+
+# Send to Logstash
+output.logstash:
+  hosts: ["logstash:5044"]
+  compression_level: 3
+  bulk_max_size: 2048
+  worker: 1
+
+# Kibana endpoint for setup
+setup.kibana:
+  host: "kibana:5601"
+
+# Elasticsearch template settings
+setup.template.name: "universal-ai-tools"
+setup.template.pattern: "universal-ai-tools-*"
+setup.template.enabled: true
+setup.template.overwrite: false
+
+# Logging
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# Processors
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - add_kubernetes_metadata: ~
+

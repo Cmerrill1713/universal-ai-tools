@@ -341,3 +341,13 @@ entrypoint = "./functions/ai-assistant/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/ai-assistant/*.html" ]
+<<<<<<< HEAD
+=======
+
+[redis]
+enabled = true
+port = 6379
+password = ""
+maxmemory = "256mb"
+maxmemory-policy = "allkeys-lru"
+>>>>>>> fix/stabilize-imports-endpoint-verification

@@ -1,0 +1,473 @@
+# PostgreSQL Database
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: universal-ai
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: universal_ai
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: universal-ai-secrets
+              key: postgres-password
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: universal-ai
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None
+---
+# Redis Cache
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: universal-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        args: ["redis-server", "--appendonly", "yes", "--maxmemory", "2gb"]
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: universal-ai
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+# NATS Message Queue
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats
+  namespace: universal-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+      - name: nats
+        image: nats:2.10-alpine
+        args: ["-js", "-sd", "/data"]
+        ports:
+        - containerPort: 4222
+        - containerPort: 8222
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: nats-data
+          mountPath: /data
+      volumes:
+      - name: nats-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: universal-ai
+spec:
+  selector:
+    app: nats
+  ports:
+  - name: client
+    port: 4222
+    targetPort: 4222
+  - name: http
+    port: 8222
+    targetPort: 8222
+---
+# Consul Service Discovery
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consul
+  namespace: universal-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consul
+  template:
+    metadata:
+      labels:
+        app: consul
+    spec:
+      containers:
+      - name: consul
+        image: consul:1.17
+        args: ["agent", "-server", "-bootstrap-expect=1", "-ui", "-client=0.0.0.0"]
+        ports:
+        - containerPort: 8500
+        - containerPort: 8600
+          protocol: UDP
+        env:
+        - name: CONSUL_BIND_INTERFACE
+          value: eth0
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: consul-data
+          mountPath: /consul/data
+      volumes:
+      - name: consul-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul
+  namespace: universal-ai
+spec:
+  selector:
+    app: consul
+  ports:
+  - name: http
+    port: 8500
+    targetPort: 8500
+  - name: dns
+    port: 8600
+    targetPort: 8600
+    protocol: UDP
+---
+# Jaeger Tracing
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: universal-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one:1.52
+        env:
+        - name: COLLECTOR_ZIPKIN_HOST_PORT
+          value: "9411"
+        ports:
+        - containerPort: 5775
+          protocol: UDP
+        - containerPort: 6831
+          protocol: UDP
+        - containerPort: 6832
+          protocol: UDP
+        - containerPort: 5778
+        - containerPort: 16686
+        - containerPort: 14268
+        - containerPort: 14250
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  namespace: universal-ai
+spec:
+  selector:
+    app: jaeger
+  ports:
+  - name: zipkin
+    port: 5775
+    targetPort: 5775
+    protocol: UDP
+  - name: compact
+    port: 6831
+    targetPort: 6831
+    protocol: UDP
+  - name: binary
+    port: 6832
+    targetPort: 6832
+    protocol: UDP
+  - name: config
+    port: 5778
+    targetPort: 5778
+  - name: ui
+    port: 16686
+    targetPort: 16686
+  - name: collector
+    port: 14268
+    targetPort: 14268
+  - name: grpc
+    port: 14250
+    targetPort: 14250
+---
+# Prometheus Monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: universal-ai
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      
+      - job_name: 'go-services'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - universal-ai
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_language]
+            action: keep
+            regex: go
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+      
+      - job_name: 'rust-services'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - universal-ai
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_language]
+            action: keep
+            regex: rust
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+      
+      - job_name: 'node-backend'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - universal-ai
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: node-backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: universal-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.48.0
+        args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus
+        - --web.console.libraries=/usr/share/prometheus/console_libraries
+        - --web.console.templates=/usr/share/prometheus/consoles
+        ports:
+        - containerPort: 9090
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus
+        - name: prometheus-data
+          mountPath: /prometheus
+      volumes:
+      - name: prometheus-config
+        configMap:
+          name: prometheus-config
+      - name: prometheus-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: universal-ai
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - port: 9090
+    targetPort: 9090
+---
+# Grafana Dashboard
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: universal-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:10.2.0
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: universal-ai-secrets
+              key: grafana-password
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: grafana-data
+          mountPath: /var/lib/grafana
+      volumes:
+      - name: grafana-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: universal-ai
+spec:
+  selector:
+    app: grafana
+  ports:
+  - port: 3000
+    targetPort: 3000

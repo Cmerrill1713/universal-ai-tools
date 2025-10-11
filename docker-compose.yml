@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 version: '3.8'
 
 name: universal-ai-tools
@@ -79,6 +80,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+=======
+name: universal-ai-tools
+
+services:
+  # NOTE: This docker-compose provides infrastructure services only.
+  # For application microservices, use: docker compose -f docker-compose.go-rust.yml up
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
   # PostgreSQL Database
   postgres:
@@ -86,7 +94,11 @@ services:
     container_name: universal-ai-tools-postgres
     restart: unless-stopped
     ports:
+<<<<<<< HEAD
       - "5432:5432"
+=======
+      - '5432:5432'
+>>>>>>> fix/stabilize-imports-endpoint-verification
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -98,7 +110,11 @@ services:
     networks:
       - ai-network
     healthcheck:
+<<<<<<< HEAD
       test: ["CMD-SHELL", "pg_isready -U postgres"]
+=======
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+>>>>>>> fix/stabilize-imports-endpoint-verification
       interval: 10s
       timeout: 5s
       retries: 5
@@ -109,7 +125,11 @@ services:
     container_name: universal-ai-tools-redis
     restart: unless-stopped
     ports:
+<<<<<<< HEAD
       - "6379:6379"
+=======
+      - '6379:6379'
+>>>>>>> fix/stabilize-imports-endpoint-verification
     command: >
       redis-server
       --appendonly yes
@@ -121,7 +141,11 @@ services:
     networks:
       - ai-network
     healthcheck:
+<<<<<<< HEAD
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+=======
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+>>>>>>> fix/stabilize-imports-endpoint-verification
       interval: 10s
       timeout: 5s
       retries: 5
@@ -132,7 +156,11 @@ services:
     container_name: universal-ai-tools-ollama
     restart: unless-stopped
     ports:
+<<<<<<< HEAD
       - "11434:11434"
+=======
+      - '11434:11434'
+>>>>>>> fix/stabilize-imports-endpoint-verification
     volumes:
       - ollama_models:/root/.ollama
     environment:
@@ -149,7 +177,11 @@ services:
         reservations:
           memory: 4G
     # Automatically pull popular models on startup
+<<<<<<< HEAD
     entrypoint: ["/bin/bash", "-c"]
+=======
+    entrypoint: ['/bin/bash', '-c']
+>>>>>>> fix/stabilize-imports-endpoint-verification
     command:
       - |
         ollama serve &
@@ -159,6 +191,7 @@ services:
         ollama pull codellama:7b || true
         wait
 
+<<<<<<< HEAD
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
@@ -181,13 +214,19 @@ services:
       timeout: 10s
       retries: 3
 
+=======
+>>>>>>> fix/stabilize-imports-endpoint-verification
   # Prometheus for Metrics
   prometheus:
     image: prom/prometheus:latest
     container_name: universal-ai-tools-prometheus
     restart: unless-stopped
     ports:
+<<<<<<< HEAD
       - "9090:9090"
+=======
+      - '9090:9090'
+>>>>>>> fix/stabilize-imports-endpoint-verification
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -205,7 +244,11 @@ services:
     container_name: universal-ai-tools-grafana
     restart: unless-stopped
     ports:
+<<<<<<< HEAD
       - "3003:3000"
+=======
+      - '3003:3000'
+>>>>>>> fix/stabilize-imports-endpoint-verification
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
@@ -224,7 +267,11 @@ services:
     container_name: universal-ai-tools-pgadmin
     restart: unless-stopped
     ports:
+<<<<<<< HEAD
       - "5050:80"
+=======
+      - '5050:80'
+>>>>>>> fix/stabilize-imports-endpoint-verification
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@example.com}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
@@ -241,7 +288,11 @@ services:
     container_name: universal-ai-tools-redis-commander
     restart: unless-stopped
     ports:
+<<<<<<< HEAD
       - "8081:8081"
+=======
+      - '8081:8081'
+>>>>>>> fix/stabilize-imports-endpoint-verification
     environment:
       - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-}
     depends_on:
@@ -251,6 +302,108 @@ services:
     profiles:
       - tools
 
+<<<<<<< HEAD
+=======
+  # Weaviate Vector Database
+  # Supabase Local Development
+  supabase-db:
+    image: supabase/postgres:15.1.0.117
+    container_name: universal-ai-tools-supabase-db
+    restart: unless-stopped
+    ports:
+      - '54321:5432'
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  supabase-api:
+    image: supabase/gotrue:v2.99.0
+    container_name: universal-ai-tools-supabase-api
+    restart: unless-stopped
+    ports:
+      - '54322:9999'
+    environment:
+      - GOTRUE_API_HOST=0.0.0.0
+      - GOTRUE_API_PORT=9999
+      - API_EXTERNAL_URL=http://localhost:54322
+      - GOTRUE_DB_DRIVER=postgres
+      - GOTRUE_DB_DATABASE_URL=postgresql://postgres:postgres@supabase-db:5432/postgres
+      - GOTRUE_SITE_URL=http://localhost:3000
+      - GOTRUE_URI_ALLOW_LIST=*
+      - GOTRUE_DISABLE_SIGNUP=false
+      - GOTRUE_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - GOTRUE_JWT_EXP=3600
+      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
+      - GOTRUE_JWT_ADMIN_ROLES=service_role
+      - GOTRUE_JWT_AUD=authenticated
+      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
+      - GOTRUE_EXTERNAL_EMAIL_ENABLED=true
+      - GOTRUE_MAILER_AUTOCONFIRM=true
+      - GOTRUE_SMTP_ADMIN_EMAIL=admin@example.com
+      - GOTRUE_SMTP_HOST=supabase-mail
+      - GOTRUE_SMTP_PORT=2500
+      - GOTRUE_SMTP_USER=supabase
+      - GOTRUE_SMTP_PASS=supabase
+      - GOTRUE_SMTP_SENDER_NAME=supabase
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  supabase-rest:
+    image: postgrest/postgrest:v11.2.0
+    container_name: universal-ai-tools-supabase-rest
+    restart: unless-stopped
+    ports:
+      - '54323:3000'
+    environment:
+      - PGRST_DB_URI=postgresql://postgres:postgres@supabase-db:5432/postgres
+      - PGRST_DB_SCHEMAS=public,storage,graphql_public
+      - PGRST_DB_ANON_ROLE=anon
+      - PGRST_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - PGRST_DB_USE_LEGACY_GUCS=false
+      - PGRST_APP_SETTINGS_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - PGRST_APP_SETTINGS_JWT_EXP=3600
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    container_name: universal-ai-tools-weaviate
+    restart: unless-stopped
+    ports:
+      - '8090:8080'
+      - '50051:50051'
+    environment:
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - ai-network
+
+>>>>>>> fix/stabilize-imports-endpoint-verification
 volumes:
   postgres_data:
     driver: local
@@ -264,14 +417,30 @@ volumes:
     driver: local
   grafana_data:
     driver: local
+<<<<<<< HEAD
   nginx_cache:
     driver: local
   pgadmin_data:
     driver: local
+=======
+  pgadmin_data:
+    driver: local
+  weaviate_data:
+    driver: local
+  supabase_data:
+    driver: local
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 networks:
   ai-network:
     driver: bridge
+<<<<<<< HEAD
     ipam:
       config:
         - subnet: 172.20.0.0/16
+=======
+    name: universal-ai-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+>>>>>>> fix/stabilize-imports-endpoint-verification

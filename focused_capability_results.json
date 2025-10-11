@@ -1,0 +1,132 @@
+[
+  {
+    "test": "LLM - llama3.2:3b",
+    "status": "\u2705 PASS",
+    "duration": "0.34s",
+    "model": "llama3.2:3b",
+    "response_length": 70,
+    "response_preview": "Glowing screens surround\nConnected, yet alone souls\nDigital haze falls"
+  },
+  {
+    "test": "LLM - llama2:latest",
+    "status": "\u2705 PASS",
+    "duration": "5.77s",
+    "model": "llama2:latest",
+    "response_length": 2438,
+    "response_preview": "\nQuantum computing is a new way of doing computer science that uses the strange and fascinating prop..."
+  },
+  {
+    "test": "LLM - gemma3:1b",
+    "status": "\u2705 PASS",
+    "duration": "6.96s",
+    "model": "gemma3:1b",
+    "response_length": 4407,
+    "response_preview": "Okay, here's a short story about a robot, aiming for a contemplative and slightly melancholic tone. ..."
+  },
+  {
+    "test": "ML Inference - Creative Writing",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "task": "Creative Writing",
+    "output_length": 0,
+    "output_preview": ""
+  },
+  {
+    "test": "ML Inference - Code Generation",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "task": "Code Generation",
+    "output_length": 0,
+    "output_preview": ""
+  },
+  {
+    "test": "ML Inference - Data Analysis",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "task": "Data Analysis",
+    "output_length": 0,
+    "output_preview": ""
+  },
+  {
+    "test": "Vision - Red Square",
+    "status": "\u2705 PASS",
+    "duration": "0.01s",
+    "image_type": "Red Square",
+    "description": "A standard image with moderate resolution"
+  },
+  {
+    "test": "Vision - Blue Circle",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "image_type": "Blue Circle",
+    "description": "A standard image with moderate resolution"
+  },
+  {
+    "test": "Vision - Green Rectangle",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "image_type": "Green Rectangle",
+    "description": "A standard image with moderate resolution"
+  },
+  {
+    "test": "Fast LLM - fast-llm-v1",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "model": "fast-llm-v1",
+    "response_length": 97,
+    "response_preview": "This is a mock response from the fast-llm service...."
+  },
+  {
+    "test": "Fast LLM - fast-llm-v2",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "model": "fast-llm-v2",
+    "response_length": 97,
+    "response_preview": "This is a mock response from the fast-llm service...."
+  },
+  {
+    "test": "Fast LLM - fast-llm-turbo",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "model": "fast-llm-turbo",
+    "response_length": 97,
+    "response_preview": "This is a mock response from the fast-llm service...."
+  },
+  {
+    "test": "Memory - Conversation Memory",
+    "status": "\u2705 PASS",
+    "duration": "0.01s",
+    "memory_type": "Conversation Memory",
+    "memory_id": "a1cfec95-b7c9-4c67-bbcf-8bc9da8edd12"
+  },
+  {
+    "test": "Memory - Knowledge Memory",
+    "status": "\u2705 PASS",
+    "duration": "0.01s",
+    "memory_type": "Knowledge Memory",
+    "memory_id": "abc09c28-2584-4ae7-98ca-a6044ce14e87"
+  },
+  {
+    "test": "Memory - Experience Memory",
+    "status": "\u2705 PASS",
+    "duration": "0.00s",
+    "memory_type": "Experience Memory",
+    "memory_id": "c9a52c5a-c545-4218-b49d-903ee922a44a"
+  },
+  {
+    "test": "API Gateway Orchestration",
+    "status": "\u2705 PASS",
+    "duration": "12.66s",
+    "response_length": 5989,
+    "response_preview": "API Gateway Orchestration with Multiple Services\n==============================================\n\nIn ..."
+  },
+  {
+    "test": "Complex Vision-LLM-Memory Workflow",
+    "status": "\u2705 PASS",
+    "duration": "3.77s",
+    "steps_completed": 3,
+    "vision_description": "A standard image with moderate resolution...",
+    "llm_response": "Based on the given vision analysis, \"A standard im...",
+    "memory_id": "b4a69548-58bf-4ee4-87a7-7fe6b3861093"
+  }
+]

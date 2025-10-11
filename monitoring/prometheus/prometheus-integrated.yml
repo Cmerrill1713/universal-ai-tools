@@ -1,0 +1,160 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'universal-ai-tools'
+    environment: 'integrated-grounding'
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # =============================================================================
+  # CORE AI SERVICES (Enhanced with Knowledge Grounding)
+  # =============================================================================
+  
+  # Enhanced Chat Service with Knowledge Grounding
+  - job_name: 'chat-service-grounded'
+    static_configs:
+      - targets: ['chat-service-grounded:8010']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'chat-service-with-knowledge'
+
+  # Enhanced MLX Service with Knowledge Context
+  - job_name: 'mlx-service-grounded'
+    static_configs:
+      - targets: ['mlx-service-grounded:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'mlx-service-with-knowledge'
+
+  # Supabase Database
+  - job_name: 'supabase-db'
+    static_configs:
+      - targets: ['supabase-db:5432']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # KNOWLEDGE GROUNDING SERVICES
+  # =============================================================================
+
+  # Knowledge Gateway
+  - job_name: 'knowledge-gateway'
+    static_configs:
+      - targets: ['knowledge-gateway:8088']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Knowledge Sync Service
+  - job_name: 'knowledge-sync'
+    static_configs:
+      - targets: ['knowledge-sync:8089']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Knowledge Context Manager
+  - job_name: 'knowledge-context'
+    static_configs:
+      - targets: ['knowledge-context:8090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Weaviate Vector Database
+  - job_name: 'weaviate-grounded'
+    static_configs:
+      - targets: ['weaviate-grounded:8080']
+    metrics_path: '/v1/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Redis Cache
+  - job_name: 'redis-grounded'
+    static_configs:
+      - targets: ['redis-grounded:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # MONITORING SERVICES
+  # =============================================================================
+
+  # Enhanced AI Metrics Exporter
+  - job_name: 'ai-metrics-exporter'
+    static_configs:
+      - targets: ['ai-metrics-exporter:9092']
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Prometheus Self-Monitoring
+  - job_name: 'prometheus-grounded'
+    static_configs:
+      - targets: ['prometheus-grounded:9090']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Grafana
+  - job_name: 'grafana-grounded'
+    static_configs:
+      - targets: ['grafana-grounded:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # EXTERNAL AI SERVICES
+  # =============================================================================
+
+  # Ollama (if running)
+  - job_name: 'ollama'
+    static_configs:
+      - targets: ['localhost:11434']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    scrape_configs:
+      - job_name: 'ollama-health'
+        static_configs:
+          - targets: ['localhost:11434']
+        metrics_path: '/health'
+        scrape_interval: 30s
+
+  # =============================================================================
+  # KNOWLEDGE-SPECIFIC METRICS
+  # =============================================================================
+
+  # Knowledge Document Processing
+  - job_name: 'knowledge-processing'
+    static_configs:
+      - targets: ['knowledge-processing:8091']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 5s
+
+  # Knowledge Embedding Service
+  - job_name: 'knowledge-embeddings'
+    static_configs:
+      - targets: ['knowledge-embeddings:8092']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 5s

@@ -1,0 +1,82 @@
+# GitHub Dependabot configuration for Universal AI Tools
+# Automatically updates dependencies and creates pull requests
+
+version: 2
+updates:
+  # NPM dependencies
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+    open-pull-requests-limit: 10
+    reviewers:
+      - 'christianmerrill'
+    assignees:
+      - 'christianmerrill'
+    commit-message:
+      prefix: 'deps'
+      prefix-development: 'deps-dev'
+      include: 'scope'
+    # Group related updates
+    groups:
+      typescript:
+        patterns:
+          - '@types/*'
+          - 'typescript'
+          - 'ts-*'
+      testing:
+        patterns:
+          - 'jest*'
+          - '@jest/*'
+          - 'vitest*'
+          - 'playwright*'
+      linting:
+        patterns:
+          - 'eslint*'
+          - '@typescript-eslint/*'
+          - 'prettier*'
+      ai-frameworks:
+        patterns:
+          - 'langchain*'
+          - '@langchain/*'
+          - 'guardrails-ai'
+          - 'dspy*'
+
+  # Docker dependencies
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'tuesday'
+      time: '09:00'
+    reviewers:
+      - 'christianmerrill'
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'wednesday'
+      time: '09:00'
+    reviewers:
+      - 'christianmerrill'
+
+  # Python dependencies (for DSPy and PyVision)
+  - package-ecosystem: 'pip'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'thursday'
+      time: '09:00'
+    reviewers:
+      - 'christianmerrill'
+    groups:
+      python-ai:
+        patterns:
+          - 'dspy*'
+          - 'torch*'
+          - 'transformers*'
+          - 'mlx*'

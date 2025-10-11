@@ -1,0 +1,16 @@
+{
+  "extends": ["config:base", "group:allNonMajor", "schedule:weekly"],
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "matchPackagePatterns": ["eslint", "prettier"],
+      "groupName": "linting"
+    }
+  ],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 3
+}

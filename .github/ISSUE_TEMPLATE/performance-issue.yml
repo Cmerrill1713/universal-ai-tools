@@ -1,0 +1,129 @@
+name: 🚀 Performance Issue
+description: Report performance problems or optimization opportunities
+title: '[PERFORMANCE] '
+labels: ['performance', 'optimization']
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 Performance Issue Report
+
+        Thank you for helping us optimize Universal AI Tools! Please provide detailed information about the performance issue.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component Affected
+      description: Which component is experiencing performance issues?
+      options:
+        - Electron Frontend
+        - Rust Services (LLM Router, ML Inference, Vector DB)
+        - Go Services (WebSocket, API Gateway, Agent Orchestrator)
+        - TypeScript Backend (Legacy)
+        - Database/Supabase
+        - Overall System Performance
+        - Memory Usage
+        - Startup Time
+        - Network Performance
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Performance Impact
+      description: How severe is the performance impact?
+      options:
+        - Critical - Application unusable
+        - High - Significant impact on user experience
+        - Medium - Noticeable slowdown
+        - Low - Minor performance degradation
+    validations:
+      required: true
+
+  - type: textarea
+    id: performance-metrics
+    attributes:
+      label: Performance Metrics
+      description: Provide specific performance measurements if available
+      placeholder: |
+        Example:
+        - Response time: 5 seconds (expected: <1 second)
+        - Memory usage: 2GB RAM (previous: 500MB)
+        - CPU usage: 80% (previous: 20%)
+        - Startup time: 30 seconds (expected: 5 seconds)
+    validations:
+      required: true
+
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System Information
+      description: Your system configuration
+      placeholder: |
+        - OS: macOS 14.1 / Windows 11 / Ubuntu 22.04
+        - RAM: 16GB
+        - CPU: M1 Pro / Intel i7 / AMD Ryzen
+        - Node.js: v20.10.0
+        - Electron version: (if frontend issue)
+        - Browser: (if web-based)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the performance issue
+      placeholder: |
+        1. Start the application with `npm run dev`
+        2. Navigate to the Chat page
+        3. Send a message with large content
+        4. Notice significant delay in response
+    validations:
+      required: true
+
+  - type: textarea
+    id: profiling-data
+    attributes:
+      label: Profiling Data (Optional)
+      description: If you've done any profiling, please include the results
+      placeholder: |
+        - Chrome DevTools Performance tab results
+        - Node.js profiling data
+        - Memory heap snapshots
+        - Network timing information
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Performance
+      description: What performance characteristics do you expect?
+      placeholder: |
+        - Response time should be under 1 second
+        - Memory usage should be stable under 500MB
+        - CPU usage should remain below 30%
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be relevant
+      placeholder: |
+        - Does this happen consistently or intermittently?
+        - Is this a regression from a previous version?
+        - Any error messages in console/logs?
+        - Screenshot of performance monitoring tools?
+
+  - type: checkboxes
+    id: investigation
+    attributes:
+      label: Investigation Checklist
+      description: Have you tried these basic troubleshooting steps?
+      options:
+        - label: I've cleared browser cache / restarted the application
+        - label: I've checked system resource availability (CPU, RAM, disk)
+        - label: I've verified this isn't a network connectivity issue
+        - label: I've checked the console/logs for error messages
+        - label: I've tested on a different device/environment (if possible)

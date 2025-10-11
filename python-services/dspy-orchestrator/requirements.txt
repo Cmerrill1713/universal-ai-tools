@@ -1,0 +1,8 @@
+websockets>=11.0.0
+asyncio
+logging
+typing
+datetime
+os
+sys
+json

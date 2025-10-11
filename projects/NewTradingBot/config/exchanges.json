@@ -1,0 +1,596 @@
+{
+  "exchanges": {
+    "binance": {
+      "name": "Binance",
+      "id": "binance",
+      "website": "https://www.binance.com",
+      "api_docs": "https://binance-docs.github.io/apidocs/",
+      "countries": ["CN"],
+      "certified": true,
+      "pro": true,
+      "has": {
+        "spot": true,
+        "margin": true,
+        "future": true,
+        "option": false,
+        "cancelAllOrders": true,
+        "cancelOrder": true,
+        "cancelOrders": true,
+        "createDepositAddress": true,
+        "createOrder": true,
+        "editOrder": true,
+        "fetchBalance": true,
+        "fetchClosedOrders": true,
+        "fetchCurrencies": true,
+        "fetchDepositAddress": true,
+        "fetchDeposits": true,
+        "fetchMarkets": true,
+        "fetchMyTrades": true,
+        "fetchOHLCV": true,
+        "fetchOpenOrders": true,
+        "fetchOrder": true,
+        "fetchOrderBook": true,
+        "fetchOrders": true,
+        "fetchStatus": true,
+        "fetchTicker": true,
+        "fetchTickers": true,
+        "fetchTime": true,
+        "fetchTrades": true,
+        "fetchTradingFee": true,
+        "fetchTradingFees": true,
+        "fetchWithdrawals": true,
+        "withdraw": true
+      },
+      "urls": {
+        "logo": "https://user-images.githubusercontent.com/1294454/29604020-d5483cdc-87ee-11e7-94c7-d1a8d9169293.jpg",
+        "api": {
+          "public": "https://api.binance.com/api",
+          "private": "https://api.binance.com/api",
+          "wapi": "https://api.binance.com/wapi",
+          "sapi": "https://api.binance.com/sapi",
+          "dapiPublic": "https://dapi.binance.com/dapi",
+          "dapiPrivate": "https://dapi.binance.com/dapi",
+          "fapiPublic": "https://fapi.binance.com/fapi",
+          "fapiPrivate": "https://fapi.binance.com/fapi"
+        },
+        "test": {
+          "public": "https://testnet.binance.vision/api",
+          "private": "https://testnet.binance.vision/api",
+          "wapi": "https://testnet.binance.vision/wapi",
+          "sapi": "https://testnet.binance.vision/sapi"
+        }
+      },
+      "fees": {
+        "trading": {
+          "maker": 0.001,
+          "taker": 0.001,
+          "percentage": true,
+          "tierBased": true,
+          "tiers": {
+            "taker": [
+              [0, 0.001],
+              [100, 0.0009],
+              [500, 0.0008],
+              [1000, 0.0007],
+              [2500, 0.0007],
+              [5000, 0.0006],
+              [10000, 0.0005],
+              [20000, 0.0004],
+              [50000, 0.0003],
+              [100000, 0.0002]
+            ],
+            "maker": [
+              [0, 0.001],
+              [100, 0.0009],
+              [500, 0.0008],
+              [1000, 0.0007],
+              [2500, 0.0007],
+              [5000, 0.0006],
+              [10000, 0.0005],
+              [20000, 0.0004],
+              [50000, 0.0003],
+              [100000, 0.0002]
+            ]
+          }
+        }
+      },
+      "limits": {
+        "amount": {
+          "min": 0.00000001,
+          "max": 9000000000
+        },
+        "price": {
+          "min": 0.00000001,
+          "max": 1000000
+        },
+        "cost": {
+          "min": 0.001,
+          "max": null
+        }
+      },
+      "precision": {
+        "amount": 8,
+        "price": 8
+      },
+      "options": {
+        "defaultType": "spot",
+        "adjustForTimeDifference": false,
+        "recvWindow": 5000,
+        "timeDifference": 0,
+        "timestamps": {},
+        "newOrderRespType": {
+          "market": "FULL",
+          "limit": "RESULT"
+        }
+      },
+      "settings": {
+        "rate_limit": 1200,
+        "timeout": 30000,
+        "retry_count": 3,
+        "enable_rate_limit": true
+      }
+    },
+    "coinbase": {
+      "name": "Coinbase Pro",
+      "id": "coinbase",
+      "website": "https://pro.coinbase.com",
+      "api_docs": "https://docs.pro.coinbase.com/",
+      "countries": ["US"],
+      "certified": true,
+      "pro": true,
+      "has": {
+        "spot": true,
+        "margin": false,
+        "future": false,
+        "option": false,
+        "cancelOrder": true,
+        "createOrder": true,
+        "fetchBalance": true,
+        "fetchClosedOrders": true,
+        "fetchCurrencies": true,
+        "fetchMarkets": true,
+        "fetchMyTrades": true,
+        "fetchOHLCV": true,
+        "fetchOpenOrders": true,
+        "fetchOrder": true,
+        "fetchOrderBook": true,
+        "fetchOrders": true,
+        "fetchTicker": true,
+        "fetchTickers": true,
+        "fetchTime": true,
+        "fetchTrades": true,
+        "fetchTradingFees": true
+      },
+      "urls": {
+        "logo": "https://user-images.githubusercontent.com/1294454/41764625-63b7ffde-760a-11e8-996d-a6328fa9347a.jpg",
+        "api": {
+          "public": "https://api.pro.coinbase.com",
+          "private": "https://api.pro.coinbase.com"
+        },
+        "test": {
+          "public": "https://api-public.sandbox.pro.coinbase.com",
+          "private": "https://api-public.sandbox.pro.coinbase.com"
+        }
+      },
+      "fees": {
+        "trading": {
+          "maker": 0.005,
+          "taker": 0.005,
+          "percentage": true,
+          "tierBased": true,
+          "tiers": {
+            "taker": [
+              [0, 0.005],
+              [10000, 0.0035],
+              [50000, 0.0025],
+              [100000, 0.002],
+              [1000000, 0.0018],
+              [10000000, 0.0015],
+              [50000000, 0.001],
+              [300000000, 0.0008]
+            ],
+            "maker": [
+              [0, 0.005],
+              [10000, 0.0035],
+              [50000, 0.0025],
+              [100000, 0.0015],
+              [1000000, 0.001],
+              [10000000, 0.0007],
+              [50000000, 0.0003],
+              [300000000, 0]
+            ]
+          }
+        }
+      },
+      "limits": {
+        "amount": {
+          "min": 0.001,
+          "max": 10000000
+        },
+        "price": {
+          "min": 0.01,
+          "max": 1000000
+        },
+        "cost": {
+          "min": 1,
+          "max": null
+        }
+      },
+      "precision": {
+        "amount": 8,
+        "price": 2
+      },
+      "options": {
+        "stablePairs": ["USDC", "USD", "DAI", "USDT"]
+      },
+      "settings": {
+        "rate_limit": 10,
+        "timeout": 30000,
+        "retry_count": 3,
+        "enable_rate_limit": true
+      }
+    },
+    "kraken": {
+      "name": "Kraken",
+      "id": "kraken",
+      "website": "https://www.kraken.com",
+      "api_docs": "https://www.kraken.com/features/api",
+      "countries": ["US"],
+      "certified": true,
+      "pro": true,
+      "has": {
+        "spot": true,
+        "margin": true,
+        "future": true,
+        "option": false,
+        "cancelOrder": true,
+        "createOrder": true,
+        "fetchBalance": true,
+        "fetchClosedOrders": true,
+        "fetchCurrencies": true,
+        "fetchMarkets": true,
+        "fetchMyTrades": true,
+        "fetchOHLCV": true,
+        "fetchOpenOrders": true,
+        "fetchOrder": true,
+        "fetchOrderBook": true,
+        "fetchOrders": false,
+        "fetchTicker": true,
+        "fetchTickers": true,
+        "fetchTime": true,
+        "fetchTrades": true,
+        "fetchTradingFees": true,
+        "withdraw": true
+      },
+      "urls": {
+        "logo": "https://user-images.githubusercontent.com/51840849/76173629-fc67fb00-61b1-11ea-84fe-f2de582f58a3.jpg",
+        "api": {
+          "public": "https://api.kraken.com",
+          "private": "https://api.kraken.com"
+        },
+        "test": null
+      },
+      "fees": {
+        "trading": {
+          "maker": 0.0016,
+          "taker": 0.0026,
+          "percentage": true,
+          "tierBased": true,
+          "tiers": {
+            "taker": [
+              [0, 0.0026],
+              [50000, 0.0024],
+              [100000, 0.0022],
+              [250000, 0.002],
+              [500000, 0.0018],
+              [1000000, 0.0016],
+              [2500000, 0.0014],
+              [5000000, 0.0012],
+              [10000000, 0.001]
+            ],
+            "maker": [
+              [0, 0.0016],
+              [50000, 0.0014],
+              [100000, 0.0012],
+              [250000, 0.001],
+              [500000, 0.0008],
+              [1000000, 0.0006],
+              [2500000, 0.0004],
+              [5000000, 0.0002],
+              [10000000, 0]
+            ]
+          }
+        }
+      },
+      "limits": {
+        "amount": {
+          "min": 0.00000001,
+          "max": 1000000000
+        },
+        "price": {
+          "min": 0.0001,
+          "max": 200000
+        },
+        "cost": {
+          "min": 0.5,
+          "max": null
+        }
+      },
+      "precision": {
+        "amount": 8,
+        "price": 5
+      },
+      "settings": {
+        "rate_limit": 1,
+        "timeout": 30000,
+        "retry_count": 3,
+        "enable_rate_limit": true
+      }
+    },
+    "bybit": {
+      "name": "Bybit",
+      "id": "bybit",
+      "website": "https://www.bybit.com",
+      "api_docs": "https://bybit-exchange.github.io/docs/",
+      "countries": ["VG"],
+      "certified": false,
+      "pro": true,
+      "has": {
+        "spot": true,
+        "margin": false,
+        "future": true,
+        "option": false,
+        "cancelAllOrders": true,
+        "cancelOrder": true,
+        "createOrder": true,
+        "fetchBalance": true,
+        "fetchClosedOrders": true,
+        "fetchMarkets": true,
+        "fetchMyTrades": true,
+        "fetchOHLCV": true,
+        "fetchOpenOrders": true,
+        "fetchOrder": true,
+        "fetchOrderBook": true,
+        "fetchOrders": true,
+        "fetchPositions": true,
+        "fetchTicker": true,
+        "fetchTickers": true,
+        "fetchTime": true,
+        "fetchTrades": true
+      },
+      "urls": {
+        "logo": "https://user-images.githubusercontent.com/51840849/76547799-daff5b80-649e-11ea-87fb-3be9bac08954.jpg",
+        "api": {
+          "public": "https://api.bybit.com",
+          "private": "https://api.bybit.com"
+        },
+        "test": {
+          "public": "https://api-testnet.bybit.com",
+          "private": "https://api-testnet.bybit.com"
+        }
+      },
+      "fees": {
+        "trading": {
+          "maker": 0.001,
+          "taker": 0.0006,
+          "percentage": true,
+          "tierBased": false
+        }
+      },
+      "limits": {
+        "amount": {
+          "min": 0.001,
+          "max": 1000000
+        },
+        "price": {
+          "min": 0.01,
+          "max": 1000000
+        },
+        "cost": {
+          "min": 5,
+          "max": null
+        }
+      },
+      "precision": {
+        "amount": 6,
+        "price": 2
+      },
+      "settings": {
+        "rate_limit": 120,
+        "timeout": 30000,
+        "retry_count": 3,
+        "enable_rate_limit": true
+      }
+    },
+    "ftx": {
+      "name": "FTX",
+      "id": "ftx",
+      "website": "https://ftx.com",
+      "api_docs": "https://docs.ftx.com/",
+      "countries": ["BS"],
+      "certified": false,
+      "pro": true,
+      "status": "inactive",
+      "note": "Exchange ceased operations",
+      "has": {
+        "spot": true,
+        "margin": true,
+        "future": true,
+        "option": true,
+        "cancelAllOrders": true,
+        "cancelOrder": true,
+        "createOrder": true,
+        "fetchBalance": true,
+        "fetchClosedOrders": true,
+        "fetchMarkets": true,
+        "fetchMyTrades": true,
+        "fetchOHLCV": true,
+        "fetchOpenOrders": true,
+        "fetchOrder": true,
+        "fetchOrderBook": true,
+        "fetchOrders": true,
+        "fetchPositions": true,
+        "fetchTicker": true,
+        "fetchTickers": true,
+        "fetchTime": true,
+        "fetchTrades": true
+      },
+      "urls": {
+        "logo": "https://user-images.githubusercontent.com/1294454/67149189-df896480-f2b0-11e9-8816-41593e17f9ec.jpg",
+        "api": {
+          "public": "https://ftx.com/api",
+          "private": "https://ftx.com/api"
+        }
+      },
+      "fees": {
+        "trading": {
+          "maker": 0.0002,
+          "taker": 0.0007,
+          "percentage": true,
+          "tierBased": true
+        }
+      }
+    }
+  },
+  "supported_symbols": {
+    "major_pairs": [
+      "BTC/USDT",
+      "ETH/USDT", 
+      "BNB/USDT",
+      "SOL/USDT",
+      "ADA/USDT",
+      "XRP/USDT",
+      "DOT/USDT",
+      "DOGE/USDT",
+      "AVAX/USDT",
+      "MATIC/USDT"
+    ],
+    "stable_pairs": [
+      "USDT/USDC",
+      "BUSD/USDT",
+      "DAI/USDT",
+      "USDC/USD"
+    ],
+    "defi_tokens": [
+      "UNI/USDT",
+      "SUSHI/USDT",
+      "AAVE/USDT",
+      "COMP/USDT",
+      "MKR/USDT",
+      "YFI/USDT",
+      "1INCH/USDT",
+      "CRV/USDT"
+    ]
+  },
+  "timeframes": {
+    "1m": "1 minute",
+    "3m": "3 minutes",
+    "5m": "5 minutes", 
+    "15m": "15 minutes",
+    "30m": "30 minutes",
+    "1h": "1 hour",
+    "2h": "2 hours",
+    "4h": "4 hours",
+    "6h": "6 hours",
+    "8h": "8 hours",
+    "12h": "12 hours",
+    "1d": "1 day",
+    "3d": "3 days",
+    "1w": "1 week",
+    "1M": "1 month"
+  },
+  "order_types": {
+    "market": "Market Order",
+    "limit": "Limit Order",
+    "stop": "Stop Order",
+    "stop_limit": "Stop Limit Order",
+    "take_profit": "Take Profit Order",
+    "take_profit_limit": "Take Profit Limit Order",
+    "trailing_stop": "Trailing Stop Order",
+    "oco": "One-Cancels-Other Order",
+    "iceberg": "Iceberg Order"
+  },
+  "time_in_force": {
+    "GTC": "Good Till Cancel",
+    "IOC": "Immediate or Cancel", 
+    "FOK": "Fill or Kill",
+    "GTD": "Good Till Date",
+    "Day": "Day Order"
+  },
+  "default_settings": {
+    "primary_exchange": "binance",
+    "backup_exchange": "coinbase",
+    "default_timeframe": "1h",
+    "default_symbol": "BTC/USDT",
+    "enable_testnet": true,
+    "paper_trading": true,
+    "auto_reconnect": true,
+    "max_reconnect_attempts": 5,
+    "heartbeat_interval": 30,
+    "request_timeout": 30,
+    "rate_limit_buffer": 0.9
+  },
+  "websocket_endpoints": {
+    "binance": {
+      "spot": "wss://stream.binance.com:9443/ws/",
+      "futures": "wss://fstream.binance.com/ws/",
+      "testnet_spot": "wss://testnet.binance.vision/ws/",
+      "testnet_futures": "wss://stream.binancefuture.com/ws/"
+    },
+    "coinbase": {
+      "spot": "wss://ws-feed.pro.coinbase.com",
+      "sandbox": "wss://ws-feed-public.sandbox.pro.coinbase.com"
+    },
+    "kraken": {
+      "spot": "wss://ws.kraken.com",
+      "futures": "wss://futures.kraken.com/ws/v1"
+    },
+    "bybit": {
+      "spot": "wss://stream.bybit.com/spot/public/v3",
+      "futures": "wss://stream.bybit.com/contract/usdt/public/v3",
+      "testnet": "wss://stream-testnet.bybit.com/contract/usdt/public/v3"
+    }
+  },
+  "market_data_sources": {
+    "primary": {
+      "exchange": "binance",
+      "priority": 1,
+      "backup": "coinbase"
+    },
+    "alternative": [
+      {
+        "name": "CoinGecko",
+        "api_url": "https://api.coingecko.com/api/v3/",
+        "type": "aggregator",
+        "free_tier": true
+      },
+      {
+        "name": "Alpha Vantage", 
+        "api_url": "https://www.alphavantage.co/query",
+        "type": "traditional_markets",
+        "free_tier": true
+      },
+      {
+        "name": "Polygon.io",
+        "api_url": "https://api.polygon.io/",
+        "type": "stocks_crypto",
+        "free_tier": false
+      }
+    ]
+  },
+  "risk_management": {
+    "position_sizing": {
+      "max_position_percent": 10,
+      "max_correlation": 0.7,
+      "max_drawdown": 20,
+      "stop_loss_percent": 2,
+      "take_profit_percent": 5
+    },
+    "portfolio_limits": {
+      "max_open_positions": 10,
+      "max_daily_trades": 50,
+      "max_leverage": 3,
+      "cash_reserve_percent": 10
+    }
+  }
+}

@@ -1,0 +1,54 @@
+[package]
+name = "ai-orchestration-platform"
+version = "0.2.0"
+edition = "2021"
+description = "Enterprise-Grade AI Orchestration Platform"
+authors = ["Universal AI Tools"]
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+parking_lot = "0.12"
+dashmap = "6.0"
+futures = "0.3"
+async-trait = "0.1"
+axum = { version = "0.7", features = ["ws", "json", "query"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+clap = { version = "4.5", features = ["derive"] }
+config = "0.14"
+anyhow = "1.0"
+rand = "0.8"
+rand_chacha = "0.3"
+
+# Local crates - all the advanced systems we built
+agent-orchestrator = { path = "../agent-orchestrator" }
+llm-router = { path = "../llm-router" }
+fast-llm-coordinator = { path = "../fast-llm-coordinator" }
+# monitoring-system = { path = "../monitoring-system" }  # Temporarily disabled - missing module implementations
+# testing-framework = { path = "../testing-framework" }  # Temporarily disabled - missing module implementations
+# dashboard-system = { path = "../dashboard-system" }  # Temporarily disabled - no lib target
+
+[features]
+default = ["all-features"]
+all-features = ["agent-orchestration", "llm-routing", "monitoring", "testing", "dashboard"]
+agent-orchestration = []
+llm-routing = []
+monitoring = []
+testing = []
+dashboard = []
+production = []
+
+[[bin]]
+name = "ai-platform"
+path = "src/bin/platform.rs"
+
+[[bin]]
+name = "platform-cli"
+path = "src/bin/cli.rs"

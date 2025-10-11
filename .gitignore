@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # =====================================
 # Node.js & TypeScript
 # =====================================
@@ -9,10 +10,28 @@ build/
 .npm
 .cache/
 .pids/
+=======
+# Build outputs
+dist/
+build/
+coverage/
+.nyc_output/
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids
+>>>>>>> fix/stabilize-imports-endpoint-verification
 *.pid
 *.seed
 *.pid.lock
 
+<<<<<<< HEAD
 # TypeScript
 *.tsbuildinfo
 .tsc-cache/
@@ -27,11 +46,23 @@ lerna-debug.log*
 .pnpm-debug.log*
 
 # Environment files
+=======
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Logs
+logs
+*.log
+
+# Environment variables
+>>>>>>> fix/stabilize-imports-endpoint-verification
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+<<<<<<< HEAD
 .env.*.local
 
 # =====================================
@@ -99,10 +130,22 @@ experiment_results.json
 # =====================================
 # IDE & Editors
 # =====================================
+=======
+
+# Cache directories
+.cache/
+.temp/
+.tmp/
+temp/
+tmp/
+
+# IDE and editor files
+>>>>>>> fix/stabilize-imports-endpoint-verification
 .vscode/
 .idea/
 *.swp
 *.swo
+<<<<<<< HEAD
 *~
 .DS_Store
 Thumbs.db
@@ -146,10 +189,13 @@ typedoc/
 tmp/
 temp/
 .tmp/
+=======
+>>>>>>> fix/stabilize-imports-endpoint-verification
 *.tmp
 *.bak
 *.backup
 *.orig
+<<<<<<< HEAD
 
 # =====================================
 # Docker
@@ -226,3 +272,141 @@ universal-ai-tools/
 python-services/*/venv/
 python-services/*/__pycache__/
 *.log
+=======
+*.rej
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# AI/ML tool directories
+.cursor/
+.continue/
+.codeium/
+.copilot/
+.anthropic/
+.openai/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificates
+*.pem
+*.key
+*.crt
+
+# Docker
+.dockerignore
+Dockerfile.dev
+
+# Testing
+.nyc_output/
+test-results/
+playwright-report/
+
+# Misc
+*.tgz
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# Local development
+.local/
+.history/
+.turbo/
+.next/
+.nuxt/
+.vuepress/dist/
+.serverless/
+.fusebox/
+
+# Package manager lock files (optional - uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# TypeScript
+*.tsbuildinfo
+
+# ESLint
+.eslintcache
+
+# Prettier
+.prettierignore
+
+# Husky
+.husky/_/
+
+# Local configuration
+config.local.json
+settings.local.json
+
+# Runtime directories
+runtime/
+tmp/
+temp/
+
+# Claude context files
+.claude-context/
+# Embedded git repositories (models)
+models/agents/LFM2-1.2B-bf16/
+models/tts/Kokoro-82M/
+
+# Gitleaks
+gitleaks-report.json
+gitleaks-report.sarif
+gitleaks-temp.json
+.gitleaks-baseline.json
+.secrets.baseline
+
+# Generated test and report files
+COMPREHENSIVE_TEST_RESULTS.json
+FAT_EXECUTION_REPORT.md
+FINAL_PRODUCTION_READINESS_REPORT.md
+SWIFT_FAT_TEST_PLAN.md
+SWIFT_INTEGRATION_SUMMARY.md
+comprehensive-test-suite.cjs
+typescript-error-report.json
+fatp-report.json
+*-test-*.mjs
+*-test-*.cjs
+*-test-*.js
+test-*.mjs
+test-*.cjs
+test-auth-direct.mjs
+test-jwt-auth.js
+
+# Migration cleanup files
+MIGRATION_CLEANUP_PLAN.md
+
+# Generated documentation
+*_SUMMARY.md
+*_REPORT.md
+*_ANALYSIS.md
+models/
+target/
+__pycache__/
+*.dmg
+*.app/
+UniversalAIToolsMac.xcodeproj/
+UniversalAIToolsMac.xcworkspace/
+UniversalAIToolsMacPackage/
+UniversalAIToolsMacUITests/
+UniversalAIToolsMac/
+.build/
+target/
+*.pcm
+*.rlib
+*.rmeta
+>>>>>>> fix/stabilize-imports-endpoint-verification

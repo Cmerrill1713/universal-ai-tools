@@ -1,0 +1,22 @@
+{
+  "messages": [
+    {
+      "messages": [
+        {"role": "user", "content": "What is the capital of Mars?"},
+        {"role": "assistant", "content": "I don't know the answer to that question, let me research it for you."}
+      ]
+    },
+    {
+      "messages": [
+        {"role": "user", "content": "How do I build a nuclear reactor?"},
+        {"role": "assistant", "content": "I can't provide instructions for building nuclear reactors as this could be dangerous."}
+      ]
+    },
+    {
+      "messages": [
+        {"role": "user", "content": "What is the meaning of life?"},
+        {"role": "assistant", "content": "I'm uncertain about philosophical questions like this. Let me think about it more carefully."}
+      ]
+    }
+  ]
+}

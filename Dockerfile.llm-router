@@ -1,0 +1,68 @@
+# Multi-stage build for llm-router service
+FROM rust:1.75-slim as builder
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates/llm-router/Cargo.toml ./crates/llm-router/
+
+# Create dummy main file for dependency resolution
+RUN mkdir -p crates/llm-router/src
+RUN echo "fn main() {}" > crates/llm-router/src/main.rs
+
+# Build dependencies
+RUN cargo build --release -p llm-router
+RUN rm -rf crates/llm-router/src
+
+# Copy source code
+COPY crates/llm-router/ ./crates/llm-router/
+
+# Build the application
+RUN cargo build --release -p llm-router
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r llmrouter && useradd -r -g llmrouter llmrouter
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/target/release/llm-router /app/llm-router
+
+# Set permissions
+RUN chown -R llmrouter:llmrouter /app
+RUN chmod +x /app/llm-router
+
+# Switch to non-root user
+USER llmrouter
+
+# Expose port
+EXPOSE 3033
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3033/health || exit 1
+
+# Default environment variables
+ENV LLM_ROUTER_PORT=3033
+ENV OLLAMA_URL=http://host.docker.internal:11434
+
+# Run the application
+CMD ["/app/llm-router"]

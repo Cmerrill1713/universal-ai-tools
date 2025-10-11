@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Universal AI Tools Launcher
+# Starts the Node.js server and opens the web interface
+
+APP_DIR="$(dirname "$0")/../Resources"
+cd "$APP_DIR"
+
+# Set environment variables
+export NODE_ENV=production
+export AI_TOOLS_PORT=9999
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
+# Check if Node.js is available
+if ! command -v node &> /dev/null; then
+    osascript -e 'display dialog "Node.js is required to run Universal AI Tools. Please install Node.js from nodejs.org" buttons {"OK"} default button "OK"'
+    exit 1
+fi
+
+# Check if Supabase is running
+if ! curl -s http://localhost:54321/health &> /dev/null; then
+    osascript -e 'display dialog "Supabase is not running. Please start Supabase first with: supabase start" buttons {"OK"} default button "OK"'
+    exit 1
+fi
+
+# Install dependencies if needed
+if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies..."
+    npm install
+fi
+
+# Build if needed
+if [ ! -d "dist" ]; then
+    echo "Building application..."
+    npm run build
+fi
+
+# Start the server in background
+node dist/server.js &
+SERVER_PID=$!
+
+# Wait a moment for server to start
+sleep 2
+
+# Open the web interface
+open "http://localhost:9999"
+
+# Keep the app running
+echo "Universal AI Tools is running..."
+echo "Server PID: $SERVER_PID"
+echo "Access the interface at: http://localhost:9999"
+echo "Supabase dashboard: Open supabase_dashboard.html"
+
+# Wait for the server process
+wait $SERVER_PID

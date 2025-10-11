@@ -44,7 +44,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(app_state);
 
     // Start server
+<<<<<<< HEAD
     let port = std::env::var("PORT").unwrap_or_else(|_| "8084".to_string());
+=======
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3035".to_string());
+>>>>>>> fix/stabilize-imports-endpoint-verification
     let addr = format!("0.0.0.0:{}", port);
 
     info!("🌐 Server starting on http://{}", addr);

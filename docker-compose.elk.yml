@@ -1,0 +1,212 @@
+name: universal-ai-tools-elk
+
+services:
+  # Elasticsearch - Search and Analytics Engine
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    container_name: universal-ai-tools-elasticsearch
+    restart: unless-stopped
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    environment:
+      # Cluster settings
+      - node.name=elasticsearch
+      - cluster.name=universal-ai-cluster
+      - discovery.type=single-node
+      
+      # Memory settings - CRITICAL for stability
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - bootstrap.memory_lock=true
+      
+      # Security settings - disabled for local development
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      
+      # Network settings
+      - network.host=0.0.0.0
+      - http.host=0.0.0.0
+      - transport.host=localhost
+      
+      # Performance settings
+      - indices.query.bool.max_clause_count=10000
+      - action.destructive_requires_name=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - elasticsearch_logs:/usr/share/elasticsearch/logs
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Logstash - Data Processing Pipeline
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.3
+    container_name: universal-ai-tools-logstash
+    restart: unless-stopped
+    ports:
+      - '5044:5044'  # Beats input
+      - '9600:9600'  # Logstash API
+      - '5000:5000'  # TCP input
+    environment:
+      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.monitoring.enabled=false
+    volumes:
+      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./monitoring/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - logstash_data:/usr/share/logstash/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9600/_node/stats || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Kibana - Data Visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.3
+    container_name: universal-ai-tools-kibana
+    restart: unless-stopped
+    ports:
+      - '5601:5601'
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+      - SERVER_HOST=0.0.0.0
+      - ELASTICSEARCH_USERNAME=
+      - ELASTICSEARCH_PASSWORD=
+      - xpack.security.enabled=false
+      - xpack.encryptedSavedObjects.encryptionKey=fhjskloppd678ehkdfdlliverpoolfcr
+      - TELEMETRY_ENABLED=false
+    volumes:
+      - kibana_data:/usr/share/kibana/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:5601/api/status || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Filebeat - Log Shipper
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.3
+    container_name: universal-ai-tools-filebeat
+    restart: unless-stopped
+    user: root
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOST=http://kibana:5601
+    volumes:
+      - ./monitoring/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - filebeat_data:/usr/share/filebeat/data
+      - ./logs:/var/log/app:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: filebeat -e -strict.perms=false
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    networks:
+      - ai-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Metricbeat - System & Service Metrics (Optional)
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:8.11.3
+    container_name: universal-ai-tools-metricbeat
+    restart: unless-stopped
+    user: root
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOST=http://kibana:5601
+    volumes:
+      - ./monitoring/metricbeat/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - metricbeat_data:/usr/share/metricbeat/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /:/hostfs:ro
+    command: metricbeat -e -strict.perms=false -system.hostfs=/hostfs
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    networks:
+      - ai-network
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+volumes:
+  elasticsearch_data:
+    driver: local
+  elasticsearch_logs:
+    driver: local
+  logstash_data:
+    driver: local
+  kibana_data:
+    driver: local
+  filebeat_data:
+    driver: local
+  metricbeat_data:
+    driver: local
+
+networks:
+  ai-network:
+    external: true
+    name: universal-ai-network
+

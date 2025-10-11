@@ -1,0 +1,100 @@
+#!/bin/bash
+# Universal AI Tools - Post-installation Script
+
+echo "🚀 Configuring Universal AI Tools..."
+
+# Set up LaunchAgent for auto-start
+LAUNCH_AGENT="$HOME/Library/LaunchAgents/com.universal.ai-tools.plist"
+LAUNCH_AGENT_DIR="$(dirname "$LAUNCH_AGENT")"
+
+# Create LaunchAgents directory if it doesn't exist
+mkdir -p "$LAUNCH_AGENT_DIR"
+
+# Create LaunchAgent plist
+cat > "$LAUNCH_AGENT" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.universal.ai-tools</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Applications/Universal AI Tools.app/Contents/MacOS/Universal AI Tools</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/universal-ai-tools.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/universal-ai-tools-error.log</string>
+    <key>WorkingDirectory</key>
+    <string>/Applications/Universal AI Tools.app/Contents/Resources</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+        <key>NODE_ENV</key>
+        <string>production</string>
+    </dict>
+</dict>
+</plist>
+EOF
+
+echo "   ✅ LaunchAgent created"
+
+# Set correct permissions
+chmod 644 "$LAUNCH_AGENT"
+chmod +x "/Applications/Universal AI Tools.app/Contents/MacOS/Universal AI Tools"
+
+# Create desktop shortcuts
+DESKTOP="$HOME/Desktop"
+if [ -d "$DESKTOP" ]; then
+    # Universal AI Tools Manager shortcut
+    cat > "$DESKTOP/Universal AI Tools Manager.command" << 'EOF'
+#!/bin/bash
+cd "/Users/Shared/Universal AI Tools"
+./service-manager.sh menu
+EOF
+    chmod +x "$DESKTOP/Universal AI Tools Manager.command"
+    
+    # Quick Start shortcut
+    cat > "$DESKTOP/Start Universal AI Tools.command" << 'EOF'
+#!/bin/bash
+open "http://localhost:9999"
+EOF
+    chmod +x "$DESKTOP/Start Universal AI Tools.command"
+    
+    echo "   ✅ Desktop shortcuts created"
+fi
+
+# Load and start the service
+launchctl load "$LAUNCH_AGENT"
+sleep 2
+
+# Verify service is running
+if curl -f http://localhost:9999/health > /dev/null 2>&1; then
+    echo "   ✅ Service started successfully"
+    
+    # Open welcome page
+    sleep 1
+    open "http://localhost:9999" > /dev/null 2>&1 || true
+else
+    echo "   ⚠️  Service may need manual start"
+fi
+
+echo ""
+echo "🎉 Universal AI Tools installation complete!"
+echo ""
+echo "📋 Access Points:"
+echo "   • Web Interface: http://localhost:9999"
+echo "   • App: /Applications/Universal AI Tools.app"
+echo "   • Manager: ~/Desktop/Universal AI Tools Manager.command"
+echo ""
+echo "📚 Documentation:"
+echo "   • Quick Reference: /Users/Shared/Universal AI Tools/"
+echo "   • Dashboard: Open supabase_dashboard.html"
+
+exit 0

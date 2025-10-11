@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-09-09T05:51:48.918Z",
+  "summary": {
+    "totalTests": 4,
+    "successfulBuilds": 1,
+    "averageBuildTime": 139,
+    "fastestBuild": 139,
+    "slowestBuild": 6837,
+    "successRate": 25
+  },
+  "results": [
+    {
+      "command": "npm run clean:cache",
+      "duration": 139,
+      "success": true,
+      "errorCount": 0,
+      "warningCount": 0,
+      "outputSize": 1001
+    },
+    {
+      "command": "npm run type-check:fast",
+      "duration": 3775,
+      "success": false,
+      "errorCount": 564,
+      "warningCount": 0,
+      "outputSize": 1002
+    },
+    {
+      "command": "npm run validate:dev",
+      "duration": 1398,
+      "success": false,
+      "errorCount": 564,
+      "warningCount": 0,
+      "outputSize": 1002
+    },
+    {
+      "command": "npm run build:parallel",
+      "duration": 6837,
+      "success": false,
+      "errorCount": 845,
+      "warningCount": 0,
+      "outputSize": 955
+    }
+  ],
+  "recommendations": [
+    "Fix failing builds to improve development velocity",
+    "Address TypeScript errors - consider stricter tsconfig for development"
+  ]
+}

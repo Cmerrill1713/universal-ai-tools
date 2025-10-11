@@ -1,0 +1,80 @@
+{
+  "timestamp": 1757694875.6550632,
+  "benchmark_duration": 134.3773992061615,
+  "metrics": {
+    "rust_services": {
+      "total_crates": 8,
+      "compile_success": 7,
+      "compile_rate": 87.5,
+      "total_warnings": 49,
+      "total_errors": 3,
+      "clippy_issues": 7,
+      "quality_score": 0
+    },
+    "go_services": {
+      "total_services": 10,
+      "build_success": 10,
+      "build_rate": 100.0,
+      "total_warnings": 0,
+      "total_errors": 0,
+      "vet_issues": 0,
+      "quality_score": 100
+    },
+    "python_scripts": {
+      "total_files": 24666,
+      "total_lines": 11149209,
+      "total_functions": 443616,
+      "total_classes": 101751,
+      "total_imports": 245822,
+      "complexity_score": 1190552,
+      "style_issues": 128299,
+      "avg_complexity_per_function": 2.6837444997475295,
+      "quality_score": 0
+    },
+    "overall_metrics": {
+      "overall_score": 25.0,
+      "rust_score": 0,
+      "go_score": 100,
+      "python_score": 0,
+      "security_score": 0,
+      "performance_score": 0,
+      "documentation_score": 0,
+      "weights": {
+        "rust": 0.3,
+        "go": 0.25,
+        "python": 0.1,
+        "security": 0.2,
+        "performance": 0.1,
+        "documentation": 0.05
+      }
+    },
+    "security": {
+      "hardcoded_secrets": 3020,
+      "sql_injection_risks": 2,
+      "unsafe_deserialization": 665,
+      "missing_input_validation": 0,
+      "insecure_random": 997,
+      "file_path_traversal": 4817,
+      "total_issues": 9501,
+      "security_score": 0
+    },
+    "performance": {
+      "inefficient_loops": 3581,
+      "memory_leaks": 495,
+      "blocking_operations": 19151,
+      "unnecessary_allocations": 514,
+      "missing_caching": 8860,
+      "synchronous_operations": 1,
+      "total_issues": 32602,
+      "performance_score": 0
+    },
+    "documentation": {
+      "total_docs": 1082,
+      "total_lines": 226474,
+      "code_examples": 11627,
+      "api_docs": 412,
+      "missing_docs": 58,
+      "documentation_score": 0
+    }
+  }
+}

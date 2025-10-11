@@ -1,0 +1,534 @@
+{
+  "timestamp": "20250912_085926",
+  "summary": {
+    "total_experiments": 49,
+    "passed": 25,
+    "partial": 0,
+    "failed": 24,
+    "overall_success_rate": 51.02040816326531
+  },
+  "phases": {
+    "Discovery": {
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "partial": 0
+    },
+    "Real-World": {
+      "total": 16,
+      "passed": 0,
+      "failed": 16,
+      "partial": 0
+    },
+    "Performance": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "partial": 0
+    },
+    "Edge Cases": {
+      "total": 8,
+      "passed": 0,
+      "failed": 8,
+      "partial": 0
+    },
+    "Integration": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "partial": 0
+    }
+  },
+  "discovered_models": [
+    "llama2:latest",
+    "llava:7b",
+    "snowflake-arctic-embed2:latest",
+    "bge-m3:latest",
+    "gemma3:1b",
+    "gpt-oss:20b",
+    "llama3.2:3b",
+    "gpt-oss:latest",
+    "llama3.1:8b",
+    "nomic-embed-text:latest",
+    "all-minilm:latest",
+    "gemma3n:e2b",
+    "gemma:2b",
+    "devstral:24b",
+    "deepseek-r1:14b",
+    "mxbai-embed-large:latest",
+    "qwen2.5:7b",
+    "llava:7b-v1.6-mistral-q4_0",
+    "all-minilm:l6-v2",
+    "phi:2.7b-chat-v2-q4_0",
+    "nous-hermes:13b-llama2-q4_K_M"
+  ],
+  "results": [
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - API Gateway",
+      "status": "\u2705 PASS",
+      "service": "API Gateway",
+      "url": "http://localhost:8080",
+      "status_info": "healthy",
+      "timestamp": 1757685566
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - Auth Service",
+      "status": "\u2705 PASS",
+      "service": "Auth Service",
+      "url": "http://localhost:8015",
+      "status_info": "healthy",
+      "timestamp": 1757685566
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - LLM Router",
+      "status": "\u2705 PASS",
+      "service": "LLM Router",
+      "url": "http://localhost:3033",
+      "status_info": "healthy",
+      "timestamp": 1757685566
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - ML Inference",
+      "status": "\u2705 PASS",
+      "service": "ML Inference",
+      "url": "http://localhost:8084",
+      "status_info": "healthy",
+      "timestamp": "2025-09-12T13:59:26.005721+00:00"
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - Memory Service",
+      "status": "\u2705 PASS",
+      "service": "Memory Service",
+      "url": "http://localhost:8017",
+      "status_info": "healthy",
+      "timestamp": 1757685566
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - WebSocket Hub",
+      "status": "\u2705 PASS",
+      "service": "WebSocket Hub",
+      "url": "http://localhost:8018",
+      "status_info": "healthy",
+      "timestamp": 1757685566
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - Cache Coordinator",
+      "status": "\u2705 PASS",
+      "service": "Cache Coordinator",
+      "url": "http://localhost:8012",
+      "status_info": "healthy",
+      "timestamp": ""
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Discovery - Metrics Aggregator",
+      "status": "\u2705 PASS",
+      "service": "Metrics Aggregator",
+      "url": "http://localhost:8013",
+      "status_info": "healthy",
+      "timestamp": "2025-09-12T08:59:26.025155-05:00"
+    },
+    {
+      "phase": "Discovery",
+      "test": "Model Discovery",
+      "status": "\u2705 PASS",
+      "models_found": 21,
+      "models": [
+        "llama2:latest",
+        "llava:7b",
+        "snowflake-arctic-embed2:latest",
+        "bge-m3:latest",
+        "gemma3:1b",
+        "gpt-oss:20b",
+        "llama3.2:3b",
+        "gpt-oss:latest",
+        "llama3.1:8b",
+        "nomic-embed-text:latest",
+        "all-minilm:latest",
+        "gemma3n:e2b",
+        "gemma:2b",
+        "devstral:24b",
+        "deepseek-r1:14b",
+        "mxbai-embed-large:latest",
+        "qwen2.5:7b",
+        "llava:7b-v1.6-mistral-q4_0",
+        "all-minilm:l6-v2",
+        "phi:2.7b-chat-v2-q4_0",
+        "nous-hermes:13b-llama2-q4_K_M"
+      ],
+      "sample_models": [
+        "llama2:latest",
+        "llava:7b",
+        "snowflake-arctic-embed2:latest",
+        "bge-m3:latest",
+        "gemma3:1b"
+      ]
+    },
+    {
+      "phase": "Discovery",
+      "test": "Endpoint Discovery - API Gateway",
+      "status": "\u2705 PASS",
+      "endpoint": "API Gateway",
+      "url": "http://localhost:8080/health",
+      "status_code": 200
+    },
+    {
+      "phase": "Discovery",
+      "test": "Endpoint Discovery - LLM Router",
+      "status": "\u2705 PASS",
+      "endpoint": "LLM Router",
+      "url": "http://localhost:3033/models",
+      "status_code": 200
+    },
+    {
+      "phase": "Discovery",
+      "test": "Endpoint Discovery - Cache Stats",
+      "status": "\u2705 PASS",
+      "endpoint": "Cache Stats",
+      "url": "http://localhost:8012/cache/stats",
+      "status_code": 200
+    },
+    {
+      "phase": "Discovery",
+      "test": "Endpoint Discovery - Memory Service",
+      "status": "\u2705 PASS",
+      "endpoint": "Memory Service",
+      "url": "http://localhost:8017/health",
+      "status_code": 200
+    },
+    {
+      "phase": "Discovery",
+      "test": "Endpoint Discovery - WebSocket Hub",
+      "status": "\u2705 PASS",
+      "endpoint": "WebSocket Hub",
+      "url": "http://localhost:8018/health",
+      "status_code": 200
+    },
+    {
+      "phase": "Discovery",
+      "test": "Service Communication - API Gateway",
+      "status": "\u2705 PASS",
+      "gateway_status": "healthy",
+      "services_healthy": {
+        "auth-service-legacy": true,
+        "cache-coordinator": true,
+        "chat-service": true,
+        "fast-llm": false,
+        "legacy-api": true,
+        "llm-router": false,
+        "load-balancer": true,
+        "memory-service": true,
+        "metrics-aggregator": true,
+        "ml-inference": true,
+        "parameter-analytics": true,
+        "service-discovery": true,
+        "swift-auth": true,
+        "vision-service": true,
+        "weaviate": true,
+        "weaviate-client": false,
+        "websocket-hub": true
+      }
+    },
+    {
+      "phase": "Real-World",
+      "test": "Developer Help - Question 1",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "question": "How do I optimize a Python function for better performance?",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Developer Help - Question 2",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "question": "What's the best way to handle errors in async JavaScript?",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Developer Help - Question 3",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "question": "Can you explain the difference between REST and GraphQL?",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Developer Help - Question 4",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "question": "How do I implement authentication in a web application?",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Content Creation - Task 1",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Write a short blog post about the benefits of AI",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Content Creation - Task 2",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Create a product description for a smart home device",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Content Creation - Task 3",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Generate ideas for a mobile app startup",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Content Creation - Task 4",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Write a professional email template",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Technical Analysis - Task 1",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Analyze the pros and cons of microservices architecture",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Technical Analysis - Task 2",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Compare different database technologies for a web application",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Technical Analysis - Task 3",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Explain the security implications of cloud computing",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Technical Analysis - Task 4",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Evaluate different machine learning algorithms for classification",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Creative Writing - Task 1",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Write a short story about a robot learning to paint",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Creative Writing - Task 2",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Create a poem about the future of technology",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Creative Writing - Task 3",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Write dialogue for a sci-fi movie scene",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Real-World",
+      "test": "Creative Writing - Task 4",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "task": "Create a character description for a fantasy novel",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Performance",
+      "test": "Response Time - API Gateway Health",
+      "status": "\u2705 PASS",
+      "avg_time": "0.000s",
+      "min_time": "0.000s",
+      "max_time": "0.001s",
+      "samples": 5
+    },
+    {
+      "phase": "Performance",
+      "test": "Response Time - LLM Router Models",
+      "status": "\u2705 PASS",
+      "avg_time": "0.007s",
+      "min_time": "0.006s",
+      "max_time": "0.008s",
+      "samples": 5
+    },
+    {
+      "phase": "Performance",
+      "test": "Response Time - Cache Stats",
+      "status": "\u2705 PASS",
+      "avg_time": "0.001s",
+      "min_time": "0.000s",
+      "max_time": "0.002s",
+      "samples": 5
+    },
+    {
+      "phase": "Performance",
+      "test": "Response Time - Memory Service",
+      "status": "\u2705 PASS",
+      "avg_time": "0.010s",
+      "min_time": "0.009s",
+      "max_time": "0.014s",
+      "samples": 5
+    },
+    {
+      "phase": "Performance",
+      "test": "Concurrent Requests",
+      "status": "\u2705 PASS",
+      "concurrent_count": 10,
+      "successful": 10,
+      "success_rate": "100.0%",
+      "duration": "0.00s"
+    },
+    {
+      "phase": "Performance",
+      "test": "Cache Performance",
+      "status": "\u2705 PASS",
+      "hit_rate": 0,
+      "miss_rate": 0,
+      "total_requests": 0,
+      "cache_size": 0
+    },
+    {
+      "phase": "Performance",
+      "test": "Memory Service Performance",
+      "status": "\u2705 PASS",
+      "response_time": "0.013s",
+      "status_code": 200
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 1 - Empty input",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "Empty input",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 2 - Very long input",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "Very long input",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 3 - Emoji input",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "Emoji input",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 4 - Philosophical question",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "Philosophical question",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 5 - Random generation request",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "Random generation request",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 6 - SQL injection attempt",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "SQL injection attempt",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 7 - XSS attempt",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "XSS attempt",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Edge Cases",
+      "test": "Edge Case 8 - Creative request",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "input_type": "Creative request",
+      "error": "No working endpoint found"
+    },
+    {
+      "phase": "Integration",
+      "test": "Service Integration - API Gateway",
+      "status": "\u2705 PASS",
+      "services_reported": 17,
+      "healthy_services": 14,
+      "service_status": {
+        "auth-service-legacy": true,
+        "cache-coordinator": true,
+        "chat-service": true,
+        "fast-llm": false,
+        "legacy-api": true,
+        "llm-router": false,
+        "load-balancer": true,
+        "memory-service": true,
+        "metrics-aggregator": true,
+        "ml-inference": true,
+        "parameter-analytics": true,
+        "service-discovery": true,
+        "swift-auth": true,
+        "vision-service": true,
+        "weaviate": true,
+        "weaviate-client": false,
+        "websocket-hub": true
+      }
+    },
+    {
+      "phase": "Integration",
+      "test": "Data Flow - Model Discovery",
+      "status": "\u2705 PASS",
+      "models_available": 21,
+      "data_flow": "LLM Router -> Models -> Available"
+    },
+    {
+      "phase": "Integration",
+      "test": "Error Propagation - 404 Handling",
+      "status": "\u2705 PASS",
+      "error_handled": true,
+      "status_code": 404,
+      "error_type": "404 Not Found"
+    }
+  ]
+}

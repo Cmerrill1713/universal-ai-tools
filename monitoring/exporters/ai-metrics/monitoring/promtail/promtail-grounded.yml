@@ -1,0 +1,61 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki-grounded:3100/loki/api/v1/push
+
+scrape_configs:
+  # AI Services logs
+  - job_name: chat-service
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: chat-service
+          service: chat-service
+          __path__: /app/logs/chat-service/*.log
+    
+  - job_name: mlx-service
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: mlx-service
+          service: mlx-service
+          __path__: /app/logs/mlx-service/*.log
+    
+  - job_name: hrm-service
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: hrm-service
+          service: hrm-service
+          __path__: /app/logs/hrm-service/*.log
+
+  # Grounding services logs
+  - job_name: health-monitor
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: health-monitor
+          service: health-monitor
+          __path__: /var/log/health-monitor/*.log
+    
+  - job_name: ai-metrics-exporter
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: ai-metrics-exporter
+          service: ai-metrics-exporter
+          __path__: /var/log/ai-metrics/*.log
+
+  # General application logs
+  - job_name: app-logs
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: app-logs
+          service: universal-ai-tools
+          __path__: /app/logs/*.log

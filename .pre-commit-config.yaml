@@ -1,0 +1,31 @@
+# Pre-commit hooks configuration
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # Custom hooks
+  - repo: local
+    hooks:
+      - id: forbid-raw-api-imports
+        name: Forbid 'from api.' imports outside allowed dirs
+        entry: bash -lc "rg -n \"^from\\s+api\\.\" src | (! grep .)"
+        language: system
+        pass_filenames: false
+      
+      - id: test-archive-isolation
+        name: Ensure /archive is not importable
+        entry: python scripts/test_archive_isolation.py
+        language: system
+        pass_filenames: false

@@ -1,0 +1,234 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Universal AI Tools - Rust Services Performance",
+    "tags": ["rust", "performance", "ai-services"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Response Times",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rust_service_request_duration_seconds_bucket{service=~\"ab_mcts|parameter_analytics|multimodal_fusion|intelligent_parameter\"})",
+            "legendFormat": "95th percentile - {{service}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rust_service_request_duration_seconds_bucket{service=~\"ab_mcts|parameter_analytics|multimodal_fusion|intelligent_parameter\"})",
+            "legendFormat": "50th percentile - {{service}}",
+            "refId": "B"
+          }
+        ],
+        "xAxis": {"show": true},
+        "yAxis": {"show": true, "unit": "s"},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Rust vs TypeScript Performance Comparison",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(rust_service_performance_improvement_ratio{service=\"ab_mcts\"})",
+            "legendFormat": "AB-MCTS Improvement",
+            "refId": "A"
+          },
+          {
+            "expr": "avg(rust_service_performance_improvement_ratio{service=\"parameter_analytics\"})",
+            "legendFormat": "Parameter Analytics Improvement", 
+            "refId": "B"
+          },
+          {
+            "expr": "avg(rust_service_performance_improvement_ratio{service=\"multimodal_fusion\"})",
+            "legendFormat": "Multimodal Fusion Improvement",
+            "refId": "C"
+          },
+          {
+            "expr": "avg(rust_service_performance_improvement_ratio{service=\"intelligent_parameter\"})",
+            "legendFormat": "Intelligent Parameter Improvement",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 1,
+            "displayName": "${__field.labels.service}"
+          }
+        },
+        "gridPos": {"h": 4, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Memory Usage by Service",
+        "type": "graph", 
+        "targets": [
+          {
+            "expr": "rust_service_memory_usage_bytes{service=~\"ab_mcts|parameter_analytics|multimodal_fusion|intelligent_parameter\"}",
+            "legendFormat": "{{service}} Memory Usage",
+            "refId": "A"
+          }
+        ],
+        "yAxis": {"unit": "bytes"},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 4,
+        "title": "Service Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(rust_service_requests_total{service=~\"ab_mcts|parameter_analytics|multimodal_fusion|intelligent_parameter\"}[5m])",
+            "legendFormat": "{{service}} req/s",
+            "refId": "A"
+          }
+        ],
+        "yAxis": {"unit": "reqps"},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(rust_service_errors_total{service=~\"ab_mcts|parameter_analytics|multimodal_fusion|intelligent_parameter\"}[5m])",
+            "legendFormat": "{{service}} errors/s",
+            "refId": "A"
+          }
+        ],
+        "yAxis": {"unit": "short"},
+        "gridPos": {"h": 4, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 6,
+        "title": "CPU Usage by Service",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(rust_service_cpu_usage_seconds_total{service=~\"ab_mcts|parameter_analytics|multimodal_fusion|intelligent_parameter\"}[5m]) * 100",
+            "legendFormat": "{{service}} CPU %",
+            "refId": "A"
+          }
+        ],
+        "yAxis": {"unit": "percent", "max": 100},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Native Library Loading Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rust_service_native_loaded{service=~\"ab_mcts|parameter_analytics|multimodal_fusion|intelligent_parameter\"}",
+            "legendFormat": "{{service}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "mappings": [
+              {"type": "value", "value": "1", "text": "Native"},
+              {"type": "value", "value": "0", "text": "Fallback"}
+            ],
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Intelligent Parameter Optimization Effectiveness",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rust_service_parameter_optimization_quality_score",
+            "legendFormat": "Quality Score",
+            "refId": "A"
+          },
+          {
+            "expr": "rust_service_parameter_optimization_latency_reduction",
+            "legendFormat": "Latency Reduction %",
+            "refId": "B"
+          }
+        ],
+        "yAxis": {"unit": "short"},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "AB-MCTS Decision Tree Statistics",
+        "type": "graph", 
+        "targets": [
+          {
+            "expr": "rust_service_ab_mcts_tree_depth",
+            "legendFormat": "Average Tree Depth",
+            "refId": "A"
+          },
+          {
+            "expr": "rust_service_ab_mcts_simulations_per_second",
+            "legendFormat": "Simulations/sec",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Multimodal Fusion Cross-Modal Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(rust_service_multimodal_connections_discovered)",
+            "legendFormat": "Avg Connections Discovered",
+            "refId": "A"
+          },
+          {
+            "expr": "avg(rust_service_multimodal_processing_time_ms)",
+            "legendFormat": "Avg Processing Time (ms)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 2
+          }
+        },
+        "gridPos": {"h": 4, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 11,
+        "title": "System Resource Utilization",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"universal-ai-tools\"}",
+            "legendFormat": "Total Memory",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(process_cpu_seconds_total{job=\"universal-ai-tools\"}[5m]) * 100",
+            "legendFormat": "Total CPU %",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}

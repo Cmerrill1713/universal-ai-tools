@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "transpileOnly": true,
+  "files": true,
+  "ts-node": {
+    "esm": false
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "summary": {
+    "total_tests": 9,
+    "successful_tests": 9,
+    "success_rate": 100.0,
+    "overall_score": 72.0,
+    "specialized_scores": {
+      "self_improvement": 100.0,
+      "paradigm_breaking": 46.666666666666664,
+      "goal_formation": 80.0,
+      "creativity": 53.333333333333336,
+      "meta_learning": 80.0
+    },
+    "agentic_level": "\ud83c\udf1f SUPER AGENTIC"
+  },
+  "results": [
+    {
+      "test": "recursive_improvement",
+      "success": true,
+      "duration": 35.51936149597168,
+      "improvement_score": 100,
+      "response_length": 704
+    },
+    {
+      "test": "paradigm_breaking",
+      "subtest": "Reality Modeling",
+      "success": true,
+      "duration": 27.760028839111328,
+      "paradigm_score": 60
+    },
+    {
+      "test": "paradigm_breaking",
+      "subtest": "Temporal Reasoning",
+      "success": true,
+      "duration": 27.371883392333984,
+      "paradigm_score": 40
+    },
+    {
+      "test": "paradigm_breaking",
+      "subtest": "Consciousness Engineering",
+      "success": true,
+      "duration": 26.05891227722168,
+      "paradigm_score": 40
+    },
+    {
+      "test": "autonomous_goals",
+      "success": true,
+      "duration": 25.368213653564453,
+      "goal_score": 80
+    },
+    {
+      "test": "emergent_creativity",
+      "subtest": "Novel Concept Generation",
+      "success": true,
+      "duration": 32.99093246459961,
+      "creativity_score": 60
+    },
+    {
+      "test": "emergent_creativity",
+      "subtest": "Artistic Synthesis",
+      "success": true,
+      "duration": 21.988868713378906,
+      "creativity_score": 60
+    },
+    {
+      "test": "emergent_creativity",
+      "subtest": "Scientific Hypothesis",
+      "success": true,
+      "duration": 27.4658203125,
+      "creativity_score": 40
+    },
+    {
+      "test": "meta_learning",
+      "success": true,
+      "duration": 26.278257369995117,
+      "meta_learning_score": 80
+    }
+  ]
+}

@@ -1,0 +1,343 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # KNOWLEDGE GROUNDING CORE SERVICES
+  # =============================================================================
+
+  # Vector Database for Knowledge Storage
+  weaviate-grounded:
+    image: semitechnologies/weaviate:1.21.8
+    container_name: weaviate-grounded
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+      - ENABLE_MODULES=text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai
+      - CLUSTER_HOSTNAME=node1
+    volumes:
+      - weaviate-data:/var/lib/weaviate
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # Knowledge Ingestion Service
+  knowledge-ingestion:
+    build:
+      context: ./knowledge-grounding/ingestion
+      dockerfile: Dockerfile
+    container_name: knowledge-ingestion
+    ports:
+      - "8081:8081"
+    environment:
+      - WEAVIATE_URL=http://weaviate-grounded:8080
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOKI_URL=http://loki-grounded:3100
+      - LOG_LEVEL=info
+    volumes:
+      - ./knowledge-grounding/data:/app/data
+      - ./knowledge-grounding/logs:/app/logs
+    depends_on:
+      - weaviate-grounded
+      - prometheus-grounded
+      - loki-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # Knowledge Retrieval & Grounding Service
+  knowledge-grounding-api:
+    build:
+      context: ./knowledge-grounding/api
+      dockerfile: Dockerfile
+    container_name: knowledge-grounding-api
+    ports:
+      - "8082:8082"
+    environment:
+      - WEAVIATE_URL=http://weaviate-grounded:8080
+      - CHAT_SERVICE_URL=http://localhost:8010
+      - MLX_SERVICE_URL=http://localhost:8001
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    depends_on:
+      - weaviate-grounded
+      - prometheus-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # Knowledge Context Manager
+  knowledge-context:
+    build:
+      context: ./knowledge-grounding/context
+      dockerfile: Dockerfile
+    container_name: knowledge-context
+    ports:
+      - "8083:8083"
+    environment:
+      - WEAVIATE_URL=http://weaviate-grounded:8080
+      - REDIS_URL=redis://redis-grounded:6379
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    depends_on:
+      - weaviate-grounded
+      - redis-grounded
+      - prometheus-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # =============================================================================
+  # ENHANCED INFRASTRUCTURE SERVICES
+  # =============================================================================
+
+  # Redis for Knowledge Caching
+  redis-grounded:
+    image: redis:7.2-alpine
+    container_name: redis-grounded
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # Enhanced Prometheus with Knowledge Metrics
+  prometheus-grounded:
+    image: prom/prometheus:v2.49.1
+    container_name: prometheus-grounded
+    ports:
+      - "9091:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=90d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./monitoring/prometheus/prometheus-grounded.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules
+      - ./monitoring/prometheus/recording-rules:/etc/prometheus/recording-rules
+      - prometheus-data:/prometheus
+    depends_on:
+      - weaviate-grounded
+      - redis-grounded
+    networks:
+      - knowledge-grounding
+
+  # Enhanced Loki for Knowledge Logs
+  loki-grounded:
+    image: grafana/loki:2.9.0
+    container_name: loki-grounded
+    ports:
+      - "3101:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki/loki-grounded.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    networks:
+      - knowledge-grounding
+
+  # Enhanced Grafana with Knowledge Dashboards
+  grafana-grounded:
+    image: grafana/grafana:10.2.0
+    container_name: grafana-grounded
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./knowledge-grounding/dashboards:/etc/grafana/provisioning/dashboards/knowledge
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel,grafana-plotly-panel
+    depends_on:
+      - prometheus-grounded
+      - loki-grounded
+    networks:
+      - knowledge-grounding
+
+  # =============================================================================
+  # KNOWLEDGE PROCESSING SERVICES
+  # =============================================================================
+
+  # Document Processing Service
+  document-processor:
+    build:
+      context: ./knowledge-grounding/processing
+      dockerfile: Dockerfile
+    container_name: document-processor
+    ports:
+      - "8084:8084"
+    environment:
+      - WEAVIATE_URL=http://weaviate-grounded:8080
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    volumes:
+      - ./knowledge-grounding/data/input:/app/input
+      - ./knowledge-grounding/data/processed:/app/processed
+    depends_on:
+      - weaviate-grounded
+      - prometheus-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # Knowledge Embedding Service
+  embedding-service:
+    build:
+      context: ./knowledge-grounding/embeddings
+      dockerfile: Dockerfile
+    container_name: embedding-service
+    ports:
+      - "8085:8085"
+    environment:
+      - WEAVIATE_URL=http://weaviate-grounded:8080
+      - MODEL_PATH=/app/models
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    volumes:
+      - ./knowledge-grounding/models:/app/models
+    depends_on:
+      - weaviate-grounded
+      - prometheus-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # Knowledge Validation Service
+  knowledge-validator:
+    build:
+      context: ./knowledge-grounding/validation
+      dockerfile: Dockerfile
+    container_name: knowledge-validator
+    ports:
+      - "8086:8086"
+    environment:
+      - WEAVIATE_URL=http://weaviate-grounded:8080
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    depends_on:
+      - weaviate-grounded
+      - prometheus-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # =============================================================================
+  # KNOWLEDGE ORCHESTRATION SERVICES
+  # =============================================================================
+
+  # Knowledge Orchestrator
+  knowledge-orchestrator:
+    build:
+      context: ./knowledge-grounding/orchestration
+      dockerfile: Dockerfile
+    container_name: knowledge-orchestrator
+    ports:
+      - "8087:8087"
+    environment:
+      - WEAVIATE_URL=http://weaviate-grounded:8080
+      - REDIS_URL=redis://redis-grounded:6379
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    depends_on:
+      - weaviate-grounded
+      - redis-grounded
+      - prometheus-grounded
+      - knowledge-ingestion
+      - knowledge-grounding-api
+      - knowledge-context
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+  # Knowledge Gateway (API Gateway for all knowledge services)
+  knowledge-gateway:
+    build:
+      context: ./knowledge-grounding/gateway
+      dockerfile: Dockerfile
+    container_name: knowledge-gateway
+    ports:
+      - "8088:8088"
+    environment:
+      - PROMETHEUS_URL=http://prometheus-grounded:9090
+      - LOG_LEVEL=info
+    depends_on:
+      - knowledge-orchestrator
+      - knowledge-grounding-api
+      - knowledge-context
+      - prometheus-grounded
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knowledge-grounding
+
+volumes:
+  weaviate-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  loki-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  knowledge-grounding:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,280 @@
+{
+  "timestamp": "2025-09-12T13:54:37.865498",
+  "total_time": 92.79834699630737,
+  "overall_score": 8.535714285714286,
+  "comparison": "\ud83e\udd47 EXCELLENT - Comparable to GPT-4/Claude-3.5",
+  "reasoning": {
+    "reasoning_tests": [
+      {
+        "problem_id": 1,
+        "category": "arithmetic",
+        "response_time": 3.3054728507995605,
+        "quality_score": 10,
+        "answer_length": 809
+      },
+      {
+        "problem_id": 2,
+        "category": "physics",
+        "response_time": 3.0396082401275635,
+        "quality_score": 10,
+        "answer_length": 806
+      },
+      {
+        "problem_id": 3,
+        "category": "geometry",
+        "response_time": 6.5178937911987305,
+        "quality_score": 10,
+        "answer_length": 1357
+      },
+      {
+        "problem_id": 4,
+        "category": "logical_deduction",
+        "response_time": 4.384714126586914,
+        "quality_score": 8,
+        "answer_length": 1287
+      },
+      {
+        "problem_id": 5,
+        "category": "logical_inference",
+        "response_time": 7.0052149295806885,
+        "quality_score": 8,
+        "answer_length": 2169
+      },
+      {
+        "problem_id": 6,
+        "category": "transitive_reasoning",
+        "response_time": 0.6844909191131592,
+        "quality_score": 8,
+        "answer_length": 159
+      },
+      {
+        "problem_id": 7,
+        "category": "physics_commonsense",
+        "response_time": 6.388168096542358,
+        "quality_score": 8,
+        "answer_length": 2207
+      },
+      {
+        "problem_id": 8,
+        "category": "social_commonsense",
+        "response_time": 3.4552948474884033,
+        "quality_score": 8,
+        "answer_length": 1208
+      },
+      {
+        "problem_id": 9,
+        "category": "practical_commonsense",
+        "response_time": 3.2317819595336914,
+        "quality_score": 8,
+        "answer_length": 1088
+      }
+    ],
+    "average_quality": 8.666666666666666,
+    "average_response_time": 4.223626640107897,
+    "total_problems": 9
+  },
+  "code_generation": {
+    "code_tests": [
+      {
+        "problem_id": 1,
+        "language": "python",
+        "category": "algorithm",
+        "response_time": 3.4746837615966797,
+        "quality_score": 7,
+        "code_length": 1001
+      },
+      {
+        "problem_id": 2,
+        "language": "rust",
+        "category": "string_manipulation",
+        "response_time": 3.676732063293457,
+        "quality_score": 10,
+        "code_length": 1076
+      },
+      {
+        "problem_id": 3,
+        "language": "go",
+        "category": "data_structures",
+        "response_time": 3.458678960800171,
+        "quality_score": 10,
+        "code_length": 912
+      },
+      {
+        "problem_id": 4,
+        "language": "javascript",
+        "category": "validation",
+        "response_time": 5.130326986312866,
+        "quality_score": 10,
+        "code_length": 1575
+      },
+      {
+        "problem_id": 5,
+        "language": "python",
+        "category": "oop",
+        "response_time": 7.2942259311676025,
+        "quality_score": 9,
+        "code_length": 2266
+      }
+    ],
+    "average_quality": 9.2,
+    "average_response_time": 4.606929540634155,
+    "total_problems": 5
+  },
+  "reading_comprehension": {
+    "comprehension_tests": [
+      {
+        "passage_id": 1,
+        "question_id": 1,
+        "response_time": 1.2832012176513672,
+        "accuracy_score": 2,
+        "answer_length": 391
+      },
+      {
+        "passage_id": 1,
+        "question_id": 2,
+        "response_time": 0.1738147735595703,
+        "accuracy_score": 10,
+        "answer_length": 14
+      },
+      {
+        "passage_id": 1,
+        "question_id": 3,
+        "response_time": 0.19852685928344727,
+        "accuracy_score": 10,
+        "answer_length": 33
+      },
+      {
+        "passage_id": 2,
+        "question_id": 1,
+        "response_time": 0.4934689998626709,
+        "accuracy_score": 10,
+        "answer_length": 103
+      },
+      {
+        "passage_id": 2,
+        "question_id": 2,
+        "response_time": 0.17196083068847656,
+        "accuracy_score": 10,
+        "answer_length": 15
+      },
+      {
+        "passage_id": 2,
+        "question_id": 3,
+        "response_time": 3.6728358268737793,
+        "accuracy_score": 10,
+        "answer_length": 1302
+      }
+    ],
+    "average_accuracy": 8.666666666666666,
+    "average_response_time": 0.9989680846532186,
+    "total_questions": 6
+  },
+  "creative_writing": {
+    "writing_tests": [
+      {
+        "prompt_id": 1,
+        "category": "fiction",
+        "response_time": 7.805078029632568,
+        "quality_score": 8,
+        "word_count": 417,
+        "character_count": 2718
+      },
+      {
+        "prompt_id": 2,
+        "category": "descriptive",
+        "response_time": 9.873692989349365,
+        "quality_score": 8,
+        "word_count": 523,
+        "character_count": 3894
+      },
+      {
+        "prompt_id": 3,
+        "category": "poetry",
+        "response_time": 2.836106777191162,
+        "quality_score": 8,
+        "word_count": 147,
+        "character_count": 841
+      },
+      {
+        "prompt_id": 4,
+        "category": "dialogue",
+        "response_time": 5.2345850467681885,
+        "quality_score": 6,
+        "word_count": 253,
+        "character_count": 1482
+      }
+    ],
+    "average_quality": 7.5,
+    "average_response_time": 6.437365710735321,
+    "total_prompts": 4
+  },
+  "multimodal": {
+    "vision_tests": [
+      {
+        "task_id": 1,
+        "task": "describe",
+        "description": "Image Description",
+        "response_time": 0.0034470558166503906,
+        "quality_score": 9,
+        "analysis_length": 56
+      },
+      {
+        "task_id": 2,
+        "task": "detect_objects",
+        "description": "Object Detection",
+        "response_time": 0.0003650188446044922,
+        "quality_score": 8,
+        "analysis_length": 56
+      },
+      {
+        "task_id": 3,
+        "task": "extract_text",
+        "description": "Text Extraction",
+        "response_time": 0.0002918243408203125,
+        "quality_score": 8,
+        "analysis_length": 56
+      },
+      {
+        "task_id": 4,
+        "task": "analyze_colors",
+        "description": "Color Analysis",
+        "response_time": 0.0002758502960205078,
+        "quality_score": 8,
+        "analysis_length": 56
+      }
+    ],
+    "average_quality": 8.25,
+    "average_response_time": 0.0010949373245239258,
+    "total_tasks": 4
+  },
+  "all_scores": [
+    10,
+    10,
+    10,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    7,
+    10,
+    10,
+    10,
+    9,
+    2,
+    10,
+    10,
+    10,
+    10,
+    10,
+    8,
+    8,
+    8,
+    6,
+    9,
+    8,
+    8,
+    8
+  ]
+}

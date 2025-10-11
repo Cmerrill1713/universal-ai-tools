@@ -1,0 +1,185 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'universal-ai-tools'
+    environment: 'production'
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+  - "/etc/prometheus/recording-rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # =============================================================================
+  # CORE AI SERVICES
+  # =============================================================================
+  
+  # Universal AI Tools Main Application
+  - job_name: 'universal-ai-tools'
+    static_configs:
+      - targets: ['app:9999']
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __metrics_path__
+        replacement: '/api/metrics'
+
+  # Chat Service
+  - job_name: 'chat-service'
+    static_configs:
+      - targets: ['localhost:8010']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # MLX Service
+  - job_name: 'mlx-service'
+    static_configs:
+      - targets: ['localhost:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # HRM Service
+  - job_name: 'hrm-service'
+    static_configs:
+      - targets: ['localhost:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Implementation Service
+  - job_name: 'implementation-service'
+    static_configs:
+      - targets: ['localhost:8029']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Research Service
+  - job_name: 'research-service'
+    static_configs:
+      - targets: ['localhost:8028']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # =============================================================================
+  # GROUNDING SERVICES
+  # =============================================================================
+
+  # AI Metrics Exporter
+  - job_name: 'ai-metrics-exporter'
+    static_configs:
+      - targets: ['ai-metrics-exporter:9092']
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Health Monitor
+  - job_name: 'health-monitor'
+    static_configs:
+      - targets: ['health-monitor:8080']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Circuit Breaker
+  - job_name: 'circuit-breaker'
+    static_configs:
+      - targets: ['circuit-breaker:8080']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Model Monitor
+  - job_name: 'model-monitor'
+    static_configs:
+      - targets: ['model-monitor:8080']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Bias Detector
+  - job_name: 'bias-detector'
+    static_configs:
+      - targets: ['bias-detector:8080']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # =============================================================================
+  # INFRASTRUCTURE SERVICES
+  # =============================================================================
+
+  # PostgreSQL
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Node Exporter (if available)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Docker Daemon
+  - job_name: 'docker-daemon'
+    static_configs:
+      - targets: ['docker-daemon:9323']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # =============================================================================
+  # EXTERNAL AI SERVICES
+  # =============================================================================
+
+  # Ollama
+  - job_name: 'ollama'
+    static_configs:
+      - targets: ['localhost:11434']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Weaviate
+  - job_name: 'weaviate'
+    static_configs:
+      - targets: ['weaviate:8080']
+    metrics_path: '/v1/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+# =============================================================================
+# REMOTE WRITE CONFIGURATION
+# =============================================================================
+# Temporarily disabled to prevent looping until Loki is fixed
+# remote_write:
+#   - url: "http://loki-grounded:3100/loki/api/v1/push"
+#     write_relabel_configs:
+#       - source_labels: [__name__]
+#         regex: 'up|prometheus_.*'
+#         action: keep
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+# Note: Storage configuration is handled via command line arguments
+# --storage.tsdb.retention.time=90d
+# --storage.tsdb.retention.size=50GB

@@ -1,0 +1,166 @@
+version: '3.8'
+
+name: universal-ai-tools-supabase
+
+services:
+  # Unified Supabase Stack (PostgreSQL + Studio replaces pgAdmin)
+  supabase:
+    image: supabase/postgres:15.1.0.117
+    container_name: universal-ai-tools-supabase-unified
+    restart: unless-stopped
+    ports:
+      - '5432:5432'   # PostgreSQL (main database)
+      - '54321:54321' # Supabase API
+      - '54322:54322' # Supabase Auth
+      - '54323:3000'  # Supabase Studio (replaces pgAdmin)
+      - '54324:54324' # Inbucket (email testing)
+      - '54325:54325' # SMTP
+      - '54326:54326' # POP3
+      - '54327:54327' # Analytics
+    environment:
+      # Database
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      
+      # API Configuration
+      - API_EXTERNAL_URL=http://localhost:54322
+      - GOTRUE_API_HOST=0.0.0.0
+      - GOTRUE_API_PORT=54322
+      - GOTRUE_DB_DRIVER=postgres
+      - GOTRUE_DB_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+      - GOTRUE_SITE_URL=http://localhost:3000
+      - GOTRUE_URI_ALLOW_LIST=*
+      - GOTRUE_DISABLE_SIGNUP=false
+      - GOTRUE_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - GOTRUE_JWT_EXP=3600
+      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
+      - GOTRUE_JWT_ADMIN_ROLES=service_role
+      - GOTRUE_JWT_AUD=authenticated
+      - GOTRUE_EXTERNAL_EMAIL_ENABLED=true
+      - GOTRUE_MAILER_AUTOCONFIRM=true
+      - GOTRUE_SMTP_ADMIN_EMAIL=admin@example.com
+      - GOTRUE_SMTP_HOST=localhost
+      - GOTRUE_SMTP_PORT=54325
+      - GOTRUE_SMTP_USER=supabase
+      - GOTRUE_SMTP_PASS=supabase
+      - GOTRUE_SMTP_SENDER_NAME=supabase
+      
+      # PostgREST Configuration
+      - PGRST_DB_URI=postgresql://postgres:postgres@localhost:5432/postgres
+      - PGRST_DB_SCHEMAS=public,storage,graphql_public
+      - PGRST_DB_ANON_ROLE=anon
+      - PGRST_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - PGRST_DB_USE_LEGACY_GUCS=false
+      - PGRST_APP_SETTINGS_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+      - PGRST_APP_SETTINGS_JWT_EXP=3600
+      
+      # Studio Configuration
+      - STUDIO_API_URL=http://localhost:54322
+      - STUDIO_DB_URL=postgresql://postgres:postgres@localhost:5432/postgres
+      
+      # Analytics Configuration
+      - ANALYTICS_BACKEND=postgres
+      - ANALYTICS_DB_URL=postgresql://postgres:postgres@localhost:5432/postgres
+      
+      # Storage Configuration
+      - STORAGE_FILE_SIZE_LIMIT=50MiB
+      - STORAGE_BACKEND=local
+      
+      # Realtime Configuration
+      - REALTIME_ENABLED=true
+      - REALTIME_DB_URL=postgresql://postgres:postgres@localhost:5432/postgres
+      
+      # Edge Functions Configuration
+      - EDGE_RUNTIME_ENABLED=true
+      - EDGE_RUNTIME_POLICY=oneshot
+      - EDGE_RUNTIME_INSPECTOR_PORT=8083
+      - EDGE_RUNTIME_DENO_VERSION=1
+      
+      # Auth Configuration
+      - AUTH_ENABLED=true
+      - AUTH_SITE_URL=http://localhost:3000
+      - AUTH_ADDITIONAL_REDIRECT_URLS=https://localhost:3000
+      - AUTH_JWT_EXPIRY=3600
+      - AUTH_ENABLE_REFRESH_TOKEN_ROTATION=true
+      - AUTH_REFRESH_TOKEN_REUSE_INTERVAL=10
+      - AUTH_ENABLE_SIGNUP=true
+      - AUTH_ENABLE_ANONYMOUS_SIGN_INS=false
+      - AUTH_ENABLE_MANUAL_LINKING=false
+      - AUTH_MINIMUM_PASSWORD_LENGTH=6
+      
+      # Email Configuration
+      - AUTH_EMAIL_ENABLE_SIGNUP=true
+      - AUTH_EMAIL_DOUBLE_CONFIRM_CHANGES=true
+      - AUTH_EMAIL_ENABLE_CONFIRMATIONS=false
+      - AUTH_EMAIL_SECURE_PASSWORD_CHANGE=false
+      - AUTH_EMAIL_MAX_FREQUENCY=1s
+      - AUTH_EMAIL_OTP_LENGTH=6
+      - AUTH_EMAIL_OTP_EXPIRY=3600
+      
+      # Rate Limiting
+      - AUTH_RATE_LIMIT_EMAIL_SENT=2
+      - AUTH_RATE_LIMIT_SMS_SENT=30
+      - AUTH_RATE_LIMIT_ANONYMOUS_USERS=30
+      - AUTH_RATE_LIMIT_TOKEN_REFRESH=150
+      - AUTH_RATE_LIMIT_SIGN_IN_SIGN_UPS=30
+      - AUTH_RATE_LIMIT_TOKEN_VERIFICATIONS=30
+      - AUTH_RATE_LIMIT_WEB3=30
+      
+      # Inbucket Configuration
+      - INBUCKET_ENABLED=true
+      - INBUCKET_PORT=54324
+      - INBUCKET_SMTP_PORT=54325
+      - INBUCKET_POP3_PORT=54326
+      - INBUCKET_ADMIN_EMAIL=admin@email.com
+      - INBUCKET_SENDER_NAME=Admin
+      
+    volumes:
+      - supabase_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+      - ./supabase/functions:/opt/supabase/functions
+      - ./supabase/config.toml:/opt/supabase/config.toml
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis is integrated with Supabase - no separate container needed
+
+  # Ollama runs natively on macOS - not in Docker
+  # Weaviate Vector Database
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    container_name: universal-ai-tools-weaviate
+    restart: unless-stopped
+    ports:
+      - '8090:8080'
+      - '50051:50051'
+    environment:
+      - QUERY_DEFAULTS_LIMIT=25
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+      - CLUSTER_HOSTNAME=node1
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  supabase_data:
+    driver: local
+  weaviate_data:
+    driver: local
+
+networks:
+  ai-network:
+    driver: bridge

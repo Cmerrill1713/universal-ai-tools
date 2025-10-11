@@ -1,0 +1,75 @@
+[package]
+name = "monitoring-system"
+version = "0.2.0"
+edition = "2021"
+description = "Production-Grade Monitoring and Observability for AI Systems"
+authors = ["Universal AI Tools"]
+
+[workspace]
+name = "monitoring-system"
+version = "0.2.0"
+edition = "2021"
+description = "Production-Grade Monitoring and Observability for AI Systems"
+authors = ["Universal AI Tools"]
+
+[dependencies]
+tokio = { version = "1.40", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "registry", "fmt"] }
+tracing-opentelemetry = "0.22"
+opentelemetry = { version = "0.21", features = ["trace", "metrics", "logs"] }
+opentelemetry-jaeger = "0.20"
+opentelemetry-prometheus = "0.14"
+prometheus = "0.13"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+parking_lot = "0.12"
+dashmap = "6.0"
+futures = "0.3"
+async-trait = "0.1"
+reqwest = { version = "0.12", features = ["json", "stream"] }
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+tonic = { version = "0.12", features = ["gzip", "tls"] }
+prost = "0.13"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"], optional = true }
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"], optional = true }
+kafka = { version = "0.9", optional = true }
+lru = "0.12"
+notify = "6.1"
+sysinfo = "0.30"
+clap = { version = "4.5", features = ["derive"] }
+axum = { version = "0.7", features = ["ws", "json", "query"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Local crates
+agent-orchestrator = { path = "../agent-orchestrator" }
+llm-router = { path = "../llm-router" }
+fast-llm-coordinator = { path = "../fast-llm-coordinator" }
+
+[features]
+default = ["postgres", "redis", "kafka"]
+postgres = ["dep:sqlx"]
+redis = ["dep:redis"]
+kafka = ["dep:kafka"]
+distributed = []
+gpu-metrics = []
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[[bin]]
+name = "monitoring-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "metrics-collector"
+path = "src/bin/collector.rs"
+
+[[bin]]
+name = "alert-manager"
+path = "src/bin/alert_manager.rs"

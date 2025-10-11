@@ -1,5 +1,9 @@
 # Multi-stage Docker build for Universal AI Tools
+<<<<<<< HEAD
 FROM node:22-alpine AS base
+=======
+FROM node:20-alpine AS base
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -36,7 +40,11 @@ RUN npm ci
 COPY . .
 
 # Expose port
+<<<<<<< HEAD
 EXPOSE 8080
+=======
+EXPOSE 9999
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Development command with hot reload
 CMD ["npm", "run", "dev"]
@@ -51,11 +59,21 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 
 # Install all dependencies
+<<<<<<< HEAD
 RUN npm ci
+=======
+RUN npm ci --legacy-peer-deps
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Copy source code (excluding node_modules for better caching)
 COPY . .
 
+<<<<<<< HEAD
+=======
+# Ensure knowledge directory exists for downstream stages
+RUN mkdir -p knowledge
+
+>>>>>>> fix/stabilize-imports-endpoint-verification
 # Build the application
 RUN npm run build
 
@@ -65,7 +83,11 @@ RUN npm prune --production
 # ========================================
 # Production stage
 # ========================================
+<<<<<<< HEAD
 FROM node:22-alpine AS production
+=======
+FROM node:20-alpine AS production
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Install runtime dependencies only
 RUN apk add --no-cache \
@@ -86,6 +108,7 @@ WORKDIR /app
 COPY --from=build --chown=universalai:nodejs /app/dist ./dist
 COPY --from=build --chown=universalai:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=universalai:nodejs /app/package*.json ./
+<<<<<<< HEAD
 
 # Copy necessary files
 COPY --chown=universalai:nodejs public/ ./public/ 2>/dev/null || :  # cSpell:disable-line universalai
@@ -97,10 +120,31 @@ RUN mkdir -p logs tmp cache models data && \
 
 # Switch to non-root user
 USER universalai  # cSpell:disable-line universalai
+=======
+COPY --from=build --chown=universalai:nodejs /app/knowledge ./knowledge
+
+# Copy necessary files (create directories first if they don't exist)
+RUN mkdir -p public views
+COPY --chown=universalai:nodejs public ./public
+COPY --chown=universalai:nodejs views ./views
+
+# Create required directories
+RUN mkdir -p logs tmp cache models data knowledge && \
+    chown -R universalai:nodejs logs tmp cache models data knowledge
+
+# Switch to non-root user
+USER universalai
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
+<<<<<<< HEAD
+=======
+ENV SELF_CORRECTION_LOG_PATH=/app/knowledge/self_corrections.jsonl
+
+VOLUME ["/app/knowledge"]
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
@@ -110,7 +154,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 8080
 
 # Use tini for proper signal handling
+<<<<<<< HEAD
 ENTRYPOINT ["/sbin/tini", "--"]  # cSpell:disable-line tini
+=======
+ENTRYPOINT ["/sbin/tini", "--"]
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Start the application
 CMD ["node", "dist/server.js"]
@@ -121,7 +169,11 @@ CMD ["node", "dist/server.js"]
 FROM base AS testing
 
 # Install all dependencies
+<<<<<<< HEAD
 RUN npm ci
+=======
+RUN npm ci --legacy-peer-deps
+>>>>>>> fix/stabilize-imports-endpoint-verification
 
 # Copy source code
 COPY . .

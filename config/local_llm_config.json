@@ -1,0 +1,110 @@
+{
+  "local_llm_settings": {
+    "preferred_service": "lm-studio",
+    "fallback_enabled": true,
+    "services": {
+      "ollama": {
+        "url": "http://localhost:11434",
+        "default_model": "codellama:7b",
+        "models": {
+          "codellama:7b": {
+            "tasks": ["code-fix", "completion"],
+            "context_length": 16384,
+            "preferred_for": ["typescript", "javascript", "python"]
+          },
+          "llama2:13b": {
+            "tasks": ["completion", "analysis"],
+            "context_length": 4096,
+            "preferred_for": ["general"]
+          },
+          "mistral:7b": {
+            "tasks": ["completion", "reasoning"],
+            "context_length": 8192,
+            "preferred_for": ["fast-inference"]
+          },
+          "nomic-embed-text": {
+            "tasks": ["embedding"],
+            "dimensions": 768,
+            "preferred_for": ["general-embedding", "semantic-search"]
+          },
+          "all-minilm": {
+            "tasks": ["embedding"],
+            "dimensions": 384,
+            "preferred_for": ["lightweight-embedding"]
+          },
+          "mxbai-embed-large": {
+            "tasks": ["embedding"],
+            "dimensions": 1024,
+            "preferred_for": ["multilingual-embedding"]
+          }
+        }
+      },
+      "lm-studio": {
+        "url": "http://localhost:1234/v1",
+        "default_model": "TheBloke/CodeLlama-7B-Instruct-GGUF",
+        "models": {
+          "TheBloke/CodeLlama-7B-Instruct-GGUF": {
+            "tasks": ["code-fix", "completion"],
+            "context_length": 16384,
+            "preferred_for": ["typescript", "code-analysis"]
+          },
+          "TheBloke/Mistral-7B-Instruct-v0.2-GGUF": {
+            "tasks": ["completion", "chat"],
+            "context_length": 32768,
+            "preferred_for": ["long-context"]
+          },
+          "nomic-ai/nomic-embed-text-v1.5-GGUF": {
+            "tasks": ["embedding"],
+            "dimensions": 768,
+            "preferred_for": ["general-embedding", "semantic-search"]
+          },
+          "sentence-transformers/all-MiniLM-L6-v2-GGUF": {
+            "tasks": ["embedding"],
+            "dimensions": 384,
+            "preferred_for": ["lightweight-embedding"]
+          }
+        }
+      }
+    },
+    "routing_rules": [
+      {
+        "name": "typescript-to-codellama",
+        "condition": {
+          "task": "code-fix",
+          "language": "typescript"
+        },
+        "prefer_models": [
+          "lm-studio:TheBloke/CodeLlama-7B-Instruct-GGUF",
+          "ollama:codellama:7b"
+        ]
+      },
+      {
+        "name": "embeddings-to-nomic",
+        "condition": {
+          "task": "embedding"
+        },
+        "prefer_models": [
+          "lm-studio:nomic-ai/nomic-embed-text-v1.5-GGUF",
+          "ollama:nomic-embed-text"
+        ]
+      },
+      {
+        "name": "fast-completion",
+        "condition": {
+          "constraint": "low-latency"
+        },
+        "prefer_models": [
+          "ollama:mistral:7b",
+          "lm-studio:TheBloke/Mistral-7B-Instruct-v0.2-GGUF"
+        ]
+      }
+    ],
+    "performance_settings": {
+      "cache_embeddings": true,
+      "cache_ttl_seconds": 3600,
+      "max_concurrent_requests": 3,
+      "timeout_seconds": 120,
+      "retry_attempts": 2
+    }
+  }
+}

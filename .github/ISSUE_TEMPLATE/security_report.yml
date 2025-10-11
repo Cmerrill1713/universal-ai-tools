@@ -1,0 +1,178 @@
+name: Security Report
+description: Report a security vulnerability (privately)
+title: '[Security]: '
+labels: ['security', 'urgent', 'triage']
+assignees:
+  - christianmerrill
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Security Vulnerability Report
+
+        **⚠️ IMPORTANT: If this is a critical security vulnerability, please email security@universalaitools.com instead of creating a public issue.**
+
+        For non-critical security improvements or questions, please continue with this form.
+
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: Secure way to contact you (email or encrypted communication preferred)
+      placeholder: ex. security@yourcompany.com
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity Level
+      description: How severe is this security issue?
+      options:
+        - Low - Security improvement suggestion
+        - Medium - Potential security concern
+        - High - Exploitable vulnerability with limited impact
+        - Critical - Exploitable vulnerability with significant impact
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Security Category
+      description: What type of security issue is this?
+      options:
+        - Authentication/Authorization
+        - Input Validation/Injection
+        - Cross-Site Scripting (XSS)
+        - Cross-Site Request Forgery (CSRF)
+        - SQL Injection
+        - API Security
+        - Data Exposure
+        - Cryptography
+        - Configuration Security
+        - Dependency Vulnerability
+        - Container Security
+        - Infrastructure Security
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Vulnerability Description
+      description: Describe the security issue (avoid including exploit details in public)
+      placeholder: |
+        General description of the vulnerability...
+        (For critical issues, please send detailed exploit information privately)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      multiple: true
+      options:
+        - Backend API
+        - Frontend UI
+        - Database/Supabase
+        - Authentication System
+        - AI Agents
+        - Memory System
+        - Docker Configuration
+        - CI/CD Pipeline
+        - Dependencies
+        - Infrastructure
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could an attacker potentially do?
+      placeholder: |
+        - Data access/modification
+        - Privilege escalation
+        - Service disruption
+        - etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-versions
+    attributes:
+      label: Affected Versions
+      description: Which versions are affected by this issue?
+      placeholder: |
+        - Version 1.0.0
+        - All versions since X
+        - Unknown
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps (General)
+      description: General steps to reproduce (avoid detailed exploits in public issues)
+      placeholder: |
+        1. General step 1
+        2. General step 2
+        (Detailed exploit steps should be sent privately for critical issues)
+    validations:
+      required: false
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested Mitigation
+      description: Do you have suggestions for fixing this issue?
+      placeholder: |
+        - Implement input validation
+        - Add authentication checks
+        - Update dependency
+        - etc.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: disclosure
+    attributes:
+      label: Responsible Disclosure
+      description: Disclosure preferences
+      options:
+        - label: I am willing to work with the maintainers on responsible disclosure
+        - label: I request acknowledgment if this issue is fixed
+        - label: I have NOT publicly disclosed this vulnerability elsewhere
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Security Report Checklist
+      description: Please confirm the following
+      options:
+        - label: I understand that critical vulnerabilities should be reported privately first
+          required: true
+        - label: I have not included detailed exploit code in this public report
+          required: true
+        - label: I am committed to responsible disclosure practices
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+        ## Next Steps
+
+        1. **Critical Issues**: For critical vulnerabilities, please also email security@universalaitools.com with detailed information
+        2. **Response Time**: We aim to respond to security reports within 48 hours
+        3. **Updates**: We will keep you informed of our progress on addressing the issue
+        4. **Credit**: We're happy to acknowledge security researchers who help improve our security
+
+        Thank you for helping keep Universal AI Tools secure! 🔐

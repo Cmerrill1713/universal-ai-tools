@@ -1,0 +1,246 @@
+{
+  "totalFiles": 54,
+  "errorsFound": 8,
+  "warningsFound": 24,
+  "errors": [
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/routers/vision.ts",
+      "line": 9,
+      "message": "Import path '../services/pyvision-bridge.js' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/routers/vision.ts",
+      "line": 10,
+      "message": "Import path '../services/vision-resource-manager.js' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/routers/vision.ts",
+      "line": 11,
+      "message": "Import path '../utils/logger.js' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/routers/vision.ts",
+      "line": 12,
+      "message": "Import path '../utils/api-response.js' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/routers/vision.ts",
+      "line": 13,
+      "message": "Import path '../middleware/rate-limiter-enhanced.js' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/agents/base_agent.ts",
+      "line": 95,
+      "message": "Dynamic import path '../utils/logger.js' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/services/dspy-orchestrator/bridge.ts",
+      "line": 2,
+      "message": "Import path '../../utils/enhanced-logger' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "MISSING_IMPORT",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/services/dspy-orchestrator/bridge.ts",
+      "line": 8,
+      "message": "Import path '../../utils/smart-port-manager' cannot be resolved",
+      "severity": "error",
+      "suggestion": "Check if the file exists or update the import path"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'DetectedObject' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import DetectedObject from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'SceneDescription' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import SceneDescription from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'ExtractedText' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import ExtractedText from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'BoundingBox' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import BoundingBox from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'Record' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import Record from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'BoundingBox' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import BoundingBox from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'Float32Array' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import Float32Array from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'Record' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import Record from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'GenerationParameters' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import GenerationParameters from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'QualityMetrics' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import QualityMetrics from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'GeneratedImage' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import GeneratedImage from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'VisualHypothesis' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import VisualHypothesis from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'VisionAnalysis' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import VisionAnalysis from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'LearningOutcome' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import LearningOutcome from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'VisionEmbedding' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import VisionEmbedding from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'VisionAnalysis' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import VisionAnalysis from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'TemporalContext' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import TemporalContext from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'SpatialContext' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import SpatialContext from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'CausalEvent' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import CausalEvent from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'Record' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import Record from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'SpatialObject' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import SpatialObject from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'SpatialRelation' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import SpatialRelation from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'Buffer' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import Buffer from the appropriate types file"
+    },
+    {
+      "type": "UNDEFINED_REFERENCE",
+      "file": "/Users/christianmerrill/Desktop/universal-ai-tools/src/types/vision.ts",
+      "message": "Type 'VisionOptions' is used but not imported or defined",
+      "severity": "warning",
+      "suggestion": "Import VisionOptions from the appropriate types file"
+    }
+  ],
+  "summary": {
+    "missingImports": 8,
+    "invalidPaths": 0,
+    "undefinedReferences": 24,
+    "syntaxErrors": 0,
+    "inconsistentNaming": 0
+  }
+}

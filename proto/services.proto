@@ -1,0 +1,431 @@
+syntax = "proto3";
+
+package universal_ai;
+
+option go_package = "github.com/universal-ai-tools/proto/pb";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// ============= Common Messages =============
+
+message ServiceInfo {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  ServiceType type = 4;
+  string language = 5; // go, rust, node
+  google.protobuf.Timestamp started_at = 6;
+  map<string, string> metadata = 7;
+}
+
+enum ServiceType {
+  SERVICE_TYPE_UNKNOWN = 0;
+  SERVICE_TYPE_ML_INFERENCE = 1;
+  SERVICE_TYPE_VISION = 2;
+  SERVICE_TYPE_ANALYTICS = 3;
+  SERVICE_TYPE_ORCHESTRATION = 4;
+  SERVICE_TYPE_STREAMING = 5;
+  SERVICE_TYPE_CACHE = 6;
+  SERVICE_TYPE_STORAGE = 7;
+}
+
+message HealthStatus {
+  bool healthy = 1;
+  string status = 2;
+  google.protobuf.Timestamp checked_at = 3;
+  map<string, string> details = 4;
+}
+
+message RequestMetadata {
+  string request_id = 1;
+  string trace_id = 2;
+  string span_id = 3;
+  string user_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  map<string, string> headers = 6;
+}
+
+// ============= ML Inference Service =============
+
+service MLInferenceService {
+  rpc Infer(InferenceRequest) returns (InferenceResponse);
+  rpc StreamInfer(stream InferenceRequest) returns (stream InferenceResponse);
+  rpc LoadModel(LoadModelRequest) returns (LoadModelResponse);
+  rpc UnloadModel(UnloadModelRequest) returns (UnloadModelResponse);
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  rpc GetModelInfo(GetModelInfoRequest) returns (ModelInfo);
+}
+
+message InferenceRequest {
+  RequestMetadata metadata = 1;
+  string model_id = 2;
+  oneof input {
+    TensorInput tensor = 3;
+    TextInput text = 4;
+    ImageInput image = 5;
+    AudioInput audio = 6;
+  }
+  InferenceParameters parameters = 7;
+}
+
+message TensorInput {
+  repeated int32 shape = 1;
+  repeated float values = 2;
+  string dtype = 3;
+}
+
+message TextInput {
+  string text = 1;
+  int32 max_tokens = 2;
+}
+
+message ImageInput {
+  bytes data = 1;
+  string format = 2; // jpeg, png, webp
+  int32 width = 3;
+  int32 height = 4;
+}
+
+message AudioInput {
+  bytes data = 1;
+  string format = 2; // wav, mp3, ogg
+  int32 sample_rate = 3;
+  int32 channels = 4;
+}
+
+message InferenceParameters {
+  float temperature = 1;
+  int32 top_k = 2;
+  float top_p = 3;
+  int32 max_length = 4;
+  int32 batch_size = 5;
+  bool use_gpu = 6;
+  bool cache_result = 7;
+  map<string, google.protobuf.Any> custom = 8;
+}
+
+message InferenceResponse {
+  string request_id = 1;
+  string model_id = 2;
+  oneof output {
+    TensorOutput tensor = 3;
+    TextOutput text = 4;
+    ClassificationOutput classification = 5;
+    DetectionOutput detection = 6;
+  }
+  int64 latency_ms = 7;
+  map<string, string> metadata = 8;
+}
+
+message TensorOutput {
+  repeated int32 shape = 1;
+  repeated float values = 2;
+}
+
+message TextOutput {
+  string text = 1;
+  repeated float logprobs = 2;
+}
+
+message ClassificationOutput {
+  repeated string labels = 1;
+  repeated float probabilities = 2;
+}
+
+message DetectionOutput {
+  repeated BoundingBox boxes = 1;
+  repeated string labels = 2;
+  repeated float scores = 3;
+}
+
+message BoundingBox {
+  float x = 1;
+  float y = 2;
+  float width = 3;
+  float height = 4;
+}
+
+message LoadModelRequest {
+  string model_id = 1;
+  string model_path = 2;
+  string framework = 3; // onnx, candle, tensorflow, pytorch
+  ModelConfig config = 4;
+}
+
+message ModelConfig {
+  int32 max_batch_size = 1;
+  bool use_gpu = 2;
+  int32 gpu_device_id = 3;
+  map<string, string> options = 4;
+}
+
+message LoadModelResponse {
+  bool success = 1;
+  string message = 2;
+  ModelInfo model_info = 3;
+}
+
+message UnloadModelRequest {
+  string model_id = 1;
+}
+
+message UnloadModelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ListModelsRequest {
+  string filter = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListModelsResponse {
+  repeated ModelInfo models = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message GetModelInfoRequest {
+  string model_id = 1;
+}
+
+message ModelInfo {
+  string model_id = 1;
+  string name = 2;
+  string framework = 3;
+  string version = 4;
+  repeated string input_types = 5;
+  repeated string output_types = 6;
+  ModelConfig config = 7;
+  google.protobuf.Timestamp loaded_at = 8;
+  map<string, string> metadata = 9;
+}
+
+// ============= Vision Service =============
+
+service VisionService {
+  rpc ProcessImage(VisionRequest) returns (VisionResponse);
+  rpc StreamProcess(stream VisionRequest) returns (stream VisionResponse);
+  rpc GetCapabilities(GetCapabilitiesRequest) returns (CapabilitiesResponse);
+}
+
+message VisionRequest {
+  RequestMetadata metadata = 1;
+  bytes image_data = 2;
+  string task = 3; // detection, segmentation, classification, enhancement
+  map<string, google.protobuf.Any> parameters = 4;
+}
+
+message VisionResponse {
+  string request_id = 1;
+  oneof result {
+    DetectionResult detection = 2;
+    SegmentationResult segmentation = 3;
+    ClassificationResult classification = 4;
+    EnhancementResult enhancement = 5;
+  }
+  int64 processing_time_ms = 6;
+}
+
+message DetectionResult {
+  repeated BoundingBox boxes = 1;
+  repeated string labels = 2;
+  repeated float confidences = 3;
+}
+
+message SegmentationResult {
+  bytes mask = 1;
+  repeated string labels = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+message ClassificationResult {
+  repeated string labels = 1;
+  repeated float probabilities = 2;
+}
+
+message EnhancementResult {
+  bytes enhanced_image = 1;
+  string format = 2;
+  map<string, float> metrics = 3;
+}
+
+message GetCapabilitiesRequest {}
+
+message CapabilitiesResponse {
+  repeated string supported_tasks = 1;
+  repeated string supported_formats = 2;
+  map<string, string> capabilities = 3;
+}
+
+// ============= Analytics Service =============
+
+service AnalyticsService {
+  rpc Analyze(AnalyticsRequest) returns (AnalyticsResponse);
+  rpc StreamAnalyze(stream AnalyticsRequest) returns (stream AnalyticsResponse);
+  rpc GetMetrics(GetMetricsRequest) returns (MetricsResponse);
+}
+
+message AnalyticsRequest {
+  RequestMetadata metadata = 1;
+  string analysis_type = 2;
+  google.protobuf.Any data = 3;
+  AnalyticsParameters parameters = 4;
+}
+
+message AnalyticsParameters {
+  string algorithm = 1;
+  map<string, double> hyperparameters = 2;
+  bool real_time = 3;
+}
+
+message AnalyticsResponse {
+  string request_id = 1;
+  google.protobuf.Any result = 2;
+  map<string, double> metrics = 3;
+  int64 processing_time_ms = 4;
+}
+
+message GetMetricsRequest {
+  repeated string metric_names = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  string aggregation = 4;
+}
+
+message MetricsResponse {
+  map<string, MetricData> metrics = 1;
+}
+
+message MetricData {
+  repeated DataPoint points = 1;
+  string unit = 2;
+  string description = 3;
+}
+
+message DataPoint {
+  google.protobuf.Timestamp timestamp = 1;
+  double value = 2;
+  map<string, string> labels = 3;
+}
+
+// ============= Orchestration Service =============
+
+service OrchestrationService {
+  rpc Execute(WorkflowRequest) returns (WorkflowResponse);
+  rpc StreamExecute(WorkflowRequest) returns (stream WorkflowStatus);
+  rpc GetStatus(GetStatusRequest) returns (WorkflowStatus);
+  rpc Cancel(CancelRequest) returns (CancelResponse);
+}
+
+message WorkflowRequest {
+  RequestMetadata metadata = 1;
+  string workflow_id = 2;
+  repeated Step steps = 3;
+  map<string, google.protobuf.Any> inputs = 4;
+}
+
+message Step {
+  string id = 1;
+  string service = 2;
+  string operation = 3;
+  map<string, google.protobuf.Any> parameters = 4;
+  repeated string depends_on = 5;
+  RetryPolicy retry_policy = 6;
+}
+
+message RetryPolicy {
+  int32 max_attempts = 1;
+  int32 initial_delay_ms = 2;
+  int32 max_delay_ms = 3;
+  float backoff_multiplier = 4;
+}
+
+message WorkflowResponse {
+  string workflow_id = 1;
+  string status = 2;
+  map<string, google.protobuf.Any> outputs = 3;
+  repeated StepResult step_results = 4;
+}
+
+message StepResult {
+  string step_id = 1;
+  string status = 2;
+  google.protobuf.Any output = 3;
+  string error = 4;
+  int64 duration_ms = 5;
+}
+
+message WorkflowStatus {
+  string workflow_id = 1;
+  string status = 2;
+  int32 completed_steps = 3;
+  int32 total_steps = 4;
+  google.protobuf.Timestamp started_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message GetStatusRequest {
+  string workflow_id = 1;
+}
+
+message CancelRequest {
+  string workflow_id = 1;
+  string reason = 2;
+}
+
+message CancelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ============= Inter-Service Communication =============
+
+service InterServiceBridge {
+  rpc Call(BridgeRequest) returns (BridgeResponse);
+  rpc StreamCall(stream BridgeRequest) returns (stream BridgeResponse);
+  rpc Subscribe(SubscribeRequest) returns (stream Event);
+  rpc Publish(PublishRequest) returns (PublishResponse);
+}
+
+message BridgeRequest {
+  RequestMetadata metadata = 1;
+  string target_service = 2;
+  string operation = 3;
+  google.protobuf.Any payload = 4;
+  int32 timeout_ms = 5;
+}
+
+message BridgeResponse {
+  string request_id = 1;
+  bool success = 2;
+  google.protobuf.Any result = 3;
+  string error = 4;
+  int64 latency_ms = 5;
+}
+
+message SubscribeRequest {
+  repeated string topics = 1;
+  string subscriber_id = 2;
+}
+
+message Event {
+  string topic = 1;
+  google.protobuf.Any payload = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string publisher = 4;
+}
+
+message PublishRequest {
+  string topic = 1;
+  google.protobuf.Any payload = 2;
+  string publisher = 3;
+}
+
+message PublishResponse {
+  bool success = 1;
+  int32 subscribers_notified = 2;
+}

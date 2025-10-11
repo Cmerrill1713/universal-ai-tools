@@ -1,0 +1,22 @@
+[package]
+name = "assistantd"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower = { workspace = true }
+tower-http = { workspace = true, features = ["cors", "trace"] }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+llm-router = { path = "../llm-router" }
+reqwest = { workspace = true, features = ["blocking"] }
+futures-util = "0.3"
+tokio-stream = "0.1"
+serde_with = "3"

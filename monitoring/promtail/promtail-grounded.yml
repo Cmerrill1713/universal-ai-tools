@@ -1,0 +1,220 @@
+# Promtail Configuration for Universal AI Tools Grounding System
+# Collects logs from all services and forwards to Loki
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki-grounded:3100/loki/api/v1/push
+
+scrape_configs:
+  # AI Metrics Exporter logs
+  - job_name: ai-metrics-exporter
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: ai-metrics-exporter
+          service: monitoring
+          __path__: /logs/ai-metrics/*.log
+
+  # Health Monitor logs
+  - job_name: health-monitor
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: health-monitor
+          service: monitoring
+          __path__: /logs/health-monitor/*.log
+
+  # Chat Service logs
+  - job_name: chat-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: chat-service
+          service: ai
+          __path__: /logs/chat-service/*.log
+
+  # MLX Service logs
+  - job_name: mlx-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: mlx-service
+          service: ai
+          __path__: /logs/mlx-service/*.log
+
+  # HRM Service logs
+  - job_name: hrm-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: hrm-service
+          service: ai
+          __path__: /logs/hrm-service/*.log
+
+  # Implementation Service logs
+  - job_name: implementation-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: implementation-service
+          service: ai
+          __path__: /logs/implementation-service/*.log
+
+  # Research Service logs
+  - job_name: research-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: research-service
+          service: ai
+          __path__: /logs/research-service/*.log
+
+  # Security logs
+  - job_name: falco-security
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: falco
+          service: security
+          __path__: /logs/falco/*.log
+
+  # Backup logs
+  - job_name: backup-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: backup-service
+          service: governance
+          __path__: /logs/backup/*.log
+
+  # Data integrity logs
+  - job_name: data-integrity
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: data-integrity
+          service: governance
+          __path__: /logs/data-integrity/*.log
+
+  # Model monitoring logs
+  - job_name: model-monitor
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: model-monitor
+          service: ai-governance
+          __path__: /logs/model-monitor/*.log
+
+  # Bias detection logs
+  - job_name: bias-detector
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: bias-detector
+          service: ai-governance
+          __path__: /logs/bias-detector/*.log
+
+  # Circuit breaker logs
+  - job_name: circuit-breaker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: circuit-breaker
+          service: reliability
+          __path__: /logs/circuit-breaker/*.log
+
+  # Auto-scaler logs
+  - job_name: auto-scaler
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: auto-scaler
+          service: reliability
+          __path__: /logs/autoscaler/*.log
+
+  # Performance benchmark logs
+  - job_name: performance-benchmark
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: performance-benchmark
+          service: testing
+          __path__: /logs/performance/*.log
+
+  # System logs
+  - job_name: system-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          service: infrastructure
+          __path__: /var/log/*.log
+
+# Pipeline stages for log processing
+pipeline_stages:
+  # Parse JSON logs
+  - json:
+      expressions:
+        level: level
+        message: message
+        timestamp: timestamp
+        service: service
+        request_id: request_id
+
+  # Add labels
+  - labels:
+      level:
+      service:
+      request_id:
+
+  # Extract metrics from logs
+  - match:
+      selector: '{service="ai-metrics-exporter"}'
+      stages:
+        - regex:
+            expression: 'ai_requests_total (?P<requests>\d+)'
+        - metrics:
+            ai_requests_total:
+              type: Counter
+              description: "Total AI requests"
+              source: requests
+
+  # Self-correction tracking
+  - match:
+      selector: '{service="chat-service"}'
+      stages:
+        - regex:
+            expression: 'self-correction (?P<correction_type>\w+)'
+        - labels:
+            correction_type:
+
+  # Error tracking
+  - match:
+      selector: '{level="error"}'
+      stages:
+        - regex:
+            expression: '(?P<error_type>\w+): (?P<error_message>.+)'
+        - labels:
+            error_type:

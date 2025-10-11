@@ -1,0 +1,372 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@universal-ai-tools.local'
+  smtp_hello: 'universal-ai-tools.local'
+  smtp_require_tls: false
+  
+  # Slack webhook URL (configure this in production)
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  
+  # PagerDuty integration key (configure this in production)  
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+  
+  # Default repeat interval
+  repeat_interval: 12h
+
+# Main routing tree
+route:
+  group_by: ['alertname', 'cluster', 'service', 'instance']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default-receiver'
+  
+  routes:
+    # Critical alerts - immediate notification via multiple channels
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 15m
+      continue: true
+      
+    # High priority alerts - quick notification
+    - match:
+        severity: high
+      receiver: 'high-priority-alerts'
+      group_wait: 30s
+      group_interval: 2m
+      repeat_interval: 30m
+      continue: true
+      
+    # Warning alerts - standard notification
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 1m
+      group_interval: 5m
+      repeat_interval: 2h
+      
+    # Info alerts - low priority notification
+    - match:
+        severity: info
+      receiver: 'info-alerts'
+      group_wait: 5m
+      group_interval: 15m
+      repeat_interval: 24h
+      
+    # Sweet Athena specific alerts
+    - match:
+        service: sweet-athena
+      receiver: 'athena-alerts'
+      group_wait: 30s
+      group_interval: 2m
+      repeat_interval: 1h
+      
+    # Database alerts
+    - match_re:
+        service: '(database|supabase|postgres)'
+      receiver: 'database-alerts'
+      group_wait: 20s
+      group_interval: 1m
+      repeat_interval: 30m
+      
+    # AI service alerts
+    - match_re:
+        service: '(ollama|ai|ml|inference)'
+      receiver: 'ai-service-alerts'
+      group_wait: 1m
+      group_interval: 3m
+      repeat_interval: 1h
+      
+    # Performance alerts
+    - match_re:
+        alertname: '(HighMemoryUsage|HighCPUUsage|DiskSpaceLow|ResponseTimeHigh)'
+      receiver: 'performance-alerts'
+      group_wait: 2m
+      group_interval: 5m
+      repeat_interval: 6h
+      
+    # Security alerts - immediate attention
+    - match_re:
+        alertname: '(SecurityBreach|UnauthorizedAccess|SuspiciousActivity)'
+      receiver: 'security-alerts'
+      group_wait: 0s
+      group_interval: 30s
+      repeat_interval: 5m
+
+# Alert receivers configuration
+receivers:
+  # Default receiver for all alerts
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/webhook'
+        send_resolved: true
+        http_config:
+          basic_auth:
+            username: 'alert-webhook'
+            password: '${WEBHOOK_PASSWORD}'
+        title: 'Universal AI Tools Alert'
+        text: >
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Service: {{ .Labels.service }}
+          Instance: {{ .Labels.instance }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ end }}
+
+  # Critical alerts - multiple notification channels
+  - name: 'critical-alerts'
+    # Slack notification
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#critical-alerts'
+        title: '🚨 CRITICAL ALERT - Universal AI Tools'
+        text: >
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          *Instance:* {{ .Labels.instance }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+        
+    # Email notification
+    email_configs:
+      - to: 'admin@universal-ai-tools.local'
+        from: 'alerts@universal-ai-tools.local'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }} - Universal AI Tools'
+        body: |
+          Critical alert triggered in Universal AI Tools:
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Service: {{ .Labels.service }}
+          Instance: {{ .Labels.instance }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          {{ if .Annotations.runbook_url }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+          
+          {{ end }}
+          
+          Dashboard: http://localhost:3001/monitoring
+          
+    # PagerDuty integration for critical alerts
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_INTEGRATION_KEY}'
+        description: 'Critical alert in Universal AI Tools: {{ .GroupLabels.alertname }}'
+        severity: 'critical'
+        
+    # Webhook for internal processing
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/critical'
+        send_resolved: true
+
+  # High priority alerts
+  - name: 'high-priority-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alerts'
+        title: '⚠️ High Priority Alert - Universal AI Tools'
+        text: >
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          *Time:* {{ .StartsAt.Format "15:04:05" }}
+          {{ end }}
+        send_resolved: true
+        
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/high-priority'
+        send_resolved: true
+
+  # Warning alerts
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#monitoring'
+        title: '⚠️ Warning - Universal AI Tools'
+        text: >
+          {{ range .Alerts }}
+          {{ .Annotations.summary }}
+          Service: {{ .Labels.service }}
+          {{ end }}
+        send_resolved: true
+        
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/warning'
+        send_resolved: true
+
+  # Info alerts
+  - name: 'info-alerts'
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/info'
+        send_resolved: true
+
+  # Sweet Athena specific alerts
+  - name: 'athena-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#sweet-athena'
+        title: '🤖 Sweet Athena Alert'
+        text: >
+          {{ range .Alerts }}
+          Sweet Athena Alert: {{ .Annotations.summary }}
+          Personality Impact: {{ .Labels.personality_mood | default "unknown" }}
+          {{ end }}
+        send_resolved: true
+        
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/sweet-athena'
+        send_resolved: true
+
+  # Database alerts
+  - name: 'database-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#database'
+        title: '🗄️ Database Alert'
+        text: >
+          {{ range .Alerts }}
+          Database Alert: {{ .Annotations.summary }}
+          Query Impact: {{ .Labels.query_type | default "unknown" }}
+          {{ end }}
+        send_resolved: true
+        
+    email_configs:
+      - to: 'dba@universal-ai-tools.local'
+        subject: 'Database Alert: {{ .GroupLabels.alertname }}'
+        
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/database'
+        send_resolved: true
+
+  # AI service alerts
+  - name: 'ai-service-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#ai-services'
+        title: '🧠 AI Service Alert'
+        text: >
+          {{ range .Alerts }}
+          AI Service Alert: {{ .Annotations.summary }}
+          Model: {{ .Labels.model_name | default "unknown" }}
+          {{ end }}
+        send_resolved: true
+        
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/ai-services'
+        send_resolved: true
+
+  # Performance alerts
+  - name: 'performance-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#performance'
+        title: '📊 Performance Alert'
+        text: >
+          {{ range .Alerts }}
+          Performance Issue: {{ .Annotations.summary }}
+          Current Value: {{ .Labels.current_value | default "unknown" }}
+          Threshold: {{ .Labels.threshold | default "unknown" }}
+          {{ end }}
+        send_resolved: true
+        
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/performance'
+        send_resolved: true
+
+  # Security alerts
+  - name: 'security-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#security'
+        title: '🔒 SECURITY ALERT'
+        text: >
+          {{ range .Alerts }}
+          🚨 SECURITY ALERT: {{ .Annotations.summary }}
+          Source: {{ .Labels.source_ip | default "unknown" }}
+          User: {{ .Labels.user_id | default "unknown" }}
+          Action Required: {{ .Annotations.action_required | default "Investigate immediately" }}
+          {{ end }}
+        send_resolved: true
+        
+    email_configs:
+      - to: 'security@universal-ai-tools.local'
+        subject: '🔒 SECURITY ALERT: {{ .GroupLabels.alertname }}'
+        
+    webhook_configs:
+      - url: 'http://localhost:9999/api/alerts/security'
+        send_resolved: true
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # Critical alerts inhibit warnings for the same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service', 'instance']
+    
+  # High priority alerts inhibit warnings
+  - source_match:
+      severity: 'high'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
+    
+  # Service down alerts inhibit performance alerts for the same service
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '(HighMemoryUsage|HighCPUUsage|ResponseTimeHigh)'
+    equal: ['service', 'instance']
+    
+  # Database connection issues inhibit query performance alerts
+  - source_match:
+      alertname: 'DatabaseConnectionFailed'
+    target_match_re:
+      alertname: '(SlowQuery|HighQueryVolume)'
+    equal: ['service']
+    
+  # AI service down inhibits inference performance alerts
+  - source_match_re:
+      alertname: '(OllamaDown|AIServiceUnavailable)'
+    target_match_re:
+      alertname: '(SlowInference|HighInferenceLatency)'
+    equal: ['service']
+
+# Time intervals for different actions
+time_intervals:
+  - name: 'business-hours'
+    time_ranges:
+      - start_time: '09:00'
+        end_time: '17:00'
+    weekdays: ['monday:friday']
+    
+  - name: 'after-hours'
+    time_ranges:
+      - start_time: '17:01'
+        end_time: '08:59'
+    weekdays: ['monday:friday']
+      
+  - name: 'weekends'
+    weekdays: ['saturday', 'sunday']
+
+# Mute time intervals (maintenance windows)
+mute_time_intervals:
+  - name: 'maintenance-window'
+    time_ranges:
+      - start_time: '02:00'
+        end_time: '04:00'
+    weekdays: ['sunday']

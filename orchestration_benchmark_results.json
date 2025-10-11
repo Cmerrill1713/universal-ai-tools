@@ -1,0 +1,161 @@
+{
+  "metrics": {
+    "total_tests": 19,
+    "passed_tests": 19,
+    "failed_tests": 0,
+    "error_tests": 0,
+    "success_rate": 100.0,
+    "avg_duration": 3.945263157894737,
+    "median_duration": 3.12,
+    "avg_quality": 0.6666666666666666,
+    "total_duration": 74.97191500663757
+  },
+  "results": [
+    {
+      "test": "Text Generation 1",
+      "status": "\u2705 PASS",
+      "duration": "4.07s",
+      "word_count": 349,
+      "words_per_second": 85.7,
+      "quality": "High"
+    },
+    {
+      "test": "Text Generation 2",
+      "status": "\u2705 PASS",
+      "duration": "3.93s",
+      "word_count": 355,
+      "words_per_second": 90.3,
+      "quality": "High"
+    },
+    {
+      "test": "Text Generation 3",
+      "status": "\u2705 PASS",
+      "duration": "7.52s",
+      "word_count": 669,
+      "words_per_second": 89.0,
+      "quality": "High"
+    },
+    {
+      "test": "Text Generation 4",
+      "status": "\u2705 PASS",
+      "duration": "8.78s",
+      "word_count": 646,
+      "words_per_second": 73.6,
+      "quality": "High"
+    },
+    {
+      "test": "Text Generation 5",
+      "status": "\u2705 PASS",
+      "duration": "5.45s",
+      "word_count": 516,
+      "words_per_second": 94.7,
+      "quality": "High"
+    },
+    {
+      "test": "Reasoning Task 1",
+      "status": "\u2705 PASS",
+      "duration": "2.64s",
+      "quality_score": 0,
+      "response_length": 1156,
+      "task_type": "mathematical reasoning"
+    },
+    {
+      "test": "Reasoning Task 2",
+      "status": "\u2705 PASS",
+      "duration": "5.87s",
+      "quality_score": 0,
+      "response_length": 3873,
+      "task_type": "analytical reasoning"
+    },
+    {
+      "test": "Reasoning Task 3",
+      "status": "\u2705 PASS",
+      "duration": "7.44s",
+      "quality_score": 1,
+      "response_length": 4343,
+      "task_type": "technical reasoning"
+    },
+    {
+      "test": "Vision Analysis 1",
+      "status": "\u2705 PASS",
+      "duration": "0.02s",
+      "accuracy": 1.0,
+      "description_length": 34,
+      "expected": "red square"
+    },
+    {
+      "test": "Vision Analysis 2",
+      "status": "\u2705 PASS",
+      "duration": "0.00s",
+      "accuracy": 1.0,
+      "description_length": 35,
+      "expected": "blue circle"
+    },
+    {
+      "test": "Vision Analysis 3",
+      "status": "\u2705 PASS",
+      "duration": "0.00s",
+      "accuracy": 1.0,
+      "description_length": 39,
+      "expected": "green rectangle"
+    },
+    {
+      "test": "Memory Storage 1",
+      "status": "\u2705 PASS",
+      "duration": "0.01s",
+      "operation": "store"
+    },
+    {
+      "test": "Memory Storage 2",
+      "status": "\u2705 PASS",
+      "duration": "0.01s",
+      "operation": "store"
+    },
+    {
+      "test": "Memory Storage 3",
+      "status": "\u2705 PASS",
+      "duration": "0.01s",
+      "operation": "store"
+    },
+    {
+      "test": "Memory Retrieval",
+      "status": "\u2705 PASS",
+      "duration": "0.00s",
+      "memory_count": 6,
+      "operation": "retrieve"
+    },
+    {
+      "test": "Workflow 1: Vision + LLM Analysis",
+      "status": "\u2705 PASS",
+      "duration": "0.42s",
+      "workflow_type": "vision_llm",
+      "enhanced_length": 185
+    },
+    {
+      "test": "Workflow 2: Memory + LLM Context",
+      "status": "\u2705 PASS",
+      "duration": "3.12s",
+      "workflow_type": "memory_llm",
+      "response_length": 1971
+    },
+    {
+      "test": "Workflow 3: Multi-Model Comparison",
+      "status": "\u2705 PASS",
+      "duration": "14.61s",
+      "workflow_type": "multi_model",
+      "models_tested": 2,
+      "avg_response_length": 3483.0
+    },
+    {
+      "test": "Concurrent Operations",
+      "status": "\u2705 PASS",
+      "duration": "11.06s",
+      "concurrent_tasks": 5,
+      "successful_tasks": 5,
+      "success_rate": 1.0,
+      "avg_response_length": 1192.8,
+      "throughput": 0.45206513585987024
+    }
+  ],
+  "timestamp": 1757700049.381124
+}

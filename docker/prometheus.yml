@@ -1,0 +1,153 @@
+# Prometheus configuration for Universal AI Tools
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'universal-ai-tools'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "first_rules.yml"
+  - "second_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Universal AI Tools main application
+  - job_name: 'universal-ai-tools'
+    static_configs:
+      - targets: ['app:9999']
+    metrics_path: '/api/v1/monitoring/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Rust services performance metrics
+  - job_name: 'rust-services'
+    static_configs:
+      - targets: ['app:9999']
+    metrics_path: '/api/v1/monitoring/rust-metrics'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Ollama metrics
+  - job_name: 'ollama'
+    static_configs:
+      - targets: ['ollama:11434']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Node.js process metrics
+  - job_name: 'nodejs'
+    static_configs:
+      - targets: ['app:9999']
+    metrics_path: '/api/v1/monitoring/process'
+    scrape_interval: 15s
+
+  # System metrics
+  - job_name: 'system'
+    static_configs:
+      - targets: ['app:9999']
+    metrics_path: '/api/v1/monitoring/system'
+    scrape_interval: 30s
+
+  # Performance regression detection
+  - job_name: 'performance-regression'
+    static_configs:
+      - targets: ['app:9999']
+    metrics_path: '/api/v1/monitoring/performance-regression'
+    scrape_interval: 60s
+
+  # Nginx metrics
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    metrics_path: '/nginx_status'
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "http://victoriametrics:8428/api/v1/write"
+    queue_config:
+      max_samples_per_send: 1000
+      capacity: 10000
+      max_shards: 200
+
+# Recording rules for performance analysis
+recording_rules:
+  - name: rust_service_performance
+    interval: 30s
+    rules:
+      - record: rust_service:request_duration_seconds:rate5m
+        expr: rate(rust_service_request_duration_seconds_sum[5m]) / rate(rust_service_request_duration_seconds_count[5m])
+      
+      - record: rust_service:requests_per_second:rate5m
+        expr: rate(rust_service_requests_total[5m])
+      
+      - record: rust_service:error_rate:rate5m
+        expr: rate(rust_service_errors_total[5m]) / rate(rust_service_requests_total[5m])
+
+      - record: rust_service:performance_improvement_ratio
+        expr: typescript_service_duration_seconds / rust_service_duration_seconds
+
+      - record: rust_service:memory_efficiency_ratio
+        expr: typescript_service_memory_bytes / rust_service_memory_bytes
+
+# Alert rules for performance regression
+alert_rules:
+  - name: performance_alerts
+    rules:
+      - alert: RustServiceHighLatency
+        expr: rust_service:request_duration_seconds:rate5m > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rust service {{ $labels.service }} has high latency"
+          description: "Service {{ $labels.service }} latency is {{ $value }}s, above 100ms threshold"
+
+      - alert: RustServiceHighErrorRate
+        expr: rust_service:error_rate:rate5m > 0.01
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Rust service {{ $labels.service }} has high error rate"
+          description: "Service {{ $labels.service }} error rate is {{ $value | humanizePercentage }}"
+
+      - alert: NativeLibraryNotLoaded
+        expr: rust_service_native_loaded == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rust native library not loaded for {{ $labels.service }}"
+          description: "Service {{ $labels.service }} is using TypeScript fallback instead of native Rust implementation"
+
+      - alert: PerformanceRegression
+        expr: rust_service:performance_improvement_ratio < 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Performance regression detected in {{ $labels.service }}"
+          description: "Performance improvement ratio dropped to {{ $value }}x (expected >10x)"

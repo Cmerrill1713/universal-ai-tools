@@ -1,0 +1,7 @@
+[package]
+name = "agent-orchestration"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Placeholder for agent-orchestration crate

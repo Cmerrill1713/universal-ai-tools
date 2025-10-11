@@ -1,0 +1,29 @@
+export_interval: "10s"
+metrics_port: "9092"
+log_level: "info"
+services:
+  - name: "chat-service"
+    url: "http://localhost:8010"
+    health_endpoint: "/health"
+    metrics_endpoint: "/metrics"
+    models: ["mlx-qwen2.5-0.5b", "mlx-llama-3.1-8b"]
+  - name: "mlx-service"
+    url: "http://localhost:8001"
+    health_endpoint: "/health"
+    metrics_endpoint: "/metrics"
+    models: ["mlx-qwen2.5-0.5b", "mlx-llama-3.1-8b"]
+  - name: "hrm-service"
+    url: "http://localhost:8002"
+    health_endpoint: "/health"
+    metrics_endpoint: "/metrics"
+    models: ["hrm-reasoning"]
+  - name: "implementation-service"
+    url: "http://localhost:8029"
+    health_endpoint: "/health"
+    metrics_endpoint: "/metrics"
+    models: ["code-generation"]
+  - name: "research-service"
+    url: "http://localhost:8028"
+    health_endpoint: "/health"
+    metrics_endpoint: "/metrics"
+    models: ["research-ai"]

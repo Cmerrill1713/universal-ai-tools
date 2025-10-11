@@ -1,0 +1,170 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "import",
+    "prettier",
+    "security",
+    "sonarjs",
+    "unused-imports",
+    "simple-import-sort"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript",
+    "plugin:security/recommended",
+    "plugin:sonarjs/recommended",
+    "prettier"
+  ],
+  "rules": {
+    // TypeScript specific rules
+    "@typescript-eslint/explicit-function-return-type": [
+      "error",
+      {
+        "allowExpressions": true,
+        "allowTypedFunctionExpressions": true
+      }
+    ],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/await-thenable": "error",
+    "@typescript-eslint/no-unnecessary-type-assertion": "error",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    "@typescript-eslint/prefer-optional-chain": "error",
+    "@typescript-eslint/strict-boolean-expressions": [
+      "error",
+      {
+        "allowNullableBoolean": true,
+        "allowNullableString": true
+      }
+    ],
+
+    // Import rules
+    "import/order": [
+      "error",
+      {
+        "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
+        "newlines-between": "always",
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        }
+      }
+    ],
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error",
+    "unused-imports/no-unused-imports": "error",
+    "import/no-duplicates": "error",
+
+    // General rules
+    "no-console": ["error", { "allow": ["warn", "error"] }],
+    "no-debugger": "error",
+    "no-alert": "error",
+    "no-magic-numbers": [
+      "error",
+      {
+        "ignore": [0, 1, -1],
+        "ignoreArrayIndexes": true,
+        "enforceConst": true
+      }
+    ],
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always"],
+    "curly": ["error", "all"],
+    "no-throw-literal": "error",
+    "prefer-promise-reject-errors": "error",
+
+    // Code quality
+    "complexity": ["error", 10],
+    "max-depth": ["error", 3],
+    "max-lines": ["error", 500],
+    "max-lines-per-function": ["error", 50],
+    "max-params": ["error", 4],
+    "max-statements": ["error", 15],
+
+    // Security
+    "security/detect-object-injection": "error",
+    "security/detect-non-literal-regexp": "error",
+    "security/detect-unsafe-regex": "error",
+
+    // SonarJS rules
+    "sonarjs/cognitive-complexity": ["error", 15],
+    "sonarjs/no-duplicate-string": ["error", 5],
+    "sonarjs/no-identical-functions": "error",
+    "sonarjs/no-collapsible-if": "error",
+    "sonarjs/no-collection-size-mischeck": "error",
+    "sonarjs/no-duplicated-branches": "error",
+    "sonarjs/no-identical-conditions": "error",
+    "sonarjs/no-inverted-boolean-check": "error",
+    "sonarjs/no-redundant-boolean": "error",
+    "sonarjs/no-unused-collection": "error",
+    "sonarjs/no-useless-catch": "error",
+    "sonarjs/prefer-object-literal": "error",
+    "sonarjs/prefer-single-boolean-return": "error",
+
+    // Additional rules for catching syntax errors
+    "@typescript-eslint/no-unused-expressions": "error",
+    "@typescript-eslint/no-invalid-this": "error",
+    "@typescript-eslint/no-extra-parens": "warn",
+    "@typescript-eslint/no-extra-semi": "error",
+    "@typescript-eslint/semi": ["error", "always"],
+    "@typescript-eslint/quotes": ["error", "single", { "avoidEscape": true }],
+    "@typescript-eslint/comma-dangle": ["error", "never"],
+    "no-unreachable": "error",
+    "no-unused-labels": "error",
+    "no-undef": "error",
+    "no-constant-condition": "error",
+    "no-irregular-whitespace": "error",
+    "valid-typeof": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.test.ts", "*.spec.ts"],
+      "env": {
+        "jest": true
+      },
+      "rules": {
+        "no-magic-numbers": "off",
+        "max-lines-per-function": "off",
+        "max-statements": "off"
+      }
+    },
+    {
+      "files": ["*.js"],
+      "env": {
+        "node": true
+      },
+      "rules": {
+        "@typescript-eslint/no-var-requires": "off"
+      }
+    }
+  ],
+  "settings": {
+    "import/resolver": {
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": "./tsconfig.json"
+      }
+    }
+  },
+  "ignorePatterns": ["dist/", "build/", "node_modules/", "coverage/", "*.min.js", "ui/"]
+}

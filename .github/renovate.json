@@ -1,0 +1,119 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate configuration for Universal AI Tools - Advanced dependency management",
+  "extends": [
+    "config:base",
+    ":enableVulnerabilityAlertsWithLabel(security)",
+    ":semanticCommitTypeAll(deps)",
+    ":dependencyDashboard"
+  ],
+  "schedule": ["before 10am on monday"],
+  "timezone": "America/Los_Angeles",
+  "labels": ["dependencies", "renovate"],
+  "assignees": ["christianmerrill"],
+  "reviewers": ["christianmerrill"],
+  "prHourlyLimit": 3,
+  "prConcurrentLimit": 10,
+  "rebaseWhen": "behind-base-branch",
+  "packageRules": [
+    {
+      "description": "Auto-merge patch and minor updates for production dependencies",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "requiredStatusChecks": null
+    },
+    {
+      "description": "Auto-merge all dev dependency updates",
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Group TypeScript related packages",
+      "matchPackagePatterns": ["^@types/", "^typescript", "^ts-"],
+      "groupName": "TypeScript",
+      "schedule": ["before 10am on monday"]
+    },
+    {
+      "description": "Group AI/ML framework updates",
+      "matchPackagePatterns": [
+        "^langchain",
+        "^@langchain/",
+        "^guardrails-ai",
+        "^dspy",
+        "^transformers",
+        "^torch",
+        "^mlx"
+      ],
+      "groupName": "AI/ML Frameworks",
+      "schedule": ["before 10am on tuesday"],
+      "reviewers": ["christianmerrill"],
+      "labels": ["ai-frameworks", "dependencies"]
+    },
+    {
+      "description": "Group testing framework updates",
+      "matchPackagePatterns": ["^jest", "^@jest/", "^vitest", "^playwright", "^@testing-library/"],
+      "groupName": "Testing Frameworks",
+      "schedule": ["before 10am on wednesday"]
+    },
+    {
+      "description": "Group linting and formatting tools",
+      "matchPackagePatterns": ["^eslint", "^@typescript-eslint/", "^prettier", "^@prettier/"],
+      "groupName": "Code Quality Tools",
+      "schedule": ["before 10am on thursday"]
+    },
+    {
+      "description": "Pin GitHub Actions to specific versions",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "schedule": ["before 10am on friday"]
+    },
+    {
+      "description": "Separate major updates",
+      "matchUpdateTypes": ["major"],
+      "labels": ["major-update"],
+      "automerge": false,
+      "schedule": ["before 10am on saturday"],
+      "prCreation": "immediate"
+    },
+    {
+      "description": "Security updates - high priority",
+      "matchPackagePatterns": ["*"],
+      "matchUpdateTypes": ["patch"],
+      "vulnerabilityAlerts": true,
+      "labels": ["security", "urgent"],
+      "automerge": true,
+      "schedule": ["at any time"],
+      "prPriority": 10
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "labels": ["security", "vulnerability"],
+    "automerge": true,
+    "automergeType": "pr"
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on sunday"],
+    "commitMessageAction": "Update"
+  },
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "commitMessageSuffix": "",
+  "prBodyDefinitions": {
+    "Package": "{{depName}}",
+    "Type": "{{depType}}",
+    "Update": "{{updateType}}",
+    "New version": "{{newVersion}}",
+    "Previous version": "{{currentVersion}}"
+  },
+  "prBodyTemplate": "This PR updates **{{{Package}}}** from `{{{Previous version}}}` to `{{{New version}}}`.\n\n---\n\n📦 **Type**: {{{Type}}}\n🔄 **Update**: {{{Update}}}\n\n{{{body}}}",
+  "ignoreDeps": ["node"],
+  "ignorePaths": ["**/node_modules/**", "**/build/**", "**/dist/**"]
+}

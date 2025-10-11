@@ -1,0 +1,42 @@
+{
+  "timestamp": "20250912_085746",
+  "summary": {
+    "total": 5,
+    "passed": 1,
+    "partial": 0,
+    "failed": 4,
+    "success_rate": 20.0
+  },
+  "results": [
+    {
+      "test": "Health Check",
+      "status": "\u2705 PASS",
+      "duration": "0.01s",
+      "response": "healthy"
+    },
+    {
+      "test": "Simple Chat",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "error": "Status 401"
+    },
+    {
+      "test": "Technical Question",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "error": "Status 401"
+    },
+    {
+      "test": "Creative Task",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "error": "Status 401"
+    },
+    {
+      "test": "Edge Case (Empty Input)",
+      "status": "\u274c FAIL",
+      "duration": "0.00s",
+      "error": "Status 401"
+    }
+  ]
+}

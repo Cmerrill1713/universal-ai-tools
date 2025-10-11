@@ -178,3 +178,16 @@ echo "your-secret" | docker secret create jwt_secret -
 ---
 
 **🎉 Security hardening is complete! Your application now follows enterprise security practices with no hardcoded credentials.**
+<<<<<<< HEAD
+=======
+
+### Chat Service Resource Controls
+- `CHAT_MAX_HEAVY_CONCURRENT` (default `2`) – caps concurrent heavy model requests (HRM/MLX/Ollama/LM Studio).
+- `CHAT_MAX_HEAVY_LATENCY` (default `6.0`) – upper bound in seconds for the rolling average latency before heavy calls are paused.
+
+### MLX Generation Controls
+- `MLX_TEMPERATURE` (default `0.75`)
+- `MLX_TOP_P` (default `0.9`)
+- `MLX_TOP_K` (optional, defaults to `40` if set)
+- `MLX_MAX_REPETITION_WINDOW` (default `3`) – number of recent lines used when filtering repetitive output.
+>>>>>>> fix/stabilize-imports-endpoint-verification

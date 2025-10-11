@@ -1,0 +1,24 @@
+# LFM2-1.2B Model
+# Liquid Foundation Model 2 - 1.2B parameters
+
+# Note: This model requires conversion to GGUF format first
+# Use llama.cpp or similar tools to convert from safetensors
+
+FROM ./lfm2-1.2b.gguf
+
+# Model parameters
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.1
+PARAMETER stop "<|endoftext|>"
+PARAMETER stop "<|end|>"
+
+# Template based on the model's chat template
+TEMPLATE "{{ if .System }}<|system|>
+{{ .System }}<|end|>
+{{ end }}{{ if .Prompt }}<|user|>
+{{ .Prompt }}<|end|>
+<|assistant|>{{ end }}"
+
+# System prompt
+SYSTEM "You are a helpful AI assistant powered by Liquid Foundation Model 2."

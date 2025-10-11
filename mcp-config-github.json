@@ -1,0 +1,122 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "node",
+      "args": ["src/mcp/github-mcp-server.ts"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "SUPABASE_URL": "${SUPABASE_URL}",
+        "SUPABASE_ANON_KEY": "${SUPABASE_ANON_KEY}"
+      }
+    }
+  },
+  "tools": {
+    "github_search_repositories": {
+      "description": "Search GitHub repositories with advanced filtering",
+      "category": "repository"
+    },
+    "github_get_repository": {
+      "description": "Get detailed information about a specific repository",
+      "category": "repository"
+    },
+    "github_list_issues": {
+      "description": "List issues for a repository with filtering options",
+      "category": "issues"
+    },
+    "github_get_issue": {
+      "description": "Get detailed information about a specific issue",
+      "category": "issues"
+    },
+    "github_create_issue": {
+      "description": "Create a new issue in a repository",
+      "category": "issues"
+    },
+    "github_list_pull_requests": {
+      "description": "List pull requests for a repository",
+      "category": "pull_requests"
+    },
+    "github_get_pull_request": {
+      "description": "Get detailed information about a specific pull request",
+      "category": "pull_requests"
+    },
+    "github_create_pull_request": {
+      "description": "Create a new pull request",
+      "category": "pull_requests"
+    },
+    "github_list_commits": {
+      "description": "List commits for a repository with filtering",
+      "category": "commits"
+    },
+    "github_get_commit": {
+      "description": "Get detailed information about a specific commit",
+      "category": "commits"
+    },
+    "github_get_file_contents": {
+      "description": "Get contents of a file or directory",
+      "category": "files"
+    },
+    "github_store_data": {
+      "description": "Store GitHub data in Supabase for analysis",
+      "category": "storage"
+    },
+    "github_analyze_repository": {
+      "description": "Analyze repository metrics and trends",
+      "category": "analysis"
+    }
+  },
+  "webhooks": {
+    "github": {
+      "url": "http://localhost:8095/webhook",
+      "secret": "${GITHUB_WEBHOOK_SECRET}",
+      "events": [
+        "push",
+        "issues",
+        "pull_request",
+        "release",
+        "repository",
+        "create",
+        "delete",
+        "fork",
+        "star",
+        "watch"
+      ]
+    }
+  },
+  "analysis": {
+    "types": [
+      "overview",
+      "activity",
+      "contributors",
+      "languages",
+      "issues",
+      "prs"
+    ],
+    "health_score_factors": {
+      "stars": 30,
+      "recent_activity": 25,
+      "issue_health": 25,
+      "pr_health": 20
+    }
+  },
+  "storage": {
+    "tables": {
+      "repositories": "github_repositories",
+      "issues": "github_issues",
+      "pull_requests": "github_pull_requests",
+      "commits": "github_commits",
+      "data": "github_data",
+      "analysis": "github_analysis",
+      "webhooks": "github_webhooks",
+      "users": "github_users",
+      "contributors": "github_contributors",
+      "languages": "github_languages",
+      "topics": "github_topics",
+      "releases": "github_releases"
+    },
+    "retention": {
+      "webhooks": "30 days",
+      "analysis": "7 days",
+      "data": "90 days"
+    }
+  }
+}

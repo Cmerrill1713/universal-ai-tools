@@ -1,0 +1,338 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Universal AI Tools - AI Services Dashboard",
+    "tags": ["ai", "services", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "AI Services Health Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ai_service_health",
+            "legendFormat": "{{service}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            },
+            "unit": "short",
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "DOWN"
+                  },
+                  "1": {
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (per second)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ai_requests_total[5m])",
+            "legendFormat": "{{service}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Response Time (95th percentile)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(ai_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{service}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ai_errors_total[5m]) / rate(ai_requests_total[5m]) * 100",
+            "legendFormat": "{{service}} - {{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Error Rate %",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_memory_usage_bytes{component=\"total\"} / 1024 / 1024 / 1024",
+            "legendFormat": "{{service}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "GB",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "GPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_gpu_usage_percent",
+            "legendFormat": "{{service}} - GPU {{gpu_id}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Percentage",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Self-Corrections Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ai_self_corrections_total[5m])",
+            "legendFormat": "{{service}} - {{correction_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Corrections/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 8,
+        "title": "Model Accuracy",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_model_accuracy_score",
+            "legendFormat": "{{service}} - {{model}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Accuracy Score",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      },
+      {
+        "id": 9,
+        "title": "Cost per Request",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_cost_per_request_usd",
+            "legendFormat": "{{service}} - {{model}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "USD",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 32
+        }
+      },
+      {
+        "id": 10,
+        "title": "Security Events",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ai_security_events_total[5m])",
+            "legendFormat": "{{service}} - {{event_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Events/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 32
+        }
+      },
+      {
+        "id": 11,
+        "title": "User Satisfaction",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_user_satisfaction_score",
+            "legendFormat": "{{service}} - {{user_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Satisfaction Score",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 40
+        }
+      },
+      {
+        "id": 12,
+        "title": "Bias Detection",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_bias_score",
+            "legendFormat": "{{service}} - {{bias_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Bias Score",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 40
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 1,
+    "links": []
+  }
+}

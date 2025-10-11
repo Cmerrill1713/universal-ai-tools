@@ -1,0 +1,89 @@
+# Production Dockerfile for Universal AI Tools
+# Optimized multi-stage build for minimal image size
+
+# Stage 1: Dependencies
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat python3 make g++ git
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Remove TensorFlow and prepare script for Docker build
+RUN sed -i '/@tensorflow\/tfjs-node/d' package.json && \
+    sed -i '/"prepare":/d' package.json && \
+    npm ci --omit=dev && \
+    npm cache clean --force
+
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+RUN apk add --no-cache libc6-compat python3 make g++ git
+WORKDIR /app
+
+# Copy package files and install all dependencies
+COPY package*.json ./
+# Remove TensorFlow and prepare script for build stage too
+RUN sed -i '/@tensorflow\/tfjs-node/d' package.json && \
+    sed -i '/"prepare":/d' package.json && \
+    npm ci
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build:prod
+
+# Stage 3: Production Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    libc6-compat \
+    dumb-init \
+    curl \
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S aitools -u 1001
+
+# Copy production dependencies from deps stage
+COPY --from=deps --chown=aitools:nodejs /app/node_modules ./node_modules
+
+# Copy built application from builder stage
+COPY --from=builder --chown=aitools:nodejs /app/dist ./dist
+COPY --from=builder --chown=aitools:nodejs /app/package.json ./
+COPY --from=builder --chown=aitools:nodejs /app/.env.example ./.env.example
+
+# Copy schema if exists
+COPY --from=builder --chown=aitools:nodejs /app/src/schema ./schema 2>/dev/null || true
+
+# Create necessary directories
+RUN mkdir -p logs cache models data && \
+    chown -R aitools:nodejs logs cache models data
+
+# Set production environment
+ENV NODE_ENV=production \
+    PORT=9999 \
+    NODE_OPTIONS="--max-old-space-size=2048"
+
+# Switch to non-root user
+USER aitools
+
+# Expose port
+EXPOSE 9999
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:9999/api/health || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["node", "dist/server.js"]
+
+# Labels
+LABEL org.opencontainers.image.title="Universal AI Tools"
+LABEL org.opencontainers.image.description="Production-ready AI Tools Service"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.vendor="Universal AI Tools"
+LABEL org.opencontainers.image.licenses="MIT"

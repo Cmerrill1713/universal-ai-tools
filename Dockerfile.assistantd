@@ -1,0 +1,79 @@
+# Multi-stage build for assistantd service
+FROM rust:1.75-slim as builder
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates/assistantd/Cargo.toml ./crates/assistantd/
+COPY crates/llm-router/Cargo.toml ./crates/llm-router/
+COPY crates/intelligent-librarian/Cargo.toml ./crates/intelligent-librarian/
+COPY crates/voice-processing/Cargo.toml ./crates/voice-processing/
+
+# Create dummy main files for dependency resolution
+RUN mkdir -p crates/assistantd/src crates/llm-router/src crates/intelligent-librarian/src crates/voice-processing/src
+
+RUN echo "fn main() {}" > crates/assistantd/src/main.rs \
+    && echo "fn main() {}" > crates/llm-router/src/main.rs \
+    && echo "fn main() {}" > crates/intelligent-librarian/src/main.rs \
+    && echo "fn main() {}" > crates/voice-processing/src/main.rs
+
+# Build dependencies
+RUN cargo build --release -p assistantd
+RUN rm -rf crates/assistantd/src
+
+# Copy source code
+COPY crates/ ./crates/
+
+# Build the application
+RUN cargo build --release -p assistantd
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r assistantd && useradd -r -g assistantd assistantd
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/target/release/assistantd /app/assistantd
+
+# Copy static files
+COPY crates/assistantd/static/ /app/static/
+
+# Set permissions
+RUN chown -R assistantd:assistantd /app
+RUN chmod +x /app/assistantd
+
+# Switch to non-root user
+USER assistantd
+
+# Expose port
+EXPOSE 8086
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8086/health || exit 1
+
+# Default environment variables
+ENV ASSISTANTD_PORT=8086
+ENV RATE_LIMITING_ENABLED=true
+ENV AUTHENTICATION_ENABLED=false
+ENV CORS_ENABLED=true
+
+# Run the application
+CMD ["/app/assistantd"]

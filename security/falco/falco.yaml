@@ -1,0 +1,43 @@
+# Falco configuration for Universal AI Tools
+json_output: true
+json_include_output_property: true
+http_output:
+  enabled: true
+  url: "http://localhost:8080/webhook"
+file_output:
+  enabled: true
+  keep_alive: false
+  filename: "/var/log/falco/falco.log"
+stdout_output:
+  enabled: true
+priority: warning
+min_priority: debug
+
+rules_file:
+  - /etc/falco/falco_rules.yaml
+  - /etc/falco/falco_rules.local.yaml
+
+# Custom rules for AI services
+custom_rules:
+  - rule: AI Service Unauthorized Access
+    desc: Detect unauthorized access to AI services
+    condition: >
+      (spawned_process and
+       (proc.name in (curl, wget, nc, netcat) and
+        proc.args contains "localhost:8010") and
+       not user.name in (root, admin, ai-service))
+    output: >
+      Unauthorized access to AI service detected
+      (user=%user.name command=%proc.cmdline)
+    priority: WARNING
+
+  - rule: AI Model File Access
+    desc: Detect unauthorized access to AI model files
+    condition: >
+      (open_read and
+       (fd.name contains "/models/" or fd.name contains ".pth" or fd.name contains ".safetensors") and
+       not user.name in (root, ai-service, model-loader))
+    output: >
+      Unauthorized access to AI model files detected
+      (user=%user.name file=%fd.name)
+    priority: WARNING

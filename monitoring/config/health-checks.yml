@@ -1,0 +1,36 @@
+check_interval: "30s"
+failure_threshold: 3
+recovery_action: "restart"
+health_check_timeout: "10s"
+log_level: "info"
+services:
+  - name: "chat-service"
+    url: "http://localhost:8010"
+    health_path: "/health"
+    timeout: 5
+    retries: 3
+    critical: true
+  - name: "mlx-service"
+    url: "http://localhost:8001"
+    health_path: "/health"
+    timeout: 5
+    retries: 3
+    critical: true
+  - name: "hrm-service"
+    url: "http://localhost:8002"
+    health_path: "/health"
+    timeout: 5
+    retries: 3
+    critical: false
+  - name: "implementation-service"
+    url: "http://localhost:8029"
+    health_path: "/health"
+    timeout: 5
+    retries: 3
+    critical: false
+  - name: "research-service"
+    url: "http://localhost:8028"
+    health_path: "/health"
+    timeout: 5
+    retries: 3
+    critical: false

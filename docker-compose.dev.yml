@@ -1,0 +1,41 @@
+version: "3.9"
+
+# Development override - hot reload + volume mounts
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  unified-backend:
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - PYTHONPATH=/app/src:/app/api:/app
+      - LOG_LEVEL=debug
+    volumes:
+      - ./src:/app/src
+      - ./api:/app/api
+      - ./sitecustomize.py:/app/sitecustomize.py
+      - ./scripts:/app/scripts
+    command: bash -c "uvicorn unified_backend_api:app --host 0.0.0.0 --port 8013 --reload --log-level debug"
+    ports:
+      - "8013:8013"
+
+  agentic-platform:
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - PYTHONPATH=/app/src:/app/api:/app
+    volumes:
+      - ./src:/app/src
+      - ./api:/app/api
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+  python-api:
+    environment:
+      - ENV=development
+      - DEBUG=true
+      - PYTHONPATH=/app/src:/app/api:/app
+    volumes:
+      - ./src:/app/src
+      - ./api:/app/api
+      - ./sitecustomize.py:/app/sitecustomize.py
+    command: bash -c "uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload"

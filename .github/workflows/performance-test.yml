@@ -1,0 +1,550 @@
+name: Performance Testing
+
+on:
+  schedule:
+    # Run performance tests weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'ui/src/**'
+      - 'package.json'
+      - 'ui/package.json'
+  pull_request:
+    branches: [main, master]
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of performance test'
+        required: true
+        default: 'quick'
+        type: choice
+        options:
+          - quick
+          - comprehensive
+          - load
+          - stress
+          - memory
+      duration:
+        description: 'Test duration (minutes)'
+        required: false
+        default: '5'
+      concurrent_users:
+        description: 'Number of concurrent users'
+        required: false
+        default: '10'
+
+env:
+  NODE_VERSION: '20'
+  PERFORMANCE_THRESHOLD_RESPONSE_TIME: 2000 # ms
+  PERFORMANCE_THRESHOLD_MEMORY: 512 # MB
+  PERFORMANCE_THRESHOLD_CPU: 80 # %
+
+jobs:
+  # 1. Determine if performance tests should run
+  should-run:
+    name: Determine Test Execution
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run_tests: ${{ steps.check.outputs.run_tests }}
+      test_type: ${{ steps.check.outputs.test_type }}
+    steps:
+      - name: Check execution conditions
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+            echo "test_type=${{ github.event.inputs.test_type }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+            echo "test_type=comprehensive" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+            echo "test_type=quick" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ contains(github.event.pull_request.labels.*.name, 'performance') }}" == "true" ]]; then
+            echo "run_tests=true" >> $GITHUB_OUTPUT
+            echo "test_type=quick" >> $GITHUB_OUTPUT
+          else
+            echo "run_tests=false" >> $GITHUB_OUTPUT
+            echo "test_type=none" >> $GITHUB_OUTPUT
+          fi
+
+  # 2. Setup test environment
+  setup:
+    name: Setup Performance Test Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: should-run
+    if: needs.should-run.outputs.run_tests == 'true'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: perftest
+          POSTGRES_DB: perftest_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    outputs:
+      app_url: ${{ steps.start.outputs.app_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build:prod
+
+      - name: Setup test environment variables
+        run: |
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "PORT=3001" >> $GITHUB_ENV
+          echo "POSTGRES_HOST=localhost" >> $GITHUB_ENV
+          echo "POSTGRES_PORT=5432" >> $GITHUB_ENV
+          echo "POSTGRES_DB=perftest_db" >> $GITHUB_ENV
+          echo "POSTGRES_USER=postgres" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=perftest" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+          echo "JWT_SECRET=perf-test-secret-key" >> $GITHUB_ENV
+          echo "ENCRYPTION_KEY=perf-test-encryption-key-32chars" >> $GITHUB_ENV
+
+      - name: Start application
+        id: start
+        run: |
+          # Start the application in background
+          npm start &
+          APP_PID=$!
+          echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+
+          # Wait for application to start
+          echo "Waiting for application to start..."
+          for i in {1..30}; do
+            if curl -f http://localhost:3001/health; then
+              echo "Application started successfully"
+              echo "app_url=http://localhost:3001" >> $GITHUB_OUTPUT
+              break
+            else
+              echo "Waiting... attempt $i/30"
+              sleep 2
+            fi
+          done
+
+      - name: Verify application health
+        run: |
+          curl -f http://localhost:3001/health
+          curl -f http://localhost:3001/api/health
+
+  # 3. Quick performance tests
+  quick-tests:
+    name: Quick Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [should-run, setup]
+    if: needs.should-run.outputs.test_type == 'quick' || needs.should-run.outputs.test_type == 'comprehensive'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install performance testing tools
+        run: |
+          npm install -g autocannon clinic
+          npm install -g artillery
+
+      - name: Run API response time tests
+        run: |
+          echo "Testing API response times..."
+
+          # Test health endpoint
+          autocannon -c 10 -d 30 -j > health-perf.json ${{ needs.setup.outputs.app_url }}/health
+
+          # Test API endpoints
+          autocannon -c 5 -d 30 -j > api-perf.json ${{ needs.setup.outputs.app_url }}/api/health
+
+      - name: Memory usage test
+        run: |
+          echo "Testing memory usage..."
+
+          # Monitor memory usage during light load
+          echo "Initial memory check..."
+          curl ${{ needs.setup.outputs.app_url }}/api/health
+
+          # Light load test
+          autocannon -c 5 -d 60 ${{ needs.setup.outputs.app_url }}/health > /dev/null &
+          LOAD_PID=$!
+
+          # Monitor memory for 60 seconds
+          for i in {1..12}; do
+            echo "Memory check $i/12..."
+            ps aux | grep node || true
+            sleep 5
+          done
+
+          wait $LOAD_PID
+
+      - name: Analyze quick test results
+        run: |
+          echo "Analyzing quick performance test results..."
+
+          if [ -f health-perf.json ]; then
+            echo "Health endpoint performance:"
+            jq -r '"Average latency: " + (.latency.average | tostring) + "ms"' health-perf.json
+            jq -r '"Max latency: " + (.latency.max | tostring) + "ms"' health-perf.json
+            jq -r '"Requests/sec: " + (.requests.average | tostring)' health-perf.json
+            
+            # Check against thresholds
+            avg_latency=$(jq -r '.latency.average' health-perf.json)
+            if (( $(echo "$avg_latency > $PERFORMANCE_THRESHOLD_RESPONSE_TIME" | bc -l) )); then
+              echo "⚠️ WARNING: Average latency ($avg_latency ms) exceeds threshold ($PERFORMANCE_THRESHOLD_RESPONSE_TIME ms)"
+              echo "PERF_WARNING_LATENCY=true" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Upload quick test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-performance-results-${{ github.sha }}
+          path: |
+            health-perf.json
+            api-perf.json
+          retention-days: 30
+
+  # 4. Load testing
+  load-tests:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [should-run, setup]
+    if: needs.should-run.outputs.test_type == 'load' || needs.should-run.outputs.test_type == 'comprehensive'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Artillery
+        run: npm install -g artillery
+
+      - name: Create Artillery test configuration
+        run: |
+          cat > artillery-config.yml << EOF
+          config:
+            target: ${{ needs.setup.outputs.app_url }}
+            phases:
+              - duration: 60
+                arrivalRate: 1
+                name: "Warm up"
+              - duration: 300
+                arrivalRate: ${{ github.event.inputs.concurrent_users || 10 }}
+                name: "Load test"
+              - duration: 60
+                arrivalRate: 1
+                name: "Cool down"
+            processor: "./artillery-processor.js"
+          scenarios:
+            - name: "Health check"
+              weight: 40
+              flow:
+                - get:
+                    url: "/health"
+            - name: "API health check"
+              weight: 30
+              flow:
+                - get:
+                    url: "/api/health"
+            - name: "Memory endpoint"
+              weight: 20
+              flow:
+                - get:
+                    url: "/api/memory"
+            - name: "Orchestration endpoint"
+              weight: 10
+              flow:
+                - get:
+                    url: "/api/orchestration/status"
+          EOF
+
+      - name: Create Artillery processor
+        run: |
+          cat > artillery-processor.js << 'EOF'
+          module.exports = {
+            logResponse: function(requestParams, response, context, ee, next) {
+              console.log(\`Response time: \${response.timings.response}ms for \${requestParams.url}\`);
+              return next();
+            }
+          };
+          EOF
+
+      - name: Run load test
+        run: |
+          echo "Running load test with ${{ github.event.inputs.concurrent_users || 10 }} concurrent users..."
+          artillery run artillery-config.yml --output load-test-results.json
+
+      - name: Generate load test report
+        run: |
+          artillery report load-test-results.json --output load-test-report.html
+
+      - name: Analyze load test results
+        run: |
+          echo "Analyzing load test results..."
+
+          if [ -f load-test-results.json ]; then
+            # Extract key metrics
+            echo "Load test summary:"
+            jq -r '.aggregate | "Total requests: " + (.counters."http.requests" | tostring)' load-test-results.json
+            jq -r '.aggregate | "Request rate: " + (.rates."http.request_rate" | tostring) + "/sec"' load-test-results.json
+            jq -r '.aggregate | "Response time p95: " + (.latency.p95 | tostring) + "ms"' load-test-results.json
+            jq -r '.aggregate | "Response time p99: " + (.latency.p99 | tostring) + "ms"' load-test-results.json
+            
+            # Check for errors
+            error_count=$(jq -r '.aggregate.counters."http.codes.500" // 0' load-test-results.json)
+            if [ "$error_count" -gt 0 ]; then
+              echo "⚠️ WARNING: $error_count server errors detected during load test"
+              echo "LOAD_TEST_ERRORS=true" >> $GITHUB_ENV
+            fi
+            
+            # Check response times
+            p95_latency=$(jq -r '.aggregate.latency.p95' load-test-results.json)
+            if (( $(echo "$p95_latency > $PERFORMANCE_THRESHOLD_RESPONSE_TIME" | bc -l) )); then
+              echo "⚠️ WARNING: P95 latency ($p95_latency ms) exceeds threshold ($PERFORMANCE_THRESHOLD_RESPONSE_TIME ms)"
+              echo "LOAD_TEST_SLOW=true" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Upload load test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results-${{ github.sha }}
+          path: |
+            load-test-results.json
+            load-test-report.html
+          retention-days: 30
+
+  # 5. Memory profiling
+  memory-tests:
+    name: Memory Profiling
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [should-run, setup]
+    if: needs.should-run.outputs.test_type == 'memory' || needs.should-run.outputs.test_type == 'comprehensive'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install profiling tools
+        run: |
+          npm install -g clinic autocannon
+
+      - name: Memory leak detection test
+        run: |
+          echo "Running memory leak detection..."
+
+          # Start application with memory monitoring
+          clinic doctor -- node dist/server.js &
+          APP_PID=$!
+
+          # Wait for startup
+          sleep 10
+
+          # Run sustained load to detect memory leaks
+          autocannon -c 5 -d 300 ${{ needs.setup.outputs.app_url }}/health &
+          LOAD_PID=$!
+
+          # Monitor memory usage
+          for i in {1..30}; do
+            memory_usage=$(ps -p $APP_PID -o rss= 2>/dev/null || echo "0")
+            echo "Memory usage at ${i}0s: ${memory_usage}KB"
+            echo "${i}0,${memory_usage}" >> memory-usage.csv
+            sleep 10
+          done
+
+          # Stop load test and application
+          kill $LOAD_PID 2>/dev/null || true
+          kill $APP_PID 2>/dev/null || true
+          wait
+
+      - name: Analyze memory usage
+        run: |
+          echo "Analyzing memory usage patterns..."
+
+          if [ -f memory-usage.csv ]; then
+            echo "Memory usage over time:"
+            cat memory-usage.csv
+            
+            # Check for memory growth
+            initial_memory=$(head -n1 memory-usage.csv | cut -d',' -f2)
+            final_memory=$(tail -n1 memory-usage.csv | cut -d',' -f2)
+            
+            memory_growth=$((final_memory - initial_memory))
+            echo "Memory growth: ${memory_growth}KB"
+            
+            if [ $memory_growth -gt 51200 ]; then  # 50MB growth threshold
+              echo "⚠️ WARNING: Significant memory growth detected (${memory_growth}KB)"
+              echo "MEMORY_LEAK_DETECTED=true" >> $GITHUB_ENV
+            fi
+            
+            # Check peak memory usage
+            peak_memory=$(sort -t',' -k2 -n memory-usage.csv | tail -n1 | cut -d',' -f2)
+            peak_memory_mb=$((peak_memory / 1024))
+            echo "Peak memory usage: ${peak_memory_mb}MB"
+            
+            if [ $peak_memory_mb -gt $PERFORMANCE_THRESHOLD_MEMORY ]; then
+              echo "⚠️ WARNING: Peak memory usage (${peak_memory_mb}MB) exceeds threshold (${PERFORMANCE_THRESHOLD_MEMORY}MB)"
+              echo "MEMORY_THRESHOLD_EXCEEDED=true" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Upload memory profiling results
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-profiling-results-${{ github.sha }}
+          path: |
+            memory-usage.csv
+            .clinic/
+          retention-days: 30
+
+  # 6. Generate performance report
+  generate-report:
+    name: Generate Performance Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [should-run, quick-tests, load-tests, memory-tests]
+    if: always() && needs.should-run.outputs.run_tests == 'true'
+    steps:
+      - name: Download all performance results
+        uses: actions/download-artifact@v4
+        with:
+          path: performance-results/
+
+      - name: Generate comprehensive performance report
+        run: |
+          echo "# Performance Test Report" > performance-report.md
+          echo "Generated on: $(date)" >> performance-report.md
+          echo "Commit: ${{ github.sha }}" >> performance-report.md
+          echo "Test Type: ${{ needs.should-run.outputs.test_type }}" >> performance-report.md
+          echo "" >> performance-report.md
+
+          echo "## Test Results Summary" >> performance-report.md
+          echo "- Quick Tests: ${{ needs.quick-tests.result }}" >> performance-report.md
+          echo "- Load Tests: ${{ needs.load-tests.result }}" >> performance-report.md
+          echo "- Memory Tests: ${{ needs.memory-tests.result }}" >> performance-report.md
+          echo "" >> performance-report.md
+
+          echo "## Performance Metrics" >> performance-report.md
+
+          # Process quick test results
+          if [ -d "performance-results/quick-performance-results-${{ github.sha }}" ]; then
+            echo "### Response Times" >> performance-report.md
+            if [ -f "performance-results/quick-performance-results-${{ github.sha }}/health-perf.json" ]; then
+              avg_latency=$(jq -r '.latency.average' "performance-results/quick-performance-results-${{ github.sha }}/health-perf.json")
+              max_latency=$(jq -r '.latency.max' "performance-results/quick-performance-results-${{ github.sha }}/health-perf.json")
+              throughput=$(jq -r '.requests.average' "performance-results/quick-performance-results-${{ github.sha }}/health-perf.json")
+              echo "- Average Response Time: ${avg_latency}ms" >> performance-report.md
+              echo "- Max Response Time: ${max_latency}ms" >> performance-report.md
+              echo "- Throughput: ${throughput} req/s" >> performance-report.md
+            fi
+          fi
+
+          # Add warnings section
+          echo "" >> performance-report.md
+          echo "## Warnings and Issues" >> performance-report.md
+
+          if [[ "${{ env.PERF_WARNING_LATENCY }}" == "true" ]]; then
+            echo "⚠️ High latency detected in quick tests" >> performance-report.md
+          fi
+
+          if [[ "${{ env.LOAD_TEST_ERRORS }}" == "true" ]]; then
+            echo "⚠️ Server errors detected during load testing" >> performance-report.md
+          fi
+
+          if [[ "${{ env.LOAD_TEST_SLOW }}" == "true" ]]; then
+            echo "⚠️ Slow response times detected during load testing" >> performance-report.md
+          fi
+
+          if [[ "${{ env.MEMORY_LEAK_DETECTED }}" == "true" ]]; then
+            echo "⚠️ Potential memory leak detected" >> performance-report.md
+          fi
+
+          if [[ "${{ env.MEMORY_THRESHOLD_EXCEEDED }}" == "true" ]]; then
+            echo "⚠️ Memory usage exceeded threshold" >> performance-report.md
+          fi
+
+          # Add recommendations
+          echo "" >> performance-report.md
+          echo "## Recommendations" >> performance-report.md
+          echo "1. Monitor response times in production" >> performance-report.md
+          echo "2. Implement caching for frequently accessed data" >> performance-report.md
+          echo "3. Consider database query optimization" >> performance-report.md
+          echo "4. Set up performance alerts" >> performance-report.md
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report-${{ github.sha }}
+          path: performance-report.md
+          retention-days: 90
+
+      - name: Comment performance report on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('performance-report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 Performance Test Results\n\n${report}`
+            });
+
+      - name: Create performance issue on failures
+        if: env.LOAD_TEST_ERRORS == 'true' || env.MEMORY_LEAK_DETECTED == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = [];
+            if (process.env.LOAD_TEST_ERRORS === 'true') issues.push('Load test errors');
+            if (process.env.MEMORY_LEAK_DETECTED === 'true') issues.push('Memory leak detected');
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🐌 Performance Issues Detected - ${context.sha.substring(0, 7)}`,
+              body: `Performance issues detected for commit ${context.sha}.\n\n**Issues:**\n${issues.map(i => `- ${i}`).join('\n')}\n\nCheck the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.`,
+              labels: ['performance', 'bug']
+            });

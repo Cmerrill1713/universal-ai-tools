@@ -1,0 +1,42 @@
+[package]
+name = "intelligent-librarian"
+version = "0.1.0"
+edition = "2021"
+authors = ["Universal AI Tools Team"]
+description = "Intelligent Librarian - Advanced Knowledge Management and Information Organization System"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+axum = { version = "0.7", features = ["multipart", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+thiserror = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.11", features = ["json"] }
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio-rustls", "chrono", "uuid"] }
+dashmap = "5.5"
+parking_lot = "0.12"
+async-trait = "0.1"
+futures = "0.3"
+regex = "1.0"
+walkdir = "2.0"
+mime_guess = "2.0"
+sha2 = "0.10"
+base64 = "0.21"
+rayon = "1.7"
+ndarray = "0.15"
+rand = "0.8"
+similar = "2.0"
+petgraph = "0.6"
+# rust-bert = "0.21"  # Temporarily disabled for testing
+# candle-core = "0.3"  # Temporarily disabled for testing
+# candle-nn = "0.3"  # Temporarily disabled for testing
+# candle-transformers = "0.3"  # Temporarily disabled for testing
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"

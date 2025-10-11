@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>Universal AI Tools</title>
+    <organization>universal.ai.tools</organization>
+    <domains enable_anywhere="true"/>
+    <options customize="never" require-scripts="true" rootVolumeOnly="true"/>
+    
+    <!-- Welcome -->
+    <welcome mime-type="text/html" file="welcome.html"/>
+    
+    <!-- License -->
+    <license mime-type="text/html" file="license.html"/>
+    
+    <!-- Background -->
+    <background file="background.png" mime-type="image/png" alignment="bottomleft"/>
+    
+    <!-- Installation choices -->
+    <choices-outline>
+        <line choice="default">
+            <line choice="universal-ai-tools"/>
+        </line>
+    </choices-outline>
+    
+    <choice id="default"/>
+    <choice id="universal-ai-tools" visible="false">
+        <pkg-ref id="com.universal.ai-tools"/>
+    </choice>
+    
+    <pkg-ref id="com.universal.ai-tools" version="1.0.0" onConclusion="none">universal-ai-tools.pkg</pkg-ref>
+    
+</installer-gui-script>

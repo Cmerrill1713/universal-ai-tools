@@ -1,0 +1,293 @@
+# Prometheus Recording Rules for Universal AI Tools
+# Pre-computed metrics for better performance and complex queries
+
+groups:
+  # =============================================================================
+  # AI SERVICE PERFORMANCE RECORDING RULES
+  # =============================================================================
+  - name: ai_service_performance
+    interval: 30s
+    rules:
+      # Request rate calculations
+      - record: ai_requests_rate_5m
+        expr: rate(ai_requests_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_requests_rate_15m
+        expr: rate(ai_requests_total[15m])
+        labels:
+          aggregation: "rate_15m"
+      
+      - record: ai_requests_rate_1h
+        expr: rate(ai_requests_total[1h])
+        labels:
+          aggregation: "rate_1h"
+
+      # Error rate calculations
+      - record: ai_error_rate_5m
+        expr: rate(ai_errors_total[5m]) / rate(ai_requests_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_error_rate_15m
+        expr: rate(ai_errors_total[15m]) / rate(ai_requests_total[15m])
+        labels:
+          aggregation: "rate_15m"
+      
+      - record: ai_error_rate_1h
+        expr: rate(ai_errors_total[1h]) / rate(ai_requests_total[1h])
+        labels:
+          aggregation: "rate_1h"
+
+      # Response time percentiles
+      - record: ai_response_time_p50
+        expr: histogram_quantile(0.50, rate(ai_request_duration_seconds_bucket[5m]))
+        labels:
+          percentile: "p50"
+      
+      - record: ai_response_time_p95
+        expr: histogram_quantile(0.95, rate(ai_request_duration_seconds_bucket[5m]))
+        labels:
+          percentile: "p95"
+      
+      - record: ai_response_time_p99
+        expr: histogram_quantile(0.99, rate(ai_request_duration_seconds_bucket[5m]))
+        labels:
+          percentile: "p99"
+
+      # Success rate
+      - record: ai_success_rate_5m
+        expr: rate(ai_requests_total{status="success"}[5m]) / rate(ai_requests_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_success_rate_15m
+        expr: rate(ai_requests_total{status="success"}[15m]) / rate(ai_requests_total[15m])
+        labels:
+          aggregation: "rate_15m"
+
+  # =============================================================================
+  # AI MODEL PERFORMANCE RECORDING RULES
+  # =============================================================================
+  - name: ai_model_performance
+    interval: 30s
+    rules:
+      # Model inference metrics
+      - record: ai_model_inference_rate
+        expr: rate(ai_model_inferences_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_model_inference_duration_p95
+        expr: histogram_quantile(0.95, rate(ai_model_inference_duration_seconds_bucket[5m]))
+        labels:
+          percentile: "p95"
+      
+      - record: ai_model_inference_duration_p99
+        expr: histogram_quantile(0.99, rate(ai_model_inference_duration_seconds_bucket[5m]))
+        labels:
+          percentile: "p99"
+
+      # Model accuracy and quality
+      - record: ai_model_accuracy_avg
+        expr: avg_over_time(ai_model_accuracy_score[5m])
+        labels:
+          aggregation: "avg_5m"
+      
+      - record: ai_model_confidence_avg
+        expr: avg_over_time(ai_model_confidence_score[5m])
+        labels:
+          aggregation: "avg_5m"
+      
+      - record: ai_model_confidence_p95
+        expr: quantile_over_time(0.95, ai_model_confidence_score[5m])
+        labels:
+          percentile: "p95"
+
+  # =============================================================================
+  # SELF-CORRECTION AND QUALITY RECORDING RULES
+  # =============================================================================
+  - name: ai_quality_metrics
+    interval: 30s
+    rules:
+      # Self-correction metrics
+      - record: ai_self_correction_rate
+        expr: rate(ai_self_corrections_total[5m]) / rate(ai_requests_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_self_correction_by_type_rate
+        expr: rate(ai_self_corrections_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_correction_success_rate
+        expr: rate(ai_self_corrections_total{success="true"}[5m]) / rate(ai_self_corrections_total[5m])
+        labels:
+          aggregation: "rate_5m"
+
+      # Quality metrics
+      - record: ai_output_quality_score
+        expr: avg_over_time(ai_output_quality_score[5m])
+        labels:
+          aggregation: "avg_5m"
+      
+      - record: ai_hallucination_rate
+        expr: rate(ai_hallucinations_detected_total[5m]) / rate(ai_requests_total[5m])
+        labels:
+          aggregation: "rate_5m"
+
+  # =============================================================================
+  # RESOURCE UTILIZATION RECORDING RULES
+  # =============================================================================
+  - name: ai_resource_utilization
+    interval: 30s
+    rules:
+      # Memory utilization
+      - record: ai_memory_utilization_percent
+        expr: (ai_memory_usage_bytes / ai_memory_limit_bytes) * 100
+        labels:
+          metric_type: "utilization"
+      
+      - record: ai_memory_utilization_avg
+        expr: avg_over_time(ai_memory_utilization_percent[5m])
+        labels:
+          aggregation: "avg_5m"
+
+      # GPU utilization
+      - record: ai_gpu_utilization_avg
+        expr: avg_over_time(ai_gpu_usage_percent[5m])
+        labels:
+          aggregation: "avg_5m"
+      
+      - record: ai_gpu_utilization_max
+        expr: max_over_time(ai_gpu_usage_percent[5m])
+        labels:
+          aggregation: "max_5m"
+
+      # CPU utilization
+      - record: ai_cpu_utilization_percent
+        expr: 100 - (avg by(instance) (rate(ai_cpu_seconds_total{mode="idle"}[5m])) * 100)
+        labels:
+          metric_type: "utilization"
+      
+      - record: ai_cpu_utilization_avg
+        expr: avg_over_time(ai_cpu_utilization_percent[5m])
+        labels:
+          aggregation: "avg_5m"
+
+  # =============================================================================
+  # BUSINESS METRICS RECORDING RULES
+  # =============================================================================
+  - name: ai_business_metrics
+    interval: 30s
+    rules:
+      # Cost metrics
+      - record: ai_cost_per_request_avg
+        expr: avg_over_time(ai_cost_per_request_usd[5m])
+        labels:
+          aggregation: "avg_5m"
+      
+      - record: ai_total_cost_per_hour
+        expr: rate(ai_total_cost_usd[1h])
+        labels:
+          aggregation: "rate_1h"
+
+      # User experience metrics
+      - record: ai_user_satisfaction_avg
+        expr: avg_over_time(ai_user_satisfaction_score[5m])
+        labels:
+          aggregation: "avg_5m"
+      
+      - record: ai_task_completion_rate
+        expr: rate(ai_tasks_completed_total[5m]) / rate(ai_tasks_started_total[5m])
+        labels:
+          aggregation: "rate_5m"
+
+      # Throughput metrics
+      - record: ai_throughput_requests_per_second
+        expr: rate(ai_requests_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_throughput_tokens_per_second
+        expr: rate(ai_tokens_processed_total[5m])
+        labels:
+          aggregation: "rate_5m"
+
+  # =============================================================================
+  # SECURITY METRICS RECORDING RULES
+  # =============================================================================
+  - name: ai_security_metrics
+    interval: 30s
+    rules:
+      # Security event rates
+      - record: ai_security_events_rate
+        expr: rate(ai_security_events_total[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_failed_auth_rate
+        expr: rate(ai_security_events_total{event_type="failed_authentication"}[5m])
+        labels:
+          aggregation: "rate_5m"
+      
+      - record: ai_rate_limit_hits_rate
+        expr: rate(ai_security_events_total{event_type="rate_limit_exceeded"}[5m])
+        labels:
+          aggregation: "rate_5m"
+
+      # Anomaly detection
+      - record: ai_anomaly_score_avg
+        expr: avg_over_time(ai_anomaly_score[5m])
+        labels:
+          aggregation: "avg_5m"
+      
+      - record: ai_anomaly_detection_rate
+        expr: rate(ai_anomalies_detected_total[5m])
+        labels:
+          aggregation: "rate_5m"
+
+  # =============================================================================
+  # SLI/SLO RECORDING RULES
+  # =============================================================================
+  - name: ai_sli_slo_metrics
+    interval: 30s
+    rules:
+      # Service Level Indicators
+      - record: ai_availability_sli
+        expr: rate(ai_requests_total{status="success"}[5m]) / rate(ai_requests_total[5m])
+        labels:
+          sli_type: "availability"
+      
+      - record: ai_latency_sli_p95
+        expr: histogram_quantile(0.95, rate(ai_request_duration_seconds_bucket[5m]))
+        labels:
+          sli_type: "latency"
+          percentile: "p95"
+      
+      - record: ai_error_rate_sli
+        expr: rate(ai_errors_total[5m]) / rate(ai_requests_total[5m])
+        labels:
+          sli_type: "error_rate"
+
+      # Service Level Objectives (SLOs)
+      - record: ai_availability_slo_compliance
+        expr: ai_availability_sli >= 0.99
+        labels:
+          slo_type: "availability"
+          target: "0.99"
+      
+      - record: ai_latency_slo_compliance_p95
+        expr: ai_latency_sli_p95 <= 2
+        labels:
+          slo_type: "latency"
+          target: "2s"
+          percentile: "p95"
+      
+      - record: ai_error_rate_slo_compliance
+        expr: ai_error_rate_sli <= 0.001
+        labels:
+          slo_type: "error_rate"
+          target: "0.001"

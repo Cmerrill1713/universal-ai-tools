@@ -1,0 +1,133 @@
+{
+  "timestamp": 1757803134.4099479,
+  "test_prompts": [
+    {
+      "name": "Simple Question",
+      "prompt": "What is the capital of France?",
+      "expected_complexity": "simple"
+    },
+    {
+      "name": "Code Generation",
+      "prompt": "Write a Python function to calculate the Fibonacci sequence up to n terms.",
+      "expected_complexity": "medium"
+    },
+    {
+      "name": "Complex Reasoning",
+      "prompt": "Explain the philosophical implications of quantum entanglement on our understanding of causality and free will.",
+      "expected_complexity": "complex"
+    },
+    {
+      "name": "Creative Writing",
+      "prompt": "Write a short story about a robot who discovers emotions, but only when it's raining.",
+      "expected_complexity": "creative"
+    },
+    {
+      "name": "Technical Analysis",
+      "prompt": "Compare the performance characteristics of Rust vs Go for concurrent web services, including memory management, error handling, and ecosystem maturity.",
+      "expected_complexity": "technical"
+    }
+  ],
+  "results_by_prompt": {
+    "Simple Question": [
+      "TestResult(model='llama3.1:8b', provider='Ollama-Frontier', response_time=29.935786962509155, tokens_per_second=5.819122116888519, response_length=849, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='devstral:24b', provider='Ollama-Frontier', response_time=30.038289070129395, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='deepseek-r1:14b', provider='Ollama-Frontier', response_time=30.03829598426819, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='qwen2.5:7b', provider='Ollama-Frontier', response_time=26.541967153549194, tokens_per_second=7.689708860660229, response_length=895, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='nous-hermes:13b-llama2-q4_K_M', provider='Ollama-Frontier', response_time=15.244823932647705, tokens_per_second=5.713414624190584, response_length=399, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='hrm-mlx', provider='HRM-MLX', response_time=0.03211808204650879, tokens_per_second=14085.523517403666, response_length=3080, success=True, error=None, response_quality_score=7.0)",
+      "TestResult(model='fastvlm-0.5b', provider='FastVLM', response_time=0.0319361686706543, tokens_per_second=2645.902859275849, response_length=400, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='fastvlm-7b', provider='FastVLM', response_time=0.028752803802490234, tokens_per_second=2938.843828255858, response_length=400, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='llama3.2:3b', provider='Ollama-Efficient', response_time=2.9492239952087402, tokens_per_second=64.79670595060186, response_length=879, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='gemma3:1b', provider='Ollama-Efficient', response_time=30.032876014709473, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='phi:2.7b-chat-v2-q4_0', provider='Ollama-Efficient', response_time=5.140352010726929, tokens_per_second=13.656652278580546, response_length=267, success=True, error=None, response_quality_score=6.0)"
+    ],
+    "Code Generation": [
+      "TestResult(model='llama3.1:8b', provider='Ollama-Frontier', response_time=15.865592002868652, tokens_per_second=37.691628518612845, response_length=2708, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='devstral:24b', provider='Ollama-Frontier', response_time=30.023191928863525, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='deepseek-r1:14b', provider='Ollama-Frontier', response_time=30.027809143066406, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='qwen2.5:7b', provider='Ollama-Frontier', response_time=30.035933017730713, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='nous-hermes:13b-llama2-q4_K_M', provider='Ollama-Frontier', response_time=22.947667837142944, tokens_per_second=2.549278663747794, response_length=329, success=True, error=None, response_quality_score=5.0)",
+      "TestResult(model='hrm-mlx', provider='HRM-MLX', response_time=0.04562091827392578, tokens_per_second=9289.598193866672, response_length=2992, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='fastvlm-0.5b', provider='FastVLM', response_time=0.04276108741760254, tokens_per_second=2584.1251163905818, response_length=546, success=True, error=None, response_quality_score=5.0)",
+      "TestResult(model='fastvlm-7b', provider='FastVLM', response_time=0.03470110893249512, tokens_per_second=3184.3362762544057, response_length=546, success=True, error=None, response_quality_score=5.0)",
+      "TestResult(model='llama3.2:3b', provider='Ollama-Efficient', response_time=30.029349088668823, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='gemma3:1b', provider='Ollama-Efficient', response_time=30.029372930526733, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='phi:2.7b-chat-v2-q4_0', provider='Ollama-Efficient', response_time=15.618698835372925, tokens_per_second=27.46707677264441, response_length=1921, success=True, error=None, response_quality_score=6.0)"
+    ],
+    "Complex Reasoning": [
+      "TestResult(model='llama3.1:8b', provider='Ollama-Frontier', response_time=30.020948886871338, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='devstral:24b', provider='Ollama-Frontier', response_time=30.023322820663452, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='deepseek-r1:14b', provider='Ollama-Frontier', response_time=30.027153968811035, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='qwen2.5:7b', provider='Ollama-Frontier', response_time=30.020591259002686, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='nous-hermes:13b-llama2-q4_K_M', provider='Ollama-Frontier', response_time=12.50983715057373, tokens_per_second=26.81090057072548, response_length=1763, success=True, error=None, response_quality_score=8.0)",
+      "TestResult(model='hrm-mlx', provider='HRM-MLX', response_time=0.025079011917114258, tokens_per_second=17831.643506450295, response_length=3148, success=True, error=None, response_quality_score=6.0)",
+      "TestResult(model='fastvlm-0.5b', provider='FastVLM', response_time=0.016379117965698242, tokens_per_second=2619.1886577679443, response_length=243, success=True, error=None, response_quality_score=7.0)",
+      "TestResult(model='fastvlm-7b', provider='FastVLM', response_time=0.019260883331298828, tokens_per_second=2227.3121778525983, response_length=243, success=True, error=None, response_quality_score=7.0)",
+      "TestResult(model='llama3.2:3b', provider='Ollama-Efficient', response_time=30.02669906616211, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='gemma3:1b', provider='Ollama-Efficient', response_time=30.020005226135254, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='phi:2.7b-chat-v2-q4_0', provider='Ollama-Efficient', response_time=30.019875049591064, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)"
+    ],
+    "Creative Writing": [
+      "TestResult(model='llama3.1:8b', provider='Ollama-Frontier', response_time=30.02703309059143, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='devstral:24b', provider='Ollama-Frontier', response_time=30.02006196975708, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='deepseek-r1:14b', provider='Ollama-Frontier', response_time=30.02689290046692, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='qwen2.5:7b', provider='Ollama-Frontier', response_time=24.560837268829346, tokens_per_second=28.423298129415677, response_length=3311, success=True, error=None, response_quality_score=7.5)",
+      "TestResult(model='nous-hermes:13b-llama2-q4_K_M', provider='Ollama-Frontier', response_time=19.05938696861267, tokens_per_second=23.395296015255678, response_length=1989, success=True, error=None, response_quality_score=7.5)",
+      "TestResult(model='hrm-mlx', provider='HRM-MLX', response_time=88.84742188453674, tokens_per_second=4.872397992173402, response_length=3012, success=True, error=None, response_quality_score=7.5)",
+      "TestResult(model='fastvlm-0.5b', provider='FastVLM', response_time=0.021879196166992188, tokens_per_second=1960.7667335018741, response_length=217, success=True, error=None, response_quality_score=5.0)",
+      "TestResult(model='fastvlm-7b', provider='FastVLM', response_time=0.026615142822265625, tokens_per_second=1611.8643543070086, response_length=217, success=True, error=None, response_quality_score=5.0)",
+      "TestResult(model='llama3.2:3b', provider='Ollama-Efficient', response_time=30.020997047424316, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='gemma3:1b', provider='Ollama-Efficient', response_time=30.02207899093628, tokens_per_second=0, response_length=0, success=False, error='HTTP 500: Unhandled rejection: ChatError', response_quality_score=0.0)",
+      "TestResult(model='phi:2.7b-chat-v2-q4_0', provider='Ollama-Efficient', response_time=3.4166488647460938, tokens_per_second=38.809958309793736, response_length=604, success=True, error=None, response_quality_score=6.5)"
+    ],
+    "Technical Analysis": [
+      "TestResult(model='llama3.1:8b', provider='Ollama-Frontier', response_time=1.1116230487823486, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='devstral:24b', provider='Ollama-Frontier', response_time=1.111717939376831, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='deepseek-r1:14b', provider='Ollama-Frontier', response_time=1.0289547443389893, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='qwen2.5:7b', provider='Ollama-Frontier', response_time=1.0287821292877197, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='nous-hermes:13b-llama2-q4_K_M', provider='Ollama-Frontier', response_time=1.0286571979522705, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='hrm-mlx', provider='HRM-MLX', response_time=1.0285630226135254, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='fastvlm-0.5b', provider='FastVLM', response_time=0.11637568473815918, tokens_per_second=424.4872982801184, response_length=283, success=True, error=None, response_quality_score=7.0)",
+      "TestResult(model='fastvlm-7b', provider='FastVLM', response_time=0.11333823204040527, tokens_per_second=435.8635132264002, response_length=283, success=True, error=None, response_quality_score=7.0)",
+      "TestResult(model='llama3.2:3b', provider='Ollama-Efficient', response_time=1.028337001800537, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='gemma3:1b', provider='Ollama-Efficient', response_time=1.0283257961273193, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)",
+      "TestResult(model='phi:2.7b-chat-v2-q4_0', provider='Ollama-Efficient', response_time=1.0283968448638916, tokens_per_second=0, response_length=0, success=False, error='Server disconnected', response_quality_score=0.0)"
+    ]
+  },
+  "summary": {
+    "by_provider": {
+      "Ollama-Frontier": {
+        "avg_response_time": 20.833237409591675,
+        "avg_tokens_per_second": 17.2615809374371,
+        "avg_quality_score": 6.5,
+        "success_rate": 0.6153846153846154
+      },
+      "HRM-MLX": {
+        "avg_response_time": 22.237559974193573,
+        "avg_tokens_per_second": 10302.9094039282,
+        "avg_quality_score": 6.625,
+        "success_rate": 1.0
+      },
+      "FastVLM": {
+        "avg_response_time": 0.04519994258880615,
+        "avg_tokens_per_second": 2063.2690815112637,
+        "avg_quality_score": 6.0,
+        "success_rate": 0.43478260869565216
+      },
+      "Ollama-Efficient": {
+        "avg_response_time": 6.781230926513672,
+        "avg_tokens_per_second": 36.18259832790514,
+        "avg_quality_score": 6.125,
+        "success_rate": 0.26666666666666666
+      }
+    },
+    "by_complexity": {},
+    "performance_rankings": {},
+    "recommendations": [
+      "\ud83c\udfc3 Fastest Provider: FastVLM (0.05s avg)",
+      "\ud83c\udfaf Best Quality: HRM-MLX (6.6/10)",
+      "\u26a1 Most Efficient: HRM-MLX (10302.9 tok/s)",
+      "\ud83d\ude80 FastVLM shows excellent speed (0.05s)"
+    ]
+  }
+}
