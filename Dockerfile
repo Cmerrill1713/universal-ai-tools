@@ -43,7 +43,7 @@ CMD ["npm", "run", "dev"]
 FROM base AS build
 
 # Install all dependencies
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .

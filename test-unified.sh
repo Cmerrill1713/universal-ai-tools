@@ -104,12 +104,11 @@ test_post_endpoint() {
     fi
 }
 
-echo "🔍 Testing Frontend Health Server..."
-echo "===================================="
+echo "🔍 Testing Core APIs..."
+echo "======================="
 
-test_endpoint "http://localhost:8080/health" "Frontend Health Check"
-test_endpoint "http://localhost:8080/status" "Frontend Status"
-test_endpoint "http://localhost:8080/" "Frontend Info Page"
+test_json_endpoint "http://localhost:8014/health" "Unified Chat API Health"
+test_json_endpoint "http://localhost:8888/api/tts/health" "TTS Proxy Health"
 
 echo ""
 echo "🧠 Testing Knowledge Services..."

@@ -8,7 +8,7 @@ import logging
 
 # Import routers (these will be available due to sitecustomize.py)
 try:
-    from api.routers import health, users, tasks
+    from api.routers import health, users, tasks, tts
 except ImportError:
     from routers import health, users, tasks
 
@@ -43,6 +43,7 @@ async def error_box(req: Request, call_next):
 app.include_router(health.router, tags=["health"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(tts.router, tags=["tts"])
 
 
 @app.get("/")

@@ -8,7 +8,7 @@ echo ""
 echo "1. TESTING TTS SERVICE HEALTH"
 echo "============================="
 echo "• TTS Service Health Check:"
-curl -s http://localhost:8093/health | python3 -c "
+curl -s http://localhost:8888/api/tts/health | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -24,7 +24,7 @@ echo ""
 echo "2. TESTING TTS SYNTHESIS"
 echo "========================"
 echo "• Basic TTS Synthesis:"
-curl -s -X POST http://localhost:8093/synthesize -H "Content-Type: application/json" -d '{"text": "Hello, this is a TTS test", "voice": "Samantha"}' | python3 -c "
+curl -s -X POST http://localhost:8888/api/tts/speak -H "Content-Type: application/json" -d '{"text": "Hello, this is a TTS test", "voice": "Samantha"}' | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -44,7 +44,7 @@ echo ""
 echo "3. TESTING TTS VOICES"
 echo "====================="
 echo "• Available Voices:"
-curl -s http://localhost:8093/voices | python3 -c "
+curl -s http://localhost:8888/api/tts/voices | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -64,7 +64,7 @@ echo ""
 echo "4. TESTING TTS SPEED CONTROL"
 echo "============================"
 echo "• Speed Control:"
-curl -s -X POST http://localhost:8093/synthesize -H "Content-Type: application/json" -d '{"text": "Speed test", "voice": "Samantha", "speed": 1.5}' | python3 -c "
+curl -s -X POST http://localhost:8888/api/tts/speak -H "Content-Type: application/json" -d '{"text": "Speed test", "voice": "Samantha", "speed": 1.5}' | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -83,7 +83,7 @@ echo ""
 echo "5. TESTING TTS EMOTION"
 echo "====================="
 echo "• Emotion Control:"
-curl -s -X POST http://localhost:8093/synthesize -H "Content-Type: application/json" -d '{"text": "Emotion test", "voice": "Samantha", "emotion": "Happy"}' | python3 -c "
+curl -s -X POST http://localhost:8888/api/tts/speak -H "Content-Type: application/json" -d '{"text": "Emotion test", "voice": "Samantha", "emotion": "Happy"}' | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -102,7 +102,7 @@ echo ""
 echo "6. TESTING TTS CACHING"
 echo "======================"
 echo "• Caching System:"
-curl -s -X POST http://localhost:8093/synthesize -H "Content-Type: application/json" -d '{"text": "Cache test", "voice": "Samantha", "cache": true}' | python3 -c "
+curl -s -X POST http://localhost:8888/api/tts/speak -H "Content-Type: application/json" -d '{"text": "Cache test", "voice": "Samantha", "cache": true}' | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -122,7 +122,7 @@ echo ""
 echo "7. TESTING TTS STREAMING"
 echo "======================="
 echo "• Streaming Support:"
-curl -s -X POST http://localhost:8093/synthesize -H "Content-Type: application/json" -d '{"text": "Streaming test", "voice": "Samantha", "stream": true}' | python3 -c "
+curl -s -X POST http://localhost:8888/api/tts/speak -H "Content-Type: application/json" -d '{"text": "Streaming test", "voice": "Samantha", "stream": true}' | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
@@ -141,7 +141,7 @@ echo ""
 echo "8. TESTING TTS ERROR HANDLING"
 echo "============================"
 echo "• Error Handling:"
-curl -s -X POST http://localhost:8093/synthesize -H "Content-Type: application/json" -d '{"text": "", "voice": "InvalidVoice"}' | python3 -c "
+curl -s -X POST http://localhost:8888/api/tts/speak -H "Content-Type: application/json" -d '{"text": "", "voice": "InvalidVoice"}' | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)

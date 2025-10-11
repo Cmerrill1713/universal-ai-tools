@@ -1,0 +1,204 @@
+name: universal-ai-tools
+
+# =============================================================================
+# SWIFT APP + DOCKER BACKEND CONFIGURATION
+# =============================================================================
+# This docker-compose file runs all backend services for the Athena Swift app.
+# The Swift app runs NATIVELY on macOS and connects to these services.
+#
+# Architecture:
+#   - Swift App (Native macOS) -> Docker Backend Services
+#   - All backend APIs exposed on localhost
+#   - TTS, AI, Database, and monitoring services containerized
+# =============================================================================
+
+services:
+  # =============================================================================
+  # UNIFIED BACKEND API (Python FastAPI)
+  # Main API that the Swift app connects to
+  # =============================================================================
+  unified-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.python-unified
+    container_name: athena-backend-api
+    restart: unless-stopped
+    ports:
+      - '8013:8000'  # Swift app connects to localhost:8013
+    environment:
+      - PYTHONPATH=/app/src:/app:/app/api
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/athena_db
+      - REDIS_URL=redis://redis:6379
+      - OLLAMA_URL=http://ollama:11434
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src
+      - ./api:/app/api
+      - ./sitecustomize.py:/app/sitecustomize.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - athena-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # MLX AUDIO TTS SERVICE (Kokoro TTS)
+  # High-quality text-to-speech for Swift app
+  # =============================================================================
+  mlx-tts:
+    build:
+      context: .
+      dockerfile: Dockerfile.python-unified
+    container_name: athena-mlx-tts
+    restart: unless-stopped
+    ports:
+      - '8877:8877'  # TTS service endpoint
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./python-services:/app/python-services
+      - ./models:/app/models
+    command: bash -c "pip install flask mlx-audio && python python-services/mlx-audio-tts-simple.py"
+    networks:
+      - athena-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8877/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # =============================================================================
+  # INFRASTRUCTURE SERVICES
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: athena-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=athena_db
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - athena-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: athena-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - athena-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # MONITORING SERVICES
+  # =============================================================================
+  netdata:
+    image: netdata/netdata:latest
+    container_name: athena-netdata
+    restart: unless-stopped
+    ports:
+      - '19999:19999'
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - netdata_config:/etc/netdata
+      - netdata_data:/var/lib/netdata
+      - netdata_cache:/var/cache/netdata
+    environment:
+      - DOCKER_HOST=/var/run/docker.sock
+    networks:
+      - athena-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:19999/api/v1/info']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: athena-prometheus
+    restart: unless-stopped
+    ports:
+      - '9090:9090'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - athena-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: athena-grafana
+    restart: unless-stopped
+    ports:
+      - '3002:3000'
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - athena-network
+
+networks:
+  athena-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: athena_postgres_data
+  redis_data:
+    name: athena_redis_data
+  netdata_config:
+    name: athena_netdata_config
+  netdata_data:
+    name: athena_netdata_data
+  netdata_cache:
+    name: athena_netdata_cache
+  prometheus_data:
+    name: athena_prometheus_data
+  grafana_data:
+    name: athena_grafana_data
+

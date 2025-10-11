@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "name": "@universal/ai-tools-service",
   "version": "1.0.0",
   "description": "Universal AI Tools - Comprehensive AI orchestration platform",
@@ -116,18 +115,3 @@
   },
   "homepage": "https://github.com/universal-ai-tools/universal-ai-tools#readme"
 }
-=======
-  "name": "universal-ai-tools-orchestrator",
-  "private": true,
-  "version": "0.0.0",
-  "description": "Lightweight runner to start the assistant stack (gateway + Rust services)",
-  "scripts": {
-    "start": "./tools/run-assistant.sh",
-    "start:rust-go": "./tools/run-assistant-rust-go.sh",
-    "run": "./tools/run-assistant-rust-go.sh"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.1"
-  }
-}
->>>>>>> fix/stabilize-imports-endpoint-verification

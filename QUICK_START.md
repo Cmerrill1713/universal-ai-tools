@@ -1,218 +1,114 @@
-# Universal AI Tools - Quick Start Guide
+# NeuroForge AI - Quick Start Guide
 
-## 🚀 Get Started in 5 Minutes
-
-### 1. Prerequisites
-
-- Node.js 18+
-- PostgreSQL or Supabase account
-- Redis (optional)
-- Ollama (optional, for local models)
-
-### 2. Installation
+## 🚀 One-Command Launch
 
 ```bash
-# Clone repository
-git clone https://github.com/your-org/universal-ai-tools.git
-cd universal-ai-tools
-
-# Install dependencies
-npm install
-
-# Setup environment
-cp .env.example .env
-# Edit .env with your Supabase credentials
+./start-complete.sh
 ```
 
-### 3. Configure Supabase
+This will:
+1. ✅ Start all Docker containers (frontend, backend, database, redis, ollama)
+2. ✅ Wait for services to be healthy
+3. ✅ Run health checks
+4. ✅ **Automatically open your browser to http://localhost:3000**
+5. ✅ Show live logs from frontend and backend
 
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-key
-JWT_SECRET=your-secret-key
-```
+## 📍 Service URLs
 
-### 4. Initialize Database
+Once started, you can access:
+
+- **NeuroForge AI (Frontend)**: http://localhost:3000
+- **Backend API**: http://localhost:8013
+- **API Documentation**: http://localhost:8013/docs
+- **OpenAPI Spec**: http://localhost:8013/openapi.json
+
+## 🧪 Verify Everything Works
 
 ```bash
-# Run database migrations
-npm run migrate
+# Run comprehensive health check
+make green BASE=http://localhost:8013
 
-# (Optional) Load Supabase documentation
-npm run scrape:supabase
+# Or quick check
+curl http://localhost:8013/health
+curl http://localhost:3000
 ```
 
-### 5. Start Development
+## 🛑 Stop Everything
 
 ```bash
-# Start the server
-npm run dev
-
-# Server runs on http://localhost:3456
+docker-compose -f docker-compose.complete.yml down
 ```
 
-## 🎯 First API Call
+## 🔧 Troubleshooting
 
-### 1. Register Your Service
+### Frontend can't reach backend
+The frontend is configured to connect to the backend at `http://localhost:8013` from your browser.
+Inside Docker, it uses `http://unified-backend:8013`.
+
+### Port already in use
+If you see port conflicts:
+```bash
+# Stop existing containers
+docker-compose down
+docker ps  # Check what's still running
+```
+
+### View logs
+```bash
+# All services
+docker-compose -f docker-compose.complete.yml logs -f
+
+# Just frontend
+docker-compose -f docker-compose.complete.yml logs -f neuroforge-frontend
+
+# Just backend
+docker-compose -f docker-compose.complete.yml logs -f unified-backend
+```
+
+### Rebuild containers
+```bash
+docker-compose -f docker-compose.complete.yml up -d --build --force-recreate
+```
+
+## 📊 What's Running?
 
 ```bash
-curl -X POST http://localhost:3456/api/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "service_name": "my-ai-app",
-    "service_type": "custom",
-    "capabilities": ["memory", "tools", "ai_chat"]
-  }'
-
-# Response:
-# {
-#   "service_id": "...",
-#   "api_key": "your-api-key",
-#   "endpoints": {...}
-# }
+docker-compose -f docker-compose.complete.yml ps
 ```
 
-### 2. Store a Memory
+Should show:
+- ✅ `neuroforge-frontend` (port 3000)
+- ✅ `unified-backend` (port 8013)
+- ✅ `postgres` (port 5432)
+- ✅ `redis` (port 6379)
+- ✅ `ollama` (port 11434)
 
+## 🎯 Next Steps
+
+1. Open http://localhost:3000 in your browser
+2. Start chatting with the AI!
+3. Explore the Chat and Tasks tabs
+4. Check the API docs at http://localhost:8013/docs
+
+## 🐛 Still Having Issues?
+
+Check the detailed logs:
 ```bash
-curl -X POST http://localhost:3456/api/v1/memory \
-  -H "X-API-Key: your-api-key" \
-  -H "X-AI-Service: my-ai-app" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "The user prefers dark mode interfaces",
-    "metadata": {"type": "preference"}
-  }'
+# Backend API logs
+docker logs unified-ai-assistant-api --tail=50 -f
+
+# Frontend logs
+docker logs unified-neuroforge-frontend --tail=50 -f
+
+# Database connection
+docker exec -it unified-postgres psql -U postgres -d universal_ai_tools -c "\l"
 ```
 
-### 3. Search Memories
+## 💡 Development Mode
 
+For hot-reloading during development:
 ```bash
-curl -X POST http://localhost:3456/api/v1/memory/search \
-  -H "X-API-Key: your-api-key" \
-  -H "X-AI-Service: my-ai-app" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "user preferences",
-    "limit": 5
-  }'
+make dev
 ```
 
-### 4. Chat with AI
-
-```bash
-curl -X POST http://localhost:3456/api/v1/assistant/chat \
-  -H "X-API-Key: your-api-key" \
-  -H "X-AI-Service: my-ai-app" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "What are the user preferences?",
-    "model": "llama3.2:3b"
-  }'
-```
-
-## 📚 Key Features
-
-### Memory Management
-
-- Store and retrieve contextual information
-- Semantic search capabilities
-- Automatic relevance scoring
-- Memory evolution and learning
-
-### Multi-Model Support
-
-- OpenAI GPT models
-- Anthropic Claude
-- Local Ollama models
-- Custom model integration
-
-### Supabase Integration
-
-- Database with RLS
-- Real-time subscriptions
-- Vector embeddings
-- GraphQL API
-- Edge Functions
-- Scheduled jobs
-
-### API Features
-
-- RESTful endpoints
-- API versioning (/api/v1/)
-- WebSocket support
-- Rate limiting
-- Circuit breakers
-
-## 🛠️ Common Commands
-
-```bash
-# Development
-npm run dev              # Start dev server
-npm run test:fast       # Quick tests
-npm run lint:fix        # Fix linting
-
-# Database
-npm run migrate         # Run migrations
-npm run migrate:status  # Check status
-
-# Documentation
-npm run scrape:supabase # Update Supabase docs
-
-# Production
-npm run build          # Build for production
-npm start             # Start production server
-```
-
-## 📖 Next Steps
-
-1. **Explore the API**: Check [API Documentation](docs/API.md)
-2. **View all commands**: See [Command Reference](docs/COMMANDS.md)
-3. **Understand architecture**: Read [Architecture Guide](docs/ARCHITECTURE.md)
-4. **Learn Supabase features**: Review scraped documentation via API
-5. **Set up monitoring**: Configure health checks and metrics
-
-## 🔍 Useful Endpoints
-
-- **Health**: `GET /health`
-- **API Docs**: `GET /api/docs`
-- **Versions**: `GET /api/versions`
-- **Metrics**: `GET /api/performance/metrics`
-- **Supabase Docs**: `GET /api/v1/docs/supabase/features`
-
-## 💡 Tips
-
-1. Use local models (Ollama) for development to save API costs
-2. Enable Redis for better performance
-3. Run `npm run scrape:supabase` to get comprehensive Supabase docs
-4. Use the health check endpoints for monitoring
-5. Check the command reference for all available commands
-
-## 🚨 Troubleshooting
-
-```bash
-# Check service health
-curl http://localhost:3456/api/health/detailed
-
-# View logs
-npm run dev  # Logs appear in console
-
-# Reset database (development only)
-supabase db reset
-
-# Check TypeScript errors
-npm run type-check
-```
-
-## 🎉 Success!
-
-You now have a running Universal AI Tools service with:
-
-- ✅ Multi-model AI support
-- ✅ Advanced memory management
-- ✅ Supabase integration
-- ✅ API authentication
-- ✅ Health monitoring
-
-Happy coding! 🚀
+This mounts your local `src/` and `api/` directories into the containers so changes are reflected immediately.

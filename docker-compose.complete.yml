@@ -1,0 +1,139 @@
+name: universal-ai-tools
+
+services:
+  # =============================================================================
+  # NEUROFORGE FRONTEND (Next.js)
+  # =============================================================================
+  neuroforge-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: unified-neuroforge-frontend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8014
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8014
+      - API_BASE_URL=http://unified-backend:8014
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =============================================================================
+  # UNIFIED BACKEND API (Python FastAPI)
+  # =============================================================================
+  unified-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.python-unified
+    container_name: unified-ai-assistant-api
+    restart: unless-stopped
+    ports:
+      - '8013:8000'
+    environment:
+      - PYTHONPATH=/app/src:/app:/app/api
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/universal_ai_tools
+      - REDIS_URL=redis://redis:6379
+      - OLLAMA_URL=http://ollama:11434
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src
+      - ./api:/app/api
+      - ./sitecustomize.py:/app/sitecustomize.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # INFRASTRUCTURE
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: unified-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=universal_ai_tools
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: unified-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: universal-ai-tools-ollama
+    restart: unless-stopped
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - universal-ai-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_models:
+    driver: local
+
+networks:
+  universal-ai-network:
+    driver: bridge
+    name: universal-ai-network
