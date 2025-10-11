@@ -61,6 +61,14 @@ seed:
 play:
 	PYTHONPATH=$(PYTHONPATH) python3 scripts/dev_playground.py $(BASE)
 
+# Performance baseline (establish or compare)
+perf-baseline:
+	python3 scripts/perf_baseline.py $(BASE)
+
+# Compare current performance against baseline
+perf-compare:
+	python3 scripts/perf_baseline.py $(BASE) --compare
+
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
