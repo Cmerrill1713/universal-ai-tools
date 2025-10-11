@@ -1,17 +1,34 @@
-.PHONY: verify smoke test clean sentry
+.PHONY: verify smoke test sentry validate validate-all notify clean
 
 BASE ?= http://localhost:8013
+PYTHONPATH := $(PWD)/src:$(PWD)/api:$(PWD)
 
-verify:
-	python3 -m scripts.independent_verifier --base $(BASE)
-
-smoke:
-	python3 scripts/import_smoke.py && python3 scripts/check_endpoints.py
-
+# Quick 500 check on critical pages
 sentry:
 	@BASE=$(BASE) python3 scripts/error_sentry.py && echo "✅ No 500 errors on $(BASE)"
 
-test: smoke verify sentry
+# Comprehensive GET-only validation
+validate:
+	PYTHONPATH=$(PYTHONPATH) python3 -m scripts.independent_verifier_v2 --base $(BASE)
+
+# Full validation including POST endpoints
+validate-all:
+	PYTHONPATH=$(PYTHONPATH) python3 -m scripts.independent_verifier_v2 --base $(BASE) --include-posts
+
+# Legacy verifier (kept for compatibility)
+verify:
+	PYTHONPATH=$(PYTHONPATH) python3 -m scripts.independent_verifier --base $(BASE)
+
+# Import smoke tests
+smoke:
+	PYTHONPATH=$(PYTHONPATH) python3 scripts/import_smoke.py && python3 scripts/check_endpoints.py
+
+# Sentry with Telegram notifications (set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID)
+notify:
+	BASE=$(BASE) python3 scripts/sentry_notify.py
+
+# Complete test suite
+test: smoke sentry validate validate-all
 	@echo "✅ All tests passed"
 
 clean:

@@ -1,0 +1,54 @@
+name: Nightly Validation
+on:
+  schedule:
+    - cron: "0 4 * * *"  # 04:00 UTC daily
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  verify-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        port: [8000, 8013, 8888]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install httpx fastapi uvicorn[standard] pydantic python-multipart
+      
+      - name: Start API server on port ${{ matrix.port }}
+        run: |
+          PYTHONPATH=$PWD/src:$PWD/api:$PWD uvicorn api.app:app --host 0.0.0.0 --port ${{ matrix.port }} &
+          echo $! > /tmp/api_server_${{ matrix.port }}.pid
+          sleep 5
+      
+      - name: Run error sentry
+        run: BASE=http://localhost:${{ matrix.port }} python scripts/error_sentry.py
+      
+      - name: Run comprehensive verifier (GETs only)
+        run: python -m scripts.independent_verifier_v2 --base http://localhost:${{ matrix.port }}
+      
+      - name: Run comprehensive verifier (with POSTs)
+        run: python -m scripts.independent_verifier_v2 --base http://localhost:${{ matrix.port }} --include-posts
+      
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f /tmp/api_server_${{ matrix.port }}.pid ]; then
+            kill $(cat /tmp/api_server_${{ matrix.port }}.pid) || true
+            rm /tmp/api_server_${{ matrix.port }}.pid
+          fi
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Nightly validation failed on port ${{ matrix.port }}"
+          echo "Check logs for details"
+

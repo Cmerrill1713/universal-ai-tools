@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Automation Monitor</title>
+  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2.0.6/css/pico.min.css" />
+  <link rel="stylesheet" href="/static/app.css" />
+  <style>
+    .log { height: 60vh; overflow: auto; background: var(--muted-border-color); padding: 0.75rem; border-radius: .5rem; }
+    .log-line { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9rem; padding: 2px 0; }
+    .header-actions { display:flex; gap:.5rem; align-items:center; }
+  </style>
+  <script>
+    let es;
+    function start() {
+      const log = document.getElementById('log');
+      es = new EventSource('/events');
+      es.onmessage = (e) => {
+        const div = document.createElement('div');
+        div.className = 'log-line';
+        const ts = new Date().toLocaleTimeString();
+        div.textContent = `[${ts}] ${e.data}`;
+        log.appendChild(div); log.scrollTop = log.scrollHeight;
+      };
+    }
+    function stop() { if (es) es.close(); }
+    async function simulate() { await fetch('/simulate'); }
+    window.addEventListener('load', start);
+    window.addEventListener('beforeunload', stop);
+  </script>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Automation Monitor</h1>
+      <div class="header-actions">
+        <button class="secondary" onclick="window.focus()">Focus</button>
+        <button onclick="simulate()">Simulate Run</button>
+      </div>
+    </header>
+    <section id="log" class="log" aria-live="polite"></section>
+  </main>
+</body>
+</html>
+

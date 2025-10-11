@@ -1,0 +1,71 @@
+{
+  "backend": {
+    "baseUrl": "http://localhost:8080",
+    "services": {
+      "knowledgeGateway": {
+        "url": "http://localhost:8088",
+        "endpoints": {
+          "search": "/search",
+          "store": "/store",
+          "health": "/health"
+        }
+      },
+      "knowledgeSync": {
+        "url": "http://localhost:8089",
+        "endpoints": {
+          "sync": "/sync",
+          "fullSync": "/sync/full",
+          "status": "/status",
+          "health": "/health"
+        }
+      },
+      "knowledgeContext": {
+        "url": "http://localhost:8091",
+        "endpoints": {
+          "store": "/context",
+          "get": "/context",
+          "delete": "/context",
+          "health": "/health"
+        }
+      },
+      "supabase": {
+        "url": "http://localhost:54321",
+        "endpoints": {
+          "rest": "/rest/v1",
+          "auth": "/auth/v1",
+          "storage": "/storage/v1",
+          "realtime": "/realtime/v1"
+        }
+      },
+      "weaviate": {
+        "url": "http://localhost:8090",
+        "endpoints": {
+          "graphql": "/v1/graphql",
+          "rest": "/v1",
+          "meta": "/v1/meta"
+        }
+      },
+      "redis": {
+        "url": "redis://localhost:6379"
+      }
+    },
+    "monitoring": {
+      "grafana": "http://localhost:3000",
+      "prometheus": "http://localhost:9090",
+      "aiMetrics": "http://localhost:9092"
+    }
+  },
+  "features": {
+    "knowledgeSearch": true,
+    "contextManagement": true,
+    "dataSync": true,
+    "monitoring": true,
+    "realTimeUpdates": true
+  },
+  "timeouts": {
+    "default": 30,
+    "search": 10,
+    "sync": 60,
+    "health": 5
+  }
+}

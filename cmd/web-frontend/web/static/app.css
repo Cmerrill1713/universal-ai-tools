@@ -1,0 +1,36 @@
+:root {
+  --bg: var(--background-color);
+}
+
+body { background: var(--bg); }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 0 0.5rem;
+}
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 65vh;
+  overflow: auto;
+  background: var(--muted-border-color);
+  border-radius: .75rem;
+  padding: 0.75rem;
+}
+
+.msg { display: grid; grid-template-columns: 2.25rem 1fr; gap: .5rem; align-items: start; }
+.msg .avatar { width: 2.25rem; height: 2.25rem; display: grid; place-items: center; background: white; border-radius: 999px; box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.msg .bubble { padding: .6rem .8rem; border-radius: .75rem; background: white; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.msg.user .bubble { background: #e8f2ff; }
+.msg.assistant .bubble { background: #f4f7ff; }
+
+.msg .spacer { grid-column: 1 / -1; height: .25rem; }
+
+form .grid { grid-template-columns: 1fr auto; gap: .5rem; align-items: center; }
+
+.hint { margin-top: .75rem; }
+
