@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python-api
+    container_name: universal-ai-tools-python-api
+    ports:
+      - "8888:8000"
+    environment:
+      - PYTHONPATH=/app/src:/app:/app/api
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./api:/app/api
+      - ./src:/app/src
+      - ./sitecustomize.py:/app/sitecustomize.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - api-network
+
+networks:
+  api-network:
+    driver: bridge
+
