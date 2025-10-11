@@ -15,7 +15,7 @@ def setup_python_path():
         "/app/api",
         "/app",
     ]
-    
+
     for path in paths_to_add:
         if os.path.exists(path) and path not in sys.path:
             sys.path.insert(0, path)

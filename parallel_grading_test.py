@@ -4,8 +4,9 @@ Test parallel processing and grading system integration
 """
 import asyncio
 import time
+
 import httpx
-import json
+
 
 async def test_parallel_processing():
     """Test parallel processing with grading system"""
@@ -118,17 +119,17 @@ async def test_parallel_processing():
     print("   • Fine-tuning data: Positive/negative examples")
 
     # Performance summary
-    print(f"\n📊 Performance Summary:")
+    print("\n📊 Performance Summary:")
     print(f"   • Sequential processing: {sequential_time:.3f}s")
     if response.status_code == 200:
         data = response.json()
         print(f"   • Parallel processing: {data.get('total_time_ms', 0)}ms")
         print(f"   • Speedup achieved: {speedup:.2f}x")
     print(f"   • Smart routing: {smart_time:.3f}s")
-    print(f"   • Grading system: ✅ Active")
+    print("   • Grading system: ✅ Active")
 
     # Optimization recommendations
-    print(f"\n🎯 Optimization Results:")
+    print("\n🎯 Optimization Results:")
     if response.status_code == 200:
         data = response.json()
         if data.get('total_time_ms', 1000) < sequential_time * 1000 * 0.5:

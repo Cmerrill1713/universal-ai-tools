@@ -13,10 +13,8 @@ from typing import Dict, List, Optional
 
 # Import our advanced testing modules
 from ai_compass_tester import AICompassTester
-from ai_powered_test_generator import (AIPoweredTestGenerator,
-                                       TestGenerationConfig)
-from hybrid_hpc_ml_executor import (HybridHPCMLExecutor, ResourceAllocation,
-                                    Task, TaskType)
+from ai_powered_test_generator import AIPoweredTestGenerator, TestGenerationConfig
+from hybrid_hpc_ml_executor import HybridHPCMLExecutor, ResourceAllocation, Task, TaskType
 
 
 @dataclass

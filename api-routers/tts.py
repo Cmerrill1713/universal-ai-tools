@@ -2,12 +2,12 @@
 TTS Router for Universal AI Tools API
 """
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
 import logging
+from typing import Optional
+
 import httpx
-import asyncio
+from fastapi import APIRouter
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/tts", tags=["tts"])
@@ -40,7 +40,7 @@ async def text_to_speech(request: TTSRequest):
                     "speed": request.speed
                 }
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return TTSResponse(
@@ -54,7 +54,7 @@ async def text_to_speech(request: TTSRequest):
                     success=False,
                     error=f"TTS service error: {response.status_code}"
                 )
-    
+
     except httpx.RequestError as e:
         logger.error(f"TTS service request failed: {e}")
         return TTSResponse(

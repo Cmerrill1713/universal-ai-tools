@@ -6,17 +6,16 @@ The previous script incorrectly split TypeScript identifiers like 'AgentContext'
 
 import os
 import re
-import glob
-from datetime import datetime
+
 
 def fix_specific_file(file_path, target_errors):
     """Fix specific property access over-corrections in a file."""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         original_content = content
-        
+
         # Define common TypeScript type and identifier patterns that got over-corrected
         fixes = [
             # Type imports and references
@@ -33,7 +32,7 @@ def fix_specific_file(file_path, target_errors):
             (r'Log\.Context', 'LogContext'),
             (r'Memory\.Router', 'MemoryRouter'),
             (r'Authenticated\.Request', 'AuthenticatedRequest'),
-            
+
             # Constants that got split
             (r'GOOD_CONFIDENC\.E', 'GOOD_CONFIDENCE'),
             (r'MODERATE_CONFIDENC\.E', 'MODERATE_CONFIDENCE'),
@@ -43,7 +42,7 @@ def fix_specific_file(file_path, target_errors):
             (r'HIGH_RISK_THRESHOL\.D', 'HIGH_RISK_THRESHOLD'),
             (r'MEDIUM_RISK_THRESHOL\.D', 'MEDIUM_RISK_THRESHOLD'),
             (r'MEDIUM_CONFIDENC\.E', 'MEDIUM_CONFIDENCE'),
-            
+
             # Property names that got split
             (r'critique\.Id', 'critiqueId'),
             (r'setup\.Id', 'setupId'),
@@ -67,7 +66,7 @@ def fix_specific_file(file_path, target_errors):
             (r'confidence\.Level', 'confidenceLevel'),
             (r'expected\.Improvement', 'expectedImprovement'),
             (r'risk\.Reduction', 'riskReduction'),
-            
+
             # Method names that got split
             (r'setupCognitive\.Capabilities', 'setupCognitiveCapabilities'),
             (r'select\.Capability', 'selectCapability'),
@@ -96,7 +95,7 @@ def fix_specific_file(file_path, target_errors):
             (r'createStress\.Findings', 'createStressFindings'),
             (r'generateStress\.Recommendations', 'generateStressRecommendations'),
             (r'getCritique\.Feedback', 'getCritiqueFeedback'),
-            
+
             # Common property access patterns
             (r'cognitive\.Capabilities', 'cognitiveCapabilities'),
             (r'critique\.History', 'critiqueHistory'),
@@ -112,7 +111,7 @@ def fix_specific_file(file_path, target_errors):
             (r'agent\.Registry', 'agentRegistry'),
             (r'dspy\.Service', 'dspyService'),
             (r'evaluation\.Agent', 'evaluationAgent'),
-            
+
             # API response patterns
             (r'apiResponse\.Middleware', 'apiResponseMiddleware'),
             (r'createPagination\.Meta', 'createPaginationMeta'),
@@ -137,7 +136,7 @@ def fix_specific_file(file_path, target_errors):
             (r'search\.Params', 'searchParams'),
             (r'start\.Time', 'startTime'),
             (r'processing\.Time', 'processingTime'),
-            
+
             # Global object patterns
             (r'process\.env', 'process.env'),  # This should stay as is
             (r'Date\.now', 'Date.now'),        # This should stay as is
@@ -149,7 +148,7 @@ def fix_specific_file(file_path, target_errors):
             (r'Object\.keys', 'Object.keys'),  # This should stay as is
             (r'Object\.values', 'Object.values'),  # This should stay as is
             (r'Object\.entries', 'Object.entries'),  # This should stay as is
-            
+
             # But fix the over-corrections
             (r'JSO\.N\.stringify', 'JSON.stringify'),
             (r'JSO\.N\.parse', 'JSON.parse'),
@@ -167,7 +166,7 @@ def fix_specific_file(file_path, target_errors):
             (r'to\.Fixed', 'toFixed'),
             (r'to\.String', 'toString'),
             (r'for\.Each', 'forEach'),
-            
+
             # Module names and imports
             (r'create\.Client', 'createClient'),
             (r'UniversalAgent\.Registry', 'UniversalAgentRegistry'),
@@ -185,7 +184,7 @@ def fix_specific_file(file_path, target_errors):
             (r'getPersonal\.Agents', 'getPersonalAgents'),
             (r'isAgent\.Loaded', 'isAgentLoaded'),
             (r'is\.Error', 'isError'),
-            
+
             # Environment and config patterns
             (r'NODE_EN\.V', 'NODE_ENV'),
             (r'POR\.T', 'PORT'),
@@ -214,28 +213,28 @@ def fix_specific_file(file_path, target_errors):
             (r'MEMORY_CACHE_SIZ\.E', 'MEMORY_CACHE_SIZE'),
             (r'REDIS_UR\.L', 'REDIS_URL'),
         ]
-        
+
         # Apply fixes
         for pattern, replacement in fixes:
             content = re.sub(pattern, replacement, content)
-        
+
         # Only write if content changed
         if content != original_content:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             return True
         return False
-        
+
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
         return False
 
 def main():
     print("🔧 Fixing property access over-correction patterns...")
-    
+
     # Get the specific file with most errors
     target_file = "src/agents/cognitive/devils_advocate_agent.ts"
-    
+
     if os.path.exists(target_file):
         print(f"🎯 Fixing {target_file}...")
         if fix_specific_file(target_file, None):
@@ -244,7 +243,7 @@ def main():
             print(f"   ⏭️  No changes needed in {target_file}")
     else:
         print(f"❌ File not found: {target_file}")
-    
+
     # Also fix other common problematic files
     problem_files = [
         "src/routers/memory.ts",
@@ -252,7 +251,7 @@ def main():
         "src/config/environment-clean.ts",
         "src/types/global-overrides.d.ts"
     ]
-    
+
     for file_path in problem_files:
         if os.path.exists(file_path):
             print(f"🔧 Fixing {file_path}...")
@@ -260,9 +259,9 @@ def main():
                 print(f"   ✅ Fixed {file_path}")
             else:
                 print(f"   ⏭️  No changes needed in {file_path}")
-    
-    print(f"\n🎉 Property access over-correction fix complete!")
-    print(f"🔍 Run 'npm run type-check:dev' to verify fixes")
+
+    print("\n🎉 Property access over-correction fix complete!")
+    print("🔍 Run 'npm run type-check:dev' to verify fixes")
 
 if __name__ == "__main__":
     main()

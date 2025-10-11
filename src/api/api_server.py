@@ -98,7 +98,7 @@ try:
     try:
         from src.api.tts_proxy_routes import router as tts_proxy_router
         TTS_PROXY_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         TTS_PROXY_AVAILABLE = False
         tts_proxy_router = None
 

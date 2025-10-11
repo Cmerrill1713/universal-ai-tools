@@ -6,8 +6,8 @@ Manages positions, balances, and portfolio-level metrics.
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, Dict, List, Optional
+from decimal import Decimal
+from typing import Any, Dict, List
 
 from .trade import Trade, TradeSide, TradeType
 

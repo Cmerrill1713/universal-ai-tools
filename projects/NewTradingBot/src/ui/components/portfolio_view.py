@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 from ..utils.chart_utils import ChartBuilder
 from ..utils.formatters import DataFormatter, MetricsFormatter, TableFormatter

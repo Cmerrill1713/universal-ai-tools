@@ -5,7 +5,7 @@ Provides real-time candlestick charts with technical indicators
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,6 @@ from plotly.subplots import make_subplots
 
 from ..utils.chart_utils import ChartBuilder, ChartDataProcessor
 from ..utils.formatters import DataFormatter
-from ..utils.theme import TradingTheme
 
 
 class TradingChart:

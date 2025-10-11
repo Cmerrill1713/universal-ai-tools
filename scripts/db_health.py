@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # scripts/db_health.py
-import os, sys
+import os
+import sys
+
 import psycopg
 
 url = os.environ.get("DATABASE_URL")

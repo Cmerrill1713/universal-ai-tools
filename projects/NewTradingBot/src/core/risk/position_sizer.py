@@ -3,17 +3,12 @@ Position sizing module for trading bot.
 Implements various position sizing strategies and risk-based sizing.
 """
 
-import math
 from dataclasses import dataclass
-from datetime import datetime
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-import numpy as np
-
-from ...domain.portfolio import Portfolio, Position
-from ...domain.trade import Trade, TradeSide, TradeType
+from ...domain.portfolio import Portfolio
 from .risk_calculator import RiskLimits, RiskMetrics
 
 
@@ -629,7 +624,7 @@ class PositionSizer:
                 results[method.value] = self.calculate_optimal_position_size(
                     portfolio, signal_data, market_data, method
                 )
-            except Exception as e:
+            except Exception:
                 results[method.value] = None
 
         # Filter successful results

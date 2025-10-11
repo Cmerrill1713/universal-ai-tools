@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 # Run: python -m scripts.independent_verifier_v2 --base http://localhost:8000
-import argparse, sys, asyncio, importlib, json, time
+import argparse
+import asyncio
+import importlib
+import sys
+import time
 from typing import Dict, List, Tuple
+
 import httpx
 
 SAFE_POST_SAMPLES: Dict[str, dict] = {
@@ -67,7 +72,7 @@ def import_checks() -> List[Tuple[str, bool, str, bool]]:
 
 def summarize_http(results: List[Tuple[str, str, int, str]]) -> None:
     w = max(len(p) for _, p, _, _ in results) if results else 20
-    print(f"\nHTTP CHECKS")
+    print("\nHTTP CHECKS")
     print(f"{'METHOD'.ljust(7)} {'PATH'.ljust(w)} STATUS  SNIPPET")
     print("-" * (7 + 1 + w + 1 + 7 + 2 + 40))
     for m, p, code, snip in results:
@@ -91,7 +96,7 @@ async def main():
     for name, passed, msg, required in mod_rows:
         status = ok(passed) if required else ("⚠️" if not passed else "✅")
         print(f" - {name}: {status} {msg}")
-    
+
     required_failures = [r for r in mod_rows if r[3] and not r[1]]
     if required_failures:
         print(f"\n❌ {len(required_failures)} required import(s) failed. Fix imports before HTTP checks.")
@@ -156,7 +161,7 @@ async def main():
     # Exit code rules: only fail on required imports
     required_imports_ok = all(p for _, p, _, req in mod_rows if req)
     all_http_ok = oks == total and total > 0
-    
+
     if not required_imports_ok:
         print("\n❌ FAIL: Required imports failed")
         sys.exit(1)
@@ -168,7 +173,7 @@ async def main():
             print(f"✅ PASS: {pct(oks, total)}% success rate exceeds 70% threshold")
             sys.exit(0)
         sys.exit(1)
-    
+
     print("\n✅ PASS: All checks successful")
     sys.exit(0)
 

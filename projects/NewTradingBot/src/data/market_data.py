@@ -4,21 +4,16 @@ Handles real-time and historical market data acquisition, processing, and storag
 """
 
 import asyncio
-import json
 import logging
-import time
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
-import aiohttp
 import ccxt.async_support as ccxt
-import numpy as np
 import pandas as pd
-import websockets
 
 logger = logging.getLogger(__name__)
 

@@ -4,22 +4,18 @@ Handles data streams, filtering, aggregation, and real-time analytics.
 """
 
 import asyncio
-import json
 import logging
 import threading
-import time
-from collections import defaultdict, deque
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from decimal import Decimal
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
-import pandas as pd
 
-from .market_data import DataType, MarketDataPoint, Timeframe
+from .market_data import MarketDataPoint
 
 logger = logging.getLogger(__name__)
 

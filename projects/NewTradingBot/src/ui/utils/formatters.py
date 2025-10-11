@@ -3,10 +3,9 @@ Data Formatting Utilities
 Provides consistent formatting for various data types in the trading application
 """
 
-from datetime import datetime, timedelta
-from typing import Any, List, Optional, Union
+from datetime import datetime
+from typing import List, Optional, Union
 
-import numpy as np
 import pandas as pd
 
 

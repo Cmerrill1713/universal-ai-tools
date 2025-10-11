@@ -4,13 +4,14 @@ Ultimate God Tier Agentic System
 Leverages HRM-MLX adaptive computation, FastVLM vision, and advanced reasoning
 """
 import asyncio
-import time
-import httpx
 import json
-import base64
-from typing import Dict, List, Any, Optional
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List
+
+import httpx
+
 
 class ReasoningMode(Enum):
     FAST = "fast"           # HRM-MLX with early stopping
@@ -191,7 +192,7 @@ class UltimateGodTierSystem:
 
     async def execute_ultimate_task(self, task: UltimateTask) -> Dict[str, Any]:
         """Execute ultimate God Tier task with all capabilities"""
-        print(f"🚀 ULTIMATE GOD TIER EXECUTION")
+        print("🚀 ULTIMATE GOD TIER EXECUTION")
         print(f"📋 Task: {task.description}")
         print(f"🧠 Mode: {task.reasoning_mode.value}")
         print(f"🎯 Confidence threshold: {task.confidence_threshold}")
@@ -402,25 +403,25 @@ async def test_ultimate_god_tier_system():
         print(f"   Efficiency: {vision_result['performance']['reasoning_efficiency']}")
 
         # Performance summary
-        print(f"\n📊 Ultimate God Tier System Performance:")
+        print("\n📊 Ultimate God Tier System Performance:")
         print(f"   • Fast reasoning: {fast_result['performance']['total_time']:.2f}s")
         print(f"   • Deep reasoning: {deep_result['performance']['total_time']:.2f}s")
         print(f"   • Multi-modal: {vision_result['performance']['total_time']:.2f}s")
         print(f"   • Average confidence: {(fast_result['performance']['avg_confidence'] + deep_result['performance']['avg_confidence'] + vision_result['performance']['avg_confidence']) / 3:.2f}")
-        print(f"   • HRM-MLX: Adaptive computation active")
-        print(f"   • FastVLM: Vision processing ready")
-        print(f"   • Smart routing: Optimized model selection")
-        print(f"   • Multi-modal: Vision + reasoning integration")
+        print("   • HRM-MLX: Adaptive computation active")
+        print("   • FastVLM: Vision processing ready")
+        print("   • Smart routing: Optimized model selection")
+        print("   • Multi-modal: Vision + reasoning integration")
 
-        print(f"\n🌟 GOD TIER CAPABILITIES ACHIEVED:")
-        print(f"   ✅ Adaptive computation with early stopping")
-        print(f"   ✅ Multi-modal reasoning (text + vision)")
-        print(f"   ✅ Deep reasoning chains")
-        print(f"   ✅ Intelligent model selection")
-        print(f"   ✅ Parallel processing optimization")
-        print(f"   ✅ Confidence-based stopping")
-        print(f"   ✅ Comprehensive task decomposition")
-        print(f"   ✅ Real-time performance monitoring")
+        print("\n🌟 GOD TIER CAPABILITIES ACHIEVED:")
+        print("   ✅ Adaptive computation with early stopping")
+        print("   ✅ Multi-modal reasoning (text + vision)")
+        print("   ✅ Deep reasoning chains")
+        print("   ✅ Intelligent model selection")
+        print("   ✅ Parallel processing optimization")
+        print("   ✅ Confidence-based stopping")
+        print("   ✅ Comprehensive task decomposition")
+        print("   ✅ Real-time performance monitoring")
 
         return {
             "fast": fast_result,

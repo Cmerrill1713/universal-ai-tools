@@ -5,10 +5,12 @@ Tests the system's ability to demonstrate super-agentic behavior
 """
 
 import asyncio
-import aiohttp
-import time
 import json
-from typing import Dict, List, Any
+import time
+from typing import Dict, List
+
+import aiohttp
+
 
 class AdvancedAgenticTester:
     def __init__(self):
@@ -204,7 +206,7 @@ class AdvancedAgenticTester:
         total_duration = (time.time() - start_time) * 1000
         successful_agents = sum(1 for agent in agent_responses if agent["success"])
 
-        print(f"  📊 Multi-Agent Simulation Results:")
+        print("  📊 Multi-Agent Simulation Results:")
         print(f"    Total Time: {total_duration:.0f}ms")
         print(f"    Successful Agents: {successful_agents}/{len(agent_roles)}")
         print(f"    Success Rate: {(successful_agents/len(agent_roles)*100):.1f}%")
@@ -482,7 +484,7 @@ Provide a coordinated, integrated solution that combines the best insights from 
                 "results": self.results
             }, f, indent=2)
 
-        print(f"\n💾 Detailed results saved to: advanced_agentic_test_results.json")
+        print("\n💾 Detailed results saved to: advanced_agentic_test_results.json")
 
 async def main():
     tester = AdvancedAgenticTester()

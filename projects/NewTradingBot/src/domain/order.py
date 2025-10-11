@@ -10,7 +10,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from .trade import TradeSide, TradeType
+from .trade import TradeType
 
 
 class OrderType(Enum):

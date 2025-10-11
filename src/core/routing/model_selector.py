@@ -3,8 +3,8 @@ Model-Agnostic Selector - Chooses best available model based on capabilities/con
 No hard-coded model names - uses inventory from MLX/Ollama registries
 """
 from dataclasses import dataclass
-from typing import List, Set, Dict, Any, Optional
-import asyncio
+from typing import Any, Dict, List, Optional, Set
+
 
 @dataclass
 class ModelCandidate:
@@ -17,7 +17,7 @@ class ModelCandidate:
     ctx_tokens: int        # context window size
     cost_tier: str         # "free","low","medium","high"
     local: bool            # runs locally?
-    
+
     def __post_init__(self):
         if isinstance(self.caps, list):
             self.caps = set(self.caps)
@@ -25,11 +25,11 @@ class ModelCandidate:
 
 class ModelSelector:
     """Selects best model based on dynamic constraints"""
-    
+
     def __init__(self):
         self.inventory: List[ModelCandidate] = []
         self._load_inventory()
-    
+
     def _load_inventory(self):
         """Load available models from MLX/Ollama"""
         # MLX models (local, fast)
@@ -65,7 +65,7 @@ class ModelSelector:
                 local=True
             ),
         ])
-        
+
         # Ollama models (if available)
         try:
             self.inventory.extend([
@@ -82,7 +82,7 @@ class ModelSelector:
             ])
         except:
             pass  # Ollama optional
-    
+
     def select_best(self, decision: Dict[str, Any]) -> Optional[ModelCandidate]:
         """
         Select best model based on decision constraints
@@ -95,19 +95,19 @@ class ModelSelector:
         """
         want_caps = set(decision.get("engine", {}).get("capabilities", []))
         constraints = decision.get("engine", {}).get("constraints", {})
-        
+
         min_quality_map = {"good": 3, "great": 4, "max": 5}
         min_quality = min_quality_map.get(constraints.get("min_quality", "good"), 3)
-        
+
         max_cost_map = {"free": 0, "low": 1, "medium": 2, "any": 3}
         max_cost_rank = max_cost_map.get(constraints.get("max_cost_tier", "free"), 0)
-        
+
         privacy_local = constraints.get("offline_only", True) or \
                        (constraints.get("privacy_level", "local_only") == "local_only")
-        
+
         min_ctx = constraints.get("min_context_tokens", 0)
         latency_budget = constraints.get("latency_budget_ms", 2000)
-        
+
         def score(candidate: ModelCandidate) -> int:
             """Score a candidate model (higher is better)"""
             # Hard constraints (return -999 if not met)
@@ -119,33 +119,33 @@ class ModelSelector:
                 return -999
             if candidate.ctx_tokens < min_ctx:
                 return -999
-            
+
             # Map cost tier to rank
             cost_rank_map = {"free": 0, "low": 1, "medium": 2, "high": 3}
             cost_rank = cost_rank_map.get(candidate.cost_tier, 3)
             if cost_rank > max_cost_rank:
                 return -999
-            
+
             # Soft scoring (prefer better quality, lower latency, more context)
             s = 0
             s += candidate.quality * 10                              # Quality weight
             s -= max(0, candidate.latency_ms - latency_budget) // 50 # Latency penalty
             s += min(candidate.ctx_tokens, 64_000) // 2000           # Context bonus
             s += 3 if candidate.provider == "mlx" else 0             # MLX preference (Apple Silicon)
-            
+
             return s
-        
+
         # Rank candidates
         ranked = sorted(self.inventory, key=score, reverse=True)
-        
+
         # Return best or conservative fallback
         if ranked and score(ranked[0]) > -999:
             return ranked[0]
-        
+
         # Fallback: find any local chat model
         fallback = next((c for c in self.inventory if c.local and "chat" in c.caps), None)
         return fallback or (self.inventory[0] if self.inventory else None)
-    
+
     def get_inventory(self) -> List[Dict[str, Any]]:
         """Return current model inventory as JSON"""
         return [
@@ -186,10 +186,10 @@ def select_model(decision: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     selector = get_selector()
     candidate = selector.select_best(decision)
-    
+
     if not candidate:
         return None
-    
+
     return {
         "provider": candidate.provider,
         "model": candidate.name,

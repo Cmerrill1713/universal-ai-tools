@@ -3,14 +3,15 @@
 Autonomous Auto-Heal System
 Scans logs, detects errors, and applies fixes automatically
 """
-import sys
-import os
 import json
-import yaml
 import re
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
+
+import yaml
+
 
 def load_config():
     """Load autoheal configuration"""
@@ -29,7 +30,7 @@ def scan_logs():
             capture_output=True, text=True, timeout=5
         )
         containers = result.stdout.strip().split('\n')
-        
+
         for container in containers:
             if not container:
                 continue
@@ -38,7 +39,7 @@ def scan_logs():
                 capture_output=True, text=True, timeout=5
             )
             logs = log_result.stdout + log_result.stderr
-            
+
             # Simple error detection
             for line in logs.split('\n'):
                 if any(kw in line.lower() for kw in ['error', 'exception', 'failed', 'traceback']):
@@ -49,7 +50,7 @@ def scan_logs():
                     })
     except Exception as e:
         print(f"Error scanning logs: {e}")
-    
+
     return errors
 
 def match_rules(errors, rules):
@@ -72,7 +73,7 @@ def apply_fixes(matches, dry_run=True):
     for match in matches:
         rule = match['rule']
         error = match['error']
-        
+
         result = {
             "container": error['container'],
             "rule_name": rule['name'],
@@ -81,7 +82,7 @@ def apply_fixes(matches, dry_run=True):
             "applied": False,
             "message": error['message'][:100]
         }
-        
+
         if not dry_run and rule.get('auto_fix', False):
             # In a real implementation, this would apply the fix
             # For now, just log what would be done
@@ -89,16 +90,16 @@ def apply_fixes(matches, dry_run=True):
             result['note'] = f"Would apply {rule['action']}"
         else:
             result['note'] = f"Detected (dry-run={dry_run}, auto_fix={rule.get('auto_fix')})"
-        
+
         results.append(result)
-    
+
     return results
 
 def generate_summary(errors, matches, results, output_dir):
     """Generate summary and detailed logs"""
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True)
-    
+
     # Summary
     summary_path = output_dir / "auto-heal-summary.txt"
     with open(summary_path, 'w') as f:
@@ -110,7 +111,7 @@ def generate_summary(errors, matches, results, output_dir):
         f.write(f"Rules Matched: {len(matches)}\n")
         f.write(f"Fixes Applied: {sum(1 for r in results if r.get('applied'))}\n")
         f.write(f"Dry Run: {results[0]['dry_run'] if results else 'N/A'}\n\n")
-        
+
         if results:
             f.write("Results by Container:\n")
             containers = {}
@@ -119,7 +120,7 @@ def generate_summary(errors, matches, results, output_dir):
                 if cont not in containers:
                     containers[cont] = []
                 containers[cont].append(r)
-            
+
             for cont, items in containers.items():
                 f.write(f"\n{cont}:\n")
                 for item in items:
@@ -127,17 +128,17 @@ def generate_summary(errors, matches, results, output_dir):
                     f.write(f"  {status} {item['rule_name']}: {item['note']}\n")
         else:
             f.write("No issues detected! ✅\n")
-    
+
     # Detailed log
     log_path = output_dir / "autoheal.log"
     with open(log_path, 'w') as f:
         f.write(f"Auto-Heal Detailed Log - {datetime.now().isoformat()}\n")
         f.write("=" * 80 + "\n\n")
-        
-        f.write(f"Configuration Loaded: .autoheal.yml\n")
+
+        f.write("Configuration Loaded: .autoheal.yml\n")
         f.write(f"Errors Scanned: {len(errors)}\n")
         f.write(f"Rules Matched: {len(matches)}\n\n")
-        
+
         for result in results:
             f.write("-" * 80 + "\n")
             f.write(f"Container: {result['container']}\n")
@@ -147,7 +148,7 @@ def generate_summary(errors, matches, results, output_dir):
             f.write(f"Note: {result.get('note', 'N/A')}\n")
             f.write(f"Message: {result['message']}\n")
             f.write("\n")
-    
+
     # Metrics
     metrics_path = output_dir / "autoheal-metrics.json"
     metrics = {
@@ -160,48 +161,48 @@ def generate_summary(errors, matches, results, output_dir):
     }
     with open(metrics_path, 'w') as f:
         json.dump(metrics, f, indent=2)
-    
+
     return summary_path, log_path, metrics_path
 
 def main():
     dry_run = '--dry-run' in sys.argv or '-n' in sys.argv
-    
+
     print("🔧 Auto-Heal System")
     print(f"Mode: {'DRY RUN' if dry_run else 'APPLY FIXES'}")
     print()
-    
+
     # Load config
     config = load_config()
     if not config:
         print("❌ No .autoheal.yml found")
         sys.exit(1)
-    
+
     rules = config.get('rules', [])
     print(f"📋 Loaded {len(rules)} rules")
-    
+
     # Scan for errors
     print("🔍 Scanning Docker logs...")
     errors = scan_logs()
     print(f"Found {len(errors)} potential issues")
-    
+
     # Match rules
     print("🎯 Matching against rules...")
     matches = match_rules(errors, rules)
     print(f"Matched {len(matches)} rules")
-    
+
     # Apply fixes
     print(f"{'🧪 Simulating' if dry_run else '✅ Applying'} fixes...")
     results = apply_fixes(matches, dry_run=dry_run)
-    
+
     # Generate output
     print("📊 Generating reports...")
     summary, log, metrics = generate_summary(errors, matches, results, "artifacts")
-    
-    print(f"\n✅ Complete!")
+
+    print("\n✅ Complete!")
     print(f"Summary: {summary}")
     print(f"Log: {log}")
     print(f"Metrics: {metrics}")
-    
+
     # Print summary
     print(f"\n{'=' * 60}")
     with open(summary) as f:

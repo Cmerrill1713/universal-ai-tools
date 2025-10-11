@@ -4,7 +4,6 @@ Launch Script for NewTradingBot Streamlit Application
 Simplified launcher with environment setup and error handling
 """
 
-import logging
 import os
 import subprocess
 import sys
@@ -104,7 +103,7 @@ def main():
     try:
         # Setup environment
         project_root, src_dir = setup_environment()
-        print(f"✅ Environment setup complete")
+        print("✅ Environment setup complete")
 
         # Check dependencies
         if not check_dependencies():

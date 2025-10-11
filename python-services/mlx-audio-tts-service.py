@@ -6,14 +6,12 @@ Advanced features: Multiple voices, speed control, emotion synthesis
 
 import argparse
 import base64
-import json
 import logging
 import os
 import subprocess
 import tempfile
 import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -38,7 +36,7 @@ class MLXAudioTTSService:
         self.available_voices = {
             # Female voices
             'sarah': 'af_sarah',
-            'bella': 'af_bella', 
+            'bella': 'af_bella',
             'jessica': 'af_jessica',
             'nicole': 'af_nicole',
             'nova': 'af_nova',
@@ -48,7 +46,7 @@ class MLXAudioTTSService:
             'aoede': 'af_aoede',
             'heart': 'af_heart',
             'kore': 'af_kore',
-            
+
             # Male voices
             'eric': 'am_eric',
             'adam': 'am_adam',
@@ -59,7 +57,7 @@ class MLXAudioTTSService:
             'onyx': 'am_onyx',
             'puck': 'am_puck',
             'santa': 'am_santa',
-            
+
             # British voices
             'alice': 'bf_alice',
             'emma': 'bf_emma',
@@ -69,7 +67,7 @@ class MLXAudioTTSService:
             'fable': 'bm_fable',
             'george': 'bm_george',
             'lewis': 'bm_lewis',
-            
+
             # Other languages
             'dora_english': 'ef_dora',
             'alex_english': 'em_alex',
@@ -98,7 +96,7 @@ class MLXAudioTTSService:
             'yunxia_chinese': 'zm_yunxia',
             'yunyang_chinese': 'zm_yunyang'
         }
-        
+
         self.emotion_speeds = {
             'calm': 0.8,
             'normal': 1.0,
@@ -108,25 +106,25 @@ class MLXAudioTTSService:
             'fast': 1.4
         }
 
-    def generate_speech(self, text: str, voice: str = 'sarah', emotion: str = 'normal', 
+    def generate_speech(self, text: str, voice: str = 'sarah', emotion: str = 'normal',
                        speed: Optional[float] = None, language: str = 'en') -> Dict[str, Any]:
         """Generate speech using MLX Audio TTS with advanced features"""
         start_time = time.time()
-        
+
         try:
             # Map voice name to actual voice ID
             voice_id = self.available_voices.get(voice.lower(), 'af_sarah')
-            
+
             # Determine speed based on emotion if not specified
             if speed is None:
                 speed = self.emotion_speeds.get(emotion.lower(), 1.0)
-            
+
             # Create unique temporary file for output
             temp_dir = tempfile.mkdtemp()
             temp_prefix = os.path.join(temp_dir, f"mlx_tts_{int(time.time())}")
-            
+
             logger.info(f"Generating speech: '{text[:50]}...' with voice '{voice_id}' at speed {speed}x")
-            
+
             # Build MLX Audio command
             cmd = [
                 'python3.11', '-m', 'mlx_audio.tts.generate',
@@ -137,10 +135,10 @@ class MLXAudioTTSService:
                 '--file_prefix', temp_prefix,
                 '--audio_format', 'wav'
             ]
-            
+
             # Execute MLX Audio TTS with proper working directory
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=temp_dir)
-            
+
             if result.returncode != 0:
                 logger.error(f"MLX Audio TTS failed: {result.stderr}")
                 return {
@@ -148,37 +146,37 @@ class MLXAudioTTSService:
                     "error": f"TTS generation failed: {result.stderr}",
                     "model": "MLX-Audio-Kokoro-82M"
                 }
-            
+
             # Find the generated audio file
             audio_data = None
             generated_file = None
-            
+
             # Look for generated files
             for file in os.listdir(temp_dir):
                 if file.endswith('.wav'):
                     generated_file = os.path.join(temp_dir, file)
                     break
-            
+
             if generated_file and os.path.exists(generated_file):
                 with open(generated_file, 'rb') as f:
                     audio_data = f.read()
                 os.unlink(generated_file)  # Clean up file
-            
+
             # Clean up temp directory
             try:
                 os.rmdir(temp_dir)
             except:
                 pass
-            
+
             if audio_data is None:
                 return {
                     "success": False,
                     "error": "Generated audio file not found",
                     "model": "MLX-Audio-Kokoro-82M"
                 }
-            
+
             generation_time = time.time() - start_time
-            
+
             return {
                 "success": True,
                 "audio_data": base64.b64encode(audio_data).decode('utf-8'),
@@ -195,7 +193,7 @@ class MLXAudioTTSService:
                 "text": text,
                 "optimized_for": "Apple Silicon"
             }
-            
+
         except subprocess.TimeoutExpired:
             logger.error("MLX Audio TTS timed out")
             return {
@@ -264,35 +262,35 @@ def synthesize():
                 "success": False,
                 "error": "No JSON data provided"
             }), 400
-            
+
         text = data.get('text', '')
         voice = data.get('voice', 'sarah')
         emotion = data.get('emotion', 'normal')
         speed = data.get('speed')
         language = data.get('language', 'en')
-        
+
         if not text:
             return jsonify({
                 "success": False,
                 "error": "No text provided"
             }), 400
-        
+
         if len(text) > 1000:
             return jsonify({
                 "success": False,
                 "error": "Text too long (max 1000 characters)"
             }), 400
-        
+
         logger.info(f"Synthesis request: voice={voice}, emotion={emotion}, text_length={len(text)}")
         result = mlx_tts_service.generate_speech(text, voice, emotion, speed, language)
-        
+
         if result.get('success'):
             logger.info(f"Synthesis successful: {result.get('generation_time', 0):.2f}s")
         else:
             logger.error(f"Synthesis failed: {result.get('error', 'Unknown error')}")
-            
+
         return jsonify(result)
-        
+
     except Exception as e:
         logger.error(f"Synthesis error: {e}")
         return jsonify({
@@ -311,7 +309,7 @@ def list_voices():
         "optimized_for": "Apple Silicon",
         "features": [
             "Multiple voice options",
-            "Emotion-based speed control", 
+            "Emotion-based speed control",
             "Multilingual support",
             "Apple Silicon optimization",
             "High-quality audio output"
@@ -326,7 +324,7 @@ def test_synthesis():
         data = request.get_json()
         voice = data.get('voice', 'sarah')
         emotion = data.get('emotion', 'normal')
-        
+
         sample_texts = {
             'calm': "Hello, this is a calm and peaceful voice demonstration.",
             'normal': "Hello world! This is a normal speaking voice.",
@@ -335,12 +333,12 @@ def test_synthesis():
             'slow': "This is a slow and deliberate speaking pace.",
             'fast': "This is a fast and rapid speaking pace for quick information."
         }
-        
+
         text = sample_texts.get(emotion, sample_texts['normal'])
-        
+
         result = mlx_tts_service.generate_speech(text, voice, emotion)
         return jsonify(result)
-        
+
     except Exception as e:
         logger.error(f"Test synthesis error: {e}")
         return jsonify({
@@ -353,14 +351,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MLX Audio TTS Service - Optimized')
     parser.add_argument('--port', type=int, default=8090, help='Port to run the service on')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to bind to')
-    
+
     args = parser.parse_args()
-    
-    logger.info(f"🚀 Starting MLX Audio TTS Service (Optimized)")
+
+    logger.info("🚀 Starting MLX Audio TTS Service (Optimized)")
     logger.info(f"📡 Port: {args.port}")
     logger.info(f"🤖 Model: {mlx_tts_service.model}")
-    logger.info(f"🍎 Optimized for: Apple Silicon")
+    logger.info("🍎 Optimized for: Apple Silicon")
     logger.info(f"🎭 Available voices: {len(mlx_tts_service.available_voices)}")
     logger.info(f"⚡ Emotion speeds: {len(mlx_tts_service.emotion_speeds)}")
-    
+
     app.run(host=args.host, port=args.port, debug=False)

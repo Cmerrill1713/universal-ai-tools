@@ -3,20 +3,17 @@ Risk calculation module for trading bot.
 Provides comprehensive risk assessment and management functions.
 """
 
-import math
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from datetime import datetime
+from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
-from ...domain.order import Order
-from ...domain.portfolio import Portfolio, Position
-from ...domain.trade import Trade, TradeSide, TradeType
+from ...domain.portfolio import Portfolio
+from ...domain.trade import Trade
 
 
 class RiskLevel(Enum):

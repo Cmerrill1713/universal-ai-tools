@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from sentence_transformers import SentenceTransformer
-
 from supabase import Client, create_client
 
 

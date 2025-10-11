@@ -2,15 +2,16 @@
 FastAPI application with routers
 """
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import logging
 
 # Import routers (these will be available due to sitecustomize.py)
 try:
-    from api.routers import health, users, tasks, tts
+    from api.routers import health, tasks, tts, users
 except ImportError:
-    from routers import health, users, tasks
+    from routers import health, tasks, users
 
 # Configure logging
 logging.basicConfig(
@@ -35,7 +36,7 @@ async def error_box(req: Request, call_next):
     except Exception as e:
         logger.error(f"Unhandled exception: {type(e).__name__}: {e}", exc_info=True)
         return JSONResponse(
-            {"error": type(e).__name__, "detail": str(e)}, 
+            {"error": type(e).__name__, "detail": str(e)},
             status_code=500
         )
 

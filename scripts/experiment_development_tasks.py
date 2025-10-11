@@ -2,10 +2,10 @@
 """
 Experiment with different development tasks to validate DSPy pipeline capabilities
 """
-import sys
-import os
-import logging
 import json
+import logging
+import os
+import sys
 
 # Add the src path to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'services', 'dspy-orchestrator'))
@@ -41,7 +41,7 @@ def test_task(task_description, tech_stack="typescript,rust,go,python"):
         patches = result.get('patches', [])
         if patches:
             first_patch = patches[0]
-            logger.info(f"🔧 Sample patch preview:")
+            logger.info("🔧 Sample patch preview:")
             if isinstance(first_patch, dict):
                 logger.info(f"   File: {first_patch.get('path', 'unknown')}")
                 patch_content = first_patch.get('patch_unified', str(first_patch))[:300]
@@ -148,7 +148,7 @@ def main():
     # Test MIPROv2 optimization
     try:
         from development_pipeline import development_orchestrator
-        logger.info(f"\n🔧 MIPROv2 Status:")
+        logger.info("\n🔧 MIPROv2 Status:")
         logger.info(f"   Examples collected: {len(development_orchestrator.optimization_examples)}")
         logger.info(f"   Optimization threshold: {development_orchestrator.optimization_threshold}")
 

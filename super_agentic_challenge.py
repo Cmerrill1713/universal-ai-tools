@@ -5,10 +5,11 @@ Pushes the system to its absolute limits to test for super-agentic behavior
 """
 
 import asyncio
-import aiohttp
-import time
 import json
-from typing import Dict, List, Any
+import time
+
+import aiohttp
+
 
 class SuperAgenticChallenge:
     def __init__(self):
@@ -461,7 +462,7 @@ Demonstrate sophisticated thinking about the learning process itself, not just t
         print(f"✅ Successful: {successful_tests}")
         print(f"❌ Failed: {total_tests - successful_tests}")
         print(f"📈 Success Rate: {success_rate:.1f}%")
-        print(f"\n🎯 Specialized Scores:")
+        print("\n🎯 Specialized Scores:")
         print(f"  🔄 Self-Improvement: {avg_improvement:.1f}%")
         print(f"  💡 Paradigm-Breaking: {avg_paradigm:.1f}%")
         print(f"  🎯 Goal Formation: {avg_goals:.1f}%")
@@ -506,7 +507,7 @@ Demonstrate sophisticated thinking about the learning process itself, not just t
                 "results": self.results
             }, f, indent=2)
 
-        print(f"\n💾 Detailed results saved to: super_agentic_challenge_results.json")
+        print("\n💾 Detailed results saved to: super_agentic_challenge_results.json")
 
 async def main():
     challenger = SuperAgenticChallenge()

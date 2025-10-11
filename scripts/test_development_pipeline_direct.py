@@ -2,9 +2,9 @@
 """
 Direct test of the DSPy development pipeline without WebSocket server
 """
-import sys
-import os
 import logging
+import os
+import sys
 
 # Add the src path to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'services', 'dspy-orchestrator'))

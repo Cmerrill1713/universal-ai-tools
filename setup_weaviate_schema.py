@@ -3,14 +3,15 @@
 Setup Weaviate schema for Memory Service
 """
 
+
 import requests
-import json
+
 
 def setup_weaviate_schema():
     """Create the Memory class schema in Weaviate"""
-    
+
     weaviate_url = "http://localhost:8090"
-    
+
     # Check if Weaviate is running
     try:
         response = requests.get(f"{weaviate_url}/v1/meta")
@@ -21,7 +22,7 @@ def setup_weaviate_schema():
     except Exception as e:
         print(f"❌ Cannot connect to Weaviate: {e}")
         return False
-    
+
     # Check if Memory class already exists
     try:
         response = requests.get(f"{weaviate_url}/v1/schema")
@@ -34,7 +35,7 @@ def setup_weaviate_schema():
     except Exception as e:
         print(f"❌ Error checking schema: {e}")
         return False
-    
+
     # Create Memory class schema
     memory_schema = {
         "class": "Memory",
@@ -88,7 +89,7 @@ def setup_weaviate_schema():
             }
         ]
     }
-    
+
     # Create the class
     try:
         response = requests.post(
@@ -96,7 +97,7 @@ def setup_weaviate_schema():
             headers={"Content-Type": "application/json"},
             json=memory_schema
         )
-        
+
         if response.status_code == 200:
             print("✅ Memory class created successfully")
             return True
@@ -104,7 +105,7 @@ def setup_weaviate_schema():
             print(f"❌ Failed to create Memory class: {response.status_code}")
             print(f"Response: {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"❌ Error creating Memory class: {e}")
         return False

@@ -3,13 +3,10 @@ Main Streamlit Application Entry Point
 Initializes and runs the NewTradingBot Streamlit UI
 """
 
-import asyncio
 import logging
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 import streamlit as st
 from ui.pages.analytics import AnalyticsPage

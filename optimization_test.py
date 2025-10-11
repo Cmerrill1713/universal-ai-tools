@@ -4,13 +4,14 @@ Quick optimization test to demonstrate performance improvements
 """
 import asyncio
 import time
+
 import httpx
-import json
+
 
 async def test_router_performance():
     """Test LLM router performance with multiple concurrent requests"""
     url = "http://localhost:3033/chat/completions"
-    
+
     # Test data
     test_prompts = [
         "Hello",
@@ -19,11 +20,11 @@ async def test_router_performance():
         "Write a haiku",
         "What's the weather?",
     ]
-    
+
     headers = {"Content-Type": "application/json"}
-    
+
     print("🚀 Testing LLM Router Performance...")
-    
+
     # Test 1: Single request timing
     start_time = time.time()
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -38,7 +39,7 @@ async def test_router_performance():
         )
     single_request_time = time.time() - start_time
     print(f"✅ Single request: {single_request_time:.3f}s")
-    
+
     # Test 2: Concurrent requests
     start_time = time.time()
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -54,16 +55,16 @@ async def test_router_performance():
                 }
             )
             tasks.append(task)
-        
+
         responses = await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     concurrent_time = time.time() - start_time
     successful_responses = sum(1 for r in responses if not isinstance(r, Exception))
-    
+
     print(f"✅ {len(test_prompts)} concurrent requests: {concurrent_time:.3f}s")
     print(f"✅ Successful responses: {successful_responses}/{len(test_prompts)}")
     print(f"✅ Average per request: {concurrent_time/len(test_prompts):.3f}s")
-    
+
     # Test 3: Model selection performance
     print("\n🎯 Testing Model Selection...")
     models_url = "http://localhost:3033/models"
@@ -72,23 +73,23 @@ async def test_router_performance():
         response = await client.get(models_url)
         models_data = response.json()
     model_list_time = time.time() - start_time
-    
+
     print(f"✅ Model list retrieval: {model_list_time:.3f}s")
     print(f"✅ Available models: {len(models_data.get('models', []))}")
-    
+
     # Performance summary
-    print(f"\n📊 Performance Summary:")
+    print("\n📊 Performance Summary:")
     print(f"   • Single request: {single_request_time:.3f}s")
     print(f"   • Concurrent avg: {concurrent_time/len(test_prompts):.3f}s")
     print(f"   • Model selection: {model_list_time:.3f}s")
     print(f"   • Total models: {len(models_data.get('models', []))}")
-    
+
     # Optimization opportunities
     if single_request_time > 0.5:
-        print(f"\n⚠️  Optimization Opportunity: Single request > 500ms")
+        print("\n⚠️  Optimization Opportunity: Single request > 500ms")
     if concurrent_time/len(test_prompts) > 1.0:
-        print(f"⚠️  Optimization Opportunity: Concurrent requests > 1s avg")
-    
+        print("⚠️  Optimization Opportunity: Concurrent requests > 1s avg")
+
     return {
         "single_request_time": single_request_time,
         "concurrent_time": concurrent_time,

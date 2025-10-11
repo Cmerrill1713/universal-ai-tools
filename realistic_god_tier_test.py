@@ -5,8 +5,9 @@ Focus on the capabilities that are operational
 """
 import asyncio
 import time
+
 import httpx
-import json
+
 
 class RealisticGodTierTester:
     def __init__(self):
@@ -220,7 +221,7 @@ class RealisticGodTierTester:
             print(f"  📊 Result: {success_rate:.1%} success, {total_time:.2f}s total - {status}")
 
         # Test batch processing
-        print(f"\n⚡ Testing Batch Processing...")
+        print("\n⚡ Testing Batch Processing...")
         batch_messages = [
             "What is machine learning?",
             "Explain quantum computing basics",
@@ -230,7 +231,7 @@ class RealisticGodTierTester:
         print(f"  📦 Batch result: {'✅' if batch_result['success'] else '❌'} {batch_result.get('response_time', 0):.2f}s")
 
         # Overall assessment
-        print(f"\n🏆 OVERALL GOD TIER ASSESSMENT:")
+        print("\n🏆 OVERALL GOD TIER ASSESSMENT:")
         print("=" * 40)
 
         god_tier_scenarios = sum(1 for r in results if r["is_god_tier"])
@@ -238,33 +239,33 @@ class RealisticGodTierTester:
         avg_success_rate = sum(r["success_rate"] for r in results) / total_scenarios
         avg_response_time = sum(r["total_time"] for r in results) / total_scenarios
 
-        print(f"📊 Performance Metrics:")
+        print("📊 Performance Metrics:")
         print(f"   • Scenarios Tested: {total_scenarios}")
         print(f"   • God Tier Capable: {god_tier_scenarios}/{total_scenarios}")
         print(f"   • Average Success Rate: {avg_success_rate:.1%}")
         print(f"   • Average Response Time: {avg_response_time:.2f}s")
         print(f"   • Batch Processing: {'✅' if batch_result['success'] else '❌'}")
 
-        print(f"\n🎯 Capability Breakdown:")
+        print("\n🎯 Capability Breakdown:")
         for result in results:
             status = "✅" if result["is_god_tier"] else "❌"
             print(f"   {status} {result['scenario']}: {result['success_rate']:.1%} success, {result['total_time']:.2f}s")
 
         # Final verdict
         if god_tier_scenarios >= total_scenarios * 0.8 and avg_success_rate >= 0.8:
-            print(f"\n🌟 VERDICT: GOD TIER ACHIEVED!")
+            print("\n🌟 VERDICT: GOD TIER ACHIEVED!")
             print(f"   ✅ {god_tier_scenarios}/{total_scenarios} scenarios are God Tier capable")
             print(f"   ✅ High success rate: {avg_success_rate:.1%}")
             print(f"   ✅ Fast response times: {avg_response_time:.2f}s average")
-            print(f"   ✅ Multiple capabilities working: Chat, Streaming, Agentic, Smart Routing")
+            print("   ✅ Multiple capabilities working: Chat, Streaming, Agentic, Smart Routing")
             if batch_result['success']:
-                print(f"   ✅ Batch processing operational")
+                print("   ✅ Batch processing operational")
         else:
-            print(f"\n⚠️ VERDICT: APPROACHING GOD TIER")
+            print("\n⚠️ VERDICT: APPROACHING GOD TIER")
             print(f"   📈 {god_tier_scenarios}/{total_scenarios} scenarios are God Tier capable")
             print(f"   📈 Success rate: {avg_success_rate:.1%}")
             print(f"   📈 Response times: {avg_response_time:.2f}s average")
-            print(f"   🔧 Areas for improvement identified")
+            print("   🔧 Areas for improvement identified")
 
         return results
 

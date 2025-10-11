@@ -2,7 +2,7 @@
 Pydantic schemas for order-related data validation and serialization.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional

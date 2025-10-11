@@ -2,8 +2,9 @@
 """
 Seed Demo Data - Populate database with sample data for development
 """
-import httpx
 import sys
+
+import httpx
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8013"
 
@@ -31,7 +32,7 @@ for user in users:
         if r.status_code in [200, 201]:
             print(f"   ✅ Created: {user['name']}")
         elif r.status_code == 404:
-            print(f"   ⚠️  Endpoint /api/users/ not found (may not exist)")
+            print("   ⚠️  Endpoint /api/users/ not found (may not exist)")
             break
         else:
             print(f"   ⚠️  {user['name']} → {r.status_code}")
@@ -46,7 +47,7 @@ for task in tasks:
         if r.status_code in [200, 201]:
             print(f"   ✅ Created: {task['title']}")
         elif r.status_code == 404:
-            print(f"   ⚠️  Endpoint /api/tasks/ not found (may not exist)")
+            print("   ⚠️  Endpoint /api/tasks/ not found (may not exist)")
             break
         else:
             print(f"   ⚠️  {task['title']} → {r.status_code}")

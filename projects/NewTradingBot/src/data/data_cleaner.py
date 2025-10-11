@@ -6,15 +6,15 @@ Handles data quality checks, outlier detection, and data normalization.
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-from .market_data import DataType, MarketDataPoint
+from .market_data import MarketDataPoint
 
 logger = logging.getLogger(__name__)
 

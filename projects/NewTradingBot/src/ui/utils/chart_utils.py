@@ -3,10 +3,8 @@ Chart Utilities for Trading Visualization
 Provides helper functions for creating interactive trading charts
 """
 
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -331,7 +329,7 @@ class ChartBuilder:
                         x=df['time'],
                         y=upper,
                         mode='lines',
-                        name=f'BB Upper',
+                        name='BB Upper',
                         line=dict(color='rgba(128, 128, 128, 0.5)', width=1)
                     ),
                     row=1, col=1
@@ -342,7 +340,7 @@ class ChartBuilder:
                         x=df['time'],
                         y=lower,
                         mode='lines',
-                        name=f'BB Lower',
+                        name='BB Lower',
                         line=dict(color='rgba(128, 128, 128, 0.5)', width=1),
                         fill='tonexty',
                         fillcolor='rgba(128, 128, 128, 0.1)'

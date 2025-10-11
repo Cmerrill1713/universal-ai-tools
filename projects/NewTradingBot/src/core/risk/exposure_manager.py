@@ -3,18 +3,18 @@ Exposure management module for trading bot.
 Manages overall portfolio exposure, sector allocation, and risk concentration.
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
 from ...domain.portfolio import Portfolio, Position
-from ...domain.trade import Trade, TradeSide, TradeType
-from .risk_calculator import RiskLimits, RiskMetrics
+from ...domain.trade import Trade
+from .risk_calculator import RiskLimits
 
 
 class ExposureType(Enum):
@@ -527,7 +527,7 @@ class ExposureManager:
                             f"{exposure_type.value.title()} exposure to {category} would exceed limit: "
                             f"{metrics.current_percentage:.1f}% > {metrics.max_allowed:.1f}%"
                         )
-            except Exception as e:
+            except Exception:
                 # Skip this exposure type if calculation fails
                 continue
 

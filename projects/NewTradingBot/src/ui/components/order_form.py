@@ -3,10 +3,9 @@ Order Entry Form Component
 Provides an intuitive interface for placing trading orders
 """
 
-import asyncio
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 import streamlit as st
 
@@ -509,7 +508,7 @@ class OrderForm:
             self.on_submit(order_data)
 
             # Show success message
-            st.success(f"✅ Order submitted successfully!")
+            st.success("✅ Order submitted successfully!")
 
             # Clear form after submission
             self._clear_form()

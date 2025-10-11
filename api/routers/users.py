@@ -2,8 +2,9 @@
 Users router
 """
 
+from typing import List
+
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
 from pydantic import BaseModel
 
 router = APIRouter()

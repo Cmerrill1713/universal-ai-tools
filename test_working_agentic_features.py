@@ -7,7 +7,8 @@ Demonstrates the agentic capabilities that are currently operational
 import asyncio
 import json
 import time
-from typing import Dict, List, Any
+from typing import Any, Dict
+
 import aiohttp
 
 
@@ -169,7 +170,7 @@ class WorkingAgenticFeaturesTester:
                 model = r["model"]
                 models[model] = models.get(model, 0) + 1
 
-            print(f"  🤖 Model Distribution:")
+            print("  🤖 Model Distribution:")
             for model, count in models.items():
                 print(f"    {model}: {count} tasks")
 
@@ -325,7 +326,7 @@ class WorkingAgenticFeaturesTester:
                 "results": self.results
             }, f, indent=2)
 
-        print(f"💾 Results saved to: agentic_features_test_results.json")
+        print("💾 Results saved to: agentic_features_test_results.json")
 
 
 async def main():

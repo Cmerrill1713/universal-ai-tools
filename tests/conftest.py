@@ -1,9 +1,10 @@
 """
 Pytest configuration and fixtures
 """
-import pytest
 import os
 import sys
+
+import pytest
 
 # Add project paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))

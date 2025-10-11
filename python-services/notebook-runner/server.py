@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
-import json, sys, traceback, multiprocessing as mp, io, contextlib, os
+import contextlib
+import io
+import json
+import multiprocessing as mp
+import os
+import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
 
 def run_code(code: str, timeout: int = 10, cwd: str | None = None):
     def _target(q, cwd_):

@@ -2,16 +2,16 @@
 Dynamic Model-Agnostic Routing API
 Frontend sends capabilities/constraints, backend selects best available model
 """
+from typing import Any, Dict, List
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-import json
 
 router = APIRouter()
 
 # Import selector
 try:
-    from src.core.routing.model_selector import select_model, get_selector
+    from src.core.routing.model_selector import get_selector, select_model
     SELECTOR_AVAILABLE = True
 except ImportError:
     SELECTOR_AVAILABLE = False
@@ -54,13 +54,13 @@ async def select_model_endpoint(decision: RouterDecision):
     """
     if not SELECTOR_AVAILABLE:
         raise HTTPException(status_code=503, detail="Model selector not available")
-    
+
     decision_dict = decision.dict()
     selected = select_model(decision_dict)
-    
+
     if not selected:
         raise HTTPException(status_code=404, detail="No suitable model found for constraints")
-    
+
     return {
         "decision": decision_dict,
         "selected_model": selected,
@@ -75,7 +75,7 @@ async def get_model_inventory():
     """
     if not SELECTOR_AVAILABLE:
         raise HTTPException(status_code=503, detail="Model selector not available")
-    
+
     selector = get_selector()
     return {
         "total_models": len(selector.inventory),
@@ -92,14 +92,14 @@ async def chat_with_dynamic_selection(decision: RouterDecision, message: str):
     """
     if not SELECTOR_AVAILABLE:
         raise HTTPException(status_code=503, detail="Model selector not available")
-    
+
     # Select model
     decision_dict = decision.dict()
     selected = select_model(decision_dict)
-    
+
     if not selected:
         raise HTTPException(status_code=404, detail="No suitable model found")
-    
+
     # Execute chat (placeholder - integrate with your actual chat endpoint)
     return {
         "route": decision.route,

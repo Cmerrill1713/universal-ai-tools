@@ -4,12 +4,14 @@ God Tier Agentic System - Advanced Multi-Agent Orchestration
 Leverages all existing optimizations for maximum capability
 """
 import asyncio
-import time
-import httpx
 import json
-from typing import Dict, List, Any, Optional
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List
+
+import httpx
+
 
 class TaskComplexity(Enum):
     SIMPLE = "simple"
@@ -470,14 +472,14 @@ async def test_god_tier_agentic_system():
         print(f"   Parallelization efficiency: {god_tier_result['performance']['parallelization_efficiency']:.2f}x")
 
         # Performance summary
-        print(f"\n📊 God Tier Agentic System Performance Summary:")
+        print("\n📊 God Tier Agentic System Performance Summary:")
         print(f"   • Simple tasks: {simple_result['performance']['total_time']:.2f}s")
         print(f"   • Complex tasks: {complex_result['performance']['total_time']:.2f}s")
         print(f"   • God Tier tasks: {god_tier_result['performance']['total_time']:.2f}s")
         print(f"   • Average confidence: {(simple_result['performance']['avg_confidence'] + complex_result['performance']['avg_confidence'] + god_tier_result['performance']['avg_confidence']) / 3:.2f}")
-        print(f"   • Parallel processing: Active across all phases")
-        print(f"   • Intelligent routing: Optimizing model selection")
-        print(f"   • Multi-agent orchestration: 8 specialized agents")
+        print("   • Parallel processing: Active across all phases")
+        print("   • Intelligent routing: Optimizing model selection")
+        print("   • Multi-agent orchestration: 8 specialized agents")
 
         return {
             "simple": simple_result,

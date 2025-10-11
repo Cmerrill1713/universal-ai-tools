@@ -9,10 +9,8 @@ from typing import Any, Dict, List
 import numpy as np
 import pandas as pd
 import ta
-from scipy import stats
 
-from .strategy_base import (BaseStrategy, SignalType, StrategyConfig,
-                            TradingSignal)
+from .strategy_base import BaseStrategy, SignalType, StrategyConfig, TradingSignal
 
 
 class MeanReversionConfig(StrategyConfig):

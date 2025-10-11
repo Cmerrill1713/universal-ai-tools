@@ -5,12 +5,13 @@ Runs on Mac host to control browser, apps, and system
 Called by Docker containers via HTTP
 """
 
-import subprocess
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
-from typing import Optional
-import uvicorn
 import datetime
+import subprocess
+from typing import Optional
+
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI(title="macOS Automation Service")
 
@@ -36,7 +37,7 @@ async def open_browser(request: OpenBrowserRequest):
             text=True,
             timeout=5
         )
-        
+
         if result.returncode == 0:
             return {
                 "success": True,
@@ -47,9 +48,9 @@ async def open_browser(request: OpenBrowserRequest):
             return {
                 "success": False,
                 "error": result.stderr,
-                "message": f"Failed to open browser"
+                "message": "Failed to open browser"
             }
-    
+
     except Exception as e:
         return {
             "success": False,
@@ -67,7 +68,7 @@ async def open_app(request: OpenAppRequest):
             text=True,
             timeout=5
         )
-        
+
         if result.returncode == 0:
             return {
                 "success": True,
@@ -80,7 +81,7 @@ async def open_app(request: OpenAppRequest):
                 "error": result.stderr or "Application not found",
                 "message": f"Failed to open {request.app_name}"
             }
-    
+
     except Exception as e:
         return {
             "success": False,
@@ -99,7 +100,7 @@ async def close_app(request: OpenAppRequest):
             text=True,
             timeout=5
         )
-        
+
         if result.returncode == 0:
             return {
                 "success": True,
@@ -112,7 +113,7 @@ async def close_app(request: OpenAppRequest):
                 "error": result.stderr or "Failed to close app",
                 "message": f"Failed to close {request.app_name}"
             }
-    
+
     except Exception as e:
         return {
             "success": False,
@@ -257,13 +258,13 @@ async def take_screenshot(request: ScreenshotRequest):
         if request.path is None:
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             request.path = f"/tmp/screenshot_{timestamp}.png"
-        
+
         result = subprocess.run(
             ['screencapture', request.path],
             capture_output=True,
             timeout=5
         )
-        
+
         if result.returncode == 0:
             return {
                 "success": True,
@@ -275,7 +276,7 @@ async def take_screenshot(request: ScreenshotRequest):
                 "success": False,
                 "error": "Screenshot failed"
             }
-    
+
     except Exception as e:
         return {
             "success": False,
@@ -289,20 +290,20 @@ async def get_system_info(request: SystemInfoRequest):
         if request.info_type == "memory":
             result = subprocess.run(['vm_stat'], capture_output=True, text=True, timeout=3)
             output = result.stdout if result.returncode == 0 else "Memory info unavailable"
-        
+
         elif request.info_type == "disk":
             result = subprocess.run(['df', '-h'], capture_output=True, text=True, timeout=3)
             output = result.stdout if result.returncode == 0 else "Disk info unavailable"
-        
+
         else:
             return {"success": False, "error": f"Unknown info type: {request.info_type}"}
-        
+
         return {
             "success": True,
             "info_type": request.info_type,
             "output": output[:500]
         }
-    
+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -312,7 +313,7 @@ async def clipboard_copy(request: dict):
     try:
         text = request.get("text", "")
         subprocess.run(['pbcopy'], input=text.encode(), timeout=3)
-        return {"success": True, "message": f"✅ Copied to clipboard"}
+        return {"success": True, "message": "✅ Copied to clipboard"}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -472,10 +473,10 @@ async def previous_track():
 @app.get("/health")
 async def health():
     return {
-        "status": "healthy", 
+        "status": "healthy",
         "capabilities": [
-            "browser", "macos", "apps", "audio", "display", 
-            "notifications", "power", "clipboard", "speech", 
+            "browser", "macos", "apps", "audio", "display",
+            "notifications", "power", "clipboard", "speech",
             "files", "music", "reminders", "system-info"
         ],
         "total_endpoints": 30

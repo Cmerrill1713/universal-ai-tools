@@ -4,12 +4,8 @@ Test Apple FastVLM Vision Language Model
 Tests Apple's new 2025 FastVLM model with vision capabilities
 """
 
-import json
-import os
 import subprocess
 import sys
-import time
-from pathlib import Path
 
 # Add the MLX VLM environment
 sys.path.insert(
@@ -131,14 +127,14 @@ def test_integration_with_dynamic_discovery():
 
     try:
         # Check if MLX service can detect the downloaded model
-        mlx_models_cmd = f"""
+        mlx_models_cmd = """
 source /Users/christianmerrill/Desktop/universal-ai-tools/venv-mlx-vlm/bin/activate && python3 -c "
 import os
 from pathlib import Path
 
 # Check cache for downloaded models
 cache_dir = Path.home() / '.cache' / 'huggingface' / 'hub'
-print(f'Checking cache directory: {{cache_dir}}')
+print(f'Checking cache directory: {cache_dir}')
 
 if cache_dir.exists():
     models = []
@@ -149,7 +145,7 @@ if cache_dir.exists():
     if models:
         print('✓ Found Apple FastVLM models in cache:')
         for model in models:
-            print(f'  - {{model}}')
+            print(f'  - {model}')
     else:
         print('No Apple FastVLM models found in cache yet')
 else:

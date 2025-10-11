@@ -271,7 +271,7 @@ class SettingsPage:
 
                     with col1:
                         st.number_input(
-                            f"Allocation (%)",
+                            "Allocation (%)",
                             min_value=0,
                             max_value=100,
                             value=20,
@@ -279,14 +279,14 @@ class SettingsPage:
                         )
 
                         st.selectbox(
-                            f"Timeframe",
+                            "Timeframe",
                             ['1m', '5m', '15m', '1h', '4h', '1d'],
                             key=f"{strategy}_timeframe"
                         )
 
                     with col2:
                         st.number_input(
-                            f"Max Positions",
+                            "Max Positions",
                             min_value=1,
                             max_value=10,
                             value=3,
@@ -294,7 +294,7 @@ class SettingsPage:
                         )
 
                         st.checkbox(
-                            f"Auto Start",
+                            "Auto Start",
                             value=True,
                             key=f"{strategy}_auto_start"
                         )

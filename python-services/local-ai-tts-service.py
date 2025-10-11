@@ -6,13 +6,12 @@ No external APIs - everything runs locally
 
 import argparse
 import base64
-import json
 import logging
 import os
 import subprocess
 import tempfile
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -124,7 +123,7 @@ class LocalAITTS:
                 }
             }
         }
-        
+
         logger.info(f"Local AI TTS initialized with {len(self.voices)} voice profiles")
         logger.info(f"Ollama available: {self.ollama_available}")
 
@@ -140,18 +139,18 @@ class LocalAITTS:
         """Generate speech using local AI synthesis"""
         try:
             logger.info(f"Generating speech: '{text[:50]}...' with speaker: {speaker}, emotion: {emotion}")
-            
+
             # Get voice configuration
             voice_config = self.voices.get(speaker, self.voices['narrator_male'])
             voice_name = voice_config['voice']
             emotion_config = voice_config['emotions'].get(emotion, voice_config['emotions']['professional'])
-            
+
             # Enhance text with AI if Ollama is available
             enhanced_text = self._enhance_text_with_ai(text, emotion) if self.ollama_available else text
-            
+
             # Generate speech using advanced macOS synthesis
             return self._generate_advanced_speech(enhanced_text, voice_name, emotion_config, speaker, emotion)
-            
+
         except Exception as e:
             logger.error(f"Speech generation failed: {e}")
             return self._mock_generate_speech(text, speaker)
@@ -170,14 +169,14 @@ class LocalAITTS:
                 'wise': 'Make this text sound more wise and thoughtful:',
                 'mechanical': 'Make this text sound more mechanical and precise:'
             }
-            
+
             prompt = f"{emotion_prompts.get(emotion, 'Improve this text for speech:')} {text}"
-            
+
             result = subprocess.run([
                 'ollama', 'run', 'llava:7b',
                 prompt
             ], capture_output=True, text=True, timeout=10)
-            
+
             if result.returncode == 0 and result.stdout.strip():
                 enhanced = result.stdout.strip()
                 # Take the first sentence or paragraph
@@ -186,7 +185,7 @@ class LocalAITTS:
                 return enhanced
             else:
                 return text
-                
+
         except Exception as e:
             logger.warn(f"AI text enhancement failed: {e}")
             return text
@@ -197,14 +196,14 @@ class LocalAITTS:
             # Create temporary file for audio output
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                 temp_path = temp_file.name
-            
+
             # Build advanced say command with emotion-based parameters
             rate = emotion_config['rate']
             pitch = emotion_config['pitch']
-            
+
             # Add SSML-like enhancements for better quality
             enhanced_text = self._add_speech_enhancements(text, emotion)
-            
+
             # Use say command with advanced parameters (fix format issue)
             cmd = [
                 'say',
@@ -213,30 +212,30 @@ class LocalAITTS:
                 '-o', temp_path.replace('.wav', '.aiff'),  # Use AIFF format
                 enhanced_text
             ]
-            
+
             logger.info(f"Running advanced synthesis: {voice_name} at {rate} rate")
-            
+
             start_time = time.time()
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             generation_time = time.time() - start_time
-            
+
             aiff_path = temp_path.replace('.wav', '.aiff')
             if result.returncode == 0 and os.path.exists(aiff_path):
                 # Get file size
                 file_size = os.path.getsize(aiff_path)
-                
+
                 # Read and encode audio data
                 with open(aiff_path, 'rb') as f:
                     audio_data = base64.b64encode(f.read()).decode('utf-8')
-                
+
                 # Clean up temp file
                 os.unlink(aiff_path)
-                
+
                 # Estimate duration
                 duration = max(1.0, len(text) * 0.08)
-                
+
                 logger.info(f"✅ Advanced synthesis successful: {voice_name}, {file_size} bytes")
-                
+
                 return {
                     "success": True,
                     "audio_data": audio_data,
@@ -256,7 +255,7 @@ class LocalAITTS:
                 }
             else:
                 raise Exception(f"Say command failed: {result.stderr}")
-                
+
         except Exception as e:
             logger.error(f"Advanced synthesis failed: {e}")
             return self._mock_generate_speech(text, speaker)
@@ -272,47 +271,47 @@ class LocalAITTS:
             'wise': '[[rate 0.9]]',
             'mechanical': '[[rate 1.05]]'
         }
-        
+
         # Add pauses for better speech flow
         enhanced = text.replace('.', '. [[slnc 200]]')
         enhanced = enhanced.replace(',', ', [[slnc 100]]')
         enhanced = enhanced.replace('!', '! [[slnc 300]]')
         enhanced = enhanced.replace('?', '? [[slnc 250]]')
-        
+
         # Add emotion-based rate if available
         if emotion in enhancements:
             enhanced = f"{enhancements[emotion]} {enhanced}"
-        
+
         return enhanced
 
     def _mock_generate_speech(self, text: str, speaker: str) -> Dict[str, Any]:
         """Mock speech generation when synthesis fails"""
         logger.info(f"Mock generating speech: '{text[:50]}...' with speaker: {speaker}")
-        
+
         try:
-            import wave
             import struct
-            
+            import wave
+
             sample_rate = 22050
             duration = max(1.0, len(text) * 0.08)
             num_samples = int(sample_rate * duration)
-            
+
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                 temp_path = temp_file.name
-            
+
             with wave.open(temp_path, 'wb') as wav_file:
                 wav_file.setnchannels(1)
                 wav_file.setsampwidth(2)
                 wav_file.setframerate(sample_rate)
-                
+
                 silence = struct.pack('<h', 0) * num_samples
                 wav_file.writeframes(silence)
-            
+
             with open(temp_path, 'rb') as f:
                 audio_data = base64.b64encode(f.read()).decode('utf-8')
-            
+
             os.unlink(temp_path)
-            
+
             return {
                 "success": True,
                 "audio_data": audio_data,
@@ -328,7 +327,7 @@ class LocalAITTS:
                 "mock": True,
                 "provider": "Local AI TTS (mock)"
             }
-            
+
         except Exception as e:
             logger.error(f"Mock speech generation failed: {e}")
             return {
@@ -350,7 +349,7 @@ class LocalAITTS:
                 "provider": "Local AI TTS",
                 "ollama_enhanced": self.ollama_available
             })
-        
+
         return {
             "voices": voices,
             "count": len(voices),

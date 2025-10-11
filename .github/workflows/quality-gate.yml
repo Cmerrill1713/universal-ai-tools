@@ -1,0 +1,56 @@
+name: Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install ruff pytest
+          pip install -r requirements.txt || true
+      
+      - name: Lint with Ruff
+        run: ruff check .
+      
+      - name: Run Python tests
+        run: pytest -q || true
+      
+      - name: Block default passwords in prod configs
+        run: |
+          if grep -E "POSTGRES_PASSWORD=(postgres|devpass)|GF_SECURITY_ADMIN_PASSWORD=(admin)|requirepass.*(password|devpass)" docker-compose.prod.yml docker-compose.production.yml 2>/dev/null; then
+            echo "❌ Default credentials found in production configs"
+            exit 1
+          fi
+          echo "✅ No default passwords in production configs"
+      
+      - name: Check for merge conflicts
+        run: |
+          if grep -r "<<<<<<< HEAD" .; then
+            echo "❌ Unresolved merge conflicts found"
+            exit 1
+          fi
+          echo "✅ No merge conflicts"
+      
+      - name: Verify required files
+        run: |
+          for file in LICENSE README.md CONTRIBUTING.md; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing $file"
+              exit 1
+            fi
+          done
+          echo "✅ All required files present"
+

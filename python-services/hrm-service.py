@@ -6,10 +6,10 @@ Provides HTTP API for HRM reasoning capabilities
 
 import argparse
 import json
-import time
 import logging
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Dict, Any, Optional, List
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any, Dict, List, Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - HRM - %(levelname)s - %(message)s')
@@ -50,7 +50,7 @@ class HRMService:
             "rethink",
             "reconsider",
         ]
-    
+
     def _is_self_correction_trigger(self, text: str) -> bool:
         lowered = text.lower()
         return any(trigger in lowered for trigger in self._self_correction_triggers)
@@ -91,7 +91,7 @@ class HRMService:
         )
 
         return "\n".join(reasoning_text)
-        
+
     def process_reasoning(
         self,
         problem: str,
@@ -137,9 +137,9 @@ class HRMService:
             reasoning_text = self.performSystemCheck()
         else:
             reasoning_text = self._build_reasoning_response(problem, problem_type)
-        
+
         processing_time = time.time() - start_time
-        
+
         return {
             "success": True,
             "reasoning": reasoning_text,
@@ -150,7 +150,7 @@ class HRMService:
             "model": "HRM-MLX-Hierarchical",
             "competitive_advantage": self.competitive_advantage
         }
-    
+
     def performSelfCorrection(
         self,
         problem: str,
@@ -220,16 +220,16 @@ class HRMService:
     def performSystemCheck(self) -> str:
         """Perform AI self-diagnostic system check"""
         import requests
-        
+
         logger.info("🔍 HRM Service performing AI self-diagnostic system check")
-        
+
         results = []
         results.append("🔍 AI SELF-DIAGNOSTIC SYSTEM CHECK")
         results.append("=================================")
         results.append("")
         results.append("📊 CORE SERVICES STATUS:")
         results.append("=======================")
-        
+
         # Check core services
         services = [
             ("Chat Service", "http://localhost:8010/health"),
@@ -241,7 +241,7 @@ class HRMService:
             ("ML Inference", "http://localhost:3035/health"),
             ("TTS Service", "http://localhost:8093/health")
         ]
-        
+
         healthy_count = 0
         for service_name, url in services:
             try:
@@ -253,7 +253,7 @@ class HRMService:
                     results.append(f"❌ {service_name} - DOWN")
             except:
                 results.append(f"❌ {service_name} - DOWN")
-        
+
         results.append("")
         results.append("📊 SYSTEM SUMMARY:")
         results.append("==================")
@@ -265,14 +265,14 @@ class HRMService:
         results.append("• Status: FULLY FUNCTIONAL")
         results.append("")
         results.append("🎯 AI SYSTEM STATUS: HEALTHY AND READY")
-        
+
         return "\n".join(results)
 
 class HRMHTTPHandler(BaseHTTPRequestHandler):
     def __init__(self, hrm_service, *args, **kwargs):
         self.hrm_service = hrm_service
         super().__init__(*args, **kwargs)
-    
+
     def do_GET(self):
         """Handle GET requests"""
         if self.path == '/health':
@@ -293,13 +293,13 @@ class HRMHTTPHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
-    
+
     def do_POST(self):
         """Handle POST requests"""
         if self.path == '/reason':
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
-            
+
             try:
                 request_data = json.loads(post_data.decode('utf-8'))
                 problem = request_data.get('problem', '')
@@ -313,7 +313,7 @@ class HRMHTTPHandler(BaseHTTPRequestHandler):
                     complexity=complexity,
                     correction=correction,
                 )
-                
+
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -335,17 +335,17 @@ def main():
     args = parser.parse_args()
 
     hrm_service = HRMService()
-    
+
     def handler(*args, **kwargs):
         return HRMHTTPHandler(hrm_service, *args, **kwargs)
-    
+
     port = args.port
     server = HTTPServer(('localhost', port), handler)
-    
+
     logger.info(f"🚀 HRM Service starting on port {port}")
-    logger.info(f"🧠 Hierarchical Reasoning Model ready")
+    logger.info("🧠 Hierarchical Reasoning Model ready")
     logger.info(f"⚡ Competitive advantage: {hrm_service.competitive_advantage}")
-    
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -3,17 +3,15 @@ Arbitrage trading strategy implementation.
 Identifies price discrepancies across exchanges or related assets for risk-free profits.
 """
 
-import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from datetime import datetime
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
-from .strategy_base import (BaseStrategy, SignalType, StrategyConfig,
-                            TradingSignal)
+from .strategy_base import BaseStrategy, SignalType, StrategyConfig, TradingSignal
 
 
 class ArbitrageType:

@@ -3,8 +3,8 @@ Analytics Page
 Advanced trading analytics and performance metrics
 """
 
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd

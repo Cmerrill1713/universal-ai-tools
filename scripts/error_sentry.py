@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Quick 500 detector for critical pages with retry backoff"""
-import httpx, time, os, sys
+import os
+import sys
+import time
+
+import httpx
 
 BASE = os.getenv("BASE", "http://localhost:8013")
 PAGES = ["/openapi.json", "/health", "/api/unified-chat/health"]
@@ -17,7 +21,7 @@ def fetch_with_retry(client, url, retries=MAX_RETRIES):
             # 500+ error, maybe transient
             if attempt < retries - 1:
                 time.sleep(BACKOFF[attempt])
-        except (httpx.ConnectError, httpx.TimeoutException) as e:
+        except (httpx.ConnectError, httpx.TimeoutException):
             # Connection errors during startup
             if attempt < retries - 1:
                 time.sleep(BACKOFF[attempt])

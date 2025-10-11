@@ -6,12 +6,11 @@ Uses OpenAI's TTS API for high-quality, natural-sounding voices
 
 import argparse
 import base64
-import json
 import logging
 import os
 import tempfile
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import openai
 from flask import Flask, jsonify, request
@@ -111,7 +110,7 @@ class OpenAITTS:
                 }
             }
         }
-        
+
         if self.api_key:
             try:
                 self.client = openai.OpenAI(api_key=self.api_key)
@@ -126,49 +125,49 @@ class OpenAITTS:
         """Generate speech using OpenAI TTS"""
         try:
             logger.info(f"Generating speech: '{text[:50]}...' with speaker: {speaker}, emotion: {emotion}")
-            
+
             # Get voice configuration
             voice_config = self.voices.get(speaker, self.voices['narrator_male'])
             voice_name = voice_config['voice']
             emotion_config = voice_config['emotions'].get(emotion, voice_config['emotions']['professional'])
-            
+
             if not self.client:
                 return self._mock_generate_speech(text, speaker, voice_name)
-            
+
             # Create temporary file for audio output
             with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
                 temp_path = temp_file.name
-            
+
             try:
                 # Call OpenAI TTS API
                 start_time = time.time()
-                
+
                 response = self.client.audio.speech.create(
                     model="tts-1",
                     voice=voice_name,
                     input=text,
                     speed=emotion_config['speed']
                 )
-                
+
                 # Save audio to file
                 response.stream_to_file(temp_path)
                 generation_time = time.time() - start_time
-                
+
                 # Get file size
                 file_size = os.path.getsize(temp_path)
-                
+
                 # Read and encode audio data
                 with open(temp_path, 'rb') as f:
                     audio_data = base64.b64encode(f.read()).decode('utf-8')
-                
+
                 # Clean up temp file
                 os.unlink(temp_path)
-                
+
                 # Estimate duration (rough calculation)
                 duration = max(1.0, len(text) * 0.08)
-                
+
                 logger.info(f"✅ OpenAI TTS generated successfully: {voice_name}, {file_size} bytes")
-                
+
                 return {
                     "success": True,
                     "audio_data": audio_data,
@@ -184,11 +183,11 @@ class OpenAITTS:
                     "text": text,
                     "provider": "OpenAI TTS"
                 }
-                
+
             except Exception as e:
                 logger.error(f"OpenAI TTS API call failed: {e}")
                 return self._mock_generate_speech(text, speaker, voice_name)
-                
+
         except Exception as e:
             logger.error(f"Speech generation failed: {e}")
             return self._mock_generate_speech(text, speaker, "alloy")
@@ -196,35 +195,35 @@ class OpenAITTS:
     def _mock_generate_speech(self, text: str, speaker: str, voice_name: str) -> Dict[str, Any]:
         """Mock speech generation when API is not available"""
         logger.info(f"Mock generating speech: '{text[:50]}...' with voice: {voice_name}")
-        
+
         try:
             # Create a simple mock MP3 file (silence)
-            import wave
             import struct
-            
+            import wave
+
             sample_rate = 22050
             duration = max(1.0, len(text) * 0.08)
             num_samples = int(sample_rate * duration)
-            
+
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                 temp_path = temp_file.name
-            
+
             with wave.open(temp_path, 'wb') as wav_file:
                 wav_file.setnchannels(1)  # Mono
                 wav_file.setsampwidth(2)  # 16-bit
                 wav_file.setframerate(sample_rate)
-                
+
                 # Generate silence (all zeros)
                 silence = struct.pack('<h', 0) * num_samples
                 wav_file.writeframes(silence)
-            
+
             # Read file and encode as base64
             with open(temp_path, 'rb') as f:
                 audio_data = base64.b64encode(f.read()).decode('utf-8')
-            
+
             # Clean up temp file
             os.unlink(temp_path)
-            
+
             return {
                 "success": True,
                 "audio_data": audio_data,
@@ -240,7 +239,7 @@ class OpenAITTS:
                 "mock": True,
                 "provider": "OpenAI TTS (mock)"
             }
-            
+
         except Exception as e:
             logger.error(f"Mock speech generation failed: {e}")
             return {
@@ -261,7 +260,7 @@ class OpenAITTS:
                 "emotions": list(config['emotions'].keys()),
                 "provider": "OpenAI Neural TTS"
             })
-        
+
         return {
             "voices": voices,
             "count": len(voices),

@@ -3,9 +3,9 @@
 Dev Playground - Quick API testing
 Poke the API and see immediate results
 """
-import httpx
-import json
 import sys
+
+import httpx
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8013"
 

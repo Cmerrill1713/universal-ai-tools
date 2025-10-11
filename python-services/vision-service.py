@@ -5,14 +5,10 @@ Provides REST API for image processing and analysis
 """
 
 import asyncio
-import base64
-import json
 import logging
 import os
 import sys
-import tempfile
 from datetime import datetime
-from typing import Any, Dict, Optional
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS

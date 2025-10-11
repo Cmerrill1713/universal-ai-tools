@@ -5,18 +5,16 @@ Provides Weaviate-like functionality for semantic search and vector operations
 """
 
 import hashlib
-import json
 import logging
 import os
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 import numpy as np
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
-from sklearn.preprocessing import normalize
 
 # Configure logging
 logging.basicConfig(

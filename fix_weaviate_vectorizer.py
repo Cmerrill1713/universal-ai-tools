@@ -3,14 +3,15 @@
 Fix Weaviate vectorizer configuration to disable OpenAI dependency
 """
 
+
 import requests
-import json
+
 
 def fix_weaviate_vectorizer():
     """Update Memory class to disable vectorization"""
-    
+
     weaviate_url = "http://localhost:8090"
-    
+
     # Delete the existing Memory class
     try:
         response = requests.delete(f"{weaviate_url}/v1/schema/Memory")
@@ -23,7 +24,7 @@ def fix_weaviate_vectorizer():
     except Exception as e:
         print(f"❌ Error deleting Memory class: {e}")
         return False
-    
+
     # Create new Memory class without vectorization
     memory_schema = {
         "class": "Memory",
@@ -77,7 +78,7 @@ def fix_weaviate_vectorizer():
             }
         ]
     }
-    
+
     # Create the class
     try:
         response = requests.post(
@@ -85,7 +86,7 @@ def fix_weaviate_vectorizer():
             headers={"Content-Type": "application/json"},
             json=memory_schema
         )
-        
+
         if response.status_code == 200:
             print("✅ Memory class recreated without vectorization")
             return True
@@ -93,7 +94,7 @@ def fix_weaviate_vectorizer():
             print(f"❌ Failed to recreate Memory class: {response.status_code}")
             print(f"Response: {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"❌ Error recreating Memory class: {e}")
         return False

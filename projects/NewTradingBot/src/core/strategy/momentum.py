@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 import ta
 
-from .strategy_base import (BaseStrategy, SignalType, StrategyConfig,
-                            TradingSignal)
+from .strategy_base import BaseStrategy, SignalType, StrategyConfig, TradingSignal
 
 
 class MomentumConfig(StrategyConfig):

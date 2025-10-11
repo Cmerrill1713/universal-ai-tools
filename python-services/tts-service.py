@@ -6,15 +6,13 @@ Provides voice synthesis capabilities for the Universal AI Tools platform
 
 import argparse
 import base64
-import json
 import os
 import sys
-import tempfile
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Optional
 
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 # Add VibeVoice to path
@@ -23,8 +21,9 @@ sys.path.insert(0, vibevoice_path)
 
 try:
     from transformers.utils import logging
-    from vibevoice.modular.modeling_vibevoice_inference import \
-        VibeVoiceForConditionalGenerationInference
+    from vibevoice.modular.modeling_vibevoice_inference import (
+        VibeVoiceForConditionalGenerationInference,
+    )
     from vibevoice.processor.vibevoice_processor import VibeVoiceProcessor
     VIBEVOICE_AVAILABLE = True
     logging.set_verbosity_error()  # Reduce logging noise

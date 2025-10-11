@@ -19,11 +19,11 @@ rc = subprocess.call(
 if rc != 0:
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat = os.getenv("TELEGRAM_CHAT_ID")
-    
+
     if token and chat:
         try:
             import requests
-            
+
             message = f"""
 ❌ *500 Errors Detected*
 
@@ -35,7 +35,7 @@ Investigate immediately:
 BASE={BASE} make sentry
 ```
             """.strip()
-            
+
             requests.post(
                 f"https://api.telegram.org/bot{token}/sendMessage",
                 json={
@@ -50,7 +50,7 @@ BASE={BASE} make sentry
             print(f"⚠️  Failed to send Telegram alert: {e}", file=sys.stderr)
     else:
         print("⚠️  TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set", file=sys.stderr)
-    
+
     sys.exit(rc)
 
 print("✅ No 500 errors detected")

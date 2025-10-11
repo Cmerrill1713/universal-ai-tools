@@ -3,9 +3,8 @@ Main Trading Dashboard Page
 Central hub for trading operations and monitoring
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd

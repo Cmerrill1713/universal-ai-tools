@@ -3,10 +3,11 @@ E2E Backend Probe - Fan-out health check for all services
 Returns structured matrix of all backend service health status
 """
 import asyncio
-import httpx
 import time
+from typing import Any, Dict
+
+import httpx
 from fastapi import APIRouter
-from typing import List, Dict, Any, Literal
 
 router = APIRouter()
 
@@ -30,14 +31,14 @@ async def probe_service(service: Dict[str, Any]) -> Dict[str, Any]:
     name = service["name"]
     url = service["url"]
     critical = service.get("critical", False)
-    
+
     start = time.time()
-    
+
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             response = await client.get(url)
             latency_ms = round((time.time() - start) * 1000, 2)
-            
+
             # Determine status
             if 200 <= response.status_code < 300:
                 status = "pass"
@@ -45,7 +46,7 @@ async def probe_service(service: Dict[str, Any]) -> Dict[str, Any]:
                 status = "warn"
             else:
                 status = "fail"
-            
+
             return {
                 "service": name,
                 "url": url,
@@ -55,7 +56,7 @@ async def probe_service(service: Dict[str, Any]) -> Dict[str, Any]:
                 "note": f"OK ({response.status_code})" if status == "pass" else f"HTTP {response.status_code}",
                 "critical": critical
             }
-    
+
     except httpx.ConnectError:
         latency_ms = round((time.time() - start) * 1000, 2)
         # If non-critical and connection fails, mark as unused
@@ -69,7 +70,7 @@ async def probe_service(service: Dict[str, Any]) -> Dict[str, Any]:
             "note": "Not running (optional)" if status == "unused" else "Connection refused",
             "critical": critical
         }
-    
+
     except httpx.TimeoutException:
         latency_ms = 3000.0
         return {
@@ -81,7 +82,7 @@ async def probe_service(service: Dict[str, Any]) -> Dict[str, Any]:
             "note": "Timeout (3s)",
             "critical": critical
         }
-    
+
     except Exception as e:
         latency_ms = round((time.time() - start) * 1000, 2)
         status = "unused" if not critical else "fail"
@@ -103,15 +104,15 @@ async def e2e_backend_probe():
     Returns structured matrix with status, latency, and notes
     """
     started_at = time.time()
-    
+
     # Probe all services in parallel
     results = await asyncio.gather(*[probe_service(svc) for svc in SERVICES])
-    
+
     # Sort by service name
     results = sorted(results, key=lambda x: x["service"])
-    
+
     duration_ms = round((time.time() - started_at) * 1000, 2)
-    
+
     # Count by status
     counts = {
         "pass": sum(1 for r in results if r["status"] == "pass"),
@@ -119,7 +120,7 @@ async def e2e_backend_probe():
         "fail": sum(1 for r in results if r["status"] == "fail"),
         "unused": sum(1 for r in results if r["status"] == "unused"),
     }
-    
+
     return {
         "started_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(started_at)),
         "duration_ms": duration_ms,
