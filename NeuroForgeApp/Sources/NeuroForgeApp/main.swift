@@ -109,6 +109,11 @@ struct NeuroForgeApp: App {
                 .tabItem {
                     Label("Debug", systemImage: "ant.fill")
                 }
+            
+            QABackendProbeView()
+                .tabItem {
+                    Label("Backend Probe", systemImage: "network")
+                }
         }
     }
 }

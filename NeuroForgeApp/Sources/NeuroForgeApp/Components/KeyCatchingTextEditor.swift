@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// IME-safe text editor with proper Enter/Shift+Enter handling and visible colors
+/// Production-grade, IME-safe text editor with bulletproof color handling
 public struct KeyCatchingTextEditor: NSViewRepresentable {
     @Binding var text: String
     var onSubmit: () -> Void
@@ -13,105 +13,150 @@ public struct KeyCatchingTextEditor: NSViewRepresentable {
         self.focusOnAppear = focusOnAppear
     }
 
-    public func makeNSView(context: Context) -> Wrapper {
-        let w = Wrapper()
-        w.textView.delegate = context.coordinator
-        w.textView.isRichText = false
-        w.textView.drawsBackground = true
-        w.textView.backgroundColor = .textBackgroundColor       // ✅ visible
-        w.textView.textColor = .labelColor                      // ✅ visible
-        w.textView.insertionPointColor = .labelColor
-        w.textView.usesAdaptiveColorMappingForDarkAppearance = true
-
-        w.textView.isAutomaticQuoteSubstitutionEnabled = false
-        w.textView.isAutomaticDataDetectionEnabled = false
-        w.textView.isAutomaticDashSubstitutionEnabled = false
-        w.textView.isAutomaticLinkDetectionEnabled = false
-        w.textView.isAutomaticSpellingCorrectionEnabled = true
-        w.textView.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
-
-        w.onSubmit = onSubmit
-        w.getText = { text }
-        w.setText = { [weak w] new in
-            guard w?.textView.string != new else { return }
-            w?.textView.string = new
-        }
-
+    public func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        let textView = KeyCatchingTextView()
+        
+        textView.delegate = context.coordinator
+        textView.isRichText = false
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDataDetectionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticLinkDetectionEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = true
+        textView.allowsUndo = true
+        textView.font = .systemFont(ofSize: NSFont.systemFontSize)
+        textView.string = text
+        textView.onSubmit = onSubmit
+        
+        // ✅ CRITICAL: Apply safe colors immediately
+        textView.applySafeColorsAndTypingAttributes()
+        
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.textContainer?.widthTracksTextView = true
+        
+        scrollView.hasVerticalScroller = true
+        scrollView.documentView = textView
+        scrollView.drawsBackground = true
+        scrollView.backgroundColor = .textBackgroundColor
+        
         if focusOnAppear {
             DispatchQueue.main.async {
-                w.window?.makeFirstResponder(w.textView)
+                scrollView.window?.makeFirstResponder(textView)
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
-        return w
+        
+        context.coordinator.textView = textView
+        return scrollView
     }
 
-    public func updateNSView(_ nsView: Wrapper, context: Context) {
-        nsView.setText?(text)
+    public func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = context.coordinator.textView else { return }
+        if textView.string != text {
+            textView.string = text
+            textView.applySafeColorsAndTypingAttributes()
+        }
     }
 
-    public func makeCoordinator() -> Coordinator { Coordinator(self) }
+    public func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
     
     public final class Coordinator: NSObject, NSTextViewDelegate {
         let parent: KeyCatchingTextEditor
-        init(_ parent: KeyCatchingTextEditor) { self.parent = parent }
-        public func textDidChange(_ n: Notification) {
-            guard let tv = n.object as? NSTextView else { return }
+        weak var textView: KeyCatchingTextView?
+        
+        init(parent: KeyCatchingTextEditor) {
+            self.parent = parent
+        }
+        
+        public func textDidChange(_ notification: Notification) {
+            guard let tv = notification.object as? NSTextView else { return }
             parent.text = tv.string
         }
     }
+}
 
-    public final class Wrapper: NSView {
-        let scroll = NSScrollView()
-        let textView = InterceptingTextView()
-        var onSubmit: (() -> Void)?
-        var getText: (() -> String)?
-        var setText: ((String) -> Void)?
+// MARK: - KeyCatchingTextView (Safe Colors + IME-Safe Input)
 
-        override init(frame frameRect: NSRect) {
-            super.init(frame: frameRect)
-            scroll.hasVerticalScroller = true
-            scroll.documentView = textView
-            scroll.drawsBackground = true
-            scroll.backgroundColor = .textBackgroundColor  // ✅ match text view
-            textView.minSize = NSSize(width: 0, height: 0)
-            textView.isVerticallyResizable = true
-            textView.isHorizontallyResizable = false
-            textView.textContainer?.widthTracksTextView = true
-            addSubview(scroll)
+final class KeyCatchingTextView: NSTextView {
+    var onSubmit: (() -> Void)?
+    
+    /// Ensures text is visible in light/dark, and typing + existing text share sane attributes
+    func applySafeColorsAndTypingAttributes() {
+        // ✅ Ensure the view maps colors for dark mode automatically
+        usesAdaptiveColorMappingForDarkAppearance = true
+        drawsBackground = true
+
+        // ✅ Safe, dynamic system colors
+        let fg = NSColor.labelColor
+        let bg = NSColor.textBackgroundColor
+        let caret = NSColor.labelColor
+
+        backgroundColor = bg
+        insertionPointColor = caret
+        textColor = fg
+
+        // ✅ Ensure the *typing* attributes are sane
+        let font = self.font ?? .systemFont(ofSize: NSFont.systemFontSize)
+        let typing: [NSAttributedString.Key: Any] = [
+            .foregroundColor: fg,
+            .font: font
+        ]
+        typingAttributes = typing
+
+        // ✅ Ensure *existing* text also has sane attributes
+        if let storage = textStorage {
+            let full = NSRange(location: 0, length: storage.length)
+            storage.beginEditing()
+            storage.removeAttribute(.foregroundColor, range: full)
+            storage.removeAttribute(.font, range: full)
+            storage.addAttributes(typing, range: full)
+            storage.endEditing()
         }
-        required init?(coder: NSCoder) { fatalError() }
-        
-        public override func layout() {
-            super.layout()
-            scroll.frame = bounds
+    }
+
+    override var string: String {
+        didSet {
+            applySafeColorsAndTypingAttributes()
         }
+    }
 
-        final class InterceptingTextView: NSTextView {
-            override var acceptsFirstResponder: Bool { true }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        applySafeColorsAndTypingAttributes()
+    }
 
-            // ✅ IME-safe: translate key events into commands first
-            override func keyDown(with event: NSEvent) {
-                interpretKeyEvents([event])
-            }
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applySafeColorsAndTypingAttributes()
+    }
+
+    override var acceptsFirstResponder: Bool { true }
+
+    // ✅ IME-safe: translate key events into commands first
+    override func keyDown(with event: NSEvent) {
+        interpretKeyEvents([event])
+    }
+
+    // ✅ Map commands to actions (IME-safe)
+    override func doCommand(by selector: Selector) {
+        switch selector {
+        case #selector(insertNewline(_:)),
+             #selector(NSResponder.insertNewlineIgnoringFieldEditor(_:)):
+            // ENTER / Keypad Enter → submit (no newline)
+            onSubmit?()
+            // Don't call super (prevents newline insertion)
             
-            // ✅ Map commands to actions (IME-safe)
-            override func doCommand(by selector: Selector) {
-                switch selector {
-                case #selector(insertNewline(_:)),
-                     #selector(NSResponder.insertNewlineIgnoringFieldEditor(_:)):
-                    // ENTER / Keypad Enter → submit (no newline)
-                    (superview?.superview as? Wrapper)?.onSubmit?()
-                    // Don't call super (prevents newline)
-                    
-                case #selector(insertLineBreak(_:)):
-                    // SHIFT+ENTER → actual newline
-                    super.doCommand(by: selector)
-                    
-                default:
-                    super.doCommand(by: selector)
-                }
-            }
+        case #selector(insertLineBreak(_:)):
+            // SHIFT+ENTER → actual newline
+            super.doCommand(by: selector)
+            
+        default:
+            super.doCommand(by: selector)
         }
     }
 }

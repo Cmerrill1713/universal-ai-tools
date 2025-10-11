@@ -36,6 +36,7 @@ public struct SimpleChatView: View {
                     focusOnAppear: true
                 )
                 .frame(minHeight: 100, maxHeight: 150)
+                .background(Color(nsColor: .textBackgroundColor))  // ✅ Solid background
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
                         .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
@@ -86,14 +87,15 @@ public struct SimpleChatView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    ScrollView {
-                        Text(response)
-                            .font(.body)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityIdentifier("chat_response")
-                    }
-                    .frame(maxHeight: .infinity)
+                ScrollView {
+                    Text(response)
+                        .font(.body)
+                        .foregroundColor(Color(nsColor: .labelColor))  // ✅ Readable in light/dark
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("chat_response")
+                }
+                .frame(maxHeight: .infinity)
                 }
             } else {
                 Spacer()

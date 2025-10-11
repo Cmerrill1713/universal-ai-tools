@@ -39,6 +39,7 @@ public struct ChatComposer: View {
                     focusOnAppear: true
                 )
                 .frame(minHeight: 60, maxHeight: 120)
+                .background(Color(nsColor: .textBackgroundColor))  // ✅ Solid, non-vibrant
                 .accessibilityIdentifier("chat_input")
             }
             .overlay(

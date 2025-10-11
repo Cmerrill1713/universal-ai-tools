@@ -101,6 +101,15 @@ try:
     except ImportError as e:
         TTS_PROXY_AVAILABLE = False
         tts_proxy_router = None
+
+    # E2E Probe routes (for frontend testing)
+    try:
+        from src.api.e2e_probe import router as e2e_probe_router
+        E2E_PROBE_AVAILABLE = True
+    except ImportError as e:
+        logger.warning(f"E2E probe routes not available: {e}")
+        E2E_PROBE_AVAILABLE = False
+        e2e_probe_router = None
         print(f"❌ TTS proxy routes not available: {e}")
 except ImportError as e:
     print(f"❌ Missing dependencies: {e}")
@@ -230,6 +239,10 @@ if SPEECH_ROUTES_AVAILABLE:
 if TTS_PROXY_AVAILABLE:
     app.include_router(tts_proxy_router)
     logger.info("✅ TTS proxy routes loaded")
+
+if E2E_PROBE_AVAILABLE:
+    app.include_router(e2e_probe_router)
+    logger.info("✅ E2E probe routes loaded")
 
 # Health check endpoint
 
