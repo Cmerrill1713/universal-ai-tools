@@ -1,5 +1,5 @@
 # Multi-stage Docker build for Universal AI Tools
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -60,7 +60,7 @@ RUN npm prune --production
 # ========================================
 # Production stage
 # ========================================
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 # Install runtime dependencies only
 RUN apk add --no-cache \
