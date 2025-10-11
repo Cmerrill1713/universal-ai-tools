@@ -17,6 +17,11 @@ DerivedData/
 *.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
 *.xcuserdatad/
 *.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+.build/
+*.build/
+build/
+*.swiftmodule/
+*.swiftdoc/
 
 # Go / Rust cache
 target/
@@ -39,6 +44,9 @@ artifacts/
 *.db
 *.csv
 *.parquet
+*.patch
+*.mdb
+*.backup/
 
 # Models / weights (use LFS)
 models/
