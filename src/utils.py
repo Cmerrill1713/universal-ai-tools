@@ -5,7 +5,6 @@ Utility functions for the application
 import logging
 from typing import Any, Dict
 
-
 logger = logging.getLogger(__name__)
 
 

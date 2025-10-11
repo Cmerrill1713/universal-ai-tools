@@ -1,0 +1,539 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		15808A791274709C81DF2ECA /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E7302D4B978C0F1D8EFEA2F /* LoginView.swift */; };
+		1749CEC5306F478633BC7262 /* WakeWordDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B5B0B401904602728986DB /* WakeWordDetector.swift */; };
+		1B844256EA0C1E2B43B81CAE /* DiagnosticsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC0BA507F8792D6E88E9C88F /* DiagnosticsOverlay.swift */; };
+		1E9CEEBE61D8BB8069257395 /* RAGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7D4E952CA29BDF68A6CB652 /* RAGTests.swift */; };
+		258640C2B9898E2AF8ABC9B9 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFA1EC279918F5C1845CD785 /* LayoutManager.swift */; };
+		25ABC779E9E7B89422CFB313 /* ErrorCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63979065A6B8FA808B9B5D19 /* ErrorCenter.swift */; };
+		26D568C6BAC7A8B7BB87AFCE /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10F0684D2CF459D469C895EA /* ChatService.swift */; };
+		45B20EB2F59F0D0E06772597 /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C738D5F34ADFA1A38659E51C /* ImagePicker.swift */; };
+		479D4D0562461D21C2FCDBB4 /* NetworkInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440A01093012B1365F402E21 /* NetworkInterceptor.swift */; };
+		492A3628EDE622116C08F5DD /* ChatComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 549D5E2B481EB38561E56327 /* ChatComposer.swift */; };
+		4C83168009B66607AF2E9114 /* VoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5088D4082609224DF6F9F34B /* VoiceRecorder.swift */; };
+		74288B40517C4FF0CB00A416 /* HealthBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D13742CEF12568B451581B9F /* HealthBanner.swift */; };
+		764287A4E846BD22F6492243 /* ChatBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903DCAE199117F80092C50C1 /* ChatBehaviorTests.swift */; };
+		85143859C7389A4F6E3F65F0 /* SimpleSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0649E08DF75AAF4A74F9A80 /* SimpleSettingsView.swift */; };
+		86B4931084ACF98DADC3476F /* KeyCatchingTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8861E432726F7AE0025B96F8 /* KeyCatchingTextEditor.swift */; };
+		8F6A368DCDA1B11B13D45407 /* SimpleChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74F64B3EA25ECF84F08EB67E /* SimpleChatView.swift */; };
+		8FCC067D2CC372D31D808731 /* BootAndHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A51417ED4A996C89D426275 /* BootAndHealthTests.swift */; };
+		9C60DEB98851495640A0AB16 /* APIBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BB32A176D679EEB453732EA /* APIBase.swift */; };
+		A336E2245D65695325E2843B /* SimpleDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7779BAA5EB361B00BB6C1F6 /* SimpleDebugView.swift */; };
+		BB422D53231A571915618F98 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCBCDAA31406708DF50506B1 /* main.swift */; };
+		C21A1C726ECE9A1A5F6BDA59 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F1A447D59F18D9078C91FD /* APIClient.swift */; };
+		E69972E9EBE5CDE5CD1C3539 /* ProfileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C26864E49230F6CC1D2305D5 /* ProfileManager.swift */; };
+		ECC80FF966A26FB32E9966EF /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACB5471FC2A7F9DF341518A3 /* APIError.swift */; };
+		F5E4F368A24E7637AFA90BA7 /* ToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240D053DC6724F5EFC1275DF /* ToggleButton.swift */; };
+		F70F19DF0F5CFCCD640E327A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FAFFF8904E6A38FA9E849C9 /* ContentView.swift */; };
+		FC3F864F8171AE121533B607 /* FocusHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584D92957B83177CC49412CD /* FocusHelper.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FD52650B74ACA8B4C8DA2C64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2E4103B28413E34D4B38E778 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2860C940F3436B4640F29CC5;
+			remoteInfo = NeuroForgeApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		07F1A447D59F18D9078C91FD /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		10F0684D2CF459D469C895EA /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
+		240D053DC6724F5EFC1275DF /* ToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleButton.swift; sourceTree = "<group>"; };
+		27A048536410F9593F6F414E /* NeuroForgeApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeuroForgeApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3BF498F78ECD0C24E89612C3 /* NeuroForgeAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NeuroForgeAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		400CF351DD114B228DBFB846 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		440A01093012B1365F402E21 /* NetworkInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkInterceptor.swift; sourceTree = "<group>"; };
+		4A51417ED4A996C89D426275 /* BootAndHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootAndHealthTests.swift; sourceTree = "<group>"; };
+		5088D4082609224DF6F9F34B /* VoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceRecorder.swift; sourceTree = "<group>"; };
+		549D5E2B481EB38561E56327 /* ChatComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatComposer.swift; sourceTree = "<group>"; };
+		584D92957B83177CC49412CD /* FocusHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusHelper.swift; sourceTree = "<group>"; };
+		63979065A6B8FA808B9B5D19 /* ErrorCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorCenter.swift; sourceTree = "<group>"; };
+		63B5B0B401904602728986DB /* WakeWordDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordDetector.swift; sourceTree = "<group>"; };
+		6E7302D4B978C0F1D8EFEA2F /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		74F64B3EA25ECF84F08EB67E /* SimpleChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleChatView.swift; sourceTree = "<group>"; };
+		7FAFFF8904E6A38FA9E849C9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8861E432726F7AE0025B96F8 /* KeyCatchingTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCatchingTextEditor.swift; sourceTree = "<group>"; };
+		903DCAE199117F80092C50C1 /* ChatBehaviorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBehaviorTests.swift; sourceTree = "<group>"; };
+		9BB32A176D679EEB453732EA /* APIBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIBase.swift; sourceTree = "<group>"; };
+		ACB5471FC2A7F9DF341518A3 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
+		C26864E49230F6CC1D2305D5 /* ProfileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileManager.swift; sourceTree = "<group>"; };
+		C738D5F34ADFA1A38659E51C /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
+		D13742CEF12568B451581B9F /* HealthBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBanner.swift; sourceTree = "<group>"; };
+		DC0BA507F8792D6E88E9C88F /* DiagnosticsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsOverlay.swift; sourceTree = "<group>"; };
+		E0649E08DF75AAF4A74F9A80 /* SimpleSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleSettingsView.swift; sourceTree = "<group>"; };
+		EFA1EC279918F5C1845CD785 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
+		F7779BAA5EB361B00BB6C1F6 /* SimpleDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleDebugView.swift; sourceTree = "<group>"; };
+		F7D4E952CA29BDF68A6CB652 /* RAGTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGTests.swift; sourceTree = "<group>"; };
+		FCBCDAA31406708DF50506B1 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0D1C4C92FA0AE05BD5B9EA95 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				9BB32A176D679EEB453732EA /* APIBase.swift */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		18BE41531BD35AC4686D48D6 /* NeuroForgeApp */ = {
+			isa = PBXGroup;
+			children = (
+				10F0684D2CF459D469C895EA /* ChatService.swift */,
+				7FAFFF8904E6A38FA9E849C9 /* ContentView.swift */,
+				C738D5F34ADFA1A38659E51C /* ImagePicker.swift */,
+				400CF351DD114B228DBFB846 /* Info.plist */,
+				EFA1EC279918F5C1845CD785 /* LayoutManager.swift */,
+				6E7302D4B978C0F1D8EFEA2F /* LoginView.swift */,
+				FCBCDAA31406708DF50506B1 /* main.swift */,
+				C26864E49230F6CC1D2305D5 /* ProfileManager.swift */,
+				240D053DC6724F5EFC1275DF /* ToggleButton.swift */,
+				5088D4082609224DF6F9F34B /* VoiceRecorder.swift */,
+				63B5B0B401904602728986DB /* WakeWordDetector.swift */,
+				8745A10F4370F72FBF986241 /* Components */,
+				0D1C4C92FA0AE05BD5B9EA95 /* Config */,
+				536EF51B3C3759BEEDF99510 /* Diagnostics */,
+				80DDD007F26014A7C61C1A03 /* Features */,
+				E70C4C4DC0FC4E039CCECB7C /* Network */,
+				60CCB0A7ED90A546E6D596F2 /* Utils */,
+			);
+			name = NeuroForgeApp;
+			path = Sources/NeuroForgeApp;
+			sourceTree = "<group>";
+		};
+		536EF51B3C3759BEEDF99510 /* Diagnostics */ = {
+			isa = PBXGroup;
+			children = (
+				DC0BA507F8792D6E88E9C88F /* DiagnosticsOverlay.swift */,
+				63979065A6B8FA808B9B5D19 /* ErrorCenter.swift */,
+			);
+			path = Diagnostics;
+			sourceTree = "<group>";
+		};
+		60CCB0A7ED90A546E6D596F2 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				584D92957B83177CC49412CD /* FocusHelper.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		80DDD007F26014A7C61C1A03 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				D13742CEF12568B451581B9F /* HealthBanner.swift */,
+				74F64B3EA25ECF84F08EB67E /* SimpleChatView.swift */,
+				F7779BAA5EB361B00BB6C1F6 /* SimpleDebugView.swift */,
+				E0649E08DF75AAF4A74F9A80 /* SimpleSettingsView.swift */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		8745A10F4370F72FBF986241 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				549D5E2B481EB38561E56327 /* ChatComposer.swift */,
+				8861E432726F7AE0025B96F8 /* KeyCatchingTextEditor.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		917966E9B6EA75D2D3B46368 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				4A51417ED4A996C89D426275 /* BootAndHealthTests.swift */,
+				903DCAE199117F80092C50C1 /* ChatBehaviorTests.swift */,
+				F7D4E952CA29BDF68A6CB652 /* RAGTests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		D0232175C43DD1355877B385 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				27A048536410F9593F6F414E /* NeuroForgeApp.app */,
+				3BF498F78ECD0C24E89612C3 /* NeuroForgeAppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E256EC9323CFB3F8C36BF6C3 = {
+			isa = PBXGroup;
+			children = (
+				18BE41531BD35AC4686D48D6 /* NeuroForgeApp */,
+				917966E9B6EA75D2D3B46368 /* UITests */,
+				D0232175C43DD1355877B385 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E70C4C4DC0FC4E039CCECB7C /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				07F1A447D59F18D9078C91FD /* APIClient.swift */,
+				ACB5471FC2A7F9DF341518A3 /* APIError.swift */,
+				440A01093012B1365F402E21 /* NetworkInterceptor.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2860C940F3436B4640F29CC5 /* NeuroForgeApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E5EBF8790377AB6E65307B88 /* Build configuration list for PBXNativeTarget "NeuroForgeApp" */;
+			buildPhases = (
+				DD662333557EFC9DB6A6466D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NeuroForgeApp;
+			packageProductDependencies = (
+			);
+			productName = NeuroForgeApp;
+			productReference = 27A048536410F9593F6F414E /* NeuroForgeApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		78288ED92DC8E2992E8D8634 /* NeuroForgeAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A4C6D951326BD1A78B9D7FF6 /* Build configuration list for PBXNativeTarget "NeuroForgeAppUITests" */;
+			buildPhases = (
+				2C61EA5E12984ECD1D15200B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8A3FEF58E425A31A11F72DD2 /* PBXTargetDependency */,
+			);
+			name = NeuroForgeAppUITests;
+			packageProductDependencies = (
+			);
+			productName = NeuroForgeAppUITests;
+			productReference = 3BF498F78ECD0C24E89612C3 /* NeuroForgeAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2E4103B28413E34D4B38E778 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					78288ED92DC8E2992E8D8634 = {
+						TestTargetID = 2860C940F3436B4640F29CC5;
+					};
+				};
+			};
+			buildConfigurationList = 6CCE5226A121C5474CF1DD84 /* Build configuration list for PBXProject "NeuroForgeApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = E256EC9323CFB3F8C36BF6C3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2860C940F3436B4640F29CC5 /* NeuroForgeApp */,
+				78288ED92DC8E2992E8D8634 /* NeuroForgeAppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2C61EA5E12984ECD1D15200B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8FCC067D2CC372D31D808731 /* BootAndHealthTests.swift in Sources */,
+				764287A4E846BD22F6492243 /* ChatBehaviorTests.swift in Sources */,
+				1E9CEEBE61D8BB8069257395 /* RAGTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD662333557EFC9DB6A6466D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9C60DEB98851495640A0AB16 /* APIBase.swift in Sources */,
+				C21A1C726ECE9A1A5F6BDA59 /* APIClient.swift in Sources */,
+				ECC80FF966A26FB32E9966EF /* APIError.swift in Sources */,
+				492A3628EDE622116C08F5DD /* ChatComposer.swift in Sources */,
+				26D568C6BAC7A8B7BB87AFCE /* ChatService.swift in Sources */,
+				F70F19DF0F5CFCCD640E327A /* ContentView.swift in Sources */,
+				1B844256EA0C1E2B43B81CAE /* DiagnosticsOverlay.swift in Sources */,
+				25ABC779E9E7B89422CFB313 /* ErrorCenter.swift in Sources */,
+				FC3F864F8171AE121533B607 /* FocusHelper.swift in Sources */,
+				74288B40517C4FF0CB00A416 /* HealthBanner.swift in Sources */,
+				45B20EB2F59F0D0E06772597 /* ImagePicker.swift in Sources */,
+				86B4931084ACF98DADC3476F /* KeyCatchingTextEditor.swift in Sources */,
+				258640C2B9898E2AF8ABC9B9 /* LayoutManager.swift in Sources */,
+				15808A791274709C81DF2ECA /* LoginView.swift in Sources */,
+				479D4D0562461D21C2FCDBB4 /* NetworkInterceptor.swift in Sources */,
+				E69972E9EBE5CDE5CD1C3539 /* ProfileManager.swift in Sources */,
+				8F6A368DCDA1B11B13D45407 /* SimpleChatView.swift in Sources */,
+				A336E2245D65695325E2843B /* SimpleDebugView.swift in Sources */,
+				85143859C7389A4F6E3F65F0 /* SimpleSettingsView.swift in Sources */,
+				F5E4F368A24E7637AFA90BA7 /* ToggleButton.swift in Sources */,
+				4C83168009B66607AF2E9114 /* VoiceRecorder.swift in Sources */,
+				1749CEC5306F478633BC7262 /* WakeWordDetector.swift in Sources */,
+				BB422D53231A571915618F98 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8A3FEF58E425A31A11F72DD2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2860C940F3436B4640F29CC5 /* NeuroForgeApp */;
+			targetProxy = FD52650B74ACA8B4C8DA2C64 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4DAEB03EE40CCCD5AF789CDF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/NeuroForgeApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.mac;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		6E2CCF2FA44D40438F2676D6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleName = NeuroForgeAppUITests;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = macosx;
+				TEST_TARGET_NAME = NeuroForgeApp;
+			};
+			name = Release;
+		};
+		8A2D5B7AEF966C0BB2E2F219 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.1;
+			};
+			name = Release;
+		};
+		9F4AC7B9D50C965D1F60F570 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.1;
+			};
+			name = Debug;
+		};
+		D7E708C8C03640ED3F250B30 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Sources/NeuroForgeApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.universalaitools.mac;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		F4ACF0E08149E1FDCC960D04 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleName = NeuroForgeAppUITests;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = macosx;
+				TEST_TARGET_NAME = NeuroForgeApp;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6CCE5226A121C5474CF1DD84 /* Build configuration list for PBXProject "NeuroForgeApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F4AC7B9D50C965D1F60F570 /* Debug */,
+				8A2D5B7AEF966C0BB2E2F219 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A4C6D951326BD1A78B9D7FF6 /* Build configuration list for PBXNativeTarget "NeuroForgeAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F4ACF0E08149E1FDCC960D04 /* Debug */,
+				6E2CCF2FA44D40438F2676D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E5EBF8790377AB6E65307B88 /* Build configuration list for PBXNativeTarget "NeuroForgeApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D7E708C8C03640ED3F250B30 /* Debug */,
+				4DAEB03EE40CCCD5AF789CDF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 2E4103B28413E34D4B38E778 /* Project object */;
+}

@@ -1,8 +1,9 @@
+import logging
+from typing import Optional
+
+import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
-import logging
-import httpx
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/tts", tags=["tts"])
@@ -35,7 +36,7 @@ async def text_to_speech(request: TTSRequest):
                     "speed": request.speed
                 }
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return TTSResponse(
@@ -49,7 +50,7 @@ async def text_to_speech(request: TTSRequest):
                     success=False,
                     error=f"TTS service error: {response.status_code}"
                 )
-    
+
     except Exception as e:
         logger.error(f"TTS proxy error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

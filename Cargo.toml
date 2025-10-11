@@ -25,6 +25,11 @@ members = [
     # "crates/testing-framework"  # Temporarily disabled - missing module implementations
 ]
 
+# Temporarily quarantine crates with known compile errors in this sweep
+exclude = [
+    "crates/bmad-workflow"
+]
+
 [workspace.dependencies]
 # ML and Vision dependencies - consistent versions
 candle-core = "0.9"

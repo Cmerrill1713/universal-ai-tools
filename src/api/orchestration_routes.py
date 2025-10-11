@@ -5,13 +5,13 @@ TRM-aware orchestration endpoints integrated into NeuroForge
 Upgraded from HRM to TRM: 40% fewer parameters, 5% better accuracy, 12.3x faster with MLX
 """
 
-import sys
 import os
-from pathlib import Path
-from typing import Dict, Any, Optional, List
+import sys
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 # Add mcp-ecosystem to path
 mcp_paths = ["/mcp-ecosystem", os.path.expanduser("~/mcp-ecosystem")]
@@ -21,7 +21,7 @@ for mcp_path in mcp_paths:
 
 try:
     # Try new TRM adapter first (use src. prefix for container imports)
-    from src.core.engines.trm_adapter import get_trm_adapter, TRMAdapter
+    from src.core.engines.trm_adapter import TRMAdapter, get_trm_adapter
     TRM_AVAILABLE = True
     HRM_AVAILABLE = False  # Deprecated - using TRM now
     import logging
@@ -101,16 +101,16 @@ async def execute_orchestration(request: OrchestrationRequest):
     """
     if not TRM_AVAILABLE and not HRM_AVAILABLE:
         raise HTTPException(status_code=503, detail="TRM/HRM orchestration not available")
-    
+
     try:
         controller = await get_controller()
         if not controller:
             raise HTTPException(status_code=503, detail="Controller not initialized")
-        
+
         logger.info("Running controller.run()...")
         result = await controller.run(request.goal, request.constraints)
         logger.info(f"Result type: {type(result)}, is_dict: {isinstance(result, dict)}")
-        
+
         # Handle both dict and object results
         if isinstance(result, dict):
             logger.info("Handling as dict")
@@ -135,7 +135,7 @@ async def execute_orchestration(request: OrchestrationRequest):
                 "validation": [v.to_dict() for v in result.validation]
             }
             return response_data
-    
+
     except Exception as e:
         logger.error(f"Orchestration failed: {e}")
         import traceback
@@ -154,21 +154,21 @@ async def solve_grid_puzzle(task: GridTask):
     """
     if not HRM_AVAILABLE:
         raise HTTPException(status_code=503, detail="HRM orchestration not available")
-    
+
     try:
         controller = await get_controller()
         if not controller:
             raise HTTPException(status_code=503, detail="Controller not initialized")
-        
+
         # Format as orchestration goal
         import json
         payload = {"task": task.task_type, "grid": task.grid}
         goal = f"Solve this {task.task_type} puzzle: {json.dumps(payload)}"
         if task.instructions:
             goal += f"\n{task.instructions}"
-        
+
         result = await controller.run(goal)
-        
+
         # Handle both dict and object results
         if isinstance(result, dict):
             return {
@@ -186,7 +186,7 @@ async def solve_grid_puzzle(task: GridTask):
                 "elapsed_s": result.budget.elapsed_s,
                 "confidence": 0.95 if result.success else 0.0
             }
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -205,7 +205,7 @@ async def get_orchestration_status():
             "available": False,
             "reason": "TRM/HRM orchestration module not found"
         }
-    
+
     try:
         controller = await get_controller()
         if not controller:
@@ -214,7 +214,7 @@ async def get_orchestration_status():
                 "initialized": False,
                 "model_type": "TRM" if TRM_AVAILABLE else "HRM (legacy)"
             }
-        
+
         # TRM status
         if TRM_AVAILABLE and isinstance(controller, TRMAdapter):
             health = await controller.health_check()
@@ -230,7 +230,7 @@ async def get_orchestration_status():
                 "recursive_cycles": capabilities.get("recursive_cycles", "unknown"),
                 "trm_ready": health.get("ready", False)
             }
-        
+
         # Legacy HRM status
         return {
             "available": True,
@@ -242,7 +242,7 @@ async def get_orchestration_status():
             "refiner_enabled": controller.enable_refiner if hasattr(controller, 'enable_refiner') else False,
             "max_retries": controller.max_retries if hasattr(controller, 'max_retries') else 1
         }
-    
+
     except Exception as e:
         return {
             "available": True,

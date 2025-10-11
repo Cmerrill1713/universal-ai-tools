@@ -1,6 +1,6 @@
 .PHONY: verify smoke test sentry validate validate-all notify contract green clean
 
-BASE ?= http://localhost:8013
+BASE ?= http://localhost:8014
 PYTHONPATH := $(PWD)/src:$(PWD)/api:$(PWD)
 
 # Quick 500 check on critical pages (with retry backoff)
@@ -47,7 +47,7 @@ dev:
 	@echo "⏳ Waiting for services to start..."
 	@sleep 5
 	@echo "🧪 Running health check..."
-	@make green BASE=http://localhost:8013 || echo "⚠️  Some checks failed (expected on first run)"
+	@make green BASE=http://localhost:8014 || echo "⚠️  Some checks failed (expected on first run)"
 
 # Stop all services
 down:
@@ -91,7 +91,7 @@ help:
 	@echo "  clean              - Clean Python cache files"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make green         - Run all checks on localhost:8013"
+	@echo "  make green         - Run all checks on localhost:8014"
 	@echo "  make dev           - Start in dev mode with hot reload"
 	@echo "  make play          - Quick API test"
 	@echo "  make seed          - Populate demo data"

@@ -3,9 +3,10 @@ Error handling middleware for FastAPI applications
 Ensures all exceptions return proper JSON responses with error details
 """
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ def attach_error_mw(app: FastAPI):
                 exc_info=True
             )
             return JSONResponse(
-                {"error": type(e).__name__, "detail": str(e)}, 
+                {"error": type(e).__name__, "detail": str(e)},
                 status_code=500
             )
 

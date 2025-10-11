@@ -3,24 +3,24 @@
 Conversation Storage - Persistent storage for chat history in Postgres
 """
 
+import json
 import logging
 import os
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import asyncpg
-import json
 
 logger = logging.getLogger(__name__)
 
 
 class ConversationStorage:
     """Persistent conversation storage using Postgres"""
-    
+
     def __init__(self):
         self.pool: Optional[asyncpg.Pool] = None
         # Use knowledge_base database (the one that exists)
         self.database_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/knowledge_base")
-        
+
     async def initialize(self):
         """Initialize database connection and create tables"""
         try:
@@ -31,17 +31,17 @@ class ConversationStorage:
                 max_size=10,
                 command_timeout=60
             )
-            
+
             # Create tables if they don't exist
             await self._create_tables()
-            
+
             logger.info("✅ Conversation storage initialized with Postgres")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize conversation storage: {e}")
             return False
-    
+
     async def _create_tables(self):
         """Create conversation tables if they don't exist"""
         async with self.pool.acquire() as conn:
@@ -61,7 +61,7 @@ class ConversationStorage:
                     INDEX idx_created_at (created_at)
                 )
             """)
-            
+
             # Conversation messages table
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS conversation_messages (
@@ -80,9 +80,9 @@ class ConversationStorage:
                     FOREIGN KEY (thread_id) REFERENCES conversation_threads(thread_id) ON DELETE CASCADE
                 )
             """)
-            
+
             logger.info("✅ Conversation tables created/verified")
-    
+
     async def create_thread(
         self,
         user_id: str,
@@ -98,14 +98,14 @@ class ConversationStorage:
                     VALUES ($1, $2, $3, $4)
                     ON CONFLICT (thread_id) DO NOTHING
                 """, user_id, thread_id, title or "New Conversation", json.dumps(metadata or {}))
-                
+
                 logger.info(f"Created thread {thread_id} for user {user_id}")
                 return True
-                
+
         except Exception as e:
             logger.error(f"Failed to create thread: {e}")
             return False
-    
+
     async def add_message(
         self,
         thread_id: str,
@@ -123,9 +123,9 @@ class ConversationStorage:
                     INSERT INTO conversation_messages 
                     (thread_id, role, content, metadata, model_used, processing_time, token_count)
                     VALUES ($1, $2, $3, $4, $5, $6, $7)
-                """, thread_id, role, content, json.dumps(metadata or {}), 
+                """, thread_id, role, content, json.dumps(metadata or {}),
                     model_used, processing_time, len(content.split()))
-                
+
                 # Update thread message count and updated_at
                 await conn.execute("""
                     UPDATE conversation_threads 
@@ -133,14 +133,14 @@ class ConversationStorage:
                         updated_at = CURRENT_TIMESTAMP
                     WHERE thread_id = $1
                 """, thread_id)
-                
+
                 logger.debug(f"Added {role} message to thread {thread_id}")
                 return True
-                
+
         except Exception as e:
             logger.error(f"Failed to add message: {e}")
             return False
-    
+
     async def get_thread_history(
         self,
         thread_id: str,
@@ -157,7 +157,7 @@ class ConversationStorage:
                     ORDER BY created_at DESC
                     LIMIT $2 OFFSET $3
                 """, thread_id, limit, offset)
-                
+
                 messages = []
                 for row in rows:
                     messages.append({
@@ -168,14 +168,14 @@ class ConversationStorage:
                         "model_used": row["model_used"],
                         "processing_time": row["processing_time"]
                     })
-                
+
                 # Reverse to get chronological order
                 return list(reversed(messages))
-                
+
         except Exception as e:
             logger.error(f"Failed to get thread history: {e}")
             return []
-    
+
     async def get_recent_context(
         self,
         thread_id: str,
@@ -183,17 +183,17 @@ class ConversationStorage:
     ) -> str:
         """Get recent conversation context as formatted string"""
         messages = await self.get_thread_history(thread_id, limit=max_messages)
-        
+
         if not messages:
             return ""
-        
+
         context = "\n**Recent conversation:**\n"
         for msg in messages[-max_messages:]:
             role_emoji = "👤" if msg["role"] == "user" else "🤖"
             context += f"{role_emoji} {msg['role'].capitalize()}: {msg['content'][:100]}...\n"
-        
+
         return context
-    
+
     async def get_user_threads(
         self,
         user_id: str,
@@ -209,7 +209,7 @@ class ConversationStorage:
                     ORDER BY updated_at DESC
                     LIMIT $2
                 """, user_id, limit)
-                
+
                 threads = []
                 for row in rows:
                     threads.append({
@@ -220,13 +220,13 @@ class ConversationStorage:
                         "message_count": row["message_count"],
                         "metadata": json.loads(row["metadata"]) if row["metadata"] else {}
                     })
-                
+
                 return threads
-                
+
         except Exception as e:
             logger.error(f"Failed to get user threads: {e}")
             return []
-    
+
     async def delete_thread(self, thread_id: str) -> bool:
         """Delete a conversation thread and all its messages"""
         try:
@@ -234,14 +234,14 @@ class ConversationStorage:
                 await conn.execute("""
                     DELETE FROM conversation_threads WHERE thread_id = $1
                 """, thread_id)
-                
+
                 logger.info(f"Deleted thread {thread_id}")
                 return True
-                
+
         except Exception as e:
             logger.error(f"Failed to delete thread: {e}")
             return False
-    
+
     async def get_stats(self) -> Dict[str, Any]:
         """Get conversation storage statistics"""
         try:
@@ -253,18 +253,18 @@ class ConversationStorage:
                         SUM(message_count) as total_messages
                     FROM conversation_threads
                 """)
-                
+
                 return {
                     "total_users": stats["total_users"],
                     "total_threads": stats["total_threads"],
                     "total_messages": stats["total_messages"],
                     "storage_backend": "postgres"
                 }
-                
+
         except Exception as e:
             logger.error(f"Failed to get stats: {e}")
             return {}
-    
+
     async def close(self):
         """Close database connection pool"""
         if self.pool:

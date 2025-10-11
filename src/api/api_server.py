@@ -4,98 +4,96 @@ FastAPI Web Server for Agentic LLM Core
 Provides REST API and WebSocket endpoints for frontend integration
 """
 
-import asyncio
 import logging
 import os
 import sys
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-import json
 import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
 try:
-    from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+    from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.staticfiles import StaticFiles
     from fastapi.responses import HTMLResponse
+    from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel
+    from src.core.assessment.response_judge import judge_response
 
     # Import core modules
     # from src.core.security.sanitizer import sanitize_user_text  # Module doesn't exist
     from src.core.assessment.response_reviewer import evaluate_response
-    from src.core.assessment.response_judge import judge_response
+    from src.core.engines.local_model_manager import LocalModelConfig, ModelType, model_manager
     from src.core.logging.event_tracker import log_event
-    from src.core.engines.local_model_manager import model_manager, ModelType, LocalModelConfig
-    
+
     # Import HRM orchestration routes
     try:
         from api.orchestration_routes import router as orchestration_router
         HRM_ORCHESTRATION_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         HRM_ORCHESTRATION_AVAILABLE = False
-    
+
     # Import smart chat routing
     try:
         from api.smart_chat_endpoint import router as smart_chat_router
         SMART_CHAT_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         SMART_CHAT_AVAILABLE = False
-    
+
     # Import unified chat orchestrator
     try:
         from api.unified_chat_routes import router as unified_chat_router
         UNIFIED_CHAT_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         UNIFIED_CHAT_AVAILABLE = False
-    
+
     # Import evolution routes
     try:
         from api.evolution_routes import router as evolution_router
         EVOLUTION_ROUTES_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         EVOLUTION_ROUTES_AVAILABLE = False
-    
+
     # Import evolution approval routes
     try:
         from src.api.evolution_approval_routes import router as evolution_approval_router
         EVOLUTION_APPROVAL_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         EVOLUTION_APPROVAL_AVAILABLE = False
         evolution_approval_router = None
-    
-    
+
+
     # Import automation routes
     try:
         from api.automation_routes import router as automation_router
         AUTOMATION_ROUTES_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         AUTOMATION_ROUTES_AVAILABLE = False
     # Import correction routes
     try:
         from api.correction_routes import router as correction_router
         CORRECTION_ROUTES_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         CORRECTION_ROUTES_AVAILABLE = False
-    
+
     # Import router tuning routes
     try:
         from api.router_tuning_routes import router as router_tuning_router
         ROUTER_TUNING_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         ROUTER_TUNING_AVAILABLE = False
-    
+
     # Import speech routes
     try:
         from api.speech_routes import router as speech_router
         SPEECH_ROUTES_AVAILABLE = True
-    except ImportError as e:
+    except ImportError:
         SPEECH_ROUTES_AVAILABLE = False
         speech_router = None
-    
+
     # Import TTS proxy routes
     try:
         from src.api.tts_proxy_routes import router as tts_proxy_router
@@ -149,6 +147,7 @@ class ModelInfo(BaseModel):
 
 # Initialize default models on startup using lifespan events
 from contextlib import asynccontextmanager
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -320,22 +319,23 @@ async def get_current_model():
 # Import comprehensive tool calling system
 from api.tool_calling_agent import detect_and_execute_tool, format_tool_response
 
+
 # Legacy function (replaced by comprehensive tool calling)
 async def _detect_and_execute_browser_action(message: str) -> Optional[Dict]:
     """Detect if message is a browser automation request and execute it"""
     message_lower = message.lower()
-    
+
     # Browser automation keywords
     browser_keywords = [
-        "open browser", "open a browser", "browse", "search google", 
+        "open browser", "open a browser", "browse", "search google",
         "search for", "navigate to", "go to website", "visit"
     ]
-    
+
     if not any(keyword in message_lower for keyword in browser_keywords):
         return None
-    
+
     logger.info(f"🌐 Detected browser automation request: {message}")
-    
+
     try:
         # Extract URL or search query
         url = None
@@ -352,20 +352,20 @@ async def _detect_and_execute_browser_action(message: str) -> Optional[Dict]:
             url_match = re.search(r'(https?://[^\s]+)', message_lower)
             if url_match:
                 url = url_match.group(1)
-        
+
         if not url:
             # Default to Google with the whole message as query
             import urllib.parse
             query = urllib.parse.quote(message)
             url = f"https://www.google.com/search?q={query}"
-        
+
         # Call browser automation API
         from src.core.automation.browser_control import get_browser_controller
         controller = get_browser_controller()
         result = await controller.navigate(url)
-        
+
         logger.info(f"✅ Browser opened: {url}")
-        
+
         # Try to extract content from the page
         try:
             content = await controller.get_page_content()
@@ -373,7 +373,7 @@ async def _detect_and_execute_browser_action(message: str) -> Optional[Dict]:
             page_info = content.get("text", "")[:500] if content else ""
         except:
             page_info = ""
-        
+
         return {
             "success": True,
             "action": "browser_navigation",
@@ -381,7 +381,7 @@ async def _detect_and_execute_browser_action(message: str) -> Optional[Dict]:
             "page_preview": page_info,
             "message": f"✅ Opened browser to {url}"
         }
-        
+
     except Exception as e:
         logger.error(f"Browser automation failed: {e}")
         return {
@@ -428,9 +428,9 @@ async def chat_endpoint(request: ChatRequest):
         # Use persistent user_id from request, or fallback to request_id
         user_id = request.user_id or request.request_id[:8]
         thread_id = request.thread_id or f"user_{user_id}"  # Thread identifier
-        
+
         logger.info(f"💬 Chat request from user={user_id}, thread={thread_id}")
-        
+
         if use_optimizer:
             # Use agentic prompt generation (falls back to template if unavailable)
             system_prompt = await optimizer.build_system_prompt_agentic(request.context)
@@ -457,31 +457,33 @@ async def chat_endpoint(request: ChatRequest):
             response_text = await format_tool_response(tool_result, sanitized.text)
             tool_name = tool_result.get("tool", "unknown")
             model_used = f"{tool_name}_tool + llama3.2:3b"
-            
+
             logger.info(f"✅ Tool executed: {tool_name} - success={tool_result.get('success')}")
-        
+
         else:
             # Regular chat - Try to use unified orchestrator (RAG + Search + Routing + Learning)
             try:
-                from src.core.unified_orchestration.unified_chat_orchestrator import get_unified_orchestrator
+                from src.core.unified_orchestration.unified_chat_orchestrator import (
+                    get_unified_orchestrator,
+                )
                 orchestrator = get_unified_orchestrator()
-                
-                logger.info(f"🧠 Using orchestrator for intelligent routing")
-                
+
+                logger.info("🧠 Using orchestrator for intelligent routing")
+
                 result = await orchestrator.chat(
                     message=sanitized.text,
                     context=request.context or {}
                 )
-                
+
                 response_text = result.get("response", "I couldn't process that request.")
                 model_used = f"{result.get('backend_used', 'unknown')} ({result.get('task_type', 'general')})"
-                
+
                 logger.info(f"✅ Orchestrator: {result.get('task_type')} → {result.get('backend_used')} ({result.get('elapsed_s', 0):.2f}s)")
-                
+
             except Exception as orch_error:
                 # Fallback to basic LLM if orchestrator fails
                 logger.warning(f"⚠️  Orchestrator unavailable: {orch_error}, using fallback")
-                
+
                 try:
                     import httpx
                     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -502,7 +504,7 @@ async def chat_endpoint(request: ChatRequest):
                             raise Exception("Ollama returned non-200")
                 except Exception as e:
                     logger.error(f"Fallback also failed: {e}")
-                    response_text = f"I apologize, but I'm having trouble processing your request."
+                    response_text = "I apologize, but I'm having trouble processing your request."
                     model_used = "error_fallback"
 
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -549,21 +551,23 @@ async def websocket_endpoint(websocket: WebSocket):
     - Multiple specialized backends
     """
     await websocket.accept()
-    
+
     # Try to import unified orchestrator
     try:
-        from src.core.unified_orchestration.unified_chat_orchestrator import get_unified_orchestrator
+        from src.core.unified_orchestration.unified_chat_orchestrator import (
+            get_unified_orchestrator,
+        )
         orchestrator = get_unified_orchestrator()
         use_orchestrator = True
         logger.info("✅ WebSocket using unified orchestrator (RAG + Search + Routing)")
     except Exception as e:
         logger.warning(f"⚠️  Unified orchestrator not available, using fallback: {e}")
         use_orchestrator = False
-    
+
     try:
         while True:
             data = await websocket.receive_text()
-            
+
             try:
                 # Parse message (could be JSON or plain text)
                 import json
@@ -574,10 +578,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 except:
                     user_message = data
                     context = {}
-                
+
                 # Sanitize input
                 sanitized = sanitize_user_text(user_message)
-                
+
                 # Use unified orchestrator (RAG + Search + Routing)
                 if use_orchestrator:
                     try:
@@ -585,22 +589,22 @@ async def websocket_endpoint(websocket: WebSocket):
                             message=sanitized.text,
                             context=context
                         )
-                        
+
                         # Extract response
                         response_text = result.get("response", "I couldn't process that request.")
-                        
+
                         # Add metadata if routing was used
                         task_type = result.get("task_type", "general")
                         backend = result.get("backend_used", "unknown")
-                        
+
                         # Add helpful context for certain task types
                         if task_type == "research" and "sources" in result.get("metadata", {}):
                             sources = result["metadata"]["sources"]
                             if sources:
                                 response_text += f"\n\n📚 Sources: {', '.join(sources[:3])}"
-                        
+
                         logger.info(f"WebSocket routed to: {backend} (task: {task_type})")
-                        
+
                     except Exception as orch_error:
                         logger.error(f"Orchestrator error: {orch_error}")
                         # Fallback to basic LLM
@@ -609,14 +613,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 else:
                     # Fallback: basic LLM without RAG/search
                     response_text = await _fallback_llm_chat(sanitized.text)
-                
+
                 # Send response back
                 await websocket.send_text(response_text)
-                
+
             except Exception as e:
                 logger.error(f"WebSocket message processing error: {e}")
                 await websocket.send_text("I encountered an error processing your message.")
-                
+
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
     except Exception as e:
@@ -651,15 +655,17 @@ async def _fallback_llm_chat(message: str) -> str:
 async def get_learning_status():
     """Get ACTUAL learning system status from the RUNNING orchestrator"""
     try:
-        from src.core.unified_orchestration.unified_chat_orchestrator import get_unified_orchestrator
+        from src.core.unified_orchestration.unified_chat_orchestrator import (
+            get_unified_orchestrator,
+        )
         orch = get_unified_orchestrator()
-        
+
         stats = {
             "orchestrator_id": id(orch),
             "execution_history_count": len(orch.execution_history),
             "recent_executions": orch.execution_history[-5:] if orch.execution_history else [],
         }
-        
+
         if orch.tuner:
             tuner_stats = orch.tuner.get_statistics()
             stats["learning"] = {
@@ -669,7 +675,7 @@ async def get_learning_status():
                 "task_types": tuner_stats.get("by_task_type", {}),
                 "backend_performance": tuner_stats.get("backend_performance", {})
             }
-            
+
             recommendations = orch.tuner.get_tuning_recommendations()
             stats["evolution"] = {
                 "status": recommendations.get("status"),
@@ -678,9 +684,9 @@ async def get_learning_status():
             }
         else:
             stats["learning"] = {"error": "Tuner not available"}
-        
+
         return stats
-        
+
     except Exception as e:
         return {"error": str(e), "traceback": str(e)}
 

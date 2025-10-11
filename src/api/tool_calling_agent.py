@@ -6,7 +6,8 @@ Enables the LLM to call any of the 40 endpoints and 19 agents
 
 import logging
 import re
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -19,37 +20,37 @@ async def detect_and_execute_tool(message: str) -> Optional[Dict[str, Any]]:
     Returns Dict with result if tool was called, None if no tool detected
     """
     message_lower = message.lower()
-    
+
     # 1. Application Building (highest priority for complex dev tasks)
     app_building_result = await _detect_app_building_request(message, message_lower)
     if app_building_result:
         return app_building_result
-    
+
     # 2. Browser Automation
     browser_result = await _detect_browser_request(message, message_lower)
     if browser_result:
         return browser_result
-    
+
     # 3. macOS System Control
     macos_result = await _detect_macos_request(message, message_lower)
     if macos_result:
         return macos_result
-    
+
     # 4. GitHub Operations
     github_result = await _detect_github_request(message, message_lower)
     if github_result:
         return github_result
-    
+
     # 5. Puzzle Solving
     puzzle_result = await _detect_puzzle_request(message, message_lower)
     if puzzle_result:
         return puzzle_result
-    
+
     # 6. Research & Orchestration
     research_result = await _detect_research_request(message, message_lower)
     if research_result:
         return research_result
-    
+
     # No tool detected
     return None
 
@@ -60,22 +61,22 @@ async def _detect_app_building_request(message: str, message_lower: str) -> Opti
         "build", "create", "make", "develop", "generate", "implement",
         "write a", "design a", "build me", "create me", "make me"
     ]
-    
+
     app_keywords = [
         "app", "application", "website", "web app", "api", "backend",
         "frontend", "service", "microservice", "tool", "cli", "bot",
         "dashboard", "platform", "system", "project"
     ]
-    
+
     # Check if it's an application building request
     has_building = any(keyword in message_lower for keyword in building_keywords)
     has_app_type = any(keyword in message_lower for keyword in app_keywords)
-    
+
     if not (has_building and has_app_type):
         return None
-    
+
     logger.info(f"🏗️ Application building detected: {message}")
-    
+
     try:
         # Call the agentic engineering platform
         async with httpx.AsyncClient(timeout=180.0) as client:  # Long timeout for complex tasks
@@ -100,7 +101,7 @@ async def _detect_app_building_request(message: str, message_lower: str) -> Opti
                     ]
                 }
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return {
@@ -118,7 +119,7 @@ async def _detect_app_building_request(message: str, message_lower: str) -> Opti
                         "context": {"mode": "development"}
                     }
                 )
-                
+
                 if response2.status_code == 200:
                     data = response2.json()
                     return {
@@ -127,7 +128,7 @@ async def _detect_app_building_request(message: str, message_lower: str) -> Opti
                         "result": data.get("response", ""),
                         "message": "🏗️ Application plan created via God Tier agents"
                     }
-    
+
     except Exception as e:
         logger.error(f"Agentic builder error: {e}")
         return {
@@ -136,36 +137,36 @@ async def _detect_app_building_request(message: str, message_lower: str) -> Opti
             "error": str(e),
             "message": f"Agentic builder encountered an error: {str(e)}"
         }
-    
+
     return None
 
 
 async def _detect_browser_request(message: str, message_lower: str) -> Optional[Dict]:
     """Detect and execute browser automation requests"""
     browser_keywords = [
-        "open browser", "open a browser", "browse", "search google", 
+        "open browser", "open a browser", "browse", "search google",
         "search for", "navigate to", "go to website", "visit", "look up"
     ]
-    
+
     if not any(keyword in message_lower for keyword in browser_keywords):
         return None
-    
+
     logger.info(f"🌐 Browser automation detected: {message}")
-    
+
     try:
         from src.core.automation.browser_control import get_browser_controller
         controller = get_browser_controller()
-        
+
         # Extract URL or search query
         url = None
         query = None
-        
+
         # Try to extract explicit URL
         if "http" in message_lower:
             url_match = re.search(r'(https?://[^\s]+)', message_lower)
             if url_match:
                 url = url_match.group(1)
-        
+
         # If no URL, extract search query
         if not url:
             # Try multiple patterns to extract just the search query
@@ -174,7 +175,7 @@ async def _detect_browser_request(message: str, message_lower: str) -> Optional[
                 r'(?:browser and |browser to )(?:search for |look for |find )(.+?)(?:\?|\.|\!|$)',
                 r'(?:google |bing )(.+?)(?:\?|\.|\!|$)',
             ]
-            
+
             for pattern in patterns:
                 match = re.search(pattern, message_lower)
                 if match:
@@ -182,20 +183,20 @@ async def _detect_browser_request(message: str, message_lower: str) -> Optional[
                     # Remove common trailing words
                     query = re.sub(r'\s+(please|now|today)$', '', query)
                     break
-            
+
             # If still no query, use the whole message but strip browser-opening phrases
             if not query:
                 query = re.sub(r'^.*?(?:open (?:a )?browser (?:and )?(?:to )?|search for |look for )', '', message_lower).strip()
                 query = re.sub(r'[\?\.!]$', '', query).strip()
-            
+
             if query:
                 import urllib.parse
                 query_encoded = urllib.parse.quote(query)
                 url = f"https://www.google.com/search?q={query_encoded}"
-        
+
         result = await controller.navigate(url)
         content = await controller.get_page_content()
-        
+
         return {
             "tool": "browser",
             "success": result.get("success", False),
@@ -203,7 +204,7 @@ async def _detect_browser_request(message: str, message_lower: str) -> Optional[
             "content": content.get("text", "")[:1500] if content.get("success") else "",
             "message": f"✅ Opened browser to {url}"
         }
-    
+
     except Exception as e:
         logger.error(f"Browser tool error: {e}")
         return {"tool": "browser", "success": False, "error": str(e)}
@@ -229,11 +230,11 @@ async def _detect_macos_request(message: str, message_lower: str) -> Optional[Di
         "trash": ["empty trash", "clear trash"],
         "wifi": ["wifi", "turn off wifi", "turn on wifi", "disable wifi"]
     }
-    
+
     action = None
     app_name = None
     params = {}
-    
+
     # Check for app opening - more flexible pattern
     if any(kw in message_lower for kw in macos_keywords["open"]):
         # Try multiple patterns to extract app name
@@ -251,7 +252,7 @@ async def _detect_macos_request(message: str, message_lower: str) -> Optional[Di
                 app_name = ' '.join(word.capitalize() for word in app_name.split())
                 action = "open_app"
                 break
-    
+
     # Check for app closing - more flexible pattern
     elif any(kw in message_lower for kw in macos_keywords["close"]):
         patterns = [
@@ -266,32 +267,32 @@ async def _detect_macos_request(message: str, message_lower: str) -> Optional[Di
                 app_name = ' '.join(word.capitalize() for word in app_name.split())
                 action = "close_app"
                 break
-    
+
     # Check for volume
     elif any(kw in message_lower for kw in macos_keywords["volume"]):
         vol_match = re.search(r'volume\s+(?:to\s+)?(\d+)', message_lower)
         if vol_match:
             params['level'] = int(vol_match.group(1))
             action = "set_volume"
-    
+
     # Check for brightness
     elif any(kw in message_lower for kw in macos_keywords["brightness"]):
         bright_match = re.search(r'brightness\s+(?:to\s+)?(\d+)', message_lower)
         if bright_match:
             params['level'] = int(bright_match.group(1)) / 100.0
             action = "set_brightness"
-    
+
     # Check for screenshot
     elif any(kw in message_lower for kw in macos_keywords["screenshot"]):
         action = "screenshot"
-    
+
     # Check for notification
     elif any(kw in message_lower for kw in macos_keywords["notification"]):
         notify_match = re.search(r'notification\s+(.+)', message_lower)
         if notify_match:
             params['message'] = notify_match.group(1).strip()
             action = "notification"
-    
+
     # Check for other actions
     elif any(kw in message_lower for kw in macos_keywords["mute"]):
         action = "toggle_mute"
@@ -317,15 +318,15 @@ async def _detect_macos_request(message: str, message_lower: str) -> Optional[Di
         action = "system_info"
     elif any(kw in message_lower for kw in macos_keywords["settings"]):
         action = "open_settings"
-    
+
     if not action:
         return None
-    
+
     logger.info(f"💻 macOS control detected: {action} {app_name or ''}")
-    
+
     try:
         import httpx
-        
+
         # Call the macOS automation service on port 9876
         async with httpx.AsyncClient(timeout=10.0) as client:
             if action == "open_app" and app_name:
@@ -362,12 +363,12 @@ async def _detect_macos_request(message: str, message_lower: str) -> Optional[Di
                 response = await client.post("http://host.docker.internal:9876/macos/open-app", json={"app_name": "System Settings"})
             else:
                 return None
-            
+
             if response.status_code == 200:
                 result = response.json()
             else:
                 result = {"success": False, "error": f"HTTP {response.status_code}"}
-        
+
         return {
             "tool": "macos",
             "action": action,
@@ -375,7 +376,7 @@ async def _detect_macos_request(message: str, message_lower: str) -> Optional[Di
             "result": result,
             "message": result.get("message", f"Executed {action}")
         }
-    
+
     except Exception as e:
         logger.error(f"macOS tool error: {e}")
         return {"tool": "macos", "success": False, "error": str(e)}
@@ -384,15 +385,15 @@ async def _detect_macos_request(message: str, message_lower: str) -> Optional[Di
 async def _detect_github_request(message: str, message_lower: str) -> Optional[Dict]:
     """Detect and execute GitHub operations"""
     github_keywords = [
-        "github", "repository", "repo", "pull request", "pr", 
+        "github", "repository", "repo", "pull request", "pr",
         "issue", "commit", "search github", "create issue"
     ]
-    
+
     if not any(keyword in message_lower for keyword in github_keywords):
         return None
-    
+
     logger.info(f"🐙 GitHub operation detected: {message}")
-    
+
     # For now, return a signal that GitHub tools should be used
     # The full MCP integration would handle the actual calls
     return {
@@ -406,12 +407,12 @@ async def _detect_github_request(message: str, message_lower: str) -> Optional[D
 async def _detect_puzzle_request(message: str, message_lower: str) -> Optional[Dict]:
     """Detect and execute puzzle solving requests"""
     puzzle_keywords = ["sudoku", "maze", "arc", "puzzle", "grid", "pattern"]
-    
+
     if not any(keyword in message_lower for keyword in puzzle_keywords):
         return None
-    
+
     logger.info(f"🧩 Puzzle solving detected: {message}")
-    
+
     # Check if there's a grid in the message
     grid_match = re.search(r'\[\[.*?\]\]', message)
     if grid_match:
@@ -419,7 +420,7 @@ async def _detect_puzzle_request(message: str, message_lower: str) -> Optional[D
             import json
             grid_str = grid_match.group(0)
             grid = json.loads(grid_str)
-            
+
             # Call TRM orchestration
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
@@ -430,19 +431,19 @@ async def _detect_puzzle_request(message: str, message_lower: str) -> Optional[D
                         "instructions": message
                     }
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     return {
                         "tool": "puzzle_solver",
                         "success": data.get("success", False),
                         "solution": data.get("solution", ""),
-                        "message": f"🧩 Solved puzzle using TRM model"
+                        "message": "🧩 Solved puzzle using TRM model"
                     }
-        
+
         except Exception as e:
             logger.error(f"Puzzle solving error: {e}")
-    
+
     return {
         "tool": "puzzle_solver",
         "success": False,
@@ -456,12 +457,12 @@ async def _detect_research_request(message: str, message_lower: str) -> Optional
         "research", "analyze", "investigate", "study", "explore",
         "compare", "evaluate", "review", "plan", "design"
     ]
-    
+
     if not any(keyword in message_lower for keyword in research_keywords):
         return None
-    
+
     logger.info(f"🔬 Research/orchestration detected: {message}")
-    
+
     try:
         # Call orchestration endpoint
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -473,7 +474,7 @@ async def _detect_research_request(message: str, message_lower: str) -> Optional
                     "enable_refiner": True
                 }
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return {
@@ -487,7 +488,7 @@ async def _detect_research_request(message: str, message_lower: str) -> Optional
                 # Fallback: let LLM handle it normally
                 logger.warning(f"Orchestration returned {response.status_code}")
                 return None
-    
+
     except Exception as e:
         logger.warning(f"Orchestration not available: {e}")
         # Return None to let normal LLM handle it
@@ -506,40 +507,40 @@ async def format_tool_response(tool_result: Dict, original_message: str) -> str:
         Formatted natural language response
     """
     import os
-    
+
     if not tool_result.get("success"):
         return f"I tried to use the {tool_result.get('tool', 'tool')} but encountered an error: {tool_result.get('error', 'Unknown error')}"
-    
+
     # Build context for LLM
     tool_name = tool_result.get("tool", "unknown")
-    
+
     if tool_name == "browser":
         prompt = f"User asked: {original_message}\n\n"
         prompt += f"I opened a browser to {tool_result.get('url')}. "
         if tool_result.get("content"):
             prompt += f"Here's what I found:\n\n{tool_result['content'][:1000]}\n\n"
         prompt += "Please provide a helpful summary answering the user's question."
-    
+
     elif tool_name == "macos":
         prompt = f"User asked: {original_message}\n\n"
         prompt += f"I executed: {tool_result.get('action')} "
         if tool_result.get("result"):
             prompt += f"\nResult: {tool_result['result']}"
         prompt += "\n\nPlease confirm what was done in a friendly way."
-    
+
     elif tool_name == "orchestration":
         prompt = f"User asked: {original_message}\n\n"
         prompt += f"I used multiple agents to research this. Summary: {tool_result.get('summary', '')}"
         prompt += "\n\nPlease present this to the user in a clear way."
-    
+
     elif tool_name == "puzzle_solver":
         prompt = f"User asked: {original_message}\n\n"
         prompt += f"I solved the puzzle. Solution: {tool_result.get('solution', '')}"
         prompt += "\n\nPlease explain the solution clearly."
-    
+
     else:
         return tool_result.get("message", "Task completed")
-    
+
     # Get LLM to format the response
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -552,14 +553,14 @@ async def format_tool_response(tool_result: Dict, original_message: str) -> str:
                     "stream": False
                 }
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 ai_response = data.get("response", "")
                 return f"{tool_result.get('message', '')}\n\n{ai_response}"
-    
+
     except Exception as e:
         logger.warning(f"LLM formatting failed: {e}")
-    
+
     return tool_result.get("message", "Task completed")
 
