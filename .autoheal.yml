@@ -1,0 +1,46 @@
+# Auto-heal configuration for autonomous error correction
+# Defines patterns to detect and fix automatically
+
+version: "1.0"
+
+rules:
+  - name: "fix_missing_imports"
+    pattern: "ModuleNotFoundError|ImportError|No module named"
+    action: "add_import"
+    severity: "high"
+    auto_fix: true
+
+  - name: "fix_undefined_variables"
+    pattern: "NameError|undefined|not defined"
+    action: "define_variable"
+    severity: "medium"
+    auto_fix: true
+
+  - name: "fix_type_errors"
+    pattern: "TypeError|type.*expected"
+    action: "type_correction"
+    severity: "medium"
+    auto_fix: false
+
+  - name: "fix_attribute_errors"
+    pattern: "AttributeError|has no attribute"
+    action: "attribute_check"
+    severity: "low"
+    auto_fix: false
+
+  - name: "fix_connection_errors"
+    pattern: "Connection refused|timeout|unreachable"
+    action: "service_restart"
+    severity: "high"
+    auto_fix: false
+
+thresholds:
+  max_auto_fixes: 10
+  require_approval: false
+  log_all: true
+
+output:
+  summary: "artifacts/auto-heal-summary.txt"
+  detailed_log: "artifacts/autoheal.log"
+  metrics: "artifacts/autoheal-metrics.json"
+

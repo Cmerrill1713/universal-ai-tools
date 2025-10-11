@@ -35,6 +35,16 @@ notify:
 test: smoke sentry validate validate-all
 	@echo "✅ All tests passed"
 
+# Auto-heal (dry run)
+heal-dry:
+	@echo "🔧 Running auto-heal (DRY RUN)..."
+	@python3 scripts/auto_heal.py --dry-run
+
+# Auto-heal (apply fixes)
+heal:
+	@echo "🔧 Running auto-heal (APPLY FIXES)..."
+	@python3 scripts/auto_heal.py
+
 # "Boringly green" check (run anytime, anywhere)
 green: sentry validate validate-all contract
 	@echo "════════════════════════════════════════════════════════════════════════════════"
