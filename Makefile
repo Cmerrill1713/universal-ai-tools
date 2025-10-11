@@ -1,4 +1,4 @@
-.PHONY: verify smoke test clean
+.PHONY: verify smoke test clean sentry
 
 BASE ?= http://localhost:8013
 
@@ -8,7 +8,10 @@ verify:
 smoke:
 	python3 scripts/import_smoke.py && python3 scripts/check_endpoints.py
 
-test: smoke verify
+sentry:
+	@BASE=$(BASE) python3 scripts/error_sentry.py && echo "✅ No 500 errors on $(BASE)"
+
+test: smoke verify sentry
 	@echo "✅ All tests passed"
 
 clean:
