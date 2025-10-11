@@ -1,412 +1,52 @@
-<<<<<<< HEAD
-# =====================================
-# Node.js & TypeScript
-# =====================================
+# Node / web
 node_modules/
-dist/
-build/
-*.js.map
-*.d.ts.map
-.npm
-.cache/
-.pids/
-=======
-# Build outputs
-dist/
-build/
-coverage/
-.nyc_output/
-
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Runtime data
-pids
->>>>>>> fix/stabilize-imports-endpoint-verification
-*.pid
-*.seed
-*.pid.lock
-
-<<<<<<< HEAD
-# TypeScript
-*.tsbuildinfo
-.tsc-cache/
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
-# Environment files
-=======
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# Logs
-logs
-*.log
-
-# Environment variables
->>>>>>> fix/stabilize-imports-endpoint-verification
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-<<<<<<< HEAD
-.env.*.local
-
-# =====================================
-# Python
-# =====================================
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
-
-# =====================================
-# Rust
-# =====================================
-target/
-Cargo.lock
-**/*.rs.bk
-*.pdb
-
-# =====================================
-# Go
-# =====================================
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-vendor/
-go.sum
-
-# Go binaries
-go-api-gateway
-simple-auth-service
-simple-memory-service
-simple-websocket-service
-migrate-to-weaviate
-main
-shared-memory-binary
-
-# =====================================
-# ML Models & Data
-# =====================================
-models/
-*.gguf
-*.bin
-*.pth
-*.h5
-*.pkl
-*.joblib
-*.safetensors
-mlx-vlm/
-ml-fastvlm/
-experiment_results.json
-
-# =====================================
-# IDE & Editors
-# =====================================
-=======
-
-# Cache directories
-.cache/
-.temp/
-.tmp/
-temp/
-tmp/
-
-# IDE and editor files
->>>>>>> fix/stabilize-imports-endpoint-verification
-.vscode/
-.idea/
-*.swp
-*.swo
-<<<<<<< HEAD
-*~
-.DS_Store
-Thumbs.db
-
-# =====================================
-# Xcode & Swift
-# =====================================
-xcuserdata/
-*.xcuserstate
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
-timeline.xctimeline
-playground.xcworkspace
-.build/
-DerivedData/
-*.xcodeproj/xcuserdata/
-*.xcworkspace/xcuserdata/
-Carthage/Build/
-
-# =====================================
-# Testing & Coverage
-# =====================================
-coverage/
-*.lcov
-.nyc_output
-test-results/
-playwright-report/
-playwright/.cache/
-
-# =====================================
-# Documentation (Auto-generated)
-# =====================================
-docs/api/
-typedoc/
-
-# =====================================
-# Temporary files
-# =====================================
-tmp/
-temp/
-.tmp/
-=======
->>>>>>> fix/stabilize-imports-endpoint-verification
-*.tmp
-*.bak
-*.backup
-*.orig
-<<<<<<< HEAD
-
-# =====================================
-# Docker
-# =====================================
-docker-compose.override.yml
-.dockerignore
-
-# =====================================
-# Database
-# =====================================
-*.sqlite
-*.sqlite3
-*.db
-data/
-
-# =====================================
-# Benchmarks & Reports
-# =====================================
-benchmarks/
-reports/
-*-report.json
-*-report.md
-performance-*.json
-benchmark-*.json
-
-# =====================================
-# Deployment & Build Artifacts
-# =====================================
-deployment/vision-manager/.env
-deployment/vision-manager/results/
-modern-frontend/.cache/
-modern-frontend/dist/
-modern-frontend/.dev-server.pid
-assets/
-backup-files/
-
-# =====================================
-# Submodules (if not needed)
-# =====================================
-mcp-servers/
-projects/NewTradingBot/mlx-examples/
-projects/NewTradingBot/phi-2/
-
-# =====================================
-# iOS/macOS specific
-# =====================================
-ios-client/
-macos-client/
-
-# =====================================
-# Security (Never commit these)
-# =====================================
-*.pem
-*.key
-*.cert
-*.crt
-private/
-secrets/
-vault/
-
-# =====================================
-# Package manager locks (optional)
-# =====================================
-# Uncomment if you want to ignore lock files
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
-# Large build artifacts and packages
-target/
-node_modules/
-UniversalAIToolsMacPackage/
-UniversalAIToolsPackage/
-universal-ai-tools/
-python-services/*/venv/
-python-services/*/__pycache__/
-*.log
-=======
-*.rej
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-Thumbs.db
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# AI/ML tool directories
-.cursor/
-.continue/
-.codeium/
-.copilot/
-.anthropic/
-.openai/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Certificates
-*.pem
-*.key
-*.crt
-
-# Docker
-.dockerignore
-Dockerfile.dev
-
-# Testing
-.nyc_output/
-test-results/
-playwright-report/
-
-# Misc
-*.tgz
-*.tar.gz
-*.zip
-*.7z
-*.rar
-
-# Local development
-.local/
-.history/
-.turbo/
 .next/
-.nuxt/
-.vuepress/dist/
-.serverless/
-.fusebox/
+dist/
+build/
 
-# Package manager lock files (optional - uncomment if you want to ignore them)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
-
-# TypeScript
-*.tsbuildinfo
-
-# ESLint
-.eslintcache
-
-# Prettier
-.prettierignore
-
-# Husky
-.husky/_/
-
-# Local configuration
-config.local.json
-settings.local.json
-
-# Runtime directories
-runtime/
-tmp/
-temp/
-
-# Claude context files
-.claude-context/
-# Embedded git repositories (models)
-models/agents/LFM2-1.2B-bf16/
-models/tts/Kokoro-82M/
-
-# Gitleaks
-gitleaks-report.json
-gitleaks-report.sarif
-gitleaks-temp.json
-.gitleaks-baseline.json
-.secrets.baseline
-
-# Generated test and report files
-COMPREHENSIVE_TEST_RESULTS.json
-FAT_EXECUTION_REPORT.md
-FINAL_PRODUCTION_READINESS_REPORT.md
-SWIFT_FAT_TEST_PLAN.md
-SWIFT_INTEGRATION_SUMMARY.md
-comprehensive-test-suite.cjs
-typescript-error-report.json
-fatp-report.json
-*-test-*.mjs
-*-test-*.cjs
-*-test-*.js
-test-*.mjs
-test-*.cjs
-test-auth-direct.mjs
-test-jwt-auth.js
-
-# Migration cleanup files
-MIGRATION_CLEANUP_PLAN.md
-
-# Generated documentation
-*_SUMMARY.md
-*_REPORT.md
-*_ANALYSIS.md
-models/
-target/
+# Python
 __pycache__/
-*.dmg
-*.app/
-UniversalAIToolsMac.xcodeproj/
-UniversalAIToolsMac.xcworkspace/
-UniversalAIToolsMacPackage/
-UniversalAIToolsMacUITests/
-UniversalAIToolsMac/
-.build/
+*.pyc
+.venv/
+.env
+.env.*
+*.egg-info/
+
+# Swift / Xcode
+DerivedData/
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+*.xcuserdatad/
+*.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# Go / Rust cache
 target/
-*.pcm
-*.rlib
-*.rmeta
->>>>>>> fix/stabilize-imports-endpoint-verification
+*.prof
+coverage/
+
+# Docker & local
+docker-data/
+*.log
+*.tmp
+.tmp/
+.cache/
+
+# Artifacts & datasets
+artifacts/
+*.zip
+*.tar
+*.tar.gz
+*.sqlite
+*.db
+*.csv
+*.parquet
+
+# Models / weights (use LFS)
+models/
+checkpoints/
+*.pt
+*.bin
+*.safetensors
+
+# OS noise
+.DS_Store
+Thumbs.db
