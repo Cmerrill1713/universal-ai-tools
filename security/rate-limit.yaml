@@ -1,0 +1,30 @@
+# Rate Limiting Configuration
+# Implemented via Redis + middleware
+
+rate_limits:
+  global:
+    requests_per_minute: 1000
+    burst: 100
+  
+  per_user:
+    requests_per_minute: 100
+    burst: 20
+  
+  per_endpoint:
+    /chat:
+      requests_per_minute: 60
+      burst: 10
+    /api/models:
+      requests_per_minute: 30
+      burst: 5
+    /api/orchestration/execute:
+      requests_per_minute: 10
+      burst: 2
+  
+  # Bypass for health checks
+  bypass:
+    - /health
+    - /metrics
+    - /readyz
+    - /livez
+
