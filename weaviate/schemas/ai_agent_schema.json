@@ -1,0 +1,194 @@
+{
+  "classes": [
+    {
+      "class": "AIMemory",
+      "description": "Agent memories and learned patterns",
+      "vectorizer": "none",
+      "properties": [
+        {
+          "name": "serviceId",
+          "dataType": ["string"],
+          "description": "Service or agent identifier"
+        },
+        {
+          "name": "memoryType",
+          "dataType": ["string"],
+          "description": "Type of memory (conversation, pattern, context)"
+        },
+        {
+          "name": "content",
+          "dataType": ["text"],
+          "description": "Memory content"
+        },
+        {
+          "name": "metadata",
+          "dataType": ["text"],
+          "description": "Additional metadata as JSON string"
+        },
+        {
+          "name": "timestamp",
+          "dataType": ["date"],
+          "description": "When memory was created"
+        },
+        {
+          "name": "expiresAt",
+          "dataType": ["date"],
+          "description": "Optional expiration date"
+        }
+      ]
+    },
+    {
+      "class": "AIContext",
+      "description": "User preferences and agent contexts",
+      "vectorizer": "none",
+      "properties": [
+        {
+          "name": "contextType",
+          "dataType": ["string"],
+          "description": "Type of context (user_preference, agent_state)"
+        },
+        {
+          "name": "contextKey",
+          "dataType": ["string"],
+          "description": "Unique key for this context"
+        },
+        {
+          "name": "content",
+          "dataType": ["text"],
+          "description": "Context data as JSON string"
+        },
+        {
+          "name": "createdAt",
+          "dataType": ["date"]
+        },
+        {
+          "name": "updatedAt",
+          "dataType": ["date"]
+        }
+      ]
+    },
+    {
+      "class": "AICustomTool",
+      "description": "Custom tools created by agents",
+      "vectorizer": "none",
+      "properties": [
+        {
+          "name": "toolName",
+          "dataType": ["string"],
+          "description": "Unique tool name"
+        },
+        {
+          "name": "description",
+          "dataType": ["text"],
+          "description": "What this tool does"
+        },
+        {
+          "name": "implementationType",
+          "dataType": ["string"],
+          "description": "python | javascript | shell | api"
+        },
+        {
+          "name": "implementation",
+          "dataType": ["text"],
+          "description": "Tool implementation code"
+        },
+        {
+          "name": "inputSchema",
+          "dataType": ["text"],
+          "description": "JSON schema for inputs"
+        },
+        {
+          "name": "outputSchema",
+          "dataType": ["text"],
+          "description": "JSON schema for outputs"
+        },
+        {
+          "name": "metadata",
+          "dataType": ["text"],
+          "description": "Additional metadata as JSON string"
+        },
+        {
+          "name": "createdBy",
+          "dataType": ["string"],
+          "description": "Agent that created this tool"
+        },
+        {
+          "name": "createdAt",
+          "dataType": ["date"]
+        }
+      ]
+    },
+    {
+      "class": "AIAgentLog",
+      "description": "Agent activity and execution logs",
+      "vectorizer": "none",
+      "properties": [
+        {
+          "name": "agentName",
+          "dataType": ["string"]
+        },
+        {
+          "name": "action",
+          "dataType": ["string"]
+        },
+        {
+          "name": "request",
+          "dataType": ["text"]
+        },
+        {
+          "name": "response",
+          "dataType": ["text"],
+          "description": "Response data as JSON string"
+        },
+        {
+          "name": "success",
+          "dataType": ["boolean"]
+        },
+        {
+          "name": "latencyMs",
+          "dataType": ["int"]
+        },
+        {
+          "name": "errorMessage",
+          "dataType": ["text"]
+        },
+        {
+          "name": "userId",
+          "dataType": ["string"]
+        },
+        {
+          "name": "createdAt",
+          "dataType": ["date"]
+        }
+      ]
+    },
+    {
+      "class": "LearnedPattern",
+      "description": "Successful fixes, features, and patterns learned",
+      "vectorizer": "none",
+      "properties": [
+        {
+          "name": "title",
+          "dataType": ["string"]
+        },
+        {
+          "name": "description",
+          "dataType": ["text"]
+        },
+        {
+          "name": "tags",
+          "dataType": ["string[]"]
+        },
+        {
+          "name": "successRate",
+          "dataType": ["number"]
+        },
+        {
+          "name": "timestamp",
+          "dataType": ["date"]
+        }
+      ]
+    }
+  ]
+}
+

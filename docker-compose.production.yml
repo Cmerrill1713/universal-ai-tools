@@ -14,9 +14,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=9999
-      - SUPABASE_URL=${SUPABASE_URL:-http://supabase:54321}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - WEAVIATE_URL=${WEAVIATE_URL:-http://weaviate:8080}
+      - WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-}
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - DEV_API_KEY=${DEV_API_KEY}
@@ -27,7 +26,8 @@ services:
       - PROMETHEUS_METRICS_PORT=9090
     depends_on:
       - redis
-      - supabase
+      - weaviate
+      - postgres
       - ollama
     volumes:
       - ./logs:/app/logs
@@ -42,24 +42,50 @@ services:
       retries: 3
       start_period: 40s
 
-  # Supabase Database
-  supabase:
-    image: supabase/supabase:latest
-    container_name: universal-supabase
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: athena-postgres
     restart: unless-stopped
     ports:
-      - '54321:54321'
+      - '5432:5432'
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-postgres}
-      - SUPABASE_JWT_SECRET=${JWT_SECRET}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - POSTGRES_DB=${POSTGRES_DB:-athena}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
     volumes:
-      - supabase_data:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - universal-ai-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Weaviate Vector Database
+  weaviate:
+    image: semitechnologies/weaviate:1.27.1
+    container_name: athena-weaviate
+    restart: unless-stopped
+    ports:
+      - '8090:8080'
+      - '50051:50051'
+    environment:
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+      - ENABLE_MODULES=text2vec-transformers,generative-openai,qna-openai
+      - CLUSTER_HOSTNAME=node1
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - universal-ai-network
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8080/v1/.well-known/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
@@ -158,7 +184,8 @@ services:
       - proxy
 
 volumes:
-  supabase_data:
+  postgres_data:
+  weaviate_data:
   redis_data:
   ollama_data:
   prometheus_data:
