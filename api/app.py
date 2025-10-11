@@ -2,7 +2,7 @@
 FastAPI application with routers
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import logging
 
@@ -25,6 +25,19 @@ app = FastAPI(
     description="Python API with path configuration demo",
     version="1.0.0"
 )
+
+# Error handling middleware
+@app.middleware("http")
+async def error_box(req: Request, call_next):
+    """Catch all unhandled exceptions and return proper JSON"""
+    try:
+        return await call_next(req)
+    except Exception as e:
+        logger.error(f"Unhandled exception: {type(e).__name__}: {e}", exc_info=True)
+        return JSONResponse(
+            {"error": type(e).__name__, "detail": str(e)}, 
+            status_code=500
+        )
 
 # Include routers
 app.include_router(health.router, tags=["health"])
