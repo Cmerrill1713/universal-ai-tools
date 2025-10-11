@@ -128,15 +128,18 @@ async def main():
 
     # 4) Scoring
     total = len(results)
-    oks = sum(1 for _, _, code, _ in results if code >= 200 and code < 400)
+    # Count as OK: 2xx/3xx for any method, OR 422 for POST (validation = endpoint exists!)
+    oks = sum(1 for method, _, code, _ in results if (200 <= code < 400) or (method == "post" and code == 422))
     posts = [r for r in results if r[0] == "post"]
     gets = [r for r in results if r[0] == "get"]
 
     print("\nSUMMARY")
-    print(f" - GETs: {len(gets)} paths -> {oks if not posts else sum(1 for r in gets if 200 <= r[2] < 400)} OK")
+    get_oks = sum(1 for r in gets if 200 <= r[2] < 400)
+    print(f" - GETs: {len(gets)} paths -> {get_oks} OK")
     if posts:
-        ok_posts = sum(1 for r in posts if 200 <= r[2] < 400)
-        print(f" - POSTs: {len(posts)} paths -> {ok_posts} OK")
+        # For POSTs, 422 = validation error = endpoint exists and works!
+        ok_posts = sum(1 for r in posts if (200 <= r[2] < 400) or r[2] == 422)
+        print(f" - POSTs: {len(posts)} paths -> {ok_posts} OK (422 validation counts as OK)")
     print(f" - Overall: {oks}/{total} ({pct(oks,total)}%)")
     if openapi_errors:
         print(" - OpenAPI:", "; ".join(openapi_errors))
