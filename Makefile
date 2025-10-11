@@ -1,9 +1,9 @@
-.PHONY: verify smoke test sentry validate validate-all notify clean
+.PHONY: verify smoke test sentry validate validate-all notify contract green clean
 
 BASE ?= http://localhost:8013
 PYTHONPATH := $(PWD)/src:$(PWD)/api:$(PWD)
 
-# Quick 500 check on critical pages
+# Quick 500 check on critical pages (with retry backoff)
 sentry:
 	@BASE=$(BASE) python3 scripts/error_sentry.py && echo "✅ No 500 errors on $(BASE)"
 
@@ -14,6 +14,10 @@ validate:
 # Full validation including POST endpoints
 validate-all:
 	PYTHONPATH=$(PYTHONPATH) python3 -m scripts.independent_verifier_v2 --base $(BASE) --include-posts
+
+# Contract test for /chat endpoint
+contract:
+	@python3 scripts/contract_chat.py $(BASE) && echo "✅ /chat contract validated"
 
 # Legacy verifier (kept for compatibility)
 verify:
@@ -30,6 +34,12 @@ notify:
 # Complete test suite
 test: smoke sentry validate validate-all
 	@echo "✅ All tests passed"
+
+# "Boringly green" check (run anytime, anywhere)
+green: sentry validate validate-all contract
+	@echo "════════════════════════════════════════════════════════════════════════════════"
+	@echo "                        🟢 BORINGLY GREEN - ALL CHECKS PASS"
+	@echo "════════════════════════════════════════════════════════════════════════════════"
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
