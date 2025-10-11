@@ -1,0 +1,102 @@
+# Unified Python Service Dockerfile - Standard Template
+# Use this as the base for all Python microservices
+
+FROM python:3.11-slim AS base
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    g++ \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python environment variables (STANDARDIZED)
+ENV PYTHONPATH=/app/src:/app/api:/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONIOENCODING=utf-8
+
+# ========================================
+# Dependencies stage
+# ========================================
+FROM base AS dependencies
+
+# Copy requirements
+COPY requirements*.txt /app/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt || \
+    pip install --no-cache-dir -r requirements-api.txt || \
+    echo "No requirements file found"
+
+# ========================================
+# Development stage
+# ========================================
+FROM base AS development
+
+# Copy dependencies from deps stage
+COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=dependencies /usr/local/bin /usr/local/bin
+
+# Copy sitecustomize.py FIRST (critical for imports)
+COPY sitecustomize.py /app/sitecustomize.py
+
+# Verify sitecustomize loads
+RUN python -c "import sitecustomize; print('✅ sitecustomize.py loaded')"
+
+# Copy application code
+COPY src/ /app/src/
+COPY api/ /app/api/
+COPY scripts/ /app/scripts/
+
+# Expose port (default 8000, override in docker-compose)
+EXPOSE 8000
+
+# Development command with hot reload
+CMD ["python", "-m", "uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ========================================
+# Production stage
+# ========================================
+FROM base AS production
+
+# Copy dependencies from deps stage
+COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=dependencies /usr/local/bin /usr/local/bin
+
+# Copy sitecustomize.py FIRST
+COPY sitecustomize.py /app/sitecustomize.py
+
+# Verify sitecustomize loads
+RUN python -c "import sitecustomize; print('✅ sitecustomize.py loaded')"
+
+# Copy application code
+COPY src/ /app/src/
+COPY api/ /app/api/
+
+# Create non-root user
+RUN useradd -m -u 1000 apiuser && \
+    chown -R apiuser:apiuser /app
+
+USER apiuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["python", "-m", "uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+
+# Labels
+LABEL org.opencontainers.image.title="Universal AI Tools - Python Service"
+LABEL org.opencontainers.image.description="Standardized Python microservice"
+LABEL org.opencontainers.image.version="1.0.0"
+
