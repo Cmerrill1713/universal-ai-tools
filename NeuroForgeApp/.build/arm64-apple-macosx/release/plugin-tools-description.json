@@ -1,0 +1,414 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.NeuroForgeApp-arm64-apple-macosx15.0-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/sources",
+      "importPath" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ChatService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ImagePicker.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LayoutManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LoginView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ProfileManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ToggleButton.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/VoiceRecorder.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/WakeWordDetector.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "NeuroForgeApp",
+      "moduleOutputPath" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/Modules/NeuroForgeApp.swiftmodule",
+      "objects" : [
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ChatService.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ContentView.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ImagePicker.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/LayoutManager.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/LoginView.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ProfileManager.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ToggleButton.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/VoiceRecorder.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/WakeWordDetector.swift.o",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/main.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-whole-module-optimization",
+        "-num-threads",
+        "24",
+        "-serialize-diagnostics",
+        "-O",
+        "-j24",
+        "-DSWIFT_PACKAGE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "NeuroForgeApp_main",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "neuroforgeapp"
+      ],
+      "outputFileMapPath" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ChatService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ImagePicker.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/LayoutManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/LoginView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ProfileManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ToggleButton.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/VoiceRecorder.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/WakeWordDetector.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/Modules/NeuroForgeApp.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ChatService.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ContentView.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ImagePicker.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LayoutManager.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LoginView.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ProfileManager.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ToggleButton.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/VoiceRecorder.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/WakeWordDetector.swift",
+        "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/main.swift"
+      ],
+      "tempsPath" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build",
+      "wholeModuleOptimization" : true
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "NeuroForgeApp" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "NeuroForgeApp",
+      "-package-name",
+      "neuroforgeapp",
+      "-c",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ChatService.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ContentView.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ImagePicker.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LayoutManager.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LoginView.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ProfileManager.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ToggleButton.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/VoiceRecorder.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/WakeWordDetector.swift",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/main.swift",
+      "-I",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-whole-module-optimization",
+      "-num-threads",
+      "24",
+      "-serialize-diagnostics",
+      "-O",
+      "-j24",
+      "-DSWIFT_PACKAGE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "NeuroForgeApp_main",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "neuroforgeapp",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "NeuroForgeApp" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ChatService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ImagePicker.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LayoutManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LoginView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ProfileManager.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ToggleButton.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/VoiceRecorder.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/WakeWordDetector.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/main.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/sources"
+    },
+    "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ChatService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ImagePicker.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/LayoutManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/LoginView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ProfileManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/ToggleButton.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/VoiceRecorder.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/WakeWordDetector.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.build/main.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/NeuroForgeApp.product/Objects.LinkFileList"
+    },
+    "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

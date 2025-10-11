@@ -1,0 +1,40 @@
+{
+  "": {
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/master.swiftdeps"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Tests/AppUITests/BackendProbeFromFrontendTests.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BackendProbeFromFrontendTests.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BackendProbeFromFrontendTests.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BackendProbeFromFrontendTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BackendProbeFromFrontendTests.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BackendProbeFromFrontendTests.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Tests/AppUITests/BootAndHealthTests.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BootAndHealthTests.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BootAndHealthTests.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BootAndHealthTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BootAndHealthTests.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/BootAndHealthTests.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Tests/AppUITests/ChatBehaviorTests.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/ChatBehaviorTests.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/ChatBehaviorTests.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/ChatBehaviorTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/ChatBehaviorTests.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/ChatBehaviorTests.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Tests/AppUITests/RAGTests.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/RAGTests.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/RAGTests.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/RAGTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/RAGTests.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/RAGTests.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Tests/AppUITests/UITestHelpers.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/UITestHelpers.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/UITestHelpers.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/UITestHelpers~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/UITestHelpers.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/AppUITests.build/UITestHelpers.dia"
+  }
+}

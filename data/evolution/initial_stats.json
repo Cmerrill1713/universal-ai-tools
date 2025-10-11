@@ -1,0 +1,15 @@
+{
+  "total_routings": 958,
+  "success_rate": 0.9352818371607515,
+  "avg_latency": 1.5352976761816224,
+  "backends_used": [
+    "ai_assistant"
+  ],
+  "task_types": [
+    "research",
+    "code",
+    "task_execution",
+    "general",
+    "analysis"
+  ]
+}

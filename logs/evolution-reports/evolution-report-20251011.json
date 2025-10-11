@@ -1,0 +1,32 @@
+{
+  "timestamp": "2025-10-11T02:07:14.835814",
+  "date": "2025-10-11",
+  "analysis": {
+    "system_stats": {
+      "status": "active",
+      "population_size": 12,
+      "survivors": 6,
+      "current_generation": 0,
+      "total_prompts_optimized": 12,
+      "timestamp": "2025-10-11T07:07:14.854583"
+    },
+    "performance": {
+      "total_requests": 0,
+      "success_rate": 0,
+      "avg_latency": 0,
+      "analysis": "System operational"
+    }
+  },
+  "recommendations": [
+    {
+      "id": "rec_1",
+      "type": "improve_routing",
+      "priority": "high",
+      "reason": "Success rate is 0.0%, below target 90%",
+      "action": "Review and optimize routing keywords",
+      "impact": "medium",
+      "approved": false
+    }
+  ],
+  "status": "pending_review"
+}

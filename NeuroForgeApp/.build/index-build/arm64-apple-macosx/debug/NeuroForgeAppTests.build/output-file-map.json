@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/NeuroForgeAppTests.build/master.swiftdeps"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Tests/NeuroForgeAppTests/APIClientTests.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/NeuroForgeAppTests.build/APIClientTests.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/NeuroForgeAppTests.build/APIClientTests.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/NeuroForgeAppTests.build/APIClientTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/NeuroForgeAppTests.build/APIClientTests.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/index-build/arm64-apple-macosx/debug/NeuroForgeAppTests.build/APIClientTests.dia"
+  }
+}

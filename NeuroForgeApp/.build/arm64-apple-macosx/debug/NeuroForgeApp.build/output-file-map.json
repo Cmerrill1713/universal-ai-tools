@@ -1,0 +1,173 @@
+{
+  "": {
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/master.swiftdeps"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ChatService.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatService.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatService.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatService~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatService.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatService.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Components/ChatComposer.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatComposer.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatComposer.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatComposer~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatComposer.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ChatComposer.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Components/KeyCatchingTextEditor.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/KeyCatchingTextEditor.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/KeyCatchingTextEditor.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/KeyCatchingTextEditor~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/KeyCatchingTextEditor.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/KeyCatchingTextEditor.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Config/APIBase.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIBase.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIBase.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIBase~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIBase.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIBase.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ContentView.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ContentView.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ContentView.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ContentView~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ContentView.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ContentView.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Diagnostics/DiagnosticsOverlay.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/DiagnosticsOverlay.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/DiagnosticsOverlay.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/DiagnosticsOverlay~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/DiagnosticsOverlay.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/DiagnosticsOverlay.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Diagnostics/ErrorCenter.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ErrorCenter.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ErrorCenter.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ErrorCenter~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ErrorCenter.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ErrorCenter.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Features/HealthBanner.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/HealthBanner.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/HealthBanner.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/HealthBanner~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/HealthBanner.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/HealthBanner.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Features/QABackendProbeView.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/QABackendProbeView.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/QABackendProbeView.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/QABackendProbeView~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/QABackendProbeView.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/QABackendProbeView.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Features/SimpleChatView.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleChatView.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleChatView.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleChatView~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleChatView.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleChatView.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Features/SimpleDebugView.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleDebugView.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleDebugView.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleDebugView~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleDebugView.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleDebugView.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Features/SimpleSettingsView.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleSettingsView.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleSettingsView.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleSettingsView~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleSettingsView.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/SimpleSettingsView.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ImagePicker.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ImagePicker.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ImagePicker.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ImagePicker~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ImagePicker.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ImagePicker.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LayoutManager.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LayoutManager.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LayoutManager.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LayoutManager~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LayoutManager.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LayoutManager.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/LoginView.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LoginView.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LoginView.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LoginView~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LoginView.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/LoginView.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Network/APIClient.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIClient.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIClient.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIClient~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIClient.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIClient.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Network/APIError.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIError.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIError.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIError~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIError.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/APIError.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Network/NetworkInterceptor.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/NetworkInterceptor.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/NetworkInterceptor.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/NetworkInterceptor~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/NetworkInterceptor.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/NetworkInterceptor.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ProfileManager.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ProfileManager.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ProfileManager.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ProfileManager~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ProfileManager.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ProfileManager.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/ToggleButton.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ToggleButton.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ToggleButton.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ToggleButton~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ToggleButton.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/ToggleButton.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/Utils/FocusHelper.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/FocusHelper.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/FocusHelper.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/FocusHelper~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/FocusHelper.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/FocusHelper.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/VoiceRecorder.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/VoiceRecorder.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/VoiceRecorder.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/VoiceRecorder~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/VoiceRecorder.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/VoiceRecorder.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/WakeWordDetector.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/WakeWordDetector.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/WakeWordDetector.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/WakeWordDetector~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/WakeWordDetector.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/WakeWordDetector.dia"
+  },
+  "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/Sources/NeuroForgeApp/main.swift": {
+    "dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/main.d",
+    "object": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/main.swift.o",
+    "swiftmodule": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/main.swiftdeps",
+    "diagnostics": "/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/NeuroForgeApp/.build/arm64-apple-macosx/debug/NeuroForgeApp.build/main.dia"
+  }
+}
