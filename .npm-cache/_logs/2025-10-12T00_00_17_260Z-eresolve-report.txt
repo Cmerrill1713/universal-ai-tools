@@ -1,0 +1,37 @@
+'Log files:
+/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/.npm-cache/_logs/2025-10-12T00_00_17_260Z-debug-0.log
+
+# npm resolution error report
+
+While resolving: @typescript-eslint/eslint-plugin@7.18.0
+Found: eslint@9.37.0
+node_modules/eslint
+  dev eslint@"^9.26.0" from the root project
+  peer eslint@"^6.0.0 || ^7.0.0 || >=8.0.0" from @eslint-community/eslint-utils@4.9.0
+  node_modules/@eslint-community/eslint-utils
+    @eslint-community/eslint-utils@"^4.4.0" from @typescript-eslint/utils@7.18.0
+    node_modules/@typescript-eslint/utils
+      @typescript-eslint/utils@"7.18.0" from @typescript-eslint/eslint-plugin@7.18.0
+      node_modules/@typescript-eslint/eslint-plugin
+        dev @typescript-eslint/eslint-plugin@"^7.16.1" from the root project
+      @typescript-eslint/utils@"7.18.0" from @typescript-eslint/type-utils@7.18.0
+      node_modules/@typescript-eslint/type-utils
+        @typescript-eslint/type-utils@"7.18.0" from @typescript-eslint/eslint-plugin@7.18.0
+        node_modules/@typescript-eslint/eslint-plugin
+          dev @typescript-eslint/eslint-plugin@"^7.16.1" from the root project
+    @eslint-community/eslint-utils@"^4.8.0" from eslint@9.37.0
+
+Could not resolve dependency:
+peer eslint@"^8.56.0" from @typescript-eslint/eslint-plugin@7.18.0
+node_modules/@typescript-eslint/eslint-plugin
+  dev @typescript-eslint/eslint-plugin@"^7.16.1" from the root project
+
+Conflicting peer dependency: eslint@8.57.1
+node_modules/eslint
+  peer eslint@"^8.56.0" from @typescript-eslint/eslint-plugin@7.18.0
+  node_modules/@typescript-eslint/eslint-plugin
+    dev @typescript-eslint/eslint-plugin@"^7.16.1" from the root project
+
+Fix the upstream dependency conflict, or retry
+this command with --force or --legacy-peer-deps
+to accept an incorrect (and potentially broken) dependency resolution.

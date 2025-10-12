@@ -77,3 +77,24 @@ lint-fix:
 	@echo "🧹 Auto-fixing Python linting..."
 	@ruff check . --fix || true
 	@ruff format . || true
+
+# Backup volumes safely
+backup-volumes:
+	@echo "💾 Backing up Docker volumes..."
+	@mkdir -p ~/backups/docker-volumes
+	@for v in $$(docker volume ls -q); do \
+		echo "  Backing up volume: $$v"; \
+		docker run --rm -v $$v:/v -v $$HOME/backups/docker-volumes:/b alpine \
+			sh -c "cd /v && tar -czf /b/$${v}_$$(date +%F).tgz . 2>/dev/null || true"; \
+	done
+	@echo "✅ Volumes backed up to ~/backups/docker-volumes/"
+
+# Local-only setup
+local-mode:
+	@./scripts/setup_local_mode.sh
+
+# Offline build (Python)
+offline-install:
+	@echo "📦 Installing from offline cache..."
+	@pip install --no-index --find-links ./wheelhouse -r requirements.txt
+	@npm ci --cache ./.npm-cache --prefer-offline
