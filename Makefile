@@ -98,3 +98,14 @@ offline-install:
 	@echo "📦 Installing from offline cache..."
 	@pip install --no-index --find-links ./wheelhouse -r requirements.txt
 	@npm ci --cache ./.npm-cache --prefer-offline
+
+# Grafana dashboard import
+dash-import:
+	@bash scripts/monitoring/import_grafana_dashboard.sh
+
+# Initialize routing outcomes database
+init-routing-db:
+	@echo "🗄️  Creating routing_outcomes table..."
+	@docker exec -i athena-postgres psql -U postgres -d athena < sql/routing_outcomes_table.sql
+	@docker exec -i athena-postgres psql -U postgres -d athena < sql/routing_outcomes_indexes.sql
+	@echo "✅ Database initialized"

@@ -1,0 +1,55 @@
+{
+  "title": "TRM Evolution Overview",
+  "editable": true,
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "7-Day Success Rate",
+      "gridPos": {"x":0,"y":0,"w":6,"h":5},
+      "targets": [
+        {"expr": "sum(increase(routing_success_total[7d])) / sum(increase(routing_decisions_total[7d]))", "refId": "A"}
+      ],
+      "options": {"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"value","graphMode":"none","justifyMode":"center","orientation":"auto"}
+    },
+    {
+      "type": "bargauge",
+      "title": "Model Share (7d)",
+      "gridPos": {"x":6,"y":0,"w":18,"h":5},
+      "targets": [
+        {"expr": "sum by (model) (increase(routing_decisions_total{model!=\"\"}[7d]))", "refId": "A"}
+      ],
+      "options": {"displayMode":"basic","orientation":"horizontal"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p50 / p95 (ms)",
+      "gridPos": {"x":0,"y":5,"w":12,"h":7},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum(rate(routing_latency_ms_bucket[5m])) by (le))", "refId":"A"},
+        {"expr": "histogram_quantile(0.95, sum(rate(routing_latency_ms_bucket[5m])) by (le))", "refId":"B"}
+      ],
+      "fieldConfig":{"defaults":{"unit":"ms"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Promotions & Acc Lift",
+      "gridPos": {"x":12,"y":5,"w":12,"h":7},
+      "targets": [
+        {"expr": "increase(trm_promotions_total[24h])", "refId":"A"},
+        {"expr": "sum_over_time(trm_accuracy_delta{delta_type=\"route_accuracy\"}[24h])", "refId":"B"}
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Last 20 Promotions",
+      "gridPos": {"x":0,"y":12,"w":24,"h":8},
+      "datasource": {"type":"grafana-simple-json-datasource","uid":"json"},
+      "targets": [{"refId":"A","format":"table","target":"trm_registry_last_20"}]
+    }
+  ]
+}
+

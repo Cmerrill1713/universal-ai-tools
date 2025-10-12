@@ -1,0 +1,48 @@
+groups:
+- name: trm-evolution
+  rules:
+  - alert: TRMAccuracyDrop
+    expr: avg_over_time(trm_accuracy_delta{delta_type="route_accuracy"}[6h]) < 0
+    for: 30m
+    labels:
+      severity: page
+    annotations:
+      summary: "TRM accuracy regression"
+      description: "Average accuracy delta negative over last 6h. Check recent promotions."
+
+  - alert: RoutingSuccessLow
+    expr: (sum(increase(routing_success_total[30m])) / sum(increase(routing_decisions_total[30m]))) < 0.70
+    for: 15m
+    labels:
+      severity: warn
+    annotations:
+      summary: "Routing success below 70%"
+      description: "Success rate dipped below threshold in the last 30m. Investigate routing decisions."
+
+  - alert: LatencyP95High
+    expr: histogram_quantile(0.95, sum(rate(routing_latency_ms_bucket[5m])) by (le)) > 1500
+    for: 10m
+    labels:
+      severity: warn
+    annotations:
+      summary: "p95 latency high"
+      description: "p95 routing latency >1500ms for 10m. Check model performance."
+
+  - alert: NoRoutingActivity
+    expr: rate(routing_decisions_total[10m]) == 0
+    for: 15m
+    labels:
+      severity: warn
+    annotations:
+      summary: "No routing activity detected"
+      description: "Zero routing decisions in 10m window. Service may be down."
+
+  - alert: HighErrorRate
+    expr: (sum(increase(routing_errors_total[15m])) / sum(increase(routing_decisions_total[15m]))) > 0.10
+    for: 10m
+    labels:
+      severity: page
+    annotations:
+      summary: "Routing error rate >10%"
+      description: "More than 10% of routing decisions failing. Check logs."
+
