@@ -38,7 +38,7 @@ services:
     image: openpolicyagent/opa:0.58.0
     container_name: opa-policy-engine
     ports:
-      - "127.0.0.1:8181:8181"
+      - "8181:8181"
     volumes:
       - ./security/policies:/policies
       - ./security/data:/data
@@ -81,7 +81,7 @@ services:
       - FALCO_JSON_OUTPUT=true
       - FALCO_LOG_LEVEL=info
     ports:
-      - "127.0.0.1:5060:5060"  # gRPC server
+      - "5060:5060"  # gRPC server
     command: ["falco", "-c", "/etc/falco/falco.yaml"]
     healthcheck:
       test: ["CMD", "pgrep", "falco"]
@@ -103,7 +103,7 @@ services:
     image: grafana/grafana:10.2.0
     container_name: grafana-grounded
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
@@ -128,7 +128,7 @@ services:
     image: prom/prometheus:v2.49.1
     container_name: prometheus-grounded
     ports:
-      - "127.0.0.1:9091:9090"  # Different port to avoid conflicts
+      - "9091:9090"  # Different port to avoid conflicts
     volumes:
       - ./monitoring/prometheus/prometheus-grounded.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/prometheus/rules:/etc/prometheus/rules
@@ -163,7 +163,7 @@ services:
       dockerfile: Dockerfile
     container_name: ai-metrics-exporter
     ports:
-      - "127.0.0.1:9092:9092"
+      - "9092:9092"
     environment:
       - EXPORT_INTERVAL=10s
       - METRICS_PORT=9092
@@ -189,7 +189,7 @@ services:
     image: grafana/loki:2.9.0
     container_name: loki-grounded
     ports:
-      - "127.0.0.1:3101:3100"  # Different port to avoid conflicts
+      - "3101:3100"  # Different port to avoid conflicts
     volumes:
       - ./monitoring/loki/loki-grounded.yml:/etc/loki/local-config.yaml
       - loki-grounded-data:/loki
@@ -267,7 +267,7 @@ services:
       dockerfile: Dockerfile
     container_name: circuit-breaker
     ports:
-      - "127.0.0.1:8083:8080"
+      - "8083:8080"
     environment:
       - CIRCUIT_BREAKER_THRESHOLD=5
       - TIMEOUT_DURATION=3000ms
@@ -392,7 +392,7 @@ services:
     image: redis:7-alpine
     container_name: redis-cache
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     volumes:
       - redis-data:/data
       - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
@@ -421,7 +421,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-gateway
     ports:
-      - "127.0.0.1:8088:8080"
+      - "8088:8080"
     environment:
       - PORT=8080
       - REDIS_URL=redis://host.docker.internal:6379
@@ -452,7 +452,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-sync
     ports:
-      - "127.0.0.1:8089:8080"
+      - "8089:8080"
     environment:
       - PORT=8080
       - SYNC_INTERVAL=300s
@@ -482,7 +482,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-context
     ports:
-      - "127.0.0.1:8091:8080"  # Different port to avoid Weaviate conflict
+      - "8091:8080"  # Different port to avoid Weaviate conflict
     environment:
       - PORT=8080
       - REDIS_URL=redis://host.docker.internal:6379
@@ -519,7 +519,7 @@ services:
       dockerfile: Dockerfile
     container_name: ai-model-monitor
     ports:
-      - "127.0.0.1:8084:8080"
+      - "8084:8080"
     environment:
       - MODEL_PERFORMANCE_THRESHOLD=0.85
       - DRIFT_DETECTION_ENABLED=true
@@ -548,7 +548,7 @@ services:
       dockerfile: Dockerfile
     container_name: ai-bias-detector
     ports:
-      - "127.0.0.1:8085:8080"
+      - "8085:8080"
     environment:
       - BIAS_THRESHOLD=0.1
       - FAIRNESS_METRICS=demographic_parity,equalized_odds,equal_opportunity
@@ -576,7 +576,7 @@ services:
       dockerfile: Dockerfile
     container_name: ai-audit-trail
     ports:
-      - "127.0.0.1:8086:8080"
+      - "8086:8080"
     environment:
       - AUDIT_RETENTION=7y
       - IMMUTABLE_LOGS=true

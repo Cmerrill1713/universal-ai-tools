@@ -7,7 +7,7 @@ services:
     container_name: athena-backend
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8013:8000"  # Main API port
+      - "8013:8000"  # Main API port
     environment:
       - PYTHONPATH=/app/src:/app:/app/api
       - PYTHONUNBUFFERED=1
@@ -27,7 +27,7 @@ services:
     container_name: athena-evolution
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8014:8005"  # Evolution API port
+      - "8014:8005"  # Evolution API port
     networks:
       - athena-network
     depends_on:
@@ -39,7 +39,7 @@ services:
     container_name: athena-postgres
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     environment:
       POSTGRES_DB: athena
       POSTGRES_USER: athena
@@ -55,7 +55,7 @@ services:
     container_name: athena-redis
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     volumes:
       - athena_redis_data:/data
     networks:
@@ -67,7 +67,7 @@ services:
     container_name: athena-netdata
     restart: unless-stopped
     ports:
-      - "127.0.0.1:19999:19999"
+      - "19999:19999"
     cap_add:
       - SYS_PTRACE
     security_opt:
@@ -89,7 +89,7 @@ services:
     container_name: athena-prometheus
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9090:9090"
+      - "9090:9090"
     volumes:
       - athena_prometheus_data:/prometheus
     networks:
@@ -100,7 +100,7 @@ services:
     container_name: athena-grafana
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3002:3000"  # Grafana on 3002 (3000 reserved for frontend)
+      - "3002:3000"  # Grafana on 3002 (3000 reserved for frontend)
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
@@ -114,7 +114,7 @@ services:
     container_name: athena-node-exporter
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9100:9100"
+      - "9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -127,7 +127,7 @@ services:
     container_name: athena-redis-exporter
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9121:9121"
+      - "9121:9121"
     environment:
       - REDIS_ADDR=redis://athena-redis:6379
     networks:
@@ -138,7 +138,7 @@ services:
     container_name: athena-postgres-exporter
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9187:9187"
+      - "9187:9187"
     environment:
       - DATA_SOURCE_NAME=postgresql://athena:athena123@athena-postgres:5432/athena?sslmode=disable
     networks:

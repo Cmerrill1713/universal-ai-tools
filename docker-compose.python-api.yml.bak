@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.python-api
     container_name: universal-ai-tools-python-api
     ports:
-      - "127.0.0.1:8888:8000"
+      - "8888:8000"
     environment:
       - PYTHONPATH=/app/src:/app:/app/api
       - DEBUG=false

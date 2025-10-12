@@ -13,7 +13,7 @@ services:
     container_name: universal-ai-tools-app
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9999:9999"
+      - "9999:9999"
     environment:
       # Server Configuration
       - NODE_ENV=production
@@ -95,7 +95,7 @@ services:
     restart: unless-stopped
     ports:
 <<<<<<< HEAD
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
 =======
       - '5432:5432'
 >>>>>>> fix/stabilize-imports-endpoint-verification
@@ -126,7 +126,7 @@ services:
     restart: unless-stopped
     ports:
 <<<<<<< HEAD
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
 =======
       - '6379:6379'
 >>>>>>> fix/stabilize-imports-endpoint-verification
@@ -157,7 +157,7 @@ services:
     restart: unless-stopped
     ports:
 <<<<<<< HEAD
-      - "127.0.0.1:11434:11434"
+      - "11434:11434"
 =======
       - '11434:11434'
 >>>>>>> fix/stabilize-imports-endpoint-verification
@@ -198,8 +198,8 @@ services:
     container_name: universal-ai-tools-nginx
     restart: unless-stopped
     ports:
-      - "127.0.0.1:80:80"
-      - "127.0.0.1:443:443"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -223,7 +223,7 @@ services:
     restart: unless-stopped
     ports:
 <<<<<<< HEAD
-      - "127.0.0.1:9090:9090"
+      - "9090:9090"
 =======
       - '9090:9090'
 >>>>>>> fix/stabilize-imports-endpoint-verification
@@ -245,7 +245,7 @@ services:
     restart: unless-stopped
     ports:
 <<<<<<< HEAD
-      - "127.0.0.1:3003:3000"
+      - "3003:3000"
 =======
       - '3003:3000'
 >>>>>>> fix/stabilize-imports-endpoint-verification
@@ -268,7 +268,7 @@ services:
     restart: unless-stopped
     ports:
 <<<<<<< HEAD
-      - "127.0.0.1:5050:80"
+      - "5050:80"
 =======
       - '5050:80'
 >>>>>>> fix/stabilize-imports-endpoint-verification
@@ -289,7 +289,7 @@ services:
     restart: unless-stopped
     ports:
 <<<<<<< HEAD
-      - "127.0.0.1:8081:8081"
+      - "8081:8081"
 =======
       - '8081:8081'
 >>>>>>> fix/stabilize-imports-endpoint-verification

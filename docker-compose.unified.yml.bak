@@ -11,7 +11,7 @@ services:
   #     dockerfile: Dockerfile
   #   container_name: universal-ai-frontend
   #   ports:
-  #     - "127.0.0.1:8080:8080"  # Main frontend port
+  #     - "8080:8080"  # Main frontend port
   #   environment:
   #     - BACKEND_URL=http://localhost:8080
   #     - KNOWLEDGE_GATEWAY_URL=http://knowledge-gateway:8080
@@ -45,7 +45,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-gateway
     ports:
-      - "127.0.0.1:8088:8080"
+      - "8088:8080"
     environment:
       - PORT=8080
       - REDIS_URL=redis://redis:6379
@@ -72,7 +72,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-sync
     ports:
-      - "127.0.0.1:8089:8080"
+      - "8089:8080"
     environment:
       - PORT=8080
       - WEAVIATE_URL=http://weaviate:8080
@@ -97,7 +97,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-context
     ports:
-      - "127.0.0.1:8091:8080"
+      - "8091:8080"
     environment:
       - PORT=8080
       - REDIS_URL=redis://redis:6379
@@ -127,7 +127,7 @@ services:
     image: redis:7-alpine
     container_name: redis-cache
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     volumes:
       - redis-data:/data
       - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
@@ -151,7 +151,7 @@ services:
     image: grafana/grafana:10.2.0
     container_name: grafana-unified
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -170,7 +170,7 @@ services:
     image: prom/prometheus:2.47.0
     container_name: prometheus-unified
     ports:
-      - "127.0.0.1:9090:9090"
+      - "9090:9090"
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -191,7 +191,7 @@ services:
       dockerfile: Dockerfile
     container_name: ai-metrics-exporter
     ports:
-      - "127.0.0.1:9092:9092"
+      - "9092:9092"
     environment:
       - EXPORT_INTERVAL=30s
       - LOG_LEVEL=info
@@ -209,8 +209,8 @@ services:
     image: semitechnologies/weaviate:1.21.0
     container_name: universal-ai-tools-weaviate
     ports:
-      - "127.0.0.1:8090:8080"
-      - "127.0.0.1:50051:50051"
+      - "8090:8080"
+      - "50051:50051"
     environment:
       - QUERY_DEFAULTS_LIMIT=25
       - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true

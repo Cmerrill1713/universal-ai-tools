@@ -10,8 +10,8 @@ services:
     image: semitechnologies/weaviate:1.21.8
     container_name: weaviate-grounded
     ports:
-      - "127.0.0.1:8080:8080"
-      - "127.0.0.1:50051:50051"
+      - "8080:8080"
+      - "50051:50051"
     environment:
       - QUERY_DEFAULTS_LIMIT=25
       - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
@@ -36,7 +36,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-ingestion
     ports:
-      - "127.0.0.1:8081:8081"
+      - "8081:8081"
     environment:
       - WEAVIATE_URL=http://weaviate-grounded:8080
       - PROMETHEUS_URL=http://prometheus-grounded:9090
@@ -64,7 +64,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-grounding-api
     ports:
-      - "127.0.0.1:8082:8082"
+      - "8082:8082"
     environment:
       - WEAVIATE_URL=http://weaviate-grounded:8080
       - CHAT_SERVICE_URL=http://localhost:8010
@@ -89,7 +89,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-context
     ports:
-      - "127.0.0.1:8083:8083"
+      - "8083:8083"
     environment:
       - WEAVIATE_URL=http://weaviate-grounded:8080
       - REDIS_URL=redis://redis-grounded:6379
@@ -116,7 +116,7 @@ services:
     image: redis:7.2-alpine
     container_name: redis-grounded
     ports:
-      - "127.0.0.1:6379:6379"
+      - "6379:6379"
     command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
@@ -133,7 +133,7 @@ services:
     image: prom/prometheus:v2.49.1
     container_name: prometheus-grounded
     ports:
-      - "127.0.0.1:9091:9090"
+      - "9091:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -159,7 +159,7 @@ services:
     image: grafana/loki:2.9.0
     container_name: loki-grounded
     ports:
-      - "127.0.0.1:3101:3100"
+      - "3101:3100"
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - ./monitoring/loki/loki-grounded.yml:/etc/loki/local-config.yaml
@@ -172,7 +172,7 @@ services:
     image: grafana/grafana:10.2.0
     container_name: grafana-grounded
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
@@ -199,7 +199,7 @@ services:
       dockerfile: Dockerfile
     container_name: document-processor
     ports:
-      - "127.0.0.1:8084:8084"
+      - "8084:8084"
     environment:
       - WEAVIATE_URL=http://weaviate-grounded:8080
       - PROMETHEUS_URL=http://prometheus-grounded:9090
@@ -225,7 +225,7 @@ services:
       dockerfile: Dockerfile
     container_name: embedding-service
     ports:
-      - "127.0.0.1:8085:8085"
+      - "8085:8085"
     environment:
       - WEAVIATE_URL=http://weaviate-grounded:8080
       - MODEL_PATH=/app/models
@@ -251,7 +251,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-validator
     ports:
-      - "127.0.0.1:8086:8086"
+      - "8086:8086"
     environment:
       - WEAVIATE_URL=http://weaviate-grounded:8080
       - PROMETHEUS_URL=http://prometheus-grounded:9090
@@ -278,7 +278,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-orchestrator
     ports:
-      - "127.0.0.1:8087:8087"
+      - "8087:8087"
     environment:
       - WEAVIATE_URL=http://weaviate-grounded:8080
       - REDIS_URL=redis://redis-grounded:6379
@@ -306,7 +306,7 @@ services:
       dockerfile: Dockerfile
     container_name: knowledge-gateway
     ports:
-      - "127.0.0.1:8088:8088"
+      - "8088:8088"
     environment:
       - PROMETHEUS_URL=http://prometheus-grounded:9090
       - LOG_LEVEL=info
