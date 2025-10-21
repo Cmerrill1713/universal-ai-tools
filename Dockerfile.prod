@@ -2,7 +2,7 @@
 # Optimized multi-stage build for minimal image size
 
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
+FROM node:25-alpine AS deps
 RUN apk add --no-cache libc6-compat python3 make g++ git
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN sed -i '/@tensorflow\/tfjs-node/d' package.json && \
     npm cache clean --force
 
 # Stage 2: Builder
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 RUN apk add --no-cache libc6-compat python3 make g++ git
 WORKDIR /app
 
@@ -34,7 +34,7 @@ COPY . .
 RUN npm run build:prod
 
 # Stage 3: Production Runner
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 
 # Install runtime dependencies
