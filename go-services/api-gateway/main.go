@@ -434,7 +434,7 @@ func main() {
 	}).Methods("GET")
 
 	// Start server
-	port := getEnvOrDefault("API_GATEWAY_PORT", "9999")
+	port := getEnvOrDefault("API_GATEWAY_PORT", "8081")
 	log.Printf("API Gateway starting on port %s", port)
 	log.Printf("Available services:")
 	for name, config := range proxies {

@@ -163,7 +163,7 @@ services:
       - NODE_ENV=production
       - PORT=9999
       - LEGACY_BRIDGE_PORT=9999
-      - API_GATEWAY_URL=http://api-gateway:8080
+      - API_GATEWAY_URL=http://api-gateway:8081
     networks:
       - universal-ai-network
     depends_on:

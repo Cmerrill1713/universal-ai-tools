@@ -31,28 +31,28 @@ try:
 
     # Import HRM orchestration routes
     try:
-        from api.orchestration_routes import router as orchestration_router
+        from src.api.orchestration_routes import router as orchestration_router
         HRM_ORCHESTRATION_AVAILABLE = True
     except ImportError:
         HRM_ORCHESTRATION_AVAILABLE = False
 
     # Import smart chat routing
     try:
-        from api.smart_chat_endpoint import router as smart_chat_router
+        from src.api.smart_chat_endpoint import router as smart_chat_router
         SMART_CHAT_AVAILABLE = True
     except ImportError:
         SMART_CHAT_AVAILABLE = False
 
     # Import unified chat orchestrator
     try:
-        from api.unified_chat_routes import router as unified_chat_router
+        from src.api.unified_chat_routes import router as unified_chat_router
         UNIFIED_CHAT_AVAILABLE = True
     except ImportError:
         UNIFIED_CHAT_AVAILABLE = False
 
     # Import evolution routes
     try:
-        from api.evolution_routes import router as evolution_router
+        from src.api.evolution_routes import router as evolution_router
         EVOLUTION_ROUTES_AVAILABLE = True
     except ImportError:
         EVOLUTION_ROUTES_AVAILABLE = False
@@ -74,21 +74,21 @@ try:
         AUTOMATION_ROUTES_AVAILABLE = False
     # Import correction routes
     try:
-        from api.correction_routes import router as correction_router
+        from src.api.correction_routes import router as correction_router
         CORRECTION_ROUTES_AVAILABLE = True
     except ImportError:
         CORRECTION_ROUTES_AVAILABLE = False
 
     # Import router tuning routes
     try:
-        from api.router_tuning_routes import router as router_tuning_router
+        from src.api.router_tuning_routes import router as router_tuning_router
         ROUTER_TUNING_AVAILABLE = True
     except ImportError:
         ROUTER_TUNING_AVAILABLE = False
 
     # Import speech routes
     try:
-        from api.speech_routes import router as speech_router
+        from src.api.speech_routes import router as speech_router
         SPEECH_ROUTES_AVAILABLE = True
     except ImportError:
         SPEECH_ROUTES_AVAILABLE = False
@@ -330,7 +330,7 @@ async def get_current_model():
         return {"message": "No model selected"}
 
 # Import comprehensive tool calling system
-from api.tool_calling_agent import detect_and_execute_tool, format_tool_response
+from src.api.tool_calling_agent import detect_and_execute_tool, format_tool_response
 
 
 # Legacy function (replaced by comprehensive tool calling)
