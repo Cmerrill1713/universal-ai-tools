@@ -4,21 +4,21 @@ echo "🚀 Launching NeuroForge AI - Native macOS App"
 echo "════════════════════════════════════════════════════════════"
 echo ""
 
-# Check if backend is running
-echo "1. Checking backend connection..."
-if curl -sf http://localhost:8013/health > /dev/null 2>&1; then
-    echo "   ✅ Backend is running on http://localhost:8013"
+# Check if Athena Gateway is running
+echo "1. Checking Athena Gateway connection..."
+if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+    echo "   ✅ Athena Gateway is running on http://localhost:8080"
 else
-    echo "   ⚠️  Backend not detected. Starting it now..."
+    echo "   ⚠️  Athena Gateway not detected. Starting it now..."
     echo ""
-    echo "   Starting Docker containers..."
+    echo "   Starting Athena-Centric system..."
     cd /Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools
-    docker-compose up -d unified-ai-assistant-api
+    ./start-athena-unified.sh
     
-    echo "   ⏳ Waiting for backend to be ready..."
+    echo "   ⏳ Waiting for Athena Gateway to be ready..."
     for i in {1..20}; do
-        if curl -sf http://localhost:8013/health > /dev/null 2>&1; then
-            echo "   ✅ Backend is ready!"
+        if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+            echo "   ✅ Athena Gateway is ready!"
             break
         fi
         sleep 2

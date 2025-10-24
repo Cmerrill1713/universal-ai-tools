@@ -5,6 +5,37 @@ version: '3.8'
 
 services:
   # =============================================================================
+  # ATHENA API GATEWAY (CENTRAL HUB)
+  # =============================================================================
+  
+  athena-gateway:
+    build: ./athena-gateway
+    container_name: athena-gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ATHENA_API_URL=http://athena-api:8000
+      - EVOLUTION_API_URL=http://athena-evolutionary:8004
+      - KNOWLEDGE_GATEWAY_URL=http://athena-knowledge-gateway:8080
+      - KNOWLEDGE_CONTEXT_URL=http://athena-knowledge-context:8080
+      - KNOWLEDGE_SYNC_URL=http://athena-knowledge-sync:8080
+      - WEAVIATE_URL=http://athena-weaviate:8080
+      - SEARXNG_URL=http://athena-searxng:8080
+    depends_on:
+      - athena-api
+      - athena-evolutionary
+      - athena-knowledge-gateway
+    networks:
+      - athena-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
   # CORE BACKEND SERVICES
   # =============================================================================
   
