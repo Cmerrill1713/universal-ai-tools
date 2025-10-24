@@ -1,0 +1,45 @@
+family:
+  backup_enabled: true
+  backup_interval: 24
+  max_events_per_day: 50
+  max_knowledge_items: 1000
+  max_members: 10
+family_athena:
+  debug: false
+  environment: production
+  log_level: INFO
+  version: 1.0.0
+integration:
+  data_sync:
+    enabled: true
+    sync_interval: 1.0
+  health_monitoring:
+    check_interval: 30
+    enabled: true
+  service_mesh:
+    enabled: true
+    event_processing: true
+services:
+  athena_gateway:
+    enabled: true
+    host: 0.0.0.0
+    port: 8080
+  dashboard:
+    enabled: true
+    port: 3000
+  family_api:
+    enabled: true
+    host: 0.0.0.0
+    port: 8005
+  family_calendar:
+    enabled: true
+    storage_type: memory
+  family_knowledge:
+    enabled: true
+    storage_type: memory
+  family_profiles:
+    enabled: true
+    storage_type: memory
+  monitoring:
+    enabled: true
+    interval: 60
