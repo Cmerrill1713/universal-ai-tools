@@ -1,0 +1,67 @@
+{
+  "timestamp": "2025-10-24T18:15:11.049666",
+  "performance_metrics": {
+    "profile_service": {
+      "family_summary_time": 5.2928924560546875e-05,
+      "member_retrieval_time": 1.6689300537109375e-06,
+      "age_appropriate_response_time": 6.198883056640625e-06,
+      "total_members": 4
+    },
+    "calendar_service": {
+      "schedule_retrieval_time": 7.104873657226562e-05,
+      "meeting_suggestions_time": 0.00023221969604492188,
+      "conflict_detection_time": 2.3126602172851562e-05,
+      "total_events": 3,
+      "suggestions_count": 5
+    },
+    "knowledge_service": {
+      "search_time": 1.8596649169921875e-05,
+      "category_filtering_time": 3.0994415283203125e-06,
+      "summary_time": 6.270408630371094e-05,
+      "member_knowledge_time": 2.384185791015625e-06,
+      "total_items": 5,
+      "search_results": 1
+    },
+    "cross_service": {
+      "dashboard_generation_time": 9.584426879882812e-05,
+      "family_members": 4,
+      "today_events_count": 0,
+      "knowledge_items": 5
+    }
+  },
+  "load_test_results": {
+    "concurrent_requests": 20,
+    "total_time": 0.001596689224243164,
+    "avg_response_time": 6.374120712280274e-05,
+    "min_response_time": 5.793571472167969e-05,
+    "max_response_time": 0.00010013580322265625,
+    "requests_per_second": 12525.919068239511,
+    "response_times": [
+      0.00010013580322265625,
+      6.747245788574219e-05,
+      6.175041198730469e-05,
+      6.031990051269531e-05,
+      6.318092346191406e-05,
+      6.270408630371094e-05,
+      6.270408630371094e-05,
+      6.222724914550781e-05,
+      6.079673767089844e-05,
+      5.936622619628906e-05,
+      6.103515625e-05,
+      7.486343383789062e-05,
+      6.151199340820312e-05,
+      6.079673767089844e-05,
+      6.341934204101562e-05,
+      5.9604644775390625e-05,
+      5.817413330078125e-05,
+      5.793571472167969e-05,
+      5.841255187988281e-05,
+      5.841255187988281e-05
+    ]
+  },
+  "summary": {
+    "total_services_tested": 4,
+    "load_tests_completed": 0,
+    "performance_status": "EXCELLENT"
+  }
+}
