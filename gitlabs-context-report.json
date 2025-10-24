@@ -1,0 +1,171 @@
+{
+  "project_info": {
+    "name": "Universal AI Tools",
+    "description": "Advanced AI Platform with Family Athena and Enterprise Features",
+    "repository": "https://gitlab.com/your-username/universal-ai-tools",
+    "last_updated": "2025-01-12"
+  },
+  "codebase_analysis": {
+    "services": {
+      "family": {
+        "path": "/workspace/src/family",
+        "files": 9,
+        "endpoints": [
+          "src/family/family_api.py",
+          "src/family/athena_gateway_integration.py"
+        ],
+        "dependencies": [
+          "from fastapi import FastAPI, HTTPException, Depends",
+          "from typing import List, Optional, Dict, Any",
+          "from datetime import datetime, date",
+          "import json",
+          "from .family_profiles import get_family_profile_service, FamilyMember, FamilyRole, LearningStyle",
+          "from .family_calendar import get_family_calendar_service, FamilyEvent, EventType, EventPriority",
+          "from .family_knowledge import get_family_knowledge_service, FamilyKnowledge, KnowledgeType, KnowledgeCategory",
+          "import uvicorn",
+          "import asyncio",
+          "import json"
+        ]
+      },
+      "api": {
+        "path": "/workspace/src/api",
+        "files": 11,
+        "endpoints": [
+          "src/api/api_server.py"
+        ],
+        "dependencies": [
+          "from fastapi import APIRouter, Response",
+          "from prometheus_client import generate_latest, CONTENT_TYPE_LATEST",
+          "from src.core.metrics.prometheus_metrics import (",
+          "import logging",
+          "import os",
+          "import subprocess",
+          "import tempfile",
+          "from fastapi import APIRouter, File, HTTPException, UploadFile",
+          "from pydantic import BaseModel",
+          "import logging"
+        ]
+      },
+      "agents": {
+        "path": "/workspace/src/agents",
+        "files": 1,
+        "endpoints": [],
+        "dependencies": [
+          "import asyncio",
+          "import json",
+          "import time",
+          "import logging",
+          "from typing import Dict, Any, List, Optional",
+          "from abc import ABC, abstractmethod",
+          "from dataclasses import dataclass",
+          "import asyncio"
+        ]
+      },
+      "core": {
+        "path": "/workspace/src/core",
+        "files": 24,
+        "endpoints": [],
+        "dependencies": [
+          "import asyncio",
+          "import aiohttp",
+          "import time",
+          "from typing import Dict, Any, List, Optional",
+          "from dataclasses import dataclass",
+          "from src.core.config.shared_config import get_service_url",
+          "from dataclasses import dataclass",
+          "from typing import Any, Dict, List, Optional, Set",
+          "import asyncio",
+          "import json"
+        ]
+      },
+      "services": {
+        "path": "/workspace/src/services",
+        "files": 4,
+        "endpoints": [],
+        "dependencies": [
+          "import asyncio",
+          "import json",
+          "import time",
+          "import logging",
+          "from typing import Dict, Any, List, Optional",
+          "from dataclasses import dataclass",
+          "from datetime import datetime, timedelta",
+          "import asyncio",
+          "import redis",
+          "import json"
+        ]
+      },
+      "middleware": {
+        "path": "/workspace/src/middleware",
+        "files": 4,
+        "endpoints": [
+          "src/middleware/metrics.py"
+        ],
+        "dependencies": [
+          "import time",
+          "from fastapi import FastAPI, Request, Response",
+          "from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest",
+          "import asyncio",
+          "import json",
+          "import time",
+          "import hashlib",
+          "import hmac",
+          "import secrets",
+          "from typing import Dict, Any, Optional, List"
+        ]
+      },
+      "__pycache__": {
+        "path": "/workspace/src/__pycache__",
+        "files": 0,
+        "endpoints": [],
+        "dependencies": []
+      }
+    },
+    "dependencies": {},
+    "integration_points": {
+      "api_gateways": [
+        "athena-gateway",
+        "unified-gateway"
+      ],
+      "family_services": [
+        "family-profiles",
+        "family-calendar",
+        "family-knowledge"
+      ],
+      "enterprise_services": [
+        "orchestration",
+        "monitoring",
+        "analytics"
+      ],
+      "data_services": [
+        "postgresql",
+        "redis",
+        "weaviate"
+      ]
+    },
+    "architecture_patterns": {
+      "microservices": true,
+      "api_gateway": true,
+      "event_driven": true,
+      "multi_tenant": true,
+      "containerized": true,
+      "ci_cd_enabled": true
+    },
+    "code_quality_metrics": {}
+  },
+  "gitlabs_integration": {
+    "ci_cd_pipeline": "configured",
+    "container_registry": "enabled",
+    "packages": "enabled",
+    "wiki": "enabled",
+    "issues": "enabled",
+    "merge_requests": "enabled"
+  },
+  "context_enhancement": {
+    "service_discovery": "enabled",
+    "dependency_mapping": "enabled",
+    "architecture_analysis": "enabled",
+    "code_quality_metrics": "enabled",
+    "integration_points": "mapped"
+  }
+}

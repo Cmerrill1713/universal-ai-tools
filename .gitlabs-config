@@ -1,0 +1,15 @@
+
+# GitLabs Remote Configuration
+[remote "gitlabs"]
+    url = https://gitlab.com/your-username/universal-ai-tools.git
+    fetch = +refs/heads/*:refs/remotes/gitlabs/*
+    pushurl = https://gitlab.com/your-username/universal-ai-tools.git
+
+# GitLabs CI/CD Configuration
+[gitlabs]
+    ci_cd_enabled = true
+    container_registry_enabled = true
+    packages_enabled = true
+    wiki_enabled = true
+    issues_enabled = true
+    merge_requests_enabled = true

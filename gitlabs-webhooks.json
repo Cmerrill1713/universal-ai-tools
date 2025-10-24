@@ -1,0 +1,30 @@
+{
+  "webhooks": [
+    {
+      "name": "CI/CD Pipeline Events",
+      "url": "https://your-webhook-endpoint.com/gitlabs/ci-cd",
+      "events": [
+        "pipeline",
+        "job",
+        "deployment"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Merge Request Events",
+      "url": "https://your-webhook-endpoint.com/gitlabs/merge-requests",
+      "events": [
+        "merge_request"
+      ],
+      "enabled": true
+    },
+    {
+      "name": "Issue Events",
+      "url": "https://your-webhook-endpoint.com/gitlabs/issues",
+      "events": [
+        "issue"
+      ],
+      "enabled": true
+    }
+  ]
+}

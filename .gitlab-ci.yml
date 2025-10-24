@@ -1,0 +1,217 @@
+
+# GitLab CI/CD Pipeline for Universal AI Tools
+stages:
+  - validate
+  - test
+  - build
+  - security
+  - deploy
+  - monitor
+
+variables:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.11"
+  RUST_VERSION: "1.75"
+  GO_VERSION: "1.21"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# Cache configuration
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - node_modules/
+    - .venv/
+    - target/
+    - go-mod-cache/
+
+# Validate stage
+validate:typescript:
+  stage: validate
+  image: node:20-alpine
+  script:
+    - npm ci
+    - npm run lint
+    - npm run type-check
+  only:
+    - merge_requests
+    - main
+
+validate:python:
+  stage: validate
+  image: python:3.11-slim
+  script:
+    - pip install -r requirements.txt
+    - python -m flake8 src/
+    - python -m black --check src/
+  only:
+    - merge_requests
+    - main
+
+validate:rust:
+  stage: validate
+  image: rust:1.75-slim
+  script:
+    - cd rust-services
+    - cargo check
+    - cargo clippy -- -D warnings
+  only:
+    - merge_requests
+    - main
+
+validate:go:
+  stage: validate
+  image: golang:1.21-alpine
+  script:
+    - cd go-services
+    - go mod tidy
+    - go vet ./...
+    - go fmt ./...
+  only:
+    - merge_requests
+    - main
+
+# Test stage
+test:unit:
+  stage: test
+  image: node:20-alpine
+  services:
+    - redis:7-alpine
+    - postgres:15-alpine
+  variables:
+    POSTGRES_DB: test_db
+    POSTGRES_USER: test_user
+    POSTGRES_PASSWORD: test_pass
+    REDIS_URL: redis://redis:6379
+  script:
+    - npm ci
+    - npm run test:unit
+    - npm run test:integration
+  coverage: '/Lines\s*:\s*(\d+\.\d+)%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+  only:
+    - merge_requests
+    - main
+
+test:python:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - redis:7-alpine
+    - postgres:15-alpine
+  variables:
+    POSTGRES_DB: test_db
+    POSTGRES_USER: test_user
+    POSTGRES_PASSWORD: test_pass
+    REDIS_URL: redis://redis:6379
+  script:
+    - pip install -r requirements.txt
+    - python -m pytest tests/ --cov=src --cov-report=xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  only:
+    - merge_requests
+    - main
+
+# Build stage
+build:docker:
+  stage: build
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  script:
+    - docker build -t universal-ai-tools:$CI_COMMIT_SHA .
+    - docker tag universal-ai-tools:$CI_COMMIT_SHA universal-ai-tools:latest
+  only:
+    - main
+
+build:rust:
+  stage: build
+  image: rust:1.75-slim
+  script:
+    - cd rust-services
+    - cargo build --release
+  artifacts:
+    paths:
+      - rust-services/target/release/
+  only:
+    - main
+
+build:go:
+  stage: build
+  image: golang:1.21-alpine
+  script:
+    - cd go-services
+    - go build -o bin/ ./...
+  artifacts:
+    paths:
+      - go-services/bin/
+  only:
+    - main
+
+# Security stage
+security:scan:
+  stage: security
+  image: python:3.11-slim
+  script:
+    - pip install safety bandit
+    - safety check
+    - bandit -r src/
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+
+security:dependency-check:
+  stage: security
+  image: node:20-alpine
+  script:
+    - npm audit
+    - npm audit --audit-level moderate
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+
+# Deploy stage
+deploy:staging:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Deploying to staging environment"
+    - # Add your staging deployment commands here
+  environment:
+    name: staging
+    url: https://staging.universal-ai-tools.com
+  only:
+    - main
+
+deploy:production:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Deploying to production environment"
+    - # Add your production deployment commands here
+  environment:
+    name: production
+    url: https://universal-ai-tools.com
+  when: manual
+  only:
+    - main
+
+# Monitor stage
+monitor:health-check:
+  stage: monitor
+  image: alpine:latest
+  script:
+    - echo "Running health checks"
+    - # Add your health check commands here
+  only:
+    - main

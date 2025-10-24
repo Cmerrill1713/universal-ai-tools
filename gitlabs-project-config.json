@@ -1,0 +1,50 @@
+{
+  "project": {
+    "name": "Universal AI Tools",
+    "description": "Advanced AI Platform with Family Athena and Enterprise Features",
+    "visibility": "private",
+    "default_branch": "main",
+    "ci_cd_enabled": true,
+    "container_registry_enabled": true,
+    "packages_enabled": true,
+    "wiki_enabled": true,
+    "issues_enabled": true,
+    "merge_requests_enabled": true,
+    "snippets_enabled": true,
+    "jobs_enabled": true,
+    "lfs_enabled": true,
+    "request_access_enabled": true,
+    "container_expiration_policy": {
+      "cadence": "1d",
+      "older_than": "7d",
+      "keep_n": 10,
+      "name_regex": ".*"
+    }
+  },
+  "integrations": {
+    "github": {
+      "enabled": true,
+      "sync_enabled": true
+    },
+    "docker_registry": {
+      "enabled": true,
+      "url": "registry.gitlab.com/your-username/universal-ai-tools"
+    }
+  },
+  "ci_cd": {
+    "pipeline_schedules": [
+      {
+        "description": "Nightly tests",
+        "cron": "0 2 * * *",
+        "timezone": "UTC",
+        "active": true
+      },
+      {
+        "description": "Weekly security scan",
+        "cron": "0 3 * * 0",
+        "timezone": "UTC",
+        "active": true
+      }
+    ]
+  }
+}
