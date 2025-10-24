@@ -26,16 +26,7 @@ app.use((req, res, next) => {
   }
 });
 
-// Routes - Athena is the central router for everything
-app.use('/', athenaRouter);
-
-// Additional specialized routers
-app.use('/api/dspy', dspyRouter);
-app.use('/api/mlx', mlxRouter);
-app.use('/api/parameters', intelligentParametersRouter);
-app.use('/api/gitlab', gitlabRouter);
-
-// Basic routes
+// Basic routes (must come before Athena router)
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ 
     status: 'healthy',
@@ -55,6 +46,12 @@ app.get('/api/health', (req: Request, res: Response) => {
     }
   });
 });
+
+// Additional specialized routers (must come before Athena router)
+app.use('/api/dspy', dspyRouter);
+app.use('/api/mlx', mlxRouter);
+app.use('/api/parameters', intelligentParametersRouter);
+app.use('/api/gitlab', gitlabRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -95,6 +92,9 @@ app.get('/', (req: Request, res: Response) => {
     }
   });
 });
+
+// Athena router (must come last to catch remaining routes)
+app.use('/', athenaRouter);
 
 // Start the server
 const PORT = process.env.PORT || 9999;
