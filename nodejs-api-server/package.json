@@ -8,19 +8,32 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "test": "jest",
+    "test:athena": "tsx scripts/test-athena-routing-integration.ts",
+    "test:governance": "tsx scripts/test-governance-integration.ts",
+    "test:rust": "tsx scripts/test-rust-services-integration.ts",
+    "test:ai": "tsx scripts/test-real-ai-integration.ts",
+    "test:missing": "tsx scripts/test-missing-components-integration.ts",
+    "integrate:rust": "tsx scripts/integrate-rust-services-with-athena.ts",
+    "validate": "tsx scripts/validate-athena-system.ts",
+    "health": "tsx scripts/system-health-check.ts",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.0",
-    "bcrypt": "^5.1.0"
+    "bcrypt": "^5.1.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/express": "^4.17.17",
+    "@types/cors": "^2.8.17",
     "typescript": "^5.0.0",
     "tsx": "^3.12.0",
     "jest": "^29.5.0",
-    "@types/jest": "^29.5.0"
+    "@types/jest": "^29.5.0",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^6.0.2"
   }
 }

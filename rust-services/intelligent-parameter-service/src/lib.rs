@@ -14,6 +14,7 @@ pub mod tracker;
 pub mod cache;
 pub mod learning;
 pub mod error;
+pub mod http_server;
 
 #[cfg(feature = "ffi")]
 pub mod ffi;
