@@ -274,6 +274,72 @@ router.get('/analysis', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/gitlab/metrics
+ * Get repository metrics and statistics
+ */
+router.get('/metrics', async (req: Request, res: Response) => {
+  try {
+    const metrics = await gitlabService.getRepositoryMetrics();
+    
+    res.json({
+      success: true,
+      data: metrics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get repository metrics',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * GET /api/gitlab/health
+ * Get project health analysis
+ */
+router.get('/health', async (req: Request, res: Response) => {
+  try {
+    const health = await gitlabService.analyzeProjectHealth();
+    
+    res.json({
+      success: true,
+      data: health,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to analyze project health',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * GET /api/gitlab/statistics
+ * Get comprehensive project statistics
+ */
+router.get('/statistics', async (req: Request, res: Response) => {
+  try {
+    const statistics = await gitlabService.getProjectStatistics();
+    
+    res.json({
+      success: true,
+      data: statistics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get project statistics',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * POST /api/gitlab/webhook
  * Handle GitLab webhooks
  */

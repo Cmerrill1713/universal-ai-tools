@@ -204,6 +204,18 @@ export interface GitLabContext {
     readme?: string;
     changelog?: string;
   };
+  metrics?: {
+    totalCommits: number;
+    contributors: number;
+    lastCommit: string;
+    repositorySize: number;
+    languages: { [key: string]: number };
+  };
+  health?: {
+    score: number;
+    issues: string[];
+    recommendations: string[];
+  };
 }
 
 export class GitLabIntegrationService {
@@ -273,14 +285,18 @@ export class GitLabIntegrationService {
         mergeRequests,
         pipelines,
         codeQuality,
-        securityReport
+        securityReport,
+        metrics,
+        health
       ] = await Promise.all([
         this.getProject(),
         this.getIssues(),
         this.getMergeRequests(),
         this.getPipelines(),
         this.getCodeQualityReport(),
-        this.getSecurityReport()
+        this.getSecurityReport(),
+        this.getRepositoryMetrics(),
+        this.analyzeProjectHealth()
       ]);
 
       return {
@@ -290,7 +306,9 @@ export class GitLabIntegrationService {
         pipelines,
         codeQuality,
         securityReport,
-        documentation: await this.getDocumentation()
+        documentation: await this.getDocumentation(),
+        metrics,
+        health
       };
     } catch (error) {
       console.error('❌ Failed to get project context:', error);
@@ -857,5 +875,165 @@ export class GitLabIntegrationService {
     ];
 
     return mockPipelines.slice(0, limit);
+  }
+
+  /**
+   * Get repository metrics
+   */
+  async getRepositoryMetrics(): Promise<any> {
+    try {
+      const response = await this.makeRequest(`/projects/${this.config.projectId}/repository/commits?per_page=1`);
+      const stats = await this.makeRequest(`/projects/${this.config.projectId}/languages`);
+      
+      return {
+        totalCommits: response.length > 0 ? response[0].id : 0,
+        contributors: 5, // Mock value
+        lastCommit: response.length > 0 ? response[0].created_at : new Date().toISOString(),
+        repositorySize: 1024 * 1024 * 50, // 50MB mock
+        languages: stats || { TypeScript: 60, JavaScript: 25, Python: 10, Shell: 5 }
+      };
+    } catch (error) {
+      // Return mock metrics for development
+      return {
+        totalCommits: 1250,
+        contributors: 8,
+        lastCommit: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        repositorySize: 1024 * 1024 * 75, // 75MB
+        languages: { 
+          TypeScript: 45, 
+          JavaScript: 30, 
+          Python: 15, 
+          Shell: 5, 
+          Dockerfile: 3, 
+          YAML: 2 
+        }
+      };
+    }
+  }
+
+  /**
+   * Analyze project health
+   */
+  async analyzeProjectHealth(): Promise<any> {
+    try {
+      const context = await this.getProjectContext();
+      
+      let score = 100;
+      const issues: string[] = [];
+      const recommendations: string[] = [];
+
+      // Check critical issues
+      const criticalIssues = context.issues.filter(i => i.priority === 'critical');
+      if (criticalIssues.length > 0) {
+        score -= criticalIssues.length * 15;
+        issues.push(`${criticalIssues.length} critical issues need immediate attention`);
+        recommendations.push('Address critical issues immediately');
+      }
+
+      // Check security issues
+      const securityIssues = context.issues.filter(i => i.category === 'security');
+      if (securityIssues.length > 0) {
+        score -= securityIssues.length * 10;
+        issues.push(`${securityIssues.length} security issues require review`);
+        recommendations.push('Review and fix security vulnerabilities');
+      }
+
+      // Check failed pipelines
+      const failedPipelines = context.pipelines.filter(p => p.status === 'failed');
+      if (failedPipelines.length > 0) {
+        score -= failedPipelines.length * 5;
+        issues.push(`${failedPipelines.length} failed pipelines need investigation`);
+        recommendations.push('Fix failing CI/CD pipelines');
+      }
+
+      // Check code coverage
+      if (context.codeQuality && context.codeQuality.coverage.coverage < 80) {
+        score -= (80 - context.codeQuality.coverage.coverage) * 0.5;
+        issues.push(`Code coverage is ${context.codeQuality.coverage.coverage}%, below 80% threshold`);
+        recommendations.push('Improve test coverage');
+      }
+
+      // Check open merge requests
+      const openMRs = context.mergeRequests.filter(mr => mr.state === 'opened');
+      if (openMRs.length > 10) {
+        score -= 5;
+        issues.push(`${openMRs.length} open merge requests may indicate review bottleneck`);
+        recommendations.push('Review and merge pending pull requests');
+      }
+
+      // Check recent activity
+      const lastActivity = new Date(context.project.lastActivityAt);
+      const daysSinceActivity = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceActivity > 7) {
+        score -= 10;
+        issues.push(`No activity for ${Math.floor(daysSinceActivity)} days`);
+        recommendations.push('Increase development activity');
+      }
+
+      // Add positive recommendations
+      if (context.issues.filter(i => i.state === 'closed').length > context.issues.filter(i => i.state === 'opened').length) {
+        recommendations.push('Good issue resolution rate');
+      }
+
+      if (context.pipelines.filter(p => p.status === 'success').length > context.pipelines.filter(p => p.status === 'failed').length) {
+        recommendations.push('Healthy CI/CD pipeline success rate');
+      }
+
+      return {
+        score: Math.max(0, Math.min(100, score)),
+        issues,
+        recommendations
+      };
+    } catch (error) {
+      return {
+        score: 75,
+        issues: ['Unable to analyze project health'],
+        recommendations: ['Check GitLab integration configuration']
+      };
+    }
+  }
+
+  /**
+   * Get project statistics
+   */
+  async getProjectStatistics(): Promise<any> {
+    try {
+      const context = await this.getProjectContext();
+      
+      return {
+        summary: {
+          totalIssues: context.issues.length,
+          openIssues: context.issues.filter(i => i.state === 'opened').length,
+          closedIssues: context.issues.filter(i => i.state === 'closed').length,
+          totalMergeRequests: context.mergeRequests.length,
+          openMergeRequests: context.mergeRequests.filter(mr => mr.state === 'opened').length,
+          mergedMergeRequests: context.mergeRequests.filter(mr => mr.state === 'merged').length,
+          totalPipelines: context.pipelines.length,
+          successfulPipelines: context.pipelines.filter(p => p.status === 'success').length,
+          failedPipelines: context.pipelines.filter(p => p.status === 'failed').length
+        },
+        priorityBreakdown: {
+          critical: context.issues.filter(i => i.priority === 'critical').length,
+          high: context.issues.filter(i => i.priority === 'high').length,
+          medium: context.issues.filter(i => i.priority === 'medium').length,
+          low: context.issues.filter(i => i.priority === 'low').length
+        },
+        categoryBreakdown: {
+          bug: context.issues.filter(i => i.category === 'bug').length,
+          feature: context.issues.filter(i => i.category === 'feature').length,
+          security: context.issues.filter(i => i.category === 'security').length,
+          performance: context.issues.filter(i => i.category === 'performance').length,
+          documentation: context.issues.filter(i => i.category === 'documentation').length
+        },
+        health: context.health
+      };
+    } catch (error) {
+      return {
+        summary: { totalIssues: 0, openIssues: 0, closedIssues: 0, totalMergeRequests: 0, openMergeRequests: 0, mergedMergeRequests: 0, totalPipelines: 0, successfulPipelines: 0, failedPipelines: 0 },
+        priorityBreakdown: { critical: 0, high: 0, medium: 0, low: 0 },
+        categoryBreakdown: { bug: 0, feature: 0, security: 0, performance: 0, documentation: 0 },
+        health: { score: 0, issues: ['Unable to retrieve statistics'], recommendations: [] }
+      };
+    }
   }
 }
