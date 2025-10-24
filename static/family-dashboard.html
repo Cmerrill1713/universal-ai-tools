@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Athena Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .family-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .family-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .family-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .card-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .family-member {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            transition: background 0.3s ease;
+        }
+        
+        .family-member:hover {
+            background: #e9ecef;
+        }
+        
+        .member-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 15px;
+        }
+        
+        .member-info h4 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .member-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .event-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .event-time {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .event-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .event-description {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .knowledge-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .knowledge-item:hover {
+            background: #e9ecef;
+        }
+        
+        .knowledge-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .knowledge-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .tag {
+            background: #667eea;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .action-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background: #28a745; }
+        .status-away { background: #ffc107; }
+        .status-offline { background: #dc3545; }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .family-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🏠 Family Athena Dashboard</h1>
+            <p>Your personal AI command center for the family</p>
+        </div>
+        
+        <div class="family-grid">
+            <!-- Family Members Card -->
+            <div class="family-card">
+                <div class="card-header">
+                    <div class="card-icon">👨‍👩‍👧‍👦</div>
+                    <div class="card-title">Family Members</div>
+                </div>
+                
+                <div class="family-member">
+                    <div class="member-avatar">D</div>
+                    <div class="member-info">
+                        <h4>Dad</h4>
+                        <p>Parent • Online <span class="status-indicator status-online"></span></p>
+                    </div>
+                </div>
+                
+                <div class="family-member">
+                    <div class="member-avatar">M</div>
+                    <div class="member-info">
+                        <h4>Mom</h4>
+                        <p>Parent • Online <span class="status-indicator status-online"></span></p>
+                    </div>
+                </div>
+                
+                <div class="family-member">
+                    <div class="member-avatar">A</div>
+                    <div class="member-info">
+                        <h4>Alex</h4>
+                        <p>Teen • Away <span class="status-indicator status-away"></span></p>
+                    </div>
+                </div>
+                
+                <div class="family-member">
+                    <div class="member-avatar">E</div>
+                    <div class="member-info">
+                        <h4>Emma</h4>
+                        <p>Child • Offline <span class="status-indicator status-offline"></span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Today's Schedule Card -->
+            <div class="family-card">
+                <div class="card-header">
+                    <div class="card-icon">📅</div>
+                    <div class="card-title">Today's Schedule</div>
+                </div>
+                
+                <div class="event-item">
+                    <div class="event-time">9:00 AM - 10:00 AM</div>
+                    <div class="event-title">Family Breakfast</div>
+                    <div class="event-description">Everyone • Kitchen</div>
+                </div>
+                
+                <div class="event-item">
+                    <div class="event-time">3:00 PM - 5:00 PM</div>
+                    <div class="event-title">Alex's Soccer Game</div>
+                    <div class="event-description">Alex & Dad • Community Center</div>
+                </div>
+                
+                <div class="event-item">
+                    <div class="event-time">6:00 PM - 8:00 PM</div>
+                    <div class="event-title">Family Dinner</div>
+                    <div class="event-description">Everyone • Home</div>
+                </div>
+            </div>
+            
+            <!-- Family Knowledge Card -->
+            <div class="family-card">
+                <div class="card-header">
+                    <div class="card-icon">📚</div>
+                    <div class="card-title">Family Knowledge</div>
+                </div>
+                
+                <div class="knowledge-item">
+                    <div class="knowledge-title">Christmas Tradition</div>
+                    <div class="knowledge-tags">
+                        <span class="tag">tradition</span>
+                        <span class="tag">christmas</span>
+                        <span class="tag">family</span>
+                    </div>
+                </div>
+                
+                <div class="knowledge-item">
+                    <div class="knowledge-title">Emma's Allergies</div>
+                    <div class="knowledge-tags">
+                        <span class="tag">emergency</span>
+                        <span class="tag">health</span>
+                        <span class="tag">emma</span>
+                    </div>
+                </div>
+                
+                <div class="knowledge-item">
+                    <div class="knowledge-title">Emergency Contacts</div>
+                    <div class="knowledge-tags">
+                        <span class="tag">emergency</span>
+                        <span class="tag">contacts</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions Card -->
+            <div class="family-card">
+                <div class="card-header">
+                    <div class="card-icon">⚡</div>
+                    <div class="card-title">Quick Actions</div>
+                </div>
+                
+                <div class="quick-actions">
+                    <button class="action-button" onclick="chatWithAthena()">
+                        💬 Chat with Athena
+                    </button>
+                    <button class="action-button" onclick="addEvent()">
+                        📅 Add Event
+                    </button>
+                    <button class="action-button" onclick="addKnowledge()">
+                        📝 Add Knowledge
+                    </button>
+                    <button class="action-button" onclick="familySettings()">
+                        ⚙️ Family Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Family Dashboard JavaScript
+        function chatWithAthena() {
+            // Open chat interface
+            window.open('/api/chat', '_blank');
+        }
+        
+        function addEvent() {
+            // Open event creation modal
+            alert('Event creation feature coming soon!');
+        }
+        
+        function addKnowledge() {
+            // Open knowledge creation modal
+            alert('Knowledge creation feature coming soon!');
+        }
+        
+        function familySettings() {
+            // Open family settings
+            alert('Family settings feature coming soon!');
+        }
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            // Refresh family member status
+            console.log('Refreshing family dashboard...');
+        }, 30000);
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Family Athena Dashboard loaded');
+            
+            // Add some interactive features
+            const knowledgeItems = document.querySelectorAll('.knowledge-item');
+            knowledgeItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const title = this.querySelector('.knowledge-title').textContent;
+                    alert(`Opening knowledge: ${title}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
