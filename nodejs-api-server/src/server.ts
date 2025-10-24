@@ -1,6 +1,7 @@
 import express from 'express';
 import { Request, Response } from 'express';
 import chatRouter from './routers/chat';
+import governanceRouter from './routers/governance';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/chat', chatRouter);
+app.use('/api/governance', governanceRouter);
 
 // Basic routes
 app.get('/api/health', (req: Request, res: Response) => {
@@ -34,7 +36,9 @@ app.get('/api/health', (req: Request, res: Response) => {
       chat: 'available',
       uatPrompt: 'available',
       neuroforge: 'available',
-      contextEngineering: 'available'
+      contextEngineering: 'available',
+      governance: 'available',
+      republic: 'available'
     }
   });
 });
@@ -42,7 +46,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
-    message: 'Universal AI Tools - Chat Service with UAT-Prompt & Neuroforge Integration',
+    message: 'Universal AI Tools - Chat Service with UAT-Prompt, Neuroforge & Governance Integration',
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
@@ -51,7 +55,12 @@ app.get('/', (req: Request, res: Response) => {
       chatHistory: '/api/chat/history/:sessionId',
       chatContext: '/api/chat/context/:sessionId',
       chatStats: '/api/chat/stats',
-      chatStream: '/api/chat/stream'
+      chatStream: '/api/chat/stream',
+      governance: '/api/governance',
+      proposals: '/api/governance/proposals',
+      votes: '/api/governance/votes',
+      citizens: '/api/governance/citizens',
+      republic: '/api/governance/republic'
     }
   });
 });
