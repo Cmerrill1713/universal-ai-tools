@@ -1,487 +1,499 @@
 # Universal AI Tools - Production Deployment Guide
-## Enterprise-Ready AI Platform Deployment
 
-**Version**: 1.0.0  
-**Status**: Production Ready (99% readiness)  
-**Last Updated**: July 20, 2025
-
----
-
-## 📋 Prerequisites
+## Prerequisites
 
 ### System Requirements
-- **Docker**: 20.10+ with Docker Compose 2.0+
-- **RAM**: Minimum 4GB, Recommended 8GB+
-- **CPU**: 2+ cores, Recommended 4+ cores
-- **Storage**: 20GB+ available space
-- **Network**: Stable internet connection for external services
+- Node.js 18+ (LTS recommended)
+- PostgreSQL 14+ (for Supabase)
+- Redis 6+ (optional, with fallback)
+- 4GB+ RAM minimum
+- 20GB+ disk space
 
-### Required Environment Variables
-Create a `.env` file with the following production values:
+### Required Services
+- Ollama (for local LLM inference)
+- Supabase instance (cloud or self-hosted)
+- Optional: OpenAI/Anthropic API keys
 
+## Environment Configuration
+
+### 1. Create Production Environment File
 ```bash
-# Core Configuration
+cp .env.example .env.production
+```
+
+### 2. Configure Essential Variables
+```env
+# Server Configuration
 NODE_ENV=production
-PORT=9999
-CORS_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+PORT=8080
+HOST=0.0.0.0
 
-# Security (GENERATE SECURE VALUES!)
-JWT_SECRET=your-super-secure-jwt-secret-here-64-chars-minimum
-ENCRYPTION_KEY=your-32-char-encryption-key-here
-DEV_API_KEY=your-production-api-key-here
+# Security (generate strong secrets)
+JWT_SECRET=<generate-with-openssl-rand-base64-32>
+ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
+API_KEY_SALT=<generate-with-openssl-rand-base64-16>
 
-# Database (Supabase)
+# Database
+DATABASE_URL=postgresql://user:password@host:5432/universal_ai_tools
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-supabase-service-key
-SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-key
 
-# Optional Services
-REDIS_URL=redis://redis:6379
-OLLAMA_URL=http://ollama:11434
+# Redis (optional - will fallback to in-memory)
+REDIS_URL=redis://localhost:6379
+REDIS_PASSWORD=your-redis-password
+
+# LLM Services
+OLLAMA_URL=http://localhost:11434
+OPENAI_API_KEY=sk-... (optional)
+ANTHROPIC_API_KEY=sk-ant-... (optional)
+
+# Monitoring
+TELEMETRY_ENABLED=true
 LOG_LEVEL=info
-
-# Monitoring (Optional)
-GRAFANA_USER=admin
-GRAFANA_PASSWORD=secure-grafana-password
 ```
 
----
+## Database Setup
 
-## 🚀 Quick Start Deployment
-
-### Option 1: Complete Stack (Recommended)
+### 1. Initialize Database
 ```bash
-# Clone the repository
-git clone <your-repository-url>
-cd universal-ai-tools
+# Run all migrations
+npm run migrate
 
-# Copy and configure environment
-cp .env.example .env
-# Edit .env with your production values
-
-# Deploy the complete stack
-docker-compose -f docker-compose.production.yml up -d
-
-# Verify deployment
-curl http://localhost:9999/health
+# Verify migration status
+npm run migrate:status
 ```
 
-### Option 2: With Monitoring
+### 2. Create Backup Strategy
 ```bash
-# Deploy with Prometheus and Grafana
-docker-compose -f docker-compose.production.yml --profile monitoring up -d
+# Create initial backup
+npm run backup:create
 
-# Access monitoring
-# Grafana: http://localhost:3001
-# Prometheus: http://localhost:9090
+# Schedule regular backups (cron)
+0 2 * * * cd /path/to/universal-ai-tools && npm run backup:create
 ```
 
-### Option 3: With Reverse Proxy
+## Production Build
+
+### 1. Install Dependencies
 ```bash
-# Deploy with Nginx reverse proxy
-docker-compose -f docker-compose.production.yml --profile proxy up -d
+# Install production dependencies only
+npm ci --production
 
-# Configure SSL certificates in nginx/ssl/
+# Or with all dependencies for building
+npm ci
 ```
 
----
-
-## 🏗️ Architecture Overview
-
-### Service Components
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Universal AI   │    │    Supabase     │    │     Redis       │
-│     Tools       │◄──►│   (Database)    │    │    (Cache)      │
-│   (Main App)    │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-         ┌─────────────────┐    │    ┌─────────────────┐
-         │     Ollama      │    │    │   Prometheus    │
-         │   (Local LLM)   │◄───┼───►│  (Monitoring)   │
-         │                 │    │    │                 │
-         └─────────────────┘    │    └─────────────────┘
-                                │
-                    ┌─────────────────┐
-                    │     Grafana     │
-                    │   (Dashboards)  │
-                    │                 │
-                    └─────────────────┘
-```
-
-### Port Configuration
-- **9999**: Universal AI Tools (Main application)
-- **54321**: Supabase (Database)
-- **6379**: Redis (Cache)
-- **11434**: Ollama (Local LLM)
-- **9090**: Prometheus (Metrics) [Optional]
-- **3001**: Grafana (Dashboards) [Optional]
-- **80/443**: Nginx (Reverse Proxy) [Optional]
-
----
-
-## 🔧 Configuration Management
-
-### Environment-Specific Settings
-
-#### Production Security
+### 2. Build Application
 ```bash
-# Security hardening
-NODE_ENV=production
-CORS_ORIGINS=https://yourdomain.com  # No localhost allowed
-JWT_SECRET=<64-character-secure-key>
-ENCRYPTION_KEY=<32-character-secure-key>
+# Create production build
+npm run build:prod
 
-# Disable development features
-DEBUG=false
-LOG_LEVEL=info  # Not debug
+# Verify build
+npm run type-check
 ```
 
-#### Database Configuration
+### 3. Optimize for Production
 ```bash
-# Use production Supabase instance
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=<service-role-key>
-SUPABASE_ANON_KEY=<anon-public-key>
+# Remove dev dependencies after build
+npm prune --production
 
-# Connection pooling
-DATABASE_MAX_CONNECTIONS=20
-DATABASE_TIMEOUT=30000
+# Clear caches
+npm cache clean --force
 ```
 
-#### Performance Tuning
+## Deployment Options
+
+### Option 1: PM2 (Recommended)
 ```bash
-# Node.js optimization
-NODE_OPTIONS="--max-old-space-size=2048"
+# Install PM2 globally
+npm install -g pm2
 
-# Redis optimization  
-REDIS_MAX_MEMORY=512mb
-REDIS_EVICTION_POLICY=allkeys-lru
+# Start with PM2
+pm2 start ecosystem.config.js --env production
 
-# Rate limiting
-DEFAULT_RATE_LIMIT=1000
-RATE_LIMIT_WINDOW=3600000
+# Save PM2 config
+pm2 save
+pm2 startup
+
+# Monitor
+pm2 monit
 ```
 
----
-
-## 📊 Health Checks & Monitoring
-
-### Built-in Health Endpoints
-```bash
-# Basic health check
-curl http://localhost:9999/health
-
-# Detailed health with metrics
-curl http://localhost:9999/api/health
-
-# Authenticated health check
-curl -H "X-API-Key: your-api-key" http://localhost:9999/api/v1/health
+**ecosystem.config.js:**
+```javascript
+module.exports = {
+  apps: [{
+    name: 'universal-ai-tools',
+    script: './dist/server.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 8080
+    },
+    error_file: './logs/pm2-error.log',
+    out_file: './logs/pm2-out.log',
+    log_file: './logs/pm2-combined.log',
+    time: true,
+    max_memory_restart: '2G',
+    watch: false,
+    ignore_watch: ['node_modules', 'logs', 'uploads'],
+    max_restarts: 10,
+    min_uptime: '10s',
+    listen_timeout: 10000,
+    kill_timeout: 5000
+  }]
+};
 ```
 
-### Expected Health Responses
-```json
-{
-  "status": "healthy",
-  "service": "Universal AI Tools Service",
-  "timestamp": "2025-07-20T03:12:01.830Z",
-  "metadata": {
-    "apiVersion": "v1",
-    "timestamp": "2025-07-20T03:12:01.831Z"
-  }
+### Option 2: Docker
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --production
+
+# Copy application
+COPY . .
+
+# Build
+RUN npm run build:prod
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+# Start
+CMD ["node", "dist/server.js"]
+```
+
+### Option 3: Systemd Service
+```ini
+[Unit]
+Description=Universal AI Tools Service
+After=network.target
+
+[Service]
+Type=simple
+User=nodeuser
+WorkingDirectory=/opt/universal-ai-tools
+ExecStart=/usr/bin/node dist/server.js
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=universal-ai-tools
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## Nginx Configuration
+
+```nginx
+upstream universal_ai_tools {
+    server localhost:8080;
+    keepalive 64;
+}
+
+server {
+    listen 80;
+    server_name your-domain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+
+    ssl_certificate /etc/ssl/certs/your-cert.crt;
+    ssl_certificate_key /etc/ssl/private/your-key.key;
+
+    # Security headers
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+    # WebSocket support
+    location /socket.io/ {
+        proxy_pass http://universal_ai_tools;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+
+    # API routes
+    location / {
+        proxy_pass http://universal_ai_tools;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 10s;
+    }
+
+    # Static files (if any)
+    location /static {
+        alias /opt/universal-ai-tools/static;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
 }
 ```
 
-### Prometheus Metrics
-```bash
-# Access metrics endpoint
-curl http://localhost:9999/metrics
+## Monitoring Setup
 
-# Key metrics to monitor:
-# - http_requests_total (Request count)
-# - http_request_duration_seconds (Response time)
-# - process_resident_memory_bytes (Memory usage)
-# - nodejs_heap_size_used_bytes (Heap usage)
+### 1. Health Checks
+```bash
+# Basic health check
+curl https://your-domain.com/health
+
+# Detailed health (when monitoring routes load)
+curl https://your-domain.com/api/v1/monitoring/health/detailed
+
+# Circuit breakers status
+curl https://your-domain.com/api/v1/monitoring/circuit-breakers
 ```
 
----
-
-## 🐳 Docker Management
-
-### Container Operations
+### 2. Log Management
 ```bash
-# View running containers
-docker-compose -f docker-compose.production.yml ps
+# Create log directory
+mkdir -p logs
 
-# View logs
-docker-compose -f docker-compose.production.yml logs -f universal-ai-tools
-
-# Restart a service
-docker-compose -f docker-compose.production.yml restart universal-ai-tools
-
-# Scale the main application
-docker-compose -f docker-compose.production.yml up -d --scale universal-ai-tools=3
+# Configure log rotation
+cat > /etc/logrotate.d/universal-ai-tools << EOF
+/opt/universal-ai-tools/logs/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 nodeuser nodeuser
+    sharedscripts
+    postrotate
+        pm2 reloadLogs
+    endscript
+}
+EOF
 ```
 
-### Data Persistence
-```bash
-# Volumes for data persistence
-universal-ai-tools_supabase_data    # Database data
-universal-ai-tools_redis_data       # Cache data  
-universal-ai-tools_ollama_data      # Model data
-universal-ai-tools_prometheus_data  # Metrics data
-universal-ai-tools_grafana_data     # Dashboard data
-
-# Backup volumes
-docker run --rm -v universal-ai-tools_supabase_data:/data -v $(pwd):/backup alpine tar czf /backup/supabase-backup.tar.gz /data
+### 3. Monitoring with Prometheus (Optional)
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'universal-ai-tools'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
 ```
 
----
+## Security Hardening
 
-## 🔐 Security Configuration
-
-### SSL/TLS Setup (Nginx Profile)
+### 1. API Key Management
 ```bash
-# Generate SSL certificates
-mkdir -p nginx/ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/private.key \
-  -out nginx/ssl/certificate.crt
+# Generate API keys for clients
+node scripts/generate-api-key.js --name "client-name"
 
-# Or use Let's Encrypt
-certbot certonly --standalone -d yourdomain.com
-cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem nginx/ssl/
-cp /etc/letsencrypt/live/yourdomain.com/privkey.pem nginx/ssl/
+# Store in environment
+export CLIENT_API_KEY=generated-key
 ```
 
-### Firewall Configuration
-```bash
-# Allow only required ports
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 22/tcp  # SSH only
-ufw deny 9999/tcp  # Block direct access, use proxy
-ufw enable
+### 2. Rate Limiting
+- Configure in middleware/rate-limiter.ts
+- Default: 100 requests per 15 minutes per IP
+- Adjust based on your needs
+
+### 3. CORS Configuration
+```javascript
+// In production, specify exact origins
+const corsOptions = {
+  origin: ['https://your-frontend.com'],
+  credentials: true
+};
 ```
 
-### Secret Management
-```bash
-# Use Docker secrets for production
-echo "your-jwt-secret" | docker secret create jwt_secret -
-echo "your-encryption-key" | docker secret create encryption_key -
+## Performance Optimization
 
-# Reference in docker-compose.yml
-secrets:
-  jwt_secret:
-    external: true
-  encryption_key:
-    external: true
+### 1. Enable Clustering
+```javascript
+// PM2 handles this automatically with instances: 'max'
+// Or implement manually in server.ts
 ```
 
----
+### 2. Redis Caching
+```bash
+# Ensure Redis is running
+redis-cli ping
 
-## 🚨 Troubleshooting
+# Monitor Redis
+redis-cli monitor
+```
+
+### 3. Database Optimization
+```sql
+-- Add indexes for common queries
+CREATE INDEX idx_memories_user_created ON ai_memories(user_id, created_at DESC);
+CREATE INDEX idx_agent_performance_name ON agent_performance_metrics(agent_name, timestamp DESC);
+```
+
+## Startup Checklist
+
+1. **Pre-flight Checks**
+   - [ ] Environment variables configured
+   - [ ] Database migrations completed
+   - [ ] Redis running (optional)
+   - [ ] Ollama service available
+   - [ ] SSL certificates installed
+
+2. **Start Services**
+   ```bash
+   # Start in order
+   systemctl start postgresql
+   systemctl start redis
+   systemctl start ollama
+   pm2 start ecosystem.config.js --env production
+   ```
+
+3. **Verify Operation**
+   ```bash
+   # Check health
+   curl http://localhost:8080/health
+   
+   # Test agent execution
+   curl -X POST http://localhost:8080/api/v1/agents/execute \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: your-api-key" \
+     -d '{"agentName": "planner", "userRequest": "test", "context": {}}'
+   ```
+
+## Troubleshooting
 
 ### Common Issues
 
-#### Container Won't Start
-```bash
-# Check logs
-docker-compose -f docker-compose.production.yml logs universal-ai-tools
+1. **Port Already in Use**
+   ```bash
+   lsof -i :8080
+   kill -9 <PID>
+   ```
 
-# Common causes:
-# - Missing environment variables
-# - Port conflicts
-# - Insufficient memory
-# - Database connection failure
+2. **Memory Issues**
+   - Increase Node.js heap size: `NODE_OPTIONS="--max-old-space-size=4096"`
+   - Enable swap if needed
+   - Monitor with: `pm2 monit`
+
+3. **Database Connection**
+   - Check PostgreSQL logs: `tail -f /var/log/postgresql/*.log`
+   - Verify connection string
+   - Check firewall rules
+
+4. **Ollama Not Responding**
+   - Check Ollama status: `systemctl status ollama`
+   - Verify models loaded: `ollama list`
+   - Check port accessibility
+
+### Debug Mode
+```bash
+# Run with debug logging
+LOG_LEVEL=debug npm start
+
+# Or with PM2
+pm2 start ecosystem.config.js --env production --log-type json
 ```
 
-#### Database Connection Issues
-```bash
-# Verify Supabase connectivity
-curl -H "apikey: $SUPABASE_ANON_KEY" "$SUPABASE_URL/rest/v1/health"
-
-# Check database migrations
-docker-compose -f docker-compose.production.yml exec universal-ai-tools npm run migrate:status
-```
-
-#### Memory Issues
-```bash
-# Monitor memory usage
-docker stats
-
-# Increase memory limits in docker-compose.yml
-deploy:
-  resources:
-    limits:
-      memory: 2048M
-    reservations:
-      memory: 1024M
-```
-
-#### Performance Issues
-```bash
-# Check metrics
-curl http://localhost:9999/metrics | grep -E "http_request_duration|memory|cpu"
-
-# Scale if needed
-docker-compose -f docker-compose.production.yml up -d --scale universal-ai-tools=2
-```
-
----
-
-## 📈 Scaling & Performance
-
-### Horizontal Scaling
-```bash
-# Scale main application
-docker-compose -f docker-compose.production.yml up -d --scale universal-ai-tools=3
-
-# Add load balancer (update nginx.conf)
-upstream universal_ai_tools {
-    server universal-ai-tools_1:9999;
-    server universal-ai-tools_2:9999;
-    server universal-ai-tools_3:9999;
-}
-```
-
-### Database Scaling
-```bash
-# Use Supabase connection pooling
-SUPABASE_CONNECTION_POOL_SIZE=20
-SUPABASE_CONNECTION_TIMEOUT=30000
-
-# Consider read replicas for heavy read workloads
-SUPABASE_READ_REPLICA_URL=https://read-replica.supabase.co
-```
-
-### Cache Optimization
-```bash
-# Redis clustering for high availability
-redis-cluster:
-  image: redis:7-alpine
-  command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf
-```
-
----
-
-## 🔄 Backup & Recovery
+## Backup and Recovery
 
 ### Automated Backups
 ```bash
-# Database backup script
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-docker exec universal-supabase pg_dump -U postgres postgres > "backup_${DATE}.sql"
-aws s3 cp "backup_${DATE}.sql" s3://your-backup-bucket/
+# Setup cron job
+crontab -e
 
-# Schedule with cron
-0 2 * * * /path/to/backup-script.sh
+# Add daily backup at 2 AM
+0 2 * * * /opt/universal-ai-tools/scripts/backup-production.sh
 ```
 
-### Disaster Recovery
+### Recovery Procedure
 ```bash
-# Restore from backup
-docker exec -i universal-supabase psql -U postgres postgres < backup_20250720_020000.sql
+# Stop services
+pm2 stop all
 
-# Restore volumes
-docker run --rm -v universal-ai-tools_supabase_data:/data -v $(pwd):/backup alpine tar xzf /backup/supabase-backup.tar.gz -C /
+# Restore database
+pg_restore -d universal_ai_tools backup_file.sql
+
+# Restart services
+pm2 restart all
 ```
 
----
+## Scaling Considerations
 
-## 📋 Maintenance Tasks
+### Horizontal Scaling
+- Use PM2 cluster mode
+- Add load balancer (HAProxy/Nginx)
+- Separate database to dedicated server
+- Use Redis cluster for caching
 
-### Regular Maintenance
+### Vertical Scaling
+- Upgrade server resources
+- Increase Node.js memory limits
+- Optimize database queries
+- Enable query caching
+
+## Maintenance
+
+### Regular Tasks
+- Monitor logs daily
+- Update dependencies monthly
+- Review security patches
+- Analyze performance metrics
+- Clean old logs and backups
+
+### Update Procedure
 ```bash
-# Update containers (monthly)
-docker-compose -f docker-compose.production.yml pull
-docker-compose -f docker-compose.production.yml up -d
+# Create backup
+npm run backup:create
 
-# Clean up unused resources
-docker system prune -a
+# Pull updates
+git pull origin main
 
-# Monitor disk space
-df -h
-docker system df
+# Install dependencies
+npm ci
+
+# Run migrations
+npm run migrate
+
+# Build
+npm run build:prod
+
+# Restart
+pm2 reload all
 ```
 
-### Log Management
-```bash
-# Rotate logs to prevent disk fill
-docker run --rm -v universal-ai-tools_logs:/logs alpine find /logs -name "*.log" -mtime +30 -delete
+## Support
 
-# Set log limits in docker-compose.yml
-logging:
-  driver: "json-file"
-  options:
-    max-size: "10m"
-    max-file: "3"
-```
+For production support:
+- Check logs first: `pm2 logs`
+- Review health endpoint
+- Check circuit breaker status
+- Monitor resource usage
 
----
-
-## ✅ Production Checklist
-
-### Pre-Deployment
-- [ ] Environment variables configured
-- [ ] SSL certificates installed
-- [ ] Firewall rules configured
-- [ ] Backup strategy implemented
-- [ ] Monitoring configured
-- [ ] Load testing completed
-- [ ] Security audit performed
-
-### Post-Deployment
-- [ ] Health checks passing
-- [ ] Metrics collection working
-- [ ] Logs being generated
-- [ ] Database connectivity verified
-- [ ] API endpoints responding
-- [ ] SSL/TLS working
-- [ ] Backups functioning
-
-### Ongoing Operations
-- [ ] Monitor system metrics
-- [ ] Review logs regularly
-- [ ] Update containers monthly
-- [ ] Test backup recovery
-- [ ] Security patch management
-- [ ] Performance optimization
-
----
-
-## 📞 Support & Resources
-
-### Documentation
-- **API Documentation**: `/api/v1/docs` (when enabled)
-- **GraphQL Playground**: `/graphql` (development only)
-- **Health Endpoints**: `/health`, `/api/health`
-- **Metrics**: `/metrics`
-
-### Monitoring URLs
-- **Application**: http://localhost:9999
-- **Database**: http://localhost:54321
-- **Grafana**: http://localhost:3001 (with monitoring profile)
-- **Prometheus**: http://localhost:9090 (with monitoring profile)
-
-### Emergency Procedures
-```bash
-# Emergency shutdown
-docker-compose -f docker-compose.production.yml down
-
-# Emergency restart
-docker-compose -f docker-compose.production.yml restart
-
-# Emergency logs
-docker-compose -f docker-compose.production.yml logs --tail=100 -f
-```
-
----
-
-**Status**: ✅ Production Ready  
-**Security Grade**: A (98/100)  
-**Performance**: Sub-second startup  
-**Availability**: 99.9% target with proper monitoring
+Remember: Universal AI Tools includes self-healing capabilities through circuit breakers and graceful degradation, making it highly suitable for production deployments.

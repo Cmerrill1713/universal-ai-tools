@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "node --loader ts-node/esm src/index.ts",
-    "dev": "ts-node --esm src/index.ts",
+    "dev": "ts-node --esm src/working-server.ts",
     "build": "tsc",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",

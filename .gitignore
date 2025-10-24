@@ -58,3 +58,34 @@ checkpoints/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# Backup files and temporary reports
+backup_*/
+backups/
+*_backup_*
+*_backup.*
+*_temp_*
+*_tmp_*
+*_old_*
+*_copy_*
+*_duplicate_*
+
+# Test results and temporary files
+test-results/
+*_test_results.json
+*_test_results_*.json
+*_experiment_report_*.json
+*_orchestration_results_*.json
+comprehensive_experiment_report_*.json
+advanced_orchestration_results_*.json
+
+# Status and report files (keep organized in docs/)
+*STATUS*.md
+*REPORT*.md
+*COMPLETE*.md
+*FINAL*.md
+*SUMMARY*.md
+
+# Temporary documentation
+all_files.txt
+changes.txt
