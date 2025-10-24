@@ -1,36 +1,36 @@
 {
-  "timestamp": 1761343684.8256214,
-  "overall_integration_score": 0.7708333333333334,
+  "timestamp": 1761343910.0247595,
+  "overall_integration_score": 0.0,
   "integration_status": "PARTIALLY_INTEGRATED",
   "scores": {
-    "connectivity": 1.0,
-    "communication": 1.0,
-    "data_flow": 0.3333333333333333,
-    "completeness": 0.75
+    "connectivity": 0.0,
+    "communication": 0.0,
+    "data_flow": 0.0,
+    "completeness": 0.0
   },
   "detailed_results": {
     "connectivity": {
-      "athena-gateway": "\u2705 Connected",
-      "unified-gateway": "\u2705 Connected",
-      "family-profiles": "\u2705 Connected",
-      "family-calendar": "\u2705 Connected",
-      "family-knowledge": "\u2705 Connected"
+      "athena-gateway": "\u274c HTTPConnectionPool(host='local...",
+      "unified-gateway": "\u274c HTTPConnectionPool(host='local...",
+      "family-profiles": "\u274c HTTPConnectionPool(host='local...",
+      "family-calendar": "\u274c HTTPConnectionPool(host='local...",
+      "family-knowledge": "\u274c HTTPConnectionPool(host='local..."
     },
     "communication": {
       "Athena Gateway \u2192 Family Services": {
-        "success": true,
-        "message": "3/3 services reachable",
-        "success_rate": 1.0
+        "success": false,
+        "message": "0/3 services reachable",
+        "success_rate": 0.0
       },
       "Unified Gateway \u2192 All Services": {
-        "success": true,
-        "message": "5/5 routes working",
-        "success_rate": 1.0
+        "success": false,
+        "message": "0/5 routes working",
+        "success_rate": 0.0
       },
       "Family Services Inter-Communication": {
-        "success": true,
-        "message": "3/3 service pairs communicating",
-        "success_rate": 1.0
+        "success": false,
+        "message": "0/3 service pairs communicating",
+        "success_rate": 0.0
       }
     },
     "data_flow": {
@@ -41,41 +41,41 @@
       },
       "API Gateway Data Flow": {
         "success": false,
-        "message": "1/2 gateways processing data correctly",
-        "success_rate": 0.5
+        "message": "0/2 gateways processing data correctly",
+        "success_rate": 0.0
       },
       "Cross-Platform Data Flow": {
-        "success": true,
-        "message": "Family: \u2705, Enterprise: \u2705",
-        "family_ok": true,
-        "enterprise_ok": true
+        "success": false,
+        "message": "Family: \u274c, Enterprise: \u274c",
+        "family_ok": false,
+        "enterprise_ok": false
       }
     },
     "completeness": {
       "Service Discovery": {
-        "success": true,
-        "message": "5/5 services discoverable",
-        "success_rate": 1.0
+        "success": false,
+        "message": "0/5 services discoverable",
+        "success_rate": 0.0
       },
       "API Consistency": {
-        "success": true,
-        "message": "4/5 APIs have consistent structure",
-        "success_rate": 0.8
+        "success": false,
+        "message": "0/5 APIs have consistent structure",
+        "success_rate": 0.0
       },
       "Error Handling": {
         "success": false,
-        "message": "2/3 error handling tests passed",
-        "success_rate": 0.6666666666666666
+        "message": "1/3 error handling tests passed",
+        "success_rate": 0.3333333333333333
       },
       "Performance Integration": {
-        "success": true,
-        "message": "Avg: 0.00s, Max: 0.00s",
-        "avg_response_time": 0.001768636703491211,
-        "max_response_time": 0.0021681785583496094
+        "success": false,
+        "message": "No successful responses"
       }
     }
   },
   "recommendations": [
-    "\u26a0\ufe0f Partial integration. Several areas need attention."
+    "\u274c Poor integration. Major fixes required.",
+    "\ud83d\udd27 Fix service connectivity issues",
+    "\ud83d\udd17 Improve cross-service communication"
   ]
 }
