@@ -7,10 +7,18 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
-import { config } from './config';
-import { logger } from './utils';
 
+// Simple configuration
 const PORT = parseInt(process.env.PORT || '9999', 10);
+const HOST = process.env.HOST || '0.0.0.0';
+
+// Simple logger
+const logger = {
+  info: (message: string, data?: any) => console.log(`[INFO] ${message}`, data || ''),
+  error: (message: string, data?: any) => console.error(`[ERROR] ${message}`, data || ''),
+  warn: (message: string, data?: any) => console.warn(`[WARN] ${message}`, data || ''),
+  debug: (message: string, data?: any) => console.debug(`[DEBUG] ${message}`, data || '')
+};
 
 // Create Express app
 const app = express();
@@ -77,10 +85,10 @@ app.use('*', (req, res) => {
 });
 
 // Start server
-server.listen(PORT, () => {
-  logger.info(`🚀 Universal AI Tools server running on port ${PORT}`);
-  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-  logger.info(`📋 API status: http://localhost:${PORT}/api/v1/status`);
+server.listen(PORT, HOST, () => {
+  logger.info(`🚀 Universal AI Tools server running on ${HOST}:${PORT}`);
+  logger.info(`📊 Health check: http://${HOST}:${PORT}/health`);
+  logger.info(`📋 API status: http://${HOST}:${PORT}/api/v1/status`);
 });
 
 // Graceful shutdown

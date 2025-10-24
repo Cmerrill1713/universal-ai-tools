@@ -6,8 +6,8 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
-import { config } from './config';
-import { logger } from './utils';
+import { config } from './config.js';
+import { logger } from './utils.js';
 
 export interface ServerConfig {
   port: number;
