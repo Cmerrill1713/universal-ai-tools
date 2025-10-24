@@ -17,14 +17,27 @@ const chatServiceConfig: ChatServiceConfig = {
     maxTokens: parseInt(process.env.NEUROFORGE_MAX_TOKENS || '2000'),
     temperature: parseFloat(process.env.NEUROFORGE_TEMPERATURE || '0.7'),
     enableLearning: process.env.NEUROFORGE_ENABLE_LEARNING === 'true',
-    contextWindow: parseInt(process.env.NEUROFORGE_CONTEXT_WINDOW || '4000')
+    contextWindow: parseInt(process.env.NEUROFORGE_CONTEXT_WINDOW || '4000'),
+    mlxEnabled: process.env.ENABLE_MLX === 'true',
+    defaultModel: process.env.MLX_DEFAULT_MODEL || 'llama3.2-3b'
+  },
+  ollamaConfig: {
+    baseUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
+    defaultModel: process.env.OLLAMA_DEFAULT_MODEL || 'llama3.2:3b',
+    timeout: parseInt(process.env.OLLAMA_TIMEOUT || '30000')
   },
   enableUATPrompt: process.env.ENABLE_UAT_PROMPT !== 'false',
   enableNeuroforge: process.env.ENABLE_NEUROFORGE !== 'false',
-  enableContextEngineering: process.env.ENABLE_CONTEXT_ENGINEERING !== 'false'
+  enableContextEngineering: process.env.ENABLE_CONTEXT_ENGINEERING !== 'false',
+  enableOllama: process.env.ENABLE_OLLAMA !== 'false'
 };
 
 const chatService = new ChatService(chatServiceConfig);
+
+// Initialize chat service
+chatService.initialize().catch(error => {
+  console.error('Failed to initialize chat service:', error);
+});
 
 /**
  * POST /api/chat/message

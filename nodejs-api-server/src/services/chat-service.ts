@@ -4,7 +4,8 @@
  */
 
 import { UATPromptEngine, UATPromptRequest, UATPromptResponse } from './uat-prompt-engine';
-import { NeuroforgeIntegration, NeuroforgeRequest, NeuroforgeResponse } from './neuroforge-integration';
+import { NeuroforgeIntegration, NeuroforgeRequest, NeuroforgeResponse, NeuralNetworkConfig } from './neuroforge-integration';
+import { OllamaIntegrationService } from './ollama-integration';
 import { createClient } from '@supabase/supabase-js';
 
 export interface ChatMessage {
@@ -35,21 +36,22 @@ export interface ChatSession {
 export interface ChatServiceConfig {
   supabaseUrl: string;
   supabaseKey: string;
-  neuroforgeConfig: {
-    modelPath: string;
-    maxTokens: number;
-    temperature: number;
-    enableLearning: boolean;
-    contextWindow: number;
+  neuroforgeConfig: NeuralNetworkConfig;
+  ollamaConfig: {
+    baseUrl: string;
+    defaultModel: string;
+    timeout: number;
   };
   enableUATPrompt: boolean;
   enableNeuroforge: boolean;
   enableContextEngineering: boolean;
+  enableOllama: boolean;
 }
 
 export class ChatService {
   private uatPromptEngine: UATPromptEngine;
   private neuroforgeIntegration: NeuroforgeIntegration;
+  private ollamaService: OllamaIntegrationService;
   private supabase: any;
   private config: ChatServiceConfig;
   private sessions: Map<string, ChatSession> = new Map();
@@ -62,7 +64,36 @@ export class ChatService {
     this.uatPromptEngine = new UATPromptEngine(config.supabaseUrl, config.supabaseKey);
     
     // Initialize Neuroforge Integration
-    this.neuroforgeIntegration = new NeuroforgeIntegration(config.neuroforgeConfig);
+    this.neuroforgeIntegration = new NeuroforgeIntegration(config.neuroforgeConfig, config.supabaseUrl, config.supabaseKey);
+    
+    // Initialize Ollama Service
+    this.ollamaService = new OllamaIntegrationService();
+  }
+
+  /**
+   * Initialize all services
+   */
+  async initialize(): Promise<void> {
+    try {
+      console.log('🚀 Initializing Chat Service...');
+      
+      // Initialize Neuroforge
+      if (this.config.enableNeuroforge) {
+        await this.neuroforgeIntegration.initialize();
+        console.log('✅ Neuroforge initialized');
+      }
+      
+      // Initialize Ollama
+      if (this.config.enableOllama) {
+        await this.ollamaService.initialize();
+        console.log('✅ Ollama initialized');
+      }
+      
+      console.log('✅ Chat Service initialized successfully');
+    } catch (error) {
+      console.error('❌ Chat Service initialization failed:', error);
+      throw error;
+    }
   }
 
   /**
@@ -183,12 +214,36 @@ export class ChatService {
   }
 
   /**
-   * Call LLM with enhanced prompt
+   * Call LLM with enhanced prompt using Ollama
    */
   private async callLLM(prompt: string, parameters?: any): Promise<string> {
-    // This would integrate with your LLM service
-    // For now, return a mock response
-    return `AI Response to: ${prompt}`;
+    try {
+      if (this.config.enableOllama) {
+        // Use real Ollama for LLM calls
+        const response = await this.ollamaService.generateText({
+          model: this.config.ollamaConfig.defaultModel,
+          prompt: prompt,
+          options: {
+            temperature: parameters?.temperature || 0.7,
+            top_p: parameters?.top_p || 0.9,
+            num_predict: parameters?.max_tokens || 2000,
+            ...parameters
+          }
+        });
+
+        if (response.done && response.response) {
+          return response.response;
+        } else {
+          throw new Error('Ollama response incomplete');
+        }
+      } else {
+        // Fallback when Ollama is disabled
+        return `AI Response to: ${prompt}`;
+      }
+    } catch (error) {
+      console.error('Error calling LLM:', error);
+      return `I apologize, but I encountered an error processing your request. Please try again.`;
+    }
   }
 
   /**
