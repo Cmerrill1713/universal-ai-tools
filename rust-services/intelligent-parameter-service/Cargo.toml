@@ -58,6 +58,10 @@ tch = { version = "0.13", optional = true }  # PyTorch bindings for deep RL
 # FFI
 libc = "0.2"
 
+# HTTP server dependencies
+actix-web = "4.4"
+actix-cors = "0.6"
+
 [features]
 default = ["ffi"]
 ffi = []

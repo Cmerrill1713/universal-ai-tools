@@ -23,6 +23,7 @@ pub mod models;
 pub mod bridge;
 pub mod cache;
 pub mod error;
+pub mod http_server;
 
 // FFI bindings for integration with TypeScript/Node.js
 #[cfg(feature = "ffi")]
