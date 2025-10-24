@@ -173,7 +173,7 @@ func (sm *SecretsManager) ValidateAPIKey(apiKey string) bool {
 		// Fallback to environment variable
 		validKey = os.Getenv("API_KEY")
 		if validKey == "" {
-			validKey = "local-dev-key" // Development fallback
+			validKey = getEnvOrDefault("API_KEY", "") // No fallback in production
 		}
 	}
 	return apiKey == validKey
