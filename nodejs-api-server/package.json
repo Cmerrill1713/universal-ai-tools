@@ -12,6 +12,7 @@
     "test:governance": "tsx scripts/test-governance-integration.ts",
     "test:rust": "tsx scripts/test-rust-services-integration.ts",
     "test:ai": "tsx scripts/test-real-ai-integration.ts",
+    "test:missing": "tsx scripts/test-missing-components-integration.ts",
     "integrate:rust": "tsx scripts/integrate-rust-services-with-athena.ts",
     "validate": "tsx scripts/validate-athena-system.ts",
     "health": "tsx scripts/system-health-check.ts",

@@ -1,6 +1,9 @@
 import express from 'express';
 import { Request, Response } from 'express';
 import athenaRouter from './routers/sweet-athena';
+import dspyRouter from './routers/dspy';
+import mlxRouter from './routers/mlx';
+import intelligentParametersRouter from './routers/intelligent-parameters';
 
 const app = express();
 
@@ -24,6 +27,11 @@ app.use((req, res, next) => {
 // Routes - Athena is the central router for everything
 app.use('/', athenaRouter);
 
+// Additional specialized routers
+app.use('/api/dspy', dspyRouter);
+app.use('/api/mlx', mlxRouter);
+app.use('/api/parameters', intelligentParametersRouter);
+
 // Basic routes
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ 
@@ -37,7 +45,10 @@ app.get('/api/health', (req: Request, res: Response) => {
       neuroforge: 'available',
       contextEngineering: 'available',
       governance: 'available',
-      republic: 'available'
+      republic: 'available',
+      dspy: 'available',
+      mlx: 'available',
+      intelligentParameters: 'available'
     }
   });
 });
@@ -63,7 +74,17 @@ app.get('/', (req: Request, res: Response) => {
       proposals: '/api/governance/proposals',
       votes: '/api/governance/votes',
       citizens: '/api/governance/citizens',
-      republic: '/api/governance/republic'
+      republic: '/api/governance/republic',
+      dspy: '/api/dspy',
+      dspyOrchestrate: '/api/dspy/orchestrate',
+      dspyChains: '/api/dspy/chains',
+      dspyAgents: '/api/dspy/agents',
+      mlx: '/api/mlx',
+      mlxFineTune: '/api/mlx/fine-tune',
+      mlxDatasets: '/api/mlx/datasets',
+      parameters: '/api/parameters',
+      parameterOptimize: '/api/parameters/optimize',
+      parameterAnalytics: '/api/parameters/analytics'
     }
   });
 });
