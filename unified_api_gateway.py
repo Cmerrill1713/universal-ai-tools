@@ -26,6 +26,11 @@ class UnifiedAPIGateway:
         self.setup_middleware()
         self.setup_routes()
         
+    def log(self, message, level="INFO"):
+        """Log with timestamp"""
+        timestamp = time.strftime("%H:%M:%S")
+        print(f"[{timestamp}] {level}: {message}")
+        
         # Service registry
         self.services = {
             # Family Athena Services
