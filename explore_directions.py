@@ -437,7 +437,7 @@ class DirectionExplorer:
         print("Testing technical integration...")
 
         integration_tests = [
-            {"name": "API Gateway", "url": "http://localhost:8080/health"},
+            {"name": "API Gateway", "url": "http://localhost:8081/health"},
             {"name": "LLM Router", "url": f"{self.llm_router_url}/health"},
             {"name": "Assistant Service", "url": f"{self.assistant_base_url}/health"},
             {"name": "Redis Cache", "test": "redis_connection"},

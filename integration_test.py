@@ -111,7 +111,7 @@ class IntegrationTester:
             }
 
             response = requests.post(
-                "http://localhost:8080/api/chat",
+                "http://localhost:8081/api/chat",
                 json=chat_data,
                 headers=headers,
                 timeout=10,
