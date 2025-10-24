@@ -29,7 +29,9 @@ const chatServiceConfig: ChatServiceConfig = {
   enableUATPrompt: process.env.ENABLE_UAT_PROMPT !== 'false',
   enableNeuroforge: process.env.ENABLE_NEUROFORGE !== 'false',
   enableContextEngineering: process.env.ENABLE_CONTEXT_ENGINEERING !== 'false',
-  enableOllama: process.env.ENABLE_OLLAMA !== 'false'
+  enableOllama: process.env.ENABLE_OLLAMA !== 'false',
+  defaultModel: process.env.DEFAULT_LLM_MODEL || 'llama3.2:3b',
+  defaultModelProvider: (process.env.DEFAULT_LLM_PROVIDER as 'ollama' | 'mlx' | 'openai' | 'anthropic') || 'ollama'
 };
 
 const chatService = new ChatService(chatServiceConfig);

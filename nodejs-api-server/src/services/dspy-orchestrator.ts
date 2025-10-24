@@ -39,6 +39,8 @@ interface DSPyRequest {
   enableLearning?: boolean;
   userId: string;
   sessionId: string;
+  model?: string; // Optional model specification
+  modelProvider?: 'ollama' | 'mlx' | 'openai' | 'anthropic'; // Model provider
 }
 
 interface DSPyResponse {
@@ -465,7 +467,7 @@ Format your response as JSON.`,
           }
 
           console.log(`🤖 Executing agent: ${agent.name}`);
-          const output = await this.executeAgent(agent, context, agentOutputs);
+          const output = await this.executeAgent(agent, context, agentOutputs, request);
           agentOutputs.push(output);
 
           // Update context for next agents
@@ -530,20 +532,16 @@ Format your response as JSON.`,
   /**
    * Execute individual agent
    */
-  private async executeAgent(agent: DSPyAgent, context: any, previousOutputs: AgentOutput[]): Promise<AgentOutput> {
+  private async executeAgent(agent: DSPyAgent, context: any, previousOutputs: AgentOutput[], request: DSPyRequest): Promise<AgentOutput> {
     try {
       // Build prompt from template
       const prompt = this.buildAgentPrompt(agent, context, previousOutputs);
       
-      // Execute with Ollama
-      const response = await this.ollamaService.generateText({
-        model: 'llama3.2:3b',
-        prompt: prompt,
-        options: {
-          temperature: 0.7,
-          num_predict: 2000
-        }
-      });
+      // Get model configuration
+      const modelConfig = this.getModelConfig(request);
+      
+      // Execute with appropriate service
+      const response = await this.executeWithModel(prompt, modelConfig, request);
 
       // Parse output based on expected format
       let parsedOutput;
@@ -580,6 +578,74 @@ Format your response as JSON.`,
         },
         timestamp: new Date()
       };
+    }
+  }
+
+  /**
+   * Get model configuration based on request
+   */
+  private getModelConfig(request: DSPyRequest): any {
+    const defaultModel = process.env.DEFAULT_LLM_MODEL || 'llama3.2:3b';
+    const defaultProvider = process.env.DEFAULT_LLM_PROVIDER || 'ollama';
+    
+    return {
+      model: request.model || defaultModel,
+      provider: request.modelProvider || defaultProvider,
+      temperature: 0.7,
+      num_predict: 2000,
+      top_p: 0.9,
+      top_k: 40
+    };
+  }
+
+  /**
+   * Execute with appropriate model provider
+   */
+  private async executeWithModel(prompt: string, modelConfig: any, request: DSPyRequest): Promise<any> {
+    switch (modelConfig.provider) {
+      case 'ollama':
+        return await this.ollamaService.generateText({
+          model: modelConfig.model,
+          prompt: prompt,
+          options: {
+            temperature: modelConfig.temperature,
+            num_predict: modelConfig.num_predict,
+            top_p: modelConfig.top_p,
+            top_k: modelConfig.top_k
+          }
+        });
+      
+      case 'mlx':
+        // Use MLX service for inference
+        const { MLXIntegrationService } = require('./mlx-integration');
+        const mlxService = new MLXIntegrationService();
+        await mlxService.initialize();
+        
+        return await mlxService.runInference({
+          modelName: modelConfig.model,
+          prompt: prompt,
+          maxTokens: modelConfig.num_predict,
+          temperature: modelConfig.temperature,
+          topP: modelConfig.top_p,
+          topK: modelConfig.top_k
+        });
+      
+      case 'openai':
+      case 'anthropic':
+        // For external API providers, we'd implement API calls here
+        // For now, fall back to Ollama
+        console.warn(`Provider ${modelConfig.provider} not implemented, falling back to Ollama`);
+        return await this.ollamaService.generateText({
+          model: modelConfig.model,
+          prompt: prompt,
+          options: {
+            temperature: modelConfig.temperature,
+            num_predict: modelConfig.num_predict
+          }
+        });
+      
+      default:
+        throw new Error(`Unsupported model provider: ${modelConfig.provider}`);
     }
   }
 

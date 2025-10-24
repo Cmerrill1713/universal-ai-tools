@@ -25,7 +25,7 @@ dspyOrchestrator.initialize().catch(error => {
  */
 router.post('/orchestrate', async (req: Request, res: Response) => {
   try {
-    const { task, context, reasoningChain, maxIterations, convergenceThreshold, enableLearning, userId, sessionId } = req.body;
+    const { task, context, reasoningChain, maxIterations, convergenceThreshold, enableLearning, userId, sessionId, model, modelProvider } = req.body;
 
     if (!task || !userId || !sessionId) {
       return res.status(400).json({
@@ -42,7 +42,9 @@ router.post('/orchestrate', async (req: Request, res: Response) => {
       convergenceThreshold: convergenceThreshold || 0.8,
       enableLearning: enableLearning || false,
       userId,
-      sessionId
+      sessionId,
+      model: model || process.env.DEFAULT_LLM_MODEL,
+      modelProvider: modelProvider || (process.env.DEFAULT_LLM_PROVIDER as 'ollama' | 'mlx' | 'openai' | 'anthropic') || 'ollama'
     };
 
     const response = await dspyOrchestrator.executeReasoningChain(request);

@@ -27,6 +27,7 @@ router.post('/optimize', async (req: Request, res: Response) => {
   try {
     const { 
       model, 
+      modelProvider,
       taskType, 
       context, 
       userPreferences, 
@@ -42,7 +43,8 @@ router.post('/optimize', async (req: Request, res: Response) => {
     }
 
     const request: ParameterOptimizationRequest = {
-      model,
+      model: model || process.env.DEFAULT_LLM_MODEL,
+      modelProvider: modelProvider || (process.env.DEFAULT_LLM_PROVIDER as 'ollama' | 'mlx' | 'openai' | 'anthropic') || 'ollama',
       taskType,
       context,
       userPreferences,

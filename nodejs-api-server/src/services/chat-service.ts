@@ -46,6 +46,8 @@ export interface ChatServiceConfig {
   enableNeuroforge: boolean;
   enableContextEngineering: boolean;
   enableOllama: boolean;
+  defaultModel?: string;
+  defaultModelProvider?: 'ollama' | 'mlx' | 'openai' | 'anthropic';
 }
 
 export class ChatService {
@@ -214,31 +216,62 @@ export class ChatService {
   }
 
   /**
-   * Call LLM with enhanced prompt using Ollama
+   * Call LLM with enhanced prompt using appropriate model provider
    */
   private async callLLM(prompt: string, parameters?: any): Promise<string> {
     try {
-      if (this.config.enableOllama) {
-        // Use real Ollama for LLM calls
-        const response = await this.ollamaService.generateText({
-          model: this.config.ollamaConfig.defaultModel,
-          prompt: prompt,
-          options: {
-            temperature: parameters?.temperature || 0.7,
-            top_p: parameters?.top_p || 0.9,
-            num_predict: parameters?.max_tokens || 2000,
-            ...parameters
-          }
-        });
+      const modelProvider = this.config.defaultModelProvider || 'ollama';
+      const model = this.config.defaultModel || this.config.ollamaConfig.defaultModel;
 
-        if (response.done && response.response) {
-          return response.response;
-        } else {
-          throw new Error('Ollama response incomplete');
-        }
-      } else {
-        // Fallback when Ollama is disabled
-        return `AI Response to: ${prompt}`;
+      switch (modelProvider) {
+        case 'ollama':
+          if (this.config.enableOllama) {
+            const response = await this.ollamaService.generateText({
+              model: model,
+              prompt: prompt,
+              options: {
+                temperature: parameters?.temperature || 0.7,
+                top_p: parameters?.top_p || 0.9,
+                num_predict: parameters?.max_tokens || 2000,
+                ...parameters
+              }
+            });
+
+            if (response.done && response.response) {
+              return response.response;
+            } else {
+              throw new Error('Ollama response incomplete');
+            }
+          } else {
+            throw new Error('Ollama is disabled');
+          }
+
+        case 'mlx':
+          // Use MLX service for inference
+          const { MLXIntegrationService } = require('./mlx-integration');
+          const mlxService = new MLXIntegrationService();
+          await mlxService.initialize();
+          
+          const mlxResponse = await mlxService.runInference({
+            modelName: model,
+            prompt: prompt,
+            maxTokens: parameters?.max_tokens || 2000,
+            temperature: parameters?.temperature || 0.7,
+            topP: parameters?.top_p || 0.9,
+            topK: parameters?.top_k || 40
+          });
+
+          return mlxResponse.response || 'MLX response incomplete';
+
+        case 'openai':
+        case 'anthropic':
+          // For external API providers, we'd implement API calls here
+          // For now, fall back to Ollama
+          console.warn(`Provider ${modelProvider} not implemented, falling back to Ollama`);
+          return await this.callLLM(prompt, parameters);
+
+        default:
+          throw new Error(`Unsupported model provider: ${modelProvider}`);
       }
     } catch (error) {
       console.error('Error calling LLM:', error);

@@ -13,6 +13,7 @@ interface FineTuningJob {
   name: string;
   description: string;
   baseModel: string;
+  modelProvider?: 'mlx' | 'ollama' | 'huggingface'; // Model provider
   trainingData: any[];
   config: FineTuningConfig;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
@@ -193,7 +194,8 @@ class MLXFineTuningService {
     baseModel: string,
     trainingData: any[],
     config: FineTuningConfig,
-    userId: string
+    userId: string,
+    modelProvider?: 'mlx' | 'ollama' | 'huggingface'
   ): Promise<FineTuningJob> {
     try {
       console.log(`🎯 Creating fine-tuning job: ${name}`);
@@ -204,6 +206,7 @@ class MLXFineTuningService {
         name,
         description,
         baseModel,
+        modelProvider: modelProvider || 'mlx',
         trainingData,
         config,
         status: 'pending',

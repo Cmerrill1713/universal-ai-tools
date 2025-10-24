@@ -29,6 +29,7 @@ router.post('/fine-tune', async (req: Request, res: Response) => {
       name, 
       description, 
       baseModel, 
+      modelProvider,
       trainingData, 
       config, 
       userId 
@@ -64,7 +65,8 @@ router.post('/fine-tune', async (req: Request, res: Response) => {
       baseModel,
       trainingData,
       defaultConfig,
-      userId
+      userId,
+      modelProvider || 'mlx'
     );
 
     res.json({

@@ -7,7 +7,8 @@ import { createClient } from '@supabase/supabase-js';
 import { OllamaIntegrationService } from './ollama-integration';
 
 interface ParameterOptimizationRequest {
-  model: string;
+  model?: string; // Optional model specification
+  modelProvider?: 'ollama' | 'mlx' | 'openai' | 'anthropic'; // Model provider
   taskType: 'text_generation' | 'chat' | 'analysis' | 'code_generation' | 'summarization' | 'translation';
   context: any;
   userPreferences?: UserPreferences;
@@ -202,10 +203,14 @@ class IntelligentParameterService {
    * Generate optimized parameters using ML-based approach
    */
   private async generateOptimizedParameters(request: ParameterOptimizationRequest): Promise<OptimizedParameters> {
-    // Use Ollama to analyze the request and generate optimal parameters
+    // Get model configuration
+    const modelConfig = this.getModelConfig(request);
+    
+    // Use appropriate model to analyze the request and generate optimal parameters
     const analysisPrompt = `Analyze the following request and generate optimal LLM parameters.
 
 Task Type: ${request.taskType}
+Model Provider: ${modelConfig.provider}
 Context: ${JSON.stringify(request.context, null, 2)}
 User Preferences: ${JSON.stringify(request.userPreferences || {}, null, 2)}
 Performance Goals: ${request.performanceGoals.join(', ')}
@@ -215,6 +220,7 @@ Generate optimal parameters considering:
 - User preferences and style
 - Performance goals (accuracy, speed, creativity, consistency)
 - Historical performance data
+- Model provider capabilities
 
 Respond with JSON containing:
 - temperature (0.0-2.0)
@@ -226,14 +232,7 @@ Respond with JSON containing:
 - reasoning for the choices`;
 
     try {
-      const response = await this.ollamaService.generateText({
-        model: 'llama3.2:3b',
-        prompt: analysisPrompt,
-        options: {
-          temperature: 0.3, // Low temperature for consistent parameter generation
-          num_predict: 1000
-        }
-      });
+      const response = await this.executeWithModel(analysisPrompt, modelConfig, request);
 
       // Parse the response
       const analysis = JSON.parse(response.response);
@@ -253,6 +252,68 @@ Respond with JSON containing:
     } catch (error) {
       console.warn('Failed to generate optimized parameters with ML, using rule-based approach');
       return this.generateRuleBasedParameters(request);
+    }
+  }
+
+  /**
+   * Get model configuration based on request
+   */
+  private getModelConfig(request: ParameterOptimizationRequest): any {
+    const defaultModel = process.env.DEFAULT_LLM_MODEL || 'llama3.2:3b';
+    const defaultProvider = process.env.DEFAULT_LLM_PROVIDER || 'ollama';
+    
+    return {
+      model: request.model || defaultModel,
+      provider: request.modelProvider || defaultProvider,
+      temperature: 0.3, // Low temperature for consistent parameter generation
+      num_predict: 1000
+    };
+  }
+
+  /**
+   * Execute with appropriate model provider
+   */
+  private async executeWithModel(prompt: string, modelConfig: any, request: ParameterOptimizationRequest): Promise<any> {
+    switch (modelConfig.provider) {
+      case 'ollama':
+        return await this.ollamaService.generateText({
+          model: modelConfig.model,
+          prompt: prompt,
+          options: {
+            temperature: modelConfig.temperature,
+            num_predict: modelConfig.num_predict
+          }
+        });
+      
+      case 'mlx':
+        // Use MLX service for inference
+        const { MLXIntegrationService } = require('./mlx-integration');
+        const mlxService = new MLXIntegrationService();
+        await mlxService.initialize();
+        
+        return await mlxService.runInference({
+          modelName: modelConfig.model,
+          prompt: prompt,
+          maxTokens: modelConfig.num_predict,
+          temperature: modelConfig.temperature
+        });
+      
+      case 'openai':
+      case 'anthropic':
+        // For external API providers, we'd implement API calls here
+        // For now, fall back to Ollama
+        console.warn(`Provider ${modelConfig.provider} not implemented, falling back to Ollama`);
+        return await this.ollamaService.generateText({
+          model: modelConfig.model,
+          prompt: prompt,
+          options: {
+            temperature: modelConfig.temperature,
+            num_predict: modelConfig.num_predict
+          }
+        });
+      
+      default:
+        throw new Error(`Unsupported model provider: ${modelConfig.provider}`);
     }
   }
 

@@ -128,7 +128,9 @@ class MissingComponentsTester {
           task: 'Analyze the benefits of using AI in software development',
           context: { domain: 'software_development' },
           userId: 'test_user',
-          sessionId: 'test_session'
+          sessionId: 'test_session',
+          model: process.env.DEFAULT_LLM_MODEL || 'llama3.2:3b',
+          modelProvider: process.env.DEFAULT_LLM_PROVIDER || 'ollama'
         })
       });
 
@@ -253,7 +255,8 @@ class MissingComponentsTester {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'llama3.2:3b',
+          model: process.env.DEFAULT_LLM_MODEL || 'llama3.2:3b',
+          modelProvider: process.env.DEFAULT_LLM_PROVIDER || 'ollama',
           taskType: 'text_generation',
           context: {
             userId: 'test_user',
