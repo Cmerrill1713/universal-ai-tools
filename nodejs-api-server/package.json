@@ -8,6 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "test": "jest",
+    "test:athena": "tsx scripts/test-athena-routing-integration.ts",
+    "test:governance": "tsx scripts/test-governance-integration.ts",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {

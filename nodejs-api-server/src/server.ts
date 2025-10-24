@@ -1,7 +1,6 @@
 import express from 'express';
 import { Request, Response } from 'express';
-import chatRouter from './routers/chat';
-import governanceRouter from './routers/governance';
+import athenaRouter from './routers/sweet-athena';
 
 const app = express();
 
@@ -22,9 +21,8 @@ app.use((req, res, next) => {
   }
 });
 
-// Routes
-app.use('/api/chat', chatRouter);
-app.use('/api/governance', governanceRouter);
+// Routes - Athena is the central router for everything
+app.use('/', athenaRouter);
 
 // Basic routes
 app.get('/api/health', (req: Request, res: Response) => {
@@ -33,6 +31,7 @@ app.get('/api/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     message: 'Server is running successfully',
     services: {
+      athena: 'available',
       chat: 'available',
       uatPrompt: 'available',
       neuroforge: 'available',
@@ -46,10 +45,14 @@ app.get('/api/health', (req: Request, res: Response) => {
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
-    message: 'Universal AI Tools - Chat Service with UAT-Prompt, Neuroforge & Governance Integration',
+    message: 'Universal AI Tools - Athena Central Intelligence with UAT-Prompt, Neuroforge & Governance Integration',
     version: '1.0.0',
     endpoints: {
       health: '/api/health',
+      athena: '/api/athena',
+      athenaStatus: '/api/athena/status',
+      athenaIntelligence: '/api/athena/intelligence',
+      athenaStats: '/api/athena/routing-stats',
       chat: '/api/chat',
       chatMessage: '/api/chat/message',
       chatHistory: '/api/chat/history/:sessionId',
