@@ -4,6 +4,7 @@ import athenaRouter from './routers/sweet-athena';
 import dspyRouter from './routers/dspy';
 import mlxRouter from './routers/mlx';
 import intelligentParametersRouter from './routers/intelligent-parameters';
+import gitlabRouter from './routers/gitlab';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/', athenaRouter);
 app.use('/api/dspy', dspyRouter);
 app.use('/api/mlx', mlxRouter);
 app.use('/api/parameters', intelligentParametersRouter);
+app.use('/api/gitlab', gitlabRouter);
 
 // Basic routes
 app.get('/api/health', (req: Request, res: Response) => {
@@ -84,7 +86,11 @@ app.get('/', (req: Request, res: Response) => {
       mlxDatasets: '/api/mlx/datasets',
       parameters: '/api/parameters',
       parameterOptimize: '/api/parameters/optimize',
-      parameterAnalytics: '/api/parameters/analytics'
+      parameterAnalytics: '/api/parameters/analytics',
+      gitlab: '/api/gitlab',
+      gitlabIssues: '/api/gitlab/issues',
+      gitlabAnalysis: '/api/gitlab/analysis',
+      gitlabContext: '/api/gitlab/context'
     }
   });
 });
