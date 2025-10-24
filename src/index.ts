@@ -40,12 +40,14 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// Athena API routes
 app.get('/api/v1/status', (req, res) => {
   res.json({
     status: 'operational',
     services: {
       'universal-ai-tools': 'running',
+      'athena-backend': 'http://localhost:8013',
+      'athena-api': 'http://localhost:8888',
       'neuroforge': 'available',
       'api-gateway': 'active'
     },
@@ -53,16 +55,62 @@ app.get('/api/v1/status', (req, res) => {
   });
 });
 
+// Athena backend proxy
+app.use('/api/v1/athena', async (req, res) => {
+  try {
+    const athenaUrl = `http://localhost:8013${req.path}`;
+    const response = await fetch(athenaUrl, {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...req.headers
+      },
+      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined
+    });
+    
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (error) {
+    logger.error('Athena proxy error:', { error: error.message });
+    res.status(502).json({ error: 'Athena backend unavailable' });
+  }
+});
+
+// Athena integration endpoints
+app.get('/api/v1/athena/health', async (req, res) => {
+  try {
+    const athenaResponse = await fetch('http://localhost:8013/health');
+    const athenaData = await athenaResponse.json();
+    res.json({
+      ...athenaData,
+      gateway: 'universal-ai-tools',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(502).json({
+      error: 'Athena backend unavailable',
+      gateway: 'universal-ai-tools',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    service: 'Universal AI Tools',
+    service: 'Universal AI Tools - Athena Gateway',
     version: '1.0.0',
     status: 'running',
+    athena: {
+      backend: 'http://localhost:8013',
+      api: 'http://localhost:8888',
+      swift_app: 'AthenaIOS/AthenaApp.swift'
+    },
     endpoints: {
       health: '/health',
       status: '/api/v1/status',
-      docs: '/api/docs'
+      athena_health: '/api/v1/athena/health',
+      athena_proxy: '/api/v1/athena/*'
     }
   });
 });
