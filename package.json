@@ -45,7 +45,11 @@
     "docker:clean": "docker-compose down -v --remove-orphans",
     "services:start": "./start-go-rust.sh",
     "services:stop": "./stop-go-rust.sh",
-    "services:status": "./status-go-rust.sh"
+    "services:status": "./status-go-rust.sh",
+    "test:workflows": "tsx scripts/test-workflows.ts",
+    "cleanup:workflows": "./scripts/cleanup-manual-workflows.sh",
+    "workflows:test": "npm run test:workflows",
+    "workflows:cleanup": "npm run cleanup:workflows"
   },
   "keywords": [
     "ai",
