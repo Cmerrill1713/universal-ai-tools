@@ -160,7 +160,7 @@ jobs:
             type=raw,value=${{ needs.validate.outputs.version }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
