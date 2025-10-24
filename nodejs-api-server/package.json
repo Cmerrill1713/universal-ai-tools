@@ -10,6 +10,10 @@
     "test": "jest",
     "test:athena": "tsx scripts/test-athena-routing-integration.ts",
     "test:governance": "tsx scripts/test-governance-integration.ts",
+    "test:rust": "tsx scripts/test-rust-services-integration.ts",
+    "integrate:rust": "tsx scripts/integrate-rust-services-with-athena.ts",
+    "validate": "tsx scripts/validate-athena-system.ts",
+    "health": "tsx scripts/system-health-check.ts",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
