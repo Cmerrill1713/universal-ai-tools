@@ -234,7 +234,7 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -245,7 +245,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push signalling server
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ~/UE5-SweetAthena/Scripts/SignallingServer
           push: true
