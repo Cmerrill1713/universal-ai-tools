@@ -257,8 +257,7 @@ class OllamaIntegrationService {
             num_predict: 2000,
             num_ctx: 4000,
             ...request.options
-          },
-          ...request
+          }
         }),
         signal: AbortSignal.timeout(this.timeout)
       });
@@ -297,8 +296,7 @@ class OllamaIntegrationService {
             num_predict: 2000,
             num_ctx: 4000,
             ...request.options
-          },
-          ...request
+          }
         }),
         signal: AbortSignal.timeout(this.timeout)
       });
@@ -505,6 +503,13 @@ Respond naturally and helpfully.`;
       console.error('Ollama service test failed:', error);
       return false;
     }
+  }
+
+  /**
+   * Shutdown Ollama integration service
+   */
+  async shutdown(): Promise<void> {
+    console.log('🛑 Ollama integration service shutdown');
   }
 }
 

@@ -65,7 +65,7 @@ export interface RepublicMember {
 }
 
 export class GovernanceService {
-  private supabase: any;
+  public supabase: any;
   private config: GovernanceConfig;
   private neuralVotingEnabled: boolean;
   private uatPromptEnabled: boolean;
@@ -187,8 +187,8 @@ export class GovernanceService {
     }
 
     // Calculate basic consensus
-    const yesVotes = votes.filter(v => v.vote === 'yes').length;
-    const noVotes = votes.filter(v => v.vote === 'no').length;
+    const yesVotes = votes.filter((v: any) => v.vote === 'yes').length;
+    const noVotes = votes.filter((v: any) => v.vote === 'no').length;
     const totalVotes = votes.length;
     const agreement = Math.abs(yesVotes - noVotes) / totalVotes;
 
@@ -196,11 +196,11 @@ export class GovernanceService {
     let neuralConsensus = 0;
     if (this.neuralVotingEnabled) {
       const neuralInsights = votes
-        .filter(v => v.neuralInsights)
-        .map(v => v.neuralInsights.confidence);
+        .filter((v: any) => v.neuralInsights)
+        .map((v: any) => v.neuralInsights.confidence);
       
       if (neuralInsights.length > 0) {
-        neuralConsensus = neuralInsights.reduce((a, b) => a + b, 0) / neuralInsights.length;
+        neuralConsensus = neuralInsights.reduce((a: number, b: number) => a + b, 0) / neuralInsights.length;
       }
     }
 
@@ -208,11 +208,11 @@ export class GovernanceService {
     let uatPromptConsensus = 0;
     if (this.uatPromptEnabled) {
       const uatPromptInsights = votes
-        .filter(v => v.uatPromptInsights)
-        .map(v => v.uatPromptInsights.confidence);
+        .filter((v: any) => v.uatPromptInsights)
+        .map((v: any) => v.uatPromptInsights.confidence);
       
       if (uatPromptInsights.length > 0) {
-        uatPromptConsensus = uatPromptInsights.reduce((a, b) => a + b, 0) / uatPromptInsights.length;
+        uatPromptConsensus = uatPromptInsights.reduce((a: number, b: number) => a + b, 0) / uatPromptInsights.length;
       }
     }
 
@@ -261,15 +261,16 @@ export class GovernanceService {
     console.log('🧠 Analyzing proposal with neuroforge...');
 
     // Simulate neural analysis
+    const feasibility = Math.random(); // 0 to 1
     const analysis = {
       sentiment: Math.random() * 2 - 1, // -1 to 1
       complexity: Math.random(), // 0 to 1
-      feasibility: Math.random(), // 0 to 1
+      feasibility: feasibility, // 0 to 1
       impact: Math.random(), // 0 to 1
       risk: Math.random(), // 0 to 1
       neuralRecommendation: Math.random() > 0.5 ? 'approve' : 'reject',
       confidence: Math.random() * 0.4 + 0.6, // 0.6 to 1.0
-      reasoning: `Neural analysis suggests ${proposal.priority} priority with ${Math.round(analysis?.feasibility * 100)}% feasibility`
+      reasoning: `Neural analysis suggests ${proposal.priority} priority with ${Math.round(feasibility * 100)}% feasibility`
     };
 
     return analysis;
@@ -426,7 +427,7 @@ export class GovernanceService {
 
     return {
       totalProposals: proposals?.length || 0,
-      activeProposals: proposals?.filter(p => p.status === 'active' || p.status === 'voting').length || 0,
+      activeProposals: proposals?.filter((p: any) => p.status === 'active' || p.status === 'voting').length || 0,
       totalVotes: votes?.length || 0,
       totalMembers: members?.length || 0,
       consensusRate: this.calculateConsensusRate(proposals || []),

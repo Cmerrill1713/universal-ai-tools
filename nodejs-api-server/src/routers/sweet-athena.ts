@@ -40,7 +40,7 @@ class AthenaRouter {
   /**
    * Athena's central routing intelligence
    */
-  private async routeRequest(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
+  public async routeRequest(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
     const startTime = Date.now();
     const requestId = `athena_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
@@ -249,24 +249,28 @@ class AthenaRouter {
     switch (recommendedRoute) {
       case 'governance':
         if (this.config.enableGovernance) {
-          return governanceRouter(req, res, next);
+          governanceRouter(req, res, next);
+          return;
         } else {
-          return res.status(503).json({
+          res.status(503).json({
             success: false,
             message: 'Governance routing is disabled',
             athena: 'Governance services are currently unavailable'
           });
+          return;
         }
 
       case 'chat':
         if (this.config.enableChat) {
-          return chatRouter(req, res, next);
+          chatRouter(req, res, next);
+          return;
         } else {
-          return res.status(503).json({
+          res.status(503).json({
             success: false,
             message: 'Chat routing is disabled',
             athena: 'Chat services are currently unavailable'
           });
+          return;
         }
 
       case 'athena':
@@ -280,7 +284,7 @@ class AthenaRouter {
   /**
    * Handle direct Athena requests
    */
-  private handleAthenaRequest(req: express.Request, res: express.Response): void {
+  public handleAthenaRequest(req: express.Request, res: express.Response): void {
     const path = req.path.replace('/api/athena', '');
     
     switch (path) {

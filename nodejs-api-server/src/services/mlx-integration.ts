@@ -64,7 +64,35 @@ class MLXIntegrationService {
   constructor() {
     this.modelsPath = process.env.MLX_MODELS_PATH || './models/mlx';
     this.pythonScriptPath = path.join(__dirname, '../mlx-bridge/mlx_bridge.py');
-    this.initializeModels();
+  }
+
+  /**
+   * Initialize available models
+   */
+  private initializeModels(): void {
+    // Initialize default models
+    const defaultModels: MLXModel[] = [
+      {
+        name: 'llama3.2:3b',
+        path: path.join(this.modelsPath, 'llama3.2-3b'),
+        type: 'text',
+        size: '3B',
+        description: 'Llama 3.2 3B model for text generation',
+        loaded: false
+      },
+      {
+        name: 'llama3.2:1b',
+        path: path.join(this.modelsPath, 'llama3.2-1b'),
+        type: 'text',
+        size: '1B',
+        description: 'Llama 3.2 1B model for fast text generation',
+        loaded: false
+      }
+    ];
+
+    defaultModels.forEach(model => {
+      this.models.set(model.name, model);
+    });
   }
 
   /**

@@ -68,7 +68,7 @@ export interface RepublicStats {
 }
 
 export class RepublicService {
-  private supabase: any;
+  public supabase: any;
   private config: RepublicConfig;
 
   constructor(config: RepublicConfig) {
@@ -256,16 +256,16 @@ export class RepublicService {
       return this.getEmptyStats();
     }
 
-    const activeCitizens = citizens.filter(c => c.isActive).length;
-    const senators = citizens.filter(c => c.role === 'senator').length;
-    const consuls = citizens.filter(c => c.role === 'consul').length;
-    const dictators = citizens.filter(c => c.role === 'dictator').length;
+    const activeCitizens = citizens.filter((c: any) => c.isActive).length;
+    const senators = citizens.filter((c: any) => c.role === 'senator').length;
+    const consuls = citizens.filter((c: any) => c.role === 'consul').length;
+    const dictators = citizens.filter((c: any) => c.role === 'dictator').length;
 
     const totalContributions = contributions?.length || 0;
-    const averageReputation = citizens.reduce((sum, c) => sum + c.reputation, 0) / citizens.length;
+    const averageReputation = citizens.reduce((sum: number, c: any) => sum + c.reputation, 0) / citizens.length;
 
-    const neuralContributions = contributions?.filter(c => c.neuralValue > 0).length || 0;
-    const uatPromptContributions = contributions?.filter(c => c.uatPromptValue > 0).length || 0;
+    const neuralContributions = contributions?.filter((c: any) => c.neuralValue > 0).length || 0;
+    const uatPromptContributions = contributions?.filter((c: any) => c.uatPromptValue > 0).length || 0;
 
     const neuralContributionRate = totalContributions > 0 ? neuralContributions / totalContributions : 0;
     const uatPromptContributionRate = totalContributions > 0 ? uatPromptContributions / totalContributions : 0;
@@ -429,7 +429,7 @@ export class RepublicService {
     const achievementCount = achievements?.length || 0;
 
     // Check for contribution milestones
-    if (contributionCount >= 10 && !achievements?.find(a => a.title === 'Contributor')) {
+    if (contributionCount >= 10 && !achievements?.find((a: any) => a.title === 'Contributor')) {
       await this.awardAchievement(citizenId, {
         title: 'Contributor',
         description: 'Made 10 contributions to the republic',
@@ -440,7 +440,7 @@ export class RepublicService {
       });
     }
 
-    if (contributionCount >= 50 && !achievements?.find(a => a.title === 'Dedicated Citizen')) {
+    if (contributionCount >= 50 && !achievements?.find((a: any) => a.title === 'Dedicated Citizen')) {
       await this.awardAchievement(citizenId, {
         title: 'Dedicated Citizen',
         description: 'Made 50 contributions to the republic',
@@ -452,7 +452,7 @@ export class RepublicService {
     }
 
     // Check for neural contribution achievements
-    if (citizen.neuralContribution >= 100 && !achievements?.find(a => a.title === 'Neural Pioneer')) {
+    if (citizen.neuralContribution >= 100 && !achievements?.find((a: any) => a.title === 'Neural Pioneer')) {
       await this.awardAchievement(citizenId, {
         title: 'Neural Pioneer',
         description: 'Made significant neural network contributions',
@@ -464,7 +464,7 @@ export class RepublicService {
     }
 
     // Check for UAT-prompt achievements
-    if (citizen.uatPromptContribution >= 100 && !achievements?.find(a => a.title === 'Prompt Engineer')) {
+    if (citizen.uatPromptContribution >= 100 && !achievements?.find((a: any) => a.title === 'Prompt Engineer')) {
       await this.awardAchievement(citizenId, {
         title: 'Prompt Engineer',
         description: 'Made significant UAT-prompt contributions',

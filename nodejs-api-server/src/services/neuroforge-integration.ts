@@ -282,7 +282,11 @@ Respond only with valid JSON.`;
    * Generate recommendations based on neural insights
    */
   private async generateRecommendations(insights: any, neuralState: any): Promise<any> {
-    const recommendations = {
+    const recommendations: {
+      followUpQuestions: string[];
+      relatedTopics: string[];
+      actionItems: string[];
+    } = {
       followUpQuestions: [],
       relatedTopics: [],
       actionItems: []
@@ -451,7 +455,7 @@ Respond only with valid JSON.`;
    */
   private extractEntities(message: string): string[] {
     // Simple entity extraction - in a real implementation, this would use NER
-    const entities = [];
+    const entities: string[] = [];
     const words = message.split(/\s+/);
     
     words.forEach(word => {
@@ -517,5 +521,27 @@ Respond only with valid JSON.`;
       await this.mlxService.shutdown();
     }
     console.log('🛑 Neuroforge service shutdown');
+  }
+
+  /**
+   * Clear neural state for a session
+   */
+  clearNeuralState(sessionId: string): void {
+    this.neuralState.delete(sessionId);
+  }
+
+  /**
+   * Get learning statistics
+   */
+  getLearningStats(): any {
+    return {
+      totalSessions: this.neuralState.size,
+      learningDataPoints: this.learningData.length,
+      averageConfidence: this.learningData.length > 0 
+        ? this.learningData.reduce((sum: number, data: any) => sum + data.confidence, 0) / this.learningData.length
+        : 0,
+      mlxEnabled: this.config.mlxEnabled,
+      lastUpdated: new Date()
+    };
   }
 }

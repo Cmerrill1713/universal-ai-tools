@@ -327,21 +327,21 @@ export class GitLabIntegrationService {
   /**
    * Get code quality report
    */
-  async getCodeQualityReport(): Promise<GitLabCodeQualityReport | null> {
+  async getCodeQualityReport(): Promise<GitLabCodeQualityReport | undefined> {
     try {
       // Get latest pipeline with code quality artifacts
       const pipelines = await this.getPipelines(5);
       const pipeline = pipelines.find(p => p.status === 'success');
 
       if (!pipeline) {
-        return null;
+        return undefined;
       }
 
       // Get code quality artifacts
       const artifacts = await this.getPipelineArtifacts(pipeline.id, 'codequality');
       
       if (artifacts.length === 0) {
-        return null;
+        return undefined;
       }
 
       // Parse code quality report
@@ -349,28 +349,28 @@ export class GitLabIntegrationService {
       return this.parseCodeQualityReport(report);
     } catch (error) {
       console.warn('⚠️ Could not retrieve code quality report:', error);
-      return null;
+      return undefined;
     }
   }
 
   /**
    * Get security report
    */
-  async getSecurityReport(): Promise<GitLabSecurityReport | null> {
+  async getSecurityReport(): Promise<GitLabSecurityReport | undefined> {
     try {
       // Get latest pipeline with security artifacts
       const pipelines = await this.getPipelines(5);
       const pipeline = pipelines.find(p => p.status === 'success');
 
       if (!pipeline) {
-        return null;
+        return undefined;
       }
 
       // Get security artifacts
       const artifacts = await this.getPipelineArtifacts(pipeline.id, 'security');
       
       if (artifacts.length === 0) {
-        return null;
+        return undefined;
       }
 
       // Parse security report
@@ -378,7 +378,7 @@ export class GitLabIntegrationService {
       return this.parseSecurityReport(report);
     } catch (error) {
       console.warn('⚠️ Could not retrieve security report:', error);
-      return null;
+      return undefined;
     }
   }
 

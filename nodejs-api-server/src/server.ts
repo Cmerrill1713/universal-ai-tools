@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { Request, Response } from 'express';
 import athenaRouter from './routers/sweet-athena';
@@ -93,6 +94,20 @@ app.get('/', (req: Request, res: Response) => {
       gitlabContext: '/api/gitlab/context'
     }
   });
+});
+
+// Start the server
+const PORT = process.env.PORT || 9999;
+app.listen(PORT, () => {
+  console.log(`🚀 Universal AI Tools server running on port ${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🌸 Athena routing: http://localhost:${PORT}/`);
+  console.log(`💬 Chat API: http://localhost:${PORT}/api/chat`);
+  console.log(`🏛️ Governance: http://localhost:${PORT}/api/governance`);
+  console.log(`🤖 DSPy Orchestrator: http://localhost:${PORT}/api/dspy`);
+  console.log(`🧠 MLX Integration: http://localhost:${PORT}/api/mlx`);
+  console.log(`⚙️ Parameters: http://localhost:${PORT}/api/parameters`);
+  console.log(`🔗 GitLab Integration: http://localhost:${PORT}/api/gitlab`);
 });
 
 export { app };
