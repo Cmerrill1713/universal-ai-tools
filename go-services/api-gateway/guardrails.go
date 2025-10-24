@@ -384,7 +384,7 @@ func (gm *GuardrailsManager) HealthCheckHandler(w http.ResponseWriter, r *http.R
 	response := map[string]interface{}{
 		"status":    status,
 		"service":   "api-gateway",
-		"port":      8080,
+		"port":      8081,
 		"timestamp": time.Now().Unix(),
 		"version":   "1.0.0",
 		"guardrails": map[string]interface{}{

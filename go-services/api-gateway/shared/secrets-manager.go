@@ -172,7 +172,7 @@ func (sm *SecretsManager) ValidateAPIKey(apiKey string) bool {
 		// Fallback to environment variable
 		validKey = os.Getenv("API_KEY")
 		if validKey == "" {
-			validKey = "local-dev-key" // Development fallback
+			validKey = getEnvOrDefault("API_KEY", "") // No fallback in production
 		}
 	}
 	return apiKey == validKey
@@ -198,7 +198,7 @@ func (sm *SecretsManager) InitializeSecrets() error {
 	secrets := []Secret{
 		{
 			Name:        "API_KEY",
-			Value:       getEnvOrDefault("API_KEY", "local-dev-key"),
+			Value:       getEnvOrDefault("API_KEY", ""),
 			Description: "Main API key for service authentication",
 			Service:     "api-gateway",
 		},
@@ -227,6 +227,12 @@ func (sm *SecretsManager) InitializeSecrets() error {
 			log.Printf("Failed to store secret %s: %v", secret.Name, err)
 		} else {
 			log.Printf("Stored secret: %s", secret.Name)
+		}
+	}
+
+	return nil
+}
+cret.Name)
 		}
 	}
 

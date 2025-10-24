@@ -79,7 +79,7 @@ class RealWorldExperimentRunner:
         import aiohttp
 
         services = [
-            ("API Gateway", "http://localhost:8080/health"),
+            ("API Gateway", "http://localhost:8081/health"),
             ("LLM Router", "http://localhost:3033/health"),
             ("ML Inference", "http://localhost:8084/health"),
             ("Auth Service", "http://localhost:8015/health"),
@@ -207,7 +207,7 @@ class RealWorldExperimentRunner:
             start_time = time.time()
             payload = {"message": "Hello, this is a performance test"}
             async with session.post(
-                "http://localhost:8080/api/chat", json=payload
+                "http://localhost:8081/api/chat", json=payload
             ) as response:
                 chat_time = time.time() - start_time
                 benchmarks.append(
@@ -256,7 +256,7 @@ class RealWorldExperimentRunner:
                     "data": "test_image_data",
                 }
                 async with session.post(
-                    "http://localhost:8080/api/vision/process", json=payload
+                    "http://localhost:8081/api/vision/process", json=payload
                 ) as response:
                     tests.append(
                         {
@@ -277,7 +277,7 @@ class RealWorldExperimentRunner:
                     "data": "Sample document text for processing",
                 }
                 async with session.post(
-                    "http://localhost:8080/api/multimodal/process", json=payload
+                    "http://localhost:8081/api/multimodal/process", json=payload
                 ) as response:
                     tests.append(
                         {
@@ -319,7 +319,7 @@ class RealWorldExperimentRunner:
                 try:
                     payload = {"message": case["input"]}
                     async with session.post(
-                        "http://localhost:8080/api/chat", json=payload
+                        "http://localhost:8081/api/chat", json=payload
                     ) as response:
                         results.append(
                             {

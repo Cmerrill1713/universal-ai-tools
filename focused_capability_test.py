@@ -24,7 +24,7 @@ class FocusedCapabilityTester:
             "vision_service": "http://localhost:8084",
             "memory_service": "http://localhost:8017",
             "fast_llm": "http://localhost:3030",
-            "api_gateway": "http://localhost:8080",
+            "api_gateway": "http://localhost:8081",
         }
 
     async def run_focused_tests(self):

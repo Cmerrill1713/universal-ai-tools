@@ -24,7 +24,7 @@ class VMCodingAgentDemo:
     """Demo class for the VM Coding Agent capabilities"""
 
     def __init__(self):
-        self.base_url = "http://localhost:8080"  # API Gateway
+        self.base_url = "http://localhost:8081"  # API Gateway
         self.agent_tasks = []
         self.completed_projects = []
 
@@ -264,7 +264,7 @@ class VMCodingAgentDemo:
             "project_id": str(uuid.uuid4()),
             "build_status": "success",
             "test_status": "passed",
-            "deployment_url": f"http://localhost:8080/{service_name.lower().replace(' ', '-')}",
+            "deployment_url": f"http://localhost:8081/{service_name.lower().replace(' ', '-')}",
             "completion_time": time.time(),
         }
 

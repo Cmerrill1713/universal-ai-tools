@@ -14,7 +14,7 @@ import aiohttp
 class FocusedServiceTester:
     def __init__(self):
         self.base_urls = {
-            "api_gateway": "http://localhost:8080",
+            "api_gateway": "http://localhost:8081",
             "llm_router": "http://localhost:3033",
             "ml_inference": "http://localhost:8091",
             "memory_service": "http://localhost:8017",

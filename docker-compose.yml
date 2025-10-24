@@ -288,11 +288,7 @@ services:
     container_name: universal-ai-tools-redis-commander
     restart: unless-stopped
     ports:
-<<<<<<< HEAD
       - "127.0.0.1:8081:8081"
-=======
-      - '8081:8081'
->>>>>>> fix/stabilize-imports-endpoint-verification
     environment:
       - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-}
     depends_on:

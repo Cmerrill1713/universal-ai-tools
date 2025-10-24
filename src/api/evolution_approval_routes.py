@@ -10,7 +10,7 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/evolution", tags=["evolution"])
 
-REPORTS_DIR = Path("/Users/christianmerrill/Documents/GitHub/AI-Projects/universal-ai-tools/logs/evolution-reports")
+REPORTS_DIR = Path("./logs/evolution-reports")
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 

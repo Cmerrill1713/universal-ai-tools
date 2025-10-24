@@ -29,7 +29,7 @@ class ExperimentResult:
 class RealWorldExperimentRunner:
     """Runs comprehensive real-world experiments"""
 
-    def __init__(self, base_url: str = "http://localhost:8080"):
+    def __init__(self, base_url: str = "http://localhost:8081"):
         self.base_url = base_url
         self.session = None
 

@@ -159,7 +159,7 @@ func (ms *MonitoringService) initializeServices() {
 		{Name: "Redis Service", Type: "rust", URL: "http://localhost:8025/health"},
 
 		// Go Services
-		{Name: "Go API Gateway", Type: "go", URL: "http://localhost:8080/health"},
+		{Name: "Go API Gateway", Type: "go", URL: "http://localhost:8081/health"},
 		{Name: "Go Auth Service", Type: "go", URL: "http://localhost:8015/health"},
 		{Name: "Go Memory Service", Type: "go", URL: "http://localhost:8017/health"},
 		{Name: "Go WebSocket Service", Type: "go", URL: "http://localhost:8014/health"},

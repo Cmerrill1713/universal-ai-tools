@@ -19,7 +19,7 @@ class NeuroForgeApp:
         self.root.geometry("700x600")
         self.root.configure(bg='#1e1e1e')
 
-        self.backend_url = "http://localhost:8013"
+        self.backend_url = "http://localhost:8080"  # Athena Gateway
         self.is_connected = False
 
         # Configure dark theme colors
@@ -172,7 +172,7 @@ Ask me anything!"""
 
     def send_to_backend(self, message):
         try:
-            print(f"📤 Sending to {self.backend_url}/api/chat: {message}")
+            print(f"📤 Sending to Athena Gateway {self.backend_url}/api/chat: {message}")
 
             response = requests.post(
                 f"{self.backend_url}/api/chat",

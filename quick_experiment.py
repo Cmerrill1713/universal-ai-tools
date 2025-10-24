@@ -15,7 +15,7 @@ import aiohttp
 class QuickExperiment:
     """Quick experiment runner for immediate testing"""
 
-    def __init__(self, base_url="http://localhost:8080"):
+    def __init__(self, base_url="http://localhost:8081"):
         self.base_url = base_url
         self.results = []
 

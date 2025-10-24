@@ -61,7 +61,7 @@ Universal AI Tools is a polyglot microservices architecture designed for product
 
 1. **API Gateway** (`go-services/api-gateway/`)
 
-   - **Port**: 8080 (conflicts with assistantd - needs resolution)
+   - **Port**: 8081 ✅ (resolved - moved from 8080)
    - **Purpose**: Central API routing and load balancing
    - **Responsibilities**:
      - Request routing and load balancing
@@ -114,24 +114,18 @@ Client Request → Go API Gateway → Rust LLM Router → Rust ML Inference
               Go Memory Service ← Rust Assistantd (RAG)
 ```
 
-## 🚨 **CRITICAL PORT CONFLICTS TO RESOLVE**
+## ✅ **PORT CONFLICTS RESOLVED**
 
-### Current Conflicts:
-
-1. **Port 8080**: Both `assistantd` (Rust) and `api-gateway` (Go) claim this port
-2. **Port 8091**: ML Inference service conflicts with other services
-
-### Recommended Port Allocation:
+### Final Port Allocation (Updated 2025-01-12):
 
 - **Rust Services**:
-
   - LLM Router: 3033 ✅
-  - Assistantd: 8080 (needs Go API Gateway moved)
+  - Assistantd: 8080 ✅
   - ML Inference: 8091 ✅
-  - Vector DB: 8092
+  - Vector DB: 8092 ✅
 
 - **Go Services**:
-  - API Gateway: 8081 (move from 8080)
+  - API Gateway: 8081 ✅ (moved from 8080)
   - Memory Service: 8017 ✅
   - WebSocket Hub: 8082
   - Service Discovery: 8083

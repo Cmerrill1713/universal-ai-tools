@@ -26,7 +26,7 @@ A Go-based API Gateway providing unified access to all Universal AI Tools servic
 
 Set the following environment variables:
 
-- `PORT` - Gateway port (default: 8080)
+- `PORT` - Gateway port (default: 8081)
 - `JWT_SECRET` - JWT signing secret
 - `API_KEY_HEADER` - API key header name (default: X-API-Key)
 - `RATE_LIMIT_RPS` - Rate limit per second (default: 100)
@@ -54,13 +54,13 @@ services := map[string]string{
 go run main.go
 
 # Health check
-curl http://localhost:8080/health
+curl http://localhost:8081/health
 
 # List services
-curl http://localhost:8080/services
+curl http://localhost:8081/services
 
 # Chat through gateway
-curl -X POST http://localhost:8080/api/chat \
+curl -X POST http://localhost:8081/api/chat \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-api-key" \
   -d '{
@@ -69,7 +69,7 @@ curl -X POST http://localhost:8080/api/chat \
   }'
 
 # Store memory through gateway
-curl -X POST http://localhost:8080/api/memories \
+curl -X POST http://localhost:8081/api/memories \
   -H "Content-Type: application/json" \
   -H "X-User-ID: user123" \
   -d '{
@@ -83,19 +83,19 @@ curl -X POST http://localhost:8080/api/memories \
 ### API Key Authentication
 
 ```bash
-curl -H "X-API-Key: your-api-key" http://localhost:8080/api/chat
+curl -H "X-API-Key: your-api-key" http://localhost:8081/api/chat
 ```
 
 ### JWT Authentication
 
 ```bash
-curl -H "Authorization: Bearer your-jwt-token" http://localhost:8080/api/chat
+curl -H "Authorization: Bearer your-jwt-token" http://localhost:8081/api/chat
 ```
 
 ### User ID Header
 
 ```bash
-curl -H "X-User-ID: user123" http://localhost:8080/api/memories
+curl -H "X-User-ID: user123" http://localhost:8081/api/memories
 ```
 
 ## Request/Response Formats
