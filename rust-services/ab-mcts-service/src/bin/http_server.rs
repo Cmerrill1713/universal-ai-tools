@@ -9,7 +9,7 @@ use ab_mcts_service::{
 use std::env;
 use tracing_subscriber;
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     // Initialize logging
     tracing_subscriber::fmt()
