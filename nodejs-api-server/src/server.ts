@@ -6,6 +6,7 @@ import dspyRouter from './routers/dspy';
 import mlxRouter from './routers/mlx';
 import intelligentParametersRouter from './routers/intelligent-parameters';
 import gitlabRouter from './routers/gitlab';
+import governanceRouter from './routers/governance';
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use('/api/dspy', dspyRouter);
 app.use('/api/mlx', mlxRouter);
 app.use('/api/parameters', intelligentParametersRouter);
 app.use('/api/gitlab', gitlabRouter);
+app.use('/api/governance', governanceRouter);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {

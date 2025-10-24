@@ -3,7 +3,7 @@
  * Integrates with chat, neuroforge, and UAT-prompt for collective intelligence
  */
 
-import express from 'express';
+import * as express from 'express';
 import { GovernanceService, GovernanceConfig } from '../services/governance-service';
 import { RepublicService, RepublicConfig } from '../services/republic-service';
 
