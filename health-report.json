@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-10-25T00:11:53.270670",
-  "overall_status": "healthy",
+  "timestamp": "2025-10-25T01:02:22.346871",
+  "overall_status": "degraded",
   "services": {
     "athena-gateway": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=8080): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059de53230>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 8080
     },
     "family-athena": {
@@ -13,55 +13,45 @@
       "port": 8081
     },
     "universal-ai": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059dcb8770>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 9000
     },
     "dspy-orchestrator": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=8005): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059de1bce0>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 8005
     },
     "mlx-service": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=8006): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059dc6d910>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 8006
     },
     "vision-service": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=8007): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059dc696a0>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 8007
     },
     "memory-service": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=8008): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059dc6a030>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 8008
     },
     "agent-service": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=8009): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059dc6a250>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 8009
     },
     "monitoring": {
-      "status": "healthy",
-      "details": "healthy",
+      "status": "unhealthy",
+      "details": "unhealthy (HTTPConnectionPool(host='localhost', port=8010): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f059dc6a470>: Failed to establish a new connection: [Errno 111] Connection refused')))",
       "port": 8010
     }
   },
   "summary": {
     "total_services": 9,
-    "healthy_services": 9,
-    "unhealthy_services": 0,
-    "restart_attempts": {
-      "athena-gateway": 0,
-      "family-athena": 0,
-      "universal-ai": 0,
-      "dspy-orchestrator": 0,
-      "mlx-service": 0,
-      "vision-service": 0,
-      "memory-service": 0,
-      "agent-service": 0,
-      "monitoring": 0
-    }
+    "healthy_services": 1,
+    "unhealthy_services": 8,
+    "restart_attempts": {}
   }
 }
