@@ -11,6 +11,50 @@ export interface GitLabConfig {
   webhookSecret?: string;
 }
 
+export interface GitLabWebhookEvent {
+  object_kind: string;
+  event_type: string;
+  user: {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+  };
+  project: {
+    id: number;
+    name: string;
+    description: string;
+    web_url: string;
+    git_ssh_url: string;
+    git_http_url: string;
+    namespace: string;
+    visibility_level: number;
+    path_with_namespace: string;
+    default_branch: string;
+    homepage: string;
+    url: string;
+    ssh_url: string;
+    http_url: string;
+  };
+  repository: {
+    name: string;
+    url: string;
+    description: string;
+    homepage: string;
+    git_http_url: string;
+    git_ssh_url: string;
+    visibility_level: number;
+  };
+  object_attributes: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WebhookProcessor {
+  processEvent(event: GitLabWebhookEvent): Promise<void>;
+  validateSignature(payload: string, signature: string, secret: string): boolean;
+}
+
 export interface GitLabIssue {
   id: number;
   iid: number;
@@ -1035,5 +1079,223 @@ export class GitLabIntegrationService {
         health: { score: 0, issues: ['Unable to retrieve statistics'], recommendations: [] }
       };
     }
+  }
+
+  /**
+   * Validate GitLab webhook signature
+   */
+  validateWebhookSignature(payload: string, signature: string, secret: string): boolean {
+    if (!secret) {
+      console.warn('⚠️ No webhook secret configured, skipping signature validation');
+      return true; // Allow in development mode
+    }
+
+    try {
+      const crypto = require('crypto');
+      const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(payload, 'utf8')
+        .digest('hex');
+      
+      const providedSignature = signature.replace('sha256=', '');
+      
+      return crypto.timingSafeEqual(
+        Buffer.from(expectedSignature, 'hex'),
+        Buffer.from(providedSignature, 'hex')
+      );
+    } catch (error) {
+      console.error('❌ Webhook signature validation failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Process GitLab webhook event
+   */
+  async processWebhookEvent(event: GitLabWebhookEvent): Promise<void> {
+    try {
+      console.log(`🔔 Processing GitLab webhook: ${event.object_kind}`);
+
+      switch (event.object_kind) {
+        case 'issue':
+          await this.processIssueEvent(event);
+          break;
+        case 'merge_request':
+          await this.processMergeRequestEvent(event);
+          break;
+        case 'pipeline':
+          await this.processPipelineEvent(event);
+          break;
+        case 'push':
+          await this.processPushEvent(event);
+          break;
+        case 'tag_push':
+          await this.processTagPushEvent(event);
+          break;
+        case 'note':
+          await this.processNoteEvent(event);
+          break;
+        case 'wiki_page':
+          await this.processWikiPageEvent(event);
+          break;
+        case 'build':
+          await this.processBuildEvent(event);
+          break;
+        default:
+          console.log(`ℹ️ Unhandled webhook event type: ${event.object_kind}`);
+      }
+
+      console.log(`✅ Successfully processed ${event.object_kind} webhook event`);
+    } catch (error) {
+      console.error(`❌ Failed to process webhook event ${event.object_kind}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process issue webhook events
+   */
+  private async processIssueEvent(event: GitLabWebhookEvent): Promise<void> {
+    const issue = event.object_attributes;
+    const action = issue.action || 'opened';
+
+    console.log(`📋 Issue ${action}: ${issue.title} (${issue.state})`);
+
+    // Log issue changes
+    if (action === 'opened') {
+      console.log(`  🆕 New issue created by ${event.user.name}`);
+    } else if (action === 'closed') {
+      console.log(`  ✅ Issue closed by ${event.user.name}`);
+    } else if (action === 'reopened') {
+      console.log(`  🔄 Issue reopened by ${event.user.name}`);
+    } else if (action === 'updated') {
+      console.log(`  ✏️ Issue updated by ${event.user.name}`);
+    }
+
+    // Check for critical issues
+    if (issue.labels && issue.labels.includes('critical')) {
+      console.log(`  🚨 CRITICAL ISSUE DETECTED: ${issue.title}`);
+      // Could trigger alerts, notifications, etc.
+    }
+  }
+
+  /**
+   * Process merge request webhook events
+   */
+  private async processMergeRequestEvent(event: GitLabWebhookEvent): Promise<void> {
+    const mr = event.object_attributes;
+    const action = mr.action || 'opened';
+
+    console.log(`🔄 Merge Request ${action}: ${mr.title} (${mr.state})`);
+
+    if (action === 'opened') {
+      console.log(`  🆕 New MR created by ${event.user.name}`);
+      console.log(`  📍 Source: ${mr.source_branch} → Target: ${mr.target_branch}`);
+    } else if (action === 'merged') {
+      console.log(`  ✅ MR merged by ${event.user.name}`);
+    } else if (action === 'closed') {
+      console.log(`  ❌ MR closed by ${event.user.name}`);
+    } else if (action === 'approved') {
+      console.log(`  👍 MR approved by ${event.user.name}`);
+    } else if (action === 'unapproved') {
+      console.log(`  👎 MR approval removed by ${event.user.name}`);
+    }
+  }
+
+  /**
+   * Process pipeline webhook events
+   */
+  private async processPipelineEvent(event: GitLabWebhookEvent): Promise<void> {
+    const pipeline = event.object_attributes;
+    const status = pipeline.status;
+
+    console.log(`🚀 Pipeline ${status}: ${pipeline.ref}`);
+
+    if (status === 'success') {
+      console.log(`  ✅ Pipeline completed successfully`);
+      console.log(`  ⏱️ Duration: ${pipeline.duration} seconds`);
+    } else if (status === 'failed') {
+      console.log(`  ❌ Pipeline failed`);
+      console.log(`  ⏱️ Duration: ${pipeline.duration} seconds`);
+    } else if (status === 'running') {
+      console.log(`  🔄 Pipeline is running`);
+    } else if (status === 'canceled') {
+      console.log(`  ⏹️ Pipeline was canceled`);
+    }
+  }
+
+  /**
+   * Process push webhook events
+   */
+  private async processPushEvent(event: GitLabWebhookEvent): Promise<void> {
+    const push = event.object_attributes;
+    const commits = push.commits || [];
+
+    console.log(`📤 Push to ${push.ref}: ${commits.length} commits`);
+    console.log(`  👤 Pushed by: ${event.user.name}`);
+    console.log(`  📍 Branch: ${push.ref}`);
+
+    if (commits.length > 0) {
+      console.log(`  📝 Latest commit: ${commits[0].message}`);
+    }
+  }
+
+  /**
+   * Process tag push webhook events
+   */
+  private async processTagPushEvent(event: GitLabWebhookEvent): Promise<void> {
+    const tag = event.object_attributes;
+
+    console.log(`🏷️ Tag push: ${tag.ref}`);
+    console.log(`  👤 Pushed by: ${event.user.name}`);
+    console.log(`  📍 Tag: ${tag.ref}`);
+  }
+
+  /**
+   * Process note webhook events (comments)
+   */
+  private async processNoteEvent(event: GitLabWebhookEvent): Promise<void> {
+    const note = event.object_attributes;
+    const noteableType = note.noteable_type;
+
+    console.log(`💬 Note added to ${noteableType}: ${note.note.substring(0, 50)}...`);
+    console.log(`  👤 Commented by: ${event.user.name}`);
+    console.log(`  📝 Type: ${noteableType}`);
+  }
+
+  /**
+   * Process wiki page webhook events
+   */
+  private async processWikiPageEvent(event: GitLabWebhookEvent): Promise<void> {
+    const wiki = event.object_attributes;
+    const action = wiki.action || 'created';
+
+    console.log(`📚 Wiki page ${action}: ${wiki.title}`);
+    console.log(`  👤 Updated by: ${event.user.name}`);
+  }
+
+  /**
+   * Process build webhook events
+   */
+  private async processBuildEvent(event: GitLabWebhookEvent): Promise<void> {
+    const build = event.object_attributes;
+    const status = build.status;
+
+    console.log(`🔨 Build ${status}: ${build.name}`);
+    console.log(`  📍 Stage: ${build.stage}`);
+    console.log(`  ⏱️ Duration: ${build.duration} seconds`);
+  }
+
+  /**
+   * Get webhook configuration
+   */
+  getWebhookConfig(): any {
+    return {
+      enabled: this.config.enableWebhooks,
+      secret: this.config.webhookSecret ? '***configured***' : 'not configured',
+      projectId: this.config.projectId,
+      baseUrl: this.config.baseUrl,
+      webhookUrl: `${this.config.baseUrl}/api/gitlab/webhook`
+    };
   }
 }
