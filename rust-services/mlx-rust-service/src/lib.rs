@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tracing::{info, warn, error, instrument};
+
+pub mod error;
+pub mod config;
+pub mod grpc;
+
+use error::{MLXError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MLXConfig {
@@ -118,8 +125,10 @@ impl MLXService {
         }
     }
 
-    pub async fn process_vision(&self, request: VisionRequest) -> Result<VisionResponse, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn process_vision(&self, request: VisionRequest) -> Result<VisionResponse> {
         let start_time = std::time::Instant::now();
+        info!("Processing vision request with prompt: {}", request.prompt);
         
         // Simulate MLX processing
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -145,7 +154,8 @@ impl MLXService {
         })
     }
 
-    pub async fn create_fine_tuning_job(&self, request: FineTuningRequest) -> Result<FineTuningJob, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn create_fine_tuning_job(&self, request: FineTuningRequest) -> Result<FineTuningJob> {
         let job_id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now();
         
@@ -196,11 +206,13 @@ impl MLXService {
         }
     }
 
+    #[instrument(skip(self))]
     pub async fn get_job(&self, job_id: &str) -> Option<FineTuningJob> {
         let jobs = self.jobs.read().await;
         jobs.get(job_id).cloned()
     }
 
+    #[instrument(skip(self))]
     pub async fn list_jobs(&self, user_id: Option<&str>) -> Vec<FineTuningJob> {
         let jobs = self.jobs.read().await;
         jobs.values()
@@ -209,6 +221,7 @@ impl MLXService {
             .collect()
     }
 
+    #[instrument(skip(self))]
     pub async fn cancel_job(&self, job_id: &str) -> bool {
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(job_id) {
@@ -221,12 +234,14 @@ impl MLXService {
         false
     }
 
+    #[instrument(skip(self))]
     pub async fn delete_job(&self, job_id: &str) -> bool {
         let mut jobs = self.jobs.write().await;
         jobs.remove(job_id).is_some()
     }
 
-    pub async fn process_tts(&self, request: TTSRequest) -> Result<TTSResponse, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn process_tts(&self, request: TTSRequest) -> Result<TTSResponse> {
         // Simulate TTS processing
         tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         
@@ -242,6 +257,7 @@ impl MLXService {
         })
     }
 
+    #[instrument(skip(self))]
     pub async fn get_health_status(&self) -> HashMap<String, serde_json::Value> {
         let mut status = HashMap::new();
         status.insert("status".to_string(), serde_json::Value::String("healthy".to_string()));

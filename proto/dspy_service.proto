@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package dspy_service;
+
+// DSPy Orchestrator gRPC definitions
+service DSPyService {
+  rpc Orchestrate(OrchestrationRequest) returns (OrchestrationResponse);
+  rpc GetAgents(GetAgentsRequest) returns (GetAgentsResponse);
+  rpc ExtractKnowledge(KnowledgeRequest) returns (KnowledgeResponse);
+  rpc CreateDevelopmentPipeline(DevelopmentPipelineRequest) returns (DevelopmentPipelineResponse);
+  rpc PerformCognitiveReasoning(CognitiveReasoningRequest) returns (CognitiveReasoningResponse);
+  rpc GetOrchestration(GetOrchestrationRequest) returns (OrchestrationResponse);
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+}
+
+message OrchestrationRequest {
+  string task = 1;
+  optional string context = 2;
+  string user_id = 3;
+  optional string priority = 4;
+  map<string, string> metadata = 5;
+}
+
+message OrchestrationResponse {
+  string id = 1;
+  string status = 2;
+  optional string result = 3;
+  optional string reasoning = 4;
+  double confidence = 5;
+  repeated string agents_used = 6;
+  double processing_time = 7;
+  int64 created_at = 8;
+  map<string, string> metadata = 9;
+}
+
+message AgentInfo {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string capabilities = 4;
+  string status = 5;
+  optional int64 last_used = 6;
+}
+
+message KnowledgeRequest {
+  string query = 1;
+  optional string context = 2;
+  string user_id = 3;
+  optional string knowledge_type = 4;
+}
+
+message KnowledgeResponse {
+  repeated string knowledge = 1;
+  repeated string sources = 2;
+  double confidence = 3;
+  double processing_time = 4;
+}
+
+message DevelopmentPipelineRequest {
+  string task = 1;
+  repeated string requirements = 2;
+  string user_id = 3;
+  optional string priority = 4;
+}
+
+message DevelopmentPipelineResponse {
+  string pipeline_id = 1;
+  repeated PipelineStep steps = 2;
+  double estimated_duration = 3;
+  string status = 4;
+  int64 created_at = 5;
+}
+
+message PipelineStep {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string status = 4;
+  repeated string dependencies = 5;
+  double estimated_duration = 6;
+}
+
+message CognitiveReasoningRequest {
+  string problem = 1;
+  optional string context = 2;
+  optional string reasoning_type = 3;
+  string user_id = 4;
+}
+
+message CognitiveReasoningResponse {
+  string reasoning = 1;
+  string conclusion = 2;
+  double confidence = 3;
+  repeated ReasoningStep steps = 4;
+  double processing_time = 5;
+}
+
+message ReasoningStep {
+  int32 step = 1;
+  string description = 2;
+  string result = 3;
+  double confidence = 4;
+}
+
+message GetAgentsRequest {}
+
+message GetAgentsResponse {
+  repeated AgentInfo agents = 1;
+}
+
+message GetOrchestrationRequest {
+  string orchestration_id = 1;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  map<string, string> details = 2;
+}
