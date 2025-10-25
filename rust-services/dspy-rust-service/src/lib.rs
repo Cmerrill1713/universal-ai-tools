@@ -2,6 +2,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tracing::{info, warn, error, instrument};
+
+pub mod error;
+pub mod config;
+pub mod grpc;
+
+use error::{DSPyError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrchestrationRequest {
@@ -146,7 +153,8 @@ impl DSPyOrchestrator {
         }
     }
 
-    pub async fn orchestrate(&self, request: OrchestrationRequest) -> Result<OrchestrationResponse, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn orchestrate(&self, request: OrchestrationRequest) -> Result<OrchestrationResponse> {
         let start_time = std::time::Instant::now();
         let orchestration_id = uuid::Uuid::new_v4().to_string();
         
@@ -200,12 +208,14 @@ impl DSPyOrchestrator {
         Ok(orchestration_response)
     }
 
-    pub async fn get_agents(&self) -> Result<Vec<AgentInfo>, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn get_agents(&self) -> Result<Vec<AgentInfo>> {
         let agents = self.agents.read().await;
         Ok(agents.values().cloned().collect())
     }
 
-    pub async fn extract_knowledge(&self, request: KnowledgeRequest) -> Result<KnowledgeResponse, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn extract_knowledge(&self, request: KnowledgeRequest) -> Result<KnowledgeResponse> {
         let start_time = std::time::Instant::now();
         
         // Simulate knowledge extraction
@@ -230,7 +240,8 @@ impl DSPyOrchestrator {
         })
     }
 
-    pub async fn create_development_pipeline(&self, request: DevelopmentPipelineRequest) -> Result<DevelopmentPipelineResponse, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn create_development_pipeline(&self, _request: DevelopmentPipelineRequest) -> Result<DevelopmentPipelineResponse> {
         let pipeline_id = uuid::Uuid::new_v4().to_string();
         
         let steps = vec![
@@ -279,7 +290,8 @@ impl DSPyOrchestrator {
         })
     }
 
-    pub async fn perform_cognitive_reasoning(&self, request: CognitiveReasoningRequest) -> Result<CognitiveReasoningResponse, Box<dyn std::error::Error>> {
+    #[instrument(skip(self))]
+    pub async fn perform_cognitive_reasoning(&self, request: CognitiveReasoningRequest) -> Result<CognitiveReasoningResponse> {
         let start_time = std::time::Instant::now();
         
         // Simulate cognitive reasoning
@@ -328,11 +340,13 @@ impl DSPyOrchestrator {
         })
     }
 
+    #[instrument(skip(self))]
     pub async fn get_orchestration(&self, orchestration_id: &str) -> Option<OrchestrationResponse> {
         let orchestrations = self.orchestrations.read().await;
         orchestrations.get(orchestration_id).cloned()
     }
 
+    #[instrument(skip(self))]
     pub async fn get_health_status(&self) -> HashMap<String, serde_json::Value> {
         let mut status = HashMap::new();
         status.insert("status".to_string(), serde_json::Value::String("healthy".to_string()));
