@@ -1,0 +1,149 @@
+{
+  "timestamp": "2025-10-25T18:32:32.294478",
+  "api_gateway_health": "1/10",
+  "load_balancer_health": "2/12",
+  "chat_functionality": false,
+  "individual_tests": {
+    "total": 5,
+    "passed": 4,
+    "failed": 1,
+    "success_rate": 80.0
+  },
+  "working_services": [
+    {
+      "service": "api-gateway",
+      "status": "healthy",
+      "response": {
+        "service": "api-gateway",
+        "status": "healthy",
+        "timestamp": "2025-10-25T18:32:32.287773836Z",
+        "services": {
+          "analytics": {
+            "status": "unhealthy",
+            "url": "http://localhost:8019"
+          },
+          "assistantd": {
+            "status": "unhealthy",
+            "url": ""
+          },
+          "chat": {
+            "status": "healthy",
+            "url": "http://localhost:8016"
+          },
+          "kcontext": {
+            "status": "unhealthy",
+            "url": "http://localhost:8083"
+          },
+          "knowledge": {
+            "status": "unhealthy",
+            "url": "http://localhost:8088"
+          },
+          "llm": {
+            "status": "unhealthy",
+            "url": "http://localhost:3033"
+          },
+          "memory": {
+            "status": "unhealthy",
+            "url": "http://localhost:8017"
+          },
+          "mlx": {
+            "status": "unhealthy",
+            "url": "http://localhost:8001"
+          },
+          "vision": {
+            "status": "unhealthy",
+            "url": "http://localhost:8084"
+          },
+          "websocket": {
+            "status": "unhealthy",
+            "url": "http://localhost:8082"
+          }
+        }
+      },
+      "port": 8081
+    },
+    {
+      "service": "chat-service",
+      "status": "healthy",
+      "response": {
+        "providers": 1,
+        "service": "chat-service",
+        "status": "healthy",
+        "timestamp": 1761417152
+      },
+      "port": 8016
+    },
+    {
+      "service": "load-balancer",
+      "status": "healthy",
+      "response": {
+        "healthy_services": 2,
+        "service": "load-balancer",
+        "status": "degraded",
+        "total_services": 12
+      },
+      "port": 8011
+    },
+    {
+      "service": "message-broker",
+      "status": "healthy",
+      "response": {
+        "service": "api-gateway",
+        "status": "healthy",
+        "timestamp": "2025-10-25T18:32:32.293236206Z",
+        "services": {
+          "analytics": {
+            "status": "unhealthy",
+            "url": "http://localhost:8019"
+          },
+          "assistantd": {
+            "status": "unhealthy",
+            "url": ""
+          },
+          "chat": {
+            "status": "healthy",
+            "url": "http://localhost:8016"
+          },
+          "kcontext": {
+            "status": "unhealthy",
+            "url": "http://localhost:8083"
+          },
+          "knowledge": {
+            "status": "unhealthy",
+            "url": "http://localhost:8088"
+          },
+          "llm": {
+            "status": "unhealthy",
+            "url": "http://localhost:3033"
+          },
+          "memory": {
+            "status": "unhealthy",
+            "url": "http://localhost:8017"
+          },
+          "mlx": {
+            "status": "unhealthy",
+            "url": "http://localhost:8001"
+          },
+          "vision": {
+            "status": "unhealthy",
+            "url": "http://localhost:8084"
+          },
+          "websocket": {
+            "status": "unhealthy",
+            "url": "http://localhost:8082"
+          }
+        }
+      },
+      "port": 8081
+    }
+  ],
+  "failed_services": [
+    {
+      "service": "cache-coordinator",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8083
+    }
+  ],
+  "overall_status": "PARTIALLY WORKING"
+}

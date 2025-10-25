@@ -1,0 +1,120 @@
+{
+  "timestamp": "2025-10-25T18:27:04.214287",
+  "api_gateway_health": "0/10",
+  "individual_tests": {
+    "total": 10,
+    "passed": 1,
+    "failed": 9,
+    "success_rate": 10.0
+  },
+  "working_services": [
+    {
+      "service": "api-gateway",
+      "status": "healthy",
+      "response": {
+        "service": "api-gateway",
+        "status": "healthy",
+        "timestamp": "2025-10-25T18:27:04.209748334Z",
+        "services": {
+          "analytics": {
+            "status": "unhealthy",
+            "url": "http://localhost:8019"
+          },
+          "assistantd": {
+            "status": "unhealthy",
+            "url": ""
+          },
+          "chat": {
+            "status": "unhealthy",
+            "url": "http://localhost:8016"
+          },
+          "kcontext": {
+            "status": "unhealthy",
+            "url": "http://localhost:8083"
+          },
+          "knowledge": {
+            "status": "unhealthy",
+            "url": "http://localhost:8088"
+          },
+          "llm": {
+            "status": "unhealthy",
+            "url": "http://localhost:3033"
+          },
+          "memory": {
+            "status": "unhealthy",
+            "url": "http://localhost:8017"
+          },
+          "mlx": {
+            "status": "unhealthy",
+            "url": "http://localhost:8001"
+          },
+          "vision": {
+            "status": "unhealthy",
+            "url": "http://localhost:8084"
+          },
+          "websocket": {
+            "status": "unhealthy",
+            "url": "http://localhost:8082"
+          }
+        }
+      },
+      "port": 8081
+    }
+  ],
+  "failed_services": [
+    {
+      "service": "analytics",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8019
+    },
+    {
+      "service": "chat",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8016
+    },
+    {
+      "service": "kcontext",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8083
+    },
+    {
+      "service": "knowledge",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8088
+    },
+    {
+      "service": "llm",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 3033
+    },
+    {
+      "service": "memory",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8017
+    },
+    {
+      "service": "mlx",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8001
+    },
+    {
+      "service": "vision",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8084
+    },
+    {
+      "service": "websocket",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8082
+    }
+  ]
+}
