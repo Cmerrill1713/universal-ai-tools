@@ -501,6 +501,96 @@ router.post('/webhook/test', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/gitlab/webhook/analytics
+ * Get webhook analytics and metrics
+ */
+router.get('/webhook/analytics', async (req: Request, res: Response) => {
+  try {
+    const analytics = gitlabService.getWebhookAnalytics();
+    
+    res.json({
+      success: true,
+      data: analytics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get webhook analytics',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * POST /api/gitlab/webhook/filter
+ * Filter webhook events based on criteria
+ */
+router.post('/webhook/filter', async (req: Request, res: Response) => {
+  try {
+    const filter = req.body;
+    const filteredEvents = gitlabService.filterWebhookEvents(filter);
+    
+    res.json({
+      success: true,
+      data: filteredEvents,
+      filter,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to filter webhook events',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * GET /api/gitlab/webhook/health
+ * Get webhook health status
+ */
+router.get('/webhook/health', async (req: Request, res: Response) => {
+  try {
+    const health = gitlabService.getWebhookHealth();
+    
+    res.json({
+      success: true,
+      data: health,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get webhook health',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * POST /api/gitlab/webhook/reset
+ * Reset webhook analytics
+ */
+router.post('/webhook/reset', async (req: Request, res: Response) => {
+  try {
+    gitlabService.resetWebhookAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'Webhook analytics reset successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to reset webhook analytics',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * Generate recommendations based on project context
  */
 function generateRecommendations(context: any): string[] {

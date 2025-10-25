@@ -55,6 +55,31 @@ export interface WebhookProcessor {
   validateSignature(payload: string, signature: string, secret: string): boolean;
 }
 
+export interface WebhookAnalytics {
+  totalEvents: number;
+  eventsByType: { [key: string]: number };
+  eventsByHour: { [key: string]: number };
+  eventsByDay: { [key: string]: number };
+  successRate: number;
+  averageProcessingTime: number;
+  errorRate: number;
+  lastEventTime: string;
+  topUsers: { name: string; count: number }[];
+  topProjects: { name: string; count: number }[];
+}
+
+export interface WebhookEventFilter {
+  eventTypes?: string[];
+  users?: string[];
+  projects?: string[];
+  labels?: string[];
+  branches?: string[];
+  timeRange?: {
+    start: string;
+    end: string;
+  };
+}
+
 export interface GitLabIssue {
   id: number;
   iid: number;
@@ -265,10 +290,32 @@ export interface GitLabContext {
 export class GitLabIntegrationService {
   private config: GitLabConfig;
   private baseUrl: string;
+  private webhookAnalytics: {
+    totalEvents: number;
+    eventsByType: { [key: string]: number };
+    eventsByHour: { [key: string]: number };
+    eventsByDay: { [key: string]: number };
+    processingTimes: number[];
+    errors: number;
+    lastEventTime: string;
+    userActivity: { [key: string]: number };
+    projectActivity: { [key: string]: number };
+  };
 
   constructor(config: GitLabConfig) {
     this.config = config;
     this.baseUrl = `${config.baseUrl}/api/v4`;
+    this.webhookAnalytics = {
+      totalEvents: 0,
+      eventsByType: {},
+      eventsByHour: {},
+      eventsByDay: {},
+      processingTimes: [],
+      errors: 0,
+      lastEventTime: '',
+      userActivity: {},
+      projectActivity: {}
+    };
   }
 
   /**
@@ -1113,8 +1160,13 @@ export class GitLabIntegrationService {
    * Process GitLab webhook event
    */
   async processWebhookEvent(event: GitLabWebhookEvent): Promise<void> {
+    const startTime = Date.now();
+    
     try {
       console.log(`🔔 Processing GitLab webhook: ${event.object_kind}`);
+
+      // Track analytics
+      this.trackWebhookEvent(event);
 
       switch (event.object_kind) {
         case 'issue':
@@ -1145,8 +1197,18 @@ export class GitLabIntegrationService {
           console.log(`ℹ️ Unhandled webhook event type: ${event.object_kind}`);
       }
 
-      console.log(`✅ Successfully processed ${event.object_kind} webhook event`);
+      // Track processing time
+      const processingTime = Date.now() - startTime;
+      this.webhookAnalytics.processingTimes.push(processingTime);
+      
+      // Keep only last 1000 processing times for memory efficiency
+      if (this.webhookAnalytics.processingTimes.length > 1000) {
+        this.webhookAnalytics.processingTimes = this.webhookAnalytics.processingTimes.slice(-1000);
+      }
+
+      console.log(`✅ Successfully processed ${event.object_kind} webhook event (${processingTime}ms)`);
     } catch (error) {
+      this.webhookAnalytics.errors++;
       console.error(`❌ Failed to process webhook event ${event.object_kind}:`, error);
       throw error;
     }
@@ -1296,6 +1358,195 @@ export class GitLabIntegrationService {
       projectId: this.config.projectId,
       baseUrl: this.config.baseUrl,
       webhookUrl: `${this.config.baseUrl}/api/gitlab/webhook`
+    };
+  }
+
+  /**
+   * Track webhook event for analytics
+   */
+  private trackWebhookEvent(event: GitLabWebhookEvent): void {
+    const now = new Date();
+    const hour = now.getHours().toString().padStart(2, '0');
+    const day = now.toISOString().split('T')[0];
+    
+    // Update counters
+    this.webhookAnalytics.totalEvents++;
+    this.webhookAnalytics.lastEventTime = now.toISOString();
+    
+    // Track by event type
+    const eventType = event.object_kind;
+    this.webhookAnalytics.eventsByType[eventType] = (this.webhookAnalytics.eventsByType[eventType] || 0) + 1;
+    
+    // Track by hour
+    this.webhookAnalytics.eventsByHour[hour] = (this.webhookAnalytics.eventsByHour[hour] || 0) + 1;
+    
+    // Track by day
+    this.webhookAnalytics.eventsByDay[day] = (this.webhookAnalytics.eventsByDay[day] || 0) + 1;
+    
+    // Track user activity
+    if (event.user && event.user.username) {
+      this.webhookAnalytics.userActivity[event.user.username] = (this.webhookAnalytics.userActivity[event.user.username] || 0) + 1;
+    }
+    
+    // Track project activity
+    if (event.project && event.project.name) {
+      this.webhookAnalytics.projectActivity[event.project.name] = (this.webhookAnalytics.projectActivity[event.project.name] || 0) + 1;
+    }
+  }
+
+  /**
+   * Get webhook analytics
+   */
+  getWebhookAnalytics(): WebhookAnalytics {
+    const totalEvents = this.webhookAnalytics.totalEvents;
+    const errors = this.webhookAnalytics.errors;
+    const successRate = totalEvents > 0 ? ((totalEvents - errors) / totalEvents) * 100 : 100;
+    const errorRate = totalEvents > 0 ? (errors / totalEvents) * 100 : 0;
+    
+    // Calculate average processing time
+    const processingTimes = this.webhookAnalytics.processingTimes;
+    const averageProcessingTime = processingTimes.length > 0 
+      ? processingTimes.reduce((sum, time) => sum + time, 0) / processingTimes.length 
+      : 0;
+    
+    // Get top users
+    const topUsers = Object.entries(this.webhookAnalytics.userActivity)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+    
+    // Get top projects
+    const topProjects = Object.entries(this.webhookAnalytics.projectActivity)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+    
+    return {
+      totalEvents,
+      eventsByType: { ...this.webhookAnalytics.eventsByType },
+      eventsByHour: { ...this.webhookAnalytics.eventsByHour },
+      eventsByDay: { ...this.webhookAnalytics.eventsByDay },
+      successRate: Math.round(successRate * 100) / 100,
+      averageProcessingTime: Math.round(averageProcessingTime * 100) / 100,
+      errorRate: Math.round(errorRate * 100) / 100,
+      lastEventTime: this.webhookAnalytics.lastEventTime,
+      topUsers,
+      topProjects
+    };
+  }
+
+  /**
+   * Filter webhook events based on criteria
+   */
+  filterWebhookEvents(filter: WebhookEventFilter): any[] {
+    // This would typically filter from a stored event log
+    // For now, return current analytics filtered by criteria
+    const analytics = this.getWebhookAnalytics();
+    
+    let filteredData = {
+      eventsByType: analytics.eventsByType,
+      eventsByHour: analytics.eventsByHour,
+      eventsByDay: analytics.eventsByDay,
+      topUsers: analytics.topUsers,
+      topProjects: analytics.topProjects
+    };
+    
+    // Apply filters
+    if (filter.eventTypes && filter.eventTypes.length > 0) {
+      const filteredEventsByType: { [key: string]: number } = {};
+      filter.eventTypes.forEach(type => {
+        if (analytics.eventsByType[type]) {
+          filteredEventsByType[type] = analytics.eventsByType[type];
+        }
+      });
+      filteredData.eventsByType = filteredEventsByType;
+    }
+    
+    if (filter.users && filter.users.length > 0) {
+      filteredData.topUsers = analytics.topUsers.filter(user => 
+        filter.users!.includes(user.name)
+      );
+    }
+    
+    if (filter.projects && filter.projects.length > 0) {
+      filteredData.topProjects = analytics.topProjects.filter(project => 
+        filter.projects!.includes(project.name)
+      );
+    }
+    
+    return [filteredData];
+  }
+
+  /**
+   * Reset webhook analytics
+   */
+  resetWebhookAnalytics(): void {
+    this.webhookAnalytics = {
+      totalEvents: 0,
+      eventsByType: {},
+      eventsByHour: {},
+      eventsByDay: {},
+      processingTimes: [],
+      errors: 0,
+      lastEventTime: '',
+      userActivity: {},
+      projectActivity: {}
+    };
+  }
+
+  /**
+   * Get webhook health status
+   */
+  getWebhookHealth(): any {
+    const analytics = this.getWebhookAnalytics();
+    const now = new Date();
+    const lastEventTime = new Date(analytics.lastEventTime);
+    const timeSinceLastEvent = now.getTime() - lastEventTime.getTime();
+    const hoursSinceLastEvent = timeSinceLastEvent / (1000 * 60 * 60);
+    
+    let status = 'healthy';
+    let issues: string[] = [];
+    let recommendations: string[] = [];
+    
+    // Check if webhooks are enabled
+    if (!this.config.enableWebhooks) {
+      status = 'disabled';
+      issues.push('Webhooks are disabled');
+      recommendations.push('Enable webhooks in configuration');
+    }
+    
+    // Check error rate
+    if (analytics.errorRate > 10) {
+      status = 'warning';
+      issues.push(`High error rate: ${analytics.errorRate}%`);
+      recommendations.push('Investigate webhook processing errors');
+    }
+    
+    // Check if no recent events
+    if (analytics.totalEvents > 0 && hoursSinceLastEvent > 24) {
+      status = 'warning';
+      issues.push(`No events received in ${Math.round(hoursSinceLastEvent)} hours`);
+      recommendations.push('Check GitLab webhook configuration');
+    }
+    
+    // Check processing time
+    if (analytics.averageProcessingTime > 1000) {
+      status = 'warning';
+      issues.push(`Slow processing: ${analytics.averageProcessingTime}ms average`);
+      recommendations.push('Optimize webhook processing performance');
+    }
+    
+    return {
+      status,
+      issues,
+      recommendations,
+      metrics: {
+        totalEvents: analytics.totalEvents,
+        successRate: analytics.successRate,
+        errorRate: analytics.errorRate,
+        averageProcessingTime: analytics.averageProcessingTime,
+        hoursSinceLastEvent: Math.round(hoursSinceLastEvent * 100) / 100
+      }
     };
   }
 }
