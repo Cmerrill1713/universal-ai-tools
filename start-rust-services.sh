@@ -70,17 +70,17 @@ mkdir -p logs
 print_status "🚀 Starting Universal AI Tools Services..."
 
 # Check if services are already built
-if [ ! -f "rust-services/mlx-service/target/release/mlx-server" ]; then
+if [ ! -f "rust-services/mlx-rust-service/target/release/mlx-server" ]; then
     print_error "MLX Service not built. Run ./build-rust-services.sh first"
     exit 1
 fi
 
-if [ ! -f "rust-services/dspy-orchestrator/target/release/dspy-server" ]; then
+if [ ! -f "rust-services/dspy-rust-service/target/release/dspy-server" ]; then
     print_error "DSPy Orchestrator not built. Run ./build-rust-services.sh first"
     exit 1
 fi
 
-if [ ! -f "rust-services/vision-service/target/release/vision-server" ]; then
+if [ ! -f "rust-services/vision-rust-service/target/release/vision-server" ]; then
     print_error "Vision Service not built. Run ./build-rust-services.sh first"
     exit 1
 fi
@@ -91,9 +91,9 @@ if [ ! -f "go-services/api-gateway/api-gateway" ]; then
 fi
 
 # Start services in order
-start_service "MLX Service" 8001 "./rust-services/mlx-service/target/release/mlx-server"
-start_service "DSPy Orchestrator" 8002 "./rust-services/dspy-orchestrator/target/release/dspy-server"
-start_service "Vision Service" 8003 "./rust-services/vision-service/target/release/vision-server"
+start_service "MLX Service" 8001 "./rust-services/mlx-rust-service/target/release/mlx-server"
+start_service "DSPy Orchestrator" 8002 "./rust-services/dspy-rust-service/target/release/dspy-server"
+start_service "Vision Service" 8003 "./rust-services/vision-rust-service/target/release/vision-server"
 start_service "API Gateway" 9999 "./go-services/api-gateway/api-gateway"
 
 echo ""

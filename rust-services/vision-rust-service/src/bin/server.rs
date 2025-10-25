@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use vision_service::*;
+use vision_rust_service::*;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;

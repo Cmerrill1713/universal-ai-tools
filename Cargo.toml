@@ -23,6 +23,9 @@ members = [
     "crates/chat-action-detector",
     # "crates/monitoring-system",  # Temporarily disabled - missing module implementations
     # "crates/testing-framework"  # Temporarily disabled - missing module implementations
+    "rust-services/mlx-rust-service",
+    "rust-services/dspy-rust-service", 
+    "rust-services/vision-rust-service"
 ]
 
 # Temporarily quarantine crates with known compile errors in this sweep

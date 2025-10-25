@@ -1,5 +1,5 @@
 [package]
-name = "mlx-service"
+name = "mlx-rust-service"
 version = "0.1.0"
 edition = "2021"
 
@@ -19,11 +19,9 @@ chrono = { version = "0.4", features = ["serde"] }
 image = "0.24"
 base64 = "0.21"
 reqwest = { version = "0.11", features = ["json"] }
-pyo3 = { version = "0.20", features = ["extension-module"] }
-pyo3-asyncio = { version = "0.20", features = ["tokio-runtime"] }
 
 [lib]
-name = "mlx_service"
+name = "mlx_rust_service"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]

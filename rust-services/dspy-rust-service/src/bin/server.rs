@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use dspy_orchestrator::*;
+use dspy_rust_service::*;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;

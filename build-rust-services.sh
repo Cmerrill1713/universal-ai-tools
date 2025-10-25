@@ -51,7 +51,7 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 print_status "Building Rust MLX Service..."
-cd rust-services/mlx-service
+cd rust-services/mlx-rust-service
 cargo build --release
 if [ $? -eq 0 ]; then
     print_success "MLX Service built successfully"
@@ -62,7 +62,7 @@ fi
 cd ../..
 
 print_status "Building Rust DSPy Orchestrator..."
-cd rust-services/dspy-orchestrator
+cd rust-services/dspy-rust-service
 cargo build --release
 if [ $? -eq 0 ]; then
     print_success "DSPy Orchestrator built successfully"
@@ -73,7 +73,7 @@ fi
 cd ../..
 
 print_status "Building Rust Vision Service..."
-cd rust-services/vision-service
+cd rust-services/vision-rust-service
 cargo build --release
 if [ $? -eq 0 ]; then
     print_success "Vision Service built successfully"
@@ -98,9 +98,9 @@ print_success "All services built successfully! 🎉"
 
 echo ""
 echo "📋 Service Locations:"
-echo "  • MLX Service:      rust-services/mlx-service/target/release/mlx-server"
-echo "  • DSPy Orchestrator: rust-services/dspy-orchestrator/target/release/dspy-server"
-echo "  • Vision Service:   rust-services/vision-service/target/release/vision-server"
+echo "  • MLX Service:      rust-services/mlx-rust-service/target/release/mlx-server"
+echo "  • DSPy Orchestrator: rust-services/dspy-rust-service/target/release/dspy-server"
+echo "  • Vision Service:   rust-services/vision-rust-service/target/release/vision-server"
 echo "  • API Gateway:      go-services/api-gateway/api-gateway"
 echo ""
 
@@ -110,13 +110,13 @@ echo ""
 
 echo "🔧 To run individual services:"
 echo "  # MLX Service (Port 8001)"
-echo "  ./rust-services/mlx-service/target/release/mlx-server"
+echo "  ./rust-services/mlx-rust-service/target/release/mlx-server"
 echo ""
 echo "  # DSPy Orchestrator (Port 8002)"
-echo "  ./rust-services/dspy-orchestrator/target/release/dspy-server"
+echo "  ./rust-services/dspy-rust-service/target/release/dspy-server"
 echo ""
 echo "  # Vision Service (Port 8003)"
-echo "  ./rust-services/vision-service/target/release/vision-server"
+echo "  ./rust-services/vision-rust-service/target/release/vision-server"
 echo ""
 echo "  # API Gateway (Port 9999)"
 echo "  ./go-services/api-gateway/api-gateway"

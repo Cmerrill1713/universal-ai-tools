@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post, delete},
     Router,
 };
-use mlx_service::*;
+use mlx_rust_service::*;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
