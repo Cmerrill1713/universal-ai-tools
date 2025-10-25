@@ -28,6 +28,7 @@ type ServiceRegistry struct {
 	MLXService         string `json:"mlx_service"`
 	WebSocketHub       string `json:"websocket_hub"`
 	ParameterAnalytics string `json:"parameter_analytics"`
+	DSPyService        string `json:"dspy_service"`
 }
 
 // HealthResponse represents the health check response
@@ -49,10 +50,11 @@ var (
 		ChatService:        "http://localhost:8016",
 		MemoryService:      "http://localhost:8017",
 		LLMRouter:          "http://localhost:3033",
-		VisionService:      "http://localhost:8084",
-		MLXService:         "http://localhost:8001",
+		VisionService:      "http://localhost:8003", // Rust Vision Service
+		MLXService:         "http://localhost:8001", // Rust MLX Service
 		WebSocketHub:       "http://localhost:8082",
 		ParameterAnalytics: "http://localhost:8019",
+		DSPyService:        "http://localhost:8002", // Rust DSPy Service
 	}
 
     proxies  = make(map[string]*ProxyConfig)
@@ -91,6 +93,7 @@ func initProxies() {
         "llm":        getEnvOrDefault("LLM_ROUTER_URL", serviceRegistry.LLMRouter),
         "vision":     getEnvOrDefault("VISION_SERVICE_URL", serviceRegistry.VisionService),
         "mlx":        getEnvOrDefault("MLX_SERVICE_URL", serviceRegistry.MLXService),
+        "dspy":       getEnvOrDefault("DSPY_SERVICE_URL", serviceRegistry.DSPyService),
         "websocket":  getEnvOrDefault("WEBSOCKET_HUB_URL", serviceRegistry.WebSocketHub),
         "analytics":  getEnvOrDefault("PARAMETER_ANALYTICS_URL", serviceRegistry.ParameterAnalytics),
         "assistantd": getEnvOrDefault("ASSISTANTD_URL", os.Getenv("ASSISTANTD_URL")),
@@ -407,6 +410,7 @@ func main() {
     router.PathPrefix("/api/v1/llm/").HandlerFunc(proxyHandler("llm"))
     router.PathPrefix("/api/v1/vision/").HandlerFunc(proxyHandler("vision"))
     router.PathPrefix("/api/v1/mlx/").HandlerFunc(proxyHandler("mlx"))
+    router.PathPrefix("/api/v1/dspy/").HandlerFunc(proxyHandler("dspy"))
     router.PathPrefix("/api/v1/analytics/").HandlerFunc(proxyHandler("analytics"))
     router.PathPrefix("/api/v1/assistant/").HandlerFunc(proxyHandler("assistantd"))
     router.PathPrefix("/api/v1/knowledge/").HandlerFunc(proxyHandler("knowledge"))
