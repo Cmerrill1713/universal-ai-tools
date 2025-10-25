@@ -1,0 +1,225 @@
+{
+  "timestamp": "2025-10-25T18:48:12.163188",
+  "processes": {
+    "go": 5,
+    "rust": 0,
+    "nodejs": 1
+  },
+  "service_health": {
+    "go": {
+      "healthy": 3,
+      "total": 7,
+      "rate": 42.857142857142854
+    },
+    "rust": {
+      "healthy": 0,
+      "total": 6,
+      "rate": 0.0
+    },
+    "nodejs": {
+      "healthy": 0,
+      "total": 3,
+      "rate": 0.0
+    },
+    "overall": {
+      "healthy": 3,
+      "total": 16,
+      "rate": 18.75
+    }
+  },
+  "integration": {
+    "tests": [
+      [
+        "API Gateway -> Chat Service",
+        true
+      ],
+      [
+        "Load Balancer -> Services",
+        true
+      ]
+    ],
+    "success_rate": 100.0
+  },
+  "authentication": {
+    "tests": [
+      [
+        "Chat Service Auth",
+        false
+      ]
+    ],
+    "success_rate": 0.0
+  },
+  "working_services": [
+    {
+      "tech_stack": "go",
+      "service": "api-gateway",
+      "status": "healthy",
+      "response": {
+        "service": "api-gateway",
+        "status": "healthy",
+        "timestamp": "2025-10-25T18:48:12.150701743Z",
+        "services": {
+          "analytics": {
+            "status": "unhealthy",
+            "url": "http://localhost:8019"
+          },
+          "assistantd": {
+            "status": "unhealthy",
+            "url": ""
+          },
+          "chat": {
+            "status": "healthy",
+            "url": "http://localhost:8016"
+          },
+          "kcontext": {
+            "status": "unhealthy",
+            "url": "http://localhost:8083"
+          },
+          "knowledge": {
+            "status": "unhealthy",
+            "url": "http://localhost:8088"
+          },
+          "llm": {
+            "status": "unhealthy",
+            "url": "http://localhost:3033"
+          },
+          "memory": {
+            "status": "unhealthy",
+            "url": "http://localhost:8017"
+          },
+          "mlx": {
+            "status": "unhealthy",
+            "url": "http://localhost:8001"
+          },
+          "vision": {
+            "status": "unhealthy",
+            "url": "http://localhost:8084"
+          },
+          "websocket": {
+            "status": "unhealthy",
+            "url": "http://localhost:8082"
+          }
+        }
+      },
+      "port": 8081
+    },
+    {
+      "tech_stack": "go",
+      "service": "chat-service",
+      "status": "healthy",
+      "response": {
+        "providers": 1,
+        "service": "chat-service",
+        "status": "healthy",
+        "timestamp": 1761418092
+      },
+      "port": 8016
+    },
+    {
+      "tech_stack": "go",
+      "service": "load-balancer",
+      "status": "healthy",
+      "response": {
+        "healthy_services": 2,
+        "service": "load-balancer",
+        "status": "degraded",
+        "total_services": 12
+      },
+      "port": 8011
+    }
+  ],
+  "failed_services": [
+    {
+      "tech_stack": "go",
+      "service": "cache-coordinator",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8083
+    },
+    {
+      "tech_stack": "go",
+      "service": "auth-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8015
+    },
+    {
+      "tech_stack": "go",
+      "service": "memory-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8017
+    },
+    {
+      "tech_stack": "go",
+      "service": "websocket-hub",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8018
+    },
+    {
+      "tech_stack": "rust",
+      "service": "mlx-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8001
+    },
+    {
+      "tech_stack": "rust",
+      "service": "vision-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8084
+    },
+    {
+      "tech_stack": "rust",
+      "service": "llm-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 3033
+    },
+    {
+      "tech_stack": "rust",
+      "service": "analytics-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8019
+    },
+    {
+      "tech_stack": "rust",
+      "service": "vector-db-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8002
+    },
+    {
+      "tech_stack": "rust",
+      "service": "ab-mcts-service",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 8003
+    },
+    {
+      "tech_stack": "nodejs",
+      "service": "web-frontend",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 3000
+    },
+    {
+      "tech_stack": "nodejs",
+      "service": "api-server",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 5000
+    },
+    {
+      "tech_stack": "nodejs",
+      "service": "ui-tests",
+      "error": "Connection refused",
+      "status": "unhealthy",
+      "port": 3001
+    }
+  ],
+  "overall_status": "BROKEN"
+}
