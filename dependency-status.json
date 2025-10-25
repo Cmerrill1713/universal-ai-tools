@@ -1,0 +1,45 @@
+{
+  "timestamp": "2025-10-25T00:01:40.208680",
+  "python": {
+    "python_version": "Python 3.13.3",
+    "packages": {
+      "requests": "installed",
+      "fastapi": "installed",
+      "uvicorn": "installed",
+      "pydantic": "installed",
+      "sqlalchemy": "installed",
+      "psycopg2-binary": "missing",
+      "redis": "installed",
+      "numpy": "installed",
+      "pandas": "missing",
+      "scikit-learn": "missing"
+    },
+    "status": "missing_packages"
+  },
+  "node": {
+    "node_version": "v22.20.0",
+    "npm_version": "10.9.3",
+    "packages": {
+      "express": "installed",
+      "typescript": "installed",
+      "@types/node": "installed",
+      "jest": "installed",
+      "eslint": "installed",
+      "prettier": "installed",
+      "nodemon": "missing",
+      "tsx": "missing"
+    },
+    "status": "missing_packages"
+  },
+  "system": {
+    "commands": {
+      "git": "available",
+      "curl": "available",
+      "wget": "available",
+      "tar": "available",
+      "gzip": "available"
+    },
+    "status": "complete"
+  },
+  "overall_status": "incomplete"
+}

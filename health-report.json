@@ -1,0 +1,67 @@
+{
+  "timestamp": "2025-10-25T00:11:53.270670",
+  "overall_status": "healthy",
+  "services": {
+    "athena-gateway": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8080
+    },
+    "family-athena": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8081
+    },
+    "universal-ai": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 9000
+    },
+    "dspy-orchestrator": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8005
+    },
+    "mlx-service": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8006
+    },
+    "vision-service": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8007
+    },
+    "memory-service": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8008
+    },
+    "agent-service": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8009
+    },
+    "monitoring": {
+      "status": "healthy",
+      "details": "healthy",
+      "port": 8010
+    }
+  },
+  "summary": {
+    "total_services": 9,
+    "healthy_services": 9,
+    "unhealthy_services": 0,
+    "restart_attempts": {
+      "athena-gateway": 0,
+      "family-athena": 0,
+      "universal-ai": 0,
+      "dspy-orchestrator": 0,
+      "mlx-service": 0,
+      "vision-service": 0,
+      "memory-service": 0,
+      "agent-service": 0,
+      "monitoring": 0
+    }
+  }
+}
