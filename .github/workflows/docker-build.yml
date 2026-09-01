@@ -285,7 +285,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
@@ -300,7 +300,7 @@ jobs:
 
       - name: Export image for security scanning (amd64 only)
         if: contains(needs.prepare.outputs.platforms, 'linux/amd64')
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
