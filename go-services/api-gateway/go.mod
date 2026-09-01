@@ -11,4 +11,4 @@ require (
 	golang.org/x/time v0.13.0
 )
 
-require golang.org/x/net v0.17.0 // indirect
+require golang.org/x/net v0.38.0 // indirect
