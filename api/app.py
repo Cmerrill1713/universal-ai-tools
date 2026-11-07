@@ -35,10 +35,33 @@ async def error_box(req: Request, call_next):
         return await call_next(req)
     except Exception as e:
         logger.error(f"Unhandled exception: {type(e).__name__}: {e}", exc_info=True)
-        return JSONResponse(
-            {"error": type(e).__name__, "detail": str(e)},
-            status_code=500
-        )
+        
+        # Handle specific error types with appropriate status codes
+        if isinstance(e, ValueError):
+            return JSONResponse(
+                {"error": "Validation Error", "detail": str(e)},
+                status_code=422
+            )
+        elif isinstance(e, KeyError):
+            return JSONResponse(
+                {"error": "Missing Required Field", "detail": f"Missing field: {str(e)}"},
+                status_code=422
+            )
+        elif isinstance(e, AttributeError):
+            return JSONResponse(
+                {"error": "Configuration Error", "detail": f"Missing method or attribute: {str(e)}"},
+                status_code=500
+            )
+        elif isinstance(e, ConnectionError):
+            return JSONResponse(
+                {"error": "Service Unavailable", "detail": "External service is not available"},
+                status_code=503
+            )
+        else:
+            return JSONResponse(
+                {"error": "Internal Server Error", "detail": str(e)},
+                status_code=500
+            )
 
 # Include routers
 app.include_router(health.router, tags=["health"])
