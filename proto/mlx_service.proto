@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package mlx_service;
+
+// MLX Service gRPC definitions
+service MLXService {
+  rpc ProcessVision(VisionRequest) returns (VisionResponse);
+  rpc CreateFineTuningJob(FineTuningRequest) returns (FineTuningJob);
+  rpc GetJob(GetJobRequest) returns (FineTuningJob);
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse);
+  rpc CancelJob(CancelJobRequest) returns (CancelJobResponse);
+  rpc DeleteJob(DeleteJobRequest) returns (DeleteJobResponse);
+  rpc ProcessTTS(TTSRequest) returns (TTSResponse);
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+}
+
+message VisionRequest {
+  string prompt = 1;
+  optional string image_data = 2;
+  optional string image_url = 3;
+  optional int32 max_tokens = 4;
+  optional float temperature = 5;
+}
+
+message VisionResponse {
+  string response = 1;
+  string model = 2;
+  int32 tokens_used = 3;
+  double processing_time = 4;
+  map<string, string> metadata = 5;
+}
+
+message FineTuningRequest {
+  string name = 1;
+  string description = 2;
+  string base_model = 3;
+  repeated string training_data = 4;
+  FineTuningConfig config = 5;
+  string user_id = 6;
+}
+
+message FineTuningConfig {
+  int32 epochs = 1;
+  double learning_rate = 2;
+  int32 batch_size = 3;
+  double validation_split = 4;
+  string optimization = 5;
+  int32 max_length = 6;
+  int32 warmup_steps = 7;
+  double weight_decay = 8;
+  int32 gradient_accumulation_steps = 9;
+  int32 save_steps = 10;
+  int32 eval_steps = 11;
+  int32 logging_steps = 12;
+}
+
+message FineTuningJob {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string base_model = 4;
+  string status = 5;
+  double progress = 6;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+  FineTuningConfig config = 9;
+  string user_id = 10;
+}
+
+message TTSRequest {
+  string text = 1;
+  optional string voice = 2;
+  optional float speed = 3;
+  optional float pitch = 4;
+}
+
+message TTSResponse {
+  string audio_data = 1;
+  double duration = 2;
+  int32 sample_rate = 3;
+  string format = 4;
+}
+
+message GetJobRequest {
+  string job_id = 1;
+}
+
+message ListJobsRequest {
+  optional string user_id = 1;
+}
+
+message ListJobsResponse {
+  repeated FineTuningJob jobs = 1;
+}
+
+message CancelJobRequest {
+  string job_id = 1;
+}
+
+message CancelJobResponse {
+  bool success = 1;
+}
+
+message DeleteJobRequest {
+  string job_id = 1;
+}
+
+message DeleteJobResponse {
+  bool success = 1;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  map<string, string> details = 2;
+}

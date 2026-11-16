@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package vision_service;
+
+// Vision Service gRPC definitions
+service VisionService {
+  rpc ProcessImage(VisionRequest) returns (VisionResponse);
+  rpc PerformOCR(OCRRequest) returns (OCRResponse);
+  rpc AnalyzeImage(ImageAnalysisRequest) returns (ImageAnalysisResponse);
+  rpc GetProcessingJob(GetProcessingJobRequest) returns (VisionResponse);
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+}
+
+message VisionRequest {
+  optional string image_data = 1;
+  optional string image_url = 2;
+  string operation = 3;
+  map<string, string> parameters = 4;
+  string user_id = 5;
+}
+
+message VisionResponse {
+  bool success = 1;
+  optional string result = 2;
+  map<string, string> metadata = 3;
+  double processing_time = 4;
+  optional string error = 5;
+}
+
+message OCRRequest {
+  optional string image_data = 1;
+  optional string image_url = 2;
+  optional string language = 3;
+  string user_id = 4;
+}
+
+message OCRResponse {
+  string text = 1;
+  double confidence = 2;
+  repeated BoundingBox bounding_boxes = 3;
+  double processing_time = 4;
+}
+
+message BoundingBox {
+  double x = 1;
+  double y = 2;
+  double width = 3;
+  double height = 4;
+  string text = 5;
+  double confidence = 6;
+}
+
+message ImageAnalysisRequest {
+  optional string image_data = 1;
+  optional string image_url = 2;
+  string analysis_type = 3;
+  string user_id = 4;
+}
+
+message ImageAnalysisResponse {
+  string analysis = 1;
+  double confidence = 2;
+  double processing_time = 3;
+}
+
+message GetProcessingJobRequest {
+  string job_id = 1;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  map<string, string> details = 2;
+}
