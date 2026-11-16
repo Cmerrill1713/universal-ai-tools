@@ -1,0 +1,207 @@
+version: '3.8'
+
+name: universal-ai-tools
+
+services:
+  # Main Universal AI Tools Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: universal-ai-tools-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9999:9999"
+    environment:
+      # Server Configuration
+      - NODE_ENV=production
+      - PORT=9999
+      - HOST=0.0.0.0
+      
+      # Database Configuration
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/universal_ai_tools
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      
+      # Redis Configuration
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      
+      # Security
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-}
+      
+      # AI Services
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
+      
+      # Local LLM Services
+      - OLLAMA_URL=http://ollama:11434
+      - LM_STUDIO_URL=${LM_STUDIO_URL:-http://host.docker.internal:1234}
+      
+      # Feature Flags
+      - ENABLE_WEBSOCKETS=true
+      - ENABLE_MEMORY_SYSTEM=true
+      - ENABLE_ANTI_HALLUCINATION=true
+      - ENABLE_COGNITIVE_AGENTS=true
+      
+      # Performance Settings
+      - MAX_CONCURRENT_REQUESTS=50
+      - REQUEST_TIMEOUT=120000
+      - MEMORY_CACHE_SIZE=5000
+      
+      # Monitoring
+      - ENABLE_TELEMETRY=true
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+      - ./data:/app/data
+      - model_cache:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: universal-ai-tools-postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=universal_ai_tools
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --locale=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Rate Limiting
+  redis:
+    image: redis:7-alpine
+    container_name: universal-ai-tools-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama for Local LLM Inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: universal-ai-tools-ollama
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_NUM_PARALLEL=4
+      - OLLAMA_MAX_LOADED_MODELS=3
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - ai-network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+    # Automatically pull popular models on startup
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        ollama serve &
+        sleep 10
+        echo "Pulling popular models..."
+        ollama pull llama3.2:3b || true
+        ollama pull qwen2.5:3b || true
+        ollama pull phi3:mini || true
+        wait
+
+  # Python API Service
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python-api
+    container_name: universal-ai-tools-python-api
+    ports:
+      - "127.0.0.1:8888:8000"
+    environment:
+      - PYTHONPATH=/app/src:/app:/app/api
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./api:/app/api
+      - ./src:/app/src
+      - ./sitecustomize.py:/app/sitecustomize.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - ai-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_models:
+    driver: local
+  model_cache:
+    driver: local
+
+networks:
+  ai-network:
+    driver: bridge
